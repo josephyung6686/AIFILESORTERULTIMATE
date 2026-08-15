@@ -226,16 +226,42 @@ no embedding. Resolves duplicates and photo grouping outright.
 
 ### Tier 2 — embeddings (all files)
 
-Normalised filename plus, where cheap, a content peek: first ~2 KB of text files, page 1 of
-PDFs, archive manifest listings.
+Normalised filename **plus a content peek by default**: first ~2 KB of text files, page 1 of
+PDFs, archive manifest listings, document title/author metadata.
 
-- **Model: `multilingual-e5-small`** (384-dim). English-only models are a **correctness bug**
-  here, not a quality preference — they tokenise the 55 CJK filenames to `[UNK]` fragments, so
-  those files cluster together *because they are unrepresented*, and the labeller names that
-  false cluster plausibly.
-- **Drive `tokenizers` + `onnxruntime` directly with dynamic padding.** fastembed pads every
-  input to a fixed length — measured **19× penalty** on short strings (140 texts/s vs 38–55).
-- Use the `passage: ` prefix consistently.
+**Model: a multilingual static embedder (Model2Vec class, e.g. `potion-multilingual-128M`,
+256-dim), with `multilingual-e5-small` (384-dim) as the quality fallback.**
+
+Measured on the real corpus, filename-only, apples to apples:
+
+| | neural (`paraphrase-multilingual-MiniLM-L12-v2`) | static (`potion-multilingual-128M`) |
+|---|---|---|
+| Encode 1,993 files | 164 s (12/s) | **0.118 s (16,891/s)** |
+| Whole warm pipeline | 166 s | **0.72 s** |
+| Communities | 284 | 233 |
+| Largest community | 73 | 94 *(blobbier — worse)* |
+| Singletons | 6.1% | 5.8% |
+
+**230× faster and modestly worse at clustering.** The right conclusion is not "pick the fast
+one" — it is that **embedding is no longer a budget line at all**, so the budget should be spent
+on richer *input text* rather than a better *embedder*. Content peek moves from optional to
+default on that basis, and it attacks the grab-bag clusters directly, since those exist precisely
+because filenames carry no signal.
+
+Static embedding also removes most of the daemon's justification for Tier 2 specifically —
+though the daemon is still required for graph and index residency.
+
+**Non-negotiable regardless of model: it must be multilingual.** English-only models are a
+**correctness bug** here, not a quality preference — they tokenise the 55 CJK filenames to
+`[UNK]` fragments, so those files cluster together *because they are unrepresented*, and the
+labeller names that false cluster plausibly.
+
+If the neural fallback is used: drive `tokenizers` + `onnxruntime` directly with dynamic
+padding (fastembed pads to fixed length — measured **19× penalty** on short strings, 140 texts/s
+vs 38–55), and use the `passage: ` prefix consistently.
+
+**Phase 2 must A/B both embedders through the Phase 0 scorer before committing.** The quality
+gap above is eyeballed from cluster contents, not scored.
 
 ### Tier 3 — deep extraction (escalated ~10% only)
 
@@ -433,8 +459,8 @@ after placement quality is proven.
 1. **Project name.** `filegraph` is a placeholder.
 2. **Concept-node extraction depth.** Cheap signals only is locked; whether document *titles* and
    *authors* count as cheap depends on extraction cost per format — measure in Phase 1.
-3. **Static embeddings.** A Model2Vec-class multilingual static model could remove the embedding
-   cost entirely (claimed 100–500× faster). Benchmark was still running when this was written;
-   if quality holds on short filenames it changes Tier 2's implementation, not its design.
+3. ~~Static embeddings.~~ **Resolved** — measured 230× faster on the real corpus and modestly
+   worse at clustering. Folded into Tier 2: static embedder by default, content peek promoted to
+   default with the savings, both embedders A/B'd through the Phase 0 scorer before committing.
 4. **Cloud/local/hybrid mode selection and the ETA estimator.** Required by the product brief,
    not yet designed. Needs a per-device calibration run.
