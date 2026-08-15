@@ -78,7 +78,7 @@ and 73% of the remainder is served by EXIF at zero cost. Tier by what the file n
 | Graph role | **Persists; disk layout is a projection of it.** Re-render the tree with no new model calls |
 | Source of truth | **The filesystem.** Graph is a rebuildable derived cache, never the system of record |
 | Scale | Ship for one folder (~2k); pick structures that survive 100k |
-| Interface | **CLI engine + thin local web UI**, both talking to a resident daemon |
+| Interface | **CLI engine + thin local web UI** over a shared library. Daemon only if Phase 4 measurement justifies it |
 | Nodes | **Files + concepts**, correlated, both used for grouping |
 | Existing folders | **Learn from them** as ground truth; do not propose reorgs of curated trees |
 | Placement policy | **Per-folder: auto / suggest / off.** Graph ingest is always on |
@@ -116,17 +116,33 @@ and 73% of the remainder is served by EXIF at zero cost. Tier by what the file n
    new file ──▶ embed(1) ──▶ kNN ──▶ inherit placement   [~10–20 ms]
 ```
 
-### Why a daemon is not optional
+### The daemon is an optimisation, not a requirement — decide in Phase 4
 
-| | per new file |
-|---|---|
-| Warm process | **10–20 ms** → 50–100 files/sec |
-| Cold process (imports + ONNX session init) | **2.3–12.8 s** → 0.1–0.4 files/sec |
+An earlier draft of this spec called a resident daemon architecturally mandatory. **That was
+true of a stack we are no longer building**, and it is recorded here because the reasoning is
+instructive.
 
-Cold start dominates the actual work by 100–1000×. A one-shot CLI would spend longer importing
-`onnxruntime` than a small local model takes to answer, and the entire architectural advantage
-evaporates. The CLI and web UI are clients; the daemon holds the model session, the graph, and
-the index.
+The argument rested on two costs that the component choices above eliminated:
+
+| Cost | With the rejected stack | With the chosen stack |
+|---|---|---|
+| Model session init | `onnxruntime` **2.3–12.8 s** | `model2vec` import 0.46 s + vendored model load ≈ **0.6–2.8 s** |
+| Loading the graph | parse node-link JSON **410 ms** (graphify measured 8.4 s on a 44 MB graph) | SQLite open + targeted lookup **1.6 ms** |
+| Single-file kNN | — | **9.8 ms** brute force at 100k, no index |
+
+A one-shot CLI invocation now costs roughly **0.6–2.8 s** end to end, essentially all of it
+fixed startup. For batch operations that is irrelevant. For per-file watch-mode it is wasteful
+but not disqualifying.
+
+**Therefore: build the engine as a library with a one-shot CLI on top. Add the daemon in Phase 4
+only if watch-mode measurement justifies it.** This is also the safer product position — the
+prior-art record is unambiguous that a background process moving a user's files is what people
+uninstall over, and a tool that only runs when invoked is easier to trust.
+
+The lesson worth keeping: **cold start, not compute, is the dominant cost in a CLI that exits
+between runs.** Any dependency added later must be measured on import time, not just throughput.
+`sentence-transformers` costs 9.75 s on import alone; `lancedb` 2.0 s; `chromadb` 1.1 s. Those
+are the numbers that would resurrect the daemon requirement.
 
 ---
 
@@ -520,8 +536,9 @@ against Phase 1.
 **Phase 3 — placement and safety.** Escalation rule, plan/review/apply/undo, per-folder policy,
 protected zones.
 
-**Phase 4 — daemon and incremental ingest.** Resident process, persisted index, new-file
-attachment at ~10–20 ms.
+**Phase 4 — incremental ingest.** New-file attachment via frozen-label kNN vote. Measure
+one-shot CLI cold start against watch-mode need; **add a resident daemon only if the measurement
+justifies it**, not by default.
 
 **Phase 5 — web UI.** Preview, streaming results, the graph view, AMBIGUOUS confirm/reject,
 ETA before analysis begins.
