@@ -226,42 +226,66 @@ no embedding. Resolves duplicates and photo grouping outright.
 
 ### Tier 2 — embeddings (all files)
 
+#### 2a. Normalise the filename first — the highest-leverage step in the entire pipeline
+
+This outranks every model choice. Measured end-to-end cluster purity on a multilingual corpus:
+
+| Input | Purity | Cross-lingual acc@1 |
+|---|---|---|
+| Raw filename (`年度報告書(1)_2024_0.xlsx`) | **0.328** | 0.15 |
+| Cleaned (`年度報告書`) | **1.00** | 0.725 |
+
+```python
+s = re.sub(r'\.[A-Za-z0-9]{1,5}$', '', s)                               # extension
+s = re.sub(r'(?i)[_\-\s]*(v\d+|final|old|copy|draft|最終|副本)', '', s)   # version markers
+s = re.sub(r'\d', '', s)                                                # dates / digits
+s = re.sub(r'[_\-\(\)\.]+', ' ', s).strip()                             # separators
+```
+
+Dates and version markers are a large fraction of the tokens in a short filename, so they average
+into the vector and swamp the two words that carry meaning.
+
+**Keep the original filename** — for display, and because `_v2`/`_final` is precisely how
+Tier 1 detects `version_of`. Normalise only what is fed to the embedder.
+
+#### 2b. Input text
+
 Normalised filename **plus a content peek by default**: first ~2 KB of text files, page 1 of
 PDFs, archive manifest listings, document title/author metadata.
 
-**Model: a multilingual static embedder (Model2Vec class, e.g. `potion-multilingual-128M`,
-256-dim), with `multilingual-e5-small` (384-dim) as the quality fallback.**
+#### 2c. Model — multilingual static embedder, shipped in-tree
 
-Measured on the real corpus, filename-only, apples to apples:
+**`minishlab/potion-multilingual-128M`** (MIT, 101 languages), quantised
+`int8 / dimensionality=128`. `save_pretrained` produces **~50 MB** — vendored in the repo, so
+there is no download and no network dependency at first run.
 
-| | neural (`paraphrase-multilingual-MiniLM-L12-v2`) | static (`potion-multilingual-128M`) |
-|---|---|---|
-| Encode 1,993 files | 164 s (12/s) | **0.118 s (16,891/s)** |
-| Whole warm pipeline | 166 s | **0.72 s** |
-| Communities | 284 | 233 |
-| Largest community | 73 | 94 *(blobbier — worse)* |
-| Singletons | 6.1% | 5.8% |
+Measured head-to-head, same pipeline, cleaned input:
 
-**230× faster and modestly worse at clustering.** The right conclusion is not "pick the fast
-one" — it is that **embedding is no longer a budget line at all**, so the budget should be spent
-on richer *input text* rather than a better *embedder*. Content peek moves from optional to
-default on that basis, and it attacks the grab-bag clusters directly, since those exist precisely
-because filenames carry no signal.
+| Model | Size | Throughput | Cluster purity |
+|---|---|---|---|
+| **potion int8/d128** | **64 MB** | **27,467/s** | **1.00** |
+| potion fp32/d256 | 512 MB | 14,643/s | 1.00 |
+| MiniLM-L12 multilingual | 220 MB | 87/s | 1.00 |
 
-Static embedding also removes most of the daemon's justification for Tier 2 specifically —
-though the daemon is still required for graph and index residency.
+**315× faster at identical clustering outcome.** 100k files embed in **~3.6 seconds**.
+
+The transformer is genuinely better at raw cross-lingual *retrieval* (ZH→EN acc@1 0.85 vs 0.625),
+but that advantage does not survive into the clustering result, which is what we ship.
 
 **Non-negotiable regardless of model: it must be multilingual.** English-only models are a
 **correctness bug** here, not a quality preference — they tokenise the 55 CJK filenames to
 `[UNK]` fragments, so those files cluster together *because they are unrepresented*, and the
 labeller names that false cluster plausibly.
 
-If the neural fallback is used: drive `tokenizers` + `onnxruntime` directly with dynamic
-padding (fastembed pads to fixed length — measured **19× penalty** on short strings, 140 texts/s
-vs 38–55), and use the `passage: ` prefix consistently.
+Rejected: `sentence-transformers` (**9.75 s import**, disqualifying for a CLI);
+fastembed's `multilingual-e5-small` (not offered — only MiniLM-L12 and e5-large at 2.24 GB).
 
-**Phase 2 must A/B both embedders through the Phase 0 scorer before committing.** The quality
-gap above is eyeballed from cluster contents, not scored.
+**Because embedding is now effectively free, spend the budget on richer input text rather than a
+better embedder.** That is why content peek is a default rather than an option — and it attacks
+the grab-bag clusters directly, since those exist precisely because filenames carry no signal.
+
+**Phase 2 must still A/B both embedders through the Phase 0 scorer before committing.** Purity on
+a synthetic multilingual corpus is not the same as ARI on the user's real files.
 
 ### Tier 3 — deep extraction (escalated ~10% only)
 
@@ -308,20 +332,72 @@ communities. We keep what it throws away:
 
 ## Taxonomy is frozen after first labeling
 
-Measured: adding 50 files to 300 churns **~28% of Leiden's existing assignments**
-(ARI 0.715, consistent across 5 trials, min 0.685). If clusters are folders and we re-cluster on
-every change, files re-file themselves constantly. That alone would make the product unusable.
+Measured two ways, independently. Adding 50 files to 300 churns **~28% of Leiden's assignments**
+(ARI 0.715 across 5 trials). On 2,000 files + 40 new, cold re-clustering moved **350 of 2,000
+files into different folders**. If clusters are folders and we re-cluster on every change, files
+re-file themselves constantly. That alone would make the product unusable.
+
+| Strategy | Churn on existing files |
+|---|---|
+| Cold rerun *(naive)* | **17.5%** — 350 of 2,000 files change folder |
+| Warm start (`initial_membership`) | 2.8% |
+| **Frozen labels** | **0.0%** — and all 40 new files still placed correctly |
 
 **Therefore:**
 
 1. Cluster and label **once** to establish the taxonomy.
-2. Persist labels, centroids, and member signatures.
-3. Assign new files by **kNN vote into the frozen set** — an O(1) query, no re-partition.
-4. Re-cluster **only** on an explicit user-triggered reorganise.
+2. Persist `file_id → community_id` plus a stable human name and member signature. **Community
+   IDs are ours forever — never let the algorithm renumber them.**
+3. Assign new files by **similarity-weighted majority vote of their k nearest already-assigned
+   neighbours** — label propagation with frozen labels, ~15 lines of numpy given the kNN we
+   already have. No re-partition.
+4. Below the confidence threshold, hold the file in a review bucket rather than guessing.
+5. Accumulate unassigned and low-confidence files. **Only when that pool exceeds ~10% of the
+   corpus**, offer an explicit opt-in reorganise that re-runs full clustering warm-started from
+   current assignments — shown as a reviewable diff.
+6. **Fixed RNG seed everywhere.** A meaningful share of the measured 17.5% is pure RNG, free to
+   eliminate.
+
+This makes stickiness a **product guarantee, not an algorithmic hope**: existing folders are
+immutable unless the user asks for a reorganise.
+
+**Licensing note.** `leidenalg` supports true freezing natively via `is_membership_fixed`
+(measured 0.0% churn) but is **GPL-3.0**, which would force GPL on the whole tool. We use
+**`graspologic-native` (MIT, 0.7 MB wheel)** and implement freezing in the ~30 lines above.
+Warm start alone also degrades gracefully — repeated rescans measured 5.5% → 1.0% → 2.2% → 0.2%
+churn — so this is a safe fallback, not a cliff.
 
 This also makes incremental ingest trivial: single-file kNN is 0.79 ms at 20k vectors and
-9.8 ms brute-force even at 100k. **Per-file queries need no ANN index at all.** hnswlib is
-needed only for the initial bulk graph build, above ~20k vectors.
+9.8 ms brute-force even at 100k. **Per-file queries need no ANN index at all.**
+
+An ANN index is only relevant to the initial bulk graph build above ~20k vectors — and
+**`hnswlib` ships no arm64 wheel** (compiles from source in 281 s, requires Xcode CLT), so it is
+disqualified as a default dependency. Chunked brute-force numpy covers the target scale; revisit
+only if a real corpus exceeds ~50k files.
+
+---
+
+## Component stack
+
+| Purpose | Pick | Why | License |
+|---|---|---|---|
+| **Filename normalisation** | 4-line regex | purity 0.328 → **1.00**. Highest-leverage step in the pipeline | — |
+| Embeddings | `model2vec` + `potion-multilingual-128M` int8/d128, vendored | **27,467/s**, 101 languages, no torch, no download | MIT |
+| Community detection | `graspologic-native` + ~30-line freeze layer | `hierarchical_leiden`, 0.7 MB wheel, py3.9–3.13 | MIT |
+| Graph build | numpy chunked mutual-kNN | 0.13 s at 2k, measured | — |
+| Vector storage | numpy `.npy` | 2k × 128 dims = 1 MB. A vector DB is pure overhead here | — |
+| **Graph persistence** | **SQLite** | open + targeted lookup **1.6 ms** vs **410 ms** to parse equivalent JSON | public domain |
+| PDF text | `pypdfium2` | comparable to PyMuPDF and **not AGPL** | BSD-3/Apache-2.0 |
+| Photo near-dup | `imagehash` | pHash/dHash | BSD-2 |
+| Doc near-dup | `datasketch` MinHash-LSH | | MIT |
+
+Budget: **~120 MB installed, ~0.6 s CLI cold start, 100k files embedded in under 4 seconds.**
+
+**Rejected with cause:** `PyMuPDF` (AGPL-3.0 or paid) · `leidenalg` / `python-igraph` (GPL) ·
+`graspologic` full (514 MB, 16.3 s import, caps at py<3.13 — use `graspologic-native`) ·
+`hnswlib` (no arm64 wheel) · `sentence-transformers` (9.75 s import) · `lancedb` (2.0 s import) ·
+`chromadb` (1.1 s import) · `kuzu` (archived 2025-10-10) · NetworkX `leiden_communities`
+(dispatch-only stub, raises `NotImplementedError`) · `rustworkx` (no community detection at all).
 
 ---
 
@@ -385,7 +461,8 @@ document measures speed and tree shape. **None of them measure whether the place
 
 | Source | What we take |
 |---|---|
-| **graphify** | Two-level dirty detection; per-tier independent cache invalidation; unversioned cache for the paid tier; provenance + discrete confidence on every edge; hyperedges for "these N form one group"; MinHash+LSH near-duplicate detection (no scipy); hub-exclusion + majority-vote reattachment; community member signatures; determinism discipline; node-link JSON serialisation; trigram+IDF lexical prefilter |
+| **graphify** | Two-level dirty detection; per-tier independent cache invalidation; unversioned cache for the paid tier; provenance + discrete confidence on every edge; hyperedges for "these N form one group"; MinHash+LSH near-duplicate detection (no scipy); hub-exclusion + majority-vote reattachment; community member signatures; determinism discipline; trigram+IDF lexical prefilter. **Not** its node-link JSON persistence — SQLite is 1.6 ms vs 410 ms for the equivalent parse |
+| **`organize`** (MIT) | The safe-move layer: conflict resolution, dry-run. Worth reading before writing our own |
 | **AI File Sorter** | Product loop shape: preview → approve → undo. Categorisation cache. *(Clean-room only — AGPL-3.0.)* |
 | **Google Drive "Organize My Files"** | The shipped review UX: suggest → per-item checkboxes → edit destination inline → approve batch |
 | **CMU Connections (SOSP '05)** | Co-access/temporal edges: no model, no embeddings, measurably better retrieval at <1% index size |
@@ -464,3 +541,20 @@ after placement quality is proven.
    default with the savings, both embedders A/B'd through the Phase 0 scorer before committing.
 4. **Cloud/local/hybrid mode selection and the ETA estimator.** Required by the product brief,
    not yet designed. Needs a per-device calibration run.
+
+5. **Cross-language grouping — needs a product decision before Phase 2.** After normalisation,
+   files about the same concept in different languages land in **separate communities**:
+   `invoice` / `請求書` / `发票` becomes three folders, not one. Pairwise similarity between them
+   is high (0.85–0.91), but mutual-kNN with k=10 connects a Japanese file to its ten nearest
+   Japanese files long before it reaches the English twin. Measured: 121 communities for 40
+   ground-truth topics ≈ 40 × 3 languages, at purity 1.00 — every community is *pure*, there are
+   simply three per concept. Options: accept language-separated subfolders (arguably correct for
+   a real person's files), add explicit top-1 cross-language edges, or raise k. **This is
+   invisible in pairwise-similarity testing and only appears end-to-end.**
+
+6. **Contradictory measurement to resolve in Phase 2.** One agent measured fastembed padding
+   every input to a fixed length (**19× penalty**, 512 three-token strings costing the same as
+   512 360-token strings); another measured throughput tracking real token count (48/s at
+   ~10 tokens vs 7/s at ~500), concluding no padding waste. Both cannot be right. It does not
+   block the design — the static embedder makes it moot — but it must be settled before any
+   neural fallback is used, and it is a reminder that a single benchmark run is not evidence.
