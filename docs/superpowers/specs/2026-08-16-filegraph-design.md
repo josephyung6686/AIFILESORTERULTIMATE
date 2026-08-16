@@ -179,9 +179,14 @@ it is the single most valuable thing in graphify's design.
 
 | Tier | Score | Relations | Evidence |
 |---|---|---|---|
-| **EXTRACTED** | 1.0 | `duplicate_of`, `version_of`, `in_folder`, `same_session_as`, `references`, `attachment_of` | Content hash equality, `(n)` suffix + hash, directory containment, mtime window, in-document URL/citation, EXIF |
-| **INFERRED** | 0.5 | `near_duplicate_of`, `same_project_as`, `shares_entity_with` | MinHash/LSH, pHash, shared concept node, shared metadata author |
-| **AMBIGUOUS** | 0.2 | `similar_to` | Embedding cosine — **and nothing else** |
+| **EXTRACTED** | 1.0 | `duplicate_of`, `version_of`, `in_folder`, `same_session_as`, `references`, `attachment_of`, **`shares_code`**, **`same_author`**, **`same_event`** | Content hash equality; `(n)` suffix + hash; directory containment; mtime window; **in-document citation/DOI/URL**; **identical course or ID code extracted from both bodies** (`CC1010.628`); **identical document author**; **same camera + same day + same GPS** |
+| **INFERRED** | 0.5 | `near_duplicate_of`, `same_project_as`, `shares_entity_with` | MinHash/LSH on extracted text, pHash on images, shared concept node, shared client/organisation name |
+| **AMBIGUOUS** | 0.2 | `similar_to` | Embedding cosine over extracted content — **and nothing else** |
+
+The strongest edges now come from **content**, not from the filesystem. `shares_code`,
+`same_author` and `references` are the direct analogue of graphify's `imports_from`: two files
+independently yield the same string from their own bodies, so the edge is an identity match, not
+a similarity score.
 
 Confidence scores are **discrete**, drawn from a fixed rubric. `0.5` is never a default for an
 unknown — models collapse continuous ranges into a binary when allowed to.
@@ -234,15 +239,88 @@ Copied verbatim from graphify, the best thing in its codebase:
    changes the invalidation policy. Namespace it by prompt fingerprint so a prompt edit doesn't
    replay stale results.
 
-### Tier 1 — free signals (all files)
+### Tier 1 — filesystem facts (all files)
 
 Name, extension, MIME, size, mtime/ctime, directory position, content hash, `(n)` duplicate
-detection, EXIF for images, embedded document metadata (title, author, created-by). No model,
-no embedding. Resolves duplicates and photo grouping outright.
+detection. No model, no parsing. Resolves exact and near duplicates outright.
 
-### Tier 2 — embeddings (all files)
+### Tier 1.5 — CONTENT FACT EXTRACTION (all files) — the core of the design
 
-#### 2a. Normalise the filename first — the highest-leverage step in the entire pipeline
+**This is our equivalent of graphify's AST pass, and it is not optional.** graphify is accurate
+because it *parses* files and extracts declared facts; it never infers a relationship from a
+name. A folder of documents has no import statements, so we manufacture the declared-structure
+layer by reading each file with a type-specific extractor.
+
+Measured on the real corpus:
+
+| Type | ms/file | Corpus cost | Facts extracted |
+|---|---|---|---|
+| PDF | **30.9** | 811 files → 25 s | Title, author, producer, dates, first-page text, headings, DOIs, course/ID codes |
+| DOCX | **12.5** | 331 → 4 s | Core properties (author, company, title), headings, body text |
+| PNG | 14.7 | 128 → 2 s | Dimensions, EXIF, screenshot detection |
+| JPEG | 92.3 | 115 → 11 s | EXIF: camera, timestamp, GPS |
+| JPG/WEBP/TIF | 2–4 | ~130 → <1 s | as above |
+
+**Whole-corpus content extraction ≈ 45 seconds for ~2,000 files.** Content-first is not a
+speed sacrifice — it is roughly the cost of one AI File Sorter LLM call, for the entire folder.
+
+Real examples from the target corpus, showing why this beats filenames outright:
+
+- `trade_sections_form-fall_0 (1).pdf` → author `John R Stobo II`, and text yielding `CC1010.628`
+  and `hjy2114` — a **course code** and a **student ID**. Two files sharing `CC1010` is a *fact*.
+- `Wash U .docx` → heading *"Please tell us what you are interested in studying at college and
+  why. (200 words)"* — unambiguously a college application essay. Invisible from the filename.
+- `氢能企业IPO主营业务梳理_EY_2026.docx` → headings `一、执行摘要`, `核心结论`; text naming
+  `EY-Parthenon` and the client engagement.
+- `Hw 5 .pdf` → **zero extractable text**, producer `iOS Quartz PDFContext` ⇒ a photographed
+  page. Detected by *empty text + iOS producer*, routed to OCR.
+
+#### Photos vs screenshots — the case that proves content is mandatory
+
+Both may be named `IMG_4821.PNG`. They are not the same kind of object and must not be grouped
+together.
+
+| Signal | Real photo | Screenshot |
+|---|---|---|
+| Camera EXIF (`Make`/`Model`) | present | absent |
+| GPS | often | never |
+| Dimensions | sensor sizes | **exact screen sizes** |
+| Grouping key | event = timestamp + location | **OCR'd text content** |
+
+**Measured trap: absence of EXIF does NOT imply screenshot.** WhatsApp and most messaging apps
+strip metadata — `WhatsApp Image 2026-07-13.jpeg` has no EXIF and is a photo. A naive
+no-EXIF heuristic misclassified it, and misclassified a 1080×1080 social graphic too.
+
+Reliable rule: camera EXIF ⇒ photo. Otherwise match against a table of known screen resolutions,
+and **OCR to decide** — UI chrome and dense text ⇒ screenshot; a scene ⇒ photo with stripped
+metadata. A screenshot's *text is its content*; grouping screenshots by anything else discards
+the only information they carry.
+
+**HEIC requires `pillow_heif.register_heif_opener()`.** Without it all 87 HEIC files in the
+corpus fail to open — measured 40/40 `UnidentifiedImageError`. Silent blindness to 4% of the
+corpus.
+
+**Caveat measured on real files:** document metadata is a signal, not gospel — several files
+report `author: python-docx` because a script last touched them. Metadata corroborates; it never
+decides alone.
+
+### Tier 2 — embeddings (demoted to a fallback)
+
+**Embeddings are the last resort, not the primary signal.** They run over *extracted content*
+(headings, first-page text, OCR output, document title) — the filename is a minor additional
+input, never the main one.
+
+An embedding-only relationship is `AMBIGUOUS`, confidence 0.2, and **can never form an edge by
+itself**. It exists to link files whose extraction produced nothing usable, and to break ties
+between fact-based candidates.
+
+The reason is measured, not theoretical: clustering on filenames alone produced a 73-file
+cluster of `repo inspo.pdf` + `problem4.py` + `Comment 6.docx` — files grouped **because their
+names are equally uninformative.** Generic names sit near each other in embedding space. That
+failure disappears when the graph is built from extracted facts, because two files either share
+a course code, an author, an event timestamp or a citation, or they do not.
+
+#### 2a. Normalise the filename first — when a filename is used at all
 
 This outranks every model choice. Measured end-to-end cluster purity on a multilingual corpus:
 
@@ -303,9 +381,15 @@ the grab-bag clusters directly, since those exist precisely because filenames ca
 **Phase 2 must still A/B both embedders through the Phase 0 scorer before committing.** Purity on
 a synthetic multilingual corpus is not the same as ARI on the user's real files.
 
-### Tier 3 — deep extraction (escalated ~10% only)
+### Tier 3 — expensive interpretation (escalated only)
 
-PDF/DOCX text, OCR, vision captions. Triggered by the escalation rule, never run wholesale.
+Everything a parser cannot reach: **OCR** for scanned PDFs and screenshots, **vision captioning**
+for photos whose EXIF says nothing useful, and LLM concept extraction for documents whose text
+yielded no entities.
+
+Triggered by the escalation rule, never run wholesale. Note that Tier 1.5 already routes the
+obvious cases — a PDF with zero extractable text and an iOS producer string is a photographed
+page and goes straight to OCR without consuming the escalation budget.
 
 ### Cluster
 
@@ -520,18 +604,29 @@ document measures speed and tree shape. **None of them measure whether the place
 
 ## Build phases
 
-**Phase 0 — fitness function.** Labelled sample of real files, ARI + pairwise co-location
-scorer, reproducible harness. Nothing else starts until this runs.
+**Scope discipline: one small folder, done properly, before anything scales.** Phases 0–2 target
+a single folder of a few hundred files — hand-checkable in one sitting. Multi-root, whole-drive
+and cross-tree work does not start until placement quality on that one folder is proven by the
+Phase 0 scorer. Accuracy first; scale is a later problem and an easier one.
 
-**Phase 1 — deterministic spine, no embeddings at all.** Scan, cache chain, Tier-1 free signals,
-EXTRACTED edges only (duplicates, versions, folder containment, sessions, EXIF), graph
-persistence, `explain` for any edge. Score it. This alone collapses the 488 duplicates and groups
-the 270 photos — a visible win with zero model calls, and it establishes the baseline every later
-tier must beat.
+**Phase 0 — fitness function.** Hand-label a small real folder. Build the ARI + pairwise
+co-location scorer and a reproducible harness. Nothing else starts until this runs.
 
-**Phase 2 — embeddings and clustering.** Tier-2 embeddings, mutual-kNN, Leiden with hub
-exclusion, recursive splitting for nesting, batched cluster labeling, frozen taxonomy. Score
-against Phase 1.
+**Phase 1 — content extraction and the fact graph. No embeddings at all.** Scan, cache chain,
+Tier-1 filesystem facts, **Tier-1.5 content extraction for every file** (PDF/DOCX text +
+metadata, EXIF, screenshot detection, OCR routing, HEIC support), entity extraction (codes,
+authors, organisations, events), EXTRACTED edges only, graph persistence, and `explain` for any
+edge. Score it.
+
+This is the whole thesis in one phase: a graph built entirely from **facts read out of the
+files**, with zero guessing and zero model calls. It already collapses the 488 duplicates, groups
+the 270 photos by event, and links documents that share a course code or an author. **Everything
+later must beat this baseline or it does not ship.**
+
+**Phase 2 — clustering, and embeddings only where extraction came up empty.** Mutual-kNN over
+extracted content, Leiden with hub exclusion, recursive splitting for nesting, batched cluster
+labeling, frozen taxonomy. Embeddings enter here as `AMBIGUOUS` fallback edges. Score against
+Phase 1 — **if embeddings do not measurably improve on the fact graph, they do not go in.**
 
 **Phase 3 — placement and safety.** Escalation rule, plan/review/apply/undo, per-folder policy,
 protected zones.
