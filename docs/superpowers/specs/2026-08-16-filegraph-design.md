@@ -519,6 +519,17 @@ affects time). `FAST` recognition is Latin-only and drops to 94.9% — not usabl
 **Cost on this corpus: 89 zero-text PDFs (11.0%, not the 8% estimated earlier), 616 pages.**
 5.9 min single-process, **3.4 min across 4 processes**, one-time, offline, $0.
 
+**That budget ignores the tail, and the tail is large.** The corpus contains a **1,239-page
+chemistry textbook** (77.8 MB, producer `Adobe Acrobat 8.3 Combine Files` — a stitched scan),
+an 883-page physics volume, and a 717-page twelfth edition. At 739 ms/page **one file is 15
+minutes**. Nineteen PDFs exceed 100 pages, and the zero-text census averaged 6.9 pages/file
+because it sampled none of them.
+
+**Required:** a per-file page cap (OCR the first N pages, flag the remainder as unread), a
+run-level OCR time ceiling, and the same cap applied to the *"zero facts ⇒ re-OCR that one file"*
+fallback — long generic documents are exactly the ones that produce no entity facts while having
+a perfectly good text layer, so that fallback would target the most expensive files in the corpus.
+
 **Two operational traps, both measured:**
 
 - **`ThreadPoolExecutor` and `ProcessPoolExecutor` both hang** around pyobjc + Vision — 0% CPU,
@@ -729,6 +740,79 @@ Apple Silicon (segfaults) · GLiNER v0/v1 (CC-BY-NC).
 
 ---
 
+## Surfacing — scan first, show what's there, let the user pick
+
+**This is the primary interaction, and it supersedes asking the user to author a template in the
+abstract.** The system scans, surfaces candidate groupings drawn from the user's own files, and
+the user selects which ones become folders.
+
+```
+Scanned 1,993 files. Pick what should become folders:
+
+  ☑ Course materials       PHYS1401 · BUSIB 4300 · ENGIE1006 · COMS 1004    (127)
+  ☑ College applications   Yale · Stanford · Duke · UChicago                 (89)
+  ☑ Resume versions        24 versions of one document                       (95)
+  ☐ Red Cross volunteering YAB board · volunteer guides · toy drive          (31)
+  ☑ Japanese tax documents shohizei · houtei_chosho · gensen_choshu          (18)
+  ☑ Research — PVA/RDP     abstracts · suture data · manuscripts             (42)
+
+  Duplicates: 137 sets, 128 MB reclaimable        [review separately]
+```
+
+**Why this is better than a template picker:**
+
+| Problem | How surfacing solves it |
+|---|---|
+| Cold start | No teacher folder needed. The corpus surfaces its own structure |
+| Template authoring | The user picks from evidenced groups instead of imagining a schema |
+| Grouping accuracy | Groups only need to be **recognisable**, not correct — the user is the judge |
+| Purpose vs content | Both kinds of grouping are surfaced; the user knows which matter |
+| Effort | Reading a checklist, not describing a taxonomy |
+
+**The groups are proposals, not decisions.** A wrong group costs one unchecked box. This converts
+the hardest unsolved problem in the design — is this grouping right? — into a question the only
+qualified judge can answer in a second.
+
+**Candidate groupings are surfaced from several signals, deliberately mixed:**
+
+- shared extracted facts (course code, correspondent, organisation)
+- version and duplicate families (union-find over content hashes and stems)
+- download-session and time windows — **purpose evidence**, see below
+- existing folder names in the teacher corpus
+- retrieval-clustered content, for what the above miss
+
+Selected groups become dimension values, with the user's own label. Unselected groups are
+remembered as rejected so they are not re-proposed.
+
+### Purpose-coherent folders — the case content similarity cannot see
+
+`Desktop/Chinese University Application Materials/` (11 files) is the **filed twin of a single
+2024-10-16 download session in `~/Downloads`** — the same eleven documents, one copy organised,
+one copy loose. It contains a government ID, a transcript, an award certificate, a
+materials-science abstract and a resume.
+
+**It is coherent by purpose and incoherent by content.** Every content-similarity measure in this
+design fails on it twice: the teacher coherence gate would discard it as a dumping ground, and
+the mean-similarity scorer cannot route into it because the mean over
+{ID card, transcript, receipt, science abstract} is near zero.
+
+**People file by purpose. Content similarity cannot see purpose.** The same pattern recurs across
+the machine: `Vaccine records/`, `Prep Stuff/`, `MONEY/`.
+
+**Fix: purpose evidence is a first-class signal, and the model confirms.**
+
+1. **Cheap purpose signals** — download-session membership, tight time windows, folder name as a
+   statement of intent, and *heterogeneity itself* (a folder whose members span many doc-types
+   but one session is purpose-defined, not incoherent).
+2. **The model confirms.** Shown the folder name and a member list, a model immediately
+   understands that an HKID belongs in "Chinese University Application Materials."
+3. **The user decides**, via surfacing.
+
+**Consequence: the teacher coherence gate must test purpose coherence OR content coherence, never
+content alone.** As written it deletes the single most valuable teacher folder on the machine.
+
+---
+
 ## Structure templates — the user declares the shape, the system fills it in
 
 **This is the primary answer to cold start, and it is better than both alternatives.** Learning
@@ -863,6 +947,61 @@ Gazetteer entries must be **type-qualified** (`university` / `secondary_school` 
 `company`), and a match must be consistent with the dimension being filled — a `school` slot in
 an academic template should prefer the university sense unless context says otherwise. Every
 university with an affiliated prep school, hospital or press has this collision.
+
+## Every graph mechanism is behind a proof gate
+
+**Decided after adversarial review.** An independent review concluded that exactly one operation
+in this design genuinely requires a graph — Leiden clustering — and that operation is already off
+by default. Duplicates and versions are an **equivalence relation** (union-find, ~40 lines, faster
+and simpler than a graph). Event grouping is a `GROUP BY`. Propagation, folder scoring, template
+hierarchy, IDF and hub suppression are joins, matrix products and aggregates. **No user-facing
+operation traverses more than one hop.**
+
+**Therefore: build the flat version first. Every graph mechanism must beat the flat baseline on
+the Phase 0 scorer before it is added, and any that fails is deleted rather than kept.**
+
+Baseline: extractors → facet table → `GROUP BY` under citation order → mean/max scoring → LLM
+judge → review queue, with union-find for duplicate and version families.
+
+| Mechanism | Status |
+|---|---|
+| Union-find over content hashes and stems | **In** — measured, deterministic, 51% of corpus |
+| Facet propagation | **Failed the gate** — +1.1 points net at ~50% precision. Demoted to a weak packet signal, may never place a file |
+| `same_session_as` edges | **Demoted to INFERRED** — see below |
+| Mutual-kNN + Leiden | Gated. Must beat flat surfacing on the scorer |
+| Community freeze, per-level remapping, member signatures | Gated behind Leiden |
+
+The gate is not a formality. Propagation already ran it and lost.
+
+### `same_session_as` must not be EXTRACTED/1.0
+
+**Measured:** 10-minute session chaining over 1,992 files produces **2,291 clique edges at
+confidence 1.0**, against **770 content-derived fact edges** on the same corpus. Session proximity
+outnumbers every real fact 3-to-1 *and* outranks it.
+
+One real session, verbatim from disk:
+
+```
+12:57:13  Joseph_Yung_HKID.pdf              ← government ID
+12:57:30  Chinese University Personal Statement
+12:58:12  PVA/RDP Graft Abstract (MRS Fall 2024)
+12:58:30  JESTI_Abstract.pdf                ← ML ethics / neurodegenerative disease
+12:59:30  Red Cross Certificate.pdf
+          → 55 edges at confidence 1.0
+```
+
+An ID card welded to a materials-science abstract because they were uploaded to one portal in
+137 seconds. **This is the measured source of the propagation failure** — the Red Cross
+certificate in that clique is one of the files that got assigned to a university.
+
+**Rules:** `same_session_as` is **INFERRED, not EXTRACTED**; it may never carry propagation
+weight; it is a tiebreaker and a **purpose signal** only. There is also no arbitration rule for
+EXTRACTED-vs-EXTRACTED ties, and the top tier currently mixes hash equality with mtime proximity —
+those cannot share a confidence level.
+
+**Use `st_birthtime`, not `mtime`.** An rsync, Time Machine restore or machine migration rewrites
+mtime corpus-wide, which would simultaneously invalidate the entire Tier-0 cache and collapse the
+corpus into a single session clique. 2% of this corpus already shows >60 s divergence.
 
 ### What the graph is actually for — measured
 
@@ -1415,8 +1554,24 @@ onto a passing mention of Georgetown. It stays safe because:
 
 1. **The original fact is never deleted** — it is marked *superseded by judgment*, with the
    model's reason stored beside it. Both remain visible.
-2. **Overrides are file-local.** Overruling `school` for one document never changes that fact for
-   any other file, so a bad judgment cannot cascade.
+
+   **This requires a schema change that an earlier draft missed.** With only
+   `facet(file_id, dim_id, val_id, conf, provenance)` and no uniqueness constraint on
+   `(file_id, dim_id)`, a superseded fact and its override are two live rows —
+   **structurally identical to a legitimately multi-valued dimension**, so the renderer would
+   file the document under Georgetown *and* WashU. The table needs an explicit
+   `status ∈ {active, superseded, not_applicable, unknown}` plus a `reason` column. A single
+   presence/absence state cannot carry five distinct meanings.
+
+2. **Overrides are file-local for placement** — overruling `school` for one document never
+   changes that fact for any other file.
+
+   **But three cascade channels exist and must be governed**, contrary to an earlier claim that
+   overrides "cannot cascade": sibling groups appear in later evidence packets; parent groups are
+   judged using children's labels; and overrides feed back into gazetteers and cue lists. **The
+   third is global** — and is precisely the mechanism this spec condemns in AI File Sorter, where
+   a model's own output becomes ground truth. Rule: **override feedback into shared vocabularies
+   requires explicit user confirmation and is never automatic.**
 3. **Overrides sort to the top of the review queue** — they are the highest-information items in
    the run, the exact points where deterministic evidence and judgment disagree.
 
@@ -1536,6 +1691,46 @@ different effective thresholds for free.
 **Not every file receives a placement.** Abstaining is a valid, visible outcome — surfaced as a
 review queue, never as silence. DEVONthink's most common bug report is *"nothing happens when I
 click Classify"*, which is abstention working correctly and being invisible.
+
+---
+
+## Privacy and content egress
+
+**The largest hole in every earlier draft.** The thesis is *read the whole file*, and evidence
+packets carry extracted text to a model. The real corpus contains a **Hong Kong ID card**, school
+transcripts, vaccine records, an MBA contract, and airline tickets with passenger names. Earlier
+drafts covered the safety of *moves* and said nothing about the safety of *content*.
+
+**Policy: sensitive content never leaves the machine. Everything else may use cloud when the user
+chooses it.**
+
+### Sensitivity classes — forced local, regardless of mode
+
+| Class | Signals |
+|---|---|
+| Government / identity | passport, ID card, licence, visa, SSN/HKID patterns, `DS-`/`I-` form numbers |
+| Medical | vaccine, immunisation, diagnosis, prescription, clinic letterhead, patient ID |
+| Financial | account numbers, statements, tax forms, card numbers, `gensen_choshu`/`shohizei` |
+| Legal / contractual | contract, agreement, NDA, signature blocks, notarisation |
+| Credentials | keys, tokens, passwords, recovery codes |
+
+Detection runs on **already-extracted local text** — no additional cost, and no content leaves the
+machine to decide whether content may leave the machine.
+
+### Rules
+
+1. **Sensitive-class files are processed locally, always.** No override, no "send anyway" button.
+2. **Detection failure fails closed** — a file the classifier is unsure about is treated as
+   sensitive.
+3. **Cloud is per-run and explicit**, never a default, never remembered silently.
+4. **Show exactly what would be sent before sending it** — the file list and the actual text
+   spans, not a summary. Alana's brief asks for this and it is also the only honest way to get
+   consent.
+5. **Evidence packets are minimised**: extracted facts and short spans, never whole documents,
+   and never the contents of a sensitive-class neighbour just because it shares a group.
+6. **Log every egress** — which files, which spans, which provider, when.
+
+Sensitivity classification is itself a facet, surfaced in review, and correctable.
 
 ---
 
