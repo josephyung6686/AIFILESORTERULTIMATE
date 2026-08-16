@@ -239,6 +239,20 @@ Copied verbatim from graphify, the best thing in its codebase:
    changes the invalidation policy. Namespace it by prompt fingerprint so a prompt edit doesn't
    replay stale results.
 
+**The key must include what produced the answer, not only which file it was about.** Minimum:
+`(content_hash, extractor_version, analysis_tier, model_id, prompt_fingerprint)`.
+
+AI File Sorter keys its categorisation cache on `(dir_path, file_name, file_type)` and nothing
+else — `DatabaseManager.cpp:1629-1631`, `UNIQUE` constraint at `:296`. No content hash, no mtime,
+no model id, no content-analysis flag. The consequences are instructive:
+
+- rewrite a file's contents entirely, keep the name → the stale category is served forever
+- rename or move an unchanged file → total cache miss, full re-analysis
+- switch model → cache still hits
+- **turn on content analysis → cache still hits.** Enabling the product's headline feature
+  invalidates nothing, so on an already-scanned folder the user gets the filename-only answers
+  back and concludes the feature does nothing.
+
 ### Tier 1 — filesystem facts (all files)
 
 Name, extension, MIME, size, mtime/ctime, directory position, content hash, `(n)` duplicate
@@ -430,6 +444,49 @@ communities. We keep what it throws away:
 
 ---
 
+## Canonical taxonomy + alias table — build this on day one
+
+Adopted from AI File Sorter (`DatabaseManager.cpp:372-402`), the single highest-leverage idea in
+its codebase. Two tables:
+
+```sql
+CREATE TABLE category_taxonomy (
+  id, canonical_category, canonical_subcategory,
+  normalized_category, normalized_subcategory, frequency,
+  UNIQUE(normalized_category, normalized_subcategory));
+CREATE TABLE category_alias (
+  alias_category_norm, alias_subcategory_norm, taxonomy_id,
+  PRIMARY KEY(alias_category_norm, alias_subcategory_norm));
+```
+
+**Every label — from a model, a rule, or the user — passes through `resolve_category()` before it
+can become a folder on disk.** It canonicalises onto an existing row or creates a new one.
+
+This solves the failure that actually destroys trust in a file organizer: one concept spawning
+`Docs`, `Documents`, `documents`, `Document`, `Doc Files` as five sibling folders. It needs no
+model call, no embedding, and no configuration; it degrades gracefully; and it works
+retroactively because aliases accumulate. The taxonomy stabilises as a side effect of use.
+
+Improve on their version in one respect: their `normalize_label` is naive string normalisation.
+Key the canonical form on something stronger (case/space/punctuation folding **plus**
+lemmatisation and a stopword-stripped token set), and record every alias observation with its
+provenance.
+
+---
+
+## Determinism in the model call
+
+**Temperature 0, fixed seed, for every classification and labeling call.**
+
+AI File Sorter ships `temp 0.8` with a default random seed on a classification task
+(`LocalLLMClient.cpp:141-142`) — the same file categorised twice can land in different folders,
+and their cache hides it because you only ever observe the first roll. Their entire consistency
+pass exists largely to repair sampling noise they introduced themselves.
+
+Do not create the problem and then build a subsystem to fix it.
+
+---
+
 ## Taxonomy is frozen after first labeling
 
 Measured two ways, independently. Adding 50 files to 300 churns **~28% of Leiden's assignments**
@@ -563,7 +620,7 @@ document measures speed and tree shape. **None of them measure whether the place
 |---|---|
 | **graphify** | Two-level dirty detection; per-tier independent cache invalidation; unversioned cache for the paid tier; provenance + discrete confidence on every edge; hyperedges for "these N form one group"; MinHash+LSH near-duplicate detection (no scipy); hub-exclusion + majority-vote reattachment; community member signatures; determinism discipline; trigram+IDF lexical prefilter. **Not** its node-link JSON persistence — SQLite is 1.6 ms vs 410 ms for the equivalent parse |
 | **`organize`** (MIT) | The safe-move layer: conflict resolution, dry-run. Worth reading before writing our own |
-| **AI File Sorter** | Product loop shape: preview → approve → undo. Categorisation cache. *(Clean-room only — AGPL-3.0.)* |
+| **AI File Sorter** | **The canonical taxonomy + alias table** (its best idea). Product loop shape: preview → approve → undo. Its OOXML extraction approach (unzip → parse XML → strip tags) validates our format list. *(Clean-room only — AGPL-3.0.)* |
 | **Google Drive "Organize My Files"** | The shipped review UX: suggest → per-item checkboxes → edit destination inline → approve batch |
 | **CMU Connections (SOSP '05)** | Co-access/temporal edges: no model, no embeddings, measurably better retrieval at <1% index size |
 | **BERTopic / GraphRAG** | Centroid-nearest representative selection; frozen community reports; batched community summarisation |
@@ -586,6 +643,8 @@ document measures speed and tree shape. **None of them measure whether the place
 | Central store as system of record | WinFS (cancelled), Nepomuk (3.4 GB DB, >1 GB RAM idle, removed from KDE), Tagsistant (corruption → total metadata loss) | Graph is a disposable derived cache with a hard resource ceiling |
 | Requiring user curation | Finder tags, every tag-filesystem | 100% inferred |
 | Autonomy without review | llama-fs trust backlash; vendors call it "silent damage" | Reviewable diff, per-item opt-out, undo |
+| **A component promising semantics it cannot deliver** | AI File Sorter's `local-hash-v1`: a 128-dim signed FNV-1a hash presented through a `taxonomy_embeddings` table, an `embedding_model` column and a `cosine_similarity` function. Purely lexical, collision-saturated, scored up to **100** against an exact category match worth **6** — and its top-1 result **silently overrides the model's answer for every file** (`CategorizationService.cpp:1298`) | If we cannot afford real semantics, ship honest lexical retrieval with honest weights and name it that. **No component may override a stronger signal, and no override may be invisible to the user.** The schema will otherwise convince us it works, and its noise is indistinguishable from bad model output |
+| **Feeding a model's own output back as ground truth** | AI File Sorter's learning store records every *confirmed* row with no comparison against what was originally suggested, and has **no negative signal anywhere in its schema** — a reinforcement loop that amplifies early mistakes | Record the original suggestion **alongside** the user's final choice, so a correction is distinguishable from a confirmation. An unedited approval and a rejection are different facts |
 | Similarity-graph hairball | Documented in note-graph tools | Mutual-kNN, not top-k; measured avg degree 5.06 on the real corpus |
 
 ---
