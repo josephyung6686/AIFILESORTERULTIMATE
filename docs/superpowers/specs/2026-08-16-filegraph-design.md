@@ -807,6 +807,64 @@ two folders the user already created.
 This also supersedes the two-corpus teacher/student machinery: multiple destination roots, one
 frozen destination set.
 
+### Measured: the canvas will be mostly PROPOSALS, not existing folders
+
+Run against the real machine — Desktop and Documents as destination roots, loose files from
+Downloads + Desktop + Documents top level:
+
+| | |
+|---|---|
+| Loose files needing a home | **2,281** (1,992 Downloads · 252 Desktop · 37 Documents) |
+| Usable destination folders after filtering | **30** |
+| Absorbed by existing structure | **90 = 4%** |
+| Need new structure | **2,191 = 96%** |
+
+**Almost all existing organised folders are code projects.** There is very little existing
+*document* structure to freeze. The flow's "existing structure in one colour, proposals in
+another" is therefore **mostly the second colour**, and the recommendation engine carries the
+product rather than supplementing it.
+
+Proposals generated from the unmatched files were immediately recognisable:
+
+```
++ letter        52   Manuscript Response Letter · Cornell Letter of Continued Interest
++ supplemental  45   Duke Supplemental · U Chicago Supplemental essay 1
++ essay         29   UChicago first essay · Georgetown Short Essay
++ pva           32   PVA/RDP Graft Abstract · 1% RDP 10% PVA
++ form          31   trade_sections_form · Picture Release Form
++ screenshot   201   Screenshot 2026-07-17 at 12.00.13 PM
+```
+
+### Project-skip applies to DESTINATIONS, not just sources — a near-catastrophe
+
+The first run of the recommender proposed **`Desktop/Hoyahacks/node_modules/app-module-path` as a
+destination for 67 WhatsApp images**, and `node_modules/cross-spawn` for a Red Cross poster.
+`Desktop/Database agent/ai-file-sorter/app` absorbed 67 photos on the token "app".
+
+Of 1,266 raw destination candidates, most were npm packages. **Project-skip existed in the spec
+from the first draft and was applied only to sources.** Applying it to destinations dropped
+1,266 → 30.
+
+**Rules:** a folder is never a destination if any ancestor is `node_modules`, `.git`, `venv`,
+`build`, `dist`, `target`, `vendor`, `Pods`, `site-packages`, `Library`, `__pycache__`; if any
+ancestor contains `package.json`, `requirements.txt`, `Cargo.toml`, `go.mod`; or if it is a build
+artefact (`*.egg-info`, `*.xcodeproj`, `DerivedData`) or tool-generated (`Auto-Save`,
+`Previews`). Ancestor checks run to the root, not to a fixed depth — three levels was not enough.
+
+### Frequency cannot separate identity from type
+
+An auto-stoplist that removed tokens appearing in >4% of files flagged four: `joseph`, `yung`,
+`screenshot`, `resume`.
+
+**The first two are correct — they are the user's identity, and identity tokens form hubs (the
+fourth independent confirmation, after `columbia.edu`, `hjy2114` and `VHX7000`). The last two are
+wrong** — `screenshot` (201 files) and `resume` are excellent categories that happen to be
+common.
+
+**A token naming *who you are* is a hub; a token naming *what a file is* is a category, however
+frequent. IDF cannot tell them apart.** Separating them needs a type signal — a doc-type
+gazetteer, or the judge — not a frequency threshold. Ubiquity is not uselessness.
+
 ### What the flow does not cover, and must
 
 - **Duplicates and version families are not a destination problem.** 137 duplicate sets,
