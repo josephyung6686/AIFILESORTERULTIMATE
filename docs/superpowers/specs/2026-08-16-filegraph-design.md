@@ -740,6 +740,85 @@ Apple Silicon (segfaults) · GLiNER v0/v1 (CC-BY-NC).
 
 ---
 
+## The user flow — freeze the destinations, then classify into them
+
+**This is the primary product flow and it supersedes template authoring.**
+
+```
+1. PICK       sources (e.g. ~/Downloads)
+              destination roots (Desktop, Documents, Personal Projects, …)
+
+2. INDEX      existing folders become a graph
+                node = a folder that already exists
+                edge = parent/child, plus "same name / likely same project"
+              cross-root: Desktop/Work/Plasmole is visible while sorting Downloads
+
+3. CANVAS     visual tree of that graph
+                existing structure in one colour, proposed additions in another
+                set how deep it should go
+                drag to merge · nest · ignore · add a folder deliberately
+              FREEZE → the only allowed destinations
+
+4. CLASSIFY   every file may only land on a frozen node
+              no inventing Downloads/Work/Misc
+              unmatched → STAYS PUT, appears on a short worklist
+
+5. APPLY      plan → dry run → confirm → apply, with undo
+```
+
+### Why freezing is the correct problem formulation, not a shortcut
+
+Every failure measured in this document came from the system **inventing** groupings:
+`VHX7000` forming a 14-file group, `columbia.edu` swallowing unrelated documents, a 73-file
+grab-bag cluster, and DEVONthink removing its own auto-grouping feature after shipping it.
+
+Freezing eliminates that class by construction. It converts an **open-ended generation problem**
+("what categories should exist?") into a **closed-set assignment problem** ("which of these N
+does this file belong to?"). The second is verifiable, bounded, explainable, and is what every
+surviving incumbent actually does.
+
+### "Unmatched stays put" is what makes low recall acceptable
+
+Measured coverage of disciplined extraction is ~32%. That is only a failure under the assumption
+that every file must be placed. **It isn't one here:** 600 files correctly filed, nothing moved
+wrongly, nothing lost, and a short worklist for the rest. The user adds structure and re-runs,
+and coverage climbs.
+
+High confidence *and* increasingly right — rather than a forced choice between them.
+
+### The graph is over FOLDERS, not over files
+
+This is the structural correction. Earlier drafts built a graph over files, and it produced hubs
+in **every** experiment. A folder graph does not:
+
+| | File graph | Folder graph |
+|---|---|---|
+| Nodes | 2,000+ | ~hundreds |
+| Edges | inferred similarity | **parent/child — provable** |
+| Already curated | no | **yes, by the user** |
+| Measured outcome | hubs, three times | — |
+
+The design constraint confirmed three independent ways is *provable relationships work, inferred
+ones produce hubs*. **Parent/child containment is provable.** The folder graph is therefore the
+graph that should exist; the file graph is largely the one that should not. "Same name / likely
+same project" is the single inferred edge type, and it is low-risk because it can only ever merge
+two folders the user already created.
+
+This also supersedes the two-corpus teacher/student machinery: multiple destination roots, one
+frozen destination set.
+
+### What the flow does not cover, and must
+
+- **Duplicates and version families are not a destination problem.** 137 duplicate sets,
+  128 MB reclaimable, 1,023 files in version chains — these need their own step (collapse /
+  keep-newest / review) before the canvas, or they pollute it.
+- **Sensitivity routing** must run before any content reaches a model.
+- **The classify step is where all extraction work lives.** Scoring a file against a frozen node
+  is the mean+max problem, with two-condition abstention. The flow correctly leaves it as a black
+  box; this spec is that black box.
+
+---
+
 ## Surfacing — scan first, show what's there, let the user pick
 
 **This is the primary interaction, and it supersedes asking the user to author a template in the
