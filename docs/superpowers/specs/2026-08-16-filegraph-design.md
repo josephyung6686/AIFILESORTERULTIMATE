@@ -307,18 +307,35 @@ because it *parses* files and extracts declared facts; it never infers a relatio
 name. A folder of documents has no import statements, so we manufacture the declared-structure
 layer by reading each file with a type-specific extractor.
 
-Measured on the real corpus:
+**Read the WHOLE file, not a peek.** Measured on the real corpus — doubling the cost returns
+eight times the information, so there is no trade to make:
+
+| | Cost | Text recovered |
+|---|---|---|
+| PDF, page 1 only | 30.2 ms | 1,578 chars |
+| **PDF, all pages** | **59.8 ms** | **13,168 chars** |
+| DOCX, first 25 paragraphs | 12.1 ms | 3,162 chars |
+| **DOCX, full body + tables** | **18.9 ms** | **7,350 chars** |
 
 | Type | ms/file | Corpus cost | Facts extracted |
 |---|---|---|---|
-| PDF | **30.9** | 811 files → 25 s | Title, author, producer, dates, first-page text, headings, DOIs, course/ID codes |
-| DOCX | **12.5** | 331 → 4 s | Core properties (author, company, title), headings, body text |
-| PNG | 14.7 | 128 → 2 s | Dimensions, EXIF, screenshot detection |
+| PDF (full) | **59.8** | 811 files → 48 s | Title, author, dates, **complete text**, headings, DOIs, codes |
+| DOCX (full + tables) | **18.9** | 331 → 6 s | Core properties, headings, **complete body and table contents** |
+| PNG | 14.7 | 128 → 2 s | Dimensions, EXIF, screenshot signals |
 | JPEG | 92.3 | 115 → 11 s | EXIF: camera, timestamp, GPS |
 | JPG/WEBP/TIF | 2–4 | ~130 → <1 s | as above |
 
-**Whole-corpus content extraction ≈ 45 seconds for ~2,000 files.** Content-first is not a
-speed sacrifice — it is roughly the cost of one AI File Sorter LLM call, for the entire folder.
+**Whole-corpus full extraction ≈ 55 seconds for ~2,000 files** (vs 28 s for a peek). Roughly the
+cost of a single AI File Sorter LLM call, for the entire folder.
+
+**A peek is not enough, and this was measured, not assumed.** With page-1-only extraction just
+47% of files gained any fact edge at all. PDFs in this corpus have a **median of 3 pages but a
+mean of 12.1 and a maximum of 281** — page 1 misses most of the document.
+
+**8% of PDFs have no extractable text even after reading every page**, and only 2 of 120 were
+rescued by reading past page 1 — so the empty ones are empty throughout. Those are scans, ~70
+files in this corpus, and they need OCR regardless of extraction depth. A bounded, known cost
+rather than a surprise.
 
 Real examples from the target corpus, showing why this beats filenames outright:
 
@@ -626,6 +643,95 @@ Budget: **~120 MB installed, ~0.6 s CLI cold start, 100k files embedded in under
 `hnswlib` (no arm64 wheel) · `sentence-transformers` (9.75 s import) · `lancedb` (2.0 s import) ·
 `chromadb` (1.1 s import) · `kuzu` (archived 2025-10-10) · NetworkX `leiden_communities`
 (dispatch-only stub, raises `NotImplementedError`) · `rustworkx` (no community detection at all).
+
+---
+
+## Structure templates — the user declares the shape, the system fills it in
+
+**This is the primary answer to cold start, and it is better than both alternatives.** Learning
+from an organized folder requires the user to already have one. Inventing categories from content
+is the feature DEVONthink shipped and removed. The third way: **ask the user for the shape once,
+in a gist, and offer boilerplate templates to choose from and adapt.**
+
+### A template is a schema of dimensions, not a list of folder names
+
+```
+Academic   :  school / year-term / subject / work-type
+              → Columbia/2026-Spring/PHYS1401/Problem Sets/
+Client work:  client / project / phase / doc-type
+Personal   :  category / year            → Taxes/2025/, Medical/2026/
+Photos     :  year / event               → 2025/Japan Trip/
+Research   :  project / stage / artifact-type
+```
+
+The user picks one, edits the dimension order, or writes their own in a sentence.
+
+### Why this changes the technical problem, not just the UX
+
+It converts **open-ended classification into structured slot-filling.**
+
+| Without a template | With a template |
+|---|---|
+| "Invent a category for this file" | "Find the school, year, subject, work type" |
+| Unverifiable — no ground truth exists | Verifiable — a slot is filled or it isn't |
+| Confidence is a single opaque number | Confidence is per-slot and inspectable |
+| Failure is a wrong folder | Failure is a named missing field |
+
+This is the easier problem, and it is the one every incumbent avoids. It also plugs directly into
+the fact extraction: **the template tells the extractor which facts matter.** `PHYS1401` stops
+being an arbitrary shared string and becomes the *subject* slot; `Spring 2026` becomes the
+*term* slot.
+
+Every placement then carries a readable justification:
+
+> `Columbia / 2026-Spring / PHYS1401 / Problem Sets`
+> — document text contains `PHYS1401`, `Spring 2026`, `Problem Set 4`
+
+And abstention becomes specific rather than numeric: *"I know the school, year and subject; I
+could not determine the work type"* — a question the user can actually answer, instead of a
+confidence score they have to interpret.
+
+### How templates interact with the other two paths
+
+Precedence, highest first:
+
+1. **Template slots** — if a template is active and slots can be filled from extracted facts
+2. **Existing folders** — classify into the teacher tree where a template slot is unfilled or no
+   template is active
+3. **Cluster and propose** — only for files that neither path can place
+
+A template does not have to be complete. Unfilled dimensions collapse (no `Unknown/` folders in
+the path), and the file is placed at the deepest level it has evidence for.
+
+**Templates are inferred back, too.** If the teacher tree already looks like
+`School/Year/Subject/`, the system proposes that as a detected template for confirmation rather
+than making the user describe it. Detection is a proposal; the user confirms.
+
+---
+
+## The two-corpus model — how v1 avoids cold start
+
+**Decided.** v1 runs over two folders with different roles:
+
+| Role | What it is | What we do to it |
+|---|---|---|
+| **Teacher** | A folder the user has already organized sensibly | Extract facts, build folder profiles. **Never modified. Never moved. Read-only, always.** |
+| **Student** | The messy folder (e.g. `~/Downloads`) | Every loose file scored against the teacher's folders, then placed |
+
+This is the direct answer to the cold-start problem. DEVONthink's own manual concedes the
+approach *"works best with a large database that is structured somewhat accurately"* and that with
+an empty group *"the AI doesn't know what belongs in there."* A 2,000-file unstructured Downloads
+folder has nothing to learn from — **so we learn from a folder that does, and spend nothing
+inventing a taxonomy the user already built.**
+
+**Destination policy (default):** the learned folder structure is **replicated under the student
+root**, e.g. `~/Downloads/Academics/Syllabi/`. Files are never moved into the teacher tree, and
+the teacher tree is never written to. This keeps a curated folder safe from a tool that is still
+earning trust, and it keeps every move reversible inside one root. Moving directly into the
+teacher tree is a later opt-in, not a default.
+
+The teacher folder is also the honest source of folder *names*: they are the user's own words,
+already proven to make sense to them, and they need no LLM to invent.
 
 ---
 
