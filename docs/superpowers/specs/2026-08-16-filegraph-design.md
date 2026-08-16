@@ -188,6 +188,48 @@ The strongest edges now come from **content**, not from the filesystem. `shares_
 independently yield the same string from their own bodies, so the edge is an identity match, not
 a similarity score.
 
+#### Measured on the real corpus — and the guards this requires
+
+396 of 400 real PDFs/DOCXs extracted at **24 ms/file**, producing **770 fact edges** from 82
+shared entities; **47% of files gained at least one fact edge.** Genuine, and unreachable from
+filenames:
+
+| Shared fact | Links | What it caught |
+|---|---|---|
+| `PHYS1401` | 10 files | Every lecture, template and practice final for one course |
+| `hjy2114` (student ID) | 8 | The whole resume/cover-letter family |
+| `redcross.org` | 6 | Volunteer guide + board application + registration links — **no shared filename tokens at all** |
+| `Joseph_Yung_Resume.docx` (title) | 6 | A version chain across renamed exports |
+
+**But roughly half the raw shared entities were noise hubs**, and the design must suppress them:
+
+| Junk hub | Links | Why it is worthless |
+|---|---|---|
+| `gmail.com` | 21 | Everyone has one |
+| `Mozilla/5.0 (Macintosh…)` (creator) | 17 | Means "printed from a browser" |
+| `LaTeX with hyperref` (creator) | 15 | Means "made in LaTeX" |
+| `about:blank` / `(anonymous)` / `(unspecified)` | 5–6 each | Null values with a name |
+
+Plus one **false positive worth remembering**: a naive `[A-Z]{2,5}\d{4}` course-code pattern
+matched `VHX7000` — a *Keyence microscope model number* — and linked resumes to a materials
+science abstract. The regex found a string; it did not find a fact.
+
+**Three mandatory guards, all borrowed from graphify's hub suppression:**
+
+1. **IDF-weight every entity.** Document frequency above ~half the corpus ⇒ never links
+   (graphify's `_df_cap`). Entities shared by 3–10 files carry the signal.
+2. **Reject entity classes that describe the tool, not the content.** PDF `producer`/`creator`
+   are excluded outright. Only `author`, `title`, `company` are candidates, behind a null-value
+   blacklist (`about:blank`, `(anonymous)`, `(unspecified)`, `python-docx`, `Word Document`).
+3. **Type-diversity ban.** An entity spanning too many distinct document kinds is a hub, not a
+   topic (graphify's `_type_diverse_ban`). This is what catches `VHX7000`.
+
+**And entities must be validated, not merely matched.** A candidate course code is confirmed by
+surrounding context (`Section`, `Syllabus`, `Lecture`, `Spring 2026`) before it is trusted. This
+is the direct analogue of graphify resolving an import to a real path on disk before minting an
+edge: **resolve exactly, or drop.** Pattern matching alone is the guessing we are trying to
+eliminate.
+
 Confidence scores are **discrete**, drawn from a fixed rubric. `0.5` is never a default for an
 unknown — models collapse continuous ranges into a binary when allowed to.
 
