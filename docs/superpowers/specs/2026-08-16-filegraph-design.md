@@ -339,10 +339,11 @@ cost of a single AI File Sorter LLM call, for the entire folder.
 47% of files gained any fact edge at all. PDFs in this corpus have a **median of 3 pages but a
 mean of 12.1 and a maximum of 281** — page 1 misses most of the document.
 
-**8% of PDFs have no extractable text even after reading every page**, and only 2 of 120 were
-rescued by reading past page 1 — so the empty ones are empty throughout. Those are scans, ~70
-files in this corpus, and they need OCR regardless of extraction depth. A bounded, known cost
-rather than a surprise.
+**11.0% of PDFs have no extractable text even after reading every page** — 89 files, 616 pages,
+measured across the full corpus of 808. Only 2 of 120 sampled files were rescued by reading past
+page 1, so the empty ones are empty throughout: they are scans, and they need OCR regardless of
+extraction depth. A bounded, known cost rather than a surprise. See *OCR* below for the 3.4-minute
+figure.
 
 Real examples from the target corpus, showing why this beats filenames outright:
 
@@ -411,9 +412,9 @@ decides alone.
 
 ### Tier 2 — embeddings (demoted to a fallback)
 
-**Embeddings are the last resort, not the primary signal.** They run over *extracted content*
-(headings, first-page text, OCR output, document title) — the filename is a minor additional
-input, never the main one.
+**Embeddings are the last resort, not the primary signal.** They run over the *full extracted
+content* (complete document text, headings, OCR output, title) — the filename is a minor
+additional input, never the main one.
 
 An embedding-only relationship is `AMBIGUOUS`, confidence 0.2, and **can never form an edge by
 itself**. It exists to link files whose extraction produced nothing usable, and to break ties
