@@ -1054,8 +1054,21 @@ than making the user describe it. Detection is a proposal; the user confirms.
 
 | Role | What it is | What we do to it |
 |---|---|---|
-| **Teacher** | A folder the user has already organized sensibly | Extract facts, build folder profiles. **Never modified. Never moved. Read-only, always.** |
+| **Teacher** | Any folder already organized sensibly — **including flat ones** | Extract facts, build folder profiles. **Never modified. Never moved. Read-only, always.** |
 | **Student** | The messy folder (e.g. `~/Downloads`) | Every loose file scored against the teacher's folders, then placed |
+
+**A flat folder is still a labelled set — the folder name is the label.** Confirmed on the real
+machine: `Desktop/Python 1006` (36 files, no subfolders), `Desktop/SAT Tests` (19),
+`Desktop/research` (28), `Desktop/OMNIGENE GUT` (21), `Desktop/外泌體` (50),
+`Desktop/Chinese University Application Materials` (11).
+
+Every file in `Python 1006` carries `subject = Python 1006`; every file in `SAT Tests` carries
+`work_type = Test`. That is ~165 perfectly labelled examples at **zero extraction cost**, and it
+is what teaches the system what a `Python 1006` document actually looks like. **Path depth is
+irrelevant — coherence is what matters**, which is also DEVONthink's documented finding.
+
+Folder coherence is measured before a folder is trusted as a teacher: a dumping ground with no
+consistent content teaches nothing and is excluded, per-folder.
 
 This is the direct answer to the cold-start problem. DEVONthink's own manual concedes the
 approach *"works best with a large database that is structured somewhat accurately"* and that with
@@ -1071,6 +1084,107 @@ teacher tree is a later opt-in, not a default.
 
 The teacher folder is also the honest source of folder *names*: they are the user's own words,
 already proven to make sense to them, and they need no LLM to invent.
+
+---
+
+## The decision architecture — rules build the base, the LLM judges on top
+
+**This supersedes any earlier framing of rules *versus* model.** Disciplined rules alone reach
+only ~32% recall, because most files simply do not contain the fact being looked for. A model
+alone reproduces AI File Sorter: a filename in, an invented category out, slow and inconsistent.
+
+**Rules, the graph and learned profiles assemble an evidence base. The LLM makes the judgment
+inside it.**
+
+```
+DETERMINISTIC BASE (fast, high precision, never hallucinates)
+    rules + gazetteers   → facts with text-span provenance
+    graph propagation    → what this file's neighbours are, and where they went
+    embeddings           → RETRIEVE candidates (never create edges)
+    learned profiles     → what each existing folder's contents look like
+        ↓  assemble
+EVIDENCE PACKET  (per group)
+    · member files, each with its facts and the span that produced them
+    · the fact this group SHARES — the stated reason the group exists
+    · weakly-attached members, flagged
+    · candidate destination folders, scored, with profiles
+    · sibling groups already judged
+        ↓
+LLM JUDGMENT (batched, per group)
+    → { coherent? · label · split_into[] · placements[] · overrides[] }
+        ↓
+PLACEMENT + the model's reason + the evidence beneath it
+```
+
+**The difference from every incumbent is the input.** AI File Sorter hands a model a filename and
+asks it to invent a category. We hand it a short list of evidenced candidates and ask it to
+choose. A constrained judgment is more accurate, far cheaper, explainable, and consistent across
+runs — because the candidate list comes from the corpus, not from the model's imagination.
+
+### Each component finally does what it is good at
+
+| Layer | Job | Why it belongs here |
+|---|---|---|
+| Rules + gazetteers | Produce facts with provenance | 0.047 ms, high precision, cannot hallucinate |
+| Graph propagation | Supply a file with its neighbours' context | Recovers files that contain nothing themselves |
+| Embeddings | **Retrieve candidates** | Safe here — a bad candidate is rejected by the judge rather than silently welding two clusters together |
+| Learned profiles | Score candidate folders | 36 files in `Python 1006` define what belongs there |
+| **LLM** | **Weigh conflicting evidence** | The only component that can |
+
+Embeddings caused the 73-file grab-bag when they were allowed to *create edges*. Used for
+retrieval into an evidence packet, that failure mode disappears.
+
+### Groups overlap — the template, not the clustering, builds the hierarchy
+
+A file belongs to many groups at once: `Probability For Engineers.pdf` is in the Columbia set,
+the probability set, and the Fall-2024 set. Leiden forces every file into exactly one community,
+which is precisely how the 73-file grab-bag formed — it had to put those files *somewhere*.
+
+**The citation order turns overlapping facet sets into one hierarchy:**
+
+```
+template: school / term / subject / work-type
+  level 1 = files sharing school     → {Columbia: 340}, {Yale: 12} …
+  level 2 = within Columbia, sharing term
+  level 3 = within that, sharing subject
+```
+
+Every node in that hierarchy is coherent **by construction** — its members share a *fact*, not a
+similarity score.
+
+**This demotes clustering substantially, and it should be demoted.** Leiden's remaining jobs are:
+discovering candidate *values* for an unknown facet ("these 30 files clearly belong together —
+what is this?"), and grouping the remainder that matches no template. It is no longer what builds
+the folder tree, which is the role in which it repeatedly failed.
+
+### Judgment runs bottom-up, and splitting is well-posed
+
+Deepest groups first, then parents judged with their children's labels as evidence — the
+bottom-up order GraphRAG uses for community reports.
+
+**Splitting works here because every group has a stated reason for existing.** The model is not
+asked to re-partition the corpus from nothing; it is asked *"these 12 files all contain
+`PHYS1401` — do they belong together?"* and can answer *"11 do; the 12th only cites it in a
+bibliography."* That is a judgment on evidence.
+
+Groups and subgroups are both first-class: a split produces new leaves which are re-judged, and
+the resulting label hierarchy is the folder tree.
+
+### Override authority — granted, with three constraints
+
+The LLM may overrule an extracted fact. This is how `Wash U .docx` is rescued when a rule latched
+onto a passing mention of Georgetown. It stays safe because:
+
+1. **The original fact is never deleted** — it is marked *superseded by judgment*, with the
+   model's reason stored beside it. Both remain visible.
+2. **Overrides are file-local.** Overruling `school` for one document never changes that fact for
+   any other file, so a bad judgment cannot cascade.
+3. **Overrides sort to the top of the review queue** — they are the highest-information items in
+   the run, the exact points where deterministic evidence and judgment disagree.
+
+**An override is also the best training signal available.** A model repeatedly overruling the
+same rule is reporting that the rule is wrong — which is how gazetteers and cue lists improve
+without hand-tuning.
 
 ---
 
