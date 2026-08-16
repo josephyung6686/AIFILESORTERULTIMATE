@@ -486,6 +486,61 @@ the grab-bag clusters directly, since those exist precisely because filenames ca
 **Phase 2 must still A/B both embedders through the Phase 0 scorer before committing.** Purity on
 a synthetic multilingual corpus is not the same as ARI on the user's real files.
 
+### OCR — Apple Vision, not Tesseract
+
+Measured on real scanned pages from the corpus, same metric (word recall against the PDF's own
+text layer):
+
+| | ms/page | Recall | Install |
+|---|---|---|---|
+| **Apple Vision** (ACCURATE, correction off) | **739** | **99.7%** | **13 MB** (pyobjc; framework ships with macOS) |
+| Tesseract 5.5.3 | 2,891 | 99.6% | 694 MB |
+
+**3.9× faster at tied accuracy and 53× lighter.** Both non-obvious settings must be set
+explicitly, because both defaults are wrong:
+
+| Setting | Default | Use |
+|---|---|---|
+| `usesLanguageCorrection` | **on** — 1,621 ms, 99.1% | **off** — 650 ms, 99.7%. Faster *and* more accurate |
+| `recognitionLanguages` | unset — **0.0% CJK recall, silently** | `["en-US","zh-Hans", …]` — 99.0% CJK |
+
+Adding languages is free on documents that don't contain that script and costs 2–3× on ones that
+do — which is exactly when it is needed. Render at **200 DPI** (recall plateaus there; DPI barely
+affects time). `FAST` recognition is Latin-only and drops to 94.9% — not usable here.
+
+**Cost on this corpus: 89 zero-text PDFs (11.0%, not the 8% estimated earlier), 616 pages.**
+5.9 min single-process, **3.4 min across 4 processes**, one-time, offline, $0.
+
+**Two operational traps, both measured:**
+
+- **`ThreadPoolExecutor` and `ProcessPoolExecutor` both hang** around pyobjc + Vision — 0% CPU,
+  never return. Shard by spawning **independent processes**.
+- **Parallelism plateaus at 1.86×** (Vision's ANE is shared). Use 4 workers; building for 8 buys
+  nothing.
+
+**Scan detection:** probe only the **first 3 pages** for extractable text — 1 false positive in
+808 files, and a full sweep of the corpus costs 52.7 s.
+
+### Bad text layers — the failure that zero-text detection misses
+
+A PDF can have a text layer that is *garbage*. Real example from this corpus:
+
+```
+Adobe Scan Jun 16, 2025.pdf
+  text layer: "Manht1Ut1nvrlle, c1ncl Tc,c1clwr<:, Coll('qp"
+  actual     : "Manhattanville, and Teachers College"
+```
+
+Zero-text detection passes this file, and the pipeline indexes mojibake as clean content.
+
+Two global detectors were tried and **both are unreliable**: dictionary-hit-rate flags Spanish
+and Chinese documents as garbage and scored this file *above* the corpus median; a dirty-token
+rate catches it but false-alarms on math-heavy exams.
+
+**Rule: do not pre-screen globally. Use field-level fallback — if a document has a text layer but
+yields zero facts, re-OCR that one file.** The extraction result is the detector, and it costs
+nothing on documents that work.
+
 ### Tier 3 — expensive interpretation (escalated only)
 
 Everything a parser cannot reach: **OCR** for scanned PDFs and screenshots, **vision captioning**
@@ -640,10 +695,23 @@ only if a real corpus exceeds ~50k files.
 | Vector storage | numpy `.npy` | 2k × 128 dims = 1 MB. A vector DB is pure overhead here | — |
 | **Graph persistence** | **SQLite** | open + targeted lookup **1.6 ms** vs **410 ms** to parse equivalent JSON | public domain |
 | PDF text | `pypdfium2` | comparable to PyMuPDF and **not AGPL** | BSD-3/Apache-2.0 |
+| **OCR** | **Apple Vision** via `pyobjc-framework-Vision` | 739 ms/page at 99.7%, **13 MB** vs Tesseract's 694 MB | OS framework |
+| **Gazetteer matching** | **`pyahocorasick`** + hand-rolled boundary check | 0.047 ms/doc vs 102 ms for regex-per-key | BSD-3 |
+| Named entities (`school`/`person`/`client` only) | `gliner_small-v2.1` | +20 pts recall where rules abstain | **Apache-2.0 (v2.1+ only)** |
+| Date parsing | `dateutil`, **never `fuzzy=True`** | 0.016 ms/call, no fabrication | Apache-2.0 |
 | Photo near-dup | `imagehash` | pHash/dHash | BSD-2 |
 | Doc near-dup | `datasketch` MinHash-LSH | | MIT |
 
 Budget: **~120 MB installed, ~0.6 s CLI cold start, 100k files embedded in under 4 seconds.**
+
+**Rejected with cause, measured:** `dateutil.parse(fuzzy=True)` (**fabricates dates from our own
+field values** — highest-severity item here) · spaCy statistical NER (its entire label set lacks
+school/course/term/doc-type; `lg` is *slower* than `sm` for zero gain — but its **EntityRuler at
+0.80 ms/doc is worth having**) · a local LLM on the bulk path (**12,204 ms/doc, 4.2 hours per
+1,000 files, 20% invalid JSON** even with constrained decoding — viable only as a last-resort
+fallback on the ~2% where everything else abstains) · Tesseract (3.9× slower, 53× heavier than
+Vision) · FlashText (4× slower than pyahocorasick, unmaintained since Apr 2025) · PaddleOCR on
+Apple Silicon (segfaults) · GLiNER v0/v1 (CC-BY-NC).
 
 **Rejected with cause:** `PyMuPDF` (AGPL-3.0 or paid) · `leidenalg` / `python-igraph` (GPL) ·
 `graspologic` full (514 MB, 16.3 s import, caps at py<3.13 — use `graspologic-native`) ·
@@ -755,6 +823,100 @@ system. That is a shippable failure mode.
 
 **An empty slot is a good outcome. A guessed slot is a bug.** The 6% subject fill rate is correct
 behaviour — most files have no course code. The number to distrust is always the high one.
+
+### Matching engine: Aho-Corasick, with the boundary check re-added by hand
+
+Regex-per-gazetteer-key costs **102 ms/file** at our list sizes. `pyahocorasick` over 18,169
+terms costs **0.047 ms/doc** — a **2,170× speedup**, 47 ms build, 100 KB install, BSD-3.
+
+**Aho-Corasick matches substrings.** It will happily find `MIT` inside `SUMMIT` and `RH` inside
+`NORTH` — the exact bug that produced `UNC` from "uncertainty". The boundary check is four lines
+and the 0.047 ms figure *includes* it:
+
+```python
+for end, term in A.iter(low):
+    start = end - len(term) + 1
+    if (start == 0 or not low[start-1].isalnum()) and \
+       (end + 1 >= len(low) or not low[end+1].isalnum()):
+        yield term
+```
+
+Also **drop or context-gate gazetteer entries shorter than ~6 characters** (`RH`, `3M CO`,
+`42 US`) — pure false-positive fuel. Use `pyahocorasick`, not FlashText (4× slower, unmaintained
+since April 2025).
+
+### Four validation layers — measured 20% → 75% precision at 0.037 ms/doc
+
+A naive course-code pattern on real files matched **ZIP codes** (`NY 10172`, `MD 20852`),
+**flight numbers** (`UA872`), and a **US visa form** (`DS-2019`) — 3 true of 15, **20% precision**.
+Applied in this order, the layers reject 73% of matches and raise precision to **75%** with
+recall unchanged:
+
+1. **Negative structural gazetteer** — reject by shape: `US_STATE + 5 digits` = ZIP,
+   `airline code + 3–4 digits` = flight, known form prefixes (`DS`, `I-`, `W-`).
+2. **Context window** — require a positive cue within ±60 chars
+   (`course|syllabus|credits|instructor|semester|prerequisite`) and reject on negative cues
+   (`street|suite|zip|flight|visa|serial|model`). **This is what kills `VHX7000`**: a microscope
+   model number sits near "magnification", never near "prerequisite".
+3. **Positive gazetteer confirmation** for closed sets.
+4. **Cross-extractor agreement** — accept when ≥2 of {rules, gazetteer, GLiNER, **filename**}
+   agree. The filename is free and surprisingly good.
+
+Cue lists need curation — one false positive survived because `SECTION` matched an academic cue.
+Cap the residue with a confidence band: auto-accept above 0.85, queue 0.5–0.85 for review.
+
+### Dates: never use fuzzy parsing
+
+`dateutil.parse(fuzzy=True)` **fabricates dates out of our own field values**:
+
+```
+"APMA E2000 Final Exam"   → 2000-08-16     ← the course code became a year
+"IEOR E4004"              → 4004-08-16
+"Version 3.2 build 41"    → 2041-03-16
+```
+
+Use regex to find candidates, then `dateutil.parse(candidate)` **without fuzzy** — 0.016 ms/call,
+zero fabrications. `dateparser` is 226× slower and only worth it for CJK dates (`2025年4月27日`),
+which dateutil cannot parse at all.
+
+**Academic terms defeat both libraries — 0 of 8 forms parsed.** `Spring 2025`, `AY 2024-25`,
+`Michaelmas Term 2024` are regex-only territory; a purpose-built pattern gets 6/8 at 4.8 µs.
+
+### GLiNER — scoped to `school`, `person`, `client` only
+
+Measured against the disciplined gazetteer on 40 real documents: school fill **28% → 45%**, union
+**48%** — **+20 points of recall at 75% precision on the increment**. It correctly found
+`Stony Brook University`, `Tehran University`, `Georgetown Preparatory School` where rules
+abstained.
+
+**But it cannot do our other dimensions, at any phrasing:**
+
+| Label | Score |
+|---|---|
+| `school` / `university` | **0.88 – 0.96** ✓ |
+| `subject code` / `course code` | 0.30 – 0.38 ✗ |
+| `document type` (every phrasing tried) | **returns nothing** ✗ |
+
+So GLiNER will **not** fix the 6% subject or 21% work-type fill rates. Those stay on rules.
+
+**Rules win ties.** Where both fired they disagreed on 4 of 10 — on a résumé the gazetteer said
+`Columbia University` and GLiNER said `Georgetown Preparatory School`; both strings are in the
+document. **Never let GLiNER overwrite a gazetteer hit; use it only where rules abstain**, and
+apply the same positional weighting to its spans.
+
+Costs and traps: 153M params, 610 MB weights, needs torch (560 MB venv), **261 ms/doc**.
+**Silent truncation at 384 tokens** — no exception, no warning, so chunk explicitly. Threshold
+**≥0.7** or quality collapses on forms (`person: '.'` at 0.73). **Apache-2.0 only from v2.1** —
+v0/v1 are CC-BY-NC.
+
+### Gazetteer sources — verified downloadable
+
+| Set | Source | Size | Licence |
+|---|---|---|---|
+| Universities | `Hipo/university-domains-list` | 10,172 names, 2.2 MB | MIT |
+| US public companies | SEC `company_tickers.json` | 7,997 names | US public domain |
+| Names | US SSA baby-name files | — | public domain |
+| Places | GeoNames | 10M+ | CC-BY |
 
 ### Expect a visible residual error rate
 
@@ -1203,7 +1365,11 @@ after placement quality is proven.
    a real person's files), add explicit top-1 cross-language edges, or raise k. **This is
    invisible in pairwise-similarity testing and only appears end-to-end.**
 
-6. **Contradictory measurement to resolve in Phase 2.** One agent measured fastembed padding
+6. **Apple Vision in a headless context is unverified.** It was benchmarked in a normal desktop
+   session. Whether `VNRecognizeTextRequest` works over SSH with no window server is **untested**,
+   and it gates any future daemon or scheduled-run design. Check before relying on it.
+
+7. **Contradictory measurement to resolve in Phase 2.** One agent measured fastembed padding
    every input to a fixed length (**19× penalty**, 512 three-token strings costing the same as
    512 360-token strings); another measured throughput tracking real token count (48/s at
    ~10 tokens vs 7/s at ~500), concluding no padding waste. Both cannot be right. It does not
