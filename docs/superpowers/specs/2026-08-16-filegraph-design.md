@@ -347,10 +347,35 @@ together.
 strip metadata — `WhatsApp Image 2026-07-13.jpeg` has no EXIF and is a photo. A naive
 no-EXIF heuristic misclassified it, and misclassified a 1080×1080 social graphic too.
 
-Reliable rule: camera EXIF ⇒ photo. Otherwise match against a table of known screen resolutions,
-and **OCR to decide** — UI chrome and dense text ⇒ screenshot; a scene ⇒ photo with stripped
-metadata. A screenshot's *text is its content*; grouping screenshots by anything else discards
-the only information they carry.
+**Correction — OCR text density is NOT a discriminator.** An earlier draft proposed deciding by
+text density; that is wrong. Receipt photos, document scans and whiteboard shots are text-dense
+*genuine camera photos*. Density separates nothing.
+
+**No published benchmark or standard technique for screenshot detection exists.** Real products
+avoid the problem with provenance rather than solving it: iOS flags screenshots *at capture
+time* and its "Screenshots" album is a metadata lookup, not a classifier; Android writes them to
+a `Screenshots/` directory. We have no provenance for loose imported files, so we use a signal
+stack, in confidence order:
+
+1. **Camera EXIF present** (`Make`, `Model`, `ISO`, `FocalLength`) ⇒ photo. Highest confidence.
+2. **Exact match to a known screen resolution** (1170×2532, 1920×1080, 2560×1440…) vs
+   sensor-shaped dimensions (4032×3024, 6000×4000). Requires a maintained device table —
+   a real ongoing maintenance cost, and it should be a data file, not code.
+3. **PNG** — the default screenshot format on macOS, Windows, iOS and most Android; plus the
+   `Software` EXIF tag.
+4. **Sensor noise** — screenshots are mathematically flat; real sensor output has grain.
+
+Signals 1–3 are free and get most of the way. **Where they disagree, abstain and ask** rather
+than guessing — this is exactly the two-condition abstention rule applied to a file-type
+question.
+
+OCR still runs on confirmed screenshots, because a screenshot's *text is its content* — it is
+just not how we identify one.
+
+Worth noting: Google Photos classifies images into Screenshots, Receipts, Identity Documents,
+Notes and similar — and in March 2024 added **multiple categories per image** plus manual
+recategorisation. That is a tacit admission that one category per item is the wrong data model
+and that auto-classification is wrong often enough to need a correction UI.
 
 **HEIC requires `pillow_heif.register_heif_opener()`.** Without it all 87 HEIC files in the
 corpus fail to open — measured 40/40 `UnidentifiedImageError`. Silent blindness to 4% of the
@@ -600,6 +625,81 @@ Budget: **~120 MB installed, ~0.6 s CLI cold start, 100k files embedded in under
 
 ---
 
+## Placement: classify into EXISTING folders first, cluster only for the remainder
+
+**This is the most important correction in the spec, and it comes from the incumbents.**
+
+Every long-lived product derives its label space from the user's own filing, never from content
+alone:
+
+| Product | Label space source | Shipping since |
+|---|---|---|
+| DEVONthink | the user's existing groups | 2002 |
+| Paperless-ngx | documents the user filed out of the inbox | 2020 |
+| OpenText (US11893031B2) | *"documents previously filed to folders"* | 2021 |
+| Google Drive | *"your organizing patterns"* | 2026 |
+
+**DEVONthink shipped the opposite approach — "Auto Group", inventing groups from content — and
+removed it.** The developer's reason: *"almost unused"* and it generated *"support requests as it
+didn't work the way people would like/assume."* That is the 24-year incumbent, with the best
+engine in the category, reporting that automatic category *invention* fails as a product while
+automatic *assignment into user-defined categories* succeeds.
+
+**Therefore the order of operations is:**
+
+1. **Classify into an existing folder** — the primary path, for every file.
+2. **Abstain** when the answer is not clear (below).
+3. **Cluster only what abstained**, and propose new folders *only* for coherent leftover groups —
+   presented as proposals, never applied silently.
+
+Clustering is demoted from "how the taxonomy is invented" to "how we handle what doesn't fit."
+
+### The scoring function — adopted from DEVONthink
+
+```
+score(folder) = f( mean similarity to ALL members of the folder,
+                   max  similarity to the single best member )
+```
+
+The mean term lets a large coherent folder win; the max term lets a small folder holding one
+near-duplicate win. It handles both regimes in a few lines, requires no training and no persisted
+model, and therefore reacts instantly to refiling and can never go stale. Our similarity is the
+fact-edge weight plus the embedding fallback, not raw cosine.
+
+### Abstain on TWO conditions, not one
+
+```
+place    if  top_score ≥ P10(top_score over this corpus)
+         AND (top_score − second_score) ≥ margin
+abstain  otherwise
+```
+
+DEVONthink abstains when *"multiple suggestions have almost the same score **OR** the top score is
+too weak."* A margin test is not a threshold test, and both are required.
+
+The counter-example is decisive: **Paperless-ngx ships plain argmax with no abstention at all**
+(`if correspondent_id != -1: return correspondent_id` — no `predict_proba`, no threshold, no
+margin). A user with 464 documents and 78 correspondents reported *the exact same correspondent
+and two tags assigned to every single document*, with no diagnostic. DEVONthink fails silently
+and frustratingly; paperless-ngx fails loudly and confidently wrong. **Silence is the better
+failure**, provided it is visible — surface abstentions as a review queue, never as nothing
+happening.
+
+When multiple folders fit nearly equally, DEVONthink files the document into **all** of them as
+replicants. Our equivalent: present the top-N as a choice rather than picking one.
+
+### Cold start — state it honestly
+
+With no existing folders, this approach does not work, and DEVONthink says so in its own manual:
+*"works best with a large database that is structured somewhat accurately."* Their guidance is
+that **group coherence and mutual distinctness are everything, and hierarchy depth is
+irrelevant** — *"since [the group] is empty, the AI doesn't know what belongs in there."*
+
+So an unorganised folder falls back to the cluster-and-propose path, and the product must say
+which mode it is in rather than silently producing worse results.
+
+---
+
 ## Placement and escalation
 
 ```
@@ -642,15 +742,35 @@ placement — **this is a cost tier, not an abstention gate.**
 
 ## The fitness function is built first
 
-**Before any placement code.** A scoring harness over a hand-labelled sample of the user's own
-files, reporting **Adjusted Rand Index and pairwise co-location precision/recall**.
+**Before any placement code.** Two metrics, and the second one is the one the market actually
+uses.
 
-Not destination-equality: a discovered taxonomy scores 0% against fixed labels by construction,
-which tells you nothing. We are scoring *whether files that belong together end up together*.
+**1. Acceptance rate — the primary metric.** The fraction of proposed placements the user accepts
+without editing, plus per-folder recall. This is what Google instruments for its Gemini
+organiser ("User acceptance" tracked over 180 days) instead of accuracy, and it is the honest
+measure for a task where there is no single right answer.
 
-Without this you cannot tell whether content extraction helped, whether hub-exclusion fixed the
-grab-bag clusters, or whether a model swap made things worse. Every performance number in this
-document measures speed and tree shape. **None of them measure whether the placements are right.**
+**The absence of published accuracy is itself the finding:** DEVONthink (24 years) and
+paperless-ngx (6 years) — the two products closest to this one — have **never published an
+accuracy number**, because for open-ended "which folder does this belong in", accuracy against
+fixed ground truth is not meaningful.
+
+**2. ARI and pairwise co-location** on a hand-labelled sample, as the offline regression metric —
+scoring *whether files that belong together end up together*, not destination-equality. A
+discovered taxonomy scores 0% against fixed labels by construction, which tells you nothing.
+
+**Report per-folder recall, never an aggregate.** Google's published deployment bar for its own
+Drive classifier is **>80% recall per class** (50–80% medium, <50% low) — the only fully
+documented threshold in the category, and it is per-class for a reason.
+
+Calibration warning that recurs across vendors: models are miscalibrated, and a reported 95%
+confidence may be right ~80% of the time. **Threshold to the cost of the error, not to average
+accuracy.** Misfiling a tax document costs more than misfiling a meme.
+
+Without this harness you cannot tell whether content extraction helped, whether hub-exclusion
+fixed the grab-bag clusters, or whether a model swap made things worse. Every performance number
+in this document measures speed and tree shape. **None of them measure whether the placements
+are right.**
 
 ---
 
@@ -663,7 +783,12 @@ document measures speed and tree shape. **None of them measure whether the place
 | **graphify** | Two-level dirty detection; per-tier independent cache invalidation; unversioned cache for the paid tier; provenance + discrete confidence on every edge; hyperedges for "these N form one group"; MinHash+LSH near-duplicate detection (no scipy); hub-exclusion + majority-vote reattachment; community member signatures; determinism discipline; trigram+IDF lexical prefilter. **Not** its node-link JSON persistence — SQLite is 1.6 ms vs 410 ms for the equivalent parse |
 | **`organize`** (MIT) | The safe-move layer: conflict resolution, dry-run. Worth reading before writing our own |
 | **AI File Sorter** | **The canonical taxonomy + alias table** (its best idea). Product loop shape: preview → approve → undo. Its OOXML extraction approach (unzip → parse XML → strip tags) validates our format list. *(Clean-room only — AGPL-3.0.)* |
-| **Google Drive "Organize My Files"** | The shipped review UX: suggest → per-item checkboxes → edit destination inline → approve batch |
+| **DEVONthink** (2002–) | **The Classify score**: mean similarity to all group members + max similarity to the best member. **Two-condition abstention**: weak top score OR narrow top-2 margin. **No persisted model** — recomputed from the corpus, so refiling takes effect instantly and nothing goes stale. Per-item "exclude from classification" as a shipped feature. Rare-term weighting (their Concordance exposes frequency, group count, length, and a corpus-relative weight) |
+| **Google Drive "Organize My Files"** | The shipped review UX: suggest → per-item checkboxes → edit destination inline → approve batch. **The rejection ledger**: a declined (file, folder) pair is not suggested again for 30 days — cheap negative feedback with no retraining. **Asymmetric undo**: undoing moves never deletes folders it created |
+| **Apple Photos** | **Two-pass clustering**: a conservative precision-first pass that deliberately over-fragments, then a merge pass — strictly better than one-shot clustering at a single threshold. Assign new items by sparse coding rather than nearest-neighbour, which Apple notes wins *"when the size of each cluster is relatively small"* — i.e. cold start. **Schedule expensive work for idle time**; structure by free metadata immediately |
+| **Meta / Microsoft event-clustering patents** | Derive thresholds from **the user's own data distribution** (Meta: group photos if displacement is within 1 SD of that camera roll's average movement) rather than hardcoding. Same principle as our P10 quantile |
+| **Hazel** (~2006–, no ML ever) | **Explainability is the trust mechanism, not accuracy.** Every signal is previewable before a rule fires — users can see exactly what text was extracted and why it matched. A rule written in 2015 still works in 2026 |
+| **OpenText** (US11893031B2) | Stage cheap→expensive: **tolerate false positives** in rare-indicator extraction because a weighted scoring stage cleans up. Weight positive and negative evidence differently |
 | **CMU Connections (SOSP '05)** | Co-access/temporal edges: no model, no embeddings, measurably better retrieval at <1% index size |
 | **BERTopic / GraphRAG** | Centroid-nearest representative selection; frozen community reports; batched community summarisation |
 
@@ -677,6 +802,9 @@ document measures speed and tree shape. **None of them measure whether the place
 | **AI File Sorter source** | AGPL-3.0 |
 | **GraphRAG's per-chunk LLM extraction** | $20–500 per corpus, ~4,000 calls per textbook. Microsoft retreated within 7 months (LazyGraphRAG: 0.1% of index cost) |
 | **Any design requiring the user to tag files** | macOS Finder tags: 56% of users never use them. The most consistently replicated finding in the literature |
+| **Inventing categories from content as the primary mechanism** | **DEVONthink shipped "Auto Group" and removed it** — *"almost unused"*, and it generated *"support requests as it didn't work the way people would like/assume."* No shipping incumbent invents a label space from content. Clustering is for the remainder, not the main path |
+| **Argmax with no abstention** | Paperless-ngx returns its top prediction unconditionally — no threshold, no margin, no `predict_proba`. Real report: 464 documents, 78 correspondents, **the same correspondent assigned to every single document**, with no diagnostic |
+| **A classifier that cannot say its training set is degenerate** | Paperless-ngx's `min_df=0.01` silently drops any label appearing in <1% of documents, and its own docs warn that a two-class corpus assigns one of those two to *any* new document. It never tells the user. **Detect and report a degenerate state explicitly** |
 
 ### Historical failure modes we design around
 
