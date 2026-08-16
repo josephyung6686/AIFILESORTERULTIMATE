@@ -781,6 +781,42 @@ been distinct facets for a century of classification theory.
 
 A dimension whose values can be produced by two different roles is not one dimension.
 
+**Measured on the real corpus:** 89 files have a filename school that differs from their
+in-content school, and **59 of those carry application-prompt language** — the role split is real
+and common, not a corner case.
+
+### Corpus-constant vs per-file dimensions — ask the first, extract the second
+
+The same test showed `addressed_to` is reliably recoverable from the filename
+(`Duke Supplemental.docx` → Duke, `U Chicago Supplemental Essay 2.docx` → UChicago), while
+`authored_by` extracted per-file was **noise** — it returned whichever school sat near an email
+address, giving `Georgetown shorts.docx` an `authored_by` of Johns Hopkins.
+
+**Because `authored_by` is not a per-file property at all.** The user is one person; their
+authoring institution is a property of *them and a time period*. Re-deriving it from 2,000
+documents is how it became noise.
+
+| Dimension type | How it is filled | Examples |
+|---|---|---|
+| **Corpus-constant** | **Asked once during template setup** | `authored_by`, `our_firm`, `account_holder`, `primary_affiliation` |
+| **Per-file** | Extracted from content | `addressed_to`, `subject`, `term`, `doc_type`, `event` |
+
+**This makes the setup questions a correctness mechanism, not a UX nicety.** One question —
+"where do you study?" — permanently eliminates an entire class of extraction error across every
+file, at zero per-file cost.
+
+Template definitions therefore declare, per dimension, whether it is constant or extracted.
+
+### Gazetteers need entity disambiguation
+
+The same test resolved **Georgetown Preparatory School** (the user's high school) to **Georgetown
+University**. Two distinct institutions, one name.
+
+Gazetteer entries must be **type-qualified** (`university` / `secondary_school` / `hospital` /
+`company`), and a match must be consistent with the dimension being filled — a `school` slot in
+an academic template should prefer the university sense unless context says otherwise. Every
+university with an affiliated prep school, hospital or press has this collision.
+
 ### Facet propagation — measured, and insufficient alone
 
 Hold-out test on the real corpus: hide a confidently-extracted `school`, recover it from graph
