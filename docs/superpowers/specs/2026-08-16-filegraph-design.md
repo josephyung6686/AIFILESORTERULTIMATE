@@ -60,7 +60,7 @@ batching ~20 clusters per LLM call is.
 |---|---|---|
 | Documents (PDF+DOCX) | 1,142 / 1,993 = **56%** | Extension rules are useless where the mass is |
 | Opaque filenames | 369 = **18%** | Only this slice needs deep analysis |
-| — of which images | 270 = **73% of opaque** | EXIF answers it for free |
+| — of which images | 270 = **73% of opaque** | EXIF where present — **only 38% of images have one**, see below |
 | — of which PDFs | 52 | First-page text, milliseconds |
 | — of which archives | 21 | List the manifest, don't extract |
 | `(n)` duplicate suffixes | 488 = **24%** | Highest-value feature, needs zero AI |
@@ -259,7 +259,14 @@ governing discipline, and the reason its graphs stay clean.
 ### Photos are grouped by EXIF, never by filename
 
 `IMG_7009.HEIC` carries no signal, and in the real test photos fragmented across four separate
-clusters. Date, GPS and camera are deterministic, free, and correct. 270 of the 369 opaque files
+clusters. Date, GPS and camera are deterministic, free, and correct **where they exist**.
+
+**Correction, measured on the full corpus: EXIF coverage is far lower than an earlier draft
+claimed.** Of 459 images, only **127 have camera EXIF (28%)** and **174 have any timestamp
+(38%)**. Downloads, screenshots and messaging-app images carry none — WhatsApp strips metadata,
+and a saved web image never had any. So EXIF grouping reaches roughly a third of images; the rest
+genuinely need pixels read, and the vision budget must be sized for that rather than for the
+optimistic case. 270 of the 369 opaque files
 are images — this single rule covers 14% of the entire corpus at zero cost.
 
 ### AMBIGUOUS needs a UI affordance nobody has built
@@ -857,7 +864,60 @@ Gazetteer entries must be **type-qualified** (`university` / `secondary_school` 
 an academic template should prefer the university sense unless context says otherwise. Every
 university with an affiliated prep school, hospital or press has this collision.
 
-### Facet propagation — measured, and insufficient alone
+### What the graph is actually for — measured
+
+**The graph earns its place on STRUCTURE, not on meaning.** Measured on the full 1,993-file
+corpus:
+
+| Mechanism | Result | Cost |
+|---|---|---|
+| **Exact duplicates** (content hash) | 137 sets, **171 redundant files, 128 MB reclaimable** | 1.5 s — only size-collisions need hashing |
+| **Version chains** (stem normalisation) | 263 chains covering **1,023 files = 51% of the corpus** | negligible |
+| **Photo events** (EXIF time, 4-hour gap) | 46 events, **152 images grouped** | 3.3 s |
+| **Total acted on with zero AI** | **1,346 / 1,993 = 68%** | ~5 s |
+
+Real chains found: the user's resume in **24 versions**, `hw.pdf` in 26, 87 `IMG_*.heic`, a
+40-photo event on a single day.
+
+**Contrast with semantic propagation on the same corpus:**
+
+| | Coverage | Precision | Machinery required |
+|---|---|---|---|
+| Facet propagation | **+3 points** (33% → 36%) | ~50% on gained files | facet table, IDF, hub suppression, voting |
+| Structural edges | **68% of files** | ~100% — a hash match is a hash match | a hash and a regex |
+
+**Conclusion: build the graph for provable relationships. Do not build it to infer meaning.**
+Semantic propagation was asking the graph to do the judge's job. Duplicates, versions and events
+are *proven*, cover two thirds of the corpus, cost seconds, and cannot be wrong.
+
+This resolves the division of labour cleanly: **the graph handles what can be proven; the LLM
+handles what must be judged.**
+
+### Facet propagation — measured, and it does not earn its place
+
+**Hold-out test** (hide a confidently-extracted `school`, recover from neighbours): 92% precision,
+31% coverage, 84 of 122 correctly abstained.
+
+**But applied to the files that actually need it, it collapses:**
+
+```
+rules alone   132/396 = 33%
++ propagation  +9 files → 141/396 = 36%
+precision on the 9 gained: ~50%
+```
+
+Red Cross volunteering guides and a high-school application were assigned to universities.
+
+**The two tests disagree for a structural reason.** The hold-out population *had* a school —
+school documents in school-shaped neighbourhoods, where propagation works. The abstainers mostly
+have no school **because they are not school documents at all**, and propagation cannot
+distinguish *"a school I failed to find"* from *"no school exists."* In this corpus the second
+case dominates, and that asymmetry is not a tuning problem.
+
+**Status: kept only as a weak signal in the evidence packet, never as a placement mechanism.**
+Three points of coverage at 50% precision does not justify the machinery, and the LLM judge — which
+sees the filename and the full extracted content — will not need it to know that
+`Volunteer-Connection-Resource-Guide.docx` is a Red Cross document.
 
 Hold-out test on the real corpus: hide a confidently-extracted `school`, recover it from graph
 neighbours by IDF-weighted vote with a margin gate.
