@@ -190,6 +190,44 @@ it is the single most valuable thing in graphify's design.
 | **INFERRED** | 0.5 | `near_duplicate_of`, `same_project_as`, `shares_entity_with` | MinHash/LSH on extracted text, pHash on images, shared concept node, shared client/organisation name |
 | **AMBIGUOUS** | 0.2 | `similar_to` | Embedding cosine over extracted content — **and nothing else** |
 
+### Expanded edge set — all provable, all measured present in the corpus
+
+Every type below is deterministic. None infers meaning.
+
+| Relation | Found | Evidence | Why it matters |
+|---|---|---|---|
+| `duplicate_of` | 137 sets | content hash equality | 128 MB reclaimable |
+| `version_of` | 263 chains / 1,023 files | normalised stem + hash mismatch | 51% of corpus |
+| **`derived_from`** | **24** | `X.docx.pdf` — a PDF exported from a DOCX | Same document, two formats; must not be filed twice |
+| **`sequential`** | **27 runs** | shared stem + adjacent integers (`unit_2…10`, `strategy_round1_v2…9`) | A numbered series is one thing, not N things |
+| **`contains`** | **58 archives** | zip/tar manifest, read **without extracting** | Makes 58 opaque blobs readable |
+| **`same_content_diff_format`** | **89** | identical stem, different extension | `.docx` + `.pdf` of one document |
+| `same_event` | 46 events | EXIF camera + day + GPS | Photos |
+| `references` / `cites` | — | DOI, URL, citation in extracted text | Directional, unlike the rest |
+| `shares_code` / `same_author` | 770 | identical validated string from both bodies | Weakest tier of the provable set |
+
+### Edges carry evidence, not just a weight
+
+An edge is a claim, and a claim needs its receipt:
+
+```json
+{
+  "relation": "shares_code", "value": "PHYS1401",
+  "confidence": "EXTRACTED", "confidence_score": 1.0,
+  "src": {"file": "…Lecture08.pdf", "zone": "title",  "page": 1, "offset": 12, "count": 4},
+  "dst": {"file": "…PracticeFinal.pdf", "zone": "body", "page": 2, "offset": 830, "count": 1},
+  "directional": false, "observed_at": "…"
+}
+```
+
+- **The shared value itself**, not merely that something is shared — the judge needs to see
+  `PHYS1401`, and so does the user in review.
+- **Zone per endpoint** (`title` / `heading` / `body`), because a title match and a page-9 match
+  are not the same evidence. This is the positional weighting that fixed 8 of 8 slot errors.
+- **Occurrence counts per endpoint**, so a one-off mention is distinguishable from a theme.
+- **Directionality** — `cites` and `derived_from` are directed; `shares_code` is symmetric.
+  Collapsing them loses real information.
+
 The strongest edges now come from **content**, not from the filesystem. `shares_code`,
 `same_author` and `references` are the direct analogue of graphify's `imports_from`: two files
 independently yield the same string from their own bodies, so the edge is an identity match, not
@@ -540,6 +578,28 @@ a perfectly good text layer, so that fallback would target the most expensive fi
 **Scan detection:** probe only the **first 3 pages** for extractable text — 1 false positive in
 808 files, and a full sweep of the corpus costs 52.7 s.
 
+### OCR is not only for scanned PDFs — it is how images enter the graph at all
+
+Measured on the loose corpus (2,281 files):
+
+| | Count | Currently |
+|---|---|---|
+| Images total | 657 | — |
+| **Screenshots (by name)** | **200** | **completely invisible** |
+| Opaque-named images (`IMG_*`, hex, numeric) | 251 | EXIF only, and only 38% have any |
+| **Total OCR cost at 739 ms/page** | | **5.6 minutes** |
+
+**Screenshots are ~10% of the corpus and carry zero information without OCR.** A screenshot is
+always a screenshot *of* something — a receipt, a conversation, a code snippet, a document — so
+OCR does not merely improve its facets, it creates all of them. This is the cheapest large
+information gain in the entire pipeline.
+
+**Policy: OCR anything that yields no text and no usable metadata.** Scanned PDFs (89 files),
+screenshots (200), and opaque images without EXIF. Under six minutes, one-time, offline, free.
+
+Only 43% of files match any template from **filenames alone** — 1,292 match nothing. Content
+extraction plus OCR is what closes that gap, and it is why extraction depth is not negotiable.
+
 ### Bad text layers — the failure that zero-text detection misses
 
 A PDF can have a text layer that is *garbage*. Real example from this corpus:
@@ -874,6 +934,101 @@ gazetteer, or the judge — not a frequency threshold. Ubiquity is not uselessne
 - **The classify step is where all extraction work lives.** Scoring a file against a frozen node
   is the mean+max problem, with two-condition abstention. The flow correctly leaves it as a black
   box; this spec is that black box.
+
+---
+
+## The recommendation system — hand-written templates, fitted to the corpus, personalised by the model
+
+**This is what fills the canvas.** Measured reality: only 30 usable existing destination folders
+absorbing 4%, so **96% of the canvas is proposals** and the recommender carries the product.
+
+### Pipeline
+
+```
+1. SWEEP        filename-only detectors over every file        seconds   → 43% matched
+2. EXTRACT+OCR  full text, EXIF, archive manifests, OCR         ~6 min   → closes the gap
+3. FIT          score each hand-written template on THIS corpus  instant
+4. INSTANTIATE  fill the template's dimension VALUES from the corpus
+5. PERSONALISE  LLM merges, names and orders using the user's own vocabulary
+6. CANVAS       user adds / renames / merges / drops / freezes
+```
+
+Steps 1–4 are deterministic. **The model enters only at step 5, and only to name and merge —
+never to invent structure.** Templates are hand-written and version-controlled; the model
+personalises an existing one rather than generating a taxonomy.
+
+### The template library — measured fit on this corpus
+
+Each template declares dimensions in **citation order** (Wall-Picture), marks each dimension
+**constant** (asked once) or **per-file** (extracted), and carries **detection signals** used at
+step 3. Fit percentages below are from the filename sweep alone and are therefore *lower bounds* —
+content extraction raises all of them, most dramatically for Finance and Identity.
+
+| # | Template | Citation order | Constant | Measured fit |
+|---|---|---|---|---|
+| 1 | **Photos & captures** | `year / event` (time **first** — capture media invert the rule) | — | **444 (19.5%)** |
+| 2 | **Academic coursework** | `school / term / subject / work-type` | `school` | **201 (8.8%)** |
+| 3 | **Applications** | `target-institution / cycle / doc-type` | `applicant` | **112 (4.9%)** |
+| 4 | **Code & notebooks** | `project / artifact-type` | — | 90 (3.9%) |
+| 5 | **Research & lab** | `project / stage / artifact-type` | `lab` | 69 (3.0%) |
+| 6 | **Software & installers** | `platform / app` | — | 68 (3.0%) |
+| 7 | **Career** | `target-company / role / doc-type` | `applicant` | 53 (2.3%) |
+| 8 | **Media** | `kind / series / episode` | — | 53 (2.3%) |
+| 9 | **Finance & admin** | `institution / account / year / doc-type` | `account-holder` | 13 (0.6%) — *badly under-counted by filename* |
+| 10 | **Identity & records** | `category / year` | `subject-person` | 9 (0.4%) — *ditto* |
+
+**Detection signals are literal and auditable**, e.g.
+
+```
+Academic     course-code pattern + academic context  ·  hw|pset|syllabus|lecture|exam|midterm
+Applications supplement|supplemental|letter of continued interest|admission|why (do you|us)
+Research     abstract|manuscript|assay|protocol|figure|sample + a project token
+Finance      invoice|receipt|statement|tax|billing|refund  + currency or account patterns
+Photos       EXIF camera present, or IMG_/DSC_/Screenshot filename shape
+```
+
+**Two templates never produce folders:** *Identity & records* and *Finance* route to the
+sensitivity path first. Detection there is for protection, not placement.
+
+### Step 4 — instantiate with the corpus's own values
+
+A fitted template is abstract until the corpus fills it. `Academic coursework` becomes concrete
+because the corpus supplies the values:
+
+```
+Academic coursework  →  subject ∈ {PHYS1401, BUSIB 4300, ENGIE1006, COMS 1004, IEOR E2000}
+                        term    ∈ {2026-Spring, 2024-Fall, 2021-Spring}
+                        school  = Columbia            (constant — asked once)
+```
+
+The proposal shown on the canvas is therefore a **real tree with real names**, not a schema the
+user has to imagine.
+
+### Step 5 — what the model is allowed to do
+
+Given the fitted templates, the instantiated values, the user's existing folder names, and the
+structural groups, the model may:
+
+- **merge** near-duplicate proposals (`essay` + `supplemental` + `letter of continued interest`
+  → one Applications branch)
+- **name** branches in the user's own vocabulary, preferring an existing folder name over an
+  invented one
+- **order** dimensions where Wall-Picture leaves a genuine choice
+- **drop** proposals too small or incoherent to earn a folder
+
+It may **not** create a dimension, invent a template, or place any file. Its output is a proposed
+tree that goes to the canvas for approval.
+
+### Why templates plus a model, rather than either alone
+
+| Approach | Failure |
+|---|---|
+| Templates alone | Rigid; can't adapt to a corpus that doesn't fit one, and 43% match nothing on names |
+| Model alone | Invents taxonomies — the measured hub failures, and the feature DEVONthink removed |
+| **Templates fitted, model personalises** | Structure is hand-written and auditable; adaptation is bounded; the model does naming and merging, which is what it is genuinely good at |
+
+Templates are data files, not code — added, edited and version-controlled without touching the
+engine, and each new one costs a detection-signal list and a citation order.
 
 ---
 
