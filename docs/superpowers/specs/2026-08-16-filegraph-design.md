@@ -712,6 +712,43 @@ there is no single template that applies to all of it. Templates are therefore s
 and "this file matches no template" is a designed outcome routed to the review queue, not a
 failure.
 
+### The resolver contract — measured, and it matters more than the model
+
+Naive slot extraction produces **confident, well-formed, completely wrong paths**. Measured on
+300 real files, a first implementation returned `Georgetown/2024-Fall/SWCD5660/Exam` for a WashU
+essay and `UNC/2026/Exam` for `Probability For Engineers.pdf` — because `unc` matched inside
+"uncertainty" and `mit` inside "submit".
+
+**Four rules, no machine learning, fixed 8 of 8 observed errors:**
+
+1. **Word-boundary matching.** Never substring. This one bug alone produced most of the failures.
+2. **Positional weighting.** Filename ×10, first ~1,200 chars ×3, remaining body ×0.4. A word in
+   the title is not equal to a word on page 9.
+3. **Rank candidates, never take the first match.** A document mentioning three schools must
+   score them and pick the best, not whichever the dictionary reached first.
+4. **Minimum score AND minimum margin before a slot fills.** Below either, the slot stays empty.
+
+Effect on fill rates:
+
+| Slot | naive | disciplined |
+|---|---|---|
+| school | 75% | **32%** |
+| term | 70% | **32%** |
+| work_type | 70% | **21%** |
+| subject | 12% | **6%** |
+
+**The lower numbers are the correct ones.** The naive rates were inflated by false positives;
+most files genuinely have no school. This yields **high precision, low recall** — usually right,
+often silent — which is recoverable by a better extractor. The inverse, high recall with low
+precision, destroys trust and cannot be fixed by adding anything.
+
+**Corollary: a neural extractor is a recall enhancement, not a correctness dependency.** If it is
+slow, heavy or unavailable, disciplined gazetteer matching alone produces a correct-but-quiet
+system. That is a shippable failure mode.
+
+**An empty slot is a good outcome. A guessed slot is a bug.** The 6% subject fill rate is correct
+behaviour — most files have no course code. The number to distrust is always the high one.
+
 ### Expect a visible residual error rate
 
 Berkeley's Flamenco study derived facet values semi-automatically and **roughly one quarter of
