@@ -161,15 +161,22 @@ are the numbers that would resurrect the daemon requirement.
   "ext": "pdf", "mime": "application/pdf",
   "size": 284119, "mtime_ns": 1786…, "ctime_ns": 1786…,
   "content_hash": "sha256:…", "simhash": "…", "phash": null,
-  "depth_tier": 1,
-  "community": 47, "community_path": ["Academics", "Syllabi"],
-  "confidence": 0.94
+  "depth_tier": 1
 }
 ```
 
-`concept` nodes are projects, people, organisations, courses, topics — extracted **only from
-cheap signals** (filename tokens, folder names, document title/author metadata, EXIF). Files
-attach to them; concepts also link to each other. Both node types participate in clustering.
+**A file node stores no placement.** Where a file goes is *derived* — from its facets under the
+active template, from classification into an existing folder, or from a proposed cluster. Storing
+a `community` or a `path` on the node would freeze one projection into the record and defeat
+re-rendering. Placement lives in the plan and the journal, never on the node.
+
+`concept` nodes are projects, people, organisations, courses, topics. **They are the `val` rows
+of the facet schema** — see *Facet storage* below, which supersedes any separate concept-node
+table. A concept is a dimension value; a file attaches to it through a `facet` row; two files
+sharing a `val_id` are neighbours with no extra edge.
+
+Read the two together: **this section defines what a node knows about itself; the facet schema
+defines how nodes relate and how the tree is projected.**
 
 ### Edges — the signal ladder
 
