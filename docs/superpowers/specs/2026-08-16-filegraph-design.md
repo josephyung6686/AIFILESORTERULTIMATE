@@ -83,7 +83,7 @@ and 73% of the remainder is served by EXIF at zero cost. Tier by what the file n
 | Existing folders | **Learn from them** as ground truth; do not propose reorgs of curated trees |
 | Placement policy | **Per-folder: auto / suggest / off.** Graph ingest is always on |
 | Learning loop | Record corrections from day one; **act on them later** |
-| Taxonomy | **Discovered**, not whitelisted. Frozen once labelled |
+| Taxonomy | **The user's existing folders are the label space.** New folders are *proposed* only for coherent groups that fit nowhere, and are frozen once accepted |
 | Automation target | Graph decides ~90%, model handles the rest |
 | Relationship to FileSort | Fully separate tool |
 
@@ -554,12 +554,16 @@ Do not create the problem and then build a subsystem to fix it.
 
 ---
 
-## Taxonomy is frozen after first labeling
+## Proposed folders freeze once accepted
+
+Scope note: this applies **only to folders the system proposed** from the cluster-and-propose
+path. The user's pre-existing folders were never ours to re-partition — they are the label space,
+per the placement section above.
 
 Measured two ways, independently. Adding 50 files to 300 churns **~28% of Leiden's assignments**
 (ARI 0.715 across 5 trials). On 2,000 files + 40 new, cold re-clustering moved **350 of 2,000
-files into different folders**. If clusters are folders and we re-cluster on every change, files
-re-file themselves constantly. That alone would make the product unusable.
+files into different folders**. If proposed clusters became folders and we re-clustered on every
+change, files would re-file themselves constantly. That alone would make the product unusable.
 
 | Strategy | Churn on existing files |
 |---|---|
@@ -700,23 +704,41 @@ which mode it is in rather than silently producing worse results.
 
 ---
 
-## Placement and escalation
+## Escalation is not abstention — they are different decisions
 
-```
-auto-place  if  top1_sim ≥ P10(top1_sim)  AND  neighbor_agreement ≥ 0.6
-escalate    otherwise
-```
+These were conflated in an earlier draft. They answer different questions and have different
+consequences:
 
-Measured on 8,080 unique filenames *(synthetic)*: a `top-1 cosine ≥ 0.90` rule auto-placed
-**89.5% at 99.9% accuracy**, escalating 10.5%. Accuracy on the escalated slice was 81.6% —
-confirming the rule routes genuinely hard cases rather than escalating at random.
+| | Question | Trigger | Consequence |
+|---|---|---|---|
+| **Escalation** | *Do we have enough information yet?* | Tier 1.5 extraction produced too few facts to score confidently | Run Tier 3 (OCR / vision / LLM), then **re-score**. A cost decision |
+| **Abstention** | *Do we know which folder, now that we have the information?* | Weak top score **or** narrow top-2 margin, after all available analysis | Route to the review queue or the cluster-and-propose path. A confidence decision |
 
-**The constant will not transfer between corpora.** Ship the threshold as a **quantile of the
-user's own similarity distribution**, not a magic number. That auto-targets the automation rate
-on any corpus and exposes exactly one honest knob (`--automation-target 0.90`).
+A file may escalate and then place cleanly. A file may never escalate — plenty of information,
+genuinely ambiguous destination — and still abstain. **Escalation spends money to reduce
+uncertainty; abstention admits uncertainty that money did not remove.**
 
-Escalated files go to Tier 3 deep extraction, then to the LLM. Every file still receives a
-placement — **this is a cost tier, not an abstention gate.**
+### Thresholds are quantiles of the user's own distribution, never constants
+
+Both gates calibrate against the corpus in front of them:
+
+- escalation threshold = fact-count / score percentile that targets the configured spend
+- abstention threshold = `P10(top_score)` plus a margin requirement
+
+Measured on 8,080 unique filenames *(synthetic)*: a fixed `top-1 cosine ≥ 0.90` rule placed
+**89.5% at 99.9% accuracy** and escalated 10.5%, with accuracy on the escalated slice at 81.6% —
+so the rule does route genuinely harder cases rather than escalating at random. **But the
+constant will not transfer**, which is why it ships as a quantile with one honest knob
+(`--automation-target 0.90`).
+
+This is the same principle as Meta's event-clustering patent, which groups photos when
+displacement is within **1 SD of that camera roll's own average movement** rather than a
+hardcoded radius — a user who shoots in one apartment and one who shoots on road trips get
+different effective thresholds for free.
+
+**Not every file receives a placement.** Abstaining is a valid, visible outcome — surfaced as a
+review queue, never as silence. DEVONthink's most common bug report is *"nothing happens when I
+click Classify"*, which is abstention working correctly and being invisible.
 
 ---
 
@@ -852,10 +874,16 @@ files**, with zero guessing and zero model calls. It already collapses the 488 d
 the 270 photos by event, and links documents that share a course code or an author. **Everything
 later must beat this baseline or it does not ship.**
 
-**Phase 2 — clustering, and embeddings only where extraction came up empty.** Mutual-kNN over
-extracted content, Leiden with hub exclusion, recursive splitting for nesting, batched cluster
-labeling, frozen taxonomy. Embeddings enter here as `AMBIGUOUS` fallback edges. Score against
-Phase 1 — **if embeddings do not measurably improve on the fact graph, they do not go in.**
+**Phase 2 — classify into existing folders, then cluster the remainder.** The DEVONthink-style
+scorer (mean + max similarity to folder members) over the Phase 1 fact graph, with two-condition
+abstention. Then, for abstained files only: mutual-kNN, Leiden with hub exclusion, recursive
+splitting for nesting, batched labeling of *proposed* folders, frozen once accepted. Embeddings
+enter here as `AMBIGUOUS` fallback edges for files whose extraction came up empty.
+
+Score against Phase 1 at every step — **if embeddings do not measurably improve on the fact
+graph, they do not go in.** Same test for clustering: if classify-into-existing plus a review
+queue scores as well as clustering the remainder, the cluster path stays off by default. The
+incumbent that shipped automatic group invention removed it.
 
 **Phase 3 — placement and safety.** Escalation rule, plan/review/apply/undo, per-folder policy,
 protected zones.
