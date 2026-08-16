@@ -742,6 +742,64 @@ Research   :  project / stage / artifact-type
 
 The user picks one, edits the dimension order, or writes their own in a sentence.
 
+### A dimension must encode a ROLE, not a topic
+
+**Measured failure that produced this rule.** A hold-out propagation test on the real corpus
+recovered `school` at 92% precision — and every error was the same error:
+
+```
+U Chicago Supplemental Essay 2.docx   true = UChicago   → predicted Columbia (w=26.7)
+_U Chicago Supplemental essays.docx   true = UChicago   → predicted Columbia (w=26.7)
+```
+
+The prediction was not wrong about the *connection* — the user attends Columbia, so
+`columbia.edu` and their student ID appear in almost every document they write, **including
+essays addressed to other universities.** It was wrong about the *role*.
+
+An application essay contains two schools:
+
+| Role | Value | Source |
+|---|---|---|
+| `authored_by` | Columbia | the author's own affiliation — appears everywhere |
+| `addressed_to` | UChicago | the actual subject of the document |
+
+Collapsing both into one slot called `school` guarantees that the user's dominant affiliation
+becomes a hub that swallows everything connected to it.
+
+**Bliss BC2's citation order already separates these**: `Thing–Kind–Part–Property–Material–
+Process–Operation–**Patient**–Product–Byproduct–**Agent**–Place–Time`. Agent and Patient have
+been distinct facets for a century of classification theory.
+
+**Apply to every template:**
+
+| Template | Wrong | Right |
+|---|---|---|
+| Applications | `institution` | `applicant_school` / `target_school` |
+| Client work | `client` | `our_firm` / `client` |
+| Research | `institution` | `authoring_lab` / `funding_body` / `venue` |
+| Finance | `institution` | `account_holder` / `issuing_bank` |
+
+A dimension whose values can be produced by two different roles is not one dimension.
+
+### Facet propagation — measured, and insufficient alone
+
+Hold-out test on the real corpus: hide a confidently-extracted `school`, recover it from graph
+neighbours by IDF-weighted vote with a margin gate.
+
+| | |
+|---|---|
+| Precision | **92%** (35 correct, 3 wrong) |
+| Coverage | **31%** — 84 of 122 correctly abstained |
+| Graph density | 331 edges / 396 files, **average degree 1.7** |
+
+**Propagation is validated as a mechanism and is not sufficient on its own.** The coverage limit
+is graph sparsity, not the voting rule — the hub cap that correctly suppresses `gmail.com` also
+thins the graph. Thresholds from 0.5 to 2.0 changed nothing, confirming the **margin gate** is
+what produces the precision, not the weight cutoff.
+
+This is the specific gap that **embeddings-as-retrieval** fill: they densify the candidate set,
+and a bad retrieved candidate is rejected by the judge rather than silently creating an edge.
+
 ### Dimension order follows the Wall-Picture Principle
 
 Ranganathan's rule, from faceted classification theory: **A precedes B if B cannot be understood
