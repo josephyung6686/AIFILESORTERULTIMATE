@@ -666,6 +666,60 @@ Research   :  project / stage / artifact-type
 
 The user picks one, edits the dimension order, or writes their own in a sentence.
 
+### Dimension order follows the Wall-Picture Principle
+
+Ranganathan's rule, from faceted classification theory: **A precedes B if B cannot be understood
+without A.** No mural without a wall.
+
+`school / term / subject / work-type` is correct because `PHYS1401` does not identify a course
+without knowing the school, and `Problem Set 4` is meaningless without the course. `subject /
+term / school` fails the test. This gives a principled default for templates nobody has written
+yet, rather than an intuition per template.
+
+Corollary from the same theory: **time is structurally terminal** — Space and Time occur only in
+the last round. A `year` dimension placed first fights the theory and, in practice, scatters
+related work across years.
+
+Freezing the order matters as much as choosing it: with *n* dimensions there are *n!* orders,
+only one can be materialised, and **the choice determines what collocates**. UDC's own guidance
+warns that inconsistent citation order across a collection destroys collocation. Changing a
+template is therefore an explicit, reviewable operation, never a silent re-render.
+
+### Template validator — hard limits from measured practice
+
+Bergman et al. (JASIST 2010, n=296, 1,131 real files, 5,035 navigation steps) measured actual
+personal folder structures: **mean depth 2.86, 82% of files at depth ≤4, mean 11.82 files per
+folder.** Their regression `RetrievalTime = 4.956 + 2.236·Depth + 0.106·Size` gives a
+depth/size exchange rate of **21.09**.
+
+**Reject or warn on any template where:**
+
+| Check | Limit | Why |
+|---|---|---|
+| Depth | **≤ 4 dimensions** | 82% of real retrievals happen at depth ≤4; no surviving personal method uses 5 |
+| Branches per level | **≥ 3** | Fewer means the level earns nothing — delete the dimension |
+| Files per leaf | **≤ ~21** | Past this, adding a level is measurably faster than scanning |
+
+All three are one query against `facet`. Practitioner guidance independently converges: a
+workable facet count is **3–7**, and every surviving personal method (PARA, Johnny.Decimal) uses
+**1–3 dimensions with a hard cap**. Our 4-dimension examples sit at the outer edge of observed
+practice — the fourth dimension must earn its place against the ≤21 check.
+
+### Per-folder templates, and a first-class "matches nothing" path
+
+**Heterogeneous corpora break faceting outright**, and `~/Downloads` is maximally heterogeneous —
+there is no single template that applies to all of it. Templates are therefore scoped per folder,
+and "this file matches no template" is a designed outcome routed to the review queue, not a
+failure.
+
+### Expect a visible residual error rate
+
+Berkeley's Flamenco study derived facet values semi-automatically and **roughly one quarter of
+participants spontaneously commented on a confusing or misfiled classification** — the same
+failure as our `VHX7000` and `Georgetown/Wash U` errors, found independently in 2003. IDF
+weighting, type-diversity bans and context validation reduce it; they do not eliminate it.
+**Budget the correction UI as a core feature, not a fallback.**
+
 ### Why this changes the technical problem, not just the UX
 
 It converts **open-ended classification into structured slot-filling.**
@@ -702,6 +756,84 @@ Precedence, highest first:
 
 A template does not have to be complete. Unfilled dimensions collapse (no `Unknown/` folders in
 the path), and the file is placed at the deepest level it has evidence for.
+
+**Collapsing makes the path non-expressive, so the mapping must be persisted.** `Columbia/
+PHYS1401/Problem Sets/` cannot be decomposed — is `PHYS1401` the term slot or the subject slot?
+Since the filesystem is our source of truth and the graph is a rebuildable cache, a
+rebuild-from-disk would silently lose every slot assignment. With *k* dimensions at per-slot fill
+rate *p*, the ambiguous fraction is `1 − pᵏ` — at our measured fill rates, most of the corpus.
+
+**Rule: persist `path_component → (dim, val)` in SQLite alongside every applied move.** The
+pretty path stays pretty and stays decomposable. The alternative — expressive folder names like
+`Columbia/subject=PHYS1401/` — is what the 1991 Semantic File System shipped, and it is ugly
+enough that we take the sidecar instead.
+
+---
+
+## Facet storage — one table subsumes concept nodes and entity edges
+
+Do not build a facet subsystem beside the graph. **A facet *is* a typed edge from a file to a
+value node**, and modelling it that way collapses three earlier designs into one.
+
+```sql
+CREATE TABLE dim(id INTEGER PRIMARY KEY, name TEXT UNIQUE, ord INT);  -- citation order
+CREATE TABLE val(id INTEGER PRIMARY KEY, dim_id INT, label TEXT,
+                 canonical_id INT,                    -- → category_taxonomy
+                 UNIQUE(dim_id, label));
+CREATE TABLE facet(file_id INT, dim_id INT, val_id INT,
+                   conf REAL, provenance TEXT,
+                   PRIMARY KEY(file_id, dim_id, val_id)) WITHOUT ROWID;
+CREATE INDEX ix_fv ON facet(dim_id, val_id, file_id);
+CREATE INDEX ix_vf ON facet(val_id, file_id);
+```
+
+- **`val` rows are the concept nodes.** Two files sharing a `val_id` are graph neighbours with no
+  extra edge table.
+- **`facet` rows are the `shares_entity_with` edges, now typed by dimension.** `PHYS1401` stops
+  being an untyped shared string and becomes `(subject, PHYS1401)` — the upgrade the fact-edge
+  section argues for, delivered structurally.
+- **Every `val.label` routes through the canonical taxonomy + alias table**, not just folder names.
+- **Never add a uniqueness constraint on `(file_id, dim_id)`.** Multi-valued dimensions are real —
+  Google Photos conceded exactly this in 2024 by allowing multiple categories per image.
+
+**Measured at 100k files × 5 dimensions (425k facet rows, 18.2 MB):**
+
+| Operation | Time |
+|---|---|
+| All files where `subject=X` | **0.81 ms** |
+| Render `school/term/subject/work-type` | 175 ms → 18,675 leaves |
+| **Re-render under a different dimension order** | **175–300 ms, zero re-analysis** |
+| Query preview (counts for next dimension) | 45 ms |
+
+At the v1 target of ~2k files this is sub-10 ms. **"Disk is a projection of the graph" is now a
+measured property, not an aspiration.**
+
+A denormalised wide table is ~1.8× faster and 7× smaller but cannot hold multi-valued dimensions,
+per-slot confidence, or provenance, and adding a dimension becomes a schema migration. If that
+1.8× is ever needed, materialise the wide table as a derived cache — a cache, not a store.
+
+### One order materialised, N virtual
+
+**Exactly one dimension order is written to disk at a time. All other orders are views computed
+from `facet`.** Switching the materialised order is an explicit, journaled `plan → review →
+apply`, like any other move.
+
+This is where the 1991 Semantic File System failed: with field directories visible the tree is
+*infinite*, and hiding them breaks `pwd`. Our "no FUSE, no virtual filesystem" non-goal already
+dodges it; this rule makes the dodge explicit.
+
+### Hand edits must survive re-projection
+
+Adopted from Xerox PARC's Presto/Placeless (TOIS 2000): a collection is
+**query + inclusion list + exclusion list**. Pure-query collections lose manual edits on
+re-evaluation; pure-static collections never update. The three-part form is exactly *"the user
+dragged this file out of `Problem Sets` — never put it back."*
+
+### Facets are descriptive; fact edges are explanatory. Keep them separate.
+
+Faceted classification lacks intra-facet relationships by design. **Do not express `version_of`,
+`references`, `duplicate_of` or `same_event` as facets** — they are edges, they answer a
+different question, and forcing them into dimensions loses both.
 
 **Templates are inferred back, too.** If the teacher tree already looks like
 `School/Year/Subject/`, the system proposes that as a detected template for confirmation rather
