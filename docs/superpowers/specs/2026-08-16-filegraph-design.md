@@ -773,6 +773,43 @@ Scanned 1,993 files. Pick what should become folders:
 the hardest unsolved problem in the design — is this grouping right? — into a question the only
 qualified judge can answer in a second.
 
+### Measured on the real corpus — and it confirms the design constraint
+
+Surfacing was run on the full 1,993-file corpus. **Structural groups are excellent:**
+
+```
+Joseph_Yung_Resume_2029 (11) (1) …    24 files   version family
+800x (3) (11) (13).webp               21 files   version family
+IMG_8442 · 8443 · 8444                17 files   one photo session
+strategy_round1_v4 · v5 · v14         15 files   version family
+```
+
+**Fact-based groups remain hub-prone:** `share code=VHX7000` produced a 14-file group merging
+Cornell application essays with resumes (a microscope model number, surfaced without the
+mandated context validation); `share org=columbia.edu` produced 14 files including an unrelated
+journal article and a pro-bono cover letter.
+
+**Two bugs found and fixed here, both previously predicted:**
+
+1. **Never strip bare trailing digits during stem normalisation.** `IMG_7009` → `img` merged
+   *every* photo into one 168-file "version family". Only explicit markers — `(n)`, `v2`, `copy`,
+   `final`, `draft` — may be stripped.
+2. **Facts must produce independent candidate groups, never a union-find closure.** Transitivity
+   let the `hjy2114` student-ID hub weld the resume family to syllabi and lab abstracts. Each
+   fact is its own candidate; membership never chains across facts.
+
+**This is the third independent confirmation of the same constraint:**
+
+| Experiment | Provable signals | Inferred signals |
+|---|---|---|
+| Graph value | 68% of corpus, ~100% precision | propagation +3%, ~50% precision |
+| Fact edges | duplicates and versions clean | ~half of shared entities were junk hubs |
+| Surfacing | version families and sessions clean | `columbia.edu`, `VHX7000` hubs |
+
+**Provable relationships work; inferred ones produce hubs.** Surfacing therefore **leads with
+structural groups** — versions, duplicates, sessions, EXIF events — and presents validated
+fact-based groups below them, clearly marked as weaker.
+
 **Candidate groupings are surfaced from several signals, deliberately mixed:**
 
 - shared extracted facts (course code, correspondent, organisation)
