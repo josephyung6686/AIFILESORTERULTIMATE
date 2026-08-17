@@ -986,6 +986,66 @@ gazetteer, or the judge — not a frequency threshold. Ubiquity is not uselessne
 **This is what fills the canvas.** Measured reality: only 30 usable existing destination folders
 absorbing 4%, so **96% of the canvas is proposals** and the recommender carries the product.
 
+### Per-node structure: the user decides what splits each branch
+
+**Correction to an earlier framing.** The design previously applied **one citation order per
+template, uniformly**. That cannot express what people actually want: different branches need
+different depths and different splits.
+
+**Each node on the canvas carries its own "split by" decision**, and the graph can offer only the
+dimensions whose facets actually exist among that node's files — with the resulting branch counts
+shown *before* the user commits:
+
+```
+Columbia/  (201 files)   split by?
+    ○ subject     5 branches   PHYS1401 (12) · BUSIB 4300 (8) · ENGIE1006 (6) …
+    ○ term        3 branches   2026-Spring (89) · 2024-Fall (72) · 2021-Spring (40)
+    ○ work-type   4 branches   Lecture (58) · Homework (44) · Exam (31) · Syllabus (12)
+    ○ don't split
+
+Columbia/PHYS1401/  (12 files)   split by?
+    ○ work-type   4 branches   Lecture (5) · Homework (4) · Practice (2) · Notes (1)
+    ○ term        1 branch     ⚠ wasted level
+    ○ don't split
+```
+
+Branches may therefore differ in depth — `Columbia/PHYS1401/Lectures/` beside a flat
+`Columbia/ENGIE1006/` holding four files. This matches published file plans, which are uneven by
+design, and it is what a single global citation order cannot represent.
+
+**Each option is a `COUNT` query**, so the preview is exact rather than an estimate, and the
+template validators become live feedback instead of hidden rules:
+
+| Signal shown inline | Rule behind it |
+|---|---|
+| ⚠ 1 branch — wasted level | ≥3 branches per level |
+| ⚠ 34 files here — consider splitting | ≤~21 files per leaf |
+| ⚠ depth 5 | ≤4 dimensions |
+| ⚠ repeats the parent | Lancaster's redundant-folder rule |
+
+The template supplies the **default** split at each level (its citation order) and the
+Wall-Picture principle orders the offered options. **The user overrides freely, per node.**
+
+### Renaming: canonical value vs display label
+
+Renaming `BUSIB4300` to `Managerial Economics` must not break matching — the facet still has to
+match files on the extracted string. So a value node carries both:
+
+```sql
+val(id, dim_id,
+    label,           -- canonical, extracted from files — what facets match on
+    display_label,   -- the user's name — what the folder is called on disk
+    canonical_id)
+```
+
+`label` is the machine's; `display_label` is the user's; neither overwrites the other. A rename
+is a one-field edit that changes the folder name and no facts.
+
+**This is also where personalisation actually lives.** The model proposes a `display_label`
+(preferring a folder name the user already uses); the user accepts or replaces it. The machine
+never has to guess how much personalisation is wanted — every label and every split is the user's
+to set, with a sensible default already filled in.
+
 ### How these steps relate to the graph
 
 **The graph is the data. The canvas is a view of it. Freeze writes a constraint back.** No step
