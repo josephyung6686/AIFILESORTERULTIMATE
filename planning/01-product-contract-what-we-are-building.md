@@ -48,7 +48,7 @@ frozen nodes. Unmatched stay put.
 | Profile card | Optional role card before the canvas. Skip allowed. May rank existing nodes. May not invent a path or skip freeze |
 | Filename baseline | `Counter` of tokens from files already in a folder (contents, not the folder name) |
 | Placement scorer | **Mean + max similarity** to every file already in the folder (DEVONthink-style), over **fact edges** |
-| Name collision | Never overwrite. Incoming file becomes `name (1).ext` (then `(2)`, …). Journal the final path |
+| Name collision | Never overwrite, **never silently rename**. Identical bytes → skip. Same name, different bytes → `ask`; file stays. Measured: 27 cases in 2,281 files (1.18%), and they are version conflicts where `(1)` destroys which copy is current |
 | Delete | Never. Duplicates go to quarantine with a manifest |
 | What may move | Loose files only. Directories are never moved as units |
 | Sensitive content | ID / medical / tax / legal / keys **never leave the machine**. Detection failure fails closed |
@@ -190,6 +190,70 @@ matching. Two fields; neither overwrites the other.
 
 ---
 
+## Folder creation — you add a node, the graph proposes what goes under it
+
+The canvas lets you add a folder by hand. The question this answers is what happens *underneath*
+it, because "the user typed a name" is where an organizer is most tempted to invent.
+
+**1 — BIND (provable, no model).** Resolve the typed name against the fact graph: exact match on
+`label` / `display_label` → alias table (`Columbia` → `Columbia University` → `columbia.edu`) →
+dimension-value match → fuzzy, shown as *"did you mean"*, never silent. The node's file set is a
+`SELECT` — exact, not estimated.
+
+**Bind only to dimension values, never to raw tokens.** This is where the identity rule becomes
+structural rather than statistical: `joseph`, `hjy2114` and `columbia.edu` are values of no
+declared dimension, so they cannot bind, so they cannot become a 400-file folder. We measured that
+frequency cannot separate identity from type — it correctly flagged `joseph` but also killed
+`screenshot` and `resume`. The schema does what a stoplist could not.
+
+**2 — FIT, scoped to this node.** Run template detection over *this node's members only*.
+`Columbia` binds 201 files → Academic coursework fits, supplying the default next split (citation
+order says `term`), the candidate dimensions, and the validators. Two templates fitting is a real
+choice to offer, not ambiguity to resolve silently.
+
+**3 — OFFER.** Every option is a `GROUP BY` with exact counts:
+
+```
+Columbia/  (201 files)   split by?
+    ○ term        3 branches   2026-Spring (89) · 2024-Fall (72) · 2021-Spring (40)
+    ○ subject     5 branches   PHYS1401 (12) · BUSIB 4300 (8) · ENGIE1006 (6) …
+    ○ work-type   4 branches   Lecture (58) · Homework (44) · Exam (31) · Syllabus (12)
+    ○ don't split
+
+Columbia/PHYS1401/  (12 files)   split by?
+    ○ work-type   4 branches   Lecture (5) · Homework (4) · Practice (2) · Notes (1)
+    ○ term        1 branch     ⚠ wasted level
+    ○ don't split
+```
+
+Branches may differ in depth — `Columbia/PHYS1401/Lectures/` beside a flat `Columbia/ENGIE1006/`
+holding four files. Real file plans are uneven by design; one global citation order cannot say
+that. Validators surface here as inline warnings, not hidden rules.
+
+**4 — THE MODEL, bounded.** Same permissions as everywhere else — rank which split to default to,
+name branches in your vocabulary, merge near-duplicates, drop branches too small to earn a folder.
+It may not create a dimension, invent a value, place a file, or **propose a branch with no files
+behind it**: every proposed subfolder needs **≥ 3 files that provably carry that value**. That is
+the freeze rule applied one level down.
+
+**5 — THE EMPTY INTENT NODE.** You type `Clients` and nothing binds. That is legitimate — you are
+declaring intent ahead of evidence. Two legal outcomes:
+
+- **Targeted extraction** — the template declaring `client` says what evidence would fill it (org
+  names in extracted text). Run that extractor over unplaced files; if values appear, return to 3.
+- **Stay empty and frozen** — a legal destination with no children, which you drag onto.
+
+Never fabricate `Clients/Active` and `Clients/Archive` because they sound like what a person would
+want. **An empty node is a correct answer. A node with invented children is the failure this whole
+contract exists to prevent.**
+
+**Overlap.** A file carrying `school=Columbia` and `work-type=homework` matches two hand-added
+top-level nodes. Each branch's parent chain is its own citation order; the file goes where its
+facet path matches deepest, and equal depth → `ask`. The abstention rule applied to the tree, so
+it needs no new machinery.
+
+---
+
 ## Classifier
 
 Two layers. Both only land on **frozen** nodes.
@@ -197,10 +261,25 @@ Two layers. Both only land on **frozen** nodes.
 ### Filename baseline (shipped)
 
 A node’s profile is a `Counter` of tokens from files already in it, **not** the folder name.
-`Work` is empty of meaning; the files inside it are the model. Hold-out on already-filed files
-gives the UI sentence:
+`Work` is empty of meaning; the files inside it are the model.
 
-> I'd place 6 in 10 of your loose files, and on your own filed data I get 97% of those right.
+Hold-out on already-filed files is the right regression metric — free labels, runs today, catches
+a change that makes things worse. **But it must not be quoted over loose files.**
+
+> ~~I'd place 6 in 10 of your loose files, and on your own filed data I get 97% of those right.~~
+
+**Those are two different populations, and the numbers do not transfer.** Already-filed files are,
+by selection, files that *fit a folder*. Loose files are the ones that did not — measured, existing
+folders absorb only **4%** of them. Hold-out precision is therefore an optimistic bound, not an
+estimate of what the user will see.
+
+This exact mistake is already documented in the FileGraph spec: semantic propagation passed a
+hold-out test at **92%** and delivered **~50%** in practice, and was cut for that reason. The
+populations differed the same way.
+
+**So report two numbers and never merge them:** hold-out precision on filed data (regression), and
+placement precision on a hand-labelled sample of *loose* files (the honest one). If only one can
+be shown in the UI, show the loose-file number.
 
 Unknown class tokens (`cs3157` vs a `CS3134` folder) abstain and, if they recur, become a
 canvas proposal — not a silent folder.
@@ -236,6 +315,13 @@ Only for files that abstained. Mutual-kNN, Leiden with **hub exclusion**, recurs
 nesting, batched labels for *proposed* folders, frozen once accepted. If this path does not
 beat “classify into existing + review queue” on the fitness scorer, it stays **off by default**.
 
+**The same gate covers embeddings and GLiNER, and it is a build gate, not just a runtime
+default.** They are in the design; they ship only if a harness run says they beat the fact graph.
+The evidence for gating rather than assuming: embeddings allowed to form edges produced a
+measured **73-file grab-bag**, and semantic propagation measured **+3% coverage at ~50%
+precision** and was cut. The fitness scorer is build-order 0, so the gate costs nothing to
+enforce — it is one run before the work starts.
+
 ---
 
 ## Cloud, sensitivity, and “never leaves the machine”
@@ -265,9 +351,23 @@ default those roots. TCC-empty Desktop is “grant access,” not “0 files fou
 
 - Analysis never moves files. It produces a plan.
 - Dry-run default. Confirm to apply. Journal **before** each move. Undo the run.
-- **No overwrite.** If `report.pdf` already exists at the destination, the incoming file is
-  stored as `report (1).pdf`. The plan’s `dst` is a proposal; apply computes and journals the
-  final path.
+- **No overwrite, and no silent rename.** Identical bytes at the destination → skip, already
+  filed. **Same name, different bytes → `ask`; the file stays put.**
+
+  **Measured on the real corpus, which settles this.** Of 2,281 loose files, 62 share a name with
+  something already filed — 35 identical (skip) and **27 different (1.18%)**. A review screen of
+  27 items once per run is not a stall. And the cases are exactly the ones auto-rename ruins:
+
+  ```
+  problem4.py              loose ~/Downloads  vs  filed ~/Desktop/Python 1006
+  project1_analysis.ipynb  loose ~/Downloads  vs  filed ~/Desktop/Project 1 python/GroupProject1
+  ```
+
+  These are version conflicts. `problem4 (1).py` preserves both files and destroys the only fact
+  the user needs — **which one is current**. Producing mystery duplicates is the problem this
+  product exists to fix.
+
+  The plan’s `dst` remains a proposal; apply computes and journals the final path.
 - Destination must resolve inside a **chosen destination root** after symlink resolution
   (cross-root is allowed; escaping the chosen roots is not).
 - Project-skip on **destinations** (`node_modules`, `.git`, `venv`, `package.json` ancestors, …).

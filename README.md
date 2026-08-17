@@ -27,9 +27,10 @@ code until the plan is locked.
 2. PROFILE     optional role card — skip allowed
 3. EXTRACT     whole files → fact graph (PDF/DOCX, EXIF, OCR, HEIC)
 4. TEMPLATES   hand-written schemas fitted to this corpus; you split each node
-5. CANVAS      functional tree — freeze the only legal destinations
+5. CANVAS      functional tree — freeze the only legal destinations. Add a folder
+               by hand and the graph proposes what goes under it, from facts only
 6. CLASSIFY    mean+max vs folder members (filename Counter is the baseline)
-7. APPLY       plan → confirm → move; name clash becomes file (1).ext; undo
+7. APPLY       plan → confirm → move; name clash asks, never renames; undo
 ```
 
 ---
@@ -38,10 +39,13 @@ code until the plan is locked.
 
 - Knowledge graph of files; disk layout is a projection; graph decides ~90%, model the rest
 - Whole-file extraction: PDF/DOCX, EXIF, Apple Vision OCR, screenshots, HEIC
-- Embeddings, GLiNER, Leiden, mutual-kNN, hub exclusion; daemon only if measured
+- Embeddings, GLiNER, Leiden, mutual-kNN, hub exclusion — **gated on a harness run**, not
+  assumed. Embeddings allowed to form edges produced a measured 73-file grab-bag
 - Fitness scorer first; canvas is functional freeze, not polish
 - Mean+max similarity to folder members; filename Counter is the baseline
-- Name clash → `file (1).ext`, never overwrite
+- Name clash → `ask`, never overwrite and never silently rename (measured: 1.18% of files, and
+  they are version conflicts where `(1)` hides which copy is current)
+- A hand-added folder binds to a fact value; no proposed subfolder without ≥3 backing files
 - Hand-written templates, per-node split-by, Wall-Picture, Aho-Corasick gazetteers
 - Cloud allowed only after you see the exact text; ID/medical/tax/legal/keys stay local
 - Project-skip on destinations; unmatched stay put; cross-root file into a chosen root

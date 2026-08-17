@@ -2257,9 +2257,14 @@ Sensitivity classification is itself a facet, surfaced in review, and correctabl
 - **Journal before move**: `(run_id, scan_root, src, dst, content_hash, status)`.
 - Runs carry status `in_progress | complete | reversed`, so an **interrupted run is still
   undoable** — the case where undo matters most.
-- **No overwrite.** Collisions resolve to `name (1).ext`; `dst` in the plan is a proposal and
-  apply computes and journals the final path.
-- **Every `dst` must resolve inside `scan_root`** after symlink resolution. Plans are
+- **No overwrite, and no silent rename.** Identical bytes at the destination → skip. Same name,
+  different bytes → `ask`; the file stays. *(Corrected: an earlier draft resolved collisions to
+  `name (1).ext`. Measured at 1.18% of loose files, and those cases are version conflicts where
+  the rename destroys which copy is current.)* `dst` in the plan is a proposal; apply computes
+  and journals the final path.
+- **Every `dst` must resolve inside a chosen destination root** after symlink resolution — not
+  inside the source. Cross-root filing (Downloads → Desktop) is the point of the product.
+  *(Corrected: an earlier draft required `dst` inside `scan_root`, which forbids it.)* Plans are
   user-editable, therefore user-controlled input.
 - **Undo** removes destination directories only if empty after restore, marks the run reversed,
   and is idempotent.
