@@ -1,10 +1,12 @@
-# FileGraph — graph-first file organizer (design)
+# FileGraph — research spec (not the product contract)
 
-**Date:** 2026-08-16
-**Status:** Design complete, awaiting user review
-**Repo:** `/Users/jy/Desktop/Database agent/filegraph` (new, standalone)
-**Relationship to FileSort:** fully separate tool, no shared code
-**Working name:** `filegraph` — rename freely, nothing depends on it
+**Date:** 2026-08-16  
+**Status:** Reference and measurements only. The product contract is
+[`2026-08-17-database-agent-design.md`](2026-08-17-database-agent-design.md).  
+**Working name:** `filegraph` — historical. The product is the database agent.
+
+Do not implement this document as the app. Constraints the product **does** take from this file
+are listed in the canonical spec under “Borrowed from FileGraph.”
 
 ---
 
