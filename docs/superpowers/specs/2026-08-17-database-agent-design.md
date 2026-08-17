@@ -1,53 +1,33 @@
-# Database agent — product spec
+# Database agent — product spec v2.1
 
 Date: 2026-08-17  
 Status: **canonical** — this is the contract for the GitHub repo  
 Remote: [josephyung6686/AIFILESORTERULTIMATE](https://github.com/josephyung6686/AIFILESORTERULTIMATE)
 
-This file supersedes conversation drafts. Joseph’s FileGraph write-up
-(`docs/superpowers/specs/2026-08-16-filegraph-design.md` + `research/`) is **reference and
-evidence**, not the product contract. Constraints we take from it are listed under
-[Borrowed from FileGraph](#borrowed-from-filegraph).
+This file is the product contract. Joseph’s FileGraph write-up
+(`docs/superpowers/specs/2026-08-16-filegraph-design.md` + `research/`) is the **detailed
+design and measurement evidence** for the graph, extractors, templates, scoring, and privacy
+rules below. Those subsystems are in scope. Do not treat FileGraph as “research we declined.”
+
+Freeze still matters: after you approve the tree, nothing new appears anywhere you did not put
+it. The canvas is **boilerplate for that freeze**, not an aesthetics project. Function first.
 
 ---
 
 ## Product
 
-A **general database agent**: a local app a busy person runs without Cursor. It helps them see
-and shape how their files should live, then files into that shape.
+A **personal file intelligence system**. The core is a **knowledge graph of files** — people,
+courses, events, “same session,” duplicates, versions — built from facts read out of the files.
+The folder tree on disk is a **projection** of that graph. You can re-render a different tree
+without new model calls.
 
 It is not a lab-only regex sorter, and it is not an LLM inventing `Images/Science`.
 
-**Sequence (locked):**
+**What the user sees:** pick sources and destination roots, optional profile card, a functional
+canvas of existing folders plus template-fitted proposals, freeze, then files land only on
+frozen nodes. Unmatched stay put.
 
-1. **Sort** — design the folder tree, then put files into it.  
-2. **Catalog / ask** — index that world so you can ask “what do I have / where is this / what’s related.”  
-3. **Later profiles** — lab (Nutrigene-style), then a personal OS (projects, people, “what I need next”).
-
-Phase 1 is (1) only.
-
----
-
-## Goal (Phase 1)
-
-You pick messy **sources** (e.g. Downloads) and **destination roots** (Desktop, Documents,
-Personal Projects). You see a visual folder graph, set how deep it should go, drag-and-drop to
-mix and match, freeze the designated tree, then the agent files into **those** folders.
-
-Nothing random is created inside Downloads when the real place already exists on Desktop.
-
-Success: the tree you froze is the only legal landing zone; unmatched files stay put; every move
-is previewed and undoable.
-
-Phase 1 answers: **where does this file go, how sure are we, do we need you?**  
-Later answers: what activity it belongs to, and what is useful now.
-
----
-
-## Users
-
-People too busy or lazy to sort. Not developers. Local browser window. A few bulk decisions, not
-a terminal JSON workflow.
+**What the system is:** graph first. Disk layout second.
 
 ---
 
@@ -55,213 +35,341 @@ a terminal JSON workflow.
 
 | Decision | Choice |
 |---|---|
-| Product | General database agent, not lab-first |
-| Phase 1 | Structure canvas, then sort |
-| Phase 2 | Catalog + ask |
-| Destinations | Frozen tree. Never invent `Downloads/Work/Misc` |
-| Destination roots | A file may land in any **chosen destination root** (Desktop, Documents, Projects, …), not only inside the source folder |
-| Existing folders | The schema. Cross-root links so Desktop/Work/Plasmole is visible while sorting Downloads |
-| New folders | Only if you add them on purpose on the canvas and freeze |
-| Profile | Short optional role card **before** the canvas. Skip allowed |
-| Profile may | Rank/suggest nodes that already exist or that you add |
-| Profile may not | Invent a path, move files, or skip freeze/confirm |
-| Age | Not asked |
-| Classifier (Phase 1) | Names, paths, extensions, siblings → frozen nodes only. Unmatched stay put |
-| Apply | Dry-run default; confirm to move; journal; undo |
-| Overwrite | Never. Same name, different bytes → ask; file stays. No silent `file (1).ext` |
-| Rename | Not in Phase 1 |
-| LLM inventing folders | Never. If a model is added later, it may only choose among frozen nodes |
-| Decision log | Written from day one. Not read for routing yet. Stores **original suggestion and final choice** |
-| What may move | **Loose files only.** Do not reach into a folder the user already organized |
-| Directories | Never moved as units. Files move; empty dirs may be pruned only if journalled |
-| Delete | Never. Duplicates, when handled later, go to quarantine with a manifest |
-| Sensitive content | Never leaves the machine |
-| Lab rules | Later **profile**, not Phase 1 |
-| Interface | Standalone local UI (localhost) |
+| Core | Knowledge graph of files (people, courses, events, same-session, duplicates). Disk is a projection |
+| Graph storage | Persistent cache, rebuildable from the filesystem. Filesystem stays the system of record |
+| Interface | **CLI engine first**, thin local web UI over the same library. Canvas is functional freeze/edit, not visual polish |
+| Split of labour | Graph decides ~90%. Model names, merges, and judges the rest — never invents structure |
+| Phase order | **Fitness scorer first**, then content extraction, then classify/cluster, then apply/undo, then a thin UI |
+| Destinations | Frozen tree. Never invent `Downloads/Work/Misc` silently |
+| Destination roots | A file may land in any **chosen destination root** (Downloads → Desktop is required) |
+| Default roots | **None.** Warn if a chosen root is iCloud/OneDrive synced or TCC-empty |
+| New folders | You add them on the canvas, or accept a **proposal** (templates + leftovers). Then freeze |
+| Profile card | Optional role card before the canvas. Skip allowed. May rank existing nodes. May not invent a path or skip freeze |
+| Filename baseline | `Counter` of tokens from files already in a folder (contents, not the folder name) |
+| Placement scorer | **Mean + max similarity** to every file already in the folder (DEVONthink-style), over **fact edges** |
+| Name collision | Never overwrite. Incoming file becomes `name (1).ext` (then `(2)`, …). Journal the final path |
+| Delete | Never. Duplicates go to quarantine with a manifest |
+| What may move | Loose files only. Directories are never moved as units |
+| Sensitive content | ID / medical / tax / legal / keys **never leave the machine**. Detection failure fails closed |
+| Cloud model | Allowed only for non-sensitive files, per run, explicit. **Show the exact text spans before sending** |
+| Lab rules | Later profile, not the first vertical |
+| Templates | **First-class.** Hand-written school / work / photos schemas. Model fills values, does not invent dimensions |
+
+---
+
+## Build order
+
+Accuracy first. The canvas is not the first artefact.
+
+0. **Fitness scorer.** Hand-label a small real folder. ARI + pairwise co-location + acceptance
+   rate. Nothing else starts until this runs. Later stages must beat this baseline or they do
+   not ship.
+1. **Content extraction and the fact graph.** No embeddings required yet. Read whole files
+   (PDF/DOCX text, EXIF, OCR, screenshots, HEIC). EXTRACTED edges only. `explain` for any edge.
+2. **Classify into existing folders**, then cluster only the remainder. Mean+max scorer over
+   the fact graph. Two-condition abstention. Embeddings enter only as `AMBIGUOUS` fallback.
+3. **Placement and safety.** Plan / review / apply / undo. Collision rename. Protected zones.
+4. **Incremental ingest.** New file → kNN against frozen labels. Resident **daemon** only if
+   a measurement says one-shot CLI is too slow.
+5. **Thin UI.** Functional canvas: freeze, split-by, accept/reject proposals. Boilerplate, not
+   aesthetics.
+
+The filename `Counter` classifier already in `database_agent/` is the **cheap baseline** the
+fitness scorer can beat, and the hold-out sentence for the UI. It is not the final placement
+engine.
 
 ---
 
 ## Architecture
 
 ```text
-Pick sources + destination roots
-  → Profile card (optional, ~15s)
-  → Index existing folders into a graph
-       node = a folder that already exists
-       edge = parent/child, plus same-name / likely-same-project across roots
-       skip project/build trees as destinations (see Borrowed)
-  → Structure canvas (quick step)
-       visual tree; set depth; drag-drop merge/nest/ignore/add
-       existing one colour, your edits another
-       FREEZE = the only allowed destinations
-  → Classify each loose source file onto a frozen node only
-  → Plan (dry run) → you confirm → apply with undo
-  → Decision log (append-only)
+scan
+  → cache (stat → hash → per-tier results)
+  → filesystem facts (name, size, hash, duplicates)
+  → content extraction (whole file: PDF/DOCX, EXIF, OCR, HEIC, screenshots)
+  → fact graph (people, courses, events, same-session, versions)
+  → sensitivity classify (forced local vs eligible for cloud)
+  → fit hand-written templates to THIS corpus
+  → instantiate dimension values from the files
+  → model may merge/name/order (never invent a dimension)
+  → canvas (functional): existing folders + proposals; per-node split-by; freeze
+  → classify onto frozen nodes (mean+max over folder members; filename Counter as baseline)
+  → leftovers: cluster (Leiden, mutual-kNN, hub exclusion) → more proposals, not silent mkdir
+  → plan → confirm → apply with undo
+  → graph persists; a new file is a kNN attach, not a full re-classify
 ```
 
-The graph is a **folder map**, not a people/events knowledge graph. That comes with catalog/ask.
+The graph is the data. The canvas is a view (`GROUP BY` in citation order). Freeze writes a
+constraint back. Reordering dimensions re-renders; it does not rebuild the graph.
 
 ---
 
-## Components
+## Knowledge graph (core)
 
-| Piece | Job |
+Nodes are files and concepts. Edges are **provable** first:
+
+- same content hash (duplicate)
+- version chain
+- same EXIF event (photos: timestamp + location — never group photos by filename)
+- same extracted course code, author, organisation, client
+- same download session (“same session”) — purpose, not topic
+- parent/child of existing folders
+
+Inferred similarity (embeddings) is `AMBIGUOUS`, low confidence, and **cannot form an edge by
+itself**. It exists to link files whose extraction produced nothing, and to break ties.
+
+Hubs are a known failure. Identity tokens (`joseph`, student IDs, `columbia.edu`) must not
+become folders or dominate a cluster. **Hub exclusion** on Leiden. Type tokens (`screenshot`,
+`resume`) may be categories even when common.
+
+GLiNER is scoped to `school`, `person`, `client` — not a general entity dump.
+
+A resident daemon is an optimisation for incremental ingest, not a requirement on day one.
+
+Detail, edge list, and measurements: FileGraph spec, “The graph model” and “Pipeline.”
+
+---
+
+## Reading file insides (required, not later)
+
+Filenames are a sweep. The product reads **whole files**.
+
+| Work | Why it is in |
 |---|---|
-| **Root picker** | Sources and destination roots |
-| **Profile card** | Role + optional tags. Skip = graph-only personalization |
-| **Indexer** | Walk roots. Build folder graph. List loose files. Do not move. Skip protected trees as destinations |
-| **Structure canvas** | Visual tree. Depth, drag-drop, deliberate add. Freeze designated tree |
-| **Classifier** | Loose file → frozen node. Never a path the canvas did not freeze. Abstain when unsure |
-| **Planner** | `sort-plan.json`: destination, reason, disposition (`match` / `ask` / `skip`), original suggestion |
-| **Applier** | Dry-run default. Journal then move. Never overwrite. Undo. Destination must resolve inside a chosen destination root |
-| **Agent UI** | Profile, canvas, “I would file N. M need you. Nothing has moved yet.” Confirm, leftovers, undo |
-| **Decision log** | Append-only. Suggestion + final choice + actor |
+| Full PDF text (all pages, not page 1) | Page 1 misses most of this corpus |
+| Full DOCX body + tables | Headings and tables carry the facts |
+| EXIF | Photos group by event, not `IMG_4821` |
+| Screenshot vs photo | Camera EXIF vs screen-sized PNG; abstain when signals disagree |
+| OCR (Apple Vision, not Tesseract) | Scans and screenshots; 11% of PDFs have no text layer |
+| Bad text layer | A PDF can have a text layer that is garbage; empty-or-junk → OCR |
+| HEIC | Register HEIF or ~4% of a photo corpus is invisible |
+| Archive manifests | What is inside the zip, without treating the zip as a mystery blob |
+
+Embeddings run over **extracted content**, not the filename. Filename-only clustering produced
+a 73-file junk hub. That is why extraction is Phase 1 of the engine, not a nicety.
 
 ---
 
-## Data flow
+## Templates (first-class — do not drop)
 
-1. Pick sources and destination roots.  
-2. Optional profile card.  
-3. Indexer builds the folder graph (project-skip on destinations).  
-4. Canvas shows it, shaped by profile if present. You remix and **freeze**.  
-5. Classifier assigns **loose** source files only onto frozen nodes.  
-6. Dry-run plan. Nothing has moved.  
-7. Confirm → journal → move matches. Leftovers stay.  
-8. You resolve leftovers onto a designated node, or skip.  
-9. Undo last run restores that run.  
-10. Plan / move / ask / undo append to the decision log (suggestion + choice).
+Existing organised folders absorb little of a messy Downloads (~4% measured). **Most of the
+canvas is proposals.** Those proposals come from **hand-written templates**, not from a model
+inventing a taxonomy.
+
+Templates are data files (school / work / photos / applications / career / finance / …). Each
+declares:
+
+- **citation order** (Wall-Picture: big picture first, except photos which put time first)
+- which dimensions are **constant** (asked once: school, applicant) vs **per-file** (extracted)
+- **detection signals** (course-code pattern, EXIF camera, `syllabus|lecture|hw`, …)
+
+**Fit** scores which templates this corpus actually needs. Templates that match nothing are
+never shown.
+
+**Instantiate** fills slots with values from the files (`subject ∈ {PHYS1401, BUSIB 4300, …}`).
+
+**Per node, you pick the split:** subject vs term vs work-type vs don’t split — with live
+branch counts *before* you commit. Branches may be uneven (`Columbia/PHYS1401/Lectures/` next
+to a flat `Columbia/ENGIE1006/`). Wall-Picture orders the options; you override per node.
+
+**Aho-Corasick gazetteers** (plus a hand-added boundary check) match course codes, orgs, and
+cues in extracted text. Four validation layers exist in the FileGraph spec; keep them. Dates
+are never fuzzy-parsed.
+
+**The model may** merge near-duplicate proposals, name branches in your vocabulary (prefer an
+existing folder name), order dimensions where the citation rule leaves a choice, drop proposals
+too small to earn a folder.
+
+**The model may not** create a dimension, invent a template, or place a file.
+
+Identity & finance templates detect for the **sensitivity path first**, not for filing.
+
+Canonical value vs display label: renaming `BUSIB4300` to `Managerial Economics` must not break
+matching. Two fields; neither overwrites the other.
 
 ---
 
-## Profile (Phase 1)
+## Classifier
 
-**Ask:** role = student / business / engineer / researcher / mixed. Optional tags (CS, lab, freelance, …).
+Two layers. Both only land on **frozen** nodes.
 
-**Effect:** bias which existing folders are promoted on the canvas (student → Courses if it
-exists; business → Clients). You still freeze.
+### Filename baseline (shipped)
 
-**Not:** tagging individual files; age; a long interview; creating folders without you.
+A node’s profile is a `Counter` of tokens from files already in it, **not** the folder name.
+`Work` is empty of meaning; the files inside it are the model. Hold-out on already-filed files
+gives the UI sentence:
 
-This is template *selection*, not a tag filesystem. The graph of folders is still inferred from
-disk. The card only ranks what to show first.
+> I'd place 6 in 10 of your loose files, and on your own filed data I get 97% of those right.
+
+Unknown class tokens (`cs3157` vs a `CS3134` folder) abstain and, if they recur, become a
+canvas proposal — not a silent folder.
+
+Code: `database_agent/nodes.py`, `classify.py`, `evaluate.py`.
+
+### Placement scorer (the real engine)
+
+```
+score(folder) = f( mean similarity to ALL members of the folder,
+                   max  similarity to the single best member )
+```
+
+Similarity is **fact-edge weight**, plus embedding fallback only when facts are missing. Mean
+lets a large coherent folder win; max lets a small folder holding one near-duplicate win. No
+trained model to go stale; refiling updates scores immediately.
+
+**Abstain on two conditions**, not one:
+
+- top score too weak (quantile of *this* machine’s distribution, not a global constant)
+- top two folders too close
+
+Silence (stay put + review list) beats a confident wrong folder. When two folders fit equally,
+show both — do not pick.
+
+Escalation (run OCR / vision / LLM, then re-score) is **not** abstention. Different questions.
 
 ---
 
-## Borrowed from FileGraph
+## Clustering leftovers
 
-Taken as **constraints**. Not taken: his OCR/embedding/Leiden engine, Phase 0-before-UI build
-order, auto `file (1).ext`, or “never ask the user anything.”
+Only for files that abstained. Mutual-kNN, Leiden with **hub exclusion**, recursive split for
+nesting, batched labels for *proposed* folders, frozen once accepted. If this path does not
+beat “classify into existing + review queue” on the fitness scorer, it stays **off by default**.
 
-1. **Project-skip destinations, not just sources.** A folder is never a destination if any
-   ancestor is `node_modules`, `.git`, `venv`, `build`, `dist`, `target`, `vendor`, `Pods`,
-   `site-packages`, `Library`, `__pycache__`; if any ancestor contains `package.json`,
-   `requirements.txt`, `Cargo.toml`, `go.mod`; or if it is a build artefact. Check ancestors to
-   the volume root. Measured: 1,266 raw destination candidates → 30 after this filter.
-2. **Identity is not a category.** Tokens that name *who you are* (`joseph`, student IDs,
-   `columbia.edu`) must not become folders. Tokens that name *what a file is* (`screenshot`,
-   `resume`) may, even when common. Frequency cannot tell these apart.
-3. **Unmatched stay put is the quality bar.** A smaller correct set beats filing everything.
-   ~32% high-precision placement is a good first run if nothing is misfiled.
-4. **Log original suggestion and final choice.** An unedited approval and a correction are
-   different facts. Do not learn only from the destination that landed.
-5. **Sensitive content never leaves the machine.** Government ID, medical, financial, legal,
-   credentials — forced local even if a cloud model exists later.
-6. **Only loose files move.** Do not reach into a folder the user already organized.
-7. **Destination must resolve inside a chosen destination root** (after symlink resolution), not
-   necessarily inside the source. Cross-root sort (Downloads → Desktop) is required. Plans are
-   user-editable, therefore untrusted input.
+---
 
-Evidence for (1)–(5) lives in `research/` and
-`docs/superpowers/specs/2026-08-16-filegraph-design.md`.
+## Cloud, sensitivity, and “never leaves the machine”
+
+These are one policy, not two slogans.
+
+**Forced local, no override:** government ID, medical, financial, tax, legal/contractual,
+credentials. Detect on **already-extracted local text**. If detection is unsure, treat as
+sensitive.
+
+**Cloud is allowed** for everything else, and only then:
+
+- per run, explicit, never a silent default
+- **show the exact file list and the exact text spans** that would be sent — not a summary —
+  before anything leaves
+- evidence packets are facts and short spans, never whole documents, never a sensitive
+  neighbour “because it’s in the same group”
+- log every egress: which files, which spans, which provider, when
+
+iCloud/OneDrive: filing into Desktop/Documents often **uploads**. The picker warns. We do not
+default those roots. TCC-empty Desktop is “grant access,” not “0 files found.” Dataless
+`.icloud` placeholders are not files.
+
+---
+
+## Apply, collisions, safety
+
+- Analysis never moves files. It produces a plan.
+- Dry-run default. Confirm to apply. Journal **before** each move. Undo the run.
+- **No overwrite.** If `report.pdf` already exists at the destination, the incoming file is
+  stored as `report (1).pdf`. The plan’s `dst` is a proposal; apply computes and journals the
+  final path.
+- Destination must resolve inside a **chosen destination root** after symlink resolution
+  (cross-root is allowed; escaping the chosen roots is not).
+- Project-skip on **destinations** (`node_modules`, `.git`, `venv`, `package.json` ancestors, …).
+- Files only. Symlinks skipped. Empty dirs pruned only if journalled.
+- Interrupted run stays undoable.
+
+---
+
+## Profile (thin)
+
+Role: student / business / engineer / researcher / mixed. Optional tags. Skip allowed.
+
+Effect: bias which existing folders and which **templates** are promoted. Still freeze.
+
+Not: tagging every file; age; inventing paths.
 
 ---
 
 ## Error handling
 
-- Dry-run default. First contact never moves until confirm.  
-- Never overwrite. Same content at destination → skip as already filed. Same name, different
-  bytes → `ask`; file stays.  
-- Never invent folders in the source.  
-- Frozen node deleted before apply → that file becomes `ask`, not silent create.  
-- Classifier cannot name a path that is not frozen — including if the profile “wants” it.  
-- Permission / in use / disk full → stop apply, keep journal, undo what moved.  
-- Undo: restore committed moves; if edited after the run, leave it and report; never delete the
-  destination to fake success.  
-- Crash: journal before each move; restart offers undo of that run.  
-- Offline. Local only.  
-- Skipping the profile card still works.
+- Fitness scorer red → do not ship that stage.
+- Extraction failure on one file → mark it, continue, do not abort the corpus.
+- Bad or empty text layer → OCR path, then re-score.
+- HEIC without HEIF support → visible error (“photos you cannot see”), not silent skip of the
+  corpus.
+- Sensitive + cloud requested → refuse that file, continue the rest locally.
+- User dismisses the “exact text” preview → nothing is sent.
+- Frozen node deleted before apply → that file becomes ask, not silent create.
+- Permission / in use / disk full → stop apply, keep journal, undo what moved.
+- Offline works. Cloud is optional.
 
 ---
 
-## Testing (Phase 1)
+## Testing
 
-Fixture: fake `Downloads` with loose files + fake `Desktop` that already has `Work/Plasmole`.
+Keep the filename-engine tests that already pass (content profiles, hold-out 100% / 62%,
+`cs3157` abstain, project-skip, TCC/iCloud flags).
 
-- A Plasmole-ish file is planned to Desktop, **not** to a new `Downloads/Plasmole`.  
-- Destination not on the frozen tree is rejected (even with a matching profile).  
-- `Desktop/Hoyahacks/node_modules/...` is not offered as a destination.  
-- Skip profile → canvas still runs.  
-- Dry run touches nothing.  
-- Apply + undo restores the tree.  
-- Same name, different bytes → no overwrite and no silent `(1)` rename.  
-- Nested files under an already-organized folder are not in the move set.  
-- No Nutrigene regex in this suite.
+Add, as each build phase lands:
+
+- Fitness scorer runs on a hand-labelled fixture before placement code.
+- Full PDF vs page-1: facts exist past page 1.
+- EXIF event groups photos; two `IMG_*` without shared event do not.
+- HEIC opens.
+- Empty/junk PDF text layer routes to OCR.
+- Mean+max places a file with a shared course code into the folder whose members share that
+  code, even when filenames are opaque.
+- Two-condition abstention: close top-two → stay put.
+- Template fit hides templates with 0 hits; instantiate uses corpus values, not placeholders.
+- Per-node split preview counts match the files.
+- Gazetteer does not match `cs` inside `discs`.
+- Collision: existing `a.pdf` + incoming `a.pdf` (different bytes) → `a (1).pdf`, original
+  untouched.
+- Sensitive fixture never appears in a cloud payload.
+- Cloud preview lists the exact spans; cancel sends nothing.
+- Leiden hub exclusion: identity token does not swallow the cluster.
 
 ---
 
-## Phase 1 out of scope
+## Out of scope
 
-- Catalog / ask.  
-- Lab profile (instrument sidecars, well maps, `raw/{date}/{instrument}`).  
-- FileGraph pipeline as the app: OCR, GLiNER, embeddings, Leiden, fitness scorer before UI.  
-- Local LLM on every file.  
-- Knowledge graph of people/events, “what you need next,” rename suggestions.  
+- Lab Nutrigene schema as the first vertical (later profile).
 - Copying [hyperfield/ai-file-sorter](https://github.com/hyperfield/ai-file-sorter) source (AGPL).
+- FUSE / virtual filesystem. Emit real folders Finder already understands.
+- Reorganising a folder the user already curated (only loose files move).
+- Canvas visual polish ahead of the scorer and extractors.
+- Feeding a model’s own labels back as ground truth without a negative signal.
+- GPL stacks if a non-GPL equivalent exists (`leidenalg` / PyMuPDF — prefer Apple Vision and a
+  non-GPL community detection path, or isolate).
 
 ---
 
-## Later (after Phase 1 sorts)
+## Deferred only in time, not in product
 
-When classify needs to get smarter, **adapt** from FileGraph — still freeze-gated:
+These are in the contract. They are sequenced, not dropped.
 
-- EXIF / first-page PDF text for opaque names.  
-- Duplicate and version detection → quarantine, never delete.  
-- Classify into frozen folders first; propose new canvas nodes only for leftovers.  
-- Abstain when the top two destinations are too close.  
-- Hand-written templates as **canvas suggestions**, never as silent folder creation.
-
-**Do not take:** fitness scorer blocking the UI; GPL stacks (`leidenalg`, PyMuPDF); feeding a
-model’s own output back as ground truth without a negative signal.
+1. Fitness scorer on a real labelled folder.
+2. Whole-file extraction + fact graph + sensitivity classifier.
+3. Mean+max placement + two-condition abstention + hold-out gates.
+4. Hand-written templates, Wall-Picture split-by, gazetteers.
+5. Leftover clustering (Leiden / mutual-kNN / hub exclusion) behind the scorer.
+6. Cloud path with exact-text consent.
+7. Apply / `file (1).ext` / undo / daemon-if-measured.
+8. Thin canvas UI (freeze, proposals, split-by).
+9. Lab profile; act on the decision log; “what I need next.”
 
 ---
 
 ## North star
 
-Long-term: a personal file intelligence system — what a file is, what work it belongs to, how
-*this* user handles similar material, what is useful now. The lasting advantage is a personalized
-model that improves with every interaction, not a generic categorizer.
-
-Phase 1 only takes: freeze destinations, confidence-aware filing, ask when stuck, write a
-decision log, a short role card.
+What a file is, what work it belongs to, how *this* user handles similar material, what is
+useful now. The graph is the memory. Templates plus freeze keep it from inventing junk. The
+model personalises names. Sensitive text never leaves unless you saw it and said so.
 
 ---
 
-## Deferred, in order
-
-1. Implementation plan for Phase 1 (canvas + profile + classify + apply/undo).  
-2. Catalog / ask.  
-3. Smarter classify (FileGraph adaptations above).  
-4. Lab profile.  
-5. Act on the decision log; projects/people graph; predictor / OS features.
-
----
-
-## Repository layout (this contract)
+## Repository layout
 
 ```text
-docs/superpowers/specs/2026-08-17-database-agent-design.md   THIS FILE — product spec
-docs/superpowers/specs/2026-08-16-filegraph-design.md        research spec (not the contract)
+docs/superpowers/specs/2026-08-17-database-agent-design.md   THIS FILE — product contract
+docs/superpowers/specs/2026-08-16-filegraph-design.md        detailed graph/extractor/template design
+database_agent/                                              filename Counter baseline + hold-out
+tests/                                                       baseline tests (19)
 research/                                                    measurement scripts
 README.md                                                    points here
 ```

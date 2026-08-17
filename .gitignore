@@ -4,3 +4,5 @@ __pycache__/
 *.npy
 *.sqlite
 venv/
+.venv/
+.pytest_cache/

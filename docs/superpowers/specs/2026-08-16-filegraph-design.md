@@ -1,12 +1,14 @@
-# FileGraph — research spec (not the product contract)
+# FileGraph — detailed design (in product scope)
 
 **Date:** 2026-08-16  
-**Status:** Reference and measurements only. The product contract is
+**Status:** In-scope design and measurements. The short product contract is
 [`2026-08-17-database-agent-design.md`](2026-08-17-database-agent-design.md).  
 **Working name:** `filegraph` — historical. The product is the database agent.
 
-Do not implement this document as the app. Constraints the product **does** take from this file
-are listed in the canonical spec under “Borrowed from FileGraph.”
+This document specifies the graph, extractors, templates, scoring, clustering, privacy, and
+build order. The product contract includes those subsystems. Implement against both files;
+if they conflict, the product contract wins on user-facing locks (freeze, cross-root destinations,
+collision rename, cloud consent), and this file wins on extractor/graph/template mechanics.
 
 ---
 
