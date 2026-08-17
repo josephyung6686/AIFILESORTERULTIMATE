@@ -55,6 +55,14 @@ frozen nodes. Unmatched stay put.
 | Cloud model | Allowed only for non-sensitive files, per run, explicit. **Show the exact text spans before sending** |
 | Lab rules | Later profile, not the first vertical |
 | Templates | **First-class.** Hand-written school / work / photos schemas. Model fills values, does not invent dimensions |
+| Extraction depth | Per-format tiers. **A** text-bearing (64%) full text → facts · **B** media (31%) metadata + OCR, never decipher the payload · **C** containers, the manifest · **D** opaque, name + session |
+| Extraction scope | **Every Tier-A format**, not just PDF/DOCX. OOXML is a ZIP of XML — no library needed |
+| Fact extraction | Rules find **candidates**, never decide. Naive regex turned "Ernst & Young Global" into "Young Global". Gazetteers + validation layers + a judge |
+| What the model reads | A **~1,000-word head** of each file (≈1.5 M tokens/corpus, 8× less than full text), escalating to full text only on abstention or conflict |
+| Images | Do not classify, **try to read**. OCR everything that is not a confirmed camera photo; text → content path, no text → photo, group by event. 46% of images cannot be typed by metadata at all |
+| Pixels / vision | Opt-in per run, never default. Same sensitivity gate as text |
+| Egress order | Extract locally → classify sensitivity locally → **then** send heads of non-sensitive files. Not negotiable |
+| Activity axis | Purpose groups (sessions + constellations) surfaced **before** the tree, named by the model, confirmed by you. 36% of sessions span 2+ file families |
 
 ---
 
@@ -87,9 +95,13 @@ of it local until the plan is locked.
 scan
   → cache (stat → hash → per-tier results)
   → filesystem facts (name, size, hash, duplicates)
-  → content extraction (whole file: PDF/DOCX, EXIF, OCR, HEIC, screenshots)
+  → content extraction, tiered by format
+        A text-bearing (64%) full text · B media (31%) metadata + OCR
+        C containers, manifest       · D opaque, name + session
   → fact graph (people, courses, events, same-session, versions)
-  → sensitivity classify (forced local vs eligible for cloud)
+  → sensitivity classify (forced local vs eligible for cloud)   ← BEFORE any egress
+  → model reads a ~1,000-word head per file; escalates on conflict
+  → surface ACTIVITY groups (sessions + constellations) → you confirm
   → fit hand-written templates to THIS corpus
   → instantiate dimension values from the files
   → model may merge/name/order (never invent a dimension)
@@ -133,18 +145,125 @@ Detail, edge list, and measurements: FileGraph spec, “The graph model” and �
 
 ## Reading file insides (required, not later)
 
-Filenames are a sweep. The product reads **whole files**.
+Filenames are a sweep. The product reads **whole files** — and "whole" means every format that
+can yield text, not the two that are easiest.
 
-| Work | Why it is in |
+**Measured, whole corpus, all formats: 86.5 s for 2,281 files, recovering 46.4 M characters from
+1,371 files.** An earlier run that handled only PDF and DOCX reported 68 s and 36.5 M — it had
+silently skipped 19% of the corpus, including every `.xlsx`.
+
+### Extraction tiers — depth follows what the format can actually yield
+
+| Tier | Count | Formats | What we take |
+|---|---|---|---|
+| **A — text-bearing** | **1,468 (64%)** | `pdf docx xlsx pptx txt md csv ipynb html json py js` | Full text, then facts |
+| **B — media** | **705 (31%)** | `png jpg jpeg heic webp tif mov mp4 wav mp3 m4a` | EXIF / container metadata, OCR where there is text. **Never decipher the payload** |
+| **C — containers** | 57 | `zip` and friends | The manifest. It is text, and it is often the most informative thing about the file |
+| **D — opaque** | 108 (5%) | `stl gcode dmg indd` | Filename, mtime, session. `gcode` header comments and the `stl` ASCII header are cheap and sometimes carry a model name |
+
+**OOXML needs no library.** `docx` / `xlsx` / `pptx` are ZIPs of XML — unzip, strip tags. That is
+how `Personal Data Form_Intern_HK_2026.xlsx` goes from invisible to 1,649 characters of
+extracted text.
+
+Other required specifics, all measured: full PDF text (page 1 misses most of this corpus, median
+3 pages against a mean of 16); full DOCX body **and tables**; a PDF text layer can be present and
+garbage, so empty-or-junk routes to OCR; HEIC needs `register_heif_opener()` or ~4% of a photo
+corpus is silently invisible.
+
+### Rules find candidates. Rules do not decide.
+
+This is the layer that was under-built, and it is worth stating exactly how it failed. Naive
+regex over the EY offer letter produced:
+
+```
+company      Young Global, Young Transactions     ← "Ernst & Young Global Limited"
+course_code  VHX7000                              ← not a course code
+course_code  USD2026                              ← this is "USD 2026"
+```
+
+The spaces around ` & ` broke the token run, so **the single most important fact in that session —
+the employer — came out wrong**, from a file whose own name says `EYHK`. Corpus-wide that layer
+emitted 730 "course codes", a real fraction of them junk of the `USD2026` kind.
+
+The failure is not that a regex produced a wrong candidate. It is that **nothing checked it.**
+Rules are correct on what is genuinely regular — dates, money, emails, hashes, EXIF, version
+chains — and those extracted cleanly in the same run. Everything else is a *candidate* that a
+judge must confirm, with gazetteers and the four validation layers in the engine spec.
+
+### The model reads document heads, not documents
+
+Training a model for this is not merely hard, it is the wrong shape: there are no labels, and the
+vocabulary is one person's. `PHYS1401`, `VHX7000` and `EYHK` mean something in this corpus and
+nothing in anyone else's. That argues for a general model reading a small slice, not a trained
+one.
+
+**Identity lives in the head, by document design.** Letterheads, titles, form captions,
+salutations. Measured on the internship session, the first 600 characters carried the employer,
+the date, the document kind and the event — 7% of the offer letter, 21% of the collection
+statement, 36% of the data form.
+
+| What we send | Chars | Tokens |
+|---|---|---|
+| Full text of every file | 46.4 M | **~11.6 M** |
+| 1,000-word head | 6.0 M | **~1.5 M** |
+| 600-char head | 0.77 M | **~193 K** |
+
+**61% of documents are shorter than 1,000 words**, so at that size the "head" is simply the whole
+document for most of the corpus.
+
+**Locked:** a ~1,000-word head as the default judged slice, escalating to full text only on
+abstention or conflict. ~1.5 M tokens is a one-time cost for a whole corpus, cached thereafter,
+and it is still **8× less than sending everything**. The fitness scorer settles whether the
+shorter 600-char head buys the same accuracy for an eighth of that; if it does, it wins.
+
+This corrects an over-broad earlier claim that "the model never sees individual files." It sees a
+**bounded slice of every file**, plus full evidence packets per group. Two granularities, one
+budget.
+
+### Images: do not classify them, just try to read them
+
+Measured on 657 images, the signal stack does **not** hold up on its own:
+
+| | Count |
 |---|---|
-| Full PDF text (all pages, not page 1) | Page 1 misses most of this corpus |
-| Full DOCX body + tables | Headings and tables carry the facts |
-| EXIF | Photos group by event, not `IMG_4821` |
-| Screenshot vs photo | Camera EXIF vs screen-sized PNG; abstain when signals disagree |
-| OCR (Apple Vision, not Tesseract) | Scans and screenshots; 11% of PDFs have no text layer |
-| Bad text layer | A PDF can have a text layer that is garbage; empty-or-junk → OCR |
-| HEIC | Register HEIF or ~4% of a photo corpus is invisible |
-| Archive manifests | What is inside the zip, without treating the zip as a mystery blob |
+| Camera EXIF present → real photo | **43 (6.5%)** |
+| Screenshot by name or exact screen size | 227 |
+| PNG without EXIF → likely capture | 82 |
+| **Ambiguous — no EXIF, not screen-sized** | **305 (46%)** |
+
+Messaging apps strip metadata, so nearly half of images cannot be typed by metadata at all. An
+earlier draft resolved this by abstaining, which abandons 46% of the image corpus.
+
+**Better: stop trying to decide what the image is, and just try to read it.** Run OCR on
+everything that is not a confirmed camera photo — 614 images, ~7.6 min, offline and free.
+
+- OCR returns text → **that text is the content**, and it enters the ordinary head path.
+- OCR returns nothing → it is a photo. Group it by EXIF event and session; send the model its
+  metadata, never its pixels.
+
+The screenshot-versus-photo question still matters for *grouping* (event versus content), but it
+no longer gates *extraction*. Nothing is abandoned for being ambiguous.
+
+**Pixels never go to a cloud model by default.** Vision is opt-in, per run, priced and explained,
+and subject to the same sensitivity gate as text.
+
+### What non-text files send
+
+| Type | Sent to the model |
+|---|---|
+| `zip` | The manifest. `figma-implement-design.zip` says more than most documents |
+| `mp4 mov` | Duration, creation date, resolution, camera. Frame extraction is opt-in, never default |
+| `wav mp3` | Duration, ID3 tags, filename, session. The measured game-audio session — `jump.wav`, `hardpunch.wav`, `Voicy_Game Over.wav`, eleven files in 14 minutes — is nameable from exactly this |
+| `stl gcode indd dmg` | Filename, mtime, session, and any cheap header text |
+
+### Order of operations, which is not negotiable
+
+**Extract locally → classify sensitivity locally → only then send heads of non-sensitive files.**
+
+The same test that proved the head strategy also surfaced `Mar.pdf`: a BOCHK consolidated
+statement carrying account numbers, balances and fund holdings, which the naive extractor had
+labelled `course_code: USD2026`. Head-reading and never-leaves-the-machine compose correctly, but
+only in that order.
 
 Embeddings run over **extracted content**, not the filename. Filename-only clustering produced
 a 73-file junk hub. That is why extraction is Phase 1 of the engine, not a nicety.
@@ -187,6 +306,64 @@ Identity & finance templates detect for the **sensitivity path first**, not for 
 
 Canonical value vs display label: renaming `BUSIB4300` to `Managerial Economics` must not break
 matching. Two fields; neither overwrites the other.
+
+---
+
+## The activity axis — what a file was FOR, not what it IS
+
+Templates answer *what is this document*. They cannot answer *what was this for*, and the second
+question is usually the one a person is actually asking.
+
+**Measured: 36% of download sessions span two or more file families** — and those are exactly the
+cases where every content-based method has nothing to work with.
+
+```
+[2026-04-24]  11 files / 14 min   jump.wav · jumplanding.wav · hardpunch.wav
+                                  normalpunch.wav · Voicy_Game Over.wav + png
+[2026-03-19]   9 files / 25 min   EY offer letter · Personal Data Form.xlsx
+                                  Fit and Proper Questionnaire · PIC Statement
+[2026-04-15]  11 files / 70 min   strategy_round1.py · _v2.py · _v3.py + 4 zips
+```
+
+The first is decisive. A `.wav` yields no text, so extraction produces nothing, embeddings have
+no input, and every content template is blind. The only things binding those eleven files are
+**downloaded together in 14 minutes** and **a human recognising what they are for**.
+
+The second is the same point in a different key. The Career template sees a resume and files it
+under `Career/`. What a person looks for is *the EY internship paperwork from March* — an event,
+not a document type.
+
+**So the model's job here is recognition from a constellation**: given a session's filenames,
+types, timespan and extracted facts, name the activity — "game sound assets", "internship
+onboarding", "strategy competition round 1". This needs world knowledge, which is what a model
+has and rules do not. It remains naming and judging, never inventing.
+
+**Surfaced before the tree is built:**
+
+```
+Found 39 groups of files made or collected together. Which deserve a folder?
+  ☐ Game sound assets            11 files   24 Apr 2026, 14 min
+  ☐ EY internship onboarding      9 files   19 Mar 2026, 25 min
+  ☐ Strategy competition round 1 11 files   15 Apr 2026, 70 min
+```
+
+You tick; the model names; content templates then structure *inside* what you picked. That
+yields `EY Internship – Mar 2026/` rather than `Career/forms/`.
+
+**Two constraints, both measured.**
+
+*Sessions have a false-positive mode.* One group is a resume plus nine WhatsApp images in six
+minutes — almost certainly two unrelated things that co-occurred. Activity groups are therefore
+**proposals you confirm**, never auto-created. Same freeze rule as everywhere else.
+
+*Eras do not come from the filesystem.* The year histogram runs 2023→2026 with smooth growth and
+no boundaries, because mtime is *download* time: a high-school essay downloaded last week reads
+as 2026. Grouping by life period requires dates extracted from document **content**, which the
+Tier-A pass already recovers.
+
+**How the two axes compose.** Activity is a coarse partition of *purpose*; templates are a fine
+partition of *content* within it. A file can carry both, and where two branches match at equal
+depth the answer is `ask` — the abstention rule, applied to the tree.
 
 ---
 
