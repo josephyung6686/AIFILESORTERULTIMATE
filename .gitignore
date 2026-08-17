@@ -6,3 +6,8 @@ __pycache__/
 venv/
 .venv/
 .pytest_cache/
+
+# Local experiments — GitHub is planning specs only until the plan is locked
+database_agent/
+tests/
+pyproject.toml

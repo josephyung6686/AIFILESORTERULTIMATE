@@ -74,9 +74,9 @@ Accuracy first. The canvas is not the first artefact.
 5. **Thin UI.** Functional canvas: freeze, split-by, accept/reject proposals. Boilerplate, not
    aesthetics.
 
-The filename `Counter` classifier already in `database_agent/` is the **cheap baseline** the
-fitness scorer can beat, and the hold-out sentence for the UI. It is not the final placement
-engine.
+A filename `Counter` classifier is the **cheap baseline** the fitness scorer can beat, and
+the hold-out sentence for the UI. It is not the final placement engine. Keep any prototype
+of it local until the plan is locked.
 
 ---
 
@@ -204,7 +204,7 @@ gives the UI sentence:
 Unknown class tokens (`cs3157` vs a `CS3134` folder) abstain and, if they recur, become a
 canvas proposal — not a silent folder.
 
-Code: `database_agent/nodes.py`, `classify.py`, `evaluate.py`.
+Prototype code stays off this remote until the plan is locked.
 
 ### Placement scorer (the real engine)
 
@@ -302,8 +302,9 @@ Not: tagging every file; age; inventing paths.
 
 ## Testing
 
-Keep the filename-engine tests that already pass (content profiles, hold-out 100% / 62%,
-`cs3157` abstain, project-skip, TCC/iCloud flags).
+Keep the filename-engine tests locally until the plan is locked and code is allowed on
+GitHub (content profiles, hold-out 100% / 62%, `cs3157` abstain, project-skip, TCC/iCloud
+flags).
 
 Add, as each build phase lands:
 
@@ -365,11 +366,14 @@ model personalises names. Sensitive text never leaves unless you saw it and said
 
 ## Repository layout
 
+This GitHub remote is **planning specs only** until the plan is locked with Joseph. Do not
+push application code here in the meantime.
+
 ```text
 docs/superpowers/specs/2026-08-17-database-agent-design.md   THIS FILE — product contract
 docs/superpowers/specs/2026-08-16-filegraph-design.md        detailed graph/extractor/template design
-database_agent/                                              filename Counter baseline + hold-out
-tests/                                                       baseline tests (19)
 research/                                                    measurement scripts
 README.md                                                    points here
 ```
+
+A filename `Counter` baseline may exist locally. It is not part of this remote.
