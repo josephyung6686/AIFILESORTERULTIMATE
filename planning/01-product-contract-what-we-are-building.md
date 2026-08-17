@@ -59,7 +59,7 @@ frozen nodes. Unmatched stay put.
 | Extraction scope | **Every Tier-A format**, not just PDF/DOCX. OOXML is a ZIP of XML — no library needed |
 | Fact extraction | Rules find **candidates**, never decide. Naive regex turned "Ernst & Young Global" into "Young Global". Gazetteers + validation layers + a judge |
 | What the model reads | A **~1,000-word head** of each file (≈1.5 M tokens/corpus, 8× less than full text), escalating to full text only on abstention or conflict |
-| Images | Do not classify, **try to read**. OCR everything that is not a confirmed camera photo; text → content path, no text → photo, group by event. 46% of images cannot be typed by metadata at all |
+| Images | **Classify locally first** (`VNClassifyImageRequest`, 110 ms, free) → content-kind facet + faces, then OCR. OCR everything that is not a confirmed camera photo; text → content path, no text → photo, group by event. 46% of images cannot be typed by metadata at all |
 | Pixels / vision | Opt-in per run, never default. Same sensitivity gate as text |
 | Egress order | Extract locally → classify sensitivity locally → **then** send heads of non-sensitive files. Not negotiable |
 | Activity axis | Purpose groups (sessions + constellations) surfaced **before** the tree, named by the model, confirmed by you. 36% of sessions span 2+ file families |
@@ -234,18 +234,55 @@ Measured on 657 images, the signal stack does **not** hold up on its own:
 Messaging apps strip metadata, so nearly half of images cannot be typed by metadata at all. An
 earlier draft resolved this by abstaining, which abandons 46% of the image corpus.
 
-**Better: stop trying to decide what the image is, and just try to read it.** Run OCR on
-everything that is not a confirmed camera photo — 614 images, ~7.6 min, offline and free.
+**Better: stop trying to decide what the image is from metadata, and ask the machine to look at
+it — locally.**
 
-- OCR returns text → **that text is the content**, and it enters the ordinary head path.
-- OCR returns nothing → it is a photo. Group it by EXIF event and session; send the model its
-  metadata, never its pixels.
+#### macOS classifies images for free, on-device
+
+`VNClassifyImageRequest` returns labels from a built-in taxonomy with confidence scores, and
+`VNDetectFaceRectanglesRequest` returns face counts. Both are local, free, and need no network.
+**Measured on the ambiguous set: 110 ms/image — about 72 s for all 657 images.**
+
+```
+IMG_7009.JPG                    people 0.88 · adult 0.78 · crowd 0.77
+IMG_8436.HEIC                   document 0.93 · screenshot 0.93
+IMG_8461.HEIC                   consumer_electronics 0.80 · machine 0.80 · computer 0.80
+WhatsApp Image …23.08.13.jpeg   container 0.70 · carton 0.70 · cardboard_box 0.15
+download.jpeg                   people 0.75 · adult 0.75 · clothing 0.70   1 face
+```
+
+Across a 45-image sample the top labels were **document 36%** and **people 20%** — so the
+"ambiguous" pile is mostly photographed paper and photographs of people, and both have obvious
+handling.
+
+**What this is, precisely: a coarse `content-kind` facet, not meaning.** "document" does not say
+*lecture handout*; "people" does not say *graduation*. The label routes the file and contributes
+one fact. Naming still comes from filename, session and the model.
+
+**Be honest about the miss rate.** Roughly half the sample scored ≥0.5; the rest came back as
+`material 0.19` or `document 0.18`, which is the model saying it does not know.
+**Facts require ≥0.5; below that there is no label**, and the file falls back to filename plus
+session — which is frequently the better signal anyway
+(`Georgetown Prep Red Cross Club.png` needs no classifier).
+
+#### The image path, in order
+
+1. **Vision classify** (110 ms, local, free) → `content-kind` facet + face count.
+2. **OCR** anything labelled document / screenshot / chart / sign, and anything unlabelled.
+   Text back → **that text is the content** and it enters the ordinary head path.
+3. **No text and no confident label** → it is a photograph. Group by EXIF event and session; the
+   model receives metadata and filename, never pixels.
+4. **Cloud vision** — the only thing that yields real semantics — is **opt-in per run**, priced
+   and explained, under the same sensitivity gate as text.
+
+Vision runs **before** the OCR/event decision, because it is what routes it: `IMG_8436.HEIC`
+scores `document 0.93` and would otherwise have been filed as a holiday snap.
+
+**Faces are a privacy signal, not just a grouping one.** 9 of 45 sampled images contain faces.
+Images of people are treated as sensitive-by-default for egress.
 
 The screenshot-versus-photo question still matters for *grouping* (event versus content), but it
 no longer gates *extraction*. Nothing is abandoned for being ambiguous.
-
-**Pixels never go to a cloud model by default.** Vision is opt-in, per run, priced and explained,
-and subject to the same sensitivity gate as text.
 
 ### What non-text files send
 
