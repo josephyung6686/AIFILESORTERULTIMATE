@@ -59,8 +59,8 @@ frozen nodes. Unmatched stay put.
 | Extraction scope | **Every Tier-A format**, not just PDF/DOCX. OOXML is a ZIP of XML — no library needed |
 | Fact extraction | Rules find **candidates**, never decide. Naive regex turned "Ernst & Young Global" into "Young Global". Gazetteers + validation layers + a judge |
 | What the model reads | A **~1,000-word head** of each file (≈1.5 M tokens/corpus, 8× less than full text), escalating to full text only on abstention or conflict |
-| Images | **Classify locally first** (`VNClassifyImageRequest`, 110 ms, free) → content-kind facet + faces, then OCR. OCR everything that is not a confirmed camera photo; text → content path, no text → photo, group by event. 46% of images cannot be typed by metadata at all |
-| Pixels / vision | Opt-in per run, never default. Same sensitivity gate as text |
+| Images | **Escalation ladder**, one Vision pass: L1 OCR (65%, text is the content) → L2 label ≥0.5 (21%) → L3 real semantics (**14%, 93 files**). ~1.8 min for 655 images at 4 threads. L3 returns structured facts, not captions, and appends to the graph |
+| Pixels / vision | L3 defaults to a **local** VLM — that set is by construction the images we understand least. Cloud is opt-in, consent is a thumbnail grid, faces excluded by default |
 | Egress order | Extract locally → classify sensitivity locally → **then** send heads of non-sensitive files. Not negotiable |
 | Activity axis | Purpose groups (sessions + constellations) surfaced **before** the tree, named by the model, confirmed by you. 36% of sessions span 2+ file families |
 
@@ -265,21 +265,67 @@ one fact. Naming still comes from filename, session and the model.
 session — which is frequently the better signal anyway
 (`Georgetown Prep Red Cross Club.png` needs no classifier).
 
-#### The image path, in order
+#### The image escalation ladder — cheap first, expensive only for what survives
 
-1. **Vision classify** (110 ms, local, free) → `content-kind` facet + face count.
-2. **OCR** anything labelled document / screenshot / chart / sign, and anything unlabelled.
-   Text back → **that text is the content** and it enters the ordinary head path.
-3. **No text and no confident label** → it is a photograph. Group by EXIF event and session; the
-   model receives metadata and filename, never pixels.
-4. **Cloud vision** — the only thing that yields real semantics — is **opt-in per run**, priced
-   and explained, under the same sensitivity gate as text.
+OCR, classification and face detection are **one Vision pass** over the same decoded image, so
+all three cost what the most expensive one costs. Measured across all 655 images:
 
-Vision runs **before** the OCR/event decision, because it is what routes it: `IMG_8436.HEIC`
-scores `document 0.93` and would otherwise have been filed as a holiday snap.
+| Level | Test | Files | Share |
+|---|---|---|---|
+| **L1** | OCR returned ≥25 chars → **the text is the content** | **424** | 65% |
+| **L2** | No text, but a label ≥0.5 → coarse kind is enough | **136** | 21% |
+| **L3** | Neither → **needs real semantics** | **93** | **14%** |
+
+**Only 93 images reach the expensive level.** That is what makes real semantics affordable —
+the ladder is not applied to a corpus, it is applied to a remainder.
+
+L2 labels are dominated by `people 51`, `clothing 24`, `structure 17`, `document 12`,
+`outdoor 10` — coarse, but enough to route and to file.
+
+**Whole image pass: ~1.8 min for 655 images.** Threading helps less than expected and saturates
+early, because Vision already runs on the Neural Engine:
+
+```
+ 1 thread    241 ms/img    2.6 min
+ 4 threads   167 ms/img    1.8 min   ← saturated
+ 8 threads   168 ms/img    1.8 min
+12 threads   174 ms/img    1.9 min
+```
+
+So: parallelise to 4 workers, and expect **~1.4×**, not a linear win. It does not need to be
+more — 2.6 minutes was already acceptable.
+
+#### L3 — what "real semantics" must return
+
+Not a caption. **Structured facts that fit the graph**, so the result appends exactly like any
+other extraction:
+
+```
+subject        what is actually depicted
+is_document    a photographed page / whiteboard / receipt / screen?
+missed_text    text OCR failed on (handwriting, angle, low light)
+activity       what this image suggests it was for
+people_present bool
+```
+
+Every field lands as a facet with provenance `VISION_L3` and its own confidence — the same
+tiered-confidence rule as every other fact, so an L3 claim can never outrank an extracted one.
+
+**Local model is the default; cloud is opt-in.** This inverts the usual preference deliberately:
+the L3 set is *by construction* the images we understand least, which makes it the population
+most likely to contain something private. A local VLM costs a bundled model and a few seconds
+per image over 93 images; cloud costs pennies but sends pixels.
+
+**When cloud is chosen, consent is a thumbnail grid.** 93 images on one screen — *these will be
+sent* — which is reviewable in a way that 46 M characters of text never was. Any image with a
+detected face is excluded by default.
 
 **Faces are a privacy signal, not just a grouping one.** 9 of 45 sampled images contain faces.
-Images of people are treated as sensitive-by-default for egress.
+Images of people are sensitive-by-default for egress.
+
+Everything from all three levels **appends to the graph**. L1 text joins the ordinary head path;
+L2 gives a `content-kind` facet; L3 gives subject and activity facets. Nothing is discarded for
+being ambiguous, and nothing skips a level to save time.
 
 The screenshot-versus-photo question still matters for *grouping* (event versus content), but it
 no longer gates *extraction*. Nothing is abandoned for being ambiguous.
