@@ -1,4 +1,6 @@
-# Database agent
+# Database agent — planning repo
+
+Shared plan for Alana and Joseph. **Start in [`planning/`](planning/README.md).**
 
 A local file intelligence system. The core is a **knowledge graph of your files** (people,
 courses, events, same session). You freeze a folder tree; only then does anything move, and
@@ -7,10 +9,14 @@ only onto those nodes.
 The canvas is a functional freeze view, not the product. Build order is fitness scorer, then
 extraction, then classify.
 
-**Product spec (canonical):** [`docs/superpowers/specs/2026-08-17-database-agent-design.md`](docs/superpowers/specs/2026-08-17-database-agent-design.md)
+**Status:** still being edited. This GitHub repo is **planning docs only**. No application
+code until the plan is locked.
 
-**Status:** spec v2.1 — still being edited with Joseph. This repo is **planning specs
-only**. No application code until the plan is locked.
+| Start with | What it is |
+|---|---|
+| [`planning/01-product-contract-what-we-are-building.md`](planning/01-product-contract-what-we-are-building.md) | Short contract: locked decisions and user flow |
+| [`planning/02-filegraph-engine-how-extractors-templates-and-scoring-work.md`](planning/02-filegraph-engine-how-extractors-templates-and-scoring-work.md) | Long engine design (graph, extractors, templates, scoring) |
+| [`planning/filegraph-corpus-measurements/`](planning/filegraph-corpus-measurements/) | Scripts behind the numbers in the engine design |
 
 ---
 
@@ -28,11 +34,7 @@ only**. No application code until the plan is locked.
 
 ---
 
-## In the contract (FileGraph design)
-
-Detail lives in
-[`docs/superpowers/specs/2026-08-16-filegraph-design.md`](docs/superpowers/specs/2026-08-16-filegraph-design.md).
-Locked in the product spec:
+## Locked in the product contract
 
 - Knowledge graph of files; disk layout is a projection; graph decides ~90%, model the rest
 - Whole-file extraction: PDF/DOCX, EXIF, Apple Vision OCR, screenshots, HEIC
@@ -43,16 +45,3 @@ Locked in the product spec:
 - Hand-written templates, per-node split-by, Wall-Picture, Aho-Corasick gazetteers
 - Cloud allowed only after you see the exact text; ID/medical/tax/legal/keys stay local
 - Project-skip on destinations; unmatched stay put; cross-root file into a chosen root
-
----
-
-## Repository
-
-```text
-docs/superpowers/specs/2026-08-17-database-agent-design.md   product contract
-docs/superpowers/specs/2026-08-16-filegraph-design.md        graph / extractors / templates
-research/                                                    measurement scripts behind the FileGraph spec
-README.md                                                    points here
-```
-
-Application code stays off this remote until the plan is locked.

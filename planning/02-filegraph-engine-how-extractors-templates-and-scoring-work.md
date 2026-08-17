@@ -1,14 +1,17 @@
-# FileGraph — detailed design (in product scope)
+# FileGraph engine design — how extractors, templates, and scoring work
 
 **Date:** 2026-08-16  
 **Status:** In-scope design and measurements. The short product contract is
-[`2026-08-17-database-agent-design.md`](2026-08-17-database-agent-design.md).  
+[`01-product-contract-what-we-are-building.md`](01-product-contract-what-we-are-building.md).  
 **Working name:** `filegraph` — historical. The product is the database agent.
 
 This document specifies the graph, extractors, templates, scoring, clustering, privacy, and
 build order. The product contract includes those subsystems. Implement against both files;
 if they conflict, the product contract wins on user-facing locks (freeze, cross-root destinations,
 collision rename, cloud consent), and this file wins on extractor/graph/template mechanics.
+
+Measurement scripts for the numbers below:
+[`filegraph-corpus-measurements/`](filegraph-corpus-measurements/).
 
 ---
 

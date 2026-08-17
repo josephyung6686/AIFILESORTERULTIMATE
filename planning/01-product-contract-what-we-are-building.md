@@ -1,13 +1,14 @@
-# Database agent — product spec v2.1
+# Product contract — what we are building (v2.1)
 
 Date: 2026-08-17  
-Status: **canonical** — this is the contract for the GitHub repo  
+Status: **canonical** — short contract for Alana and Joseph  
 Remote: [josephyung6686/AIFILESORTERULTIMATE](https://github.com/josephyung6686/AIFILESORTERULTIMATE)
 
-This file is the product contract. Joseph’s FileGraph write-up
-(`docs/superpowers/specs/2026-08-16-filegraph-design.md` + `research/`) is the **detailed
-design and measurement evidence** for the graph, extractors, templates, scoring, and privacy
-rules below. Those subsystems are in scope. Do not treat FileGraph as “research we declined.”
+This file is the product contract. The long engine design is
+[`02-filegraph-engine-how-extractors-templates-and-scoring-work.md`](02-filegraph-engine-how-extractors-templates-and-scoring-work.md);
+the scripts behind its numbers are in
+[`filegraph-corpus-measurements/`](filegraph-corpus-measurements/).
+Those subsystems are in scope. Do not treat the engine design as “research we declined.”
 
 Freeze still matters: after you approve the tree, nothing new appears anywhere you did not put
 it. The canvas is **boilerplate for that freeze**, not an aesthetics project. Function first.
@@ -370,10 +371,12 @@ This GitHub remote is **planning specs only** until the plan is locked with Jose
 push application code here in the meantime.
 
 ```text
-docs/superpowers/specs/2026-08-17-database-agent-design.md   THIS FILE — product contract
-docs/superpowers/specs/2026-08-16-filegraph-design.md        detailed graph/extractor/template design
-research/                                                    measurement scripts
-README.md                                                    points here
+planning/README.md                                              start here — what each file is
+planning/01-product-contract-what-we-are-building.md            THIS FILE — product contract
+planning/02-filegraph-engine-how-extractors-templates-and-scoring-work.md
+                                                                long engine design + measurements
+planning/filegraph-corpus-measurements/                         scripts that produced those numbers
+README.md                                                       repo home; points at planning/
 ```
 
 A filename `Counter` baseline may exist locally. It is not part of this remote.
