@@ -190,6 +190,50 @@ it is the single most valuable thing in graphify's design.
 | **INFERRED** | 0.5 | `near_duplicate_of`, `same_project_as`, `shares_entity_with` | MinHash/LSH on extracted text, pHash on images, shared concept node, shared client/organisation name |
 | **AMBIGUOUS** | 0.2 | `similar_to` | Embedding cosine over extracted content — **and nothing else** |
 
+### Purpose is a first-class dimension, and it is what session evidence is actually for
+
+**Topic** is what a file is *about*. **Purpose** is what it was *for*. They are different, and
+conflating them caused a measured failure.
+
+Facet propagation was run along session edges to recover `school` and produced ~50% precision,
+because a download session says nothing about topic. But the *same* session says everything about
+purpose:
+
+```
+2024-10-16 12:57–12:59   HKID · resume · personal statement · transcript
+                         · AP scores · MRS abstract · Red Cross certificate
+  topic:   seven unrelated subjects
+  purpose: ONE — a Chinese university application submission
+```
+
+And the proof is on disk: `Desktop/Chinese University Application Materials/` contains **those
+same eleven documents**. The user filed by purpose; every content-similarity measure we have
+scores that folder as incoherent.
+
+**Model it as a dimension.** `purpose` is a `dim` row; its values are `val` rows; files attach
+through `facet` rows — no new machinery. What differs is how it is *evidenced*:
+
+| Source of a purpose value | Confidence | Note |
+|---|---|---|
+| The user filed these together in one folder | **EXTRACTED 1.0** | The folder name *is* the purpose label |
+| One download/creation session | INFERRED | Provable container, unprovable label |
+| Submitted alongside (same portal, same form) | INFERRED | |
+| Model reading the set | AMBIGUOUS | Names an unlabelled session |
+
+**Rules:**
+
+1. **Session evidence may fill `purpose`. It may never fill a topic dimension** (`school`,
+   `subject`, `client`). This is the corrected version of the propagation failure.
+2. **A purpose group is heterogeneous by design.** The teacher coherence gate must treat
+   *one session + many doc-types* as evidence **for** coherence, not against it — as written it
+   discards the most valuable teacher folder on the machine.
+3. **Purpose beats topic in the citation order when both apply.** A file submitted as part of an
+   application belongs with that application, not filed by its own subject matter. This is the
+   records-management finding that function outlives subject.
+4. **Purpose is how a node knows why it exists** — carried on the node as a facet, and expressed
+   between files as `same_purpose_as`, which is EXTRACTED when the user has filed them together
+   and INFERRED when only a session supports it.
+
 ### Expanded edge set — all provable, all measured present in the corpus
 
 Every type below is deterministic. None infers meaning.
@@ -942,7 +986,7 @@ gazetteer, or the judge — not a frequency threshold. Ubiquity is not uselessne
 **This is what fills the canvas.** Measured reality: only 30 usable existing destination folders
 absorbing 4%, so **96% of the canvas is proposals** and the recommender carries the product.
 
-### Pipeline
+### Pipeline, with a worked example from the real corpus
 
 ```
 1. SWEEP        filename-only detectors over every file        seconds   → 43% matched
@@ -952,6 +996,51 @@ absorbing 4%, so **96% of the canvas is proposals** and the recommender carries 
 5. PERSONALISE  LLM merges, names and orders using the user's own vocabulary
 6. CANVAS       user adds / renames / merges / drops / freezes
 ```
+
+**FIT — decide which templates apply, and discard the rest.**
+
+```
+Photos & captures    444 (19.5%)  ✓        Legal matters      0  ✗ never shown
+Academic coursework  201 ( 8.8%)  ✓        Clinical trial     0  ✗
+Applications         112 ( 4.9%)  ✓        Property/estate    0  ✗
+```
+
+The user is never asked about templates their corpus does not trigger.
+
+**INSTANTIATE — fill the abstract slots with the corpus's own values.**
+
+```
+Academic coursework:  school / term / subject / work-type
+    school    = Columbia                                   ← constant, asked once
+    term      ∈ {2026-Spring, 2024-Fall, 2021-Spring}      ← found in the files
+    subject   ∈ {PHYS1401, BUSIB 4300, ENGIE1006, COMS 1004}
+    work-type ∈ {Syllabus, Lecture, Homework, Exam}
+```
+
+The proposal becomes a concrete tree with real names — not a schema the user must imagine.
+
+**PERSONALISE — the model tidies the raw proposals.** The corpus produced `essay` (29),
+`supplemental` (45) and `letter` (52) as three separate candidates. The model **merges** them into
+one Applications branch, **renames** to reuse an existing folder name where one fits
+(`Chinese University Application Materials` over an invented `Applications`), **drops** proposals
+too small to earn a folder, and **orders** dimensions where the citation rule leaves a real
+choice. It is an editor, never an author.
+
+**CANVAS — the user sees it and changes it.**
+
+```
+Desktop/
+├── Academics/                                    ← proposed   (201)
+│   └── Columbia/
+│       ├── 2026-Spring/   PHYS1401 · BUSIB 4300
+│       └── 2024-Fall/     ENGIE1006
+├── Applications/                                 ← proposed   (112)
+├── Chinese University Application Materials/     ← EXISTS      (11)
+└── Photos/ 2025/ 2026/                           ← proposed   (444)
+```
+
+Drag to merge, rename, nest, delete, add. Then **freeze** — after which these are the only
+destinations any file may reach.
 
 Steps 1–4 are deterministic. **The model enters only at step 5, and only to name and merge —
 never to invent structure.** Templates are hand-written and version-controlled; the model
