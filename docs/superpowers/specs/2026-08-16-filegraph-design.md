@@ -986,6 +986,37 @@ gazetteer, or the judge — not a frequency threshold. Ubiquity is not uselessne
 **This is what fills the canvas.** Measured reality: only 30 usable existing destination folders
 absorbing 4%, so **96% of the canvas is proposals** and the recommender carries the product.
 
+### How these steps relate to the graph
+
+**The graph is the data. The canvas is a view of it. Freeze writes a constraint back.** No step
+invents a folder name — folder names *are* value nodes in the graph.
+
+| Step | What it is, in graph terms |
+|---|---|
+| **Fit** | a `COUNT` over the facet table — "how many files carry a `subject` facet?" |
+| **Instantiate** | a `SELECT DISTINCT` — the `val` rows in a dimension **become the folder names** |
+| **Personalise** | the model edits a *projection*; the facts underneath are untouched |
+| **Canvas** | the projection itself — `GROUP BY` in citation order, measured at **175 ms / 100k files** |
+| **Freeze** | writes the approved set back as folder nodes; classification scores facets against them |
+
+Reordering dimensions re-renders instantly because the canvas is a **query, not a rebuild**.
+
+**One real file, end to end:**
+
+```
+Syllabus BUSIB 4300 Spring 2026 Haran Segram.pdf
+  extract     → text, author, headings
+  facets      → subject=BUSIB4300 · term=2026-Spring · work_type=Syllabus · school=Columbia
+                each carrying the text span that produced it
+  fit         → these facets are part of why Academic scores 8.8%
+  instantiate → BUSIB4300 and 2026-Spring surface as folder names
+  canvas      → Academics/Columbia/2026-Spring/BUSIB 4300/Syllabus/
+  freeze      → that path becomes a legal destination
+  classify    → the file's facets match it exactly → placed
+```
+
+The loop: `graph → GROUP BY → canvas → freeze → classify → apply → re-index`.
+
 ### Pipeline, with a worked example from the real corpus
 
 ```
