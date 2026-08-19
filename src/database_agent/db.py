@@ -114,7 +114,19 @@ BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
 """
 
 
+LEARNING_DDL = """
+CREATE TABLE IF NOT EXISTS learning_resets (
+    scope       TEXT NOT NULL,
+    subject_id  TEXT NOT NULL,
+    event_id    INTEGER NOT NULL,
+    reset_at    TEXT NOT NULL,
+    PRIMARY KEY (scope, subject_id, event_id)
+);
+"""
+
+
 def create_schema(conn: sqlite3.Connection) -> None:
     """Create every P1-owned table. Idempotent."""
     conn.executescript(FILES_DDL)
     conn.executescript(EVENTS_DDL)
+    conn.executescript(LEARNING_DDL)

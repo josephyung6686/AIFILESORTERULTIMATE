@@ -942,3 +942,368 @@ git commit -m "feat(P2): run manifest, seven-field version tuple, two run settin
 ```
 
 ---
+
+### Task 4: The stage output envelope (Contract out §4)
+
+**Files:**
+- Create: `src/eval_harness/stage_output.py`
+- Modify: `src/eval_harness/store.py` — add `stage_output.STAGE_DDL` to `_ddl_scripts`
+- Test: `tests/eval/test_stage_output.py`
+
+**Interfaces:**
+- Consumes: `canonical_json` (Task 1); `STAGE_IDS`, `DIMENSIONS`, `OUTCOMES`, `BUDGET_STATES`, `check_stage`, `check_dimension` (Task 2); `run_manifest` (Task 3).
+- Produces: `ENVELOPE_FIELDS: tuple[str, ...]` (nine), `DimensionValue` (frozen dataclass: `dimension`, `subject_ref`, `outcome`, `value`), `record_stage_output(conn, *, run_id, stage_id, subject_ref, outcome, payload, version_tuple_ref, inputs, budget_state, dimension_values=()) -> int`, `stage_outputs(conn, run_id, *, stage_id=None) -> list[sqlite3.Row]`, `dimension_values(conn, run_id, *, dimension=None) -> list[sqlite3.Row]`, `stage_payload(conn, stage_output_id) -> str`, `ForeignVocabulary`.
+
+**P2 owns the envelope; the producing part owns `payload`.** `payload` is stored **verbatim as text and never parsed**. The test below stores a payload that is not valid JSON and asserts it comes back byte-identical, because that is the only way to prove opacity: a store that round-trips only well-formed JSON has silently acquired an opinion about another part's shape.
+
+**The envelope's vocabulary is P2's; the record's vocabulary is the producing part's, and they are different vocabularies.** [`../P11-placement-residual/SPEC.md`](../P11-placement-residual/SPEC.md) states it and publishes the mapping table: *"`place`, `abstain`, `deferred_stage` and `abstention_reason = budget_deferred` are values of `placement_decision`, this part's own record — none of them is an envelope value, and none may be written into `stage_output`."* `record_stage_output` rejects them by name, so a part that writes its own vocabulary into the envelope fails at the writer rather than producing a run whose outcomes cannot be compared with any other stage's.
+
+**A budget deferral is `deferred`, never `abstained`.** P11's mapping table again: scored as `abstained`, P2 would grade a ceiling-truncated run `abstained_correctly` or `abstained_incorrectly` — a judgement about evidence — when no judgement was made. The writer enforces the pairing: `outcome = deferred` requires `budget_state = ceiling_reached`, and `budget_state = ceiling_reached` with `outcome = abstained` is refused.
+
+**`dimension_values` is how a measured value reaches P2 without P2 opening the payload.** SPEC Contract out §6 says `observed` comes *"from stage_output"*, and Contract out §4 says the payload is opaque. Both hold only if the producing part hands P2 the value it wants asserted, alongside the payload it keeps to itself. One stage output may carry several — a `fact` stage decides several fields for one file, abstaining on some — so each `DimensionValue` carries its own `outcome`. **The emitting stage names itself**; P2 never looks up which stage owns a dimension (Task 2, SPEC Open question 1).
+
+**`inputs[]` are subject_refs, as the SPEC publishes them.** Contract out §4: *"`inputs[]` subject_refs of the stage outputs consumed."* Task 11 resolves each one to every stage output in the same run carrying that `subject_ref`. Where two stages decided about the same subject, that resolves to both, and the traversal considers both. This ambiguity is in the published shape, not introduced here; a recommended SPEC change is recorded in the report accompanying this plan, and **is not made**.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_stage_output.py
+import pytest
+
+from eval_harness.run import record_version_tuple, start_run
+from eval_harness.stage_output import (
+    ENVELOPE_FIELDS, DimensionValue, ForeignVocabulary, dimension_values,
+    record_stage_output, stage_outputs, stage_payload,
+)
+from eval_harness.store import create_eval_schema
+from eval_harness.vocabulary import UnknownStage
+
+
+@pytest.fixture()
+def run(eval_conn):
+    create_eval_schema(eval_conn)
+    ref = record_version_tuple(
+        eval_conn, extractor_versions={}, graph_algorithm_version=None,
+        prompt_fingerprint=None, model_identifier=None,
+        template_library_version=None, placement_scorer_version=None,
+        analysis_tiers_enabled=["filesystem"],
+    )
+    return start_run(eval_conn, bundle_id="b1", run_kind="replay",
+                     version_tuple_ref=ref, budget_ceilings={},
+                     run_settings={"model_enabled": False, "embeddings_enabled": False},
+                     pinned_plan_id="plan-fixture", pinned_plan_version="1"), ref
+
+
+def _emit(conn, run_id, ref, **overrides):
+    fields = dict(run_id=run_id, stage_id="extraction", subject_ref="sha256:aa",
+                  outcome="produced", payload='{"opaque": true}',
+                  version_tuple_ref=ref, inputs=[], budget_state="within_ceiling")
+    fields.update(overrides)
+    return record_stage_output(conn, **fields)
+
+
+def test_the_envelope_has_exactly_the_nine_contract_fields():
+    assert ENVELOPE_FIELDS == (
+        "run_id", "stage_id", "subject_ref", "outcome", "payload",
+        "version_tuple_ref", "inputs", "budget_state", "produced_at",
+    )
+
+
+def test_every_envelope_field_is_stored(eval_conn, run):
+    run_id, ref = run
+    _emit(eval_conn, run_id, ref, inputs=["sha256:bb"])
+    row = stage_outputs(eval_conn, run_id)[0]
+    assert row["stage_id"] == "extraction"
+    assert row["subject_ref"] == "sha256:aa"
+    assert row["outcome"] == "produced"
+    assert row["version_tuple_ref"] == ref
+    assert row["inputs"] == '["sha256:bb"]'
+    assert row["budget_state"] == "within_ceiling"
+    assert row["produced_at"]
+
+
+def test_payload_is_opaque_and_is_never_parsed(eval_conn, run):
+    # Contract out §4: "payload  opaque to P2; shape owned by the producing part."
+    # Not valid JSON on purpose: a store that round-trips only well-formed JSON
+    # has acquired an opinion about another part's shape.
+    run_id, ref = run
+    blob = "this is not JSON \x00 and it has a NUL and a }brace"
+    output_id = _emit(eval_conn, run_id, ref, payload=blob)
+    assert stage_payload(eval_conn, output_id) == blob
+
+
+def test_a_stage_id_outside_the_ten_is_rejected(eval_conn, run):
+    run_id, ref = run
+    with pytest.raises(UnknownStage):
+        _emit(eval_conn, run_id, ref, stage_id="residual")
+
+
+def test_a_producing_parts_own_vocabulary_is_refused_in_the_envelope(eval_conn, run):
+    # P11 SPEC: "none of them is an envelope value, and none may be written into
+    # stage_output." Refused at the writer, not discovered during comparison.
+    run_id, ref = run
+    for foreign in ("place", "abstain", "return_to_placement", "mark_review_later",
+                    "leave_in_place", "mark_state", "ask_user"):
+        with pytest.raises(ForeignVocabulary):
+            _emit(eval_conn, run_id, ref, outcome=foreign)
+
+
+def test_an_outcome_outside_the_five_is_rejected(eval_conn, run):
+    run_id, ref = run
+    with pytest.raises(ValueError):
+        _emit(eval_conn, run_id, ref, outcome="succeeded")
+
+
+def test_deferred_and_ceiling_reached_are_bound_together(eval_conn, run):
+    # §8.6: a budget deferral must not be scorable as an evidence judgement.
+    run_id, ref = run
+    _emit(eval_conn, run_id, ref, outcome="deferred", budget_state="ceiling_reached")
+    with pytest.raises(ValueError):
+        _emit(eval_conn, run_id, ref, outcome="deferred", budget_state="within_ceiling")
+    with pytest.raises(ValueError):
+        _emit(eval_conn, run_id, ref, outcome="abstained", budget_state="ceiling_reached")
+
+
+def test_not_implemented_is_a_legal_output(eval_conn, run):
+    # 02-segmentation-map.md, Order: the harness runs before the stages exist.
+    run_id, ref = run
+    _emit(eval_conn, run_id, ref, stage_id="placement_scoring",
+          outcome="not_implemented", payload="")
+    row = stage_outputs(eval_conn, run_id, stage_id="placement_scoring")[0]
+    assert row["outcome"] == "not_implemented"
+
+
+def test_a_stage_output_may_carry_several_dimension_values(eval_conn, run):
+    # One `fact` stage output about one file, three fields, one abstention.
+    run_id, ref = run
+    _emit(eval_conn, run_id, ref, stage_id="factual_validation",
+          subject_ref="file-1",
+          dimension_values=[
+              DimensionValue("fact", "file-1::field-a", "produced", {"value": "A"}),
+              DimensionValue("fact", "file-1::field-b", "produced", {"value": "B"}),
+              DimensionValue("fact", "file-1::field-c", "abstained", None),
+          ])
+    rows = dimension_values(eval_conn, run_id, dimension="fact")
+    assert len(rows) == 3
+    assert {r["outcome"] for r in rows} == {"produced", "abstained"}
+    assert [r["stage_id"] for r in rows] == ["factual_validation"] * 3
+
+
+def test_the_emitting_stage_names_itself_for_any_dimension(eval_conn, run):
+    # SPEC Open question 1 is open: `residual` has no same-named attribution stage,
+    # so whichever stage emits it says so. P2 holds no dimension->stage table.
+    run_id, ref = run
+    _emit(eval_conn, run_id, ref, stage_id="placement_scoring", subject_ref="file-9",
+          dimension_values=[DimensionValue("residual", "file-9", "produced",
+                                           {"outcome": "leave_in_place"})])
+    row = dimension_values(eval_conn, run_id, dimension="residual")[0]
+    assert row["stage_id"] == "placement_scoring"
+
+
+def test_a_dimension_outside_the_ten_is_rejected(eval_conn, run):
+    from eval_harness.vocabulary import UnknownDimension
+    run_id, ref = run
+    with pytest.raises(UnknownDimension):
+        _emit(eval_conn, run_id, ref,
+              dimension_values=[DimensionValue("factual_validation", "x",
+                                               "produced", None)])
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_stage_output.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.stage_output'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/stage_output.py
+"""Contract out §4 — the one record every measured part emits.
+
+P2 owns the envelope; the producing part owns `payload`, which is stored verbatim
+and never parsed. The envelope's vocabulary and the producing part's record
+vocabulary are different vocabularies, and a part's own values are refused here.
+"""
+from __future__ import annotations
+
+import sqlite3
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Sequence
+
+from eval_harness.store import canonical_json
+from eval_harness.vocabulary import (
+    BUDGET_STATES, OUTCOMES, check_dimension, check_stage,
+)
+
+#: Contract out §4, in order. Nine.
+ENVELOPE_FIELDS: tuple[str, ...] = (
+    "run_id", "stage_id", "subject_ref", "outcome", "payload",
+    "version_tuple_ref", "inputs", "budget_state", "produced_at",
+)
+
+#: Values that belong to a producing part's OWN record and may never appear in the
+#: envelope. P11's SPEC publishes this rule and this list; P2 enforces it so a
+#: mis-mapped run fails at the writer instead of during comparison. This is not
+#: P2 adopting P11's vocabulary — nothing here is ever WRITTEN, only refused.
+_FOREIGN_OUTCOMES = frozenset({
+    "place", "return_to_placement", "mark_review_later", "leave_in_place",
+    "mark_state", "abstain", "ask_user",
+})
+
+STAGE_DDL = """
+CREATE TABLE IF NOT EXISTS stage_output (
+    stage_output_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id            TEXT NOT NULL REFERENCES run_manifest (run_id),
+    stage_id          TEXT NOT NULL,
+    subject_ref       TEXT NOT NULL,
+    outcome           TEXT NOT NULL,
+    payload           TEXT,               -- opaque; never parsed by P2
+    version_tuple_ref TEXT NOT NULL,
+    inputs            TEXT NOT NULL,      -- canonical JSON array of subject_refs
+    budget_state      TEXT NOT NULL,
+    produced_at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS stage_output_run ON stage_output (run_id, stage_id);
+CREATE INDEX IF NOT EXISTS stage_output_subject ON stage_output (run_id, subject_ref);
+
+CREATE TABLE IF NOT EXISTS stage_dimension_value (
+    run_id          TEXT NOT NULL REFERENCES run_manifest (run_id),
+    stage_output_id INTEGER NOT NULL REFERENCES stage_output (stage_output_id),
+    stage_id        TEXT NOT NULL,        -- the EMITTING stage, which names itself
+    dimension       TEXT NOT NULL,
+    subject_ref     TEXT NOT NULL,
+    outcome         TEXT NOT NULL,
+    value           TEXT,                 -- canonical JSON, or NULL when nothing was produced
+    PRIMARY KEY (run_id, dimension, subject_ref)
+);
+"""
+
+
+class ForeignVocabulary(Exception):
+    """A producing part's own record value was written into P2's envelope."""
+
+
+@dataclass(frozen=True)
+class DimensionValue:
+    """One measured value the producing part hands P2 alongside its opaque payload.
+
+    Each carries its own `outcome`: one stage output may produce for one subject
+    and abstain for another, and §8.5 measures abstention as an outcome.
+    """
+    dimension: str
+    subject_ref: str
+    outcome: str
+    value: Any
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _check_outcome(outcome: str) -> str:
+    if outcome in _FOREIGN_OUTCOMES:
+        raise ForeignVocabulary(
+            f"{outcome!r} is a producing part's own record value and may not be "
+            f"written into stage_output; the envelope's outcomes are {OUTCOMES}"
+        )
+    if outcome not in OUTCOMES:
+        raise ValueError(f"outcome {outcome!r} is not one of {OUTCOMES}")
+    return outcome
+
+
+def record_stage_output(conn: sqlite3.Connection, *, run_id: str, stage_id: str,
+                        subject_ref: str, outcome: str, payload: str | None,
+                        version_tuple_ref: str, inputs: Sequence[str],
+                        budget_state: str,
+                        dimension_values: Sequence[DimensionValue] = ()) -> int:
+    """Write one envelope, plus the dimension values the stage hands over.
+
+    §8.6: a budget deferral is `deferred` with `ceiling_reached` and is never
+    `abstained`. The pairing is enforced here, because P2 Done-means 6 depends on
+    it: a run whose only change is a lower ceiling must produce zero new
+    divergences, which is only true if a deferral never reaches a quality verdict.
+    """
+    check_stage(stage_id)
+    _check_outcome(outcome)
+    if budget_state not in BUDGET_STATES:
+        raise ValueError(f"budget_state {budget_state!r} is not one of {BUDGET_STATES}")
+    if outcome == "deferred" and budget_state != "ceiling_reached":
+        raise ValueError("outcome 'deferred' requires budget_state 'ceiling_reached' (§8.6)")
+    if budget_state == "ceiling_reached" and outcome == "abstained":
+        raise ValueError(
+            "a ceiling-reached stage is 'deferred', never 'abstained': §8.6 forbids "
+            "cost exhaustion becoming a judgement about evidence"
+        )
+    for value in dimension_values:
+        check_dimension(value.dimension)
+        _check_outcome(value.outcome)
+
+    cursor = conn.execute(
+        "INSERT INTO stage_output (run_id, stage_id, subject_ref, outcome, payload, "
+        "version_tuple_ref, inputs, budget_state, produced_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (run_id, stage_id, subject_ref, outcome, payload, version_tuple_ref,
+         canonical_json(list(inputs)), budget_state, _now()),
+    )
+    stage_output_id = cursor.lastrowid
+    for value in dimension_values:
+        conn.execute(
+            "INSERT INTO stage_dimension_value (run_id, stage_output_id, stage_id, "
+            "dimension, subject_ref, outcome, value) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (run_id, stage_output_id, stage_id, value.dimension, value.subject_ref,
+             value.outcome,
+             None if value.value is None else canonical_json(value.value)),
+        )
+    return stage_output_id
+
+
+def stage_outputs(conn: sqlite3.Connection, run_id: str, *,
+                  stage_id: str | None = None) -> list[sqlite3.Row]:
+    if stage_id is None:
+        return conn.execute(
+            "SELECT * FROM stage_output WHERE run_id = ? ORDER BY stage_output_id",
+            (run_id,)).fetchall()
+    return conn.execute(
+        "SELECT * FROM stage_output WHERE run_id = ? AND stage_id = ? "
+        "ORDER BY stage_output_id", (run_id, check_stage(stage_id))).fetchall()
+
+
+def dimension_values(conn: sqlite3.Connection, run_id: str, *,
+                     dimension: str | None = None) -> list[sqlite3.Row]:
+    if dimension is None:
+        return conn.execute(
+            "SELECT * FROM stage_dimension_value WHERE run_id = ? "
+            "ORDER BY dimension, subject_ref", (run_id,)).fetchall()
+    return conn.execute(
+        "SELECT * FROM stage_dimension_value WHERE run_id = ? AND dimension = ? "
+        "ORDER BY subject_ref", (run_id, check_dimension(dimension))).fetchall()
+
+
+def stage_payload(conn: sqlite3.Connection, stage_output_id: int) -> str | None:
+    """The payload exactly as it was handed over. P2 has never parsed it."""
+    row = conn.execute("SELECT payload FROM stage_output WHERE stage_output_id = ?",
+                       (stage_output_id,)).fetchone()
+    return None if row is None else row["payload"]
+```
+
+Add to `store.py`'s `_ddl_scripts`:
+
+```python
+    from eval_harness import run, stage_output
+    return [run.RUN_DDL, stage_output.STAGE_DDL]
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_stage_output.py -v`
+Expected: PASS — 11 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/stage_output.py src/eval_harness/store.py tests/eval/test_stage_output.py
+git commit -m "feat(P2): stage output envelope, opaque payload, foreign vocabulary refused at the writer"
+```
+
+---
