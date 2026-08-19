@@ -114,6 +114,15 @@ BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
 """
 
 
+# Inlined rather than imported from budget.py, to avoid a circular import.
+BUDGET_DDL = """
+CREATE TABLE IF NOT EXISTS budget_ceilings (
+    key           TEXT PRIMARY KEY,
+    value         INTEGER NOT NULL,
+    object_version INTEGER NOT NULL DEFAULT 1
+);
+"""
+
 LEARNING_DDL = """
 CREATE TABLE IF NOT EXISTS learning_resets (
     scope       TEXT NOT NULL,
@@ -130,3 +139,4 @@ def create_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(FILES_DDL)
     conn.executescript(EVENTS_DDL)
     conn.executescript(LEARNING_DDL)
+    conn.executescript(BUDGET_DDL)
