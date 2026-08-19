@@ -42,6 +42,8 @@ def _check(key: str) -> None:
 
 def set_ceiling(conn: sqlite3.Connection, key: str, value: int) -> None:
     _check(key)
+    if type(value) is not int:
+        raise TypeError(f"ceiling {key!r} must be an int, not {type(value).__name__}")
     conn.execute(
         "INSERT INTO budget_ceilings (key, value) VALUES (?, ?) "
         "ON CONFLICT(key) DO UPDATE SET value = excluded.value, "
@@ -57,4 +59,8 @@ def get_ceiling(conn: sqlite3.Connection, key: str) -> int | None:
 
 
 def all_ceilings(conn: sqlite3.Connection) -> dict[str, int]:
-    return {r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM budget_ceilings")}
+    return {
+        r["key"]: r["value"]
+        for r in conn.execute("SELECT key, value FROM budget_ceilings")
+        if r["key"] in CEILING_KEYS
+    }

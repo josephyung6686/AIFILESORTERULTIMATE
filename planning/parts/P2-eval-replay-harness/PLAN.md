@@ -69,7 +69,7 @@ src/eval_harness/counts.py              §8.6's count line, from the bundle alon
 tests/eval/conftest.py                  eval_conn, sealed-bundle helpers
 tests/eval/fixtures/p4_runs.json        recorded P4 `extraction_runs` rows (P4 does not exist yet)
 tests/eval/fixtures/p4_text_units.json  recorded P4 `text_units` rows
-tests/eval/fixtures/adversarial/A1..A12 twelve case files: expected + forbidden + the § that states it
+tests/eval/fixtures/adversarial/A01.json … A12.json   expected + forbidden + the § that states it
 tests/eval/test_store.py                schema, idempotence, P1 tables untouched
 tests/eval/test_vocabulary.py           Done-means 2; SPEC OQ1 left open and asserted as open
 tests/eval/test_bundle.py               Done-means 1
@@ -576,7 +576,7 @@ git commit -m "feat(P2): the ten stages and the ten dimensions, two lists, never
 
 **Interfaces:**
 - Consumes: `create_eval_schema`, `canonical_json`, `content_ref` (Task 1); `RUN_KINDS` (Task 2); `database_agent.budget.all_ceilings(conn) -> dict[str, int]`, `database_agent.budget.CEILING_KEYS` (P1 Task 10).
-- Produces: `VERSION_AXES: tuple[str, ...]` (the six §8.5 axes), `VERSION_TUPLE_FIELDS: tuple[str, ...]` (seven), `ANALYSIS_TIERS: tuple[str, ...]` (four), `RUN_SETTING_KEYS: tuple[str, ...]` (two), `record_version_tuple(conn, **fields) -> str`, `get_version_tuple(conn, ref) -> dict`, `start_run(conn, *, bundle_id, run_kind, version_tuple_ref, budget_ceilings, run_settings, pinned_plan_id, pinned_plan_version) -> str`, `finish_run(conn, run_id) -> None`, `get_run(conn, run_id) -> sqlite3.Row`, `run_ceilings(conn, run_id) -> dict`, `UnknownAnalysisTier`, `UnknownRunSetting`.
+- Produces: `VERSION_AXES: tuple[str, ...]` (the six §8.5 axes), `VERSION_TUPLE_FIELDS: tuple[str, ...]` (seven), `ANALYSIS_TIERS: tuple[str, ...]` (four), `RUN_SETTING_KEYS: tuple[str, ...]` (two), `record_version_tuple(conn, **fields) -> str`, `get_version_tuple(conn, ref) -> dict`, `start_run(conn, *, bundle_id, run_kind, version_tuple_ref, budget_ceilings, run_settings, pinned_plan_id, pinned_plan_version) -> str`, `finish_run(conn, run_id) -> None`, `get_run(conn, run_id) -> sqlite3.Row`, `run_ceilings(conn, run_id) -> dict`, `run_settings(conn, run_id) -> dict`, `UnknownAnalysisTier`, `UnknownRunSetting`.
 
 **The version tuple has seven fields and §8.5 names six axes.** §8.5's six are *"a new extractor version, graph algorithm, LLM prompt, model, template library, or placement scorer."* The seventh, `analysis_tiers_enabled[]`, arrives from [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md), which is binding: *"P2 `version_tuple.analysis_tier` becomes `analysis_tiers_enabled[]` — a subset of the four — so a walking-skeleton run can declare `{filesystem, native}` and an OCR-on replay is a different tuple. A singular field cannot express 'native on, OCR off.'"* `VERSION_AXES` is the six; `VERSION_TUPLE_FIELDS` is all seven. Task 12's delta reports every field that differs and labels which of them are §8.5's six, so Done-means 8 is satisfied without hiding a tier change. This plan does not decide whether the tier set *should* be a seventh §8.5 axis — see the report accompanying this plan.
 
@@ -2640,3 +2640,3198 @@ git commit -m "feat(P2): accepted groups and expectations, opaque values, all ei
 ```
 
 ---
+
+### Task 9: The stage adapters and the replay runner (Done-means 7)
+
+**Files:**
+- Create: `src/eval_harness/replay.py`
+- Test: `tests/eval/test_replay.py`
+
+**Interfaces:**
+- Consumes: `bundle` readers (Tasks 5–8); `record_version_tuple`, `start_run`, `finish_run` (Task 3); `record_stage_output`, `DimensionValue` (Task 4); `STAGE_IDS` (Task 2).
+- Produces: `ReplayContext` (frozen dataclass: `conn`, `run_id`, `bundle_id`, `stage_id`, `run_settings`, `budget_ceilings`), `StageResult` (frozen dataclass: `outcome`, `payload`, `inputs`, `budget_state`, `subject_ref`, `values`), `replay_bundle(conn, bundle_id, *, version_tuple, budget_ceilings, run_settings, adapters, run_kind="replay") -> str`, `NO_ADAPTER: object`.
+
+**Adapters are passed in, never registered in a module-level dict.** P1's plan records what goes wrong with a process-local mutable registry: *"a type existed only in the process that added it, appends started failing after a restart, and a direct write to the dict bypassed the reserved-name check entirely."* The same trap is available here and is avoided the same way — `replay_bundle` takes `adapters` as an argument, and there is no `register_stage` function anywhere in P2. A run's stage set is therefore visible in the call that started it.
+
+**A stage with no adapter is `not_implemented`, and the run completes.** `02-segmentation-map.md`, *Order*: the harness must be runnable before the stages exist. All ten stages appear in every run, in §8.5's order; nine of them reporting `not_implemented` is a valid run.
+
+**Each adapter returns zero or more subjects' results.** A stage decides about many subjects — many files, many groups — so an adapter returns a list of `StageResult`, each with its own `subject_ref`. An adapter that returns an empty list still gets one `not_implemented`-free record: `outcome = produced` with no dimension values would be a lie about a stage that ran and decided nothing, so an adapter returning `[]` is recorded as `abstained` for the bundle as a whole with `subject_ref = bundle_id`. **This is P2's own bookkeeping for its own runner and is not a claim about any stage's semantics** — a real stage that abstains says so per subject.
+
+**Budget ceilings reach the adapter and are enforced by nobody here.** SPEC Cross-cutting answers → Budgets: a replay run *"executes real stages and is therefore bound by the same §8.6 ceilings as a live run"*. The ceilings are handed to the adapter through `ReplayContext`; the stage that owns the ceiling enforces it and reports `deferred` / `ceiling_reached`. P2 enforces no ceiling and substitutes no cheaper approximation.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_replay.py
+from eval_harness.bundle import add_expectation, open_bundle, seal_bundle
+from eval_harness.replay import ReplayContext, StageResult, replay_bundle
+from eval_harness.run import get_run, run_settings
+from eval_harness.stage_output import DimensionValue, dimension_values, stage_outputs
+from eval_harness.store import create_eval_schema
+from eval_harness.vocabulary import STAGE_IDS
+
+
+def _tuple():
+    return dict(extractor_versions={"pdf.native": "1.0.0"},
+                graph_algorithm_version=None, prompt_fingerprint=None,
+                model_identifier=None, template_library_version=None,
+                placement_scorer_version=None,
+                analysis_tiers_enabled=["filesystem", "native"])
+
+
+def _bundle(conn):
+    bundle_id = open_bundle(conn, corpus_form="snapshot",
+                            source_scan_ref="scan-fixture",
+                            pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                            policy_settings={})
+    add_expectation(conn, bundle_id, dimension="extraction",
+                    subject_ref="sha256:syl", expected_value={"text": "COMS 4995"},
+                    expected_outcome_kind="produced", source="hand-labelled")
+    seal_bundle(conn, bundle_id)
+    return bundle_id
+
+
+def _extraction_adapter(ctx: ReplayContext) -> list[StageResult]:
+    """Stands in for P5, which does not exist. It reads the bundle, not the disk."""
+    return [StageResult(
+        subject_ref="sha256:syl", outcome="produced",
+        payload='{"p5": "opaque"}', inputs=[], budget_state="within_ceiling",
+        values=[DimensionValue("extraction", "sha256:syl", "produced",
+                               {"text": "COMS 4995"})],
+    )]
+
+
+def _settings(**overrides):
+    s = {"model_enabled": False, "embeddings_enabled": False}
+    s.update(overrides)
+    return s
+
+
+def test_a_run_with_no_adapters_completes_with_ten_not_implemented_stages(eval_conn):
+    # Done-means 7 / 02-segmentation-map.md, Order.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={})
+    rows = stage_outputs(eval_conn, run_id)
+    assert [r["stage_id"] for r in rows] == list(STAGE_IDS)
+    assert {r["outcome"] for r in rows} == {"not_implemented"}
+    assert get_run(eval_conn, run_id)["finished_at"]
+
+
+def test_one_adapter_runs_and_the_other_nine_report_not_implemented(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={"extraction": _extraction_adapter})
+    by_stage = {r["stage_id"]: r["outcome"] for r in stage_outputs(eval_conn, run_id)}
+    assert by_stage["extraction"] == "produced"
+    assert sum(1 for v in by_stage.values() if v == "not_implemented") == 9
+    value = dimension_values(eval_conn, run_id, dimension="extraction")[0]
+    assert value["value"] == '{"text":"COMS 4995"}'
+
+
+def test_stages_run_in_8_5s_order(eval_conn):
+    # The order is §8.5's list, which is also §4.10's and §6.12's pipeline order,
+    # and Task 11 depends on it for tie-breaking.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    seen = []
+
+    def spy(stage_id):
+        def adapter(ctx: ReplayContext) -> list[StageResult]:
+            seen.append(ctx.stage_id)
+            return []
+        return adapter
+
+    replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(), budget_ceilings={},
+                  run_settings=_settings(),
+                  adapters={s: spy(s) for s in STAGE_IDS})
+    assert seen == list(STAGE_IDS)
+
+
+def test_the_adapter_receives_the_run_settings_and_the_ceilings(eval_conn):
+    # A bundle must be re-runnable with the model disabled and with embeddings
+    # disabled, independently (Contract out §5).
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    captured = {}
+
+    def adapter(ctx: ReplayContext) -> list[StageResult]:
+        captured["settings"] = dict(ctx.run_settings)
+        captured["ceilings"] = dict(ctx.budget_ceilings)
+        captured["bundle_id"] = ctx.bundle_id
+        return []
+
+    replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                  budget_ceilings={"ocr.max_pages_per_file": 3},
+                  run_settings=_settings(embeddings_enabled=True),
+                  adapters={"retrieval": adapter})
+    assert captured["settings"] == {"model_enabled": False, "embeddings_enabled": True}
+    assert captured["ceilings"] == {"ocr.max_pages_per_file": 3}
+    assert captured["bundle_id"] == bundle_id
+
+
+def test_an_adapter_that_defers_is_recorded_as_deferred(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+
+    def deferring(ctx: ReplayContext) -> list[StageResult]:
+        return [StageResult(subject_ref="sha256:syl", outcome="deferred",
+                            payload=None, inputs=[],
+                            budget_state="ceiling_reached",
+                            values=[DimensionValue("extraction", "sha256:syl",
+                                                   "deferred", None)])]
+
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={"extraction": deferring})
+    row = [r for r in stage_outputs(eval_conn, run_id)
+           if r["stage_id"] == "extraction"][0]
+    assert row["outcome"] == "deferred"
+    assert row["budget_state"] == "ceiling_reached"
+
+
+def test_an_adapter_that_raises_is_recorded_as_error_not_swallowed(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+
+    def broken(ctx: ReplayContext) -> list[StageResult]:
+        raise RuntimeError("the stage crashed")
+
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={"grouping": broken})
+    row = [r for r in stage_outputs(eval_conn, run_id)
+           if r["stage_id"] == "grouping"][0]
+    assert row["outcome"] == "error"
+    assert "the stage crashed" in row["payload"]
+
+
+def test_there_is_no_global_stage_registry(eval_conn):
+    # P1's lesson: a process-local mutable registry makes a run's stage set
+    # invisible and mutable from anywhere. Adapters are an argument.
+    import inspect
+
+    from eval_harness import replay
+    assert not [n for n, v in vars(replay).items()
+                if callable(v) and n.lower().startswith("register")]
+    assert "adapters" in inspect.signature(replay.replay_bundle).parameters
+
+
+def test_the_run_records_its_settings_verbatim(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={})
+    assert run_settings(eval_conn, run_id) == {"model_enabled": False,
+                                               "embeddings_enabled": False}
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_replay.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.replay'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/replay.py
+"""The replay runner.
+
+Every run walks all ten §8.5 stages in §8.5's order. A stage with no adapter
+reports `not_implemented`, which is what makes the harness runnable while nine of
+the ten measured stages are still absent (02-segmentation-map.md, Order).
+
+Adapters are an ARGUMENT, never a module-level registry: a run's stage set must be
+visible in the call that started it and must not be mutable from elsewhere.
+"""
+from __future__ import annotations
+
+import sqlite3
+import traceback
+from dataclasses import dataclass, field
+from typing import Any, Callable, Mapping, Sequence
+
+from eval_harness.run import finish_run, record_version_tuple, start_run
+from eval_harness.stage_output import DimensionValue, record_stage_output
+from eval_harness.vocabulary import STAGE_IDS
+
+
+@dataclass(frozen=True)
+class ReplayContext:
+    """What an adapter is given. It reads the bundle; it never reads the disk."""
+    conn: sqlite3.Connection
+    run_id: str
+    bundle_id: str
+    stage_id: str
+    run_settings: Mapping[str, bool]
+    budget_ceilings: Mapping[str, int]
+
+
+@dataclass(frozen=True)
+class StageResult:
+    """One subject's outcome from one stage. `payload` stays the stage's own."""
+    subject_ref: str
+    outcome: str
+    payload: str | None
+    inputs: Sequence[str]
+    budget_state: str
+    values: Sequence[DimensionValue] = field(default_factory=tuple)
+
+
+StageAdapter = Callable[[ReplayContext], Sequence[StageResult]]
+
+
+def replay_bundle(conn: sqlite3.Connection, bundle_id: str, *,
+                  version_tuple: dict, budget_ceilings: Mapping[str, int],
+                  run_settings: Mapping[str, bool],
+                  adapters: Mapping[str, StageAdapter],
+                  run_kind: str = "replay") -> str:
+    """Replay one bundle through whatever stages exist. Returns the run_id.
+
+    No live filesystem is touched: adapters read the bundle through `ctx.conn`.
+    P2 enforces no §8.6 ceiling — it hands the set to the stage that owns it and
+    records what the stage reports.
+    """
+    from eval_harness.bundle import get_bundle
+
+    manifest = get_bundle(conn, bundle_id)
+    if manifest is None:
+        raise KeyError(f"no bundle {bundle_id!r}")
+    version_tuple_ref = record_version_tuple(conn, **version_tuple)
+    run_id = start_run(
+        conn, bundle_id=bundle_id, run_kind=run_kind,
+        version_tuple_ref=version_tuple_ref, budget_ceilings=dict(budget_ceilings),
+        run_settings=dict(run_settings),
+        pinned_plan_id=manifest["pinned_plan_id"],
+        pinned_plan_version=manifest["pinned_plan_version"],
+    )
+    for stage_id in STAGE_IDS:
+        adapter = adapters.get(stage_id)
+        if adapter is None:
+            record_stage_output(
+                conn, run_id=run_id, stage_id=stage_id, subject_ref=bundle_id,
+                outcome="not_implemented", payload=None,
+                version_tuple_ref=version_tuple_ref, inputs=[],
+                budget_state="within_ceiling",
+            )
+            continue
+        ctx = ReplayContext(conn=conn, run_id=run_id, bundle_id=bundle_id,
+                            stage_id=stage_id, run_settings=dict(run_settings),
+                            budget_ceilings=dict(budget_ceilings))
+        try:
+            results = list(adapter(ctx))
+        except Exception:
+            # A crash is `error`, which is distinct from an abstention and from a
+            # deferral. It is never silently swallowed and never scored as either.
+            record_stage_output(
+                conn, run_id=run_id, stage_id=stage_id, subject_ref=bundle_id,
+                outcome="error", payload=traceback.format_exc(),
+                version_tuple_ref=version_tuple_ref, inputs=[],
+                budget_state="within_ceiling",
+            )
+            continue
+        if not results:
+            # P2's own bookkeeping for a stage that ran and returned nothing. It
+            # is not a claim about any stage's semantics: a real stage that
+            # abstains reports `abstained` per subject.
+            record_stage_output(
+                conn, run_id=run_id, stage_id=stage_id, subject_ref=bundle_id,
+                outcome="abstained", payload=None,
+                version_tuple_ref=version_tuple_ref, inputs=[],
+                budget_state="within_ceiling",
+            )
+            continue
+        for result in results:
+            record_stage_output(
+                conn, run_id=run_id, stage_id=stage_id,
+                subject_ref=result.subject_ref, outcome=result.outcome,
+                payload=result.payload, version_tuple_ref=version_tuple_ref,
+                inputs=result.inputs, budget_state=result.budget_state,
+                dimension_values=result.values,
+            )
+    finish_run(conn, run_id)
+    return run_id
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_replay.py -v`
+Expected: PASS — 8 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/replay.py tests/eval/test_replay.py
+git commit -m "feat(P2): replay runner, ten stages every run, missing stage is not_implemented"
+```
+
+---
+
+### Task 10: The per-stage assertion record and its seven verdicts (Done-means 2, 5, 6)
+
+**Files:**
+- Create: `src/eval_harness/assertions.py`
+- Modify: `src/eval_harness/store.py` — add `assertions.ASSERTION_DDL` to `_ddl_scripts`
+- Test: `tests/eval/test_assertions.py`
+
+**Interfaces:**
+- Consumes: `expectations` (Task 8); `dimension_values` (Task 4); `VERDICTS`, `DIMENSIONS` (Task 2); `canonical_json` (Task 1).
+- Produces: `verdict_for(*, expected_outcome_kind, expected_value, observed_outcome, observed_value) -> tuple[str | None, str | None]`, `assert_run(conn, run_id) -> int`, `assertions(conn, run_id, *, dimension=None) -> list[sqlite3.Row]`, `verdict_counts(conn, run_id) -> dict[str, int]`, `PASSING_VERDICTS: frozenset[str]`.
+
+**The verdict table, in full.** Every row traces to a design sentence.
+
+| observed `outcome` | `expected_outcome_kind` | verdict | why |
+|---|---|---|---|
+| `not_implemented` | any | `not_run` | the stage does not exist (`02-segmentation-map.md`, *Order*) |
+| `deferred` | any | `deferred` | §8.6 — a budget event, never a quality failure |
+| `abstained` | `abstained` | `abstained_correctly` | §6.10 *"correct abstention is a successful outcome"* — a **pass** |
+| `abstained` | `produced` | `abstained_incorrectly` | evidence was present and the stage abstained |
+| `produced` | `abstained` | `asserted_incorrectly` | the stage produced where it should have abstained |
+| `produced` | `produced`, values equal | `match` | exact equality over canonical JSON |
+| `produced` | `produced`, values differ | `divergent` | |
+| any | `not-applicable` | **no verdict** | see below |
+| `error` | any | **no verdict** | see below |
+| *no dimension value recorded* | any | `not_run` | the stage that would have produced it did not |
+
+**Two cases get no verdict, and P2 mints no eighth verdict name for them.**
+
+- **`outcome = error`.** SPEC Contract out §6 publishes seven verdicts and none of them means *the stage crashed*. Scoring it `divergent` would call a crash a quality regression; scoring it `not_run` would hide a crash inside "the stage does not exist". The assertion is therefore written with `verdict = NULL` and `no_verdict_reason = 'stage_error'`, it is counted in neither the passing nor the failing bucket, and `verdict_counts` reports it under `unverdicted`. This is the same move P1 made for `file_path_history.volume_id`: a `NULL` reads as *unknown*, a fabricated value reads as an answer. **A recommended SPEC change is recorded in the report and is not made here.**
+- **`expected_outcome_kind = 'not-applicable'`.** The record exists to say the dimension cannot be asserted on this subject. Neither pass nor fail applies, and §8.5 defines no verdict for it. `verdict = NULL`, `no_verdict_reason = 'expectation_not_applicable'`.
+
+**`abstained_correctly` is a pass and is reported as one.** `PASSING_VERDICTS = {match, abstained_correctly}`. Done-means 5 turns on this and so does §6.10.
+
+**`deferred` never becomes `divergent`, for any dimension.** Done-means 6's second half — *"a run whose only change is a lower budget ceiling produces zero new divergences"* — is asserted in Task 12, where two runs exist to compare; the per-verdict half is asserted here.
+
+**No thresholds, and the comparison is exact.** SPEC Open question 2 is open: §8.5 states no pass threshold, target rate, or regression tolerance, and §6.10's two-condition rule is a *placement* rule that must not be borrowed as one. `verdict_for` takes no tolerance argument, and there is none to add without answering OQ2.
+
+**`evidence_ref` is a P4 `observation_key`, never an `observation_id`.** §8.7 requires a negative example recorded today to still resolve after an extractor upgrade, and an upgraded extractor emits a new row with a new `observation_id`. `assert_run` copies whatever `evidence_ref` the dimension value carried and the writer refuses a value whose shape is an observation *id*; the test below pins the rule.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_assertions.py
+import pytest
+
+from eval_harness.assertions import (
+    PASSING_VERDICTS, assert_run, assertions, verdict_counts, verdict_for,
+)
+from eval_harness.bundle import add_expectation, open_bundle, seal_bundle
+from eval_harness.replay import ReplayContext, StageResult, replay_bundle
+from eval_harness.stage_output import DimensionValue
+from eval_harness.store import create_eval_schema
+from eval_harness.vocabulary import DIMENSIONS, VERDICTS
+
+
+def _tuple():
+    return dict(extractor_versions={}, graph_algorithm_version=None,
+                prompt_fingerprint=None, model_identifier=None,
+                template_library_version=None, placement_scorer_version=None,
+                analysis_tiers_enabled=["filesystem"])
+
+
+def _settings():
+    return {"model_enabled": False, "embeddings_enabled": False}
+
+
+def _v(expected_kind, expected, observed_outcome, observed):
+    return verdict_for(expected_outcome_kind=expected_kind, expected_value=expected,
+                       observed_outcome=observed_outcome, observed_value=observed)
+
+
+def test_a_matching_produced_value_is_a_match():
+    assert _v("produced", {"a": 1}, "produced", {"a": 1}) == ("match", None)
+
+
+def test_key_order_does_not_make_a_divergence():
+    assert _v("produced", {"a": 1, "b": 2}, "produced", {"b": 2, "a": 1})[0] == "match"
+
+
+def test_a_different_produced_value_is_divergent():
+    assert _v("produced", {"a": 1}, "produced", {"a": 2}) == ("divergent", None)
+
+
+def test_correct_abstention_is_a_passing_verdict():
+    # §6.10: "correct abstention is a successful outcome."
+    assert _v("abstained", None, "abstained", None) == ("abstained_correctly", None)
+    assert "abstained_correctly" in PASSING_VERDICTS
+    assert PASSING_VERDICTS == frozenset({"match", "abstained_correctly"})
+
+
+def test_the_two_wrong_abstention_directions_are_distinct():
+    assert _v("produced", {"a": 1}, "abstained", None)[0] == "abstained_incorrectly"
+    assert _v("abstained", None, "produced", {"a": 1})[0] == "asserted_incorrectly"
+
+
+def test_a_deferral_is_deferred_for_every_expectation_kind():
+    # §8.6: cost exhaustion must never turn into a quality judgement.
+    for kind in ("produced", "abstained"):
+        assert _v(kind, {"a": 1}, "deferred", None) == ("deferred", None)
+
+
+def test_not_implemented_is_not_run():
+    assert _v("produced", {"a": 1}, "not_implemented", None) == ("not_run", None)
+
+
+def test_a_stage_error_gets_no_verdict_and_p2_mints_no_eighth_name():
+    verdict, reason = _v("produced", {"a": 1}, "error", None)
+    assert verdict is None
+    assert reason == "stage_error"
+    assert len(VERDICTS) == 7
+
+
+def test_a_not_applicable_expectation_gets_no_verdict():
+    verdict, reason = _v("not-applicable", None, "produced", {"a": 1})
+    assert verdict is None
+    assert reason == "expectation_not_applicable"
+
+
+def test_verdict_for_takes_no_tolerance_argument():
+    # SPEC Open question 2 is OPEN: §8.5 states no threshold and §6.10's
+    # two-condition rule is a placement rule, not an eval threshold.
+    import inspect
+    params = set(inspect.signature(verdict_for).parameters)
+    assert params == {"expected_outcome_kind", "expected_value",
+                      "observed_outcome", "observed_value"}
+
+
+def _run_with(eval_conn, *, expectation, adapter):
+    create_eval_schema(eval_conn)
+    bundle_id = open_bundle(eval_conn, corpus_form="snapshot",
+                            source_scan_ref="scan-fixture",
+                            pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                            policy_settings={})
+    add_expectation(eval_conn, bundle_id, **expectation)
+    seal_bundle(eval_conn, bundle_id)
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters=adapter)
+    return bundle_id, run_id
+
+
+def test_assert_run_writes_one_assertion_per_expectation(eval_conn):
+    def adapter(ctx: ReplayContext):
+        return [StageResult(subject_ref="sha256:syl", outcome="produced",
+                            payload=None, inputs=[], budget_state="within_ceiling",
+                            values=[DimensionValue("extraction", "sha256:syl",
+                                                   "produced", {"text": "COMS 4995"})])]
+
+    _, run_id = _run_with(
+        eval_conn,
+        expectation=dict(dimension="extraction", subject_ref="sha256:syl",
+                         expected_value={"text": "COMS 4995"},
+                         expected_outcome_kind="produced", source="hand-labelled"),
+        adapter={"extraction": adapter})
+    assert assert_run(eval_conn, run_id) == 1
+    row = assertions(eval_conn, run_id)[0]
+    assert row["dimension"] == "extraction"
+    assert row["verdict"] == "match"
+    assert row["expected"] == '{"text":"COMS 4995"}'
+    assert row["observed"] == '{"text":"COMS 4995"}'
+
+
+def test_an_expectation_no_stage_answered_is_not_run(eval_conn):
+    # Done-means 7: nine absent stages yield not_run verdicts, not failures.
+    _, run_id = _run_with(
+        eval_conn,
+        expectation=dict(dimension="placement", subject_ref="file-1",
+                         expected_value={"node_id": "n1"},
+                         expected_outcome_kind="produced", source="hand-labelled"),
+        adapter={})
+    assert_run(eval_conn, run_id)
+    assert assertions(eval_conn, run_id)[0]["verdict"] == "not_run"
+
+
+def test_the_columbia_screenshot_in_a_residual_folder_is_divergent(eval_conn):
+    # Done-means 12's second half (§7.8, §7.9): landing in a generic residual
+    # folder instead of returning to placement is divergent, not a match.
+    def adapter(ctx: ReplayContext):
+        return [StageResult(
+            subject_ref="file-screenshot", outcome="produced", payload=None,
+            inputs=[], budget_state="within_ceiling",
+            values=[DimensionValue("residual", "file-screenshot", "produced",
+                                   {"outcome": "place",
+                                    "destination": {"node_role": "residual"}})])]
+
+    _, run_id = _run_with(
+        eval_conn,
+        expectation=dict(dimension="residual", subject_ref="file-screenshot",
+                         expected_value={"outcome": "return_to_placement",
+                                         "return_target": {"kind": "confirmed_domain_group",
+                                                           "id": "g-columbia"}},
+                         expected_outcome_kind="produced", source="hand-labelled"),
+        adapter={"placement_scoring": adapter})
+    assert_run(eval_conn, run_id)
+    assert assertions(eval_conn, run_id)[0]["verdict"] == "divergent"
+
+
+def test_verdict_counts_separates_passes_deferrals_and_unverdicted(eval_conn):
+    def adapter(ctx: ReplayContext):
+        return [StageResult(subject_ref="s", outcome="deferred", payload=None,
+                            inputs=[], budget_state="ceiling_reached",
+                            values=[DimensionValue("extraction", "sha256:syl",
+                                                   "deferred", None)])]
+
+    _, run_id = _run_with(
+        eval_conn,
+        expectation=dict(dimension="extraction", subject_ref="sha256:syl",
+                         expected_value={"text": "x"},
+                         expected_outcome_kind="produced", source="hand-labelled"),
+        adapter={"extraction": adapter})
+    assert_run(eval_conn, run_id)
+    counts = verdict_counts(eval_conn, run_id)
+    assert counts["deferred"] == 1
+    assert counts.get("divergent", 0) == 0
+    assert set(counts) <= set(VERDICTS) | {"unverdicted"}
+
+
+def test_every_dimension_has_its_own_assertion_record(eval_conn):
+    # Done-means 2: none is collapsed into another.
+    create_eval_schema(eval_conn)
+    bundle_id = open_bundle(eval_conn, corpus_form="snapshot",
+                            source_scan_ref="scan-fixture",
+                            pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                            policy_settings={})
+    for dimension in DIMENSIONS:
+        add_expectation(eval_conn, bundle_id, dimension=dimension,
+                        subject_ref=f"s-{dimension}", expected_value={"d": dimension},
+                        expected_outcome_kind="produced", source="hand-labelled")
+    seal_bundle(eval_conn, bundle_id)
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(), adapters={})
+    assert assert_run(eval_conn, run_id) == 10
+    assert {r["dimension"] for r in assertions(eval_conn, run_id)} == set(DIMENSIONS)
+
+
+def test_an_evidence_ref_that_looks_like_an_observation_id_is_refused(eval_conn):
+    # §8.7 / SPEC Cross-cutting answers: a bundle expectation cited by
+    # observation_id would decay silently across exactly the version change §8.5
+    # exists to measure.
+    from eval_harness.assertions import ObservationIdRefused, write_assertion
+    create_eval_schema(eval_conn)
+    with pytest.raises(ObservationIdRefused):
+        write_assertion(eval_conn, run_id="r1", dimension="extraction",
+                        subject_ref="s", expected=None, observed=None,
+                        verdict="not_run", no_verdict_reason=None,
+                        evidence_ref="observation_id:12345")
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_assertions.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.assertions'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/assertions.py
+"""Contract out §6 — the per-stage assertion record.
+
+Seven verdicts, and P2 mints no eighth. Two cases §8.5 does not define a verdict
+for — a stage `error`, and an expectation whose kind is `not-applicable` — are
+written with a NULL verdict and a named reason: a NULL reads as "no verdict is
+defined for this", a fabricated verdict reads as an answer.
+
+There is no threshold and no tolerance anywhere in this module. §8.5 states none,
+and SPEC Open question 2 is open.
+"""
+from __future__ import annotations
+
+import json
+import sqlite3
+
+from eval_harness.store import canonical_json
+from eval_harness.vocabulary import VERDICTS, check_dimension
+
+#: Done-means 5 — `abstained_correctly` is reported as a pass, not as a miss (§6.10).
+PASSING_VERDICTS: frozenset[str] = frozenset({"match", "abstained_correctly"})
+
+ASSERTION_DDL = """
+CREATE TABLE IF NOT EXISTS assertion (
+    assertion_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id            TEXT NOT NULL REFERENCES run_manifest (run_id),
+    dimension         TEXT NOT NULL,
+    subject_ref       TEXT NOT NULL,
+    expected          TEXT,
+    observed          TEXT,
+    verdict           TEXT,               -- NULL only for the two undefined cases
+    no_verdict_reason TEXT,               -- 'stage_error' | 'expectation_not_applicable'
+    attributed_stage  TEXT,               -- filled by Task 11
+    evidence_ref      TEXT,               -- a P4 observation_key, never an observation_id
+    UNIQUE (run_id, dimension, subject_ref)
+);
+"""
+
+
+class ObservationIdRefused(Exception):
+    """An assertion cited a per-row observation id instead of the content-addressed key."""
+
+
+def verdict_for(*, expected_outcome_kind: str, expected_value,
+                observed_outcome: str | None,
+                observed_value) -> tuple[str | None, str | None]:
+    """One verdict, or (None, reason) where §8.5 defines none.
+
+    No tolerance parameter exists, and none can be added without answering SPEC
+    Open question 2. Comparison is exact equality over canonical JSON.
+    """
+    if expected_outcome_kind == "not-applicable":
+        return None, "expectation_not_applicable"
+    if observed_outcome is None:
+        # No stage produced a value for this subject. The stage that would have
+        # is absent, or did not decide about it.
+        return "not_run", None
+    if observed_outcome == "not_implemented":
+        return "not_run", None
+    if observed_outcome == "error":
+        return None, "stage_error"
+    if observed_outcome == "deferred":
+        # §8.6: a budget event. Never `divergent`, for any dimension.
+        return "deferred", None
+    if observed_outcome == "abstained":
+        if expected_outcome_kind == "abstained":
+            return "abstained_correctly", None
+        return "abstained_incorrectly", None
+    if observed_outcome == "produced":
+        if expected_outcome_kind == "abstained":
+            return "asserted_incorrectly", None
+        if canonical_json(expected_value) == canonical_json(observed_value):
+            return "match", None
+        return "divergent", None
+    raise ValueError(f"unhandled observed outcome {observed_outcome!r}")
+
+
+def write_assertion(conn: sqlite3.Connection, *, run_id: str, dimension: str,
+                    subject_ref: str, expected: str | None, observed: str | None,
+                    verdict: str | None, no_verdict_reason: str | None,
+                    evidence_ref: str | None) -> int:
+    check_dimension(dimension)
+    if verdict is not None and verdict not in VERDICTS:
+        raise ValueError(f"verdict {verdict!r} is not one of {VERDICTS}")
+    if evidence_ref is not None and evidence_ref.startswith("observation_id"):
+        raise ObservationIdRefused(
+            "an assertion cites a P4 observation by `observation_key`, which is "
+            "content-addressed and survives an extractor upgrade; `observation_id` "
+            "is per-row and dies on exactly the version change §8.5 measures (§8.7)"
+        )
+    cursor = conn.execute(
+        "INSERT INTO assertion (run_id, dimension, subject_ref, expected, observed, "
+        "verdict, no_verdict_reason, evidence_ref) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (run_id, dimension, subject_ref, expected, observed, verdict,
+         no_verdict_reason, evidence_ref),
+    )
+    return cursor.lastrowid
+
+
+def assert_run(conn: sqlite3.Connection, run_id: str) -> int:
+    """Write one assertion per expectation in the run's bundle. Returns the count."""
+    from eval_harness.bundle import expectations
+    from eval_harness.run import get_run
+
+    bundle_id = get_run(conn, run_id)["bundle_id"]
+    observed_rows = {
+        (r["dimension"], r["subject_ref"]): r
+        for r in conn.execute(
+            "SELECT dimension, subject_ref, outcome, value FROM "
+            "stage_dimension_value WHERE run_id = ?", (run_id,))
+    }
+    written = 0
+    for expectation in expectations(conn, bundle_id):
+        key = (expectation["dimension"], expectation["subject_ref"])
+        observed = observed_rows.get(key)
+        observed_outcome = None if observed is None else observed["outcome"]
+        observed_value = (None if observed is None or observed["value"] is None
+                          else json.loads(observed["value"]))
+        verdict, reason = verdict_for(
+            expected_outcome_kind=expectation["expected_outcome_kind"],
+            expected_value=expectation["expected_value"],
+            observed_outcome=observed_outcome, observed_value=observed_value,
+        )
+        write_assertion(
+            conn, run_id=run_id, dimension=expectation["dimension"],
+            subject_ref=expectation["subject_ref"],
+            expected=(None if expectation["expected_value"] is None
+                      else canonical_json(expectation["expected_value"])),
+            observed=None if observed is None else observed["value"],
+            verdict=verdict, no_verdict_reason=reason, evidence_ref=None,
+        )
+        written += 1
+    return written
+
+
+def assertions(conn: sqlite3.Connection, run_id: str, *,
+               dimension: str | None = None) -> list[sqlite3.Row]:
+    if dimension is None:
+        return conn.execute(
+            "SELECT * FROM assertion WHERE run_id = ? ORDER BY dimension, subject_ref",
+            (run_id,)).fetchall()
+    return conn.execute(
+        "SELECT * FROM assertion WHERE run_id = ? AND dimension = ? "
+        "ORDER BY subject_ref", (run_id, check_dimension(dimension))).fetchall()
+
+
+def verdict_counts(conn: sqlite3.Connection, run_id: str) -> dict[str, int]:
+    """Per-verdict counts, with the two undefined cases under `unverdicted`.
+
+    §8.6's legibility requirement, applied to evaluation: completed versus
+    deferred work is visible, and a partial evaluation is reported as partial.
+    There is no total, no ratio, and no aggregate (Done-means 3).
+    """
+    counts: dict[str, int] = {}
+    for row in conn.execute(
+            "SELECT verdict, count(*) AS n FROM assertion WHERE run_id = ? "
+            "GROUP BY verdict", (run_id,)):
+        counts[row["verdict"] or "unverdicted"] = row["n"]
+    return counts
+```
+
+Add to `store.py`'s `_ddl_scripts`:
+
+```python
+    from eval_harness import assertions, bundle, run, stage_output
+    return [bundle.BUNDLE_DDL, run.RUN_DDL, stage_output.STAGE_DDL,
+            assertions.ASSERTION_DDL]
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_assertions.py -v`
+Expected: PASS — 16 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/assertions.py src/eval_harness/store.py tests/eval/test_assertions.py
+git commit -m "feat(P2): seven verdicts, abstention passes, deferral is never divergence, no eighth name"
+```
+
+---
+
+### Task 11: Earliest-divergence attribution (Done-means 4)
+
+**Files:**
+- Create: `src/eval_harness/attribution.py`
+- Test: `tests/eval/test_attribution.py`
+
+**Interfaces:**
+- Consumes: `assertions` (Task 10); `stage_outputs` (Task 4); `stage_order`, `STAGE_IDS` (Task 2).
+- Produces: `FAILING_VERDICTS: frozenset[str]`, `ANCESTOR_VERDICTS: frozenset[str]`, `attribute_run(conn, run_id) -> int`, `attribution_histogram(conn, run_id) -> dict[str, int]`.
+
+**`attributed_stage` is the mechanism for §8.5's "identify whether the error *began* with…".** SPEC Contract out §6 defines it literally: *"the earliest stage on this subject's `inputs[]` chain whose own assertion verdict is divergent / asserted_incorrectly."* `ANCESTOR_VERDICTS` is those two, verbatim. `FAILING_VERDICTS` — the verdicts that *get* attributed — is those two plus `abstained_incorrectly`, because a stage that abstained when evidence was present is a wrong terminal outcome and Done-means 4 says every wrong terminal outcome yields exactly one attributed stage.
+
+**"Earliest" is resolved by §8.5's own stage order.** Among every qualifying stage reachable on the chain, including the emitting stage itself, the attributed one is the smallest `stage_order`. That order is §8.5's list order, *"which is also the pipeline order of §4.10 and §6.12"* — so "earliest" means earliest in the pipeline, which is what *"where the error began"* asks. Because `stage_order` is injective over the ten, the minimum is unique: **exactly one** stage, always. If no ancestor qualifies, the emitting stage attributes to itself, which is still exactly one.
+
+**SPEC Open question 3 stays open and this traversal is why it can.** OQ3 asks whether attribution follows `inputs[]` edges *across subjects* or only within one subject's own chain. The traversal walks the edge set it is given: if P9 or P11 emit a cross-file `inputs[]` edge, it is followed; if they emit only same-subject edges, only the subject's own chain is walked. **P2 neither requires nor forbids cross-subject edges**, so nothing here decides OQ3, and the two tests below show the same code producing both behaviours from the recorded edges alone.
+
+**Resolution of an `inputs[]` entry is by `subject_ref` within the run.** Contract out §4 publishes `inputs[]` as subject_refs, so an entry resolves to every stage output in this run carrying that subject_ref — which may be more than one where two stages decided about one subject. All of them are traversed. The ambiguity is in the published shape; a recommended SPEC change is in the report and is not made here.
+
+**Cycles terminate.** A visited set over `(stage_id, subject_ref)` bounds the walk. A cycle in `inputs[]` is a defect in the emitting part, not something P2 repairs — but P2 must not hang on one.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_attribution.py
+from eval_harness.assertions import assert_run, assertions
+from eval_harness.attribution import (
+    ANCESTOR_VERDICTS, FAILING_VERDICTS, attribute_run, attribution_histogram,
+)
+from eval_harness.bundle import add_expectation, open_bundle, seal_bundle
+from eval_harness.replay import ReplayContext, StageResult, replay_bundle
+from eval_harness.stage_output import DimensionValue
+from eval_harness.store import create_eval_schema
+from eval_harness.vocabulary import STAGE_IDS
+
+
+def _tuple():
+    return dict(extractor_versions={}, graph_algorithm_version=None,
+                prompt_fingerprint=None, model_identifier=None,
+                template_library_version=None, placement_scorer_version=None,
+                analysis_tiers_enabled=["filesystem"])
+
+
+def _settings():
+    return {"model_enabled": False, "embeddings_enabled": False}
+
+
+def _emit(subject_ref, dimension, value, inputs=(), outcome="produced"):
+    def adapter(ctx: ReplayContext):
+        return [StageResult(subject_ref=subject_ref, outcome=outcome, payload=None,
+                            inputs=list(inputs), budget_state="within_ceiling",
+                            values=[DimensionValue(dimension, subject_ref, outcome,
+                                                   value)])]
+    return adapter
+
+
+def _bundle(conn, expectations):
+    bundle_id = open_bundle(conn, corpus_form="snapshot",
+                            source_scan_ref="scan-fixture",
+                            pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                            policy_settings={})
+    for e in expectations:
+        add_expectation(conn, bundle_id, **e)
+    seal_bundle(conn, bundle_id)
+    return bundle_id
+
+
+def test_the_two_verdict_sets():
+    # SPEC Contract out §6, verbatim: the ancestor criterion is divergent /
+    # asserted_incorrectly. Done-means 4 attributes every wrong terminal outcome.
+    assert ANCESTOR_VERDICTS == frozenset({"divergent", "asserted_incorrectly"})
+    assert FAILING_VERDICTS == frozenset({"divergent", "asserted_incorrectly",
+                                          "abstained_incorrectly"})
+
+
+def test_a_wrong_placement_attributes_to_the_earliest_divergent_stage(eval_conn):
+    # extraction produced the wrong text; the fact and the placement are wrong in
+    # consequence. §8.5: name where the error BEGAN.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn, [
+        dict(dimension="extraction", subject_ref="file-1",
+             expected_value={"text": "COMS 4995"}, expected_outcome_kind="produced",
+             source="hand-labelled"),
+        dict(dimension="fact", subject_ref="file-1",
+             expected_value={"course": "COMS 4995"},
+             expected_outcome_kind="produced", source="hand-labelled"),
+        dict(dimension="placement", subject_ref="file-1",
+             expected_value={"node_id": "n-coms"}, expected_outcome_kind="produced",
+             source="hand-labelled"),
+    ])
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(), adapters={
+        "extraction": _emit("file-1", "extraction", {"text": "COMS 4996"}),
+        "factual_validation": _emit("file-1", "fact", {"course": "COMS 4996"},
+                                    inputs=["file-1"]),
+        "placement_scoring": _emit("file-1", "placement", {"node_id": "n-other"},
+                                   inputs=["file-1"]),
+    })
+    assert_run(eval_conn, run_id)
+    assert attribute_run(eval_conn, run_id) == 3
+    by_dimension = {r["dimension"]: r for r in assertions(eval_conn, run_id)}
+    assert by_dimension["placement"]["verdict"] == "divergent"
+    assert by_dimension["placement"]["attributed_stage"] == "extraction"
+    assert by_dimension["fact"]["attributed_stage"] == "extraction"
+    assert by_dimension["extraction"]["attributed_stage"] == "extraction"
+
+
+def test_exactly_one_stage_is_named_and_it_is_one_of_the_ten(eval_conn):
+    # Done-means 4.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn, [
+        dict(dimension="placement", subject_ref="file-1",
+             expected_value={"node_id": "n1"}, expected_outcome_kind="produced",
+             source="hand-labelled")])
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(), adapters={
+        "placement_scoring": _emit("file-1", "placement", {"node_id": "n2"})})
+    assert_run(eval_conn, run_id)
+    attribute_run(eval_conn, run_id)
+    row = assertions(eval_conn, run_id)[0]
+    assert row["attributed_stage"] in STAGE_IDS
+    assert isinstance(row["attributed_stage"], str)
+
+
+def test_a_matching_verdict_is_attributed_to_nothing(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn, [
+        dict(dimension="placement", subject_ref="file-1",
+             expected_value={"node_id": "n1"}, expected_outcome_kind="produced",
+             source="hand-labelled")])
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(), adapters={
+        "placement_scoring": _emit("file-1", "placement", {"node_id": "n1"})})
+    assert_run(eval_conn, run_id)
+    attribute_run(eval_conn, run_id)
+    row = assertions(eval_conn, run_id)[0]
+    assert row["verdict"] == "match"
+    assert row["attributed_stage"] is None
+
+
+def test_a_deferral_is_attributed_to_nothing(eval_conn):
+    # §8.6: a deferral is not a wrong outcome, so it has no origin to name.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn, [
+        dict(dimension="placement", subject_ref="file-1",
+             expected_value={"node_id": "n1"}, expected_outcome_kind="produced",
+             source="hand-labelled")])
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(), adapters={
+        "placement_scoring": lambda ctx: [StageResult(
+            subject_ref="file-1", outcome="deferred", payload=None, inputs=[],
+            budget_state="ceiling_reached",
+            values=[DimensionValue("placement", "file-1", "deferred", None)])]})
+    assert_run(eval_conn, run_id)
+    attribute_run(eval_conn, run_id)
+    row = assertions(eval_conn, run_id)[0]
+    assert row["verdict"] == "deferred"
+    assert row["attributed_stage"] is None
+
+
+def test_attribution_follows_a_cross_subject_edge_when_one_is_emitted(eval_conn):
+    # SPEC Open question 3 is OPEN. P2 walks the edges it is given: a wrong
+    # placement for file A originating in a wrong fact on file B is attributed
+    # across subjects ONLY because the emitting part recorded that edge.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn, [
+        dict(dimension="fact", subject_ref="file-B", expected_value={"v": 1},
+             expected_outcome_kind="produced", source="hand-labelled"),
+        dict(dimension="placement", subject_ref="file-A", expected_value={"n": 1},
+             expected_outcome_kind="produced", source="hand-labelled"),
+    ])
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(), adapters={
+        "factual_validation": _emit("file-B", "fact", {"v": 2}),
+        "placement_scoring": _emit("file-A", "placement", {"n": 2},
+                                   inputs=["file-B"]),
+    })
+    assert_run(eval_conn, run_id)
+    attribute_run(eval_conn, run_id)
+    placement = [r for r in assertions(eval_conn, run_id)
+                 if r["dimension"] == "placement"][0]
+    assert placement["attributed_stage"] == "factual_validation"
+
+
+def test_without_a_cross_subject_edge_attribution_stays_within_the_subject(eval_conn):
+    # The same code, the same two wrong values, no recorded edge between them.
+    # Nothing in P2 requires the edge to exist — that is what OQ3 asks.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn, [
+        dict(dimension="fact", subject_ref="file-B", expected_value={"v": 1},
+             expected_outcome_kind="produced", source="hand-labelled"),
+        dict(dimension="placement", subject_ref="file-A", expected_value={"n": 1},
+             expected_outcome_kind="produced", source="hand-labelled"),
+    ])
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(), adapters={
+        "factual_validation": _emit("file-B", "fact", {"v": 2}),
+        "placement_scoring": _emit("file-A", "placement", {"n": 2}, inputs=[]),
+    })
+    assert_run(eval_conn, run_id)
+    attribute_run(eval_conn, run_id)
+    placement = [r for r in assertions(eval_conn, run_id)
+                 if r["dimension"] == "placement"][0]
+    assert placement["attributed_stage"] == "placement_scoring"
+
+
+def test_a_cycle_in_inputs_terminates(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn, [
+        dict(dimension="grouping", subject_ref="g-1", expected_value={"m": 1},
+             expected_outcome_kind="produced", source="hand-labelled")])
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(), adapters={
+        "retrieval": _emit("g-1", "retrieval", {"x": 1}, inputs=["g-1"]),
+        "grouping": _emit("g-1", "grouping", {"m": 2}, inputs=["g-1"]),
+    })
+    assert_run(eval_conn, run_id)
+    attribute_run(eval_conn, run_id)      # must return, not hang
+    assert assertions(eval_conn, run_id)[0]["attributed_stage"] in STAGE_IDS
+
+
+def test_the_histogram_counts_stages_and_totals_nothing(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn, [
+        dict(dimension="fact", subject_ref="file-1", expected_value={"v": 1},
+             expected_outcome_kind="produced", source="hand-labelled"),
+        dict(dimension="placement", subject_ref="file-1", expected_value={"n": 1},
+             expected_outcome_kind="produced", source="hand-labelled"),
+    ])
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(), adapters={
+        "factual_validation": _emit("file-1", "fact", {"v": 2}),
+        "placement_scoring": _emit("file-1", "placement", {"n": 2},
+                                   inputs=["file-1"]),
+    })
+    assert_run(eval_conn, run_id)
+    attribute_run(eval_conn, run_id)
+    histogram = attribution_histogram(eval_conn, run_id)
+    assert histogram == {"factual_validation": 2}
+    assert set(histogram) <= set(STAGE_IDS)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_attribution.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.attribution'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/attribution.py
+"""Contract out §6 — `attributed_stage`.
+
+§8.5: "identify whether the error BEGAN with extraction, factual validation,
+retrieval, graph construction, LLM interpretation, grouping, template generation,
+tree design, candidate-node retrieval, or placement scoring."
+
+The traversal walks whatever `inputs[]` edges the emitting parts recorded. It does
+NOT require cross-subject edges and does not forbid them — SPEC Open question 3
+asks whether attribution should follow them, and this module answers it neither
+way: given cross-subject edges it follows them, given none it stays inside the
+subject's own chain.
+"""
+from __future__ import annotations
+
+import json
+import sqlite3
+
+from eval_harness.vocabulary import stage_order
+
+#: SPEC Contract out §6, verbatim: the verdicts that make an ANCESTOR the origin.
+ANCESTOR_VERDICTS: frozenset[str] = frozenset({"divergent", "asserted_incorrectly"})
+
+#: Done-means 4: every wrong terminal outcome yields exactly one attributed stage.
+#: An incorrect abstention is a wrong terminal outcome; a deferral and a `not_run`
+#: are not, and are attributed to nothing.
+FAILING_VERDICTS: frozenset[str] = ANCESTOR_VERDICTS | {"abstained_incorrectly"}
+
+
+def _stage_verdicts(conn: sqlite3.Connection, run_id: str) -> dict[str, set[str]]:
+    """(stage_id, subject_ref) -> the verdicts of assertions on values it emitted."""
+    out: dict[str, set[str]] = {}
+    for row in conn.execute(
+            "SELECT v.stage_id, v.subject_ref, a.verdict "
+            "FROM stage_dimension_value v JOIN assertion a "
+            "  ON a.run_id = v.run_id AND a.dimension = v.dimension "
+            "     AND a.subject_ref = v.subject_ref "
+            "WHERE v.run_id = ?", (run_id,)):
+        out.setdefault((row["stage_id"], row["subject_ref"]), set()).add(row["verdict"])
+    return out
+
+
+def _edges(conn: sqlite3.Connection, run_id: str):
+    """subject_ref -> the stage outputs that carry it, and their inputs[]."""
+    by_subject: dict[str, list[tuple[str, list[str]]]] = {}
+    for row in conn.execute(
+            "SELECT stage_id, subject_ref, inputs FROM stage_output WHERE run_id = ?",
+            (run_id,)):
+        by_subject.setdefault(row["subject_ref"], []).append(
+            (row["stage_id"], json.loads(row["inputs"])))
+    return by_subject
+
+
+def attribute_run(conn: sqlite3.Connection, run_id: str) -> int:
+    """Fill `assertion.attributed_stage` for this run. Returns rows attributed.
+
+    Exactly one stage per wrong terminal outcome: among every qualifying stage
+    reachable on the chain — including the emitting stage itself — the attributed
+    one is the smallest `stage_order`, which is §8.5's list order and therefore
+    §4.10's and §6.12's pipeline order. `stage_order` is injective over the ten,
+    so the minimum is unique.
+    """
+    verdicts = _stage_verdicts(conn, run_id)
+    by_subject = _edges(conn, run_id)
+    emitters = {
+        (row["dimension"], row["subject_ref"]): row["stage_id"]
+        for row in conn.execute(
+            "SELECT dimension, subject_ref, stage_id FROM stage_dimension_value "
+            "WHERE run_id = ?", (run_id,))
+    }
+
+    attributed = 0
+    for row in conn.execute(
+            "SELECT assertion_id, dimension, subject_ref, verdict FROM assertion "
+            "WHERE run_id = ?", (run_id,)).fetchall():
+        if row["verdict"] not in FAILING_VERDICTS:
+            continue
+        emitting_stage = emitters.get((row["dimension"], row["subject_ref"]))
+        if emitting_stage is None:
+            continue
+        candidates = {emitting_stage}
+        seen: set[tuple[str, str]] = set()
+        frontier = [(emitting_stage, row["subject_ref"])]
+        while frontier:
+            stage_id, subject_ref = frontier.pop()
+            if (stage_id, subject_ref) in seen:
+                continue          # a cycle in inputs[] is a defect upstream, not a hang here
+            seen.add((stage_id, subject_ref))
+            for candidate_stage, inputs in by_subject.get(subject_ref, []):
+                if candidate_stage != stage_id:
+                    continue
+                for input_ref in inputs:
+                    for ancestor_stage, _ in by_subject.get(input_ref, []):
+                        if verdicts.get((ancestor_stage, input_ref), set()) & ANCESTOR_VERDICTS:
+                            candidates.add(ancestor_stage)
+                        frontier.append((ancestor_stage, input_ref))
+        earliest = min(candidates, key=stage_order)
+        conn.execute("UPDATE assertion SET attributed_stage = ? WHERE assertion_id = ?",
+                     (earliest, row["assertion_id"]))
+        attributed += 1
+    return attributed
+
+
+def attribution_histogram(conn: sqlite3.Connection, run_id: str) -> dict[str, int]:
+    """attributed_stage -> count. A count per stage and no total: §8.5 forbids the
+    single number, and a total over ten stages is the shape that invites one."""
+    return {row["attributed_stage"]: row["n"] for row in conn.execute(
+        "SELECT attributed_stage, count(*) AS n FROM assertion "
+        "WHERE run_id = ? AND attributed_stage IS NOT NULL "
+        "GROUP BY attributed_stage", (run_id,))}
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_attribution.py -v`
+Expected: PASS — 9 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/attribution.py tests/eval/test_attribution.py
+git commit -m "feat(P2): earliest-divergence attribution over recorded inputs[], exactly one stage"
+```
+
+---
+
+### Task 12: The comparison record (Done-means 6, 8)
+
+**Files:**
+- Create: `src/eval_harness/comparison.py`
+- Modify: `src/eval_harness/store.py` — add `comparison.COMPARISON_DDL` to `_ddl_scripts`
+- Test: `tests/eval/test_comparison.py`
+
+**Interfaces:**
+- Consumes: `get_run`, `get_version_tuple`, `run_ceilings`, `VERSION_AXES`, `VERSION_TUPLE_FIELDS` (Task 3); `assertions`, `PASSING_VERDICTS` (Task 10); `attribution_histogram` (Task 11); `DIMENSIONS` (Task 2).
+- Produces: `compare_runs(conn, baseline_run_id, candidate_run_id) -> str` returning `comparison_id`, `get_comparison(conn, comparison_id) -> dict`, `DifferentBundles`.
+
+**A comparison is over one bundle.** `compare_runs` refuses two runs whose `bundle_id` differs — a delta between different corpora is not a version comparison, and §8.5's whole premise is *"the same bundle … compared against prior results."*
+
+**The delta names all seven tuple fields and labels the six §8.5 axes.** Done-means 8 requires a comparison of two runs differing in one of the six axes to *name that axis*. `version_tuple_delta` therefore carries, per differing field, its baseline value, its candidate value, and `is_8_5_axis` — true for the six, false for `analysis_tiers_enabled`, which arrives from I4 rather than from §8.5. Nothing is hidden and nothing is mislabelled.
+
+**Different ceilings make a comparison labelled, not refused.** SPEC Contract out §5: *"Two runs are only comparable when they were given the same `budget_ceilings`; a comparison across different ceilings must be labelled, because deferral changes outputs."* `ceilings_differ` plus the differing keys is that label. **The values are not interpreted** — P2 does not decide that one ceiling is "lower" than another, because that would require knowing each key's polarity, and §8.6 supplies none.
+
+**Every dimension gets a block, always, even an empty one.** Done-means 2 — none is collapsed into another — and §8.5's prohibition on the single number both fail the moment a renderer is allowed to skip the dimensions with nothing in them, because a ten-row table with three rows present reads as three dimensions mattering.
+
+**`deferral_changed[]` is separate from `newly_divergent[]`, and Done-means 6 depends on it.** A subject whose verdict moved to `deferred` appears in `deferral_changed`, never in `newly_divergent`. The test below runs the same bundle, same version tuple, different ceilings, with a stage that defers under the tighter one, and asserts **zero** newly divergent subjects across every dimension.
+
+**There is no aggregate field.** No total, no rate, no score, no delta-of-scores. Task 16 scans for one; this module simply has none to find.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_comparison.py
+import pytest
+
+from eval_harness.assertions import assert_run
+from eval_harness.attribution import attribute_run
+from eval_harness.bundle import add_expectation, open_bundle, seal_bundle
+from eval_harness.comparison import DifferentBundles, compare_runs, get_comparison
+from eval_harness.replay import ReplayContext, StageResult, replay_bundle
+from eval_harness.stage_output import DimensionValue
+from eval_harness.store import create_eval_schema
+from eval_harness.vocabulary import DIMENSIONS
+
+
+def _tuple(**overrides):
+    fields = dict(extractor_versions={"pdf.native": "1.0.0"},
+                  graph_algorithm_version=None, prompt_fingerprint=None,
+                  model_identifier=None, template_library_version=None,
+                  placement_scorer_version=None,
+                  analysis_tiers_enabled=["filesystem", "native"])
+    fields.update(overrides)
+    return fields
+
+
+def _settings():
+    return {"model_enabled": False, "embeddings_enabled": False}
+
+
+def _bundle(conn):
+    bundle_id = open_bundle(conn, corpus_form="snapshot",
+                            source_scan_ref="scan-fixture",
+                            pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                            policy_settings={})
+    add_expectation(conn, bundle_id, dimension="extraction", subject_ref="file-1",
+                    expected_value={"text": "COMS 4995"},
+                    expected_outcome_kind="produced", source="hand-labelled")
+    seal_bundle(conn, bundle_id)
+    return bundle_id
+
+
+def _producing(value):
+    def adapter(ctx: ReplayContext):
+        return [StageResult(subject_ref="file-1", outcome="produced", payload=None,
+                            inputs=[], budget_state="within_ceiling",
+                            values=[DimensionValue("extraction", "file-1",
+                                                   "produced", value)])]
+    return adapter
+
+
+def _deferring(ctx: ReplayContext):
+    return [StageResult(subject_ref="file-1", outcome="deferred", payload=None,
+                        inputs=[], budget_state="ceiling_reached",
+                        values=[DimensionValue("extraction", "file-1", "deferred",
+                                               None)])]
+
+
+def _run(conn, bundle_id, *, adapters, version_tuple=None, ceilings=None):
+    run_id = replay_bundle(conn, bundle_id,
+                           version_tuple=version_tuple or _tuple(),
+                           budget_ceilings=ceilings or {},
+                           run_settings=_settings(), adapters=adapters)
+    assert_run(conn, run_id)
+    attribute_run(conn, run_id)
+    return run_id
+
+
+def test_two_runs_over_different_bundles_are_refused(eval_conn):
+    create_eval_schema(eval_conn)
+    first, second = _bundle(eval_conn), _bundle(eval_conn)
+    a = _run(eval_conn, first, adapters={})
+    b = _run(eval_conn, second, adapters={})
+    with pytest.raises(DifferentBundles):
+        compare_runs(eval_conn, a, b)
+
+
+def test_a_changed_axis_is_named_and_labelled_as_one_of_the_six(eval_conn):
+    # Done-means 8.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    baseline = _run(eval_conn, bundle_id,
+                    adapters={"extraction": _producing({"text": "COMS 4996"})})
+    candidate = _run(eval_conn, bundle_id,
+                     adapters={"extraction": _producing({"text": "COMS 4995"})},
+                     version_tuple=_tuple(extractor_versions={"pdf.native": "2.0.0"}))
+    comparison = get_comparison(eval_conn, compare_runs(eval_conn, baseline, candidate))
+    delta = comparison["version_tuple_delta"]
+    assert set(delta) == {"extractor_versions"}
+    assert delta["extractor_versions"]["baseline"] == {"pdf.native": "1.0.0"}
+    assert delta["extractor_versions"]["candidate"] == {"pdf.native": "2.0.0"}
+    assert delta["extractor_versions"]["is_8_5_axis"] is True
+
+
+def test_a_changed_tier_set_is_reported_and_not_claimed_as_an_8_5_axis(eval_conn):
+    # analysis_tiers_enabled comes from 10-i4-learning-ops.md, not from §8.5's six.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    baseline = _run(eval_conn, bundle_id, adapters={})
+    candidate = _run(eval_conn, bundle_id, adapters={},
+                     version_tuple=_tuple(
+                         analysis_tiers_enabled=["filesystem", "native", "ocr"]))
+    delta = get_comparison(
+        eval_conn, compare_runs(eval_conn, baseline, candidate))["version_tuple_delta"]
+    assert set(delta) == {"analysis_tiers_enabled"}
+    assert delta["analysis_tiers_enabled"]["is_8_5_axis"] is False
+
+
+def test_newly_matching_and_newly_divergent_are_per_dimension(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    baseline = _run(eval_conn, bundle_id,
+                    adapters={"extraction": _producing({"text": "COMS 4996"})})
+    candidate = _run(eval_conn, bundle_id,
+                     adapters={"extraction": _producing({"text": "COMS 4995"})})
+    comparison = get_comparison(eval_conn, compare_runs(eval_conn, baseline, candidate))
+    block = comparison["per_dimension"]["extraction"]
+    assert block["newly_matching"] == ["file-1"]
+    assert block["newly_divergent"] == []
+    assert comparison["disagreements"][0]["baseline_verdict"] == "divergent"
+    assert comparison["disagreements"][0]["candidate_verdict"] == "match"
+
+
+def test_every_dimension_gets_a_block_even_an_empty_one(eval_conn):
+    # Done-means 2: "None is collapsed into another." A ten-row table with three
+    # rows present reads as three dimensions mattering.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    a = _run(eval_conn, bundle_id, adapters={})
+    b = _run(eval_conn, bundle_id, adapters={})
+    comparison = get_comparison(eval_conn, compare_runs(eval_conn, a, b))
+    assert set(comparison["per_dimension"]) == set(DIMENSIONS)
+    for block in comparison["per_dimension"].values():
+        assert set(block) == {"newly_matching", "newly_divergent", "unchanged_count",
+                              "deferral_changed", "attribution_histogram"}
+
+
+def test_a_ceiling_only_change_produces_zero_new_divergences(eval_conn):
+    # Done-means 6, and §8.6: "cost exhaustion must never turn into lower-quality
+    # automatic classification." The numbers are fixture values.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    baseline = _run(eval_conn, bundle_id,
+                    adapters={"extraction": _producing({"text": "COMS 4995"})},
+                    ceilings={"ocr.max_pages_per_file": 100})
+    candidate = _run(eval_conn, bundle_id, adapters={"extraction": _deferring},
+                     ceilings={"ocr.max_pages_per_file": 1})
+    comparison = get_comparison(eval_conn, compare_runs(eval_conn, baseline, candidate))
+    assert comparison["ceilings_differ"] is True
+    assert comparison["ceilings_differing_keys"] == ["ocr.max_pages_per_file"]
+    for dimension, block in comparison["per_dimension"].items():
+        assert block["newly_divergent"] == [], dimension
+    assert comparison["per_dimension"]["extraction"]["deferral_changed"] == ["file-1"]
+
+
+def test_the_attribution_histogram_is_carried_per_dimension(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    baseline = _run(eval_conn, bundle_id,
+                    adapters={"extraction": _producing({"text": "COMS 4995"})})
+    candidate = _run(eval_conn, bundle_id,
+                     adapters={"extraction": _producing({"text": "wrong"})})
+    comparison = get_comparison(eval_conn, compare_runs(eval_conn, baseline, candidate))
+    assert comparison["per_dimension"]["extraction"]["attribution_histogram"] == \
+        {"extraction": 1}
+
+
+def test_the_comparison_has_no_aggregate_field(eval_conn):
+    # §8.5: "A single overall 'accuracy' number hides the mechanism that needs
+    # repair." Done-means 3, asserted again over the whole record in Task 16.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    a = _run(eval_conn, bundle_id, adapters={})
+    b = _run(eval_conn, bundle_id, adapters={})
+    comparison = get_comparison(eval_conn, compare_runs(eval_conn, a, b))
+
+    def walk(node, path=""):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                for part in str(key).split("_"):
+                    assert part not in {"accuracy", "score", "aggregate", "overall",
+                                        "rate", "percent", "grade", "f1", "precision",
+                                        "recall"}, f"{path}.{key}"
+                walk(value, f"{path}.{key}")
+        elif isinstance(node, list):
+            for item in node:
+                walk(item, path)
+
+    walk(comparison)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_comparison.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.comparison'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/comparison.py
+"""Contract out §7 — the run-to-run comparison record.
+
+It has no aggregate accuracy field and the renderer must not compute one. §8.5:
+"A single overall 'accuracy' number hides the mechanism that needs repair." Every
+dimension gets a block, always, including an empty one.
+
+Deferral is reported separately from divergence, so a run whose only change is a
+different ceiling produces zero new divergences (§8.6).
+"""
+from __future__ import annotations
+
+import json
+import sqlite3
+import uuid
+
+from eval_harness.run import VERSION_AXES, VERSION_TUPLE_FIELDS
+from eval_harness.store import canonical_json
+from eval_harness.vocabulary import DIMENSIONS
+
+COMPARISON_DDL = """
+CREATE TABLE IF NOT EXISTS comparison (
+    comparison_id           TEXT PRIMARY KEY,
+    baseline_run_id         TEXT NOT NULL REFERENCES run_manifest (run_id),
+    candidate_run_id        TEXT NOT NULL REFERENCES run_manifest (run_id),
+    bundle_id               TEXT NOT NULL,
+    version_tuple_delta     TEXT NOT NULL,
+    ceilings_differ         INTEGER NOT NULL,
+    ceilings_differing_keys TEXT NOT NULL,
+    disagreements           TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS comparison_dimension (
+    comparison_id         TEXT NOT NULL REFERENCES comparison (comparison_id),
+    dimension             TEXT NOT NULL,
+    newly_matching        TEXT NOT NULL,
+    newly_divergent       TEXT NOT NULL,
+    unchanged_count       INTEGER NOT NULL,
+    deferral_changed      TEXT NOT NULL,
+    attribution_histogram TEXT NOT NULL,
+    PRIMARY KEY (comparison_id, dimension)
+);
+"""
+
+
+class DifferentBundles(Exception):
+    """§8.5 compares THE SAME bundle across versions. Two corpora is not that."""
+
+
+def _verdicts(conn: sqlite3.Connection, run_id: str) -> dict[tuple[str, str], sqlite3.Row]:
+    return {(r["dimension"], r["subject_ref"]): r for r in conn.execute(
+        "SELECT dimension, subject_ref, verdict, attributed_stage FROM assertion "
+        "WHERE run_id = ?", (run_id,))}
+
+
+def compare_runs(conn: sqlite3.Connection, baseline_run_id: str,
+                 candidate_run_id: str) -> str:
+    """Compare two runs over one bundle. Returns the comparison_id."""
+    from eval_harness.assertions import PASSING_VERDICTS
+    from eval_harness.run import get_run, get_version_tuple, run_ceilings
+
+    baseline, candidate = get_run(conn, baseline_run_id), get_run(conn, candidate_run_id)
+    if baseline["bundle_id"] != candidate["bundle_id"]:
+        raise DifferentBundles(
+            f"{baseline['bundle_id']} vs {candidate['bundle_id']}: §8.5 compares "
+            "the same bundle re-processed, not two corpora"
+        )
+
+    base_tuple = get_version_tuple(conn, baseline["version_tuple_ref"])
+    cand_tuple = get_version_tuple(conn, candidate["version_tuple_ref"])
+    delta = {}
+    for field in VERSION_TUPLE_FIELDS:
+        if base_tuple.get(field) != cand_tuple.get(field):
+            delta[field] = {"baseline": base_tuple.get(field),
+                            "candidate": cand_tuple.get(field),
+                            # six of the seven are §8.5's named axes; the seventh
+                            # is I4's tier set and is reported as what it is.
+                            "is_8_5_axis": field in VERSION_AXES}
+
+    base_ceilings, cand_ceilings = run_ceilings(conn, baseline_run_id), run_ceilings(
+        conn, candidate_run_id)
+    differing_keys = sorted(
+        k for k in set(base_ceilings) | set(cand_ceilings)
+        if base_ceilings.get(k) != cand_ceilings.get(k))
+    # Labelled, not refused, and not interpreted: §8.6 supplies no polarity for a
+    # ceiling, so P2 does not decide that one run's ceiling was "lower".
+
+    base_verdicts, cand_verdicts = _verdicts(conn, baseline_run_id), _verdicts(
+        conn, candidate_run_id)
+    comparison_id = str(uuid.uuid4())
+    disagreements = []
+    blocks = {d: {"newly_matching": [], "newly_divergent": [], "unchanged_count": 0,
+                  "deferral_changed": [], "attribution_histogram": {}}
+              for d in DIMENSIONS}
+
+    for key in sorted(set(base_verdicts) | set(cand_verdicts)):
+        dimension, subject_ref = key
+        before = base_verdicts.get(key)
+        after = cand_verdicts.get(key)
+        before_verdict = None if before is None else before["verdict"]
+        after_verdict = None if after is None else after["verdict"]
+        block = blocks[dimension]
+        if before_verdict == after_verdict:
+            block["unchanged_count"] += 1
+            continue
+        disagreements.append({"subject_ref": subject_ref, "dimension": dimension,
+                              "baseline_verdict": before_verdict,
+                              "candidate_verdict": after_verdict,
+                              "attributed_stage": (None if after is None
+                                                   else after["attributed_stage"])})
+        if "deferred" in (before_verdict, after_verdict):
+            # §8.6 — a budget event, reported as one and never as a regression.
+            block["deferral_changed"].append(subject_ref)
+            continue
+        if after_verdict in PASSING_VERDICTS and before_verdict not in PASSING_VERDICTS:
+            block["newly_matching"].append(subject_ref)
+        elif before_verdict in PASSING_VERDICTS and after_verdict not in PASSING_VERDICTS:
+            block["newly_divergent"].append(subject_ref)
+        if after is not None and after["attributed_stage"]:
+            histogram = block["attribution_histogram"]
+            histogram[after["attributed_stage"]] = histogram.get(
+                after["attributed_stage"], 0) + 1
+
+    conn.execute(
+        "INSERT INTO comparison (comparison_id, baseline_run_id, candidate_run_id, "
+        "bundle_id, version_tuple_delta, ceilings_differ, ceilings_differing_keys, "
+        "disagreements) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (comparison_id, baseline_run_id, candidate_run_id, baseline["bundle_id"],
+         canonical_json(delta), 1 if differing_keys else 0,
+         canonical_json(differing_keys), canonical_json(disagreements)),
+    )
+    for dimension in DIMENSIONS:                 # every one, always
+        block = blocks[dimension]
+        conn.execute(
+            "INSERT INTO comparison_dimension (comparison_id, dimension, "
+            "newly_matching, newly_divergent, unchanged_count, deferral_changed, "
+            "attribution_histogram) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (comparison_id, dimension, canonical_json(block["newly_matching"]),
+             canonical_json(block["newly_divergent"]), block["unchanged_count"],
+             canonical_json(block["deferral_changed"]),
+             canonical_json(block["attribution_histogram"])),
+        )
+    return comparison_id
+
+
+def get_comparison(conn: sqlite3.Connection, comparison_id: str) -> dict:
+    """The comparison record. No aggregate field exists to return."""
+    row = conn.execute("SELECT * FROM comparison WHERE comparison_id = ?",
+                       (comparison_id,)).fetchone()
+    if row is None:
+        raise KeyError(comparison_id)
+    per_dimension = {}
+    for block in conn.execute(
+            "SELECT * FROM comparison_dimension WHERE comparison_id = ?",
+            (comparison_id,)):
+        per_dimension[block["dimension"]] = {
+            "newly_matching": json.loads(block["newly_matching"]),
+            "newly_divergent": json.loads(block["newly_divergent"]),
+            "unchanged_count": block["unchanged_count"],
+            "deferral_changed": json.loads(block["deferral_changed"]),
+            "attribution_histogram": json.loads(block["attribution_histogram"]),
+        }
+    return {
+        "comparison_id": row["comparison_id"],
+        "baseline_run_id": row["baseline_run_id"],
+        "candidate_run_id": row["candidate_run_id"],
+        "bundle_id": row["bundle_id"],
+        "version_tuple_delta": json.loads(row["version_tuple_delta"]),
+        "ceilings_differ": bool(row["ceilings_differ"]),
+        "ceilings_differing_keys": json.loads(row["ceilings_differing_keys"]),
+        "per_dimension": per_dimension,
+        "disagreements": json.loads(row["disagreements"]),
+    }
+```
+
+Add to `store.py`'s `_ddl_scripts`:
+
+```python
+    from eval_harness import assertions, bundle, comparison, run, stage_output
+    return [bundle.BUNDLE_DDL, run.RUN_DDL, stage_output.STAGE_DDL,
+            assertions.ASSERTION_DDL, comparison.COMPARISON_DDL]
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_comparison.py -v`
+Expected: PASS — 8 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/comparison.py src/eval_harness/store.py tests/eval/test_comparison.py
+git commit -m "feat(P2): comparison record, ten blocks always, deferral separate, no aggregate"
+```
+
+---
+
+### Task 13: Shadow mode (Done-means 9)
+
+**Files:**
+- Create: `src/eval_harness/shadow.py`
+- Modify: `src/eval_harness/store.py` — add `shadow.SHADOW_DDL` to `_ddl_scripts`
+- Test: `tests/eval/test_shadow.py`
+
+**Interfaces:**
+- Consumes: `replay_bundle` (Task 9); `assert_run` (Task 10); `attribute_run` (Task 11); `compare_runs`, `get_comparison` (Task 12).
+- Produces: `run_shadow(conn, bundle_id, *, version_tuple, budget_ceilings, run_settings, adapters, live_run_id, select, model_call_audit_refs=()) -> str`, `shadow_record(conn, shadow_run_id) -> dict`, `record_adjudication(conn, shadow_run_id, *, subject_ref, dimension, reviewer_verdict, note=None) -> int`, `adjudications(conn, shadow_run_id) -> list[sqlite3.Row]`, `assert_shadow_wrote_nothing(conn, shadow_run_id) -> None`, `UnauditedModelCall`, `ShadowWroteLiveState`.
+
+**The three empties are proved, not promised.** §8.5: shadow mode generates parallel recommendations *"without changing the user-visible tree or move plan."* `plan_version_writes`, `move_plan_entries` and `user_visible_tree_delta` are columns on the shadow record that must be empty, and `assert_shadow_wrote_nothing` raises `ShadowWroteLiveState` if any is not. **P10 and P12 do not exist**, so nothing can write a plan version or a move plan today — which is exactly why the check is built now: the day P10 lands, a shadow adapter that writes one fails this assertion instead of shipping.
+
+**Everything a shadow run writes goes into `shadow_namespace`.** SPEC Cross-cutting answers → Provenance: replay's derived outputs go to a run-scoped namespace and shadow outputs to `shadow_namespace`. The namespace is the run id, recorded explicitly so a reader never has to infer it. **Whether replay may write *any* derived evidence into the shared database is SPEC Open question 7 and is not answered here:** P2 writes nothing outside its own tables, which is compatible with either answer.
+
+**A shadow model call is still a model call.** §8.4: every model call is gated by P7 before content reaches the model and recorded in the consent-aware audit record. P2 does not write that record — it requires it and links to it. `run_shadow` refuses when `run_settings["model_enabled"]` is true and `model_call_audit_refs` is empty, because a shadow run that made model calls with nothing to link to is the exact gap Done-means 9's audit clause exists to catch. **P7 does not exist**, so the refs are opaque strings today; when P7 lands they are its `audit_id` values, resolved against its record rather than trusted.
+
+**The selection criterion is not P2's to choose.** SPEC Open question 12: §8.5 says shadow mode surfaces *"only selected examples for human review"* and states no criterion. `select` is a **required parameter with no default** — a callable taking the disagreement list and returning the subset. P2 supplies no implementation, not even a trivial one, because a default would be an answer. Done-means 9's *"surfaced-example set"* is whatever the caller's selector returns.
+
+**An adjudication is run-scoped and does not become an §8.7 correction.** SPEC Cross-cutting answers → Correction learning: promoting it *"would make the shadow run change user-visible state, which is the one thing §8.5 says shadow mode must not do"*, and whether promotion is nonetheless permitted is Open question 10. `record_adjudication` writes to P2's own table, appends no `events` row, and there is no promotion function. The test asserts the `events` table is untouched.
+
+**Shadow gets no budget of its own.** SPEC Open question 8 asks whether it should; §8.6's ceiling list has no shadow entry. `run_shadow` takes the same `budget_ceilings` a replay takes and P2 adds no ceiling key. When OQ8 closes, the key is added to P1's `CEILING_KEYS`, not invented here.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_shadow.py
+import pytest
+from database_agent.db import create_schema
+
+from eval_harness.assertions import assert_run
+from eval_harness.attribution import attribute_run
+from eval_harness.bundle import add_expectation, open_bundle, seal_bundle
+from eval_harness.replay import ReplayContext, StageResult, replay_bundle
+from eval_harness.shadow import (
+    ShadowWroteLiveState, UnauditedModelCall, adjudications,
+    assert_shadow_wrote_nothing, record_adjudication, run_shadow, shadow_record,
+)
+from eval_harness.stage_output import DimensionValue
+from eval_harness.store import create_eval_schema
+
+
+def _tuple(**overrides):
+    fields = dict(extractor_versions={}, graph_algorithm_version=None,
+                  prompt_fingerprint=None, model_identifier=None,
+                  template_library_version=None, placement_scorer_version=None,
+                  analysis_tiers_enabled=["filesystem"])
+    fields.update(overrides)
+    return fields
+
+
+def _settings(**overrides):
+    s = {"model_enabled": False, "embeddings_enabled": False}
+    s.update(overrides)
+    return s
+
+
+def _bundle(conn):
+    bundle_id = open_bundle(conn, corpus_form="snapshot",
+                            source_scan_ref="scan-fixture",
+                            pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                            policy_settings={})
+    add_expectation(conn, bundle_id, dimension="placement", subject_ref="file-1",
+                    expected_value={"node_id": "n-right"},
+                    expected_outcome_kind="produced", source="hand-labelled")
+    seal_bundle(conn, bundle_id)
+    return bundle_id
+
+
+def _places(node_id):
+    def adapter(ctx: ReplayContext):
+        return [StageResult(subject_ref="file-1", outcome="produced", payload=None,
+                            inputs=[], budget_state="within_ceiling",
+                            values=[DimensionValue("placement", "file-1", "produced",
+                                                   {"node_id": node_id})])]
+    return adapter
+
+
+def _live(conn, bundle_id):
+    run_id = replay_bundle(conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={"placement_scoring": _places("n-wrong")})
+    assert_run(conn, run_id)
+    attribute_run(conn, run_id)
+    return run_id
+
+
+def _select_all(disagreements):
+    """A fixture selector. SPEC Open question 12 is open: P2 ships none."""
+    return list(disagreements)
+
+
+def test_a_shadow_run_produces_a_disagreement_set_and_a_surfaced_set(eval_conn):
+    # Done-means 9.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    live = _live(eval_conn, bundle_id)
+    shadow_id = run_shadow(eval_conn, bundle_id, version_tuple=_tuple(
+        placement_scorer_version="scorer-2"), budget_ceilings={},
+        run_settings=_settings(),
+        adapters={"placement_scoring": _places("n-right")},
+        live_run_id=live, select=_select_all)
+    record = shadow_record(eval_conn, shadow_id)
+    assert record["disagreement_set"]
+    assert record["disagreement_set"][0]["subject_ref"] == "file-1"
+    assert record["surfaced_examples"] == record["disagreement_set"]
+    assert record["shadow_namespace"] == shadow_id
+
+
+def test_the_three_empties_are_provable(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    live = _live(eval_conn, bundle_id)
+    shadow_id = run_shadow(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={"placement_scoring": _places("n-right")},
+                           live_run_id=live, select=_select_all)
+    record = shadow_record(eval_conn, shadow_id)
+    assert record["plan_version_writes"] == []
+    assert record["move_plan_entries"] == []
+    assert record["user_visible_tree_delta"] == []
+    assert_shadow_wrote_nothing(eval_conn, shadow_id)     # does not raise
+
+
+def test_a_shadow_run_that_wrote_live_state_is_caught(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    live = _live(eval_conn, bundle_id)
+    shadow_id = run_shadow(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={"placement_scoring": _places("n-right")},
+                           live_run_id=live, select=_select_all)
+    eval_conn.execute(
+        "UPDATE shadow_run SET move_plan_entries = '[\"move-1\"]' "
+        "WHERE shadow_run_id = ?", (shadow_id,))
+    with pytest.raises(ShadowWroteLiveState):
+        assert_shadow_wrote_nothing(eval_conn, shadow_id)
+
+
+def test_a_model_enabled_shadow_run_needs_its_audit_refs(eval_conn):
+    # §8.4: every model call is recorded in the consent-aware audit record. P2
+    # requires the reference; P7 writes the record.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    live = _live(eval_conn, bundle_id)
+    with pytest.raises(UnauditedModelCall):
+        run_shadow(eval_conn, bundle_id, version_tuple=_tuple(model_identifier="m1"),
+                   budget_ceilings={}, run_settings=_settings(model_enabled=True),
+                   adapters={}, live_run_id=live, select=_select_all)
+    shadow_id = run_shadow(
+        eval_conn, bundle_id, version_tuple=_tuple(model_identifier="m1"),
+        budget_ceilings={}, run_settings=_settings(model_enabled=True), adapters={},
+        live_run_id=live, select=_select_all, model_call_audit_refs=["audit-1"])
+    assert shadow_record(eval_conn, shadow_id)["model_call_audit_refs"] == ["audit-1"]
+
+
+def test_the_selector_is_required_and_p2_ships_none(eval_conn):
+    # SPEC Open question 12: "By what criterion are shadow examples selected?"
+    # A default here would be an answer.
+    import inspect
+
+    from eval_harness import shadow
+    parameter = inspect.signature(shadow.run_shadow).parameters["select"]
+    assert parameter.default is inspect.Parameter.empty
+    for name, fn in inspect.getmembers(shadow, inspect.isfunction):
+        assert "select" not in name or name == "run_shadow", name
+
+
+def test_an_adjudication_is_run_scoped_and_appends_no_event(eval_conn):
+    # SPEC Open question 10 is OPEN. Promoting an adjudication into an §8.7
+    # correction would give shadow mode a path into user-visible state.
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    live = _live(eval_conn, bundle_id)
+    shadow_id = run_shadow(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={"placement_scoring": _places("n-right")},
+                           live_run_id=live, select=_select_all)
+    before = eval_conn.execute("SELECT count(*) AS n FROM events").fetchone()["n"]
+    record_adjudication(eval_conn, shadow_id, subject_ref="file-1",
+                        dimension="placement", reviewer_verdict="candidate_better",
+                        note="fixture")
+    after = eval_conn.execute("SELECT count(*) AS n FROM events").fetchone()["n"]
+    assert after == before
+    row = adjudications(eval_conn, shadow_id)[0]
+    assert row["shadow_run_id"] == shadow_id      # run scope, not file scope
+    assert row["reviewer_verdict"] == "candidate_better"
+
+
+def test_there_is_no_promotion_path_to_a_correction(eval_conn):
+    from pathlib import Path
+    src = Path(__file__).resolve().parents[2] / "src" / "eval_harness"
+    for path in src.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        assert "append_event" not in text, path.name
+        assert "correction_scope" not in text, path.name
+
+
+def test_shadow_adds_no_ceiling_key_of_its_own():
+    # SPEC Open question 8 is OPEN: §8.6's list has no shadow entry.
+    from database_agent.budget import CEILING_KEYS
+    from pathlib import Path
+    src = Path(__file__).resolve().parents[2] / "src" / "eval_harness" / "shadow.py"
+    text = src.read_text(encoding="utf-8")
+    assert "shadow.max" not in text
+    assert len(CEILING_KEYS) == 15
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_shadow.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.shadow'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/shadow.py
+"""Contract out §8 — shadow mode.
+
+§8.5: "A new model or algorithm can generate parallel recommendations without
+changing the user-visible tree or move plan." The three things that must stay
+empty are columns, checked by `assert_shadow_wrote_nothing`, not promises.
+
+P2 chooses no selection criterion (SPEC Open question 12), promotes no
+adjudication into an §8.7 correction (Open question 10), and adds no shadow budget
+key (Open question 8).
+"""
+from __future__ import annotations
+
+import json
+import sqlite3
+from typing import Callable, Iterable, Mapping, Sequence
+
+from eval_harness.store import canonical_json
+
+SHADOW_DDL = """
+CREATE TABLE IF NOT EXISTS shadow_run (
+    shadow_run_id          TEXT PRIMARY KEY REFERENCES run_manifest (run_id),
+    live_run_id            TEXT NOT NULL REFERENCES run_manifest (run_id),
+    comparison_id          TEXT NOT NULL,
+    shadow_namespace       TEXT NOT NULL,
+    plan_version_writes    TEXT NOT NULL DEFAULT '[]',   -- MUST be empty (§8.8)
+    move_plan_entries      TEXT NOT NULL DEFAULT '[]',   -- MUST be empty (§8.3)
+    user_visible_tree_delta TEXT NOT NULL DEFAULT '[]',  -- MUST be empty (§8.5)
+    surfaced_examples      TEXT NOT NULL,
+    model_call_audit_refs  TEXT NOT NULL                 -- P7's audit ids (§8.4)
+);
+CREATE TABLE IF NOT EXISTS review_adjudication (
+    adjudication_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    shadow_run_id    TEXT NOT NULL REFERENCES shadow_run (shadow_run_id),
+    subject_ref      TEXT NOT NULL,
+    dimension        TEXT NOT NULL,
+    reviewer_verdict TEXT NOT NULL,
+    note             TEXT
+);
+"""
+
+#: The three columns §8.5, §8.3 and §8.8 require to stay empty.
+EMPTY_COLUMNS: tuple[str, ...] = (
+    "plan_version_writes", "move_plan_entries", "user_visible_tree_delta",
+)
+
+
+class UnauditedModelCall(Exception):
+    """A model-enabled shadow run carried no §8.4 audit reference."""
+
+
+class ShadowWroteLiveState(Exception):
+    """A shadow run changed the user-visible tree, a plan version, or the move plan."""
+
+
+def run_shadow(conn: sqlite3.Connection, bundle_id: str, *, version_tuple: dict,
+               budget_ceilings: Mapping[str, int], run_settings: Mapping[str, bool],
+               adapters: Mapping[str, object], live_run_id: str,
+               select: Callable[[list], Sequence],
+               model_call_audit_refs: Iterable[str] = ()) -> str:
+    """Run a bundle in shadow and compare it with the live run. Returns the run id.
+
+    `select` has no default. §8.5 surfaces "only selected examples for human
+    review" and states no criterion; SPEC Open question 12 is open, and a default
+    here would answer it.
+
+    The same `budget_ceilings` a replay takes: §8.6's list has no shadow entry and
+    P2 adds no key (Open question 8).
+    """
+    from eval_harness.assertions import assert_run
+    from eval_harness.attribution import attribute_run
+    from eval_harness.comparison import compare_runs, get_comparison
+    from eval_harness.replay import replay_bundle
+
+    refs = list(model_call_audit_refs)
+    if run_settings.get("model_enabled") and not refs:
+        raise UnauditedModelCall(
+            "a shadow model call is still a model call: §8.4 records every one in "
+            "the consent-aware audit record. P2 does not write that record; it "
+            "requires the reference and links to it."
+        )
+    shadow_run_id = replay_bundle(
+        conn, bundle_id, version_tuple=version_tuple,
+        budget_ceilings=budget_ceilings, run_settings=run_settings,
+        adapters=adapters, run_kind="shadow",
+    )
+    assert_run(conn, shadow_run_id)
+    attribute_run(conn, shadow_run_id)
+    comparison_id = compare_runs(conn, live_run_id, shadow_run_id)
+    disagreements = get_comparison(conn, comparison_id)["disagreements"]
+    surfaced = list(select(disagreements))
+    conn.execute(
+        "INSERT INTO shadow_run (shadow_run_id, live_run_id, comparison_id, "
+        "shadow_namespace, surfaced_examples, model_call_audit_refs) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (shadow_run_id, live_run_id, comparison_id, shadow_run_id,
+         canonical_json(surfaced), canonical_json(refs)),
+    )
+    return shadow_run_id
+
+
+def shadow_record(conn: sqlite3.Connection, shadow_run_id: str) -> dict:
+    from eval_harness.comparison import get_comparison
+
+    row = conn.execute("SELECT * FROM shadow_run WHERE shadow_run_id = ?",
+                       (shadow_run_id,)).fetchone()
+    if row is None:
+        raise KeyError(shadow_run_id)
+    return {
+        "shadow_run_id": row["shadow_run_id"],
+        "live_run_id": row["live_run_id"],
+        "shadow_namespace": row["shadow_namespace"],
+        "plan_version_writes": json.loads(row["plan_version_writes"]),
+        "move_plan_entries": json.loads(row["move_plan_entries"]),
+        "user_visible_tree_delta": json.loads(row["user_visible_tree_delta"]),
+        "disagreement_set": get_comparison(conn, row["comparison_id"])["disagreements"],
+        "surfaced_examples": json.loads(row["surfaced_examples"]),
+        "model_call_audit_refs": json.loads(row["model_call_audit_refs"]),
+    }
+
+
+def assert_shadow_wrote_nothing(conn: sqlite3.Connection, shadow_run_id: str) -> None:
+    """Done-means 9's three provable empties. Raises rather than reporting."""
+    record = shadow_record(conn, shadow_run_id)
+    non_empty = [name for name in EMPTY_COLUMNS if record[name]]
+    if non_empty:
+        raise ShadowWroteLiveState(
+            f"shadow run {shadow_run_id} wrote {non_empty}; §8.5 requires parallel "
+            "recommendations WITHOUT changing the user-visible tree or move plan"
+        )
+
+
+def record_adjudication(conn: sqlite3.Connection, shadow_run_id: str, *,
+                        subject_ref: str, dimension: str, reviewer_verdict: str,
+                        note: str | None = None) -> int:
+    """The reviewer's verdict on one surfaced disagreement, at RUN scope.
+
+    It judges a candidate algorithm, not a file. It is not promoted into an §8.7
+    correction and there is no function here that would: SPEC Open question 10 is
+    open, and promotion would give shadow mode a path into user-visible state.
+    """
+    from eval_harness.vocabulary import check_dimension
+
+    check_dimension(dimension)
+    cursor = conn.execute(
+        "INSERT INTO review_adjudication (shadow_run_id, subject_ref, dimension, "
+        "reviewer_verdict, note) VALUES (?, ?, ?, ?, ?)",
+        (shadow_run_id, subject_ref, dimension, reviewer_verdict, note),
+    )
+    return cursor.lastrowid
+
+
+def adjudications(conn: sqlite3.Connection, shadow_run_id: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM review_adjudication WHERE shadow_run_id = ? "
+        "ORDER BY adjudication_id", (shadow_run_id,)).fetchall()
+```
+
+Add to `store.py`'s `_ddl_scripts`:
+
+```python
+    from eval_harness import assertions, bundle, comparison, run, shadow, stage_output
+    return [bundle.BUNDLE_DDL, run.RUN_DDL, stage_output.STAGE_DDL,
+            assertions.ASSERTION_DDL, comparison.COMPARISON_DDL, shadow.SHADOW_DDL]
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_shadow.py -v`
+Expected: PASS — 8 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/shadow.py src/eval_harness/store.py tests/eval/test_shadow.py
+git commit -m "feat(P2): shadow mode with three provable empties, required selector, run-scoped adjudication"
+```
+
+---
+
+### Task 14: The adversarial suite A1–A12 as a gate (Done-means 10)
+
+**Files:**
+- Create: `src/eval_harness/adversarial.py`
+- Create: `tests/eval/fixtures/adversarial/A01.json` … `A12.json` (twelve files)
+- Test: `tests/eval/test_adversarial.py`
+
+**Interfaces:**
+- Consumes: `open_bundle`, `add_expectation`, `add_extraction_run`, `add_text_unit`, `seal_bundle`, `extraction_runs` (Tasks 5–8); `replay_bundle` (Task 9); `assert_run` (Task 10).
+- Produces: `CASE_IDS: tuple[str, ...]` (twelve), `load_case(case_id) -> dict`, `load_all_cases() -> list[dict]`, `build_case_bundle(conn, case) -> str`, `run_case(conn, case, *, adapters, version_tuple, budget_ceilings, run_settings) -> CaseResult`, `run_gate(conn, *, adapters, version_tuple, budget_ceilings, run_settings) -> GateReport`, `CaseResult` and `GateReport` (frozen dataclasses), `MissingCase`.
+
+**A case that could not run is `not_run`, never `pass`.** This is the single most important property of this task. Nine of the ten stages are absent, so most cases cannot execute today; a gate that reported "12 passed" because nothing ran would be worse than no gate. `CaseResult.verdict ∈ pass | fail | not_run`, and `GateReport` reports the three counts separately with **no boolean `passed` attribute** to collapse them into.
+
+**Whether the gate blocks or advises is not decided here.** SPEC Open question 9: §8.5 says a new mechanism *"should run against this suite before it affects a user's live plan"* and does not say whether a failing case blocks, or whether P2 or the release process enforces it. `run_gate` returns a report; it raises nothing, exits nothing, and calls nothing. The wiring to "before it affects a user's live plan" is a release-process obligation that P2 records and does not perform.
+
+**A case passes only when the expected outcome is observed *and* the forbidden outcome is absent.** §8.5's suite is about failure modes, so the forbidden half is the load-bearing half: A1 passes because no `MIT` facet was created, not merely because some other value appeared.
+
+**A9 is assertable today, with no stage at all.** SPEC Contract out §9: A9's *"expected outcome **is** a `capped` run row with its `coverage`"*. That is a query against `bundle_extraction_run[]`, which Task 6 built. `assert_against: "bundle"` marks it; every other case is `assert_against: "stage"` and reports `not_run` until its stage exists. A10's condition — P6's published `no_usable_facts(file_id, content_hash)` read — is a **stage** case, because P6 owns that read and P2 must not reimplement it.
+
+**The case text lives in the fixture files, not in `src/`.** A3's academic-context words (`syllabus`, `lecture`, `credits`, `instructor`, `semester`) come from §3.5 and A4's producer strings from §2.2; they are case *data*. Keeping them out of `src/eval_harness/` is what lets Task 16's vocabulary guard stay strict.
+
+**The twelve cases are enumerated because §8.5 names them; their bodies are authored, not invented.** Each file carries §8.5's wording verbatim, the P2 SPEC's expected and forbidden outcomes verbatim, and the § that states the correct behaviour. **No gazetteer, no template, no threshold, and no numeric limit appears in any of them** — A9's fixture uses P4's own recorded `coverage` numbers from Task 6's fixture, which are example values in P4's SPEC, not §2.7 page limits.
+
+- [ ] **Step 1: Write the twelve case files**
+
+```json
+// tests/eval/fixtures/adversarial/A01.json
+{"case_id": "A01", "wording": "`MIT` inside \"submit\"", "attacks": "facet matching",
+ "sections": ["§3.7 word-boundary matching"], "assert_against": "stage",
+ "dimension": "fact", "subject_ref": "A01::essay::school",
+ "expected_outcome_kind": "abstained", "expected_value": null,
+ "forbidden_value": {"field": "school", "value": "MIT"},
+ "text_units": [{"run_id": "A01-run", "container_path": [], "unit_locator": "",
+                 "text": "Please submit the completed form.", "length": 33,
+                 "truncated": false}],
+ "extraction_runs": [{"run_id": "A01-run", "file_id": "A01-file",
+                      "content_hash": "sha256:A01", "extractor_name": "text.plain",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "files", "processed": 1, "total": 1},
+                      "observation_count": 1}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A02.json
+{"case_id": "A02", "wording": "`UNC` inside \"uncertainty\"", "attacks": "facet matching",
+ "sections": ["§3.7"], "assert_against": "stage",
+ "dimension": "fact", "subject_ref": "A02::paper::school",
+ "expected_outcome_kind": "abstained", "expected_value": null,
+ "forbidden_value": {"field": "school", "value": "UNC"},
+ "text_units": [{"run_id": "A02-run", "container_path": [], "unit_locator": "",
+                 "text": "Measurement uncertainty dominates the result.",
+                 "length": 44, "truncated": false}],
+ "extraction_runs": [{"run_id": "A02-run", "file_id": "A02-file",
+                      "content_hash": "sha256:A02", "extractor_name": "text.plain",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "files", "processed": 1, "total": 1},
+                      "observation_count": 1}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A03.json
+// §8.5 names ZIP codes OR device models; the SPEC requires "at least two
+// fixtures, one of each", so this case carries two subjects.
+{"case_id": "A03",
+ "wording": "course-code patterns that are actually ZIP codes or device models",
+ "attacks": "rule-validated facts",
+ "sections": ["§3.5 (pattern plus \"syllabus\", \"lecture\", \"credits\", \"instructor\", \"semester\")", "§3.10"],
+ "assert_against": "stage", "dimension": "fact",
+ "subjects": [
+   {"subject_ref": "A03::zip::course", "expected_outcome_kind": "abstained",
+    "expected_value": null, "forbidden_value": {"field": "course", "value": "MA 02139"},
+    "text": "Ship to Cambridge MA 02139 by Friday."},
+   {"subject_ref": "A03::device::course", "expected_outcome_kind": "abstained",
+    "expected_value": null, "forbidden_value": {"field": "course", "value": "XPS 13"},
+    "text": "Receipt for one XPS 13 laptop."}],
+ "extraction_runs": [{"run_id": "A03-run", "file_id": "A03-file",
+                      "content_hash": "sha256:A03", "extractor_name": "text.plain",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "files", "processed": 2, "total": 2},
+                      "observation_count": 2}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A04.json
+{"case_id": "A04",
+ "wording": "generic author metadata (`python-docx`, `Mozilla/5.0`, browser producer strings)",
+ "attacks": "metadata trust",
+ "sections": ["§2.2", "§2.3", "§3.8 (\"avoid using authorship or creator identity as a destination dimension\")"],
+ "assert_against": "stage", "dimension": "fact", "subject_ref": "A04::doc::creator",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"retained_as": "supporting_evidence"},
+ "forbidden_value": {"used_as": "destination_dimension"},
+ "text_units": [{"run_id": "A04-run", "container_path": [], "unit_locator": "",
+                 "text": "Quarterly notes.", "length": 16, "truncated": false}],
+ "extraction_runs": [{"run_id": "A04-run", "file_id": "A04-file",
+                      "content_hash": "sha256:A04", "extractor_name": "docx.native",
+                      "extractor_version": "1.0.0", "source_type": "metadata",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "files", "processed": 1, "total": 1},
+                      "observation_count": 1, "creator": "python-docx"}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A05.json
+{"case_id": "A05", "wording": "multiple institutions in one application essay",
+ "attacks": "roles vs entity types",
+ "sections": ["§3.8", "§4.8", "§4.9 (\"a university name alone should not create a group\")"],
+ "assert_against": "stage", "dimension": "fact", "subject_ref": "A05::essay::roles",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"facets": ["authored_by", "target_school"], "distinct": true},
+ "forbidden_value": {"facets": ["target_school"], "chosen_silently": true},
+ "text_units": [{"run_id": "A05-run", "container_path": [], "unit_locator": "",
+                 "text": "Written at one university, addressed to another.",
+                 "length": 48, "truncated": false}],
+ "extraction_runs": [{"run_id": "A05-run", "file_id": "A05-file",
+                      "content_hash": "sha256:A05", "extractor_name": "text.plain",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "files", "processed": 1, "total": 1},
+                      "observation_count": 2}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A06.json
+{"case_id": "A06", "wording": "duplicate suffixes on unrelated files",
+ "attacks": "family detection, collision policy",
+ "sections": ["§8.3 (\"a content-hash match supports deduplication review; a filename match alone does not\")"],
+ "assert_against": "stage", "dimension": "grouping", "subject_ref": "A06::family",
+ "expected_outcome_kind": "abstained", "expected_value": null,
+ "forbidden_value": {"merged": true, "basis": "filename_match"},
+ "extraction_runs": [
+   {"run_id": "A06-run-1", "file_id": "A06-file-1", "content_hash": "sha256:A06a",
+    "extractor_name": "text.plain", "extractor_version": "1.0.0",
+    "source_type": "filesystem", "config_fingerprint": "sha256:cfg",
+    "completeness": "complete", "coverage": {"units": "files", "processed": 1, "total": 1},
+    "observation_count": 1},
+   {"run_id": "A06-run-2", "file_id": "A06-file-2", "content_hash": "sha256:A06b",
+    "extractor_name": "text.plain", "extractor_version": "1.0.0",
+    "source_type": "filesystem", "config_fingerprint": "sha256:cfg",
+    "completeness": "complete", "coverage": {"units": "files", "processed": 1, "total": 1},
+    "observation_count": 1}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A07.json
+{"case_id": "A07", "wording": "stripped EXIF on messaging-app photographs",
+ "attacks": "screenshot detection", "sections": ["§2.6"],
+ "assert_against": "stage", "dimension": "fact", "subject_ref": "A07::photo::kind",
+ "expected_outcome_kind": "abstained", "expected_value": null,
+ "forbidden_value": {"field": "kind", "value": "screenshot"},
+ "extraction_runs": [{"run_id": "A07-run", "file_id": "A07-file",
+                      "content_hash": "sha256:A07", "extractor_name": "image.native",
+                      "extractor_version": "1.0.0", "source_type": "metadata",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "files", "processed": 1, "total": 1},
+                      "observation_count": 0}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A08.json
+{"case_id": "A08", "wording": "screenshots with unreadable OCR",
+ "attacks": "residual interpretation", "sections": ["§7.8", "§7.9"],
+ "assert_against": "stage", "dimension": "residual", "subject_ref": "A08::screenshot",
+ "expected_outcome_kind": "produced", "expected_value": {"outcome": "leave_in_place"},
+ "forbidden_value": {"outcome": "return_to_placement"},
+ "extraction_runs": [{"run_id": "A08-run", "file_id": "A08-file",
+                      "content_hash": "sha256:A08", "extractor_name": "ocr.fixture",
+                      "extractor_version": "1.0.0", "source_type": "ocr",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "pages", "processed": 1, "total": 1},
+                      "observation_count": 0}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A09.json
+// The one case assertable from the bundle alone: the expected outcome IS a
+// `capped` run row with its coverage (SPEC Contract out §9). Numbers are P4's own
+// example values from Task 6's fixture, not §2.7 limits.
+{"case_id": "A09", "wording": "long scanned books", "attacks": "OCR budget",
+ "sections": ["§2.7", "§8.6", "§2.9"], "assert_against": "bundle",
+ "dimension": "extraction", "subject_ref": "A09::book::run",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"completeness": "capped",
+                    "coverage": {"units": "pages", "processed": 40, "total": 312}},
+ "forbidden_value": {"completeness": "complete"},
+ "extraction_runs": [{"run_id": "A09-run", "file_id": "A09-file",
+                      "content_hash": "sha256:A09", "extractor_name": "ocr.fixture",
+                      "extractor_version": "1.0.0", "source_type": "ocr",
+                      "config_fingerprint": "sha256:cfg", "completeness": "capped",
+                      "coverage": {"units": "pages", "processed": 40, "total": 312},
+                      "observation_count": 118}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A10.json
+{"case_id": "A10", "wording": "documents with corrupted text layers",
+ "attacks": "extraction routing", "sections": ["§2.2", "§2.7", "§2.4"],
+ "assert_against": "stage", "dimension": "extraction", "subject_ref": "A10::doc::routing",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"ocr_fallback": true, "triggered_by": "no_usable_facts"},
+ "forbidden_value": {"ocr_fallback": true, "triggered_by": "language_quality_heuristic"},
+ "extraction_runs": [{"run_id": "A10-run", "file_id": "A10-file",
+                      "content_hash": "sha256:A10", "extractor_name": "pdf.native",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "partial",
+                      "coverage": {"units": "pages", "processed": 4, "total": 4},
+                      "observation_count": 0}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A11.json
+{"case_id": "A11", "wording": "shared resumes across applications",
+ "attacks": "multi-home placement", "sections": ["§6.9"],
+ "assert_against": "stage", "dimension": "placement", "subject_ref": "A11::resume",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"outcome": "place", "destination": {"node_role": "shared-material"}},
+ "forbidden_value": {"outcome": "place", "destination": {"node_role": "ordinary"}},
+ "extraction_runs": [{"run_id": "A11-run", "file_id": "A11-file",
+                      "content_hash": "sha256:A11", "extractor_name": "pdf.native",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "pages", "processed": 2, "total": 2},
+                      "observation_count": 3}]}
+```
+
+```json
+// tests/eval/fixtures/adversarial/A12.json
+{"case_id": "A12",
+ "wording": "files that legitimately belong to more than one purpose group",
+ "attacks": "multi-membership", "sections": ["§4.9", "§3.11", "§6.9"],
+ "assert_against": "stage", "dimension": "grouping", "subject_ref": "A12::file",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"memberships": ["g-1", "g-2"]},
+ "forbidden_value": {"memberships": ["g-1"]},
+ "extraction_runs": [{"run_id": "A12-run", "file_id": "A12-file",
+                      "content_hash": "sha256:A12", "extractor_name": "pdf.native",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "pages", "processed": 1, "total": 1},
+                      "observation_count": 4}]}
+```
+
+- [ ] **Step 2: Write the failing test**
+
+```python
+# tests/eval/test_adversarial.py
+import pytest
+
+from eval_harness.adversarial import (
+    CASE_IDS, GateReport, build_case_bundle, load_all_cases, load_case, run_case,
+    run_gate,
+)
+from eval_harness.replay import ReplayContext, StageResult
+from eval_harness.stage_output import DimensionValue
+from eval_harness.store import create_eval_schema
+
+
+def _tuple():
+    return dict(extractor_versions={}, graph_algorithm_version=None,
+                prompt_fingerprint=None, model_identifier=None,
+                template_library_version=None, placement_scorer_version=None,
+                analysis_tiers_enabled=["filesystem"])
+
+
+def _settings():
+    return {"model_enabled": False, "embeddings_enabled": False}
+
+
+def test_there_are_exactly_twelve_cases():
+    # §8.5 names twelve failure modes observed in real corpora.
+    assert CASE_IDS == ("A01", "A02", "A03", "A04", "A05", "A06",
+                        "A07", "A08", "A09", "A10", "A11", "A12")
+    assert len(load_all_cases()) == 12
+
+
+def test_every_case_has_an_expected_a_forbidden_and_a_section():
+    for case in load_all_cases():
+        assert case["wording"], case["case_id"]
+        assert case["sections"], case["case_id"]
+        subjects = case.get("subjects") or [case]
+        for subject in subjects:
+            assert "expected_outcome_kind" in subject, case["case_id"]
+            assert "forbidden_value" in subject, case["case_id"]
+
+
+def test_a3_carries_two_fixtures_one_zip_and_one_device():
+    # SPEC Contract out §9: "at least two fixtures, one of each".
+    subjects = load_case("A03")["subjects"]
+    assert len(subjects) == 2
+    assert {s["subject_ref"] for s in subjects} == {"A03::zip::course",
+                                                    "A03::device::course"}
+
+
+def test_the_gate_with_no_adapters_reports_not_run_and_never_pass(eval_conn):
+    # The property this whole task exists for. Nine of the ten stages are absent.
+    create_eval_schema(eval_conn)
+    report = run_gate(eval_conn, adapters={}, version_tuple=_tuple(),
+                      budget_ceilings={}, run_settings=_settings())
+    assert isinstance(report, GateReport)
+    assert report.not_run_count == 11        # every case but A09, which reads the bundle
+    assert report.pass_count == 1
+    assert report.fail_count == 0
+    assert not hasattr(report, "passed")     # SPEC Open question 9 is OPEN
+    assert not hasattr(report, "accuracy")
+
+
+def test_a9_passes_today_from_the_bundle_alone(eval_conn):
+    # SPEC Contract out §9: A9's expected outcome IS a `capped` run row with its
+    # coverage. No stage is needed and none exists.
+    create_eval_schema(eval_conn)
+    result = run_case(eval_conn, load_case("A09"), adapters={},
+                      version_tuple=_tuple(), budget_ceilings={},
+                      run_settings=_settings())
+    assert result.verdict == "pass"
+    assert result.case_id == "A09"
+
+
+def test_a_case_fails_when_the_forbidden_outcome_appears(eval_conn):
+    # A01: a school facet from a substring hit inside "submit".
+    create_eval_schema(eval_conn)
+
+    def forbidden_adapter(ctx: ReplayContext):
+        return [StageResult(subject_ref="A01::essay::school", outcome="produced",
+                            payload=None, inputs=[], budget_state="within_ceiling",
+                            values=[DimensionValue("fact", "A01::essay::school",
+                                                   "produced",
+                                                   {"field": "school", "value": "MIT"})])]
+
+    result = run_case(eval_conn, load_case("A01"),
+                      adapters={"factual_validation": forbidden_adapter},
+                      version_tuple=_tuple(), budget_ceilings={},
+                      run_settings=_settings())
+    assert result.verdict == "fail"
+    assert "forbidden" in result.reason
+
+
+def test_a_case_passes_when_the_stage_abstains(eval_conn):
+    # §3.7's word-boundary rule: no MIT facet is created.
+    create_eval_schema(eval_conn)
+
+    def abstaining(ctx: ReplayContext):
+        return [StageResult(subject_ref="A01::essay::school", outcome="abstained",
+                            payload=None, inputs=[], budget_state="within_ceiling",
+                            values=[DimensionValue("fact", "A01::essay::school",
+                                                   "abstained", None)])]
+
+    result = run_case(eval_conn, load_case("A01"),
+                      adapters={"factual_validation": abstaining},
+                      version_tuple=_tuple(), budget_ceilings={},
+                      run_settings=_settings())
+    assert result.verdict == "pass"
+
+
+def test_a_deferral_is_not_a_pass_and_not_a_fail(eval_conn):
+    # §8.6 again: a budget event is neither quality outcome.
+    create_eval_schema(eval_conn)
+
+    def deferring(ctx: ReplayContext):
+        return [StageResult(subject_ref="A01::essay::school", outcome="deferred",
+                            payload=None, inputs=[], budget_state="ceiling_reached",
+                            values=[DimensionValue("fact", "A01::essay::school",
+                                                   "deferred", None)])]
+
+    result = run_case(eval_conn, load_case("A01"),
+                      adapters={"factual_validation": deferring},
+                      version_tuple=_tuple(), budget_ceilings={},
+                      run_settings=_settings())
+    assert result.verdict == "not_run"
+    assert "deferred" in result.reason
+
+
+def test_the_gate_raises_nothing_and_decides_nothing(eval_conn):
+    # SPEC Open question 9: is the gate blocking or advisory, and who enforces it?
+    # P2 returns a report. It raises no exception and exits no process.
+    import inspect
+
+    from eval_harness import adversarial
+    create_eval_schema(eval_conn)
+    source = inspect.getsource(adversarial.run_gate)
+    assert "raise" not in source
+    assert "sys.exit" not in source
+    run_gate(eval_conn, adapters={}, version_tuple=_tuple(), budget_ceilings={},
+             run_settings=_settings())
+
+
+def test_case_text_lives_in_fixtures_not_in_source():
+    from pathlib import Path
+    src = Path(__file__).resolve().parents[2] / "src" / "eval_harness"
+    for path in src.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        for term in ("submit", "uncertainty", "python-docx", "Mozilla",
+                     "syllabus", "lecture", "instructor", "semester"):
+            assert term not in text, f"{path.name} carries case text {term!r}"
+
+
+def test_a_missing_case_file_is_an_error_not_a_silent_skip(eval_conn):
+    from eval_harness.adversarial import MissingCase
+    with pytest.raises(MissingCase):
+        load_case("A13")
+```
+
+- [ ] **Step 3: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_adversarial.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.adversarial'`
+
+- [ ] **Step 4: Write the implementation**
+
+```python
+# src/eval_harness/adversarial.py
+"""Contract out §9 — the twelve-case adversarial suite, as a gate.
+
+§8.5: "Every new extractor, model, prompt, or graph mechanism should run against
+this suite before it affects a user's live plan."
+
+A case that could not run is `not_run`, never `pass`. Whether a failing case
+BLOCKS the change, and whether P2 or the release process enforces it, is SPEC Open
+question 9: `run_gate` returns a report, raises nothing, and decides nothing.
+"""
+from __future__ import annotations
+
+import json
+import sqlite3
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Mapping, Sequence
+
+CASE_IDS: tuple[str, ...] = (
+    "A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10", "A11", "A12",
+)
+
+_CASE_DIR = (Path(__file__).resolve().parents[2]
+             / "tests" / "eval" / "fixtures" / "adversarial")
+
+
+class MissingCase(Exception):
+    """A named case has no fixture file. Never treated as a skip."""
+
+
+@dataclass(frozen=True)
+class CaseResult:
+    case_id: str
+    verdict: str          # pass | fail | not_run
+    reason: str
+    subject_results: tuple
+
+
+@dataclass(frozen=True)
+class GateReport:
+    """Per-case results and three counts. No boolean and no aggregate.
+
+    There is deliberately no `passed` attribute: collapsing twelve failure modes
+    into one flag is the shape §8.5 rejects, and whether the gate blocks at all is
+    Open question 9.
+    """
+    results: tuple
+    pass_count: int
+    fail_count: int
+    not_run_count: int
+
+
+def load_case(case_id: str) -> dict:
+    path = _CASE_DIR / f"{case_id}.json"
+    if not path.exists():
+        raise MissingCase(f"no fixture for adversarial case {case_id} at {path}")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_all_cases() -> list[dict]:
+    return [load_case(case_id) for case_id in CASE_IDS]
+
+
+def _subjects(case: dict) -> list[dict]:
+    """A case is one subject unless it declares several (A03 declares two)."""
+    return case.get("subjects") or [case]
+
+
+def build_case_bundle(conn: sqlite3.Connection, case: dict) -> str:
+    """One sealed bundle per case, carrying its fixture rows and its expectations."""
+    from eval_harness.bundle import (
+        add_expectation, add_extraction_run, add_text_unit, open_bundle, seal_bundle,
+    )
+    bundle_id = open_bundle(
+        conn, corpus_form="snapshot", source_scan_ref=f"{case['case_id']}-scan",
+        pinned_plan_id=f"{case['case_id']}-plan", pinned_plan_version="1",
+        policy_settings={},
+    )
+    for row in case.get("extraction_runs", []):
+        add_extraction_run(conn, bundle_id, row=row)
+    for row in case.get("text_units", []):
+        add_text_unit(conn, bundle_id, row=row)
+    for subject in _subjects(case):
+        add_expectation(
+            conn, bundle_id, dimension=case["dimension"],
+            subject_ref=subject["subject_ref"],
+            expected_value=subject.get("expected_value"),
+            expected_outcome_kind=subject["expected_outcome_kind"],
+            source="hand-labelled",
+        )
+    seal_bundle(conn, bundle_id)
+    return bundle_id
+
+
+def _bundle_verdict(conn: sqlite3.Connection, bundle_id: str,
+                    case: dict, subject: dict) -> tuple[str, str]:
+    """A case assertable from the bundle alone. A9 is the only one today."""
+    from eval_harness.bundle import extraction_runs
+    from eval_harness.store import canonical_json
+
+    expected = subject["expected_value"]
+    forbidden = subject["forbidden_value"]
+    for row in extraction_runs(conn, bundle_id):
+        observed = {k: row.get(k) for k in expected}
+        if canonical_json(observed) == canonical_json(expected):
+            if canonical_json({k: row.get(k) for k in forbidden}) == \
+                    canonical_json(forbidden):
+                return "fail", "forbidden outcome present on the same row"
+            return "pass", "expected run row found in the bundle"
+    return "fail", "no run row in the bundle matches the expected outcome"
+
+
+def _stage_verdict(conn: sqlite3.Connection, run_id: str, case: dict,
+                   subject: dict) -> tuple[str, str]:
+    from eval_harness.store import canonical_json
+
+    row = conn.execute(
+        "SELECT outcome, value FROM stage_dimension_value "
+        "WHERE run_id = ? AND dimension = ? AND subject_ref = ?",
+        (run_id, case["dimension"], subject["subject_ref"])).fetchone()
+    if row is None:
+        return "not_run", "no stage produced a value for this subject"
+    if row["outcome"] in ("not_implemented", "error"):
+        return "not_run", f"stage outcome was {row['outcome']}"
+    if row["outcome"] == "deferred":
+        # §8.6: a budget event is neither a pass nor a failure.
+        return "not_run", "stage outcome was deferred (§8.6)"
+    observed = None if row["value"] is None else json.loads(row["value"])
+    if observed is not None and canonical_json(observed) == \
+            canonical_json(subject["forbidden_value"]):
+        return "fail", "forbidden outcome was produced"
+    if subject["expected_outcome_kind"] == "abstained":
+        if row["outcome"] == "abstained":
+            return "pass", "abstained as required"
+        return "fail", "produced where abstention was required"
+    if row["outcome"] != "produced":
+        return "fail", f"expected a produced value, got {row['outcome']}"
+    if canonical_json(observed) == canonical_json(subject["expected_value"]):
+        return "pass", "expected outcome produced, forbidden outcome absent"
+    return "fail", "produced value does not match the expected outcome"
+
+
+def run_case(conn: sqlite3.Connection, case: dict, *, adapters: Mapping[str, object],
+             version_tuple: dict, budget_ceilings: Mapping[str, int],
+             run_settings: Mapping[str, bool]) -> CaseResult:
+    """One case. A case passes only when the expected outcome is observed AND the
+    forbidden outcome is absent."""
+    from eval_harness.replay import replay_bundle
+
+    bundle_id = build_case_bundle(conn, case)
+    run_id = None
+    if case["assert_against"] == "stage":
+        run_id = replay_bundle(conn, bundle_id, version_tuple=version_tuple,
+                               budget_ceilings=budget_ceilings,
+                               run_settings=run_settings, adapters=adapters,
+                               run_kind="adversarial")
+    results = []
+    for subject in _subjects(case):
+        if case["assert_against"] == "bundle":
+            verdict, reason = _bundle_verdict(conn, bundle_id, case, subject)
+        else:
+            verdict, reason = _stage_verdict(conn, run_id, case, subject)
+        results.append((subject["subject_ref"], verdict, reason))
+    verdicts = [v for _, v, _ in results]
+    if "fail" in verdicts:
+        case_verdict, reason = "fail", next(r for _, v, r in results if v == "fail")
+    elif "not_run" in verdicts:
+        case_verdict, reason = "not_run", next(r for _, v, r in results if v == "not_run")
+    else:
+        case_verdict, reason = "pass", "every subject passed"
+    return CaseResult(case_id=case["case_id"], verdict=case_verdict, reason=reason,
+                      subject_results=tuple(results))
+
+
+def run_gate(conn: sqlite3.Connection, *, adapters: Mapping[str, object],
+             version_tuple: dict, budget_ceilings: Mapping[str, int],
+             run_settings: Mapping[str, bool]) -> GateReport:
+    """All twelve cases. Returns a report and takes no action on it.
+
+    Wiring this to "before it affects a user's live plan" (§8.5) is a release-
+    process obligation. Whether a failing case blocks is SPEC Open question 9, and
+    P2 does not answer it: this function signals nothing and exits nothing.
+    """
+    results = tuple(
+        run_case(conn, case, adapters=adapters, version_tuple=version_tuple,
+                 budget_ceilings=budget_ceilings, run_settings=run_settings)
+        for case in load_all_cases()
+    )
+    return GateReport(
+        results=results,
+        pass_count=sum(1 for r in results if r.verdict == "pass"),
+        fail_count=sum(1 for r in results if r.verdict == "fail"),
+        not_run_count=sum(1 for r in results if r.verdict == "not_run"),
+    )
+```
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_adversarial.py -v`
+Expected: PASS — 11 passed
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/eval_harness/adversarial.py tests/eval/fixtures/adversarial tests/eval/test_adversarial.py
+git commit -m "feat(P2): twelve adversarial cases as a gate; a case that could not run is never a pass"
+```
+
+---
+
+### Task 15: §8.6's count line, from the bundle alone (Done-means 13)
+
+**Files:**
+- Create: `src/eval_harness/counts.py`
+- Test: `tests/eval/test_counts.py`
+
+**Interfaces:**
+- Consumes: `bundle_files`, `extraction_runs` (Tasks 5–6).
+- Produces: `bundle_counts(conn, bundle_id) -> dict`, `DEFERRED_COMPLETENESS: frozenset[str]`, `UNREADABLE_COMPLETENESS: frozenset[str]`.
+
+**The mappings are P5's, adopted verbatim.** [`../P5-extractors/SPEC.md`](../P5-extractors/SPEC.md) publishes them for §8.6's sentence *"1,842 files indexed; 1,611 fully extracted; 89 scanned PDFs deferred after the OCR limit; 34 files require model review; 18 files remain unreadable"*: **fully extracted** = files whose every run is `complete`; **deferred** = runs at `deferred` **or** `capped`; **unreadable** = runs at `unreadable` **or** `failed`. P2 restates none of them differently and computes none of them from the observations.
+
+**"Files indexed" is reported twice, because the two sources say different things.** P2's own Contract out §3 says *"1,842 files indexed" (the `bundle_file_entry[]` count)*, while P5's mapping — which the same paragraph says is *"adopted verbatim"* — says **indexed** = files with any run. Those are not the same number when a bundle carries a file no extractor ran against. **This plan does not pick one.** `bundle_counts` returns `files_indexed` (the entry count, as P2's SPEC instructs) **and** `files_with_any_run` (P5's mapping), and the test asserts they can differ. A conflict between two specs is reported, not resolved in code — it is listed in the report accompanying this plan.
+
+**The fifth count is unavailable, not zero.** §8.6's *"34 files require model review"* is a review-state count, not an extraction outcome; P5's mapping says explicitly *"'Files require model review' is P8's count, not P5's."* `bundle_counts` returns `files_requiring_model_review: None`. Following P1's discipline on unmeasured work, `null` keeps it visible as unmeasured and `0` would assert a fact P2 cannot know.
+
+**No live filesystem.** Every count is a query over `bundle_extraction_run[]` and `bundle_file_entry[]`. The test runs with an empty temp directory and asserts nothing on disk is consulted.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_counts.py
+import json
+from pathlib import Path
+
+from eval_harness.bundle import (
+    add_extraction_run, add_file_entry, open_bundle, seal_bundle,
+)
+from eval_harness.counts import (
+    DEFERRED_COMPLETENESS, UNREADABLE_COMPLETENESS, bundle_counts,
+)
+from eval_harness.store import create_eval_schema
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def _bundle_with_runs(conn, runs, *, entries):
+    bundle_id = open_bundle(conn, corpus_form="snapshot",
+                            source_scan_ref="scan-fixture",
+                            pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                            policy_settings={})
+    for file_id in entries:
+        add_file_entry(conn, bundle_id, file_id=file_id,
+                       content_hash=f"sha256:{file_id}", hash_algorithm="sha256",
+                       handling_class=None, payload_ref=f"blobs/{file_id}")
+    for row in runs:
+        add_extraction_run(conn, bundle_id, row=row)
+    seal_bundle(conn, bundle_id)
+    return bundle_id
+
+
+def test_the_two_completeness_sets_are_p5s(eval_conn):
+    # P5: deferred = runs at `deferred` or `capped`; unreadable = `unreadable` or
+    # `failed`. Adopted verbatim, not restated differently.
+    assert DEFERRED_COMPLETENESS == frozenset({"deferred", "capped"})
+    assert UNREADABLE_COMPLETENESS == frozenset({"unreadable", "failed"})
+
+
+def test_the_count_line_is_reproducible_from_the_bundle_alone(eval_conn, tmp_path):
+    # Done-means 13, with no live filesystem present.
+    create_eval_schema(eval_conn)
+    runs = json.loads((FIXTURES / "p4_runs.json").read_text(encoding="utf-8"))
+    bundle_id = _bundle_with_runs(
+        eval_conn, runs, entries=["file-book", "file-syllabus", "file-broken"])
+    counts = bundle_counts(eval_conn, bundle_id)
+    assert counts["files_indexed"] == 3
+    assert counts["files_fully_extracted"] == 1          # only file-syllabus
+    assert counts["runs_deferred"] == 1                  # the capped OCR run
+    assert counts["runs_unreadable"] == 1                # the unreadable native run
+    assert not list(tmp_path.iterdir())
+
+
+def test_files_requiring_model_review_is_unavailable_not_zero(eval_conn):
+    # P5: "'Files require model review' is P8's count, not P5's." A 0 would assert
+    # a fact P2 cannot know; None keeps unmeasured work visible as unmeasured.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle_with_runs(eval_conn, [], entries=["f1"])
+    assert bundle_counts(eval_conn, bundle_id)["files_requiring_model_review"] is None
+
+
+def test_indexed_is_reported_from_both_sources_because_they_disagree(eval_conn):
+    # P2's Contract out §3 says the bundle_file_entry[] count; P5's mapping, which
+    # the same paragraph says is adopted verbatim, says "files with any run".
+    # This plan reports both and picks neither.
+    create_eval_schema(eval_conn)
+    runs = [json.loads((FIXTURES / "p4_runs.json").read_text(
+        encoding="utf-8"))[1]]                     # only file-syllabus has a run
+    bundle_id = _bundle_with_runs(eval_conn, runs,
+                                  entries=["file-syllabus", "file-never-extracted"])
+    counts = bundle_counts(eval_conn, bundle_id)
+    assert counts["files_indexed"] == 2
+    assert counts["files_with_any_run"] == 1
+    assert counts["files_indexed"] != counts["files_with_any_run"]
+
+
+def test_a_file_with_one_complete_and_one_capped_run_is_not_fully_extracted(eval_conn):
+    # P5: "fully extracted = files whose EVERY run is `complete`." A PDF can have
+    # a complete native run and a capped OCR run on the same content hash (I4).
+    create_eval_schema(eval_conn)
+    runs = [
+        {"run_id": "r1", "file_id": "f1", "content_hash": "sha256:f1",
+         "extractor_name": "pdf.native", "extractor_version": "1.0.0",
+         "source_type": "text", "config_fingerprint": "sha256:c",
+         "completeness": "complete",
+         "coverage": {"units": "pages", "processed": 2, "total": 2},
+         "observation_count": 3},
+        {"run_id": "r2", "file_id": "f1", "content_hash": "sha256:f1",
+         "extractor_name": "ocr.fixture", "extractor_version": "1.0.0",
+         "source_type": "ocr", "config_fingerprint": "sha256:c",
+         "completeness": "capped",
+         "coverage": {"units": "pages", "processed": 1, "total": 2},
+         "observation_count": 1},
+    ]
+    bundle_id = _bundle_with_runs(eval_conn, runs, entries=["f1"])
+    counts = bundle_counts(eval_conn, bundle_id)
+    assert counts["files_fully_extracted"] == 0
+    assert counts["runs_deferred"] == 1
+
+
+def test_the_counts_have_no_aggregate_and_no_ratio(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle_with_runs(eval_conn, [], entries=["f1"])
+    counts = bundle_counts(eval_conn, bundle_id)
+    for key in counts:
+        for part in key.split("_"):
+            assert part not in {"accuracy", "score", "aggregate", "overall", "rate",
+                                "percent", "grade"}
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_counts.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.counts'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/counts.py
+"""§8.6's count line, computed from the bundle alone (Done-means 13).
+
+The mappings are P5's, adopted verbatim: fully extracted = files whose EVERY run
+is `complete`; deferred = runs at `deferred` or `capped`; unreadable = runs at
+`unreadable` or `failed`. P2 recomputes none of them from the observations.
+
+"Files indexed" is reported from BOTH sources, because P2's own Contract out §3
+(the bundle_file_entry[] count) and P5's mapping (files with any run) do not agree
+and a plan does not resolve a conflict between two specs.
+"""
+from __future__ import annotations
+
+import sqlite3
+
+#: P5's mapping. §8.6's "89 scanned PDFs deferred after the OCR limit".
+DEFERRED_COMPLETENESS: frozenset[str] = frozenset({"deferred", "capped"})
+
+#: P5's mapping. §8.6's "18 files remain unreadable".
+UNREADABLE_COMPLETENESS: frozenset[str] = frozenset({"unreadable", "failed"})
+
+
+def bundle_counts(conn: sqlite3.Connection, bundle_id: str) -> dict:
+    """§8.6's legibility counts, with no live filesystem present.
+
+    `files_requiring_model_review` is None, not 0: it is a review-state count that
+    P8 owns, and a zero would assert something P2 cannot know. §8.6 asks that
+    unmeasured work stay visible as unmeasured.
+    """
+    entries = conn.execute(
+        "SELECT count(*) AS n FROM bundle_file_entry WHERE bundle_id = ?",
+        (bundle_id,)).fetchone()["n"]
+
+    by_file: dict[str, list[str]] = {}
+    deferred = unreadable = 0
+    for row in conn.execute(
+            "SELECT file_id, completeness FROM bundle_extraction_run "
+            "WHERE bundle_id = ?", (bundle_id,)):
+        by_file.setdefault(row["file_id"], []).append(row["completeness"])
+        if row["completeness"] in DEFERRED_COMPLETENESS:
+            deferred += 1
+        if row["completeness"] in UNREADABLE_COMPLETENESS:
+            unreadable += 1
+
+    return {
+        # P2 Contract out §3's reading.
+        "files_indexed": entries,
+        # P5's mapping, which the same paragraph claims to adopt verbatim. The two
+        # differ when a bundle carries a file no extractor ran against.
+        "files_with_any_run": len(by_file),
+        "files_fully_extracted": sum(
+            1 for states in by_file.values()
+            if states and all(state == "complete" for state in states)),
+        "runs_deferred": deferred,
+        "runs_unreadable": unreadable,
+        # P8's count, not P5's and not P2's.
+        "files_requiring_model_review": None,
+    }
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_counts.py -v`
+Expected: PASS — 6 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/counts.py tests/eval/test_counts.py
+git commit -m "feat(P2): 8.6 count line from the bundle alone, P5's mappings verbatim, model review unavailable"
+```
+
+---
+
+### Task 16: The three guards — no aggregate, no foreign vocabulary, no authorship (Done-means 3)
+
+**Files:**
+- Create: `tests/eval/test_no_aggregate.py`
+
+**Interfaces:**
+- Consumes: the whole `src/eval_harness/` package and every P2 table.
+- Produces: nothing — these are standing guards, in the spirit of P1's `test_no_interpretation.py`.
+
+**Three properties, each of which a future edit could silently break.**
+
+1. **No aggregate accuracy scalar exists anywhere** (Done-means 3, §8.5). Checked in three places: no P2 **column** name, no **key** of any P2 reader's return value, and no identifier in `src/eval_harness/` matches a forbidden name part. The check splits identifiers on `_` and compares whole parts, so `placement_scorer_version` — a §8.5 axis — passes on `scorer`, while a column called `overall_score` fails on both parts.
+2. **P2 carries no other part's closed vocabulary and no expectation content.** No P7 class or mode, no P6 fact-field name, no §7.3 residual template name, no template-library name, no gazetteer entry. The adversarial case text lives in fixture files (Task 14), which is why this can stay strict.
+3. **P2 authors nothing.** No `append_event` anywhere, no `events` write, no `correction_scope` write. *"The acting part authors"* — and evaluation acts on no file.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_no_aggregate.py
+"""Done-means 3 and the two vocabulary/authorship guards.
+
+§8.5: "A single overall 'accuracy' number hides the mechanism that needs repair."
+This is a negative acceptance test, not a style preference.
+"""
+import ast
+from pathlib import Path
+
+from database_agent.db import create_schema
+
+from eval_harness.assertions import verdict_counts
+from eval_harness.counts import bundle_counts
+from eval_harness.store import EVAL_TABLES, create_eval_schema
+
+SRC = Path(__file__).resolve().parents[2] / "src" / "eval_harness"
+
+#: Whole identifier parts, compared after splitting on "_". `placement_scorer_version`
+#: splits to {placement, scorer, version} and is therefore clean; `overall_score`
+#: splits to {overall, score} and is not.
+FORBIDDEN_PARTS = {
+    "accuracy", "score", "aggregate", "overall", "rate", "percent", "grade",
+    "f1", "precision", "recall", "total",
+}
+
+#: Other parts' closed vocabularies. P2 stores their values; it declares none.
+FOREIGN_VOCABULARY = [
+    # P7 §8.4 handling classes and operation modes
+    "public_low", "personal_non_sensitive", "sensitive_personal",
+    "highly_sensitive_credential_bearing", "unreadable_unclassified",
+    "local_model", "cloud_assisted",
+    # P6 §3.11 domain fact fields
+    "target_university", "application_cycle", "artifact_type", "tax_year",
+    "capture_year",
+    # §7.3 residual template names
+    "reference clips", "reading inbox", "review later", "protected records",
+    # §3.13 reliability states as P2 vocabulary
+    "llm-supported", "user_confirmed",
+]
+
+
+def _identifier_parts(name: str) -> set[str]:
+    return {part.lower() for part in name.split("_") if part}
+
+
+def test_no_p2_column_is_an_aggregate(eval_conn):
+    create_eval_schema(eval_conn)
+    present = {r["name"] for r in eval_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table'")}
+    # Every table P2 declares has actually been created by now.
+    assert set(EVAL_TABLES) <= present, sorted(set(EVAL_TABLES) - present)
+    for table in EVAL_TABLES:
+        for column in eval_conn.execute(f"PRAGMA table_info({table})"):
+            offending = _identifier_parts(column["name"]) & FORBIDDEN_PARTS
+            assert not offending, f"{table}.{column['name']}: {offending}"
+
+
+def test_no_reader_returns_an_aggregate_key(eval_conn):
+    from eval_harness.bundle import open_bundle, seal_bundle
+    create_eval_schema(eval_conn)
+    bundle_id = open_bundle(eval_conn, corpus_form="snapshot",
+                            source_scan_ref="s", pinned_plan_id="p",
+                            pinned_plan_version="1", policy_settings={})
+    seal_bundle(eval_conn, bundle_id)
+    for reader_result in (bundle_counts(eval_conn, bundle_id),
+                          verdict_counts(eval_conn, "no-such-run")):
+        for key in reader_result:
+            offending = _identifier_parts(str(key)) & FORBIDDEN_PARTS
+            assert not offending, f"{key}: {offending}"
+
+
+def test_no_source_identifier_is_an_aggregate():
+    for path in SRC.rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            names = []
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                names.append(node.name)
+            elif isinstance(node, ast.Name):
+                names.append(node.id)
+            for name in names:
+                offending = _identifier_parts(name) & FORBIDDEN_PARTS
+                assert not offending, f"{path.name}: {name} -> {offending}"
+
+
+def test_no_string_literal_is_the_word_accuracy():
+    # §8.5's sentence is quoted in comparison.py's docstring and must stay there.
+    # What may not exist is a string that IS the word — a field name, a key, a
+    # column. The AST distinguishes the two; a substring search cannot.
+    for path in SRC.rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                assert node.value.strip().lower() != "accuracy", path.name
+
+
+def test_p2_declares_no_other_parts_vocabulary():
+    offenders = []
+    for path in SRC.rglob("*.py"):
+        text = path.read_text(encoding="utf-8").lower()
+        for term in FOREIGN_VOCABULARY:
+            if term in text:
+                offenders.append(f"{path.name}: {term!r}")
+    assert not offenders, "P2 declared another part's vocabulary: " + "; ".join(offenders)
+
+
+def test_p2_ships_no_expectation_content():
+    # SPEC Deferred: the hand-labelled reference corpus, the template library, the
+    # gazetteer and the residual library are hand work. P2 publishes
+    # bundle_expectation; it does not fill it. Every expected value P2 handles
+    # arrives as an argument, so a LITERAL one in source would be P2 authoring it.
+    assert not list(SRC.rglob("*.json"))
+    for path in SRC.rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.keyword) and node.arg == "expected_value":
+                assert not isinstance(node.value, (ast.Dict, ast.List)), \
+                    f"{path.name}: a literal expected_value"
+
+
+def test_p2_appends_no_event_and_writes_no_correction(eval_conn):
+    # "The acting part authors" — and evaluation acts on no file. §8.2's event
+    # list is a list of things that happen TO a file.
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    for path in SRC.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        assert "append_event" not in text, path.name
+        assert "INSERT INTO events" not in text, path.name
+        assert "correction_scope" not in text, path.name
+    assert eval_conn.execute("SELECT count(*) AS n FROM events").fetchone()["n"] == 0
+
+
+def test_p2_never_deletes_from_events():
+    # I6 (tombstone vs append) is deferred to P7. Nothing here forecloses it, and
+    # nothing here deletes provenance.
+    for path in SRC.rglob("*.py"):
+        text = path.read_text(encoding="utf-8").lower()
+        assert "delete from events" not in text, path.name
+
+
+def test_the_whole_suite_runs():
+    # A reminder for the executor, not an assertion: run `pytest -q` before the
+    # commit below.
+    assert True
+```
+
+- [ ] **Step 2: Run the guard**
+
+Run: `pytest tests/eval/test_no_aggregate.py -v`
+Expected: PASS — 9 passed. If a guard FAILS, remove the offending name from the source; **do not add it to the allow set.**
+
+- [ ] **Step 3: Run the whole suite**
+
+Run: `pytest -q`
+Expected: PASS — P1's tests and P2's Tasks 1–16.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add tests/eval/test_no_aggregate.py
+git commit -m "test(P2): guards against an aggregate scalar, a foreign vocabulary, and authorship"
+```
+
+---
+
+### Task 17: The walking-skeleton P2 step (Done-means 11)
+
+**Files:**
+- Create: `tests/eval/test_skeleton_p2_step.py`
+
+**Interfaces:**
+- Consumes: everything above; P1's `create_schema`, `observe_path`, `hash_file`, `all_ceilings`.
+- Produces: the integration test every later part must keep green.
+
+**[`../../02-segmentation-map.md`](../../02-segmentation-map.md)'s P2 line is one sentence:** *"the whole run replays from a bundle and asserts each stage's output."* The skeleton is deterministic — *"No LLM, no cloud, no embeddings"* — so the run declares `model_enabled = False` and `embeddings_enabled = False`, and its `analysis_tiers_enabled` is `{filesystem, native}`. An OCR-on replay would be a different tuple (I4), which is the point of the field.
+
+**Nine stages are absent and the run is still a run.** Done-means 7 and Done-means 11 meet here: the skeleton captures a bundle from P1's real substrate, replays it with one minimal extraction adapter, and gets nine `not_implemented` stage outputs, one asserted dimension, and nine `not_run` verdicts. When P4/P5 land, the fixture adapter is replaced by the real stage and this test keeps its shape.
+
+**The bundle is captured from P1's tables and replayed with no filesystem read.** The file is written, hashed and recorded through P1 (with a P3 fixture as the author — *the acting part authors, P1 writes*), the bundle records the resulting identity, and then the source file is **deleted** before the replay. §8.5's *"without touching a live filesystem"* is asserted rather than assumed.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_skeleton_p2_step.py
+"""The walking skeleton's P2 step (02-segmentation-map.md):
+"the whole run replays from a bundle and asserts each stage's output."
+
+Deterministic: no model, no cloud, no embeddings. Nine of the ten stages are
+absent, which is a valid run with nine not_run verdicts.
+"""
+from pathlib import Path
+
+from database_agent.budget import all_ceilings
+from database_agent.db import create_schema
+from database_agent.files_table import get_file, observe_path
+
+from eval_harness.assertions import assert_run, assertions, verdict_counts
+from eval_harness.attribution import attribute_run
+from eval_harness.bundle import (
+    add_expectation, add_extraction_run, add_file_entry, add_text_unit, open_bundle,
+    seal_bundle,
+)
+from eval_harness.counts import bundle_counts
+from eval_harness.replay import ReplayContext, StageResult, replay_bundle
+from eval_harness.stage_output import DimensionValue, stage_outputs
+from eval_harness.store import create_eval_schema
+from eval_harness.vocabulary import DIMENSIONS, STAGE_IDS
+
+
+def test_skeleton_p2_step(eval_conn, tmp_path: Path):
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+
+    # ---- P1's step: one PDF whose title carries a course code. P3's fixture
+    # authors the scan events; P1 writes (M8).
+    document = tmp_path / "corpus" / "syllabus-fixture.pdf"
+    document.parent.mkdir(parents=True, exist_ok=True)
+    document.write_bytes(b"%PDF-1.4 COMS 4995 syllabus fixture bytes")
+    file_id = observe_path(
+        eval_conn, document, author="P3", component_version="p3-fixture",
+        parent_folder_context="corpus", mime_type="application/pdf",
+        detected_format="pdf", scan_state="scanned", materialized=True,
+    )
+    content_hash = get_file(eval_conn, file_id)["content_hash"]
+
+    # ---- P2's step, part one: capture the bundle.
+    bundle_id = open_bundle(
+        eval_conn, corpus_form="snapshot", source_scan_ref="skeleton-scan",
+        pinned_plan_id="skeleton-plan", pinned_plan_version="1",
+        policy_settings={"privacy_mode": "offline",
+                         "placement_policy": "skeleton-policy",
+                         "budget_ceilings": all_ceilings(eval_conn)},
+    )
+    add_file_entry(eval_conn, bundle_id, file_id=file_id, content_hash=content_hash,
+                   hash_algorithm="sha256", handling_class=None,
+                   payload_ref="blobs/skeleton")
+    add_extraction_run(eval_conn, bundle_id, row={
+        "run_id": "skeleton-run", "file_id": file_id, "content_hash": content_hash,
+        "extractor_name": "pdf.native", "extractor_version": "1.0.0",
+        "source_type": "text", "config_fingerprint": "sha256:cfg",
+        "completeness": "complete",
+        "coverage": {"units": "pages", "processed": 1, "total": 1},
+        "observation_count": 1})
+    add_text_unit(eval_conn, bundle_id, row={
+        "run_id": "skeleton-run", "container_path": [], "unit_locator": "",
+        "text": "COMS 4995 syllabus", "length": 18, "truncated": False})
+    add_expectation(eval_conn, bundle_id, dimension="extraction",
+                    subject_ref=content_hash,
+                    expected_value={"text": "COMS 4995 syllabus"},
+                    expected_outcome_kind="produced", source="hand-labelled")
+    add_expectation(eval_conn, bundle_id, dimension="placement",
+                    subject_ref=file_id, expected_value={"node_id": "n-academics"},
+                    expected_outcome_kind="produced", source="hand-labelled")
+    seal_bundle(eval_conn, bundle_id)
+
+    # §8.5: "without touching a live filesystem". The source is gone from here on.
+    document.unlink()
+    assert not document.exists()
+
+    # ---- P2's step, part two: replay. One minimal stage, nine absent.
+    def extraction_from_the_bundle(ctx: ReplayContext):
+        from eval_harness.bundle import text_units
+        unit = text_units(ctx.conn, ctx.bundle_id, run_id="skeleton-run")[0]
+        return [StageResult(
+            subject_ref=content_hash, outcome="produced",
+            payload='{"stands in for P4/P5": true}', inputs=[],
+            budget_state="within_ceiling",
+            values=[DimensionValue("extraction", content_hash, "produced",
+                                   {"text": unit["text"]})])]
+
+    run_id = replay_bundle(
+        eval_conn, bundle_id,
+        version_tuple=dict(extractor_versions={"pdf.native": "1.0.0"},
+                           graph_algorithm_version=None, prompt_fingerprint=None,
+                           model_identifier=None, template_library_version=None,
+                           placement_scorer_version=None,
+                           analysis_tiers_enabled=["filesystem", "native"]),
+        budget_ceilings=all_ceilings(eval_conn),
+        run_settings={"model_enabled": False, "embeddings_enabled": False},
+        adapters={"extraction": extraction_from_the_bundle},
+    )
+
+    # ---- assert each stage's output.
+    outputs = {r["stage_id"]: r for r in stage_outputs(eval_conn, run_id)}
+    assert set(outputs) == set(STAGE_IDS)
+    assert outputs["extraction"]["outcome"] == "produced"
+    assert sum(1 for r in outputs.values() if r["outcome"] == "not_implemented") == 9
+
+    assert assert_run(eval_conn, run_id) == 2
+    attribute_run(eval_conn, run_id)
+    by_dimension = {r["dimension"]: r for r in assertions(eval_conn, run_id)}
+    assert by_dimension["extraction"]["verdict"] == "match"
+    assert by_dimension["extraction"]["attributed_stage"] is None
+    # The absent stage yields not_run, not a failure (Done-means 7).
+    assert by_dimension["placement"]["verdict"] == "not_run"
+    assert by_dimension["placement"]["attributed_stage"] is None
+
+    counts = verdict_counts(eval_conn, run_id)
+    assert counts == {"match": 1, "not_run": 1}
+    assert "divergent" not in counts
+
+    # §8.6's count line, from the bundle, with the corpus deleted (Done-means 13).
+    assert bundle_counts(eval_conn, bundle_id) == {
+        "files_indexed": 1, "files_with_any_run": 1, "files_fully_extracted": 1,
+        "runs_deferred": 0, "runs_unreadable": 0,
+        "files_requiring_model_review": None,
+    }
+
+    # Every dimension is representable even when only two were asserted.
+    assert len(DIMENSIONS) == 10
+```
+
+- [ ] **Step 2: Run test to verify it passes**
+
+Run: `pytest tests/eval/test_skeleton_p2_step.py -v`
+Expected: PASS — 1 passed. It FAILS if any prior task is incomplete, or if P1's `observe_path` is not yet built.
+
+- [ ] **Step 3: Run the full suite one final time**
+
+Run: `pytest -q`
+Expected: PASS — P1's suite plus P2's Tasks 1–17.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add tests/eval/test_skeleton_p2_step.py
+git commit -m "test(P2): walking-skeleton P2 step, nine stages absent, corpus deleted before replay"
+```
+
+---
+
+## Self-Review
+
+**Spec coverage.** Every Contract-out section has a task: §1 the ten stages → Task 2, §2 the ten dimensions → Task 2, §3 the replay bundle → Tasks 5–8, §4 the stage output envelope → Task 4, §5 the run manifest → Task 3, §6 the assertion record → Tasks 10–11, §7 the comparison record → Task 12, §8 shadow mode → Task 13, §9 the adversarial suite → Task 14. Done-means 1–13 map as: 1→T5/T6, 2→T2/T10/T12, 3→T12/T16, 4→T11, 5→T10, 6→T10/T12, 7→T9/T10, 8→T12, 9→T13, 10→T14, 11→T17, 12→T8/T10, 13→T15.
+
+**Open questions this plan does not answer.** All twelve stay open, and each is held open by a mechanism rather than by a comment:
+
+| OQ | How it is held open |
+|---|---|
+| 1 — the two lists do not match | no `STAGE_FOR_DIMENSION` mapping exists; the emitting stage names itself (T2, T4). A test fails if one is added. |
+| 2 — no thresholds | `verdict_for` takes no tolerance argument and comparison is exact equality; a test pins its signature (T10). |
+| 3 — attribution across subjects | the traversal walks the edges it is given and neither requires nor forbids cross-subject ones; two tests show both behaviours from the same code (T11). |
+| 4 — is `tree` an assertion or an observation | `tree` is one of the ten dimensions with an ordinary assertion record and **no special-casing anywhere**; nothing in P2 decides whether its verdict is meaningful. |
+| 5 — may a bundle leave the device | there is no export function; `add_text_unit` on a `metadata_safe` bundle raises naming OQ5 rather than allowing or forbidding in silence (T6). |
+| 6 — no attribution stage for scan, privacy, apply | `STAGE_IDS` is §8.5's ten and P2 attributes nothing to P3, P7 or P12 (T2). |
+| 7 — may replay write to the shared evidence database | P2 writes only its own tables; compatible with either answer (T1, T13). |
+| 8 — shadow budget | `run_shadow` takes the same ceilings a replay takes; no shadow ceiling key is added (T13). |
+| 9 — blocking or advisory gate | `run_gate` returns a report, raises nothing, has no `passed` attribute; a test asserts its source contains no `raise` (T14). |
+| 10 — shadow adjudication → §8.7 correction | `record_adjudication` writes P2's own table, appends no event, and there is no promotion function (T13). |
+| 11 — reproducibility of a run | `content_ref` is documented as an identity of the tuple, not a claim about reproducing outputs (T1, T3). |
+| 12 — shadow selection criterion | `select` is required with no default and P2 ships no selector (T13). |
+
+**No invented values.** No numeric threshold, no ceiling value, no gazetteer entry, no template name, no domain fact field. The only numbers in the plan are fixture values in tests and P4's own example `coverage` figures copied from its SPEC. Task 3 carries a test that fails if a numeric ceiling literal appears in `src/`.
+
+**No foreign vocabulary declared.** P7's five classes and four modes, P6's fact fields, P11's `outcome` and `abstention_reason` members, §3.13's reliability states and §7.3's residual names are stored as opaque strings and never declared in `src/eval_harness/`. Task 16 is the standing guard. The one closed vocabulary P2 carries beyond its own is I4's four analysis tiers, which P2's Contract out §5 prints inside P2's own record.
+
+**Authorship.** P2 appends no `events` row anywhere — no `append_event` import, no `INSERT INTO events`, no `correction_scope` write. Task 16 asserts all three. Nothing deletes from `events`; I6 is untouched.
+
+**Placeholder scan.** No "TBD", no "add error handling", no "similar to Task N", no angle-bracket placeholder standing in for a real name. Every code step carries complete runnable code, and every unresolved thing is named as unresolved with the open question that owns it.
+
+**Type consistency.** `bundle_id`, `run_id`, `stage_id`, `dimension`, `subject_ref`, `version_tuple_ref`, `budget_ceilings`, `run_settings`, `expected_outcome_kind` and `attributed_stage` are spelled identically in every task. `DimensionValue(dimension, subject_ref, outcome, value)` has the same field order in Tasks 4, 9, 10, 11, 12, 13, 14 and 17. `canonical_json` is the only serializer used for comparison anywhere.
+
+## Known gaps, carried deliberately
+
+- **No neighbour's vocabulary is validated.** `handling_class`, `privacy_mode`, `placement_policy`, the `residual` and `placement` expected values, and P6's reliability states are stored as handed. **A typo in any of them is not caught.** The alternative — retyping six parts' enums into P2 — is the two-vocabularies failure this project has already hit. When each part lands, import its published names and validate against the import; do not retype the strings.
+- **`bundle_extraction_run` does not promote `analysis_tier`.** SPEC Contract out §3's enumeration of the run fields P2 carries does not include it, so it survives only inside the verbatim `row`. A run-tier-versus-`analysis_tiers_enabled[]` cross-check is therefore not a column query today. Recommended SPEC addition, recorded in the report and not made.
+- **`inputs[]` resolves ambiguously where two stages decided about one subject.** Contract out §4 publishes bare `subject_ref`s; the traversal follows all matches. A `(stage_id, subject_ref)` pair would be unambiguous. Recommended SPEC change, not made.
+- **`outcome = error` and `expected_outcome_kind = 'not-applicable'` get a NULL verdict.** §8.5 publishes seven verdicts and defines none for either. P2 mints no eighth name and reports both under `unverdicted`. Recommended SPEC change, not made.
+- **"Files indexed" has two definitions and both are reported.** P2's Contract out §3 and P5's adopted mapping disagree. `bundle_counts` returns `files_indexed` and `files_with_any_run` and picks neither.
+- **`bundle_learning_record`'s "evidence refs" is §8.2's `explanation`.** P1 publishes one field for *"a structured explanation or evidence reference"*; P2's SPEC names two things. The verbatim `row` carries whatever P1 wrote.
+- **Nine of the ten stages are fixtures.** Every adapter in these tests stands in for a part that does not exist. When P4–P11 land, each fixture adapter is replaced by the real stage and the assertions keep their shape — that is the property Task 17 exists to protect.
+- **Adversarial cases A1–A8 and A10–A12 report `not_run` until their stage exists.** Only A9 can pass today. That is correct and is the reason `not_run` is never folded into `pass`.
+- **P2's own §8.6 ceilings are not implemented.** SPEC Cross-cutting answers names three — bundle count, bundle storage size, adversarial suite wall-clock — and a possible shadow-run model budget under Open question 8. Adding a key requires adding it to P1's `CEILING_KEYS`, which is P1's file, and the values are hand-authored. Not blocking Tasks 1–17.
+- **No renderer.** §8.5's user-facing evaluation view is P13's (SPEC Open question 12's partial settlement). P2 publishes records; it renders nothing, and Done-means 3's *"or rendered report"* clause therefore binds P13 as well as P2.
+- **Schema migration.** `EVAL_SCHEMA_VERSION` is stamped into `eval_schema_meta` on every `create_eval_schema` and never compared, exactly as P1's `SCHEMA_VERSION` is. The first *change* to a P2 table needs one.
+
+## Execution Handoff
+
+Plan saved to `planning/parts/P2-eval-replay-harness/PLAN.md`. **P1 must be green first** — run `pytest tests/ -q` and confirm before starting Task 1. Two execution options:
+
+1. **Subagent-Driven (recommended)** — a fresh subagent per task, review between tasks, fast iteration.
+2. **Inline Execution** — execute tasks in this session with checkpoints for review.

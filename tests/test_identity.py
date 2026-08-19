@@ -73,7 +73,7 @@ def test_volume_id_carries_its_observation_session(tmp_path: Path):
 
 from database_agent.db import create_schema
 from database_agent.files_table import (
-    file_path_history, get_file, observe_path,
+    ReservedScanState, file_path_history, get_file, observe_path,
 )
 
 
@@ -163,6 +163,54 @@ def test_two_live_copies_are_two_records_sharing_one_hash(conn, tmp_path: Path):
     assert len(rows) == 2
     assert rows[0]["content_hash"] == rows[1]["content_hash"]
     assert {r["current_path"] for r in rows} == {str(a), str(b)}
+
+
+def test_deleting_one_of_two_live_copies_does_not_hijack_the_survivor(conn, tmp_path: Path):
+    # R2 only applies when the observed path is not already a live row.
+    create_schema(conn)
+    a = tmp_path / "A.pdf"
+    b = tmp_path / "B.pdf"
+    a.write_bytes(b"duplicate bytes")
+    b.write_bytes(b"duplicate bytes")
+    file_a = observe_path(conn, a, **_observed())
+    file_b = observe_path(conn, b, **_observed())
+    a.unlink()
+    again = observe_path(conn, b, **_observed())
+    assert again == file_b
+    assert again != file_a
+    paths = [r["current_path"] for r in conn.execute("SELECT current_path FROM files")]
+    assert len(paths) == len(set(paths))
+
+
+def test_caller_cannot_supply_p1s_superseded_sentinel(conn, tmp_path: Path):
+    create_schema(conn)
+    p = tmp_path / "doc.txt"
+    p.write_bytes(b"bytes")
+    with pytest.raises(ReservedScanState):
+        observe_path(conn, p, **_observed(scan_state="superseded_content"))
+
+
+def test_observe_path_hashes_once(conn, tmp_path: Path, monkeypatch):
+    import database_agent.files_table as ft
+
+    real = ft.hash_file
+    calls = []
+
+    def counting_hash(path, *, materialized):
+        calls.append(path)
+        return real(path, materialized=materialized)
+
+    monkeypatch.setattr(ft, "hash_file", counting_hash)
+    p = tmp_path / "syncing.txt"
+    p.write_bytes(b"bytes")
+    file_id = observe_path(conn, p, **_observed())
+    assert len(calls) == 1
+    row_hash = get_file(conn, file_id)["content_hash"]
+    event_hash = conn.execute(
+        "SELECT content_hash FROM events WHERE file_id = ? ORDER BY event_id DESC LIMIT 1",
+        (file_id,),
+    ).fetchone()["content_hash"]
+    assert row_hash == event_hash
 
 
 def test_same_path_new_bytes_is_a_new_version_and_invalidates_extraction(conn, tmp_path: Path):

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import unicodedata
 import uuid
@@ -17,6 +18,14 @@ FILES_COLUMNS: tuple[str, ...] = (
     "scan_state", "extraction_status_by_tier", "sensitivity_state",
 )
 
+#: OQ1 — P1's own write into `scan_state` when a path's bytes change. Not a
+#: value P3 may supply: this column is otherwise P3's vocabulary (Contract in).
+SUPERSEDED_CONTENT = "superseded_content"
+
+
+class ReservedScanState(Exception):
+    """P3 owns `scan_state` except for P1's R3 sentinel, which P1 writes itself."""
+
 
 def _timestamps(path: Path) -> str:
     stat = path.stat()
@@ -26,12 +35,45 @@ def _timestamps(path: Path) -> str:
     })
 
 
+def _is_same_file(recorded: str, observed: Path) -> bool:
+    """Do these two path spellings name the same file on this filesystem?
+
+    Asked of the filesystem, never guessed. On APFS and HFS+ the NFC and NFD
+    spellings of one name open the same inode, so comparing `current_path` as a
+    Python string mints a second `files` row for one file — and §8.3's collision
+    policy, seeing two rows whose hashes "prove the files are identical", would
+    offer to delete one copy and delete the only copy. Normalising the string
+    instead would be wrong on a filesystem that does not fold, where the two
+    spellings really are two files. The filesystem is asked instead.
+    Compared with `lstat`, which does NOT follow symlinks, so a symlink and its
+    target stay two records: the link has its own directory entry and its own
+    inode, and §8.3 must be able to move one without touching the other. Two
+    spellings of a single entry share one inode and are one record.
+
+    This is a live comparison of two paths in one process, not a stored value:
+    P1 OQ9 is about persisting a volume identifier, and nothing here is persisted.
+    """
+    try:
+        a, b = os.lstat(recorded), os.lstat(observed)
+    except OSError:
+        return False        # one of them is gone: not the same file, possibly a move
+    return (a.st_dev, a.st_ino) == (b.st_dev, b.st_ino)
+
+
+def _require_caller_scan_state(scan_state: str) -> None:
+    if scan_state == SUPERSEDED_CONTENT:
+        raise ReservedScanState(
+            f"{SUPERSEDED_CONTENT!r} is P1's R3 sentinel (OQ1); a caller cannot supply it"
+        )
+
+
 def record_file(conn: sqlite3.Connection, path: Path, *,
                 parent_folder_context: str | None,
                 mime_type: str | None,
                 detected_format: str | None,
                 scan_state: str,
-                materialized: bool) -> str:
+                materialized: bool,
+                content_hash: str | None = None) -> str:
     """Create the `files` row (Contract out §2).
 
     `mime_type`, `detected_format` and `scan_state` are P3's (Contract in: "store
@@ -41,7 +83,16 @@ def record_file(conn: sqlite3.Connection, path: Path, *,
     word) — one field, not two (MINOR 11).
 
     `materialized` is passed through to `hash_file` (11-ops-runtime.md §5).
+    `content_hash` is P1's: when the caller has already hashed this path (R1),
+    pass it so the row is keyed on the digest identity resolution used. A second
+    read between those two would let a sync agent change the bytes underneath
+    the file_id.
     """
+    _require_caller_scan_state(scan_state)
+    digest = (
+        content_hash if content_hash is not None
+        else hash_file(path, materialized=materialized)
+    )
     file_id = str(uuid.uuid4())
     stat = path.stat()
     conn.execute(
@@ -51,7 +102,7 @@ def record_file(conn: sqlite3.Connection, path: Path, *,
             file_id, str(path), path.name,
             unicodedata.normalize("NFC", path.name), path.suffix,
             parent_folder_context, volume_id_for(path),
-            hash_file(path, materialized=materialized), HASH_ALGORITHM,
+            digest, HASH_ALGORITHM,
             stat.st_size, _timestamps(path),
             mime_type, detected_format,
             scan_state, "{}", None,
@@ -104,50 +155,68 @@ def observe_path(conn: sqlite3.Connection, path: Path, *,
     New bytes: a new version; the prior row is superseded and its extraction state
     invalidated, under the caller's event.
     """
+    _require_caller_scan_state(scan_state)
     content_hash = hash_file(path, materialized=materialized)
     now = datetime.now(timezone.utc).isoformat()
+    observed = str(path)
 
     # I1: a prior row for this hash is only the SAME file version if its recorded
     # path is no longer live. Two live copies are two records (§2.9, §8.3).
-    existing = None
-    for candidate in conn.execute(
-        "SELECT * FROM files WHERE content_hash = ? AND scan_state != 'superseded_content' "
-        "ORDER BY rowid", (content_hash,)
-    ).fetchall():
-        if candidate["current_path"] == str(path) or not Path(candidate["current_path"]).exists():
-            existing = candidate
-            break
+    # Exact path wins first: otherwise a deleted twin (earlier rowid, dead path)
+    # would steal the still-live copy's identity on re-observation.
+    same_hash = conn.execute(
+        "SELECT * FROM files WHERE content_hash = ? AND scan_state != ? "
+        "ORDER BY rowid", (content_hash, SUPERSEDED_CONTENT),
+    ).fetchall()
+    existing = next((row for row in same_hash if row["current_path"] == observed), None)
+    # Same file under a different spelling of its name is the same file version,
+    # not a duplicate. Checked before the dead-path branch so it can never be
+    # mistaken for a move.
+    if existing is None:
+        existing = next(
+            (row for row in same_hash if _is_same_file(row["current_path"], path)), None
+        )
+    if existing is None:
+        path_taken = conn.execute(
+            "SELECT 1 FROM files WHERE current_path = ? AND scan_state != ?",
+            (observed, SUPERSEDED_CONTENT),
+        ).fetchone()
+        if path_taken is None:
+            existing = next(
+                (row for row in same_hash if not Path(row["current_path"]).exists()),
+                None,
+            )
 
     if existing is not None:
-        if existing["current_path"] != str(path):
+        if existing["current_path"] != observed:
             append_event(
                 conn, event_type="stat observation", file_id=existing["file_id"],
                 content_hash=content_hash, old_path=existing["current_path"],
-                new_path=str(path), subsystem=author,
+                new_path=observed, subsystem=author,
                 component_version=component_version, observed_at=now,
                 explanation="same content observed at a new path (R2)",
             )
             conn.execute(
                 "UPDATE files SET current_path = ? WHERE file_id = ?",
-                (str(path), existing["file_id"]),
+                (observed, existing["file_id"]),
             )
         return existing["file_id"]
 
     prior = conn.execute(
-        "SELECT file_id FROM files WHERE current_path = ? AND scan_state != 'superseded_content'",
-        (str(path),),
+        "SELECT file_id FROM files WHERE current_path = ? AND scan_state != ?",
+        (observed, SUPERSEDED_CONTENT),
     ).fetchone()
     if prior is not None:
         append_event(
             conn, event_type="external modification detection",
             file_id=prior["file_id"], content_hash=content_hash,
-            old_path=str(path), new_path=str(path), subsystem=author,
+            old_path=observed, new_path=observed, subsystem=author,
             component_version=component_version, observed_at=now,
             explanation="content at this path changed; this version is superseded (R3)",
         )
         conn.execute(
-            "UPDATE files SET scan_state = 'superseded_content' WHERE file_id = ?",
-            (prior["file_id"],),
+            "UPDATE files SET scan_state = ? WHERE file_id = ?",
+            (SUPERSEDED_CONTENT, prior["file_id"]),
         )
         invalidate_extraction_state(conn, prior["file_id"], author=author,
                                     component_version=component_version)
@@ -156,6 +225,7 @@ def observe_path(conn: sqlite3.Connection, path: Path, *,
         conn, path, parent_folder_context=parent_folder_context,
         mime_type=mime_type, detected_format=detected_format,
         scan_state=scan_state, materialized=materialized,
+        content_hash=content_hash,
     )
     append_event(
         conn, event_type="hashing", file_id=file_id, content_hash=content_hash,

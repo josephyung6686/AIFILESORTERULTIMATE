@@ -84,22 +84,56 @@ class UnregisteredEventType(Exception):
     """Rule 3: an unregistered type is rejected at the writer, never silently stored."""
 
 
+class MalformedEvent(Exception):
+    """Shape check at the writer. An append-only row cannot be repaired later."""
+
+
+#: §8.7's six scopes, in §8.7's order, in the spelling `events.correction_scope`
+#: and P13's `review_action.correction_scope` both use. Prose "destination node" is
+#: the same scope as `node`, not a second value.
+#:
+#: DEFINED ONCE. `learning.SCOPES` is this tuple, imported — not a second copy.
+#: The writer validates against it and the learning store reads against it, and a
+#: scope one accepted that the other rejected would be storable and permanently
+#: unreadable.
+CORRECTION_SCOPES: tuple[str, ...] = (
+    "file", "group", "node", "template", "domain", "corpus",
+)
+
+_REQUIRED = ("event_type", "subsystem", "component_version", "observed_at", "explanation")
+
+
 def append_event(conn: sqlite3.Connection, **fields) -> int:
     """Append one event. Returns its monotonic event_id.
 
     `subsystem` is the authoring part (§8.2 "the responsible subsystem"). P1 never
     fills it in: the acting part authors, P1 writes (M8).
     """
-    event_type = fields.get("event_type")
+    unknown = [k for k in fields if k not in _WRITABLE]
+    if unknown:
+        raise MalformedEvent(f"unrecognised event fields: {sorted(unknown)}")
+    for name in _REQUIRED:
+        value = fields.get(name)
+        if value is None or value == "":
+            raise MalformedEvent(f"{name} is required and cannot be empty")
+    event_type = fields["event_type"]
     if event_type not in EVENT_TYPES:
         raise UnregisteredEventType(
             f"{event_type!r} is neither one of §8.2's nineteen reserved names nor "
             "declared by a part's SPEC; registration is a spec-level act (rule 4)"
         )
+    scope = fields.get("correction_scope")
+    if scope is not None:
+        if scope not in CORRECTION_SCOPES:
+            raise MalformedEvent(
+                f"correction_scope {scope!r} is not one of {tuple(sorted(CORRECTION_SCOPES))}"
+            )
+        if not fields.get("correction_subject"):
+            raise MalformedEvent("correction_scope requires correction_subject")
     base = EVENT_TYPES[event_type]
     if base is not None:
         fields.setdefault("base_event_type", base)
-    columns = [k for k in fields if k in _WRITABLE]
+    columns = list(fields)
     values = [fields[k] for k in columns]
     cursor = conn.execute(
         f"INSERT INTO events ({','.join(columns)}) VALUES ({','.join('?' * len(columns))})",

@@ -109,3 +109,12 @@ def test_the_append_only_triggers_survive_a_reopen(tmp_path: Path):
     with pytest.raises(sqlite3.IntegrityError):
         second.execute("DELETE FROM events")
     second.close()
+
+
+def test_the_writer_and_the_learning_store_share_one_scope_vocabulary():
+    """One concept, one definition. Two copies of the six scopes would let a scope
+    be accepted by the writer and rejected by the reader — storable, permanently
+    unreadable, and a silently lost user correction."""
+    from database_agent.events import CORRECTION_SCOPES
+    from database_agent.learning import SCOPES
+    assert SCOPES is CORRECTION_SCOPES

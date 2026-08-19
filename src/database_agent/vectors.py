@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS vector_arrays (
 def put_embedding(conn: sqlite3.Connection, subject_key: str, array: bytes, *,
                   producer_version: str) -> None:
     """Store an opaque compact local array. P1 does not interpret its contents."""
+    if not isinstance(array, (bytes, bytearray, memoryview)):
+        raise TypeError("embeddings are opaque bytes; P1 stores them unchanged")
     conn.execute(
         "INSERT INTO vector_arrays (subject_key, array_bytes, producer_version) "
         "VALUES (?, ?, ?) ON CONFLICT(subject_key) DO UPDATE SET "

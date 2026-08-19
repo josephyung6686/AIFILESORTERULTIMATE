@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+import uuid
 from collections.abc import Iterable
 from contextlib import contextmanager
 from pathlib import Path
@@ -42,6 +43,11 @@ def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Con
     conn = sqlite3.connect(path, isolation_level=None)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # R6 is "INSERT only ... no row rewrite". SQLite's REPLACE conflict resolution
+    # deletes the conflicting row WITHOUT firing delete triggers unless recursive
+    # triggers are on, so `INSERT OR REPLACE` would rewrite any event row in place
+    # with no error — forging the one log §8.4's audit and §8.7's evidence read.
+    conn.execute("PRAGMA recursive_triggers = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA synchronous = FULL")
     conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
@@ -50,12 +56,41 @@ def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Con
     # stays public and idempotent for callers that want it explicitly, but no
     # neighbour has to remember a second call to get a usable database.
     create_schema(conn)
+    conn.set_authorizer(_deny_events_history_loss)
     return conn
+
+
+_PROTECTED_TRIGGERS = frozenset({
+    "events_no_update", "events_no_delete", "events_no_replace",
+})
+
+
+def _deny_events_history_loss(action, arg1, arg2, dbname, source):
+    """R6: DROP TABLE events and dropping the append-only triggers are truncation."""
+    if action == sqlite3.SQLITE_DROP_TABLE and arg1 == "events":
+        return sqlite3.SQLITE_DENY
+    if action == sqlite3.SQLITE_DROP_TRIGGER and arg1 in _PROTECTED_TRIGGERS:
+        return sqlite3.SQLITE_DENY
+    return sqlite3.SQLITE_OK
 
 
 @contextmanager
 def transaction(conn: sqlite3.Connection):
-    """Explicit transaction boundary. P1 publishes this; each part owns its tables."""
+    """Explicit transaction boundary. Reentrant: nested callers use a SAVEPOINT
+    so they cannot roll back an outer scope's work.
+    """
+    in_flight = conn.in_transaction
+    name = f"p1_{uuid.uuid4().hex}"
+    if in_flight:
+        conn.execute(f"SAVEPOINT {name}")
+        try:
+            yield conn
+        except Exception:
+            conn.execute(f"ROLLBACK TO SAVEPOINT {name}")
+            conn.execute(f"RELEASE SAVEPOINT {name}")
+            raise
+        conn.execute(f"RELEASE SAVEPOINT {name}")
+        return
     conn.execute("BEGIN")
     try:
         yield conn
@@ -115,6 +150,10 @@ BEFORE UPDATE ON events
 BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
 CREATE TRIGGER IF NOT EXISTS events_no_delete
 BEFORE DELETE ON events
+BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
+CREATE TRIGGER IF NOT EXISTS events_no_replace
+BEFORE INSERT ON events
+WHEN EXISTS (SELECT 1 FROM events WHERE event_id = NEW.event_id)
 BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
 """
 

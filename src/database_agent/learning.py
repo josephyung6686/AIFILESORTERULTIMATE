@@ -14,12 +14,13 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime, timezone
 
-from database_agent.events import append_event
+from database_agent.events import CORRECTION_SCOPES, append_event
 
-#: §8.7's six scopes, in the spelling `events.correction_scope` and P13's
-#: `review_action.correction_scope` both use. "destination node" is the same scope
-#: written out in prose; it is not a second value.
-SCOPES: tuple[str, ...] = ("file", "group", "node", "template", "domain", "corpus")
+#: §8.7's six scopes. The SAME tuple the writer validates against — imported, never
+#: restated. Two copies of one vocabulary is the defect this project keeps hitting:
+#: a scope allowed by the writer and refused by this reader would be storable and
+#: permanently unreadable, which is a silent loss of a user's correction.
+SCOPES: tuple[str, ...] = CORRECTION_SCOPES
 
 #: The event P13 authors when it routes a collected gesture (P13 SPEC, Provenance).
 #: A reset arrives as review_action with surface = learning, action = reset_learning.

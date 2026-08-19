@@ -29,12 +29,12 @@ def _cpu_seconds() -> float:
     return usage.ru_utime + usage.ru_stime
 
 
-def _database_bytes(conn: sqlite3.Connection) -> int:
+def _database_bytes(conn: sqlite3.Connection) -> int | None:
     """The database and its WAL/SHM sidecars. This is the storage P1 can count."""
     row = conn.execute("PRAGMA database_list").fetchone()
     path = Path(row["file"]) if row and row["file"] else None
     if path is None:
-        return 0
+        return None
     return sum(p.stat().st_size for p in
                (path, path.with_name(path.name + "-wal"), path.with_name(path.name + "-shm"))
                if p.exists())
@@ -90,10 +90,12 @@ def sample_scan_resources(conn: sqlite3.Connection, scan_id: str) -> None:
 def record_llm_cost(conn: sqlite3.Connection, scan_id: str, cost, *, author: str) -> None:
     """P8 is the single egress point and the only part that can know this (O9).
     P1 stores the value opaquely and compares it to nothing."""
-    conn.execute(
+    cursor = conn.execute(
         "UPDATE scan_resource_usage SET llm_cost = ?, observed_at = ? WHERE scan_id = ?",
         (json.dumps(cost), datetime.now(timezone.utc).isoformat(), scan_id),
     )
+    if cursor.rowcount == 0:
+        raise KeyError(f"unknown scan_id {scan_id!r}")
 
 
 def scan_resource_usage(conn: sqlite3.Connection, scan_id: str) -> sqlite3.Row:

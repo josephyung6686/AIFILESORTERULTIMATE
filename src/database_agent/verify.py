@@ -39,7 +39,12 @@ def verify_content(conn: sqlite3.Connection, file_id: str, expected_hash: str, *
                    materialized: bool) -> str:
     """Return 'match' or 'mismatch'. Records the check; interprets nothing."""
     row = get_file(conn, file_id)
-    actual = hash_file(Path(row["current_path"]), materialized=materialized)
+    if row is None:
+        raise KeyError(f"unknown file_id {file_id!r}")
+    try:
+        actual = hash_file(Path(row["current_path"]), materialized=materialized)
+    except OSError:
+        actual = None
     result = "match" if actual == expected_hash else "mismatch"
     append_event(
         conn, event_type="hashing", file_id=file_id, content_hash=actual,
@@ -55,8 +60,13 @@ def confirm_cross_volume_copy(conn: sqlite3.Connection, *, source: Path,
                               component_version: str, materialized: bool) -> bool:
     """V4 — the destination copy is hashed and confirmed BEFORE the source may be
     removed (§8.2). P1 never removes the source; it only answers whether it may be."""
-    confirmed = (destination.exists()
-                 and hash_file(destination, materialized=materialized) == expected_hash)
+    try:
+        confirmed = (
+            destination.is_file()
+            and hash_file(destination, materialized=materialized) == expected_hash
+        )
+    except OSError:
+        confirmed = False
     append_event(
         conn, event_type="hashing", content_hash=expected_hash,
         old_path=str(source), new_path=str(destination), subsystem="P1",
