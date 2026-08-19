@@ -57,10 +57,14 @@ database_agent.db          open_database(path, *, scan_roots=()) -> sqlite3.Conn
 database_agent.identity    HASH_ALGORITHM: str
                            hash_file(path, *, materialized: bool) -> str
                            DatalessFileRefused
-database_agent.files_table record_file(conn, path, *, parent_folder_context, mime_type,
+database_agent.files_table record_file(conn, path, *, filename, normalized_filename,
+                                       extension, observed_size, observed_timestamps,
+                                       parent_folder_context, mime_type,
                                        detected_format, scan_state, materialized,
                                        content_hash=None) -> str
                            observe_path(conn, path, *, author, component_version,
+                                        filename, normalized_filename, extension,
+                                        observed_size, observed_timestamps,
                                         parent_folder_context, mime_type, detected_format,
                                         scan_state, materialized) -> str
                            get_file(conn, file_id) -> sqlite3.Row
@@ -2676,6 +2680,17 @@ def record_basic_record(conn: sqlite3.Connection, observed, *,
         conn, path,
         author=SUBSYSTEM,                # M8: the acting part authors, P1 writes
         component_version=COMPONENT_VERSION,
+        # R2 is computed once, HERE (O5). P1 stores these and derives none of them:
+        # a second derivation is the contract violation Task 10's drift test exists
+        # to catch, and P1's `record_file` now requires them with no default so the
+        # violation cannot happen silently.
+        filename=path.name,
+        normalized_filename=unicodedata.normalize("NFC", path.name),
+        extension=path.suffix,
+        observed_size=observed.size,
+        observed_timestamps=json.dumps({
+            "mtime": datetime.fromtimestamp(observed.mtime, timezone.utc).isoformat(),
+        }),
         parent_folder_context=parent_folder_context(path),
         mime_type=mime_type_for(path),
         detected_format=None,        # not one of R2's ten; §2.9's determination is P5's

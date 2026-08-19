@@ -5673,6 +5673,10 @@ def test_skeleton_p2_step(eval_conn, tmp_path: Path):
     document.write_bytes(b"%PDF-1.4 COMS 4995 syllabus fixture bytes")
     file_id = observe_path(
         eval_conn, document, author="P3", component_version="p3-fixture",
+        # R2 is P3's to compute once (O5); P1 stores it and derives none of it, so
+        # the fixture standing in for P3 supplies it. P1's signature requires these
+        # with no default — a default would let P1 re-derive them silently.
+        **p3_basic_record(document),
         parent_folder_context="corpus", mime_type="application/pdf",
         detected_format="pdf", scan_state="scanned", materialized=True,
     )
