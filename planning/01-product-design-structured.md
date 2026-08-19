@@ -1,0 +1,1912 @@
+# Database Agent — Product Design
+
+Date: 2026-08-19
+Status: **structured view** — derived from the source of truth, not a substitute for it
+Source of truth: [`00-database-agent-product-design.md`](00-database-agent-product-design.md) — Joseph's wording is authoritative
+Author: Joseph (worked out manually); sectioned here for implementation reference
+Remote: [josephyung6686/AIFILESORTERULTIMATE](https://github.com/josephyung6686/AIFILESORTERULTIMATE)
+
+This document is the product design. It is numbered so that implementation can proceed
+part by part: a phase can name the section it implements (for example "§2.7 OCR" or
+"§6.10 the two-condition rule") and the section is the acceptance contract for that work.
+
+Nothing in this document is an implementation plan. It states what the product is, what
+each stage may and may not do, and where the boundaries between rules, graph, model, and
+user sit. Build order and phase breakdown are decided separately, against these sections.
+
+---
+
+## Table of contents
+
+- [0. Foundations — storage model and system of record](#0-foundations--storage-model-and-system-of-record)
+- [1. Pre-sorting intelligence and file-tree proposal engine](#1-pre-sorting-intelligence-and-file-tree-proposal-engine)
+- [2. Content extraction and evidence creation](#2-content-extraction-and-evidence-creation)
+- [3. Facts, facets, and hybrid intelligence](#3-facts-facets-and-hybrid-intelligence)
+- [4. Grouping — LLM-guided group construction](#4-grouping--llm-guided-group-construction)
+- [5. User selection for the folder tree](#5-user-selection-for-the-folder-tree)
+- [6. Group-aware classification against the frozen destination tree](#6-group-aware-classification-against-the-frozen-destination-tree)
+- [7. Residual files, controlled miscellaneous templates, and final review](#7-residual-files-controlled-miscellaneous-templates-and-final-review)
+- [8. Trust, operations, and lifecycle](#8-trust-operations-and-lifecycle)
+
+---
+
+## 0. Foundations — storage model and system of record
+
+The filesystem is the system of record. Every file continues to live as a normal file in a
+normal directory that Finder, Spotlight, Dropbox, Time Machine, shell tools, and other
+applications can understand. The database agent does not own the namespace, create a virtual
+filesystem, or require a proprietary storage format. It can be rebuilt from the filesystem if
+necessary.
+
+A local SQLite database acts as the durable working memory of the product. It records file
+identity, file state, extracted content, facets, evidence locations, structural relationships,
+destination nodes, taxonomy aliases, movement plans, user corrections, and undo history.
+SQLite is appropriate because the agent needs fast local lookups, transactional updates,
+durable state, and easy inspection. The system should store vectors separately as compact
+local arrays if embeddings are used, because a vector database would add complexity without
+material value at the initial scale.
+
+---
+
+## 1. Pre-sorting intelligence and file-tree proposal engine
+
+### 1.1 Step one: select the corpus and possible roots
+
+The user first chooses which folders should be analyzed and which high-level locations may
+serve as roots for a future file tree. A source might be Downloads, Desktop, or the loose
+files at the top of Documents. Potential roots might include Desktop, Documents, Academic,
+Personal Projects, or a dedicated archive location. The user can also select whether files may
+move across high-level folders. For example, a file in Downloads can go to a Personal Projects
+folder on Desktop, or it can remain within Downloads as a separately organized file.
+
+At this stage, roots are context for the proposal canvas, not permission to move files. The
+engine uses them to understand the current folder landscape and to show where a proposed branch
+could eventually live. No sorting decision is made.
+
+Before scanning, the system excludes directories that should not participate in organization.
+The system should also know that existing folder structures should mainly be preserved. For
+example, if a folder called AIKonic Project has a lot of files such as JSON and other software
+material, those are probably not supposed to be touched. The exclusion must apply both to
+scanned sources and to candidate roots. The engine should ignore `node_modules`, `.git`,
+`venv`, `build`, `dist`, `target`, `vendor`, `Pods`, `site-packages`, `Library`,
+`__pycache__`, build artifacts, caches, auto-save folders, previews, and generated dependency
+trees. It should also reject descendants of software project roots indicated by files such as
+`package.json`, `requirements.txt`, `Cargo.toml`, or `go.mod`. This prevents the proposal
+engine from mistaking a dependency subdirectory for a meaningful personal destination.
+
+### 1.2 Step two: create reusable local evidence
+
+The engine next performs one reusable local extraction pass for each file version. This pass
+does not decide what a file means or where it belongs. Its purpose is to create a reliable
+evidence record that every later domain template and proposal can reuse.
+
+For every file, the engine records path, filename, normalized filename, extension, MIME type,
+size, timestamps, directory position, content hash, and scan state. It uses a stat-based cache:
+if a file's size and modification time have not changed, the engine reuses its existing
+extraction results. If either changes, it recomputes the relevant information instead of
+assuming that time only moves forward. This protects against restores, migrations, and other
+filesystem changes that can alter state unexpectedly.
+
+---
+
+## 2. Content extraction and evidence creation
+
+### 2.1 Why the evidence layer exists
+
+Content extraction is the core information-gathering stage of the pre-sorting engine. Its
+purpose is not to decide immediately what a file is, which domain it belongs to, or where it
+should eventually be placed. Its purpose is to convert every supported file into a reusable
+local evidence record. The engine should read each file once per content version, store the
+resulting evidence in SQLite, and allow every later stage — domain routing, fact extraction,
+template fitting, proposal generation, LLM interpretation, and user review — to reuse that same
+evidence. A PDF should not be reopened separately for the Academic, Applications, Research, and
+Career templates, and the same raw document should not be sent repeatedly to an LLM. Instead,
+the system stores a structured local representation of what the file contains and queries it as
+needed.
+
+This is necessary because filenames alone are too weak for real personal corpora. A file called
+`Wash U.docx` may contain an unmistakable university application prompt; `Hw 5.pdf` may be a
+photographed homework page with no usable text layer; and `IMG_4821.png` may be a screenshot of
+a receipt, application portal, conversation, code error, or research figure. The evidence layer
+is what allows the product to understand those files without relying on repeated, open-ended
+model classification.
+
+### 2.2 PDF extraction
+
+For PDFs with usable text layers, the engine should extract the complete document rather than
+only a first-page preview. It should preserve the title, author, subject, creator and producer
+metadata, creation and modification dates, page count, complete text by page, headings, URLs,
+email addresses, DOI values, citations, identifiers, and other structured strings that may later
+support file facts.
+
+Crucially, it must preserve **where** each important piece of evidence appears. A course code or
+university name found in a filename, title, or page-one heading is more meaningful than the same
+text appearing once in a reference list on page eighteen. Each observation should therefore
+record a document zone, page number, text offset, surrounding context, and occurrence count.
+
+PDF metadata should be treated as supporting evidence, not as truth. Author and creator fields
+may be stale, generic, or generated by a tool rather than a person, so a value such as
+`python-docx`, `Mozilla/5.0`, or a browser-generated producer string should not be mistaken for
+meaningful content.
+
+The system should also distinguish between a PDF with **no** text layer and one with a **broken**
+text layer. A file with no text should route directly to OCR; a file that technically produces
+text but yields no usable facts may receive targeted OCR as a fallback, because scanned PDFs can
+contain unreadable or corrupted extracted text. The system should not use unreliable global
+language-quality checks that incorrectly punish multilingual or mathematics-heavy documents.
+
+### 2.3 DOCX extraction
+
+DOCX extraction should preserve the full semantic structure of a document rather than reading
+only its first few paragraphs. The engine should extract core properties, all paragraphs in
+order, heading levels, tables and table-cell text, headers and footers where feasible,
+hyperlinks, document relationships, and available revision or comment metadata.
+
+Tables matter because resumes, forms, applications, invoices, and administrative documents often
+place their most useful information in cells rather than body paragraphs. The extractor must
+preserve the difference between a heading, a table label, a filename, and ordinary body text,
+because those locations carry different evidentiary weight. For example, `Wash U.docx` may have
+an unhelpful filename but a heading stating, "Please tell us what you are interested in studying
+at college and why." That heading is strong evidence for the College Applications domain, even
+though the filename itself does not reveal the file's purpose.
+
+DOCX author metadata should remain supporting information only, because it may identify a prior
+editor, a document template, or a script rather than the meaningful subject or purpose of the
+file.
+
+### 2.4 Text-bearing and structured files
+
+Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks, and
+configuration files should be handled through a lighter structured-text extractor. The engine
+should store their text, filename, extension, language where relevant, headings, and structural
+indicators such as repository markers, package manifests, notebook metadata, and README files.
+Code-related files should rely heavily on local structural evidence, including repository roots
+and package files, rather than forcing semantic analysis to infer a project from arbitrary
+code text.
+
+Spreadsheet and presentation formats should either receive dedicated extraction support — such
+as sheet names, visible cell text, slide titles, notes, and metadata — or be marked clearly as
+unsupported in the initial release. The system should never silently treat an unsupported format
+as an empty document, because an empty extraction result is different from an extractor that
+does not yet exist.
+
+### 2.5 Archives
+
+Archives should be inspected without being unpacked to disk. The engine should read and store
+the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed
+size where available, and recognizable markers such as source-code manifests or document names.
+
+A ZIP file named `submission.zip` may contain a transcript, personal statement, resume,
+certificate, and form, which is meaningful evidence of a purpose-defined application packet even
+when the outer archive name is vague. A source-code archive may reveal a `README.md`,
+`package.json`, `src` directory, or Python package layout and can be recognized as a code
+project.
+
+However, the normal scan should never extract archive contents to the filesystem, because doing
+so creates security, storage, and side-effect risks. Password-protected, malformed, nested, or
+oversized archives should be marked as unreadable or partially inspected rather than forced open
+or allowed to become decompression-bomb risks.
+
+### 2.6 Images
+
+Images require their own extraction pipeline because filenames often carry little semantic
+meaning. For every supported image, the engine should store its format, pixel dimensions, file
+size, color information where useful, content hash, perceptual hash, EXIF camera make and model,
+lens data, ISO, focal length, capture time, GPS, orientation, software metadata, filename
+pattern, and OCR output where needed.
+
+Camera EXIF, GPS, and capture time can support deterministic photo-event proposals. Exact hashes
+and perceptual hashes can identify duplicates and near-duplicates. Image dimensions, PNG format,
+software metadata, and known screen resolutions can support a screenshot hypothesis.
+
+However, the system must not mistake the absence of EXIF for proof that an image is a
+screenshot. Messaging platforms and downloaded web images often strip metadata from real
+photographs. OCR text density is also not a reliable screenshot detector, because receipts,
+document scans, whiteboards, and photographs of pages can all contain dense text. The system
+should therefore use a hierarchy of signals: camera EXIF is strong photo evidence; capture time,
+GPS, and sensor-shaped dimensions reinforce it; exact display resolutions, PNG format, and
+software metadata may support a screenshot hypothesis; conflicting signals should lead to
+abstention rather than an invented classification.
+
+HEIC support must be included explicitly, because failing to configure the image stack for HEIC
+can silently exclude a meaningful portion of an Apple-centric corpus.
+
+### 2.7 OCR
+
+OCR is not merely a rescue tool for scanned PDFs. It is the main way screenshots and opaque
+loose images become understandable to the pre-sorting engine. A screenshot is always a screenshot
+*of something* — a receipt, application portal, conversation, code problem, document, calendar,
+or research figure — and without OCR the product sees only an image with a weak filename.
+
+OCR should therefore run when a file yields no usable text and no usable metadata, including
+scanned PDFs, confirmed screenshots, and opaque images without EXIF. A PDF with no extractable
+text and evidence of being created from a photographed page can route directly to OCR. A document
+with a non-empty but unusable text layer should receive OCR only when its extracted evidence
+fails to produce usable facts, not because a broad quality heuristic says the text looks unusual.
+
+On macOS, Apple Vision should be configured explicitly with accurate recognition, appropriate
+language support including CJK where required, and a practical rendering resolution such as
+200 DPI. OCR also needs a page cap, total run-time limit, progress state, and partial-read state,
+because long scanned books can otherwise create unexpectedly expensive workloads.
+
+The database should preserve the OCR provider and version, languages, configuration, page or
+image reference, raw recognized text, locations or bounding boxes where available, confidence
+information, and whether extraction was complete or capped.
+
+### 2.8 The common evidence shape
+
+Every extractor should emit evidence in a common format so later domain templates, validation
+rules, and LLM prompts do not need separate logic for PDFs, DOCX files, images, archives, or OCR.
+At minimum, every observation should contain:
+
+```text
+File identifier
+Content hash
+Extractor name and version
+Source type
+Raw value
+Normalized candidate value
+Location
+Surrounding context
+Occurrence count
+Observation time
+Reliability state
+```
+
+A PDF match may be located at page 1, heading 2; a DOCX match may come from table 3, row 2,
+column 1; an image observation may come from EXIF `DateTimeOriginal` or an OCR region; and an
+archive observation may come from a manifest path.
+
+The system must retain **raw** evidence separately from **normalized** values. If a document says
+`U Chicago`, the raw observation remains exactly that wording, while a resolver may normalize it
+to `University of Chicago` and the user may later choose to display it as `UChicago`.
+
+Extraction does not create a final folder path, invent domains, merge all files that share one
+string, or treat model output as proof. It creates the structured, cached, explainable raw
+material from which the rest of the pre-sorting engine can safely build domain facts, folder
+proposals, and the future editable tree.
+
+### 2.9 Format coverage beyond the core four
+
+The evidence layer must support more than PDFs, DOCX files, images, and archives. The engine
+should treat the file extension as a routing signal rather than an assumption about meaning,
+inspect the real MIME type or file signature where possible, and dispatch each file to a
+type-specific extractor. Every file receives basic filesystem extraction, including path,
+filename, normalized filename, extension, MIME type, size, timestamps, content hash, duplicate
+and version-family signals, and parent-folder context. The system then identifies the best
+available extractor for the actual file format.
+
+- **Text documents** — PDF, DOCX, RTF, TXT, Markdown, HTML, EPUB, OpenDocument. Yield full text,
+  headings, metadata, links, and structural information.
+- **Spreadsheets** — XLSX, XLS, CSV, TSV, ODS, Numbers exports. Yield workbook or file metadata,
+  sheet names, column headers, visible cell values, table-like regions, formulas only when useful,
+  and dates or identifiers from labeled cells.
+- **Presentations** — PPTX, PPT, ODP, PDF slide decks. Yield slide titles, text boxes, speaker
+  notes where available, hyperlinks, embedded tables, and slide-level page boundaries.
+- **Email** — EML, MBOX, MSG, exported mail archives. Yield sender, recipients, subject, sent
+  date, thread identifiers, message body, attachment names, and reply-chain context, while
+  treating addresses and message content as potentially sensitive.
+- **Calendar** — ICS. Yield event title, start and end time, location, organizer, attendees, and
+  recurrence metadata.
+- **Contacts** — VCF. Yield names, organizations, email addresses, phone numbers, and
+  address-book metadata, but normally privacy-protected rather than used to create folder
+  proposals.
+- **Code, notebooks, config, structured data** — Python, JavaScript, SQL, Jupyter notebooks,
+  JSON, YAML, TOML, XML, CSV. Yield readable text plus format-specific structure such as
+  language, imports, notebook cell types, package manifests, schema keys, repository markers, and
+  project-root signals.
+- **Audio and video** — Yield duration, container and codec metadata, creation time, embedded
+  tags, subtitles or captions where present, and — only under an explicit privacy and compute
+  policy — speech-to-text transcripts.
+- **Design and creative** — PSD, AI, SVG, Figma exports, CAD files, 3D files. At minimum yield
+  filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where
+  accessible, linked asset names, and preview text. Unsupported proprietary formats should be
+  recorded as indexed-but-unreadable rather than silently treated as empty.
+- **Compressed archives** — Yield their manifests without extraction.
+- **Disk images, executables, databases, encrypted containers, damaged files, unknown binary
+  formats** — Default to safe metadata-only indexing unless a dedicated extractor has been
+  explicitly approved.
+
+Every extractor must emit the same evidence shape — file identity, content hash, extractor and
+version, source type, raw value, normalized candidate, location, context, occurrence count, and
+reliability state — so downstream logic can work consistently across formats.
+
+---
+
+## 3. Facts, facets, and hybrid intelligence
+
+### 3.1 Files as records of many facts
+
+Every file will be treated as a record with many facts, rather than forcing it into one permanent
+category. A file can simultaneously be a syllabus, part of a particular course, created for a
+particular semester, related to a university, included in an application package, a member of a
+version family, and potentially sensitive. These are separate facts about the same file.
+
+The system should not decide where a file belongs when it first discovers these facts. Instead,
+it stores them in a local SQLite database with the evidence that supports each one. A fact is a
+statement such as `subject = BUSIB 4300`, `term = Spring 2026`, `work type = syllabus`,
+`capture date = 2026-07-17`, or `purpose = university application`.
+
+Every fact preserves where it came from: a filename, document title, heading, table cell, page of
+extracted text, EXIF field, OCR region, archive manifest, user-approved folder, deterministic
+rule, LLM interpretation, or explicit user correction. This makes the system explainable, allows
+later extractor improvements without rewriting history, and prevents a plausible model answer
+from becoming an invisible permanent label.
+
+### 3.2 Observations vs. facts
+
+The fact layer sits directly after universal extraction and becomes the shared memory of the
+entire pre-sorting engine. Universal extraction reads a file once and stores raw evidence; the
+fact layer converts that raw material into structured claims that later components can query.
+
+Raw evidence is not yet a fact. For example, the filename `Syllabus BUSIB 4300 Spring 2026.pdf`,
+the PDF title `BUSIB 4300 Syllabus`, and a page-one heading `Spring 2026` are observations. From
+those observations, the system can create facts such as `subject = BUSIB 4300`,
+`term = Spring 2026`, and `work type = syllabus`. Similarly, an EXIF field called
+`DateTimeOriginal` is raw metadata; `capture date = 2026-07-17` is the file fact derived from it.
+
+This distinction matters because the product must preserve both the original evidence and the
+conclusion built from it. If a resolver later improves, the system can generate a better
+interpretation while retaining the original filename, heading, metadata field, text span, or OCR
+result that supported the earlier interpretation.
+
+### 3.3 Where rules end and the LLM begins
+
+The system should not treat rules as sufficient for all of this extraction. Rules are necessary
+for deterministic tasks: detecting file formats, parsing document structure, reading EXIF,
+extracting PDF text, finding spreadsheet headers, recognizing archive manifests, detecting exact
+duplicates, validating dates, identifying explicit course-code context, and routing obvious files
+into plausible domains. They are the precision and safety layer.
+
+However, real file collections contain vague filenames, indirect language, multilingual documents,
+screenshots, unlabeled forms, unusual professional artifacts, and user-specific workflows that
+cannot be captured reliably by fixed patterns alone. The hybrid engine therefore starts
+immediately after basic extraction. In the second stage, rules and structural extractors create
+the reusable evidence database and identify obvious candidate domains. In the third stage, an LLM
+receives only compact evidence packets for files or groups that remain ambiguous, have multiple
+plausible domains, or contain language that requires interpretation.
+
+The LLM may determine whether an extracted document appears to be an application essay, research
+artifact, recruiting document, travel record, or other supported domain; it may extract only
+fields allowed by the relevant schema; it may identify a shared purpose across a heterogeneous
+packet; and it may cite the exact text, heading, table cell, OCR region, metadata field, or
+filename that supports its conclusion. It must return `unknown` where support is insufficient.
+
+The validator then checks that the cited evidence actually exists, that the requested field
+belongs to the active schema, that stronger rule-based evidence does not contradict it, and that
+the result is appropriate for a proposal rather than merely a search hint. This makes the LLM
+part of the core pre-sorting engine — not a late cosmetic feature — while preventing it from
+becoming an ungrounded per-file file sorter.
+
+### 3.4 Cache keys and invalidation
+
+Each extraction result is tied to the content hash and the exact process that produced it. The
+cache key includes content hash, extractor version, analysis tier, model identifier when relevant,
+and prompt fingerprint for model-derived results. This prevents stale results from surviving a
+content rewrite, avoids unnecessary work when a file is merely renamed, and makes model or prompt
+changes auditable.
+
+### 3.5 How facts are produced
+
+A file fact is not inherently rule-based or LLM-based. It is the common format into which both
+systems write their conclusions.
+
+- **Deterministic extractors** create direct facts when the information comes from a reliable,
+  explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form
+  field.
+- **Rules** create validated facts when a candidate passes strict context checks. For example,
+  `BUSIB 4300` becomes a course fact only when the engine finds a course-code pattern together
+  with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."
+- **The LLM** creates LLM-supported facts only when a file requires language interpretation that
+  rules cannot resolve safely. It may identify that a vague document is a university application
+  essay, determine that an OCR'd screenshot is an application portal rather than a generic image,
+  interpret an unusual research artifact, or recognize that a heterogeneous group of files has the
+  shared purpose of a university application package.
+
+The LLM is not allowed to invent a new fact schema, create an unsupported field, or make a
+free-form filing decision. It can only propose facts that belong to the active domain schema, and
+it must cite exact supporting evidence already extracted from the file.
+
+### 3.6 Validating LLM-produced facts
+
+Every LLM-produced fact must pass a validation step before it becomes active in the database. The
+validator checks that the proposed field exists in the relevant domain schema, that the model's
+cited quote or metadata field is actually present in the stored evidence, that the proposed value
+can be normalized safely, and that no stronger direct or rule-validated fact contradicts it.
+
+A model that cannot cite sufficient evidence must return `unknown`. A model output that is useful
+but too weak to establish a fact may remain a possible clue for review; it must not quietly become
+a folder proposal or an asserted file property. In this way, the product uses the LLM where it
+provides genuine value — interpreting natural language, vague documents, multilingual content, and
+purpose-based groups — without allowing it to overwrite the precision and auditability of
+deterministic extraction.
+
+### 3.7 Conservative facet extraction
+
+Facet extraction should be conservative. The system should use rules, metadata, validated
+gazetteers, and document structure before invoking heavyweight models.
+
+It should use **word-boundary matching** rather than substring matching. Without this rule, names
+such as `MIT` can be found inside "sub**mit**," and `UNC` can be found inside "**unc**ertainty,"
+producing polished but completely false filing paths.
+
+It should use **positional weighting**, because a value in a filename or document title carries
+more meaning than the same value in a footer or a late body-page reference. It should **rank** candidate
+matches instead of accepting the first match, and it should require both a minimum score and a
+minimum margin over the second-best candidate before it fills a facet.
+
+### 3.8 Roles, not just entity types
+
+The system must separate roles that happen to contain the same entity type. An application essay
+can mention the author's current school and the university to which the essay is addressed. Those
+are not the same field. A consulting document may mention the author's firm and the client
+organization. A finance document may mention an account holder and an issuing bank. The agent
+should model these as distinct facets, such as `authored_by` and `target_school`, or `our_firm`
+and `client`.
+
+It should avoid using authorship or creator identity as a destination dimension. A folder should
+not become a collection point for everything produced by the same person or organization.
+Authorship is usually metadata; the document's purpose, project, subject, or target is more
+informative for placement.
+
+### 3.9 Purpose as a first-class facet
+
+Purpose must be a first-class facet. Topic answers what a file is *about*, while purpose answers
+what the file was *for*. These are different.
+
+A university application packet can contain an identification document, transcript, resume,
+certificate, and academic abstract. The documents are content-incoherent but purpose-coherent. A
+content-similarity system will tend to split them; a human may intentionally keep them together
+because they were submitted as one application package.
+
+Purpose may be supported strongly by an existing user-created folder name or explicit language in
+a form or portal. It may be supported more weakly by a tightly bounded download session. A session
+should never be treated as proof of topic, and it should not carry the same confidence as a hash
+match or a directly extracted document fact. It is a purpose clue and a review aid, not a basis
+for automatic semantic propagation.
+
+### 3.10 Narrow date extraction
+
+Date extraction should be deliberately narrow. The product must not use fuzzy date parsing,
+because file names and documents frequently contain numbers that look like years but are course
+identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. Date candidates
+should be identified with explicit regular expressions and then parsed without fuzzy matching.
+Academic terms such as `Spring 2025`, `AY 2024-25`, and `Michaelmas Term 2024` require dedicated
+patterns rather than generic parsing.
+
+### 3.11 Domain-scoped schemas
+
+The fields used to describe files should not be one enormous universal list. The product should
+have a small shared set of universal file facts, such as file type, creation date, language,
+duplicate family, version family, and sensitivity status. It should then activate domain-specific
+schemas only when the evidence indicates that a domain is plausible.
+
+| Domain | Fields |
+|---|---|
+| Academic | school, term, course, instructor, work type |
+| College applications | target university, application cycle, application document type, purpose |
+| Research | project, stage, artifact type, lab, venue |
+| Finance | institution, account type, tax year, record type |
+| Photos | capture year, event, location, people, camera information, media type |
+| Code | project, repository, programming language, artifact type |
+
+This means `target university` is not a fact that every file is expected to have. It is a field
+available only when the Applications domain is plausibly active.
+
+Across the whole product, there may eventually be many specialized fields because different
+domains genuinely require different information. However, this does not mean that every file
+becomes a giant form with hundreds of empty columns. Each domain activates only a small set of
+relevant fields, usually three to six that may help build a future folder proposal and several
+additional fields used only for search, privacy protection, explanation, or later review. A
+syllabus activates academic facts; an application essay activates application facts; a photo
+activates media facts.
+
+One file may hold facts from more than one domain without losing information. An academic abstract
+submitted as part of a university application can retain `project = PVA/RDP` and
+`document type = abstract` while also carrying `purpose = university application` and
+`target university = UChicago`. At the pre-sorting stage, the product does not need to decide
+which of those perspectives will ultimately determine its physical location. It preserves both so
+the user can later choose the appropriate organization structure.
+
+### 3.12 The core database model
+
+The core database model is therefore simple.
+
+- **files** — stores the real file and its stable identity.
+- **evidence** — stores raw observations from extractors, including the source, location,
+  surrounding text, extractor version, and content hash.
+- **fields** — defines the kinds of facts the product understands, such as subject, purpose,
+  target university, project, event, or sensitivity.
+- **values** — stores the specific answers inside those fields, such as `BUSIB 4300`,
+  `Spring 2026`, `UChicago`, `PVA/RDP`, or `Japan Trip 2025`.
+- **file_facts** — connects one file to one field and one value while retaining the evidence and
+  reliability state that justify the connection.
+
+The system may create new **values** when it sees a new course, project, company, university, or
+event, but it should not invent new **fields** automatically. Fields define the long-term
+organization language of the product; values are the changing, user-specific content discovered
+from files.
+
+### 3.13 Reliability states
+
+Each file fact should have a clear reliability state.
+
+| State | Meaning |
+|---|---|
+| **User-confirmed** | Explicitly accepted, entered, renamed, merged, or corrected by the user |
+| **Direct** | Read from a reliable and explicit source — content hash, EXIF timestamp, document title, labeled form field |
+| **Validated** | Found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside "lecture," "syllabus," or "semester" |
+| **LLM-supported** | Proposed by a language model from a bounded evidence packet, cited exact supporting text or metadata, and passed deterministic validation |
+| **Possible** | A useful but insufficient clue, such as membership in a short download session or a low-confidence semantic match |
+| **Rejected** | A proposal that the user or validator marked as incorrect |
+
+The product may calculate internal numeric scores to rank competing candidates, but the stored
+record must preserve the kind and quality of evidence behind the conclusion.
+
+### 3.14 Facts are separate from the destination tree
+
+Facts remain separate from the future destination tree. A fact such as `subject = BUSIB 4300` does
+not itself dictate one permanent folder path. The user may later organize the same facts as
+`Academics/Columbia/2026-Spring/BUSIB 4300/Syllabus` or as
+`Academics/BUSIB 4300/Spring 2026/Syllabus`. The facts have not changed; only the user's preferred
+organization view has changed. Templates use validated facts to create folder proposals, and the
+user edits and freezes those proposals into an approved destination tree.
+
+### 3.15 Domain library scope at launch
+
+The product will eventually support a library of common organization domains, but it will not
+attempt to fully model every domain at launch. Each domain consists of two related definitions: a
+**fact schema** describing the information the system may extract from files in that domain, and a
+**folder template** describing the small subset of those facts that may become physical folder
+levels.
+
+The initial release should fully support only the domains required to validate the product on real
+heterogeneous corpora: academic coursework, college applications, research and lab work, career
+and recruiting, photos and captures, and code projects.
+
+Finance, identity, medical, and legal material should be implemented first as **safety domains**,
+meaning the system detects and protects them before any cloud or automated placement decision is
+allowed.
+
+Other domains remain placeholders until user demand and corpus evidence justify detailed
+templates. This approach gives the product broad long-term coverage without prematurely
+hand-authoring hundreds of specialized schemas.
+
+---
+
+## 4. Grouping — LLM-guided group construction
+
+### 4.1 The division of labour
+
+The LLM should not be treated as an autonomous clustering engine that receives a large folder and
+invents categories. Its role begins only after the rules engine and local evidence graph have
+created a candidate group with an explicit reason for existing.
+
+The rules engine supplies the hard facts and the domain information: document type, course codes,
+dates, target institutions, project identifiers, duplicate relationships, version stems, capture
+metadata, filename patterns, and structural links. The graph then uses those facts, plus bounded
+retrieval over extracted content, headings, OCR text, and normalized filenames, to locate files
+that may supply missing context for one another.
+
+This matters because a single file rarely contains a complete description of its organizational
+role. A file named `HW 3.pdf` may contain only equations and the phrase "Homework 3," while a
+related syllabus, lecture deck, problem set, and midterm contain the missing anchors `PHYS1401`,
+`Columbia`, and `Spring 2026`. Similarly, a document called `Columbia Essay.docx` may identify a
+target university but omit the admissions cycle, while a nearby portal screenshot, checklist,
+transcript upload, or application form provides the year and submission purpose.
+
+The graph does not automatically copy those missing facts onto sparse files. Instead, it assembles
+an evidence-rich local neighborhood and hands a carefully limited dossier to the LLM for review.
+
+### 4.2 Seeds and bounded neighbourhoods
+
+The pipeline begins with a **seed**. A seed may be a strongly identified file, a validated shared
+fact, a structural family, or a user-created starting point.
+
+- For a **course** group, the seed might be a syllabus or lecture file containing a validated
+  course code.
+- For an **application** group, it might be an essay with a university name in its heading, a
+  portal screenshot with admissions language, or a user-created folder that already expresses
+  application purpose.
+- For a **research** group, it might be a manuscript, abstract, or protocol with a known project
+  identifier.
+- For a **photo** group, it might be a deterministic event created from camera, time, and GPS
+  metadata.
+
+The rules engine records the seed's direct facts and uses them to retrieve a bounded neighborhood:
+files that share validated facts, files linked by duplicate or version relationships, files with
+compatible document types, files from an existing related folder, files found in a narrow
+purpose-oriented session, and mutually retrieved semantic neighbors.
+
+Embeddings are useful at this stage because they can find files such as `HW 3.pdf` that lack the
+course code but resemble lecture notes and earlier problem sets; however, **embeddings never
+establish the group by themselves**. A semantic neighbor is simply a file worth bringing into the
+evidence packet. Retrieval systems can introduce irrelevant context and increase unsupported
+conclusions when their context is too broad, so the engine should keep only a small ranked set of
+relevant neighbors and flag likely outliers before the dossier reaches the model.
+
+### 4.3 The graph as context assembly, not label propagation
+
+The graph is used as a context-assembly mechanism rather than an automatic label-propagation
+system.
+
+For a sparse homework file, the engine may retrieve a local neighborhood containing
+`PHYS1401 Syllabus.pdf`, `Lecture 08.pdf`, `Problem Set 2.pdf`, and `Midterm Practice.pdf`. The
+syllabus and lecture may each state `PHYS1401` directly; the midterm may independently contain a
+validated course code; the homework may have a homework-like name and mutual semantic retrieval
+links to those files.
+
+The system creates a bounded group evidence packet that separates **direct anchors** from
+**context-supported members**. Rules can count how many anchor documents independently state the
+same course, identify whether the neighborhood has a syllabus, measure whether files share
+compatible work types and term evidence, detect conflicting course codes, and suppress generic
+hubs such as a personal email address or broad university domain.
+
+The LLM then receives this small evidence packet and answers constrained group-level questions:
+whether the group is coherent enough to surface, what shared purpose or domain best explains it,
+which files look like outliers, and what display label a user would recognize. It must cite the
+evidence and may abstain.
+
+Its output does not directly create a course fact on `HW 3.pdf`; instead, it creates a reviewable
+candidate membership such as: "`HW 3.pdf` may belong to the PHYS1401 course-material group,
+supported by two direct course anchors, compatible homework structure, and mutual retrieval with
+related course documents."
+
+### 4.4 The candidate group dossier
+
+The system then creates a candidate group dossier. The dossier is the actual input to the LLM. It
+does not contain every file in full, because a large, noisy prompt encourages the model to find
+patterns that are not real. It contains the proposed grouping basis, the rich anchor files,
+context-supported candidate members, typed graph edges, key facts, short evidence excerpts, and
+conflicts.
+
+A **course dossier** might state that the proposed basis is "PHYS1401 course materials"; show a
+syllabus that directly identifies `PHYS1401`, `Columbia`, and `Spring 2026`; show lecture and
+midterm files that independently identify `PHYS1401`; and list `HW 3.pdf` and `Problem Set 4.pdf`
+as sparse candidates whose names indicate homework or problem-set work and whose strongest mutual
+retrieval neighbors are the course anchors.
+
+An **application dossier** might state that the proposed basis is "Columbia application packet";
+show a Columbia essay, application checklist, and portal screenshot as direct anchors; list a
+transcript, resume, and certificate as possible supporting materials; and identify whether any
+candidate has a conflicting institution, such as a Duke essay.
+
+The dossier explicitly distinguishes direct evidence from inferred context. This is essential: the
+LLM must be able to say that a group is coherent while still marking particular members as
+uncertain.
+
+### 4.5 The LLM's four constrained tasks
+
+The LLM then performs four tightly constrained tasks:
+
+1. **Group coherence** — does the supplied evidence support one understandable organizing reason,
+   such as one course, project, application, recruiting process, photo event, or submission packet?
+2. **Individual membership** — for every non-anchor file, should it be included, excluded, or
+   marked uncertain?
+3. **Outliers and conflicts** — does any file contain a conflicting course code, target
+   institution, term, project name, purpose, or incompatible document type?
+4. **Label** — only if coherence is supported, propose a concise human-readable display label and
+   a group category.
+
+For example, it may label a coherent course group `PHYS1401 — Spring 2026`, an application group
+`Columbia Application — 2026 Cycle`, a research group `PVA/RDP — Manuscripts and Figures`, or a
+career packet `EY Internship Application`.
+
+It must not create a final folder hierarchy, infer unsupported dates, or invent group members
+beyond those retrieved by the engine. The model's response must be structured and evidence-citing:
+each membership decision needs an exact supporting quote, metadata field, graph relationship, or
+explicit statement that there is insufficient evidence.
+
+### 4.6 Worked example
+
+For example, the LLM may receive a course dossier with a direct syllabus anchor, two
+independently identified `PHYS1401` course files, and two sparse documents. It could return:
+
+> The candidate group is coherent as PHYS1401 course material. `Lecture 08.pdf` and
+> `Midterm Practice.pdf` should be included because they explicitly identify PHYS1401. `HW 3.pdf`
+> should be marked uncertain rather than automatically included: its filename identifies homework,
+> and it is mutually retrieved with the PHYS1401 lecture and midterm, but it contains no direct
+> course identifier. `Problem Set 4.pdf` may be included if its problem-set heading or content
+> matches the supplied course material; otherwise it remains uncertain.
+
+The key outcome is not that the LLM magically fills `course = PHYS1401` onto every sparse file. The
+outcome is a transparent candidate membership record: `HW 3.pdf` may belong to the PHYS1401 group,
+supported by a homework filename, mutual retrieval with direct course anchors, and no conflicting
+course evidence.
+
+### 4.7 Purpose detection
+
+Purpose detection follows the same disciplined pattern. The system does not ask the model vaguely,
+"What is the purpose of these files?"
+
+It first proposes a possible purpose packet from measurable clues: explicit application or
+submission language, a target institution, an existing user folder name, an application portal
+screenshot, a checklist or form, a bounded session, filenames containing supporting-material terms,
+and compatible record types such as a transcript, resume, personal statement, recommendation form,
+certificate, or ID. The graph retrieves these complementary documents into a small packet.
+
+The LLM then receives the packet and asks whether the files plausibly serve one shared workflow,
+whether the group is purpose-coherent despite topic diversity, which members appear to be
+supporting materials rather than unrelated records, and whether any member conflicts with the
+proposed purpose.
+
+For example, an ID, transcript, resume, personal statement, award certificate, and portal
+screenshot may be content-incoherent but purpose-coherent as an application submission. The LLM
+may return `purpose = university application submission` only if the dossier includes direct
+application evidence, such as admissions language, a portal, a checklist, or a clearly targeted
+essay. A tight download session alone is never sufficient: it is a retrieval clue that may bring
+the files together, but not proof of their shared purpose.
+
+### 4.8 Deterministic validation
+
+After the LLM responds, a deterministic validator must check each conclusion. It verifies that:
+
+- every cited text span or metadata field exists in SQLite;
+- each fact or label belongs to an allowed domain schema;
+- no stronger direct fact conflicts with the conclusion;
+- a course group does not merge different terms without evidence;
+- an application packet does not silently absorb a document with a conflicting target institution;
+- the model has not invented a date, project, purpose, or membership that the dossier does not
+  support.
+
+If the LLM's conclusion is valid but relies on context rather than direct evidence, the system
+records it as a **context-supported membership** and sends it to user review. If it is
+contradicted, unsupported, or based only on generic similarity, the system rejects it or leaves it
+unresolved.
+
+This separation between retrieval quality, group interpretation, validation, and final user
+acceptance is essential. A bad group can fail because the graph retrieved irrelevant neighbors,
+because the LLM overgeneralized from a good neighborhood, or because the candidate label was simply
+not useful to the user. The product must log and evaluate these failure points separately rather
+than treating all mistakes as "AI classification errors."
+
+### 4.9 Stop rules
+
+The system should also have explicit stop rules. It should **not** form a supported group when:
+
+- there is no valid anchor;
+- the graph is connected only by embeddings;
+- one high-frequency entity acts as the only bridge;
+- members carry irreconcilable course, institution, project, term, or purpose facts;
+- the LLM cannot explain the group with citations;
+- the user has already rejected an equivalent proposal.
+
+Sparse groups with no anchor should be shown only as tentative discovery candidates, if at all.
+
+A file may validly belong to more than one accepted group, such as a PVA/RDP abstract that is both
+a Research artifact and a supporting document in a UChicago application packet.
+
+A course code alone should not merge different semesters; course packet identity should include a
+term when it is available. A university name alone should not create a group, because `Columbia`
+can appear as an authoring school, course provider, target institution, employer, research venue,
+or merely a cited organization.
+
+Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected
+records even when they do not meet a normal group-size threshold. Unreadable, encrypted, corrupted,
+or unsupported files should retain basic metadata and remain eligible for manual attachment to a
+user-created group, but the system should not infer a purpose from their filename alone.
+
+### 4.10 The complete pipeline
+
+The complete pipeline is therefore:
+
+1. Rules find direct anchors and extract validated facts.
+2. The graph retrieves complementary files and forms a bounded candidate neighborhood.
+3. The LLM evaluates coherence, purpose, membership, outliers, and labels from an evidence dossier.
+4. Deterministic validation checks every cited conclusion.
+5. The user makes the final high-leverage decision.
+
+The LLM does not build groups from nothing, the graph does not silently propagate labels, and rules
+do not pretend that every sparse file contains all required context. Together, the three mechanisms
+let the product construct reliable, explainable group suggestions from incomplete real-world files
+while keeping uncertainty visible and user corrections limited to the cases that genuinely require
+human judgment.
+
+---
+
+## 5. User selection for the folder tree
+
+After the user has reviewed the evidence-backed group suggestions, the product moves from
+understanding the corpus to designing the intended folder structure. This is the most important
+user-facing stage of the pre-sorting system.
+
+The goal is not to present the user with a finished, rigid taxonomy or to ask them to author a
+filesystem from scratch. The goal is to show a small number of understandable, high-level
+organization proposals drawn from their actual files, let them decide the major branches first, and
+then progressively design the internal structure of each accepted branch. The product should treat
+folder-tree design as an interactive canvas: existing folders are visible as evidence of the user's
+current habits; accepted organizational groups appear as proposed branches; and the user can add,
+remove, rename, merge, split, nest, reorder, or ignore branches before anything is frozen.
+
+### 5.1 Horizontal pass — the major branches
+
+The tree-design process begins horizontally at the top level. The engine aggregates the accepted
+groups, domain memberships, existing curated folders, and user-approved labels into a small set of
+proposed major areas. The exact labels should reflect the user's vocabulary rather than a universal
+corporate taxonomy, but a typical initial canvas might include Academics, Applications, Research,
+Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and
+Media or Miscellaneous Personal Material.
+
+These are not automatically created as real folders. They are candidate top-level branches, each
+showing why it was suggested, how many files appear to support it, whether an existing folder
+already resembles it, which accepted groups would live beneath it, and whether sensitive content is
+present. For example, the canvas might show Academics supported by several accepted course groups,
+Applications supported by accepted university-application packets, Research supported by PVA/RDP
+and manuscript groups, and Photos supported by image events and screenshot groups.
+
+The user can drag an accepted group into a top-level branch, merge Applications with Career if that
+matches their style, place a research group under Personal Projects rather than Research, or delete
+a suggested top-level area entirely. This first horizontal pass is intentionally shallow. It asks
+only: **what are the few major parts of your file system?**
+
+### 5.2 Making the first decision concrete
+
+The interface should make this first decision concrete and low-effort. Each proposed top-level
+branch should show a file count, representative groups, existing related folders, and a concise
+explanation rather than a technical confidence score. A card might read:
+
+> **Academics, 201 files** — course materials for Columbia, Georgetown Prep, and other study
+> periods; includes five accepted course groups and 14 unresolved academic files.
+
+Another might read:
+
+> **Applications, 112 files** — college applications, admissions essays, supporting materials, and
+> portal records; includes UChicago, Duke, Cornell, and Columbia-related groups.
+
+The user can choose to accept a proposed branch, rename it, merge it into another branch, move it
+under an existing root such as Documents, defer it, or create a new branch manually.
+
+Sensitive groups should appear differently: a Finance or Identity proposal may be visible as a
+protected area, but the product should avoid showing sensitive filenames or sending their contents
+to cloud services by default.
+
+The first-level canvas should also show existing folders, such as an existing
+`Chinese University Application Materials` directory, as user-created structure that can be
+preserved, adopted as a branch, merged with a proposal, or left untouched. The system learns from
+existing folders but must not silently reorganize them.
+
+### 5.3 Vertical pass — branch by branch
+
+Once the user has accepted the major branches, the tree design proceeds vertically, one branch at a
+time. The product opens an accepted branch and proposes one or more domain templates based on the
+groups and facts that already belong inside it.
+
+The user does not have to decide every possible nested folder for the entire corpus at once. They
+can first confirm that Academics is a meaningful top-level area, then open it and decide whether
+its internal structure should separate schools, terms, courses, work types, or some combination.
+They can confirm Applications as a major area, then decide whether application files should branch
+first by target institution, admissions cycle, document type, or a purpose-defined packet. They can
+confirm Photos first, then decide whether photographs should branch by year, event, location, or
+remain mostly flat.
+
+This branch-by-branch design reflects the real way people organize files: the proper structure for
+coursework is different from the proper structure for applications, research, photo events, and
+financial records.
+
+### 5.4 Templates as controlled schemas
+
+Templates are controlled schemas for generating these branch-level structures. A template is not a
+fixed list of folder names and it is not an instruction that every user must follow. It defines the
+dimensions that are meaningful for one type of material, their recommended order, which dimensions
+are optional, which ones are metadata only, and what safety or usability constraints apply.
+
+| Template | Dimensions |
+|---|---|
+| Academic | school → term → course → work type |
+| Applications | target institution → application cycle → document type |
+| Research | project → stage → artifact type |
+| Career | company → role or recruiting cycle → document type |
+| Photos | year → event |
+
+Each template is populated from the facts and accepted groups that already exist in the evidence
+database. The system does not invent `PHYS1401`, `UChicago`, `Spring 2026`, or `PVA/RDP`; those
+names emerge from validated facts, user-confirmed groups, and accepted labels. The template simply
+determines how those real values could be arranged as branches.
+
+### 5.5 Worked example — Academics
+
+After the user accepts an Academics top-level branch, the system may show several possible internal
+designs:
+
+```text
+Option A: School → Term → Course → Work type
+Academics/
+  Columbia/
+    2026-Spring/
+      BUSIB 4300/
+        Syllabus/
+        Homework/
+        Lectures/
+
+Option B: Course → Term → Work type
+Academics/
+  BUSIB 4300/
+    2026-Spring/
+      Syllabus/
+      Homework/
+      Lectures/
+
+Option C: School → Course
+Academics/
+  Columbia/
+    BUSIB 4300/
+    PHYS1401/
+```
+
+The user sees the actual branch counts before committing. The interface can state that Option A
+would create three schools, five terms, and twelve course branches; that Option B would merge
+material across schools when course codes collide; or that Option C is shallower but leaves more
+files together.
+
+The system recommends an order based on the domain template, but the user can reverse, remove, add,
+or flatten dimensions. The recommendation should follow the practical rule that **a parent dimension
+should provide the context required to understand the child**. A work type such as `Homework 3` is
+meaningful only after the course is known, and a course code may require the school or term to
+disambiguate it.
+
+For document and record domains, project, function, or subject usually comes before time, because
+putting year first scatters related work across calendar folders. Photos and capture-based media
+are the major exception: time often belongs first because capture date is a defining aspect of the
+material.
+
+### 5.6 Applications and purpose-defined packets
+
+Applications illustrate why the branch-by-branch template process is necessary. Once the user
+confirms an Applications top-level branch, the product should not assume that all applications are
+best organized in the same way. It may propose target institution → cycle → document type,
+producing branches such as `Applications/UChicago/2026/Supplemental Essays`.
+
+However, the evidence and group review may reveal a purpose-defined packet, such as
+`Chinese University Application Materials`, containing a transcript, ID, personal statement, resume,
+certificate, and research abstract. The system can present that packet as a preserved or proposed
+branch alongside institution-based organization. The user may keep it as one flat purpose folder,
+nest it under Applications, split it by target institution, or choose a hybrid design in which
+general supporting materials live under an application packet while essay drafts are organized by
+institution. The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.
+
+### 5.7 The template library and LLM-generated custom templates
+
+The product should eventually maintain a library of roughly 200–300 domain-specific templates,
+covering common organizational situations such as academic programs, university applications,
+recruiting processes, client engagements, research workflows, financial records, travel, legal
+matters, creative projects, software repositories, personal administration, and photo collections.
+Each template should define the domain's allowed fact fields, detection signals, recommended folder
+dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation
+constraints. The product does not need to fully implement every template at launch; it can begin
+with the core domains and expand the library as recurring user needs and corpus evidence justify
+additional coverage.
+
+When an accepted organizational group does not fit any existing template, the LLM may generate a
+**candidate custom template** rather than an immediate folder tree. It receives the group dossier,
+representative files, validated facts, the user-approved group label, existing destination
+vocabulary, and structural constraints, then proposes a structured schema containing a domain name,
+allowed fields, recommended folder dimensions, field order, optional versus required levels,
+metadata-only fields, sensitivity policy, and example paths.
+
+The generated template must conform to a strict JSON schema, use existing field types wherever
+possible, cite the file facts that justify each proposed dimension, and explain why each level
+improves retrieval. It cannot invent unsupported facts, silently create new high-level domains, or
+become active merely because it is syntactically valid.
+
+The engine validates that the proposed template does not repeat a parent dimension, create
+meaningless one-child levels, exceed practical depth limits, use an author or organization merely as
+a collector, expose protected information, or produce empty branches when tested against the
+accepted group.
+
+The user then reviews the custom template in the same visual canvas as built-in templates, edits its
+labels or order, removes unwanted levels, and either accepts it as a one-off structure or saves it
+as a reusable personal template. Structured output constraints and schema validation should enforce
+the required template shape, but semantic validation and user approval remain necessary, because a
+technically valid LLM-generated template can still be a poor organization design.
+
+### 5.8 Uneven depth
+
+The canvas must support uneven depth, because real file trees are not and should not be perfectly
+symmetrical. One branch may require four levels, while another should remain flat.
+`Academics/Columbia/2026-Spring/PHYS1401/Homework` may be useful because it contains many files with
+strong facts. `Academics/Georgetown Prep` may remain shallow because it contains only a handful of
+files. `Applications/UChicago/2026` may split into essays, forms, and supporting materials, while a
+two-file application packet may remain a single folder.
+
+The product should not force every branch to use the full template or have the same number of
+levels. Instead, each branch should offer the dimensions that are actually present in its member
+groups and show what each split would create.
+
+### 5.9 Live structural feedback
+
+The interface should provide live structural feedback as the user designs the tree. Before the user
+chooses a split, the system should show the resulting number of child branches, the number of files
+under each child, example members, unresolved files, and any evidence gaps.
+
+It should warn when a level produces only one child, repeats a concept already expressed in the
+parent, creates excessive depth, or creates a large number of tiny folders. It should recommend
+flattening when a dimension does not materially improve retrieval.
+
+It should also support a **scoped** General or Other branch within a meaningful parent. For example,
+if a file is clearly part of `Academics/Columbia/2026-Spring` but has no recoverable work type, the
+future tree can include `Academics/Columbia/2026-Spring/General` rather than sending it to a global
+Unsorted folder. A global catch-all folder should not become the product's default answer to
+ambiguity.
+
+### 5.10 Existing folders
+
+Existing folders should remain visible throughout the design process. The user should be able to see
+where a current folder sits in the filesystem, how many files it contains, which extracted facts and
+accepted groups overlap with it, and whether it appears to be curated or merely incidental.
+
+A carefully curated existing folder should be treated as a strong expression of user intent. The
+user may attach a proposed branch beneath it, merge a proposed group into it, rename the proposed
+branch to match it, or leave it untouched. Existing folders must not be automatically flattened,
+renamed, or reorganized simply because a template would produce a different structure. The canvas
+should make the difference between existing structure and proposed structure visually clear, for
+example by showing existing nodes in one style and uncommitted suggestions in another.
+
+### 5.11 Tree health
+
+The product should also provide a high-level "tree health" view. It can summarize how much of each
+accepted group is represented by the proposed structure, how many files have enough facts to
+populate a branch, where the tree contains unresolved or context-supported members, where sensitive
+material has been isolated, and which branches need user decisions.
+
+It should not imply that the system must account for every file immediately. A branch can be
+accepted even if some files remain unresolved; those files may later be represented by a scoped
+General folder, a review queue, or an additional user-created branch. The goal is to give the user a
+good enough structural gist of the corpus so that only a limited number of high-leverage changes
+remain, not to force perfection before the user can see the proposed tree.
+
+### 5.12 Output — the proposed destination tree and freeze
+
+The output of this stage is a **proposed destination tree**: an editable hierarchy of existing
+folders, user-created folders, and evidence-backed proposed branches. Each node has a type —
+existing, proposed, user-created, protected, or ignored — a display label, a parent, associated
+groups, a template context where relevant, and an explanation of the facts or accepted groups that
+caused it to appear.
+
+The tree does not yet move or classify files. It is a designed destination structure that expresses
+the user's intended organization. The user can continue refining it horizontally by adjusting
+top-level areas and vertically by changing branch-specific templates, depth, ordering, labels, and
+grouping decisions.
+
+When the user is satisfied, they **freeze** the tree. Freeze records the approved hierarchy and
+prevents later systems from inventing new destinations outside it. The facts and accepted groups
+remain separate from the tree, so the user can change the visual organization without destroying the
+underlying evidence. A later placement system may use the frozen tree as its only allowed
+destination set.
+
+---
+
+## 6. Group-aware classification against the frozen destination tree
+
+After the user freezes the destination tree, the product should not reduce file organization to a
+simplistic exercise of comparing one file's extracted fields against one folder path. By this stage,
+the engine has already accumulated a much richer understanding of the corpus: full extracted text
+and metadata, direct and validated file facts, domain memberships, graph relationships, structural
+families, LLM-supported interpretations, accepted groups, user corrections, template choices, folder
+labels, existing curated structure, and privacy restrictions.
+
+The frozen destination tree does not replace that information. It turns it into a **closed set of
+legal destinations**. The post-tree system should reuse all accumulated context to determine whether
+a file or related file packet belongs to one of the approved branches, one of its children, a scoped
+fallback folder, or nowhere at all. The product should therefore use a group-aware, hierarchical
+classification engine rather than a flat per-file path matcher.
+
+### 6.1 Destination nodes become evidence-backed profiles
+
+Every frozen destination node should become an active **destination profile**. A folder is not
+merely a string such as `Academics/Columbia/2026-Spring/PHYS1401/Homework`; it is an evidence-backed
+representation of what belongs there. Its profile contains the branch's domain, template, expected
+field values, parent and child meanings, accepted group memberships, user-selected label, known
+exclusions, representative files, rich anchor files, and any privacy or policy restrictions.
+
+For example, the `Academics/Columbia/2026-Spring/PHYS1401/Homework` node may contain the Academic
+domain; expected values of `Columbia`, `Spring 2026`, `PHYS1401`, and `Homework`; the accepted
+PHYS1401 course-material group; direct anchor documents such as the syllabus, lecture files, and
+midterm; representative homework files; and the parent-child context showing that Homework is one of
+several work-type branches beneath PHYS1401.
+
+This profile gives the engine far more than a destination name to match. It gives it a small,
+user-approved corpus of evidence describing the kind of material that belongs in the branch.
+
+### 6.2 The destination-node retrieval index
+
+The system should build a destination-node retrieval index after the tree is frozen. Each node's
+representation should combine its template fields, accepted group labels, user-approved display name,
+representative member files, anchor excerpts, known document types, parent and child context, and
+explicit user edits.
+
+When an unplaced file arrives, the engine retrieves the few most relevant approved destination nodes,
+rather than searching the entire filesystem or re-inventing a category. A file named `HW 3.pdf` might
+retrieve `Academics/Columbia/2026-Spring/PHYS1401/Homework`,
+`Academics/Columbia/2025-Spring/PHYS1401/Homework`,
+`Academics/Columbia/2026-Spring/PHYS1401/General`, and perhaps another mathematics-course homework
+branch.
+
+The system is allowed to compare the file against these nodes because they are all already approved
+destinations. It is **not** allowed to invent a new `Math Stuff` folder merely because the file looks
+mathematical.
+
+### 6.3 What drives retrieval
+
+The retrieval system should use the full set of evidence collected before freeze.
+
+- **Direct facts** such as a course code, institution, project, term, document type, or capture
+  event should strongly retrieve corresponding nodes.
+- **Accepted group membership** should retrieve the branch that was created from that group.
+- **Graph relationships** should retrieve nodes containing the group's anchor files or related
+  accepted members.
+- **Structural relationships** should retrieve nodes that contain a version family, duplicate
+  family, archive family, photo event, or derived document set.
+- **Full-text and OCR embeddings** should retrieve semantically compatible node profiles and
+  representative files, especially when the target file is sparse.
+- **Existing curated folders and user-entered labels** should influence retrieval because they
+  represent the user's vocabulary.
+
+Conflicting evidence should actively **suppress** nodes. A file with direct `target institution = Duke`
+evidence should not retrieve Columbia application branches as a top candidate simply because both
+contain essays. A file with a direct PHYS1401 term fact for Spring 2025 should not be sent to a
+Spring 2026 node without a clear user-approved reason.
+
+### 6.4 Node-local classification
+
+The system should classify locally around the retrieved destination nodes rather than globally
+reclustering the corpus. For each file or accepted group of related files, it retrieves the top few
+legal nodes, gathers the representative files and accepted groups already associated with those
+nodes, adds the target file and its relevant graph neighbors, and creates a small **node-local
+evidence graph**.
+
+This local graph allows the engine to ask a much more meaningful question than "which folder name is
+most similar to the filename?" It can ask whether the target file fits the evidence-backed community
+represented by one specific approved node.
+
+A sparse file such as `HW 3.pdf` may not contain `PHYS1401` or `Spring 2026` directly, but it can be
+compared against the PHYS1401 node's syllabus, lectures, midterm, accepted problem sets, work-type
+pattern, and previously accepted context members. If the file shares a homework-like structure,
+retrieves strongly to the relevant course materials, connects to several direct anchors, has no
+conflicting course or term evidence, and was previously accepted into the PHYS1401 group, the engine
+can propose the PHYS1401 Homework node with an explanation that reflects the full context rather than
+falsely claiming that the course code was found inside the homework itself.
+
+### 6.5 Clustering after freeze
+
+This node-local approach allows graph clustering to remain useful after the tree is frozen without
+letting clustering destabilize the taxonomy. The engine may form small local clusters around an
+approved destination profile, but it never runs a whole-corpus clustering process that creates new
+categories, renumbers existing communities, or moves files between user-approved branches without
+review.
+
+A local cluster may help determine whether a target file joins the Homework subcommunity, the broader
+PHYS1401 course community, a parent General branch, or no approved node. The group must still be
+supported by multiple independent signals. **A semantic embedding alone is insufficient.**
+
+The node-local graph should include typed relationships, such as shared validated facts, accepted
+group membership, duplicate or version links, derivation links, compatible document type, matching
+time period, direct references, mutual semantic retrieval, and user-confirmed membership. It should
+also retain conflicts and outlier signals. A target file connected only by generic similarity or one
+high-frequency entity must remain uncertain rather than being absorbed into an approved node.
+
+### 6.6 The LLM as hierarchical destination judge
+
+The LLM should play a stronger but still constrained role in this stage. It should not be called for
+direct, unique matches. If a file's validated facts uniquely match one frozen path, deterministic
+matching is faster, cheaper, and more stable.
+
+The LLM is invoked when several legal nodes remain plausible, when a file is an accepted context
+member but lacks a key branch-level fact, when a group may need to be placed together, when a custom
+template requires semantic interpretation, when OCR or filenames are vague, or when the direct facts
+conflict.
+
+The model acts as a **hierarchical destination judge**. It does not receive the whole folder tree or a
+free-form request to organize a file. It receives a placement dossier containing the target file's
+direct and validated facts, relevant extracted excerpts or OCR, accepted group memberships, graph
+anchor evidence, the small set of top legal destination candidates, each candidate's node profile,
+representative files already accepted in those nodes, known conflicts, missing fields, and
+deterministic scores.
+
+It is asked to decide, with citations, whether the file belongs to one approved child node, one
+approved parent node, an approved scoped fallback such as General, or no destination at all.
+
+### 6.7 Hierarchical reasoning and shallow placement
+
+The LLM should reason hierarchically because a file may have sufficient evidence for a broad branch
+but not for every deeper level.
+
+For `HW 3.pdf`, the model may determine that Academic is strongly supported, Columbia and PHYS1401
+are supported by accepted group context and direct anchor documents, and Homework is supported by the
+filename and document structure. The term might be only context-supported. If the frozen tree contains
+`Academics/Columbia/2026-Spring/PHYS1401/Homework`, the model can recommend that node while marking
+the term as context-supported and requiring review if the policy demands it.
+
+If the system cannot distinguish Spring 2025 from Spring 2026 but a parent path such as
+`Academics/Columbia/PHYS1401/Homework` exists, the model should choose the approved shallower path. If
+the only available deeper path would require inventing a term, it should choose an approved General
+fallback under the meaningful parent, or abstain.
+
+**The model should never fill a missing slot merely because a complete-looking path is aesthetically
+preferable.**
+
+### 6.8 Group-level placement
+
+Group-level placement should be a first-class capability. Related files often explain one another more
+accurately when considered together than when classified independently.
+
+An accepted Columbia application packet may include an essay draft, admissions checklist, portal
+screenshot, transcript, resume, certificate, and identification document. The placement engine should
+first confirm the shared parent branch, such as `Applications/Columbia/2026`, using the accepted
+group's anchors and purpose evidence. It can then classify members within that branch: essay drafts go
+to Essays; checklists and portal screenshots go to Forms and Portal Records; transcripts, resumes, and
+certificates go to Supporting Materials.
+
+The engine should show this as one coherent group plan rather than as several unrelated file moves. It
+can identify that a Duke essay is an outlier because of its conflicting target-institution fact,
+exclude it from the Columbia packet, and route it to a separate legal branch or review queue. This
+approach provides more AI assistance without allowing the model to erase distinctions between
+individual documents.
+
+### 6.9 Multi-home files and shared material
+
+A file may have multiple valid organizational relationships, and the placement engine must preserve
+that complexity. A transcript may be part of several application packets; a resume may support
+multiple recruiting processes; a research abstract may belong to a research project and be attached to
+a university application. The underlying facts and group memberships remain multi-valued even though
+one physical file can occupy only one ordinary filesystem path.
+
+The user's frozen tree should therefore include a policy for shared material: a shared branch, a
+primary-home convention, a reference or alias convention, or mandatory review.
+
+If `Transcript.pdf` has accepted membership in both Columbia and Duke application packets but contains
+no institution-specific fact, and the tree includes `Applications/Shared Application Materials`, the
+engine should retrieve and prefer that node. If no shared branch exists, the system should not
+arbitrarily choose one university. It should abstain or ask the user to choose a primary home.
+
+### 6.10 Deterministic validation and the two-condition rule
+
+Every proposed destination must pass deterministic validation after LLM review. The validator confirms
+that the selected node exists in the frozen tree, that every cited fact or graph relationship exists in
+the evidence database, that the model did not invent a date, institution, project, or node, that
+stronger conflicts were not ignored, and that a sensitive file is handled under the user's privacy
+policy.
+
+It also applies a **two-condition acceptance rule**: the best legal destination must reach a minimum
+support threshold **and** must exceed the next-best destination by a meaningful margin.
+
+A direct match to a unique node may be sufficiently strong to enter a suggested or automatic move plan.
+A context-supported match may be valid but still require review. A match based only on weak retrieval, a
+generic hub, or a low-margin comparison should remain unresolved.
+
+**Correct abstention is a successful outcome**, because the product's goal is reliable organization, not
+maximum file movement.
+
+### 6.11 The placement decision record
+
+The classification output is therefore not simply a path string. It is a structured placement decision
+containing the target file or group, the proposed approved destination, the decision depth, the
+evidence type, the matching facts, accepted group support, relevant graph anchors, conflicts considered,
+confidence class, alternative candidates, and the required review policy.
+
+A direct course syllabus might be labeled `exact fact match`; `HW 3.pdf` might be labeled
+`context-supported group match`; a transcript shared across application packets might be labeled
+`shared-material decision`; and a vague file might be labeled `abstain: no supported destination`.
+
+The user should see these distinctions in the review interface, because a direct placement and a
+context-supported placement should not demand the same level of trust.
+
+### 6.12 The complete post-tree pipeline
+
+1. The user freezes an approved destination tree.
+2. The system turns each node into an evidence-backed destination profile.
+3. Each unplaced file or accepted file packet retrieves a small set of legal candidate nodes.
+4. The engine builds a local graph around those nodes using facts, accepted groups, structural
+   relationships, representative files, and semantic retrieval.
+5. Deterministic rules remove impossible or conflicting nodes.
+6. Local clustering and group context identify whether the target joins a child node, parent node,
+   fallback node, or no node.
+7. The LLM judges ambiguous candidates hierarchically from a bounded placement dossier.
+8. The validator checks all evidence and destination constraints.
+9. The product produces a reviewable plan of exact placements, shallow placements, scoped fallbacks,
+   and abstentions.
+
+The product therefore uses more AI where the accumulated context is genuinely valuable, but it keeps
+that intelligence constrained by the user's frozen tree. **No system component may invent a new
+destination after freeze, silently override a direct fact, or move an uncertain file simply because it
+resembles an existing folder.**
+
+---
+
+## 7. Residual files, controlled miscellaneous templates, and final review
+
+### 7.1 Why residual files need their own stage
+
+The product needs a deliberate final system for files that remain outside the reliable domain groups,
+accepted graph clusters, and high-confidence destination matches. These files should not be treated as
+errors, and they should not be thrown into one global `Misc`, `Other`, or `Unsorted` folder.
+
+A real personal corpus always contains material that is genuinely independent: a screenshot of a
+boarding gate, a saved product image, a one-off receipt, an unconnected PDF form, a spreadsheet with
+unclear purpose, an article saved to read later, a private document with no project association, an
+encrypted archive, or a file whose contents simply cannot be read.
+
+The main organization process should handle well-understood structures first — academics, applications,
+research, projects, career, events, photos, code, and other accepted domains — because those are the
+branches that benefit from deep templates and graph context. Only after those branches are designed and
+the engine has attempted normal group-aware classification should it collect the remaining files into a
+separate residual review stage. This preserves the main tree from being distorted by exceptions while
+ensuring that isolated files receive thoughtful treatment rather than being ignored.
+
+### 7.2 The residual template library
+
+Before the system evaluates residual files with an LLM, it should build a controlled residual-folder
+library. This library is analogous to the domain-template library, but its purpose is different. Domain
+templates create detailed, meaningful hierarchies for recurring areas of life, such as
+`Academics/School/Term/Course/Work Type` or `Applications/Target Institution/Cycle/Document Type`.
+Residual templates provide safe, intentionally broad destinations for files that have no reliable deeper
+association.
+
+Each residual template should define a recommended display name, default parent location, accepted
+evidence patterns, expected file types, sensitivity restrictions, optional shallow subfolders, maximum
+permitted depth, and whether the file should be reviewed, retained, or merely kept searchable.
+
+The library prevents the LLM from creating arbitrary folders such as `Random PDF Things`,
+`Important Screenshot`, `Miscellaneous Documents`, or `Travel/Gate B12`, which may sound plausible but
+would fragment the user's filesystem and create unmaintainable structure.
+
+### 7.3 The initial library
+
+The initial residual library should contain a modest set of reusable templates.
+
+| Template | Default location | Holds |
+|---|---|---|
+| Temporary Screenshots | `Photos/Temporary Screenshots` | Screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship |
+| One-Off Images | `Photos/One-Off Images` | Images with no event, project, reference collection, or photo-family association |
+| Reference Clips | `Personal/Reference Clips` | Saved visual inspiration, product references, quotes, recipes, short article captures, code snippets — useful for later retrieval but not part of a current project |
+| Independent Records | `Personal/Independent Records` | Standalone certificates, notices, confirmations, forms, and PDFs with a durable purpose but no broader group |
+| Receipts and Confirmations | — | Isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents |
+| Reading Inbox | — | Papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association |
+| Review Later | — | Files whose meaning is partly understood but whose final location requires a future decision |
+| Unsupported or Encrypted | — | Password-protected archives, unreadable documents, damaged files, and unknown formats — or, more safely, represented without moving |
+| Protected Records | — | Sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials. Normally local-only; must not cause filenames or content to be exposed in model prompts |
+
+Finally, the library must support user-defined residual areas such as Things to Read, Ideas, Shopping
+Research, Memes, Travel, Receipts to Process, Clips, or Stuff to Sort, because residual organization is
+highly personal and should not be dictated by a universal taxonomy.
+
+### 7.4 Residual branches are opt-in
+
+These templates are not automatically created. During destination-tree design, the product should show
+the residual library as an optional set of controlled branches that the user can enable, disable,
+rename, relocate, merge, or replace with existing folders.
+
+A user may decide that all isolated screenshots should remain where they are and should never be moved.
+Another may prefer `Desktop/Inbox` for unclear downloads, `Personal/Clips` for visual references, and
+`Travel/Confirmations` for tickets and reservation records. Another may already have an existing
+`To Sort` folder, and the system should map the Review Later template onto that folder rather than
+inventing a new one.
+
+The user can also decide whether a residual template is a real physical destination, a review-only
+category that never moves files automatically, or a policy that tells the system to leave files in place.
+
+Once the user approves the desired residual branches, those branches become legal nodes in the frozen
+destination tree. The LLM may choose among them later, but it may not create additional generic
+destinations.
+
+### 7.5 The residual surfacing screen
+
+The residual process should begin with a visible residual surfacing screen, not an automatic cleanup
+operation. After the engine has completed normal classification against accepted domain branches and
+destination-node profiles, it should present a summary such as: "Your main structure is ready. We found
+146 files that do not fit a confirmed group or approved destination."
+
+The system should divide these files into understandable review sets using reliable characteristics,
+rather than presenting a single intimidating pile. It may show:
+
+```text
+58 screenshots with no accepted project or event
+21 standalone PDFs and forms
+14 spreadsheets and presentations with unclear purpose
+17 receipts, tickets, and confirmations
+11 protected personal records
+ 9 encrypted, unreadable, or unsupported files
+16 files with multiple plausible destinations
+20 files with no extractable text, usable metadata, or graph relationship
+```
+
+Each set should display representative examples, file-type distribution, age range, available OCR or
+text evidence, sensitivity status, any weak graph neighbors, and the reason the system could not safely
+place the files through the normal pipeline.
+
+### 7.6 Set-level decisions before file-level AI
+
+The user should make a high-level decision about each residual set before the LLM analyzes individual
+files. For example, the interface may ask:
+
+> We found 58 ungrouped screenshots. Would you like to leave them in place, review them with AI against
+> your approved residual folders, send them to a Screenshot Inbox, or create a custom branch?
+
+For standalone PDFs:
+
+> We found 21 independent documents. Should we evaluate them for Receipts and Confirmations, Independent
+> Records, Reading Inbox, Review Later, or leave them in place?
+
+For unreadable files:
+
+> These nine files cannot be read safely. Keep them in place, represent them under Unsupported Files, or
+> review them manually?
+
+This step matters because it gives the user control over the residual workflow before the system applies
+language-model interpretation. It also allows the user to say that certain categories should remain
+untouched, which avoids spending AI cost on files the user does not want organized.
+
+### 7.7 LLM residual review
+
+Once the user opts in to residual review, the LLM can be used more actively, because these files are
+precisely where high-level language understanding is most valuable.
+
+The model receives a compact residual dossier for each file or small homogeneous batch. The dossier
+includes the filename, file type, creation date, extracted text or OCR, metadata, sensitivity state, any
+weak graph relationships, the user-approved residual library, existing relevant folders, representative
+examples from approved residual destinations, and the user's residual-placement policy.
+
+The model is not asked to invent a folder. It is asked to choose from a controlled action set:
+
+- return the file to a confirmed domain group;
+- return it to an accepted graph or purpose packet;
+- choose one approved residual destination;
+- choose an approved broad parent branch;
+- mark it for Review Later;
+- leave it in its current location;
+- mark it as protected or unsupported;
+- abstain.
+
+The model should reason from broad to narrow and stop as soon as the evidence is no longer strong enough.
+An isolated file should normally remain high in the tree, because there is no evidence that it deserves a
+deep project-specific path.
+
+### 7.8 Worked examples
+
+A screenshot with OCR text reading "Your Columbia University application has been submitted" should not
+be treated as a generic screenshot. The LLM should recognize the admissions confirmation, retrieve the
+accepted Columbia application group and approved application branches, and return the file to the normal
+group-aware placement engine.
+
+A screenshot reading "Gate B12 — Boarding at 18:20" may be classified as a travel-related temporary
+confirmation. If the user has approved `Personal/Travel/Confirmations`, the model may recommend that
+broad destination and explain that no specific trip group was found. If the user has not approved a
+travel branch but has approved `Photos/Temporary Screenshots`, the model may choose that alternative or
+suggest leaving the file in place. It must **not** invent a folder called `Travel/Flight Gate B12` or
+assume that a gate number identifies a particular trip.
+
+Likewise, an image containing a recipe, product listing, quote, or visual inspiration may be proposed for
+`Personal/Reference Clips` if that user-approved branch exists.
+
+An unreadable screenshot with no useful OCR, no EXIF, and no graph context should be labeled as a generic
+screenshot or unresolved image and either remain in place or enter an approved Screenshot Inbox. The model
+must be allowed to conclude that no meaningful association exists.
+
+### 7.9 Validation
+
+Residual classification must still be evidence-grounded and validated. Every recommendation should cite
+the OCR text, extracted document content, metadata field, or approved group context that supports it. The
+validator confirms that the selected destination exists in the frozen tree, that the evidence actually
+appears in the file record, that the model did not ignore a sensitivity restriction, and that it did not
+overlook a stronger existing relationship.
+
+If the LLM finds a credible connection to an accepted project, course, application, photo event, or career
+group, the file should be returned to the standard node-aware placement engine rather than being trapped in
+a generic residual folder. If the LLM cannot establish a meaningful connection or safe residual type, the
+correct result is leave in place, Review Later, or abstain. This is especially important for screenshots
+and one-off images, where the temptation to invent a narrative is high but the evidence may be thin.
+
+### 7.10 Review interface and learning
+
+The residual review interface should make each recommendation editable and should support bulk decisions
+where the evidence pattern is similar. The user may accept a proposed destination for one file, accept the
+same destination for a small batch, change the destination, create a custom folder, return the file to a
+different accepted group, mark it as private, defer it, or leave it untouched.
+
+If the user repeatedly places product screenshots into Reference Clips, the system records that as a user
+preference and can later propose the same destination more confidently. If the user repeatedly keeps
+temporary screenshots in Downloads or Desktop, the system learns that their preferred policy is
+searchability without movement. If the user rejects Receipts and Confirmations for a set of PDFs because
+they are actually school forms, the system records those negative examples and can route future similar
+files back toward Academic or Applications review rather than repeating the same mistake.
+
+### 7.11 Non-destructive lifecycle
+
+The residual system should also support a non-destructive, time-aware lifecycle. Some files are likely
+temporary, but the product must never delete or automatically expire them.
+
+The user may define review policies such as "show temporary screenshots older than 30 days," "surface
+travel confirmations after their date has passed," "review Reading Inbox every two weeks," or "keep
+protected records indefinitely." The system may use creation date, last access, duplicate status, and
+user-selected retention preferences to surface review suggestions, but it must not delete files, mark them
+disposable, or move them out of a protected area without explicit user action. This respects the difference
+between a transient reminder and a record that happens to be one-off but still matters.
+
+### 7.12 Why this completes the philosophy
+
+The residual-file system therefore completes the product's organization philosophy. The engine first builds
+reliable, meaningful structure from high-confidence domains, accepted groups, templates, graph
+relationships, and user decisions. It then handles ambiguous and isolated files through a separate,
+user-controlled residual workflow.
+
+The residual library prevents arbitrary LLM-generated folders; the surfacing screen gives the user control
+before AI review begins; the LLM provides high-level interpretation only within approved destinations;
+validation prevents unsupported moves; and the user can customize every residual category, location, and
+policy.
+
+The result is a system that can organize the whole corpus — including one-off screenshots, disconnected
+PDFs, odd spreadsheets, unsupported files, and private records — without allowing exceptions to pollute the
+main folder structure or forcing every file into a fabricated association.
+
+---
+
+## 8. Trust, operations, and lifecycle
+
+### 8.1 Purpose
+
+The evidence, grouping, template, tree-design, and placement systems determine what the product believes
+about files and where it may recommend placing them. They are not sufficient on their own. A personal
+file-organization product must also prove that it can preserve file integrity, respect privacy, survive
+normal filesystem failures, explain every decision, improve without regressions, control compute cost, learn
+from corrections without becoming opaque, and preserve previous organization plans when the user changes
+their mind.
+
+This section defines that trust and operations layer. Its purpose is to make the product safe enough to
+operate on a real personal filesystem. The key principle is that the system must be able to reconstruct what
+it knew, what it proposed, what the user approved, what changed on disk, and why every change occurred.
+
+### 8.2 File identity and provenance
+
+The product must separate a file's identity from its current pathname. A path can change when a file is
+renamed, moved, synchronized through cloud storage, restored from backup, copied to another volume, or
+reorganized by the user outside the product.
+
+The stable identity for a file version should therefore be the **content hash**, with a separate internal
+file record that retains path history and observed filesystem state. The product should treat the content
+hash as the durable fingerprint of a byte-identical object. If the same content appears at a new path, the
+system recognizes it as the same file version. If a file retains its name but its content hash changes, the
+system treats it as a new version and re-runs the relevant extractors.
+
+Every significant event affecting a file should be preserved in an **append-only provenance log**. This
+includes discovery, stat observation, hashing, extraction, OCR, fact creation, fact rejection, graph-edge
+creation, group membership proposal, user group decision, template application, destination-tree edit,
+placement recommendation, filename-collision resolution, planned move, executed move, failed move, external
+modification detection, and undo. The event record should include the event type, file ID, content hash, old
+and new paths where applicable, the responsible subsystem, extractor or model version, prompt fingerprint
+where applicable, user identity when there is an explicit user action, time of observation, and a structured
+explanation or evidence reference.
+
+The product must never overwrite the evidence record merely because a later extractor or model produces a
+different answer. A newer result should **supersede** an earlier result while retaining the old observation
+and the reason it was superseded. For example, if a first OCR pass produces unreadable text and a later
+improved OCR engine recovers a university name, both extraction records should remain available. The resolver
+may mark the newer value as preferred, but a user reviewing a placement should still be able to inspect the
+origin of the conclusion.
+
+The file record should retain at least the following information:
+
+```text
+Internal file ID
+Current path
+Path history
+Content hash and hash algorithm
+Observed size and timestamps
+Filesystem volume or root identifier
+MIME type and detected format
+Extraction status by extractor tier
+Sensitivity state
+Current and historical file facts
+Current and historical group memberships
+Current and historical placement proposals
+Current and historical user decisions
+```
+
+Checksums should be verified at high-value transition points. At minimum, the engine should verify content
+identity before preparing a filesystem action, immediately before executing a move or copy, and after
+completing the action. If a cross-volume move uses copy-and-delete rather than an atomic rename, the
+destination copy must be hashed and confirmed before the source can be removed. This establishes **file
+fixity**: the system can show that a file at its destination is byte-identical to the file it intended to
+move. Digital-preservation practice treats checksums as a central mechanism for verifying that a digital
+object has remained unchanged, and the same discipline is appropriate for an organization product that may
+touch important personal records.
+
+### 8.3 Filesystem safety and mutation control
+
+The product should treat every filesystem mutation as a transaction with preconditions, execution steps,
+verification, and a reversible journal entry. The classification system may recommend a destination, but no
+file should move merely because a placement score is high. The product must first create a plan, show it to
+the user where policy requires review, validate that the plan is still current, apply one action at a time or
+in a safely bounded batch, verify the resulting state, and record enough information to undo the action later.
+
+A plan should not store only source and destination paths. It should capture the complete expected
+precondition:
+
+```text
+Plan ID
+File ID
+Expected content hash
+Expected source path
+Expected source volume
+Expected size and modification state
+Requested destination node
+Resolved destination path
+Collision policy
+Sensitivity and consent state
+Reason and evidence summary
+Required review policy
+Creation time and expiration state
+```
+
+Immediately before applying an action, the system should recheck the source file. If its content hash differs,
+if the source path has changed, if the destination changed, if the file disappeared, or if permission is no
+longer available, the action should be marked **stale** and removed from automatic execution. The product must
+ask the user to refresh the plan rather than applying an old decision to a changed file.
+
+Filename collisions require an explicit policy. The engine should never silently overwrite an existing file. It
+may propose one of several user-approved behaviors: preserve both files using a deterministic suffix, merge
+only when hashes prove the files are identical, retain the newer file while placing an older version into a
+version family review, or stop and ask the user. The collision rule must distinguish exact duplicates from
+different files that happen to share a filename. A content-hash match supports deduplication review; a filename
+match alone does not.
+
+The implementation must handle filesystem differences explicitly. Case-insensitive filesystems can treat
+`Resume.pdf` and `resume.pdf` as one path, while a case-sensitive filesystem can store both. Unicode
+normalization differs across operating systems and cloud services, making visually identical names potentially
+collide. Long paths, invalid filename characters, reserved names, prohibited characters on particular
+filesystems, and platform-specific path-length limits must all be normalized before an action is planned. The
+system should record the intended display name separately from the final filesystem-safe name, so that
+collision and normalization changes remain explainable.
+
+The product needs defined behavior for locked files, files currently open in another application, permission
+failures, aliases, shortcuts, symbolic links, macOS packages, application bundles, network-mounted folders,
+removable storage, and cloud-synchronized directories. The safe default is to avoid following symbolic links
+during mutation, avoid moving package bundles unless explicitly approved, and refuse a move if the source or
+destination is unavailable. Cloud folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive introduce
+additional race conditions because a sync agent can rename, replace, or create conflict copies while a plan is
+active. The system should treat cloud-synced paths as externally mutable, verify them immediately before and
+after action, and pause when sync conflicts appear.
+
+Undo must be **conditional** rather than destructive. An undo entry should include the original source path,
+destination path, content hash at the time of movement, collision behavior, and post-move verification result.
+Before reversing a move, the system checks that the file at the destination is still the expected content and
+that restoring it will not overwrite a newer or unrelated file. If the user manually edited or moved the file
+after the product acted, undo should surface a conflict rather than forcing a rollback. The product should be
+able to say, "This action cannot be undone automatically because the file changed after it was moved," and
+provide the relevant paths and hashes for manual resolution.
+
+### 8.4 Privacy, consent, and data boundaries
+
+Privacy policy must be enforced **before** content reaches any model or external connector. The product
+processes a highly personal corpus that can include identity documents, account statements, tax records,
+medical information, legal records, credentials, private correspondence, GPS metadata, employment materials,
+and educational records. The default posture must therefore be local-first and data-minimizing.
+
+The system should classify data into handling classes before LLM escalation:
+
+```text
+Public or low sensitivity
+Personal but non-sensitive
+Sensitive personal
+Highly sensitive or credential-bearing
+Unreadable or unclassified
+```
+
+The classification is itself evidence-backed and can be revised by the user. A scanned passport, tax statement,
+medical document, authentication key, or account record should enter a protected state immediately. Protected
+material should not be included in cloud-model prompts by default, should not display raw content in general
+group summaries, and should not be moved automatically without a user policy that explicitly permits it.
+
+The product should distinguish data that is always local from data that may be sent to an LLM under consent.
+Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw
+sensitive values should remain local. When a cloud model is used, the engine should send only a compact dossier
+relevant to the current question: selected excerpts, redacted identifiers, candidate labels, non-sensitive
+metadata, and evidence references. It should not send full documents where a short heading or OCR excerpt is
+enough to resolve the question. If a model needs text containing sensitive content, the user should see that
+requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.
+
+The product should support clear operation modes:
+
+```text
+Fully offline mode:
+No content leaves the device; only local rules and local models may run.
+
+Local-model mode:
+Local extraction plus a user-installed local LLM for eligible dossiers.
+
+Hybrid mode:
+Sensitive files remain local; non-sensitive bounded dossiers may use a cloud LLM.
+
+Cloud-assisted mode:
+User explicitly permits selected corpus areas to use a cloud model.
+```
+
+Every model call should be recorded in a consent-aware audit record. The record should show what policy
+authorized the call, whether the file was sensitive, which excerpts were included, whether values were redacted,
+which model received the data, and the prompt fingerprint. The user should be able to review and delete local
+derived data, revoke a policy for future runs, and reclassify a file as private. Revocation cannot necessarily
+retract data already sent to an external provider, so the product must communicate that distinction clearly.
+
+Privacy also applies to the user interface. A summary such as "11 protected identity records" may be safe to
+show, while a visible list of passport filenames on a shared screen may not be. Protected branches should have
+configurable redaction in the canvas and review screens. The user can choose whether names, previews, thumbnails,
+OCR text, or location data are shown.
+
+### 8.5 Evaluation, replay, and regression testing
+
+The product needs a replay system that allows the engineering team and the user to evaluate changes without
+touching a live filesystem. A replay bundle should contain a frozen corpus snapshot or a metadata-safe
+representation of one, content hashes, extraction outputs, expected facts, accepted groups, tree versions, policy
+settings, and expected placement or abstention outcomes. The same bundle can be processed by a new extractor
+version, graph algorithm, LLM prompt, model, template library, or placement scorer and compared against prior
+results.
+
+Evaluation must be decomposed by stage. If the final destination is wrong, the system should identify whether the
+error began with extraction, factual validation, retrieval, graph construction, LLM interpretation, grouping,
+template generation, tree design, candidate-node retrieval, or placement scoring. A single overall "accuracy"
+number hides the mechanism that needs repair.
+
+The replay harness should measure at least the following:
+
+```text
+Extraction quality:
+Did the expected text, metadata, table values, OCR text, or image facts appear?
+
+Fact quality:
+Did the system create the correct direct and validated facts?
+Did it abstain when evidence was absent?
+
+Retrieval quality:
+For sparse files, did the correct anchors appear in the top candidate neighborhood?
+
+Graph quality:
+Did edges reflect meaningful typed relationships?
+Did generic hubs create false neighborhoods?
+
+LLM grounding:
+Did every cited excerpt exist?
+Did the model return unknown when evidence was insufficient?
+
+Grouping quality:
+Did candidate groups include correct members, exclude outliers, and identify purpose correctly?
+
+Template quality:
+Did a template generate useful real branches without needless depth?
+
+Tree quality:
+Did users accept, rename, merge, split, or reject proposed branches?
+
+Placement quality:
+Did the engine choose the correct frozen node, an appropriate shallow fallback, or abstain?
+
+Residual quality:
+Did the system avoid inventing associations for isolated files?
+```
+
+The product should maintain a small **adversarial test suite** containing the failure modes already observed in
+real corpora: `MIT` inside "submit," `UNC` inside "uncertainty," course-code patterns that are actually ZIP codes
+or device models, generic author metadata, multiple institutions in one application essay, duplicate suffixes on
+unrelated files, stripped EXIF on messaging-app photographs, screenshots with unreadable OCR, long scanned books,
+documents with corrupted text layers, shared resumes across applications, and files that legitimately belong to
+more than one purpose group. Every new extractor, model, prompt, or graph mechanism should run against this suite
+before it affects a user's live plan.
+
+The evaluation system should also support **shadow mode**. A new model or algorithm can generate parallel
+recommendations without changing the user-visible tree or move plan. The product can compare old and new outputs,
+identify disagreements, and surface only selected examples for human review. This makes it possible to improve the
+system without turning each user's filesystem into an experiment.
+
+### 8.6 Performance, cost, and graceful degradation
+
+The engine needs explicit resource budgets, because its most powerful operations — OCR, model calls, large
+retrieval neighborhoods, graph construction, and visual analysis — can become expensive or noisy at scale. Every
+scan should have an observable budget for elapsed time, memory, CPU or accelerator usage, storage, network use,
+and LLM cost. The user should be able to see what is running, what has been deferred, and why.
+
+The product should define configurable ceilings for:
+
+```text
+Maximum pages OCRed per file
+Maximum OCR time per file
+Maximum OCR time per scan
+Maximum image-analysis operations per scan
+Maximum LLM calls per thousand files
+Maximum model cost per scan
+Maximum dossier tokens per model call
+Maximum retrieved neighbors per target file
+Maximum local graph neighborhood size
+Maximum candidate cluster size
+Maximum residual files in one review batch
+Maximum folder proposals and maximum depth
+```
+
+A large scanned textbook should not consume the same budget as hundreds of ordinary PDFs. A vague file should not
+retrieve five hundred weakly related neighbors. A local graph that exceeds its neighborhood limit should reduce to
+the strongest anchors and highest-quality edges before it is shown to an LLM. A model prompt that exceeds its
+token budget should not truncate silently in a way that removes the decisive evidence. Instead, the system should
+summarize deterministic facts, preserve anchor excerpts, split the task, or defer the decision.
+
+The engine should degrade in a predictable order. Direct facts and high-precision rules run first because they are
+cheap and reliable. Full local extraction and OCR run within the configured budget. Graph retrieval activates only
+for files with meaningful incomplete evidence and a plausible anchor. LLM calls are reserved for bounded
+ambiguities, group coherence, custom-template generation, and residual interpretation. If the budget is exhausted,
+the product should retain extracted evidence, mark the deferred stage, and leave the file or group in review rather
+than guessing. **Cost exhaustion must never turn into lower-quality automatic classification.**
+
+The user interface should show the difference between completed work and deferred work. A scan may say: "1,842
+files indexed; 1,611 fully extracted; 89 scanned PDFs deferred after the OCR limit; 34 files require model review;
+18 files remain unreadable." This makes the product's limitations legible and avoids the false impression that an
+unprocessed file was understood and found unimportant.
+
+### 8.7 Correction learning and local personalization
+
+The product should record corrections from the first interaction, but it should initially learn through transparent
+local preferences and constraints rather than hidden global retraining. Every user action contains valuable
+information about their organization style: accepting or rejecting a group, excluding one member from a packet,
+renaming a branch, merging or splitting groups, changing template order, creating a custom template, moving a
+residual file to a custom location, choosing a shallow fallback, keeping a file in place, marking a file private, or
+disabling a type of suggestion.
+
+These actions should become local learning records **with scope**. A correction can apply only to one file, to one
+group, to one destination node, to one template, to one domain, or to the entire corpus. For example, a user may say
+that one particular transcript belongs in a Columbia packet but should not teach the engine that all transcripts
+belong there. Conversely, if the user repeatedly places product screenshots under Reference Clips, the product can
+learn a corpus-level preference for that residual destination. If the user repeatedly rejects an association between
+their authoring school and application documents, the product can lower the role or weight of author-affiliation
+evidence across that corpus.
+
+The correction system should include explicit **negative** feedback. Rejected groups, rejected destination matches,
+rejected labels, and rejected residual recommendations must be stored with the evidence that produced them.
+Otherwise the system will repeatedly resurface the same attractive but incorrect grouping. The user should be able
+to inspect or reset learned preferences, so personalization remains understandable and reversible.
+
+The product should not silently train a global model on a user's private corpus. Any cross-user learning should be
+opt-in, privacy-preserving, and limited to template-level or rule-level improvements rather than raw personal
+documents. In the initial product, the correct strategy is local adaptation: aliases, user vocabulary, destination
+preferences, template edits, negative constraints, and accepted examples within the user's own database.
+
+### 8.8 Versioned organization plans
+
+A user's organization strategy changes over time. They may begin with Applications, later rename it to Admissions,
+move Research beneath Projects, decide that screenshots belong in Reference Clips, or create a new custom template
+for consulting engagements. The product must treat an organization plan as a **versioned object** rather than a
+hidden mutable state.
+
+A plan version should capture:
+
+```text
+Plan ID and version
+Creation time
+Destination tree and node identifiers
+Existing versus proposed versus user-created nodes
+Template versions and ordering choices
+Accepted and rejected group memberships
+User labels and aliases
+Residual-library configuration
+Privacy and model-consent policies
+Placement policy settings
+Associated review decisions
+```
+
+When the user edits the tree, the product should create a draft plan version and show a meaningful **diff**. The
+diff may state that Applications was renamed to Admissions, Research moved under Projects, Reference Clips was
+added, the Academic template changed from school → term → course → work type to course → term → work type, or
+twenty-three files now require renewed review because their previous destination no longer exists. The user can
+compare versions, restore an earlier draft, or explicitly adopt the new plan.
+
+A new plan should never silently reclassify or move old files. It creates a new set of placement recommendations
+subject to review. The evidence database remains shared across plan versions, but the destination tree and user
+policy define which projections are valid in each version. This makes the system stable: new information can
+improve proposals without rewriting the user's existing organization behind their back.
+
+### 8.9 Operational promise
+
+The trust and operations layer turns a sophisticated analysis pipeline into a reliable personal system.
+Provenance ensures that every fact and action can be reconstructed. Filesystem controls prevent stale or
+destructive moves. Privacy boundaries keep personal content under user control. Replay and evaluation make
+improvements measurable. Budgets prevent expensive mechanisms from degrading into noisy behavior. Correction
+learning adapts locally without becoming opaque. Versioned plans allow organization to evolve without
+destabilizing accepted structure.
+
+Together, these layers establish the product's operational promise: it will never treat an inference as an
+unexplained fact, never treat a proposed action as permission to mutate a file, never hide a privacy boundary,
+never silently change an approved organization plan, and never require the user to trust a black box when the
+evidence, decision history, and correction path can be shown directly.

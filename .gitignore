@@ -11,3 +11,6 @@ venv/
 database_agent/
 tests/
 pyproject.toml
+
+# graphify build artifacts — regenerable, rebuilt by `graphify update .`
+graphify-out/
