@@ -550,3 +550,379 @@ git commit -m "feat(P2): the ten stages and the ten dimensions, two lists, never
 ```
 
 ---
+
+### Task 3: Run manifest, version tuple, and run settings (Contract out §5)
+
+**Files:**
+- Create: `src/eval_harness/run.py`
+- Modify: `src/eval_harness/store.py` — append `RUN_DDL` to `_DDL_SCRIPTS`
+- Test: `tests/eval/test_run.py`
+
+**Interfaces:**
+- Consumes: `create_eval_schema`, `canonical_json`, `content_ref` (Task 1); `RUN_KINDS` (Task 2); `database_agent.budget.all_ceilings(conn) -> dict[str, int]`, `database_agent.budget.CEILING_KEYS` (P1 Task 10).
+- Produces: `VERSION_AXES: tuple[str, ...]` (the six §8.5 axes), `VERSION_TUPLE_FIELDS: tuple[str, ...]` (seven), `ANALYSIS_TIERS: tuple[str, ...]` (four), `RUN_SETTING_KEYS: tuple[str, ...]` (two), `record_version_tuple(conn, **fields) -> str`, `get_version_tuple(conn, ref) -> dict`, `start_run(conn, *, bundle_id, run_kind, version_tuple_ref, budget_ceilings, run_settings, pinned_plan_id, pinned_plan_version) -> str`, `finish_run(conn, run_id) -> None`, `get_run(conn, run_id) -> sqlite3.Row`, `run_ceilings(conn, run_id) -> dict`, `UnknownAnalysisTier`, `UnknownRunSetting`.
+
+**The version tuple has seven fields and §8.5 names six axes.** §8.5's six are *"a new extractor version, graph algorithm, LLM prompt, model, template library, or placement scorer."* The seventh, `analysis_tiers_enabled[]`, arrives from [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md), which is binding: *"P2 `version_tuple.analysis_tier` becomes `analysis_tiers_enabled[]` — a subset of the four — so a walking-skeleton run can declare `{filesystem, native}` and an OCR-on replay is a different tuple. A singular field cannot express 'native on, OCR off.'"* `VERSION_AXES` is the six; `VERSION_TUPLE_FIELDS` is all seven. Task 12's delta reports every field that differs and labels which of them are §8.5's six, so Done-means 8 is satisfied without hiding a tier change. This plan does not decide whether the tier set *should* be a seventh §8.5 axis — see the report accompanying this plan.
+
+**`run_settings` is two keys and is not a version axis.** SPEC Contract out §5: a disable changes *which stages ran*, not *which version produced them*. Exactly two are required — `model_enabled` and `embeddings_enabled` — because §8.5 asks retrieval quality and LLM grounding as separate questions, and because `embeddings_enabled = false` is the run that makes P9's §4.2 obligation checkable (*"embeddings never establish the group by themselves"*). The walking skeleton runs with both false.
+
+**P2 holds ceiling keys, never ceiling values.** §8.6's ceilings are *"configurable"* and hand-authored. `start_run` snapshots whatever `database_agent.budget.all_ceilings(conn)` returns at the moment the run starts and stores it verbatim on the run, so two runs given different ceilings are distinguishable (SPEC Contract out §5: *"a comparison across different ceilings must be labelled, because deferral changes outputs"*). It validates keys against P1's `CEILING_KEYS` and validates no value. **Every number in the test below is a fixture value chosen to make a difference observable, exactly as P1's `tests/test_budget.py` does. None is a design value.**
+
+**A run is not a session.** [`../../11-ops-runtime.md`](../../11-ops-runtime.md) §3: *"P2 replay is not a session; it is a harness run."* There is no `session_id` on `run_manifest`.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_run.py
+import pytest
+from database_agent.budget import CEILING_KEYS, all_ceilings, set_ceiling
+from database_agent.db import create_schema
+
+from eval_harness.run import (
+    ANALYSIS_TIERS, RUN_SETTING_KEYS, VERSION_AXES, VERSION_TUPLE_FIELDS,
+    UnknownAnalysisTier, UnknownRunSetting, finish_run, get_run, get_version_tuple,
+    record_version_tuple, run_ceilings, start_run,
+)
+from eval_harness.store import create_eval_schema
+
+
+def _tuple_fields(**overrides):
+    fields = dict(
+        extractor_versions={"e1": "0.0.0-fixture"},
+        graph_algorithm_version="graph-fixture",
+        prompt_fingerprint=None,
+        model_identifier=None,
+        template_library_version="templates-fixture",
+        placement_scorer_version="scorer-fixture",
+        analysis_tiers_enabled=["filesystem", "native"],
+    )
+    fields.update(overrides)
+    return fields
+
+
+def test_the_six_8_5_axes_and_the_seventh_i4_field():
+    # §8.5: "a new extractor version, graph algorithm, LLM prompt, model,
+    # template library, or placement scorer". Six.
+    assert VERSION_AXES == (
+        "extractor_versions", "graph_algorithm_version", "prompt_fingerprint",
+        "model_identifier", "template_library_version", "placement_scorer_version",
+    )
+    # 10-i4-learning-ops.md adds the tier set. Seven fields, six named axes.
+    assert VERSION_TUPLE_FIELDS == VERSION_AXES + ("analysis_tiers_enabled",)
+
+
+def test_analysis_tiers_enabled_is_a_subset_of_the_four(eval_conn):
+    create_eval_schema(eval_conn)
+    assert ANALYSIS_TIERS == ("filesystem", "native", "ocr", "llm")
+    ref = record_version_tuple(eval_conn, **_tuple_fields())
+    assert get_version_tuple(eval_conn, ref)["analysis_tiers_enabled"] == \
+        ["filesystem", "native"]
+
+
+def test_a_tier_outside_the_four_is_rejected(eval_conn):
+    create_eval_schema(eval_conn)
+    with pytest.raises(UnknownAnalysisTier):
+        record_version_tuple(eval_conn,
+                             **_tuple_fields(analysis_tiers_enabled=["deep"]))
+
+
+def test_the_same_tuple_yields_the_same_reference(eval_conn):
+    create_eval_schema(eval_conn)
+    a = record_version_tuple(eval_conn, **_tuple_fields())
+    b = record_version_tuple(eval_conn, **_tuple_fields())
+    c = record_version_tuple(eval_conn, **_tuple_fields(model_identifier="m2"))
+    assert a == b
+    assert a != c
+
+
+def test_run_settings_are_exactly_two_and_are_not_version_axes(eval_conn):
+    create_eval_schema(eval_conn)
+    assert RUN_SETTING_KEYS == ("model_enabled", "embeddings_enabled")
+    assert not set(RUN_SETTING_KEYS) & set(VERSION_TUPLE_FIELDS)
+    ref = record_version_tuple(eval_conn, **_tuple_fields())
+    with pytest.raises(UnknownRunSetting):
+        start_run(eval_conn, bundle_id="b1", run_kind="replay", version_tuple_ref=ref,
+                  budget_ceilings={}, run_settings={"ocr_enabled": True},
+                  pinned_plan_id="plan-fixture", pinned_plan_version="1")
+
+
+def test_a_run_snapshots_the_ceiling_set_it_was_given(eval_conn):
+    # SPEC Contract out §5: "Two runs are only comparable when they were given the
+    # same budget_ceilings". The numbers below are fixture values, not design values.
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    set_ceiling(eval_conn, "ocr.max_pages_per_file", 40)
+    set_ceiling(eval_conn, "model.max_cost_per_scan", 7)
+    ref = record_version_tuple(eval_conn, **_tuple_fields())
+    run_id = start_run(
+        eval_conn, bundle_id="b1", run_kind="replay", version_tuple_ref=ref,
+        budget_ceilings=all_ceilings(eval_conn),
+        run_settings={"model_enabled": False, "embeddings_enabled": False},
+        pinned_plan_id="plan-fixture", pinned_plan_version="1",
+    )
+    assert run_ceilings(eval_conn, run_id) == {"ocr.max_pages_per_file": 40,
+                                               "model.max_cost_per_scan": 7}
+    # A later change to the live config does not rewrite a completed run.
+    set_ceiling(eval_conn, "ocr.max_pages_per_file", 5)
+    assert run_ceilings(eval_conn, run_id)["ocr.max_pages_per_file"] == 40
+
+
+def test_a_ceiling_key_outside_p1s_fifteen_is_rejected(eval_conn):
+    create_eval_schema(eval_conn)
+    ref = record_version_tuple(eval_conn, **_tuple_fields())
+    with pytest.raises(KeyError):
+        start_run(eval_conn, bundle_id="b1", run_kind="replay", version_tuple_ref=ref,
+                  budget_ceilings={"made.up_ceiling": 5},
+                  run_settings={"model_enabled": False, "embeddings_enabled": False},
+                  pinned_plan_id="plan-fixture", pinned_plan_version="1")
+
+
+def test_p2_stores_no_ceiling_value_of_its_own():
+    # §8.6's ceilings are configurable and hand-authored. P2 holds keys.
+    from pathlib import Path
+    src = Path(__file__).resolve().parents[2] / "src" / "eval_harness"
+    for path in src.rglob("*.py"):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if "max_" in line and "=" in line and "CEILING" not in line:
+                assert not any(ch.isdigit() for ch in line.split("=", 1)[1]), \
+                    f"{path.name}: {line.strip()}"
+
+
+def test_run_kind_is_one_of_three(eval_conn):
+    create_eval_schema(eval_conn)
+    ref = record_version_tuple(eval_conn, **_tuple_fields())
+    with pytest.raises(ValueError):
+        start_run(eval_conn, bundle_id="b1", run_kind="production",
+                  version_tuple_ref=ref, budget_ceilings={},
+                  run_settings={"model_enabled": False, "embeddings_enabled": False},
+                  pinned_plan_id="plan-fixture", pinned_plan_version="1")
+
+
+def test_a_run_records_its_pinned_plan_version_and_finishes(eval_conn):
+    create_eval_schema(eval_conn)
+    ref = record_version_tuple(eval_conn, **_tuple_fields())
+    run_id = start_run(
+        eval_conn, bundle_id="b1", run_kind="replay", version_tuple_ref=ref,
+        budget_ceilings={},
+        run_settings={"model_enabled": False, "embeddings_enabled": False},
+        pinned_plan_id="plan-fixture", pinned_plan_version="1",
+    )
+    row = get_run(eval_conn, run_id)
+    assert row["pinned_plan_id"] == "plan-fixture"
+    assert row["pinned_plan_version"] == "1"
+    assert row["started_at"] and row["finished_at"] is None
+    finish_run(eval_conn, run_id)
+    assert get_run(eval_conn, run_id)["finished_at"]
+
+
+def test_a_run_carries_no_session_id(eval_conn):
+    # 11-ops-runtime.md §3: "P2 replay is not a session; it is a harness run."
+    create_eval_schema(eval_conn)
+    cols = {r["name"] for r in eval_conn.execute("PRAGMA table_info(run_manifest)")}
+    assert "session_id" not in cols
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_run.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.run'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/run.py
+"""Contract out §5 — the run manifest.
+
+The six version axes are exactly the six things §8.5 says a bundle may be
+re-processed by. `analysis_tiers_enabled[]` is a seventh field, added by
+10-i4-learning-ops.md so that "native on, OCR off" is expressible; it is recorded
+and compared, and this module does not claim it is a §8.5 axis.
+
+`run_settings` is separate from the tuple because a disable changes WHICH stages
+ran, not which version produced them.
+"""
+from __future__ import annotations
+
+import sqlite3
+import uuid
+from datetime import datetime, timezone
+
+from database_agent.budget import CEILING_KEYS
+
+from eval_harness.store import canonical_json, content_ref
+from eval_harness.vocabulary import RUN_KINDS
+
+#: §8.5: "a new extractor version, graph algorithm, LLM prompt, model, template
+#: library, or placement scorer". Six, and Task 12 names which of them differ.
+VERSION_AXES: tuple[str, ...] = (
+    "extractor_versions",         # {} — one version per extractor (§3.4)
+    "graph_algorithm_version",
+    "prompt_fingerprint",         # §3.4
+    "model_identifier",           # §3.4
+    "template_library_version",
+    "placement_scorer_version",
+)
+
+#: The seventh field. 10-i4-learning-ops.md, binding: a subset of the four tiers.
+VERSION_TUPLE_FIELDS: tuple[str, ...] = VERSION_AXES + ("analysis_tiers_enabled",)
+
+#: The four analysis tiers (I4, ratified). P5 owns the vocabulary; P2's Contract
+#: out §5 prints all four inside its own record, which is why they appear here.
+ANALYSIS_TIERS: tuple[str, ...] = ("filesystem", "native", "ocr", "llm")
+
+#: Contract out §5 — "Two are required." Independent stage disables, not versions.
+RUN_SETTING_KEYS: tuple[str, ...] = ("model_enabled", "embeddings_enabled")
+
+RUN_DDL = """
+CREATE TABLE IF NOT EXISTS version_tuple (
+    version_tuple_ref TEXT PRIMARY KEY,
+    fields            TEXT NOT NULL          -- canonical JSON of the seven fields
+);
+CREATE TABLE IF NOT EXISTS run_manifest (
+    run_id              TEXT PRIMARY KEY,
+    bundle_id           TEXT NOT NULL,
+    run_kind            TEXT NOT NULL,
+    version_tuple_ref   TEXT NOT NULL REFERENCES version_tuple (version_tuple_ref),
+    budget_ceilings     TEXT NOT NULL,       -- canonical JSON; the set this run was GIVEN
+    run_settings        TEXT NOT NULL,       -- canonical JSON; exactly RUN_SETTING_KEYS
+    pinned_plan_id      TEXT,
+    pinned_plan_version TEXT,
+    started_at          TEXT NOT NULL,
+    finished_at         TEXT
+);
+CREATE INDEX IF NOT EXISTS run_manifest_bundle ON run_manifest (bundle_id);
+"""
+
+
+class UnknownAnalysisTier(Exception):
+    """A tier outside I4's ratified four."""
+
+
+class UnknownRunSetting(Exception):
+    """A run setting outside Contract out §5's two."""
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def record_version_tuple(conn: sqlite3.Connection, **fields) -> str:
+    """Store the seven-field tuple and return its stable reference.
+
+    Two runs given structurally identical tuples share a reference. That is an
+    identity of the tuple and NOT a claim that a re-run under it reproduces its
+    outputs — §3.4's cache key pins model identifier and prompt fingerprint and
+    says nothing about sampling parameters. SPEC Open question 11 is open.
+    """
+    missing = set(VERSION_TUPLE_FIELDS) - set(fields)
+    extra = set(fields) - set(VERSION_TUPLE_FIELDS)
+    if missing or extra:
+        raise ValueError(f"version tuple fields: missing {sorted(missing)}, "
+                         f"unexpected {sorted(extra)}")
+    tiers = fields["analysis_tiers_enabled"]
+    unknown = [t for t in tiers if t not in ANALYSIS_TIERS]
+    if unknown:
+        raise UnknownAnalysisTier(
+            f"{unknown} outside the four analysis tiers {ANALYSIS_TIERS} (I4)")
+    payload = canonical_json({k: fields[k] for k in VERSION_TUPLE_FIELDS})
+    ref = content_ref(payload)
+    conn.execute(
+        "INSERT INTO version_tuple (version_tuple_ref, fields) VALUES (?, ?) "
+        "ON CONFLICT(version_tuple_ref) DO NOTHING",
+        (ref, payload),
+    )
+    return ref
+
+
+def get_version_tuple(conn: sqlite3.Connection, version_tuple_ref: str) -> dict:
+    import json
+    row = conn.execute(
+        "SELECT fields FROM version_tuple WHERE version_tuple_ref = ?",
+        (version_tuple_ref,),
+    ).fetchone()
+    return {} if row is None else json.loads(row["fields"])
+
+
+def start_run(conn: sqlite3.Connection, *, bundle_id: str, run_kind: str,
+              version_tuple_ref: str, budget_ceilings: dict,
+              run_settings: dict, pinned_plan_id: str | None,
+              pinned_plan_version: str | None) -> str:
+    """Open a run. Returns its run_id.
+
+    `budget_ceilings` is the set this run was GIVEN — snapshot it from
+    `database_agent.budget.all_ceilings(conn)` at the call site. P2 validates the
+    keys against P1's fifteen and validates no value: §8.6's ceilings are
+    configurable and hand-authored, and P2 holds keys, never numbers.
+    """
+    if run_kind not in RUN_KINDS:
+        raise ValueError(f"run_kind {run_kind!r} is not one of {RUN_KINDS}")
+    for key in budget_ceilings:
+        if key not in CEILING_KEYS:
+            raise KeyError(f"{key!r} is not one of §8.6's fifteen ceiling keys")
+    unknown = set(run_settings) - set(RUN_SETTING_KEYS)
+    if unknown:
+        raise UnknownRunSetting(
+            f"{sorted(unknown)} outside Contract out §5's {RUN_SETTING_KEYS}")
+    run_id = str(uuid.uuid4())
+    conn.execute(
+        "INSERT INTO run_manifest (run_id, bundle_id, run_kind, version_tuple_ref, "
+        "budget_ceilings, run_settings, pinned_plan_id, pinned_plan_version, started_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (run_id, bundle_id, run_kind, version_tuple_ref,
+         canonical_json(budget_ceilings), canonical_json(run_settings),
+         pinned_plan_id, pinned_plan_version, _now()),
+    )
+    return run_id
+
+
+def finish_run(conn: sqlite3.Connection, run_id: str) -> None:
+    conn.execute("UPDATE run_manifest SET finished_at = ? WHERE run_id = ?",
+                 (_now(), run_id))
+
+
+def get_run(conn: sqlite3.Connection, run_id: str) -> sqlite3.Row:
+    return conn.execute("SELECT * FROM run_manifest WHERE run_id = ?",
+                        (run_id,)).fetchone()
+
+
+def run_ceilings(conn: sqlite3.Connection, run_id: str) -> dict:
+    """The ceiling set this run was given, as recorded. Never re-read from config."""
+    import json
+    row = get_run(conn, run_id)
+    return {} if row is None else json.loads(row["budget_ceilings"])
+
+
+def run_settings(conn: sqlite3.Connection, run_id: str) -> dict:
+    import json
+    row = get_run(conn, run_id)
+    return {} if row is None else json.loads(row["run_settings"])
+```
+
+**Wire the DDL into `create_eval_schema` without a circular import.** `run.py` imports `store.py` for `canonical_json`, so `store.py` cannot import `run.py` at module level. Each module owns its own DDL string and `create_eval_schema` collects them in a function-level import — one owner per table, no duplication, no cycle. Replace the `_DDL_SCRIPTS` placeholder in `store.py` with:
+
+```python
+def _ddl_scripts() -> list[str]:
+    """Every P2 table, each DDL owned by the module that publishes the surface.
+
+    Imported inside the function: `run`, `bundle` and the rest import `store` for
+    `canonical_json`, so a module-level import here would be circular.
+    """
+    from eval_harness import run
+    return [run.RUN_DDL]
+```
+
+and change `create_eval_schema`'s loop to `for ddl in _ddl_scripts():`. Each later task appends exactly one name to that list.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_run.py -v`
+Expected: PASS — 11 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/run.py src/eval_harness/store.py tests/eval/test_run.py
+git commit -m "feat(P2): run manifest, seven-field version tuple, two run settings, ceilings snapshotted"
+```
+
+---
