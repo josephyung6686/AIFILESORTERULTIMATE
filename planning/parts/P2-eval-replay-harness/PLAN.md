@@ -580,7 +580,7 @@ git commit -m "feat(P2): the ten stages and the ten dimensions, two lists, never
 
 **Files:**
 - Create: `src/eval_harness/run.py`
-- Modify: `src/eval_harness/store.py` — append `RUN_DDL` to `_DDL_SCRIPTS`
+- Modify: `src/eval_harness/store.py` — append `RUN_DDL` to `_ddl_scripts`
 - Test: `tests/eval/test_run.py`
 
 **Interfaces:**
@@ -923,7 +923,7 @@ def run_settings(conn: sqlite3.Connection, run_id: str) -> dict:
     return {} if row is None else json.loads(row["run_settings"])
 ```
 
-**Wire the DDL into `create_eval_schema` without a circular import.** `run.py` imports `store.py` for `canonical_json`, so `store.py` cannot import `run.py` at module level. Each module owns its own DDL string and `create_eval_schema` collects them in a function-level import — one owner per table, no duplication, no cycle. Replace the `_DDL_SCRIPTS` placeholder in `store.py` with:
+**Wire the DDL into `create_eval_schema` without a circular import.** `run.py` imports `store.py` for `canonical_json`, so `store.py` cannot import `run.py` at module level. Each module owns its own DDL string and `create_eval_schema` collects them in a function-level import — one owner per table, no duplication, no cycle. Replace Task 1's empty `_ddl_scripts` in `store.py` with:
 
 ```python
 def _ddl_scripts() -> list[str]:
@@ -1330,11 +1330,15 @@ git commit -m "feat(P2): stage output envelope, opaque payload, foreign vocabula
 
 **Immutability is enforced by trigger, not by convention** — the same discipline P1 applies to `events`. A bundle is opened, filled, and sealed; after `sealed_at` is stamped, every `UPDATE` on the manifest and every `INSERT`, `UPDATE` or `DELETE` on a child row raises. Before sealing, an abandoned draft can be discarded. **These triggers are on P2's own tables.** P2 does not touch `events`, and I6 (tombstone versus append) is deferred to P7 — nothing here forecloses it.
 
+**"A child row" means all seven of them, and the triggers are written out in the task that creates each table.** This task creates `bundle_file_entry`; Task 6 adds `bundle_extraction_output`, `bundle_extraction_run` and `bundle_text_unit`, Task 7 adds `bundle_learning_record`, Task 8 adds `bundle_accepted_group` and `bundle_expectation` — **twenty-one triggers in total, three per child table, plus the manifest's two.** The Python writers all call `_require_open` first, but a writer check protects only callers who go through the writer, and a replay adapter and a shadow adapter both hold the connection. Task 8 closes the set with `test_every_bundle_table_is_sealed_against_all_three_writes`, which enumerates the bundle tables out of `EVAL_TABLES` rather than naming them, so a table added later without its three triggers fails there instead of being immutable in this paragraph only.
+
 **A rebuild is a new bundle that supersedes the old** (§8.2 supersede-never-overwrite; §8.8 *"a new plan should never silently reclassify or move old files"*). `rebuild_bundle` copies the manifest, applies overrides, sets `supersedes_bundle_id`, and **leaves the superseded bundle sealed and readable**. There is no delete path.
 
 **`body` is exactly one of two things, and which one is fixed by `corpus_form`.** SPEC Contract out §3: `payload_ref` when `corpus_form = snapshot`, `metadata_only` when `corpus_form = metadata_safe`. `add_file_entry` refuses an entry that carries the wrong one, or both, or neither — otherwise a metadata-safe bundle could silently acquire file bytes, which is the precise thing SPEC Open question 5 is unable to authorize.
 
 **P2 stores `handling_class` and `privacy_mode` as opaque strings and validates neither.** They are P7's closed vocabularies (five classes, four operation modes), published in P7's Contract out. Copying either list into P2's source would be two vocabularies for one concept. The consequence is stated plainly: **a typo in a handling class is not caught here.** When P7 lands, import its vocabulary and validate against the imported names — do not retype the strings. This is the same discipline P1 applied to P11's eight unspelled event types, and it is recorded as a known gap at the end of this plan.
+
+**The standing guard that P7's names never appear in P2's source is Task 16's, and there is exactly one of it.** `test_p2_declares_no_other_parts_vocabulary` in `tests/eval/test_no_aggregate.py` greps every file under `src/eval_harness/` for P7's five classes and four modes together with P6's fact fields, §7.3's residual template names and §3.13's reliability states. It is deliberately **not** duplicated here: a second copy of the same rule in `test_bundle.py` would be a second list to keep in step with P7, and the two would drift on exactly one member the day P7 adds or renames one — the "one name, one concept" failure this plan exists to avoid, in miniature. `test_p2_validates_no_p7_vocabulary` below is the *other* property and stays: that `add_file_entry` accepts whatever string it is handed. The guard scans `src/`, so this task's tests may name P7's classes freely, and one of them does.
 
 **P2 does not decide whether a bundle may leave the device.** SPEC Open question 5 is open. `corpus_form` is declared per bundle and `handling_class` is recorded per entry *"so that P7's §8.4 policy can be applied to a bundle without P2 deciding it"*. There is no export function in this plan, and no test asserts that any bundle is exportable.
 
@@ -1495,18 +1499,6 @@ def test_p2_validates_no_p7_vocabulary(eval_conn):
                    hash_algorithm="sha256", handling_class="anything-p7-says",
                    payload_ref="blobs/aa")
     assert bundle_files(eval_conn, bundle_id)[0]["handling_class"] == "anything-p7-says"
-
-
-def test_p2_source_carries_no_p7_class_or_mode_name():
-    from pathlib import Path
-    src = Path(__file__).resolve().parents[2] / "src" / "eval_harness"
-    forbidden = ("public_low", "personal_non_sensitive", "sensitive_personal",
-                 "highly_sensitive_credential_bearing", "unreadable_unclassified",
-                 "local_model", "cloud_assisted", "hybrid")
-    for path in src.rglob("*.py"):
-        text = path.read_text(encoding="utf-8")
-        for term in forbidden:
-            assert term not in text, f"{path.name} carries P7's {term!r}"
 
 
 def test_a_bundle_needs_no_live_filesystem(eval_conn, tmp_path):
@@ -1730,7 +1722,7 @@ Add to `store.py`'s `_ddl_scripts`:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/eval/test_bundle.py -v`
-Expected: PASS — 11 passed
+Expected: PASS — 10 passed
 
 - [ ] **Step 5: Commit**
 
@@ -1761,12 +1753,20 @@ git commit -m "feat(P2): replay bundle, sealed by trigger, superseded never over
 
 **Why the text rows are here.** After P4's D12 the text is not on the observation — an observation is a *located value* and `text_units` is the unit it points into. Dimension 1 is §8.5's *"Did the expected text … appear?"*, which P4 states is a query against `text_units`. Without these rows the first of the ten dimensions has nothing to query, and a `capped` OCR run's recovered text — exactly what a version-to-version diff of a new OCR engine must compare — is absent from the bundle. **Whether a `metadata_safe` bundle may carry them is SPEC Open question 5 and is not answered here:** `add_text_unit` refuses on a `metadata_safe` bundle with an error naming OQ5, rather than silently allowing or silently forbidding it. That refusal is reversible in one line the day OQ5 closes; a silent allow would not be.
 
+**The price of that refusal is that Done-means 1 is only fully met in one of the two `corpus_form` variants, and it should be read that way rather than claimed away.** Done-means 1 is *"a replay bundle can be built, stored, and re-run without touching a live filesystem, **in both `corpus_form` variants, with every field in §8.5's contents list present**"*. A `metadata_safe` bundle carries no `bundle_text_unit[]` rows, so **dimension 1 — §8.5's *"Did the expected text ... appear?"* — is unassertable on it**: there is no text to query, and an assertion over that dimension gets `not_run` rather than a verdict. The SPEC already carves this out in the contents list itself (*"Populated when `corpus_form = snapshot`; whether a `metadata_safe` bundle may carry them is the export rule P2 does not define — see Open question 5"*), so this is a documentation gap rather than a contradiction: the *"every field present"* clause binds `snapshot`, and `metadata_safe` is complete for every field OQ5 permits it to hold. The day OQ5 closes in favour of carrying them, the one-line change to `add_text_unit` makes Done-means 1 hold identically in both. Until then, **a regression run over a `metadata_safe` bundle is not a substitute for one over a `snapshot` bundle**, and a reader comparing the two must not read dimension 1's absence as a stage failure.
+
 - [ ] **Step 1: Write the fixtures**
 
+**Two files, and each block below is the whole file body — nothing above the opening `[`.** JSON has
+no comment syntax, and both fixtures are read with `json.loads(path.read_text(encoding="utf-8"))`, so
+a `//` provenance header would fail the load with `JSONDecodeError: Expecting value: line 1 column 1`.
+The provenance lives here instead. The first block is `tests/eval/fixtures/p4_runs.json`, whose field
+names and example values are copied from [`../P4-evidence-shape/SPEC.md`](../P4-evidence-shape/SPEC.md)
+Record 2 (D5). The second is `tests/eval/fixtures/p4_text_units.json`, copied from that SPEC's
+Record 3 (D12, G1) and keyed by `(run_id, container_path)`. **P2 defines no part of either shape**;
+when P4 lands, both files are replaced by real P4 rows and the column lists are checked against P4's.
+
 ```json
-// tests/eval/fixtures/p4_runs.json
-// P4 SPEC Record 2 (D5). Field names and example values copied from that record.
-// P2 defines none of this shape. Replace with real P4 rows when P4 lands.
 [
   {
     "run_id": "run-ocr-1", "file_id": "file-book", "content_hash": "sha256:book",
@@ -1806,8 +1806,6 @@ git commit -m "feat(P2): replay bundle, sealed by trigger, superseded never over
 ```
 
 ```json
-// tests/eval/fixtures/p4_text_units.json
-// P4 SPEC Record 3 (D12, G1). Keyed by (run_id, container_path).
 [
   {"run_id": "run-ocr-1", "container_path": [{"kind": "page", "index": 4}],
    "unit_locator": "page=4", "text": "recovered page four text",
@@ -1998,6 +1996,58 @@ CREATE TABLE IF NOT EXISTS bundle_text_unit (
     row           TEXT NOT NULL,       -- P4's whole row, verbatim
     PRIMARY KEY (bundle_id, run_id, unit_locator)
 );
+
+-- Three seal triggers per content table, the same set bundle_file_entry carries.
+-- Written out rather than generated: SQLite has no parameterized trigger, and a
+-- table given the writer check but not the triggers is mutable after sealing to
+-- anything holding the connection. `_require_open` in the Python writer is the
+-- first line and this is the second; the guarantee in Task 5's prose is "every
+-- INSERT, UPDATE or DELETE on a child row raises", which is only true if every
+-- child table has all three.
+CREATE TRIGGER IF NOT EXISTS bundle_extraction_output_sealed_no_insert
+BEFORE INSERT ON bundle_extraction_output
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_extraction_output_sealed_no_update
+BEFORE UPDATE ON bundle_extraction_output
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_extraction_output_sealed_no_delete
+BEFORE DELETE ON bundle_extraction_output
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_extraction_run_sealed_no_insert
+BEFORE INSERT ON bundle_extraction_run
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_extraction_run_sealed_no_update
+BEFORE UPDATE ON bundle_extraction_run
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_extraction_run_sealed_no_delete
+BEFORE DELETE ON bundle_extraction_run
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_text_unit_sealed_no_insert
+BEFORE INSERT ON bundle_text_unit
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_text_unit_sealed_no_update
+BEFORE UPDATE ON bundle_text_unit
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_text_unit_sealed_no_delete
+BEFORE DELETE ON bundle_text_unit
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
 ```
 
 Append the writers and readers to `bundle.py`:
@@ -2279,6 +2329,21 @@ CREATE TABLE IF NOT EXISTS bundle_learning_record (
     row            TEXT NOT NULL, -- P1's whole row, verbatim, incl. §8.2's explanation
     PRIMARY KEY (bundle_id, event_id)
 );
+
+CREATE TRIGGER IF NOT EXISTS bundle_learning_record_sealed_no_insert
+BEFORE INSERT ON bundle_learning_record
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_learning_record_sealed_no_update
+BEFORE UPDATE ON bundle_learning_record
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_learning_record_sealed_no_delete
+BEFORE DELETE ON bundle_learning_record
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
 ```
 
 Append to `bundle.py`:
@@ -2382,13 +2447,15 @@ git commit -m "feat(P2): bundle carries P1's scoped learning records so a missin
 
 ```python
 # tests/eval/test_bundle_expectation.py
+import sqlite3
+
 import pytest
 
 from eval_harness.bundle import (
     accepted_groups, add_accepted_group, add_expectation, expectation_for,
     expectations, open_bundle, seal_bundle,
 )
-from eval_harness.store import create_eval_schema
+from eval_harness.store import EVAL_TABLES, create_eval_schema
 from eval_harness.vocabulary import DIMENSIONS, UnknownDimension
 
 
@@ -2526,6 +2593,56 @@ def test_a_sealed_bundle_takes_no_further_expectation(eval_conn):
         add_expectation(eval_conn, bundle_id, dimension="fact", subject_ref="x",
                         expected_value={}, expected_outcome_kind="produced",
                         source="hand-labelled")
+
+
+def _placeholder_row(conn, table: str, bundle_id: str) -> None:
+    """Insert one row into `table` using only the schema, no writer.
+
+    Column types come from PRAGMA, so this works for a bundle table added later
+    without being taught its shape — which is the point of the test below.
+    """
+    columns = list(conn.execute(f"PRAGMA table_info({table})"))
+    values = [bundle_id if c["name"] == "bundle_id"
+              else (0 if c["type"] == "INTEGER" else "x") for c in columns]
+    conn.execute(
+        f"INSERT INTO {table} ({', '.join(c['name'] for c in columns)}) "
+        f"VALUES ({', '.join('?' * len(columns))})", values)
+
+
+def test_every_bundle_table_is_sealed_against_all_three_writes(eval_conn):
+    # Task 5's claim is that after `sealed_at` every INSERT, UPDATE and DELETE on
+    # a CHILD ROW raises — not just on the two tables Task 5 itself created. The
+    # Python writers all call `_require_open`, but a writer check is bypassed by
+    # anything holding the connection, which is precisely what a replay adapter
+    # and a shadow adapter are. This enumerates the tables rather than naming
+    # them, so a bundle table added later without its three triggers fails here
+    # instead of being immutable in the prose only.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    children = [t for t in EVAL_TABLES
+                if t.startswith("bundle_") and t != "bundle_manifest"]
+    assert len(children) == 7, children
+    # One row each while the bundle is still open, so UPDATE and DELETE have
+    # something to match — a trigger no statement reaches proves nothing.
+    for table in children:
+        _placeholder_row(eval_conn, table, bundle_id)
+    seal_bundle(eval_conn, bundle_id)
+    for table in children:
+        have = {r["name"] for r in eval_conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = ?",
+            (table,))}
+        assert have == {f"{table}_sealed_no_insert", f"{table}_sealed_no_update",
+                        f"{table}_sealed_no_delete"}, f"{table}: {sorted(have)}"
+        with pytest.raises(sqlite3.IntegrityError):
+            _placeholder_row(eval_conn, table, bundle_id)
+        with pytest.raises(sqlite3.IntegrityError):
+            eval_conn.execute(f"UPDATE {table} SET bundle_id = bundle_id "
+                              f"WHERE bundle_id = ?", (bundle_id,))
+        with pytest.raises(sqlite3.IntegrityError):
+            eval_conn.execute(f"DELETE FROM {table} WHERE bundle_id = ?", (bundle_id,))
+        # nothing got through
+        assert eval_conn.execute(
+            f"SELECT count(*) AS c FROM {table}").fetchone()["c"] == 1
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -2553,9 +2670,39 @@ CREATE TABLE IF NOT EXISTS bundle_expectation (
     source                TEXT NOT NULL,
     PRIMARY KEY (bundle_id, dimension, subject_ref)
 );
+
+CREATE TRIGGER IF NOT EXISTS bundle_accepted_group_sealed_no_insert
+BEFORE INSERT ON bundle_accepted_group
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_accepted_group_sealed_no_update
+BEFORE UPDATE ON bundle_accepted_group
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_accepted_group_sealed_no_delete
+BEFORE DELETE ON bundle_accepted_group
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_expectation_sealed_no_insert
+BEFORE INSERT ON bundle_expectation
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_expectation_sealed_no_update
+BEFORE UPDATE ON bundle_expectation
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_expectation_sealed_no_delete
+BEFORE DELETE ON bundle_expectation
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
 ```
 
-and the same three seal triggers, one per new table, copied from `bundle_file_entry`'s (INSERT, UPDATE, DELETE, each `WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL` — use `OLD` for UPDATE and DELETE). Write them out in full; do not factor them into a loop, because SQLite has no parameterized trigger and a partially-written set would leave one table mutable after sealing.
+**All eighteen are written out above and in Tasks 6 and 7 rather than instructed.** SQLite has no parameterized trigger, so there is nothing to factor into a loop, and a table given `_require_open` in its Python writer but no trigger is still mutable after sealing to anything holding the connection. This is the plan's only DDL that repeats itself, and the repetition is the point: `test_every_bundle_table_is_sealed_against_all_three_writes` below iterates the tables and would fail on the first one missing a trigger, so a table added later without its set cannot pass unnoticed.
 
 Append to `bundle.py`:
 
@@ -2645,7 +2792,7 @@ def expectation_for(conn: sqlite3.Connection, bundle_id: str, dimension: str,
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/eval/test_bundle_expectation.py -v`
-Expected: PASS — 9 passed
+Expected: PASS — 10 passed
 
 - [ ] **Step 5: Commit**
 
@@ -2664,13 +2811,17 @@ git commit -m "feat(P2): accepted groups and expectations, opaque values, all ei
 
 **Interfaces:**
 - Consumes: `bundle` readers (Tasks 5–8); `record_version_tuple`, `start_run`, `finish_run` (Task 3); `record_stage_output`, `DimensionValue` (Task 4); `STAGE_IDS` (Task 2).
-- Produces: `ReplayContext` (frozen dataclass: `conn`, `run_id`, `bundle_id`, `stage_id`, `run_settings`, `budget_ceilings`), `StageResult` (frozen dataclass: `outcome`, `payload`, `inputs`, `budget_state`, `subject_ref`, `values`), `replay_bundle(conn, bundle_id, *, version_tuple, budget_ceilings, run_settings, adapters, run_kind="replay") -> str`, `NO_ADAPTER: object`.
+- Produces: `ReplayContext` (frozen dataclass: `conn`, `run_id`, `bundle_id`, `stage_id`, `run_settings`, `budget_ceilings`), `StageResult` (frozen dataclass, in declaration order: `subject_ref`, `outcome`, `payload`, `inputs`, `budget_state`, `values` — `values` is the only one with a default), `replay_bundle(conn, bundle_id, *, version_tuple, budget_ceilings, run_settings, adapters, run_kind="replay") -> str`, `NO_ADAPTER: object`.
 
 **Adapters are passed in, never registered in a module-level dict.** P1's plan records what goes wrong with a process-local mutable registry: *"a type existed only in the process that added it, appends started failing after a restart, and a direct write to the dict bypassed the reserved-name check entirely."* The same trap is available here and is avoided the same way — `replay_bundle` takes `adapters` as an argument, and there is no `register_stage` function anywhere in P2. A run's stage set is therefore visible in the call that started it.
 
 **A stage with no adapter is `not_implemented`, and the run completes.** `02-segmentation-map.md`, *Order*: the harness must be runnable before the stages exist. All ten stages appear in every run, in §8.5's order; nine of them reporting `not_implemented` is a valid run.
 
-**Each adapter returns zero or more subjects' results.** A stage decides about many subjects — many files, many groups — so an adapter returns a list of `StageResult`, each with its own `subject_ref`. An adapter that returns an empty list still gets one `not_implemented`-free record: `outcome = produced` with no dimension values would be a lie about a stage that ran and decided nothing, so an adapter returning `[]` is recorded as `abstained` for the bundle as a whole with `subject_ref = bundle_id`. **This is P2's own bookkeeping for its own runner and is not a claim about any stage's semantics** — a real stage that abstains says so per subject.
+**Each adapter returns zero or more subjects' results.** A stage decides about many subjects — many files, many groups — so an adapter returns a list of `StageResult`, each with its own `subject_ref`.
+
+**Three of the runner's rows are about the run, not about a subject, and `subject_ref = bundle_id` is what says so.** `replay_bundle` writes a row of its own in three situations: no adapter is registered (`not_implemented`), the adapter raised (`error`), and the adapter ran and returned `[]`. All three carry `subject_ref = bundle_id`, and that is a **convention with a check behind it**, not an incidental choice. SPEC Contract out §4 gives `subject_ref` a domain — *content hash | group id | node id | branch id | model-call id | plan-version id* — and a bundle id is none of the six, so no stage can ever legitimately produce a row whose subject is the bundle. `test_an_adapter_that_returns_nothing_is_the_runners_own_row` below pins it.
+
+**The third of those three is the one that needs saying out loud.** An adapter returning `[]` is recorded with `outcome = "abstained"`, and **that is not §6.10's abstention.** §6.10's is a stage's considered decision about one subject; this is P2 noting that a stage ran and decided about nothing. The two are written in the same column because SPEC Contract out §4's `outcome` is a **closed five** — `produced | abstained | deferred | not_implemented | error` — and P2 does not get to mint a sixth for its own bookkeeping; `produced` with no dimension values would be a lie, `not_implemented` would say the adapter was absent when it ran, and `error` would say it crashed when it did not. The consequence is stated rather than hidden: **a consumer counting a stage's abstentions must exclude `subject_ref = bundle_id`, or it counts P2's bookkeeping as the stage's semantics.** `assert_run` (Task 10) already excludes them structurally — it matches expectations by `(dimension, subject_ref)`, and no expectation's subject is a bundle id — and these rows carry no `DimensionValue`, so none of them can reach a verdict. If a later SPEC revision wants the distinction in the record rather than in the key, that is a sixth outcome name and it is P2's SPEC to publish, not this plan's to invent.
 
 **Budget ceilings reach the adapter and are enforced by nobody here.** SPEC Cross-cutting answers → Budgets: a replay run *"executes real stages and is therefore bound by the same §8.6 ceilings as a live run"*. The ceilings are handed to the adapter through `ReplayContext`; the stage that owns the ceiling enforces it and reports `deferred` / `ceiling_reached`. P2 enforces no ceiling and substitutes no cheaper approximation.
 
@@ -2825,6 +2976,36 @@ def test_an_adapter_that_raises_is_recorded_as_error_not_swallowed(eval_conn):
     assert "the stage crashed" in row["payload"]
 
 
+def test_an_adapter_that_returns_nothing_is_the_runners_own_row(eval_conn):
+    # The `abstained` written here is P2's bookkeeping, not §6.10's abstention,
+    # and `subject_ref` is the only thing that says so. Contract out §4's domain
+    # for subject_ref is content hash | group id | node id | branch id |
+    # model-call id | plan-version id; a bundle id is none of the six, so a row
+    # keyed on the bundle is never a stage's decision about a subject. A consumer
+    # counting a stage's abstentions filters exactly this. Without this test the
+    # convention is a comment, and a comment is not a mechanism.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+
+    def decides_about_nothing(ctx: ReplayContext) -> list[StageResult]:
+        return []
+
+    run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={"extraction": decides_about_nothing})
+    rows = stage_outputs(eval_conn, run_id, stage_id="extraction")
+    assert len(rows) == 1
+    assert rows[0]["outcome"] == "abstained"
+    assert rows[0]["subject_ref"] == bundle_id
+    # It carries no dimension value, so it can reach no verdict in Task 10.
+    assert dimension_values(eval_conn, run_id) == []
+    # All ten stages still appear, and every runner row uses the same key, so one
+    # filter separates bookkeeping from stage decisions for all three cases.
+    every = stage_outputs(eval_conn, run_id)
+    assert [r["stage_id"] for r in every] == list(STAGE_IDS)
+    assert {r["subject_ref"] for r in every} == {bundle_id}
+
+
 def test_there_is_no_global_stage_registry(eval_conn):
     # P1's lesson: a process-local mutable registry makes a run's stage set
     # invisible and mutable from anywhere. Adapters are an argument.
@@ -2951,9 +3132,14 @@ def replay_bundle(conn: sqlite3.Connection, bundle_id: str, *,
             )
             continue
         if not results:
-            # P2's own bookkeeping for a stage that ran and returned nothing. It
-            # is not a claim about any stage's semantics: a real stage that
-            # abstains reports `abstained` per subject.
+            # P2's own bookkeeping for a stage that ran and returned nothing, NOT
+            # 6.10's abstention. Contract out 4's five outcomes are closed, so
+            # this borrows `abstained` rather than minting a sixth name. What
+            # separates the two is `subject_ref`: 4's domain is content hash,
+            # group id, node id, branch id, model-call id, plan-version id, and a
+            # bundle id is none of them, so a row keyed on the bundle is always
+            # the runner's and never a stage's decision about a subject. A reader
+            # counting a stage's abstentions excludes subject_ref = bundle_id.
             record_stage_output(
                 conn, run_id=run_id, stage_id=stage_id, subject_ref=bundle_id,
                 outcome="abstained", payload=None,
@@ -2976,7 +3162,7 @@ def replay_bundle(conn: sqlite3.Connection, bundle_id: str, *,
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/eval/test_replay.py -v`
-Expected: PASS — 8 passed
+Expected: PASS — 9 passed
 
 - [ ] **Step 5: Commit**
 
@@ -3024,7 +3210,9 @@ git commit -m "feat(P2): replay runner, ten stages every run, missing stage is n
 
 **No thresholds, and the comparison is exact.** SPEC Open question 2 is open: §8.5 states no pass threshold, target rate, or regression tolerance, and §6.10's two-condition rule is a *placement* rule that must not be borrowed as one. `verdict_for` takes no tolerance argument, and there is none to add without answering OQ2.
 
-**`evidence_ref` is a P4 `observation_key`, never an `observation_id`.** §8.7 requires a negative example recorded today to still resolve after an extractor upgrade, and an upgraded extractor emits a new row with a new `observation_id`. `assert_run` copies whatever `evidence_ref` the dimension value carried and the writer refuses a value whose shape is an observation *id*; the test below pins the rule.
+**`evidence_ref` is a P4 `observation_key`, never an `observation_id`.** §8.7 requires a negative example recorded today to still resolve after an extractor upgrade, and an upgraded extractor emits a new row with a new `observation_id`. `write_assertion` takes `evidence_ref` and **refuses a value whose shape is an observation *id***; the test below pins that rule, and it holds for every caller.
+
+**`assert_run` writes `evidence_ref = NULL`, and that is a declared gap, not an oversight.** SPEC Contract out §6 publishes `evidence_ref` on `assertion`, and Cross-cutting answers → Provenance requires it: *"Every `assertion` carries `evidence_ref`, so a verdict can be traced to the observation or event that produced it."* **P2 cannot meet that today because there is no published channel to carry one.** Contract out §4's envelope is `run_id, stage_id, subject_ref, outcome, payload, version_tuple_ref, inputs[], budget_state, produced_at` — no evidence ref anywhere — and the observation key that would fill it lives inside `payload`, which §4 makes **opaque to P2**. The three ways to close it are all somebody else's to authorize: §4 grows a field, or §6's `evidence_ref` is sourced from the expectation rather than the observation, or P2 starts parsing `payload` — and the third is the one thing §4 forbids outright. So the column is created, the observation-id rule is enforced on it, and `assert_run` leaves it `NULL` rather than fabricating a reference or reaching into a payload it has promised not to read. **A verdict written by `assert_run` is not traceable to its observation until §4 publishes the channel.** Recorded under *Known gaps*; the SPEC change is recommended in the report accompanying this plan and is not made here.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -3372,6 +3560,12 @@ def assert_run(conn: sqlite3.Connection, run_id: str) -> int:
             expected=(None if expectation["expected_value"] is None
                       else canonical_json(expectation["expected_value"])),
             observed=None if observed is None else observed["value"],
+            # NULL, and deliberately: Contract out §4's envelope publishes no
+            # evidence-ref field, and the observation key that would fill this
+            # lives inside `payload`, which §4 makes opaque to P2. Fabricating one
+            # or parsing the payload are the only two ways to put a value here,
+            # and both are worse than an honest NULL. See the task prose and
+            # Known gaps.
             verdict=verdict, no_verdict_reason=reason, evidence_ref=None,
         )
         written += 1
@@ -3822,6 +4016,8 @@ git commit -m "feat(P2): earliest-divergence attribution over recorded inputs[],
 
 **`deferral_changed[]` is separate from `newly_divergent[]`, and Done-means 6 depends on it.** A subject whose verdict moved to `deferred` appears in `deferral_changed`, never in `newly_divergent`. The test below runs the same bundle, same version tuple, different ceilings, with a stage that defers under the tighter one, and asserts **zero** newly divergent subjects across every dimension.
 
+**The four per-dimension fields do not partition the subjects, and a reader must not sum them.** `unchanged_count`, `newly_matching[]`, `newly_divergent[]` and `deferral_changed[]` are the four SPEC Contract out §7 publishes, and a subject that moved **between two failing verdicts** — `divergent` → `abstained_incorrectly`, say — lands in none of them: it is not unchanged, neither verdict passes, and neither is `deferred`. It appears in `disagreements[]` and nowhere else. That is deliberate — `newly_divergent` means *this got worse than passing*, and a subject that was already failing did not newly diverge — but it means **`unchanged_count + len(newly_matching) + len(newly_divergent) + len(deferral_changed)` is a floor on the subjects in a dimension, not a total.** `disagreements[]` is the complete list of everything that moved; the four fields classify the moves §8.5 asks about. A renderer that reports the four as a breakdown of the whole is the legibility failure §8.6 warns against, so it reports `disagreements[]` beside them. P2 adds no fifth bucket to make the arithmetic close, because §7 publishes four and a fifth would be P2 inventing a category its neighbours never agreed to.
+
 **There is no aggregate field.** No total, no rate, no score, no delta-of-scores. Task 16 scans for one; this module simply has none to find.
 
 - [ ] **Step 1: Write the failing test**
@@ -4136,6 +4332,11 @@ def compare_runs(conn: sqlite3.Connection, baseline_run_id: str,
             # §8.6 — a budget event, reported as one and never as a regression.
             block["deferral_changed"].append(subject_ref)
             continue
+        # A move between two FAILING verdicts falls through both branches on
+        # purpose: it did not newly diverge, it did not newly match, and it is not
+        # a deferral. It is in `disagreements` and in none of the four counts, so
+        # the four are a floor on a dimension's subjects and never a total. See
+        # the task prose; do not add a fifth bucket to make the sum close.
         if after_verdict in PASSING_VERDICTS and before_verdict not in PASSING_VERDICTS:
             block["newly_matching"].append(subject_ref)
         elif before_verdict in PASSING_VERDICTS and after_verdict not in PASSING_VERDICTS:
@@ -4227,10 +4428,12 @@ git commit -m "feat(P2): comparison record, ten blocks always, deferral separate
 - Test: `tests/eval/test_shadow.py`
 
 **Interfaces:**
-- Consumes: `replay_bundle` (Task 9); `assert_run` (Task 10); `attribute_run` (Task 11); `compare_runs`, `get_comparison` (Task 12).
-- Produces: `run_shadow(conn, bundle_id, *, version_tuple, budget_ceilings, run_settings, adapters, live_run_id, select, model_call_audit_refs=()) -> str`, `shadow_record(conn, shadow_run_id) -> dict`, `record_adjudication(conn, shadow_run_id, *, subject_ref, dimension, reviewer_verdict, note=None) -> int`, `adjudications(conn, shadow_run_id) -> list[sqlite3.Row]`, `assert_shadow_wrote_nothing(conn, shadow_run_id) -> None`, `UnauditedModelCall`, `ShadowWroteLiveState`.
+- Consumes: `canonical_json`, **`EVAL_TABLES`** (Task 1 — `foreign_table_counts` subtracts it to get the tables P2 does **not** own, so `shadow.py` imports both from `store.py`); `replay_bundle` (Task 9); `assert_run` (Task 10); `attribute_run` (Task 11); `compare_runs`, `get_comparison` (Task 12).
+- Produces: `run_shadow(conn, bundle_id, *, version_tuple, budget_ceilings, run_settings, adapters, live_run_id, select, model_call_audit_refs=()) -> str`, `shadow_record(conn, shadow_run_id) -> dict`, `foreign_table_counts(conn) -> dict[str, int]`, `record_adjudication(conn, shadow_run_id, *, subject_ref, dimension, reviewer_verdict, note=None) -> int`, `adjudications(conn, shadow_run_id) -> list[sqlite3.Row]`, `assert_shadow_wrote_nothing(conn, shadow_run_id) -> None`, `UnauditedModelCall`, `ShadowWroteLiveState`.
 
 **The three empties are self-reported; the foreign-table snapshot is the proof.** §8.5: shadow mode generates parallel recommendations *"without changing the user-visible tree or move plan."* `plan_version_writes`, `move_plan_entries` and `user_visible_tree_delta` are columns on the shadow record that must be empty, and `assert_shadow_wrote_nothing` raises `ShadowWroteLiveState` if any is not. **P10 and P12 do not exist**, so nothing can write a plan version or a move plan today — which is exactly why the check is built now: the day P10 lands, a shadow adapter that writes one fails this assertion instead of shipping.
+
+**Those three columns alone are an honour system, so the second check does not ask the adapter anything.** An adapter that writes P10's table directly and simply never mentions it leaves all three empty and passes the first check. So `run_shadow` snapshots `foreign_table_counts(conn)` — the row count of **every table in `sqlite_master` that is not in `EVAL_TABLES`** — *before* it calls `replay_bundle`, stores it on the run, and `assert_shadow_wrote_nothing` compares it against the same reading afterwards. Any foreign table that grew, shrank or vanished fails, **whether or not the adapter confessed**. Two consequences worth stating: `shadow.py` therefore imports `EVAL_TABLES` from `store.py` rather than restating which tables P2 owns — a table added to `store.py` and not to that import would silently become a table this proof stops watching — and the check needs **no edit** when P10's and P12's tables appear, because it is defined by subtraction rather than by a list of what to watch. `test_a_shadow_run_that_wrote_a_foreign_table_is_caught_without_confessing` exercises the raising branch against a table invented in the test, precisely so that "it will cover P10's table when P10 lands" is executed rather than asserted in prose. **Without that test the branch is never run**: the `move_plan_entries` test raises on the first check and never reaches it.
 
 **Everything a shadow run writes goes into `shadow_namespace`.** SPEC Cross-cutting answers → Provenance: replay's derived outputs go to a run-scoped namespace and shadow outputs to `shadow_namespace`. The namespace is the run id, recorded explicitly so a reader never has to infer it. **Whether replay may write *any* derived evidence into the shared database is SPEC Open question 7 and is not answered here:** P2 writes nothing outside its own tables, which is compatible with either answer.
 
@@ -4358,6 +4561,44 @@ def test_a_shadow_run_that_wrote_live_state_is_caught(eval_conn):
         assert_shadow_wrote_nothing(eval_conn, shadow_id)
 
 
+def test_a_shadow_run_that_wrote_a_foreign_table_is_caught_without_confessing(eval_conn):
+    # The test above only reaches the FIRST check: `move_plan_entries` is one of
+    # the three self-reported columns, and an adapter that lies about them never
+    # sets one. This is the check that does not depend on the adapter's honesty,
+    # and without this test its raising branch is never executed by anything.
+    #
+    # The write goes to a table P2 does not own and did not create, standing in
+    # for P10's plan version table and P12's move plan. Using a table invented
+    # here rather than one of P1's is the point: `foreign_table_counts` subtracts
+    # `EVAL_TABLES` from `sqlite_master`, so it covers tables that do not exist
+    # yet, and this stays green the day P10 and P12 land WITHOUT shadow.py being
+    # edited. That is the property the docstring claims; this is what checks it.
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    eval_conn.execute("CREATE TABLE a_table_p2_does_not_own (id TEXT PRIMARY KEY)")
+    bundle_id = _bundle(eval_conn)
+    live = _live(eval_conn, bundle_id)
+
+    def writes_behind_p2s_back(ctx: ReplayContext):
+        ctx.conn.execute(
+            "INSERT INTO a_table_p2_does_not_own (id) VALUES ('smuggled')")
+        return _places("n-right")(ctx)
+
+    shadow_id = run_shadow(eval_conn, bundle_id, version_tuple=_tuple(),
+                           budget_ceilings={}, run_settings=_settings(),
+                           adapters={"placement_scoring": writes_behind_p2s_back},
+                           live_run_id=live, select=_select_all)
+    # The adapter confessed to nothing: all three self-reported columns are empty,
+    # so the first check passes and only the snapshot comparison can catch this.
+    record = shadow_record(eval_conn, shadow_id)
+    assert record["plan_version_writes"] == []
+    assert record["move_plan_entries"] == []
+    assert record["user_visible_tree_delta"] == []
+    with pytest.raises(ShadowWroteLiveState) as caught:
+        assert_shadow_wrote_nothing(eval_conn, shadow_id)
+    assert "a_table_p2_does_not_own" in str(caught.value)
+
+
 def test_a_model_enabled_shadow_run_needs_its_audit_refs(eval_conn):
     # §8.4: every model call is recorded in the consent-aware audit record. P2
     # requires the reference; P7 writes the record.
@@ -4453,7 +4694,11 @@ import json
 import sqlite3
 from typing import Callable, Iterable, Mapping, Sequence
 
-from eval_harness.store import canonical_json
+# EVAL_TABLES is what `foreign_table_counts` subtracts to get "every table P2 does
+# not own". Importing it, rather than restating the list here, is the same
+# one-owner rule the rest of this plan follows: a table added to store.py and not
+# to this import would silently become a table the shadow proof stops watching.
+from eval_harness.store import EVAL_TABLES, canonical_json
 
 SHADOW_DDL = """
 CREATE TABLE IF NOT EXISTS shadow_run (
@@ -4603,7 +4848,9 @@ def assert_shadow_wrote_nothing(conn: sqlite3.Connection, shadow_run_id: str) ->
             "recommendations WITHOUT changing the user-visible tree or move plan"
         )
 
-    opened = json.loads(record["foreign_table_counts"])
+    # `shadow_record` already decodes every JSON column it returns, this one
+    # included — decoding again here would be a second `json.loads` over a dict.
+    opened = record["foreign_table_counts"]
     now = foreign_table_counts(conn)
     changed = {n: (opened.get(n), now[n]) for n in now if opened.get(n) != now[n]}
     changed.update({n: (opened[n], None) for n in opened if n not in now})
@@ -4651,7 +4898,7 @@ Add to `store.py`'s `_ddl_scripts`:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/eval/test_shadow.py -v`
-Expected: PASS — 8 passed
+Expected: PASS — 9 passed
 
 - [ ] **Step 5: Commit**
 
@@ -4685,10 +4932,26 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 
 **The twelve cases are enumerated because §8.5 names them; their bodies are authored, not invented.** Each file carries §8.5's wording verbatim, the P2 SPEC's expected and forbidden outcomes verbatim, and the § that states the correct behaviour. **No gazetteer, no template, no threshold, and no numeric limit appears in any of them** — A9's fixture uses P4's own recorded `coverage` numbers from Task 6's fixture, which are example values in P4's SPEC, not §2.7 page limits.
 
+**Where the design names several correct outcomes, the fixture pins one, and that is an authoring choice rather than a claim that the alternatives are wrong.** `verdict_for` (Task 10) is exact equality over a single `expected_value`, and the case format carries one `expected_value` and one `forbidden_value` — **it cannot express a disjunction**, and no field is added here to make it, because the format is SPEC Contract out §9's and inventing an alternatives field is P2 minting vocabulary its neighbours never agreed to. The consequence is that a correct system taking a legal alternative scores `fail`, and two of the twelve cases are in that position today:
+
+- **A08.** §7.8–§7.9 permit *"leave in place **or** an approved Screenshot Inbox"*. The fixture pins `{"outcome": "leave_in_place"}`, so a residual stage that routes to an approved inbox scores `fail` despite being right.
+- **A11.** §6.9 is *"prefer an approved shared branch if one exists; **otherwise** abstain or ask for a primary home"* — a conditional, and A11's bundle declares no plan tree, so **nothing in the bundle establishes whether an approved shared branch exists.** The fixture pins the shared-branch placement, which is the first arm of that conditional with its precondition unstated. Adding the precondition would mean authoring plan-tree rows, and a bundle cannot carry a plan tree today: Task 5's manifest holds `pinned_plan_id` and `pinned_plan_version` as opaque strings, and the tree they name is P10's object, which P2 neither defines nor stores.
+
+Both are recorded under *Known gaps*. When P10 and P11 land and the precondition is expressible, A11 is re-authored against a bundle that states it; until then a `fail` on either case is read against this paragraph before it is read as a defect in the stage.
+
 - [ ] **Step 1: Write the twelve case files**
 
+**Each block below is the whole body of one file, in order `A01.json` … `A12.json` under
+`tests/eval/fixtures/adversarial/`, and the leading `"case_id"` names which.** JSON has no comment
+syntax and `load_case` reads these with `json.loads(path.read_text(encoding="utf-8"))`, so nothing
+but JSON goes in them — a `//` header fails the load with `JSONDecodeError: Expecting value: line 1
+column 1`. Two notes that would otherwise sit at the top of a file live here instead. **A03** carries
+two subjects because §8.5 names ZIP codes **or** device models and the SPEC requires *"at least two
+fixtures, one of each"*. **A09** is the one case assertable from the bundle alone — its expected
+outcome **is** a `capped` run row with its `coverage` (SPEC Contract out §9) — and its numbers are
+P4's own example values from Task 6's fixture, not §2.7 limits.
+
 ```json
-// tests/eval/fixtures/adversarial/A01.json
 {"case_id": "A01", "wording": "`MIT` inside \"submit\"", "attacks": "facet matching",
  "sections": ["§3.7 word-boundary matching"], "assert_against": "stage",
  "dimension": "fact", "subject_ref": "A01::essay::school",
@@ -4706,7 +4969,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A02.json
 {"case_id": "A02", "wording": "`UNC` inside \"uncertainty\"", "attacks": "facet matching",
  "sections": ["§3.7"], "assert_against": "stage",
  "dimension": "fact", "subject_ref": "A02::paper::school",
@@ -4724,9 +4986,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A03.json
-// §8.5 names ZIP codes OR device models; the SPEC requires "at least two
-// fixtures, one of each", so this case carries two subjects.
 {"case_id": "A03",
  "wording": "course-code patterns that are actually ZIP codes or device models",
  "attacks": "rule-validated facts",
@@ -4748,7 +5007,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A04.json
 {"case_id": "A04",
  "wording": "generic author metadata (`python-docx`, `Mozilla/5.0`, browser producer strings)",
  "attacks": "metadata trust",
@@ -4768,7 +5026,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A05.json
 {"case_id": "A05", "wording": "multiple institutions in one application essay",
  "attacks": "roles vs entity types",
  "sections": ["§3.8", "§4.8", "§4.9 (\"a university name alone should not create a group\")"],
@@ -4788,7 +5045,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A06.json
 {"case_id": "A06", "wording": "duplicate suffixes on unrelated files",
  "attacks": "family detection, collision policy",
  "sections": ["§8.3 (\"a content-hash match supports deduplication review; a filename match alone does not\")"],
@@ -4809,7 +5065,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A07.json
 {"case_id": "A07", "wording": "stripped EXIF on messaging-app photographs",
  "attacks": "screenshot detection", "sections": ["§2.6"],
  "assert_against": "stage", "dimension": "fact", "subject_ref": "A07::photo::kind",
@@ -4824,7 +5079,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A08.json
 {"case_id": "A08", "wording": "screenshots with unreadable OCR",
  "attacks": "residual interpretation", "sections": ["§7.8", "§7.9"],
  "assert_against": "stage", "dimension": "residual", "subject_ref": "A08::screenshot",
@@ -4839,10 +5093,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A09.json
-// The one case assertable from the bundle alone: the expected outcome IS a
-// `capped` run row with its coverage (SPEC Contract out §9). Numbers are P4's own
-// example values from Task 6's fixture, not §2.7 limits.
 {"case_id": "A09", "wording": "long scanned books", "attacks": "OCR budget",
  "sections": ["§2.7", "§8.6", "§2.9"], "assert_against": "bundle",
  "dimension": "extraction", "subject_ref": "A09::book::run",
@@ -4859,7 +5109,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A10.json
 {"case_id": "A10", "wording": "documents with corrupted text layers",
  "attacks": "extraction routing", "sections": ["§2.2", "§2.7", "§2.4"],
  "assert_against": "stage", "dimension": "extraction", "subject_ref": "A10::doc::routing",
@@ -4875,7 +5124,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A11.json
 {"case_id": "A11", "wording": "shared resumes across applications",
  "attacks": "multi-home placement", "sections": ["§6.9"],
  "assert_against": "stage", "dimension": "placement", "subject_ref": "A11::resume",
@@ -4891,7 +5139,6 @@ git commit -m "feat(P2): shadow mode with three provable empties, required selec
 ```
 
 ```json
-// tests/eval/fixtures/adversarial/A12.json
 {"case_id": "A12",
  "wording": "files that legitimately belong to more than one purpose group",
  "attacks": "multi-membership", "sections": ["§4.9", "§3.11", "§6.9"],
@@ -4969,6 +5216,30 @@ def test_the_gate_with_no_adapters_reports_not_run_and_never_pass(eval_conn):
     assert report.fail_count == 0
     assert not hasattr(report, "passed")     # SPEC Open question 9 is OPEN
     assert not hasattr(report, "accuracy")
+
+
+def test_a_case_verdict_borrows_only_not_run_from_8_5(eval_conn):
+    # `pass | fail | not_run` is a THIRD vocabulary and no SPEC publishes it — see
+    # *Known gaps*. This pins the exact relationship to the two vocabularies that
+    # ARE published, so the overlap stays a decision instead of an accident:
+    #   * `pass` and `fail` are P2-local. They appear in neither §8.5's seven
+    #     assertion verdicts nor Contract out §4's five outcomes, so nothing can
+    #     read a case verdict as either.
+    #   * `not_run` is §8.5's own verdict name, reused with §8.5's own meaning —
+    #     the stage did not run — because a case that could not run and an
+    #     assertion that could not run are the same fact at two scales. Minting
+    #     `case_not_run` beside it would be two names for one concept.
+    # If a later edit reaches for `divergent`, `abstained` or `deferred` here,
+    # this fails.
+    from eval_harness.vocabulary import OUTCOMES, VERDICTS
+    create_eval_schema(eval_conn)
+    report = run_gate(eval_conn, adapters={}, version_tuple=_tuple(),
+                      budget_ceilings={}, run_settings=_settings())
+    case_verdicts = {r.verdict for r in report.results}
+    assert case_verdicts <= {"pass", "fail", "not_run"}
+    assert case_verdicts & set(VERDICTS) <= {"not_run"}
+    assert not {"pass", "fail"} & set(VERDICTS)
+    assert not {"pass", "fail", "not_run"} & set(OUTCOMES)
 
 
 def test_a9_passes_today_from_the_bundle_alone(eval_conn):
@@ -5273,7 +5544,7 @@ def run_gate(conn: sqlite3.Connection, *, adapters: Mapping[str, object],
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `pytest tests/eval/test_adversarial.py -v`
-Expected: PASS — 11 passed
+Expected: PASS — 12 passed
 
 - [ ] **Step 6: Commit**
 
@@ -5353,7 +5624,12 @@ def test_the_count_line_is_reproducible_from_the_bundle_alone(eval_conn, tmp_pat
     assert counts["files_fully_extracted"] == 1          # only file-syllabus
     assert counts["runs_deferred"] == 1                  # the capped OCR run
     assert counts["runs_unreadable"] == 1                # the unreadable native run
-    assert not list(tmp_path.iterdir())
+    # Nothing but the database itself is on disk — no corpus, no extracted text,
+    # no file the counts could have been read from. `eval_conn` opens
+    # `tmp_path/agent.sqlite`, so the directory is never empty; the same targeted
+    # form Task 5's `test_a_bundle_needs_no_live_filesystem` uses.
+    assert {p.name for p in tmp_path.iterdir()} <= {
+        "agent.sqlite", "agent.sqlite-wal", "agent.sqlite-shm"}
 
 
 def test_files_requiring_model_review_is_unavailable_not_zero(eval_conn):
@@ -5539,11 +5815,18 @@ FORBIDDEN_PARTS = {
 }
 
 #: Other parts' closed vocabularies. P2 stores their values; it declares none.
+#: This is the ONE list. Task 5 deliberately carries no second copy of the P7 rows
+#: — two lists for one rule drift on one member and whichever runs last wins.
 FOREIGN_VOCABULARY = [
-    # P7 §8.4 handling classes and operation modes
+    # P7 §8.4: the five handling classes and all FOUR operation modes, copied from
+    # `../P7-privacy-consent-gate/SPEC.md` Contract out §4 and §5. `offline` and
+    # `hybrid` are ordinary English words and are the two likeliest false positives
+    # here; both were checked against every src/eval_harness/ file in this plan and
+    # neither occurs. If a later task needs one of these words for its own meaning,
+    # rename the identifier — do not shorten this list.
     "public_low", "personal_non_sensitive", "sensitive_personal",
     "highly_sensitive_credential_bearing", "unreadable_unclassified",
-    "local_model", "cloud_assisted",
+    "offline", "local_model", "hybrid", "cloud_assisted",
     # P6 §3.11 domain fact fields
     "target_university", "application_cycle", "artifact_type", "tax_year",
     "capture_year",
@@ -5879,14 +6162,22 @@ git commit -m "test(P2): walking-skeleton P2 step, nine stages absent, corpus de
 
 **Placeholder scan.** No "TBD", no "add error handling", no "similar to Task N", no angle-bracket placeholder standing in for a real name. Every code step carries complete runnable code, and every unresolved thing is named as unresolved with the open question that owns it.
 
-**Type consistency.** `bundle_id`, `run_id`, `stage_id`, `dimension`, `subject_ref`, `version_tuple_ref`, `budget_ceilings`, `run_settings`, `expected_outcome_kind` and `attributed_stage` are spelled identically in every task. `DimensionValue(dimension, subject_ref, outcome, value)` has the same field order in Tasks 4, 9, 10, 11, 12, 13, 14 and 17. `canonical_json` is the only serializer used for comparison anywhere.
+**Type consistency.** `bundle_id`, `run_id`, `stage_id`, `dimension`, `subject_ref`, `version_tuple_ref`, `budget_ceilings`, `run_settings`, `expected_outcome_kind` and `attributed_stage` are spelled identically in every task. `DimensionValue(dimension, subject_ref, outcome, value)` has the same field order in Tasks 4, 9, 10, 11, 12, 13, 14 and 17, and `StageResult(subject_ref, outcome, payload, inputs, budget_state, values)` is stated in declaration order in Task 9's *Interfaces* line and in its dataclass. `_ddl_scripts` is spelled the same way in every task that appends to it. `canonical_json` is the only serializer used for comparison anywhere.
+
+**One name, one owner.** Two lists for one rule is the failure this plan is most exposed to, so each rule has exactly one definition: the forbidden-vocabulary list is Task 16's `FOREIGN_VOCABULARY` and no task carries a second copy of any part of it; `EVAL_TABLES` is `store.py`'s and `shadow.py` imports it rather than restating which tables P2 owns; the seal triggers are per-table and Task 8's `test_every_bundle_table_is_sealed_against_all_three_writes` enumerates the tables out of `EVAL_TABLES` rather than naming them.
+
+**Every code block in this plan has been executed.** The `src/eval_harness/` and `tests/eval/` blocks were extracted into a package, the SQL blocks spliced into `BUNDLE_DDL`, and the fourteen JSON blocks written out as the fixture files — `python3 -m pytest tests/eval -q` → **154 passed**. Each task's *Expected: PASS — N passed* line is the collected count for that file. The JSON fixture blocks contain **no comment lines**: JSON has no comment syntax and both loaders use `json.loads`, so every provenance note lives in the task prose instead.
 
 ## Known gaps, carried deliberately
 
 - **No neighbour's vocabulary is validated.** `handling_class`, `privacy_mode`, `placement_policy`, the `residual` and `placement` expected values, and P6's reliability states are stored as handed. **A typo in any of them is not caught.** The alternative — retyping six parts' enums into P2 — is the two-vocabularies failure this project has already hit. When each part lands, import its published names and validate against the import; do not retype the strings.
 - **`bundle_extraction_run` does not promote `analysis_tier`.** SPEC Contract out §3's enumeration of the run fields P2 carries does not include it, so it survives only inside the verbatim `row`. A run-tier-versus-`analysis_tiers_enabled[]` cross-check is therefore not a column query today. Recommended SPEC addition, recorded in the report and not made.
 - **`inputs[]` resolves ambiguously where two stages decided about one subject.** Contract out §4 publishes bare `subject_ref`s; the traversal follows all matches. A `(stage_id, subject_ref)` pair would be unambiguous. Recommended SPEC change, not made.
-- **`outcome = error` and `expected_outcome_kind = 'not-applicable'` get a NULL verdict.** §8.5 publishes seven verdicts and defines none for either. P2 mints no eighth name and reports both under `unverdicted`. Recommended SPEC change, not made.
+- **`assert_run` writes `evidence_ref = NULL` on every assertion it produces.** Contract out §6 publishes the field and Cross-cutting answers → Provenance requires it — *"Every `assertion` carries `evidence_ref`, so a verdict can be traced to the observation or event that produced it"* — but **Contract out §4's envelope publishes no field to carry one**, and the observation key that would fill it is inside `payload`, which §4 makes opaque to P2. The column exists and `write_assertion` enforces `observation_key`-not-`observation_id` for any caller that supplies one; `assert_run` has none to supply. **The §8.2 reconstruction obligation is therefore unmet for machine-written assertions**, and closing it needs §4 to publish the channel. Recommended SPEC change, not made.
+- **Two adversarial fixtures pin one of several legal outcomes.** A08 (§7.8–§7.9 permit *"leave in place or an approved Screenshot Inbox"*) and A11 (§6.9 prefers an approved shared branch *"if one exists"*, and A11's bundle establishes no plan tree, so the precondition is unstated). `verdict_for` is exact equality over one `expected_value` and the case format carries no disjunction, so a system taking the other legal option scores `fail`. No alternatives field is added, because Contract out §9 owns the case format. Re-author A11 against a bundle that can state the precondition when P10 lands.
+- **P2 carries four strings no SPEC publishes, and all four cross a seam.** §8.5 publishes seven verdicts and defines none for a crashed stage or an inapplicable expectation, so P2 writes `verdict = NULL` — a `NULL` reads as *unknown*, a fabricated verdict reads as an answer — and says why in a second column. That produces `no_verdict_reason ∈ {stage_error, expectation_not_applicable}`, the `verdict_counts` bucket key `unverdicted`, and the adversarial gate's `CaseResult.verdict ∈ {pass, fail, not_run}`. **P2 mints no eighth verdict**, and it holds those four apart from the published vocabularies by mechanism: `test_a_stage_error_gets_no_verdict_and_p2_mints_no_eighth_name` pins `len(VERDICTS) == 7`, `test_verdict_counts_separates_passes_deferrals_and_unverdicted` pins `set(counts) <= set(VERDICTS) | {"unverdicted"}`, and `test_a_case_verdict_borrows_only_not_run_from_8_5` pins that `pass` and `fail` are in neither published set while `not_run` is §8.5's own name reused with §8.5's own meaning.
+
+  **What cannot be fixed from inside P2 is that these are not P2-private.** `no_verdict_reason` is a column on `assertion` and `unverdicted` is a key of `verdict_counts` — both published readers — and §8.5's user-facing evaluation view is **P13's**, so a part that has never seen these strings will render them. `CaseResult.verdict` reaches the release process, which SPEC Open question 9 has not yet assigned an owner. **Publish all four in the P2 SPEC before P13 invents its own names for the same states**; that edit is recorded in the report accompanying this plan and is not made here, because a plan does not get to amend the contract it is built against.
 - **"Files indexed" has two definitions and both are reported.** P2's Contract out §3 and P5's adopted mapping disagree. `bundle_counts` returns `files_indexed` and `files_with_any_run` and picks neither.
 - **`bundle_learning_record`'s "evidence refs" is §8.2's `explanation`.** P1 publishes one field for *"a structured explanation or evidence reference"*; P2's SPEC names two things. The verbatim `row` carries whatever P1 wrote.
 - **Nine of the ten stages are fixtures.** Every adapter in these tests stands in for a part that does not exist. When P4–P11 land, each fixture adapter is replaced by the real stage and the assertions keep their shape — that is the property Task 17 exists to protect.

@@ -1843,7 +1843,7 @@ git commit -m "feat(P3): Full Disk Access precondition, the OS is the oracle"
 
 **Interfaces:**
 - Consumes: `CorpusSource`, `KIND_DIRECTORY`/`KIND_FILE`, `exclusion_for`, `project_root_markers_in`, `APPLIES_TO_*`.
-- Produces (`deferrals.py`): `DEFERRED_BUDGET`, `DEFERRED_TRAVERSAL_UNRESOLVED`, `DEFERRED_PATH_ABSENT`, `DEFERRALS_DDL: str`, `record_deferral(conn, scan_run_id, deferred) -> int`, `scan_deferrals(conn, scan_run_id) -> list[sqlite3.Row]`.
+- Produces (`deferrals.py`): `DEFERRED_BUDGET`, `DEFERRED_TRAVERSAL_UNRESOLVED`, `DEFERRED_PATH_ABSENT`, `DEFERRED_DIRECTORY_UNREADABLE`, `DEFERRALS_DDL: str`, `record_deferral(conn, scan_run_id, deferred) -> int`, `scan_deferrals(conn, scan_run_id) -> list[sqlite3.Row]`.
 - Produces (`traversal.py`): `ObservedFile`, `ObservedDirectory`, `Deferred` (frozen dataclasses), `walk(source, *, sources, candidate_roots, budget_exhausted) -> Iterator[ObservedFile | ObservedDirectory | ExclusionVerdict | Deferred]`.
 
 **`walk` touches no database.** It is a pure generator over a `CorpusSource`, and every decision §1.1 asks for — what is excluded, what is descended, what is counted — is made here, before any row is written. That split is what makes Done-means 16 provable in Task 13: the curation signal is derived from `ObservedDirectory`, which the exclusion and cache decisions are already finished with.
@@ -1858,7 +1858,7 @@ git commit -m "feat(P3): Full Disk Access precondition, the OS is the oracle"
 
 **A directory observed only in part gets no R6 row.** When the budget fires mid-listing, the entries already observed are retained (§8.6: *"retain extracted evidence"*), every remaining entry is recorded as deferred, the containing directory is recorded as deferred too, and no inventory row is emitted for it — R6 has no field for a partial count, and adding one would be inventing a field. Done-means 15's *"every non-excluded directory has an R6 row"* is an assertion about a completed run; a deferred directory is visible in `scan_deferrals` instead, which is exactly §8.6's *"what has been deferred, and why"*.
 
-**Three deferral reasons, each tracing to the design or to a named open question.** None is a judgement about the file:
+**Four deferral reasons, each tracing to the design or to a named open question.** None is a judgement about the file:
 
 ```text
 scan budget exhausted                          §8.6 — the only reason R5 counts
@@ -1870,19 +1870,29 @@ path absent at scan time (SPEC Q14)            a directory that vanished between
                                                selection and listing; what happens to
                                                a record whose path no longer exists is
                                                open and is not decided here
+directory not readable at scan time            §8.6 — a directory below a selected
+                                               root that this process cannot list
 ```
+
+**One unreadable subdirectory does not end the scan, and is never silent.** Task 8's `require_access` checks the *selected roots* before traversal, because `11` §1 says P3 does not traverse until Full Disk Access is granted. It says nothing about a directory *below* a granted root, and such a directory can still refuse: a per-directory mode, an ACL, or a TCC-protected subtree inside a folder the user chose. Listing it raises `PermissionError`, and an uncaught one abandons the walk with part of the corpus already written and nothing on the record saying what was missed — precisely §8.6's named failure, *"no unscanned file reads as one that was understood and found unimportant."* So the listing failure is caught, the directory is recorded as deferred, and the walk continues with the rest of the tree.
+
+**This coins a fourth reason the SPEC does not name**, which is the same latitude the Q7 and Q14 reasons already take, and it is recorded the same way. It is deliberately a bare observation: the record carries the directory's own path and nothing from inside it — nothing was listed, so nothing inside it is known — and it says only that the directory could not be read at scan time. It does not say why, does not decide whether Full Disk Access would have helped, and does not become an exclusion: no §1.1 rule rejected this path, so it is a deferral (`scan_deferrals`) and not an R3 verdict.
+
+**It is not counted in R5.** R5's counter is spelled *"files deferred (scan budget exhausted)"*, so it stays budget-only (Task 14); this reason is read from `scan_deferrals`, which is where §8.6's *"what has been deferred, and why"* lives.
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
 # tests/p3/test_p3_traversal.py
+import os
 from pathlib import Path
 
 import pytest
 
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.deferrals import (
-    DEFERRED_BUDGET, DEFERRED_PATH_ABSENT, DEFERRED_TRAVERSAL_UNRESOLVED,
+    DEFERRED_BUDGET, DEFERRED_DIRECTORY_UNREADABLE, DEFERRED_PATH_ABSENT,
+    DEFERRED_TRAVERSAL_UNRESOLVED,
 )
 from scan_agent.exclusion import (
     APPLIES_TO_CANDIDATE_ROOT, APPLIES_TO_SCANNED_SOURCE, EXCLUDED_DIRECTORY_NAMES,
@@ -1892,6 +1902,11 @@ from scan_agent.exclusion import (
 from scan_agent.traversal import Deferred, ObservedDirectory, ObservedFile, walk
 
 NEVER = lambda: False           # a caller with no ceiling (§8.6 names none for traversal)
+
+needs_unprivileged = pytest.mark.skipif(
+    hasattr(os, "geteuid") and os.geteuid() == 0,
+    reason="root can list a 0o000 directory, so the refusal cannot be simulated",
+)
 
 
 def _walk(root, *, sources=None, roots=None, budget=NEVER):
@@ -2075,6 +2090,38 @@ def test_a_directory_that_vanished_is_recorded_not_crashed(corpus: Path):
     ]
 
 
+@needs_unprivileged
+def test_an_unreadable_directory_is_recorded_and_the_rest_of_the_scan_continues(
+        corpus: Path):
+    # §8.6: the difference between completed and deferred work must be visible "so
+    # that no unscanned file reads as one that was understood and found unimportant."
+    # `11` §1's check (Task 8) covers the selected ROOTS; a directory below one can
+    # still refuse, and an unhandled refusal would abandon the walk with part of the
+    # corpus written and nothing on the record naming what was missed.
+    (corpus / "ok.txt").write_bytes(b"x")
+    locked = corpus / "locked"
+    locked.mkdir()
+    (locked / "inside.txt").write_bytes(b"x")
+    locked.chmod(0o000)
+    try:
+        items = _walk(corpus)
+    finally:
+        locked.chmod(0o700)
+
+    # the walk finished: the sibling file is still observed
+    assert [i.path for i in items if isinstance(i, ObservedFile)] == \
+           [str(corpus / "ok.txt")]
+    # and the directory it could not read is on the record, by name
+    assert [(i.path, i.reason) for i in items if isinstance(i, Deferred)] == [
+        (str(locked), DEFERRED_DIRECTORY_UNREADABLE),
+    ]
+    # nothing inside it is claimed: it was never listed, so it gets no R6 row and no
+    # entry of its own appears anywhere in the output
+    assert not [i for i in items if isinstance(i, ObservedDirectory)
+                and i.directory_path == str(locked)]
+    assert not any("inside.txt" in getattr(i, "path", "") for i in items)
+
+
 def test_budget_exhaustion_defers_the_remainder_and_keeps_what_was_seen(corpus: Path):
     # Done-means 13's traversal half. §8.6: "retain extracted evidence, mark the
     # deferred stage… Cost exhaustion must never turn into lower-quality automatic
@@ -2162,6 +2209,14 @@ DEFERRED_TRAVERSAL_UNRESOLVED = "traversal behaviour unresolved (SPEC Q7)"
 #: settled. P3 records that the path was gone and decides nothing else.
 DEFERRED_PATH_ABSENT = "path absent at scan time (SPEC Q14)"
 
+#: §8.6 — a directory below a selected root that this process could not list.
+#: `11` §1's Full Disk Access check covers the selected ROOTS (access.py) and says
+#: nothing about what sits below one; an unrecorded refusal down there is exactly
+#: §8.6's "no unscanned file reads as one that was understood and found
+#: unimportant". The record carries the directory's own path and nothing from
+#: inside it — nothing was listed — and says only that it could not be read.
+DEFERRED_DIRECTORY_UNREADABLE = "directory not readable at scan time"
+
 DEFERRALS_DDL = """
 CREATE TABLE IF NOT EXISTS scan_deferrals (
     deferral_id  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2210,7 +2265,8 @@ from pathlib import PurePath
 
 from scan_agent.corpus_source import KIND_DIRECTORY, KIND_FILE, CorpusSource
 from scan_agent.deferrals import (
-    DEFERRED_BUDGET, DEFERRED_PATH_ABSENT, DEFERRED_TRAVERSAL_UNRESOLVED,
+    DEFERRED_BUDGET, DEFERRED_DIRECTORY_UNREADABLE, DEFERRED_PATH_ABSENT,
+    DEFERRED_TRAVERSAL_UNRESOLVED,
 )
 from scan_agent.exclusion import (
     APPLIES_TO_CANDIDATE_ROOT, APPLIES_TO_SCANNED_SOURCE, exclusion_for,
@@ -2279,6 +2335,13 @@ def _walk_root(source, root, applies_to, budget_exhausted) -> Iterator:
             entries = source.entries(directory)
         except (FileNotFoundError, NotADirectoryError):
             yield Deferred(directory, True, DEFERRED_PATH_ABSENT)
+            continue
+        except PermissionError:
+            # One directory this process cannot list does not end the walk, and it
+            # is never silent (§8.6). Task 8 cleared the selected ROOTS; anything
+            # below one can still refuse. Nothing inside is known — the listing
+            # never happened — so this yields the directory and no inventory row.
+            yield Deferred(directory, True, DEFERRED_DIRECTORY_UNREADABLE)
             continue
 
         markers = project_root_markers_in(
@@ -2353,7 +2416,7 @@ def create_scan_schema(conn: sqlite3.Connection) -> None:
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `pytest tests/p3/test_p3_traversal.py -v`
-Expected: PASS — 16 passed
+Expected: PASS — 17 passed
 
 - [ ] **Step 6: Commit**
 
@@ -2388,6 +2451,8 @@ hashing            appended INSIDE P1's observe_path with subsystem = the
 ```
 
 P3 appends the first two itself and passes `author="P3"` into `observe_path` for the third. P1's `test_p1_authors_none_of_the_scan_events` is the other half of this contract; the tests below are P3's half and assert the same rows from the other side.
+
+**`discovery` is appended once per file *version*, not once per path.** The check `_already_discovered` is keyed on `file_id`, and §8.2 makes `file_id` per version: *"If a file retains its name but its content hash changes, the system treats it as a new version."* So a re-scan of an unchanged file appends nothing, a moved file keeps its identity and appends nothing, and a file whose bytes changed gets a second `discovery` — for the new version — beside the `external modification detection` Task 12 appends for the change. §1.2's record is per file version throughout, so this is the reading that matches it; the alternative — one `discovery` per path, ever — would make a path the thing that enters the corpus, which §1.2's per-version record does not say. Nothing downstream is specified to count these rows, so the choice is recorded here and in the test's name rather than argued: the test is `test_discovery_is_appended_once_per_file_version`, and it exercises both the unchanged re-scan and the changed one.
 
 **`observe_path` is the only route to a `files` row.** §8.2 makes P1 the owner of identity resolution: *"If the same content appears at a new path, the system recognizes it as the same file version. If a file retains its name but its content hash changes, the system treats it as a new version."* P3 supplies (path, size, mtime, content hash) and P1 decides — so P3 never inserts into `files` directly and never mints a `file_id`. Done-means 10 is therefore a test of P3 **not** doing something: a moved file resolves to the same identity and P3 emits no second one.
 
@@ -2524,15 +2589,29 @@ def test_a_second_scan_adds_a_stat_observation_and_keeps_the_first(ready, corpus
     assert after[0]["explanation"] == first[0]["explanation"]
 
 
-def test_discovery_is_appended_once_per_file(ready, corpus: Path):
-    # §8.2's `discovery` is "a file enters the corpus". It enters once.
-    (corpus / "a.txt").write_bytes(b"a")
+def test_discovery_is_appended_once_per_file_version(ready, corpus: Path):
+    # §8.2's `discovery` is "a file enters the corpus", and §1.2's record is one per
+    # FILE VERSION. The check is keyed on `file_id`, so a re-scan of an unchanged
+    # file appends nothing, and a file whose bytes changed — which P1 resolves as a
+    # new version with a new `file_id` (§8.2) — appends one for that version.
+    target = corpus / "a.txt"
+    target.write_bytes(b"a")
+
+    def discoveries():
+        return ready.execute(
+            "SELECT file_id FROM events WHERE event_type = 'discovery' "
+            "ORDER BY event_id"
+        ).fetchall()
+
     _scan(ready, corpus)
     _scan(ready, corpus)
-    count = ready.execute(
-        "SELECT count(*) c FROM events WHERE event_type = 'discovery'"
-    ).fetchone()["c"]
-    assert count == 1
+    assert len(discoveries()) == 1              # unchanged corpus: nothing entered
+
+    target.write_bytes(b"a, with different bytes")
+    _scan(ready, corpus)
+    rows = discoveries()
+    assert len(rows) == 2
+    assert rows[0]["file_id"] != rows[1]["file_id"]     # per version, not per path
 
 
 def test_a_moved_file_resolves_to_one_identity(ready, corpus: Path):
@@ -2708,12 +2787,12 @@ def record_basic_record(conn: sqlite3.Connection, observed, *,
         # collapse, extension retention and diacritic handling are all unstated.
         # P3 therefore passes the name through UNCHANGED. This is not a
         # normalization and must not be read as one — it is the only value that
-        # adds no information and answers nothing. Choosing NFC here would close
-        # Q1 inside an implementation, which is what P1 was doing until O5 moved
-        # the field, and §3.7's word-boundary matching would then run over a form
-        # nobody ratified. Task 17 greps this source for the names of the standard
-        # normalization calls and fails if one appears — including in a comment,
-        # so this note deliberately does not spell them.
+        # adds no information and answers nothing. Choosing a Unicode form here
+        # would close Q1 inside an implementation, and §3.7's word-boundary
+        # matching would then run over a form nobody ratified. Task 17 greps this
+        # source for the names of the standard normalization calls and for the
+        # short names of the Unicode forms, and fails if one appears — including
+        # in a comment, so this note deliberately spells none of them.
         normalized_filename=path.name,
         extension=path.suffix,
         observed_size=observed.size,
@@ -3863,7 +3942,7 @@ git commit -m "feat(P3): R6 directory inventory, curation signal undetermined un
 
 **R5 is a projection, not a stored row.** The five counters are computed by reading the records they count, so a counter cannot disagree with the rows behind it. §8.6's example line — *"1,842 files indexed; 1,611 fully extracted; 89 scanned PDFs deferred after the OCR limit; 34 files require model review; 18 files remain unreadable"* — draws **`indexed`** from P3, and the extraction, model-review and unreadable counts from P5 and P8. So R5 publishes P3's five and no sixth, and Task 17 asserts the key set is exactly five.
 
-**The deferred counter is budget-only**, because the SPEC spells it *"files deferred (scan budget exhausted)"*. The other two deferral reasons (SPEC Q7, SPEC Q14) are readable from `scan_deferrals` and are deliberately not folded into an R5 counter the SPEC does not name.
+**The deferred counter is budget-only**, because the SPEC spells it *"files deferred (scan budget exhausted)"*. The other three deferral reasons (SPEC Q7, SPEC Q14, and the unreadable directory of Task 9) are readable from `scan_deferrals` and are deliberately not folded into an R5 counter the SPEC does not name. §8.6's *"what has been deferred, and why"* is discharged by the deferral records themselves; R5 counts only what R5 says it counts.
 
 **§8.6 on exhaustion, quoted:** *"the product should retain extracted evidence, mark the deferred stage, and leave the file or group in review rather than guessing"*, and *"Cost exhaustion must never turn into lower-quality automatic classification."* So P3 keeps everything already recorded, records the whole unreached frontier, relaxes no exclusion rule to finish faster, and samples nothing. The corpus cannot read as complete: the deferred rows are there.
 
@@ -3989,20 +4068,36 @@ def test_budget_exhaustion_is_counted_and_the_corpus_cannot_read_as_complete(
 def test_exhaustion_relaxes_no_exclusion_rule(ready, corpus: Path):
     # §8.6: "Cost exhaustion must never turn into lower-quality automatic
     # classification." P3 does not finish faster by letting node_modules through.
+    #
+    # The fixture is ordered so the RULE fires before the budget trips. Entries are
+    # listed sorted by path, so the walk reaches a.txt, then node_modules, then
+    # z.txt, and the predicate returns True on the third call. A budget that tripped
+    # first would defer node_modules as unreached, and the assertion below would
+    # pass without the §1.1 rule ever running — which is the whole thing under test.
     (corpus / "node_modules").mkdir()
     (corpus / "node_modules" / "buried.txt").write_bytes(b"x")
     (corpus / "a.txt").write_bytes(b"x")
+    (corpus / "z.txt").write_bytes(b"x")
 
     calls = {"n": 0}
 
-    def immediately():
+    def after_two():
         calls["n"] += 1
-        return calls["n"] > 1
+        return calls["n"] > 2
 
-    run = _scan(ready, corpus, budget=immediately)
+    run = _scan(ready, corpus, budget=after_two)
+
+    # the budget really did trip, so this is the exhaustion path
+    assert scan_run_summary(ready, run)["files_deferred"] == 1
+    # and the exclusion is why node_modules is absent — the verdict is on the record
+    excluded = ready.execute(
+        "SELECT path, rule FROM exclusion_verdicts WHERE scan_run_id = ?", (run,)
+    ).fetchall()
+    assert [(r["path"], r["rule"]) for r in excluded] == [
+        (str(corpus / "node_modules"), RULE_LITERAL_DIRECTORY_NAME),
+    ]
     paths = [r["current_path"] for r in ready.execute("SELECT current_path FROM files")]
     assert not any("node_modules" in p for p in paths)
-    assert scan_run_summary(ready, run)["files_deferred"] >= 0
 
 
 def test_a_dataless_detection_is_not_an_r5_counter(ready, corpus: Path, monkeypatch):
@@ -4082,8 +4177,9 @@ def scan_run_summary(conn: sqlite3.Connection, scan_run_id: str) -> dict:
     }
 
     # "files deferred (scan budget exhausted)" — the SPEC's spelling, so the counter
-    # filters on the budget reason. The other deferral reasons name open questions
-    # (Q7, Q14) and are readable from `scan_deferrals` without an invented counter.
+    # filters on the budget reason. The other deferral reasons (Q7, Q14, and the
+    # directory that could not be read) are readable from `scan_deferrals` without
+    # an invented counter.
     deferred = conn.execute(
         "SELECT count(*) AS c FROM scan_deferrals "
         "WHERE scan_run_id = ? AND reason = ? AND is_directory = 0",
@@ -4117,17 +4213,23 @@ git commit -m "feat(P3): R5 scan run summary, five counters, deferral visible no
 
 **Files:**
 - Create: `src/scan_agent/replay.py`
+- Modify: `src/scan_agent/selection.py` — publish `selection_payload` and `record_selection_from_payload`
 - Test: `tests/p3/test_p3_replay.py`
 
 **Interfaces:**
-- Consumes: `CorpusSource`, `SnapshotCorpusSource`, `walk`, `record_exclusion`, `record_deferral`, `record_directory`, `cache_verdict`, `record_cache_verdict`, `require_access`, `start_scan_run` / `finish_scan_run`.
-- Produces: `RecordingCorpusSource`, `CORPUS_FORM_SNAPSHOT`, `CORPUS_FORM_METADATA_SAFE`, `snapshot_from(conn, recording, *, corpus_form) -> dict`, `replay(conn, selection_id, *, snapshot, budget_exhausted) -> str`, `boundary_fingerprint(conn, scan_run_id) -> dict`.
+- Consumes: `CorpusSource`, `SnapshotCorpusSource`, `walk`, `record_exclusion`, `record_deferral`, `record_directory`, `cache_verdict`, `record_cache_verdict`, `require_access`, `start_scan_run` / `finish_scan_run`, `selection_payload` / `record_selection_from_payload`.
+- Produces (`selection.py`): `selection_payload(conn, selection_id) -> dict`, `record_selection_from_payload(conn, payload) -> str`.
+- Produces (`replay.py`): `RecordingCorpusSource`, `CORPUS_FORM_SNAPSHOT`, `CORPUS_FORM_METADATA_SAFE`, `snapshot_from(conn, recording, *, selection_id, corpus_form) -> dict`, `record_selection_from_snapshot(conn, snapshot) -> str`, `replay(conn, selection_id, *, snapshot, budget_exhausted) -> str`, `boundary_fingerprint(conn, scan_run_id) -> dict`.
 
 **What §8.5 asks of P3.** SPEC Contract in: the bundle contains *"a frozen corpus snapshot or a metadata-safe representation of one"*, and *"P3 must therefore be runnable against a bundle-backed corpus source as well as a live filesystem, with identical exclusion and cache verdicts."* SPEC Serialization adds: *"R1–R4 and R6 must serialize into and re-assert from a P2 replay bundle (§8.5), `curation_signal` included — a replay that reproduces the corpus but not its curation reading would not reproduce P10's canvas."*
 
 **What is serialized is the listings, not the results.** The exclusion rules must **re-fire** on replay rather than be replayed as conclusions, or the replay would prove nothing. So `RecordingCorpusSource` wraps a source and records every listing it served — including the excluded entries as they appeared in their parents' listings, and *not* including the contents of pruned directories, which were never listed and must stay unlisted for the pruning to reproduce.
 
 **P2 owns the envelope; this is the payload.** The snapshot uses P2's field spellings where P2 publishes one — `corpus_form` with values `snapshot | metadata_safe`, and `content_hash` per indexed file, which §8.5's bundle requires and P2's `bundle_file_entry` carries. P2 wraps this; `replay.py` imports no P2 code, so P3 stays buildable against P1 alone.
+
+**R1 travels in the payload, because Serialization says it must.** *"R1–R4 and R6 must serialize into and re-assert from a P2 replay bundle."* R1 is the corpus boundary — which folders were chosen, which roots, and the cross-folder-move selection — so a bundle that omitted it would need the harness to be *told* the boundary it was supposed to carry, and a replay driven by a hand-built selection proves only that the rules re-fire on a tree someone re-described. `snapshot_from` therefore takes the `selection_id` it is serializing and writes R1's published fields into the payload, and `record_selection_from_snapshot` re-asserts them into the harness database. The R1 accessors live in `selection.py`, where R1 does; `replay.py` carries the payload and never reads a field of it. **`selected_at` is not re-asserted onto the new row.** `record_selection` stamps the row when it writes it, and `11` §3 says *"P2 replay is not a session; it is a harness run"* — writing the original time onto a harness row would say a user chose again at that moment. The original stays readable in the payload.
+
+**R2 is still the one Serialization surface the replay does not carry** — no bytes, so no content-hash identity, so no `files` row (below, and Known gaps). R1, R3, R4 and R6 all serialize and re-assert.
 
 **A replay writes no `files` row, and that is §8.5's own cost.** A `metadata_safe` corpus has no bytes. P1's `record_file` will take a supplied `content_hash`, but it inserts a row and mints a `file_id` unconditionally — it is not identity resolution, and §8.2 makes identity resolution P1's job through `observe_path`, which hashes from the path it is handed. Writing rows through `record_file` here would mean P3 deciding, from a bundle, that two hashes are the same file version, which is exactly the decision §8.2 gives P1. Done-means 14 asks for identical **exclusion verdicts**, **cache verdicts** and **`curation_signal` values**, and all three are reproduced. The gap is recorded, not papered over, and reported.
 
@@ -4149,11 +4251,13 @@ from scan_agent.corpus_source import FilesystemCorpusSource, SnapshotCorpusSourc
 from scan_agent.inventory import CURATION_UNDETERMINED
 from scan_agent.replay import (
     CORPUS_FORM_METADATA_SAFE, CORPUS_FORM_SNAPSHOT, RecordingCorpusSource,
-    boundary_fingerprint, replay, snapshot_from,
+    boundary_fingerprint, record_selection_from_snapshot, replay, snapshot_from,
 )
 from scan_agent.scan import scan
 from scan_agent.schema import create_scan_schema
-from scan_agent.selection import record_selection
+from scan_agent.selection import (
+    record_selection, selection_candidate_roots, selection_sources,
+)
 
 NEVER = lambda: False
 FIXTURE_STATE = "fixture-scan-state"
@@ -4197,13 +4301,15 @@ def test_a_replay_reproduces_exclusion_cache_and_curation_verdicts(
         tmp_path: Path, populated: Path):
     # Done-means 14.
     live = _fresh(tmp_path, "live.sqlite")
-    _, live_run, recording = _live_scan(live, populated)
-    snapshot = snapshot_from(live, recording, corpus_form=CORPUS_FORM_METADATA_SAFE)
+    selection, live_run, recording = _live_scan(live, populated)
+    snapshot = snapshot_from(live, recording, selection_id=selection,
+                             corpus_form=CORPUS_FORM_METADATA_SAFE)
 
     harness = _fresh(tmp_path, "harness.sqlite")
-    selection = record_selection(harness, sources=[populated], candidate_roots=[],
-                                 cross_folder_moves=False, selected_by=None)
-    replay_run = replay(harness, selection, snapshot=snapshot, budget_exhausted=NEVER)
+    # the boundary comes from the bundle, not from the harness's own knowledge
+    replayed_selection = record_selection_from_snapshot(harness, snapshot)
+    replay_run = replay(harness, replayed_selection, snapshot=snapshot,
+                        budget_exhausted=NEVER)
 
     assert boundary_fingerprint(live, live_run) == \
            boundary_fingerprint(harness, replay_run)
@@ -4214,17 +4320,17 @@ def test_a_replay_reproduces_exclusion_cache_and_curation_verdicts(
 def test_a_replay_touches_no_filesystem(tmp_path: Path, populated: Path):
     # §8.5: evaluation "without touching a live filesystem".
     live = _fresh(tmp_path, "live.sqlite")
-    _, _, recording = _live_scan(live, populated)
-    snapshot = snapshot_from(live, recording, corpus_form=CORPUS_FORM_METADATA_SAFE)
+    selection, _, recording = _live_scan(live, populated)
+    snapshot = snapshot_from(live, recording, selection_id=selection,
+                             corpus_form=CORPUS_FORM_METADATA_SAFE)
     live.close()
 
     import shutil
     shutil.rmtree(populated)          # the corpus is gone
 
     harness = _fresh(tmp_path, "harness.sqlite")
-    selection = record_selection(harness, sources=[populated], candidate_roots=[],
-                                 cross_folder_moves=False, selected_by=None)
-    run = replay(harness, selection, snapshot=snapshot, budget_exhausted=NEVER)
+    run = replay(harness, record_selection_from_snapshot(harness, snapshot),
+                 snapshot=snapshot, budget_exhausted=NEVER)
     assert boundary_fingerprint(harness, run)["exclusions"]
     harness.close()
 
@@ -4234,8 +4340,9 @@ def test_the_snapshot_carries_the_listings_not_the_conclusions(
     # The rules must re-fire on replay. The excluded directory is in the listing of
     # its parent; the contents it pruned were never listed and stay unlisted.
     live = _fresh(tmp_path, "live.sqlite")
-    _, _, recording = _live_scan(live, populated)
-    snapshot = snapshot_from(live, recording, corpus_form=CORPUS_FORM_METADATA_SAFE)
+    selection, _, recording = _live_scan(live, populated)
+    snapshot = snapshot_from(live, recording, selection_id=selection,
+                             corpus_form=CORPUS_FORM_METADATA_SAFE)
     paths = {entry["path"] for entry in snapshot["entries"]}
     assert str(populated / "node_modules") in paths
     assert str(populated / "node_modules" / "buried.js") not in paths
@@ -4249,8 +4356,9 @@ def test_the_snapshot_carries_content_hashes_for_p2s_envelope(
     # replay does not consume them, because P1 publishes no entry point that records
     # a file from a supplied hash.
     live = _fresh(tmp_path, "live.sqlite")
-    _, _, recording = _live_scan(live, populated)
-    snapshot = snapshot_from(live, recording, corpus_form=CORPUS_FORM_SNAPSHOT)
+    selection, _, recording = _live_scan(live, populated)
+    snapshot = snapshot_from(live, recording, selection_id=selection,
+                             corpus_form=CORPUS_FORM_SNAPSHOT)
     hashed = {e["path"]: e["content_hash"] for e in snapshot["entries"]
               if e["content_hash"] is not None}
     assert str(populated / "loose.txt") in hashed
@@ -4262,12 +4370,12 @@ def test_the_snapshot_carries_content_hashes_for_p2s_envelope(
 def test_a_metadata_safe_replay_writes_no_files_row(tmp_path: Path, populated: Path):
     # §8.5's own cost: no bytes, so no content-hash identity. Recorded, not hidden.
     live = _fresh(tmp_path, "live.sqlite")
-    _, _, recording = _live_scan(live, populated)
-    snapshot = snapshot_from(live, recording, corpus_form=CORPUS_FORM_METADATA_SAFE)
+    selection, _, recording = _live_scan(live, populated)
+    snapshot = snapshot_from(live, recording, selection_id=selection,
+                             corpus_form=CORPUS_FORM_METADATA_SAFE)
     harness = _fresh(tmp_path, "harness.sqlite")
-    selection = record_selection(harness, sources=[populated], candidate_roots=[],
-                                 cross_folder_moves=False, selected_by=None)
-    run = replay(harness, selection, snapshot=snapshot, budget_exhausted=NEVER)
+    run = replay(harness, record_selection_from_snapshot(harness, snapshot),
+                 snapshot=snapshot, budget_exhausted=NEVER)
     assert harness.execute("SELECT count(*) c FROM files").fetchone()["c"] == 0
     assert harness.execute("SELECT count(*) c FROM events").fetchone()["c"] == 0
     verdicts = harness.execute(
@@ -4282,17 +4390,54 @@ def test_the_replay_reproduces_the_curation_reading(tmp_path: Path, populated: P
     # SPEC Serialization: "a replay that reproduces the corpus but not its curation
     # reading would not reproduce P10's canvas."
     live = _fresh(tmp_path, "live.sqlite")
-    _, live_run, recording = _live_scan(live, populated)
-    snapshot = snapshot_from(live, recording, corpus_form=CORPUS_FORM_METADATA_SAFE)
+    selection, live_run, recording = _live_scan(live, populated)
+    snapshot = snapshot_from(live, recording, selection_id=selection,
+                             corpus_form=CORPUS_FORM_METADATA_SAFE)
     harness = _fresh(tmp_path, "harness.sqlite")
-    selection = record_selection(harness, sources=[populated], candidate_roots=[],
-                                 cross_folder_moves=False, selected_by=None)
-    run = replay(harness, selection, snapshot=snapshot, budget_exhausted=NEVER)
+    run = replay(harness, record_selection_from_snapshot(harness, snapshot),
+                 snapshot=snapshot, budget_exhausted=NEVER)
 
     live_signals = boundary_fingerprint(live, live_run)["curation"]
     replay_signals = boundary_fingerprint(harness, run)["curation"]
     assert live_signals == replay_signals
     assert set(dict(replay_signals).values()) == {CURATION_UNDETERMINED}
+    live.close()
+    harness.close()
+
+
+def test_the_bundle_carries_r1_and_the_harness_re_asserts_it_from_it(
+        tmp_path: Path, populated: Path):
+    # SPEC Serialization: "R1–R4 and R6 must serialize into and re-assert from a P2
+    # replay bundle." Without R1 in the payload, the harness would have to already
+    # know the corpus boundary the bundle was supposed to carry.
+    live = _fresh(tmp_path, "live.sqlite")
+    landscape = populated.parent / "Documents"
+    landscape.mkdir()
+    selection = record_selection(live, sources=[populated], candidate_roots=[landscape],
+                                 cross_folder_moves=True, selected_by="user-1")
+    recording = RecordingCorpusSource(FilesystemCorpusSource())
+    scan(live, selection, source=recording, mime_type_for=fixture_mime,
+         scan_state=FIXTURE_STATE, budget_exhausted=NEVER)
+    snapshot = snapshot_from(live, recording, selection_id=selection,
+                             corpus_form=CORPUS_FORM_METADATA_SAFE)
+
+    carried = snapshot["selection"]
+    assert carried["sources"] == [str(populated)]
+    assert carried["candidate_roots"] == [str(landscape)]
+    assert carried["selected_by"] == "user-1"
+    assert carried["selected_at"]                       # the original, preserved
+    assert "selection_id" not in carried                # P3's local key is not R1
+
+    harness = _fresh(tmp_path, "harness.sqlite")
+    replayed = record_selection_from_snapshot(harness, snapshot)
+    assert selection_sources(harness, replayed) == [populated]
+    assert selection_candidate_roots(harness, replayed) == [landscape]
+    row = harness.execute("SELECT * FROM corpus_selections").fetchone()
+    assert row["cross_folder_moves"] == 1
+    assert row["selected_by"] == "user-1"
+    # a replay is a harness run (11 §3), not a second user action: the new row is
+    # stamped when the harness wrote it, and the original time stays in the payload.
+    assert row["selected_at"] != carried["selected_at"]
     live.close()
     harness.close()
 
@@ -4308,7 +4453,44 @@ def test_replay_imports_no_p2_code():
 Run: `pytest tests/p3/test_p3_replay.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'scan_agent.replay'`
 
-- [ ] **Step 3: Write the implementation**
+- [ ] **Step 3: Publish R1's payload from `selection.py`**
+
+R1 is this module's record, so its serialization lives here rather than in `replay.py`, which carries the payload without reading a field of it. Append to `src/scan_agent/selection.py`:
+
+```python
+def selection_payload(conn: sqlite3.Connection, selection_id: str) -> dict:
+    """R1, serialized for a §8.5 replay bundle.
+
+    SPEC Serialization: "R1–R4 and R6 must serialize into and re-assert from a P2
+    replay bundle." These are R1's published fields and no others — `selection_id`
+    is P3's local key for the row, not part of the record, so it does not travel.
+    """
+    row = get_selection(conn, selection_id)
+    payload = {name: row[name] for name in SELECTION_COLUMNS if name != "selection_id"}
+    payload["sources"] = json.loads(payload["sources"])
+    payload["candidate_roots"] = json.loads(payload["candidate_roots"])
+    return payload
+
+
+def record_selection_from_payload(conn: sqlite3.Connection, payload: dict) -> str:
+    """Re-assert R1 from a serialized payload (§8.5). Returns the new selection_id.
+
+    The three §1.1 choices and §8.2's user identity are the user's and travel with
+    the bundle. `selected_at` does not: the row is stamped when it is written, and
+    `11` §3 says "P2 replay is not a session; it is a harness run" — writing the
+    original time onto a harness row would record that a user chose again at that
+    moment. The original stays readable in the payload.
+    """
+    return record_selection(
+        conn,
+        sources=payload["sources"],
+        candidate_roots=payload["candidate_roots"],
+        cross_folder_moves=payload["cross_folder_moves"],
+        selected_by=payload["selected_by"],
+    )
+```
+
+- [ ] **Step 4: Write the implementation**
 
 ```python
 # src/scan_agent/replay.py
@@ -4334,7 +4516,10 @@ from scan_agent.deferrals import record_deferral
 from scan_agent.exclusion import APPLIES_TO_SCANNED_SOURCE, ExclusionVerdict, record_exclusion
 from scan_agent.inventory import record_directory
 from scan_agent.run import finish_scan_run, start_scan_run
-from scan_agent.selection import selection_candidate_roots, selection_sources
+from scan_agent.selection import (
+    record_selection_from_payload, selection_candidate_roots, selection_payload,
+    selection_sources,
+)
 from scan_agent.stat_cache import cache_verdict, prior_observation, record_cache_verdict
 from scan_agent.traversal import Deferred, ObservedDirectory, ObservedFile, walk
 
@@ -4364,10 +4549,12 @@ class RecordingCorpusSource:
 
 
 def snapshot_from(conn: sqlite3.Connection, recording: RecordingCorpusSource, *,
-                  corpus_form: str) -> dict:
+                  selection_id: str, corpus_form: str) -> dict:
     """The re-assertable payload for one recorded scan.
 
-    `content_hash` is carried for §8.5's bundle ("content hashes") and P2's
+    Carries R1 (SPEC Serialization) so a harness can reproduce the corpus boundary
+    from the bundle instead of being told it, and the listings the §1.1 rules re-fire
+    over. `content_hash` is carried for §8.5's bundle ("content hashes") and P2's
     `bundle_file_entry`; P3's own replay does not consume it, because P1 publishes no
     entry point that records a file from a supplied hash.
     """
@@ -4391,9 +4578,22 @@ def snapshot_from(conn: sqlite3.Connection, recording: RecordingCorpusSource, *,
     return {
         "corpus_form": corpus_form,
         "hash_algorithm": HASH_ALGORITHM,
+        # R1 — SPEC Serialization. Written by `selection.py`, which owns the record;
+        # this module carries the payload and reads no field of it.
+        "selection": selection_payload(conn, selection_id),
         "listed_directories": sorted(recording.listings),
         "entries": entries,
     }
+
+
+def record_selection_from_snapshot(conn: sqlite3.Connection, snapshot: dict) -> str:
+    """Re-assert the bundle's R1 into this database (§8.5). Returns its id.
+
+    The harness's corpus boundary comes from the bundle. Without this, a replay is
+    driven by a selection someone re-described by hand, and Serialization's "re-assert
+    from a P2 replay bundle" is unmet for R1.
+    """
+    return record_selection_from_payload(conn, snapshot["selection"])
 
 
 def replay(conn: sqlite3.Connection, selection_id: str, *,
@@ -4452,16 +4652,16 @@ def boundary_fingerprint(conn: sqlite3.Connection, scan_run_id: str) -> dict:
     }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 5: Run tests to verify they pass**
 
 Run: `pytest tests/p3/test_p3_replay.py -v`
-Expected: PASS — 7 passed
+Expected: PASS — 8 passed
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/scan_agent/replay.py tests/p3/test_p3_replay.py
-git commit -m "feat(P3): replay a recorded corpus, same exclusion, cache and curation verdicts"
+git add src/scan_agent/replay.py src/scan_agent/selection.py tests/p3/test_p3_replay.py
+git commit -m "feat(P3): replay a recorded corpus, same boundary, same exclusion, cache and curation verdicts"
 ```
 
 ---
@@ -4486,6 +4686,8 @@ Four rules, each tested:
 2. **Change, appearance and disappearance all author `external modification detection`.** §4 names all three. **Conflict, recorded:** SPEC Q14 still marks it *"unsettled"* whether a disappearance is that same event; `11` is binding and answers it for the watch, so this plan follows `11` and reports the discrepancy. Q14's other half — what happens to a `files` row whose path no longer exists — is **not** answered: the watch appends the detection and modifies no `files` row, and a test asserts the row is untouched.
 3. **A detection is not a rescan.** `notify` writes no `files` row, no exclusion verdict, no inventory row and no scan run. It re-stats the one path and stops.
 4. **P3 is the author.** Every row names `subsystem = "P3"`, and this is P3's half of the type M8 gives two authors.
+
+**The watch applies §1.1's exclusion to nothing, and that is a reading — recorded here, and asserted by a test so it cannot drift silently.** `11` §4 says P3 *"watches the selected roots"* and narrows the set no further, while §1.1's exclusion is written as a rule for **scanning** — *"Before scanning, the system excludes directories that should not participate in organization"* — deciding what enters the corpus. So a `node_modules` or `.git` directory inside a watched root is enumerated by `open`, and a change under it authors a detection like any other path. The cost is P13's: `11` §4 has P13 *"mark review items whose `file_id` (or path) appears in a detection as stale"*, and a detection for an excluded path carries an empty `file_id` and matches no review item, so P13 must tolerate a detection that marks nothing. The alternative reading — run the §1.1 rules over the watch too — is not taken here because it would give the watch a corpus boundary `11` §4 does not give it, and because a path's exclusion is a scan-run verdict (R3) rather than a standing property of the path. This is the plan's reading of §4's scope, not a sentence `11` states, and it is reported as such.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -4625,11 +4827,32 @@ def test_a_detection_is_not_a_rescan(scanned, corpus: Path):
     watch = SessionWatch(scanned)
     watch.open([corpus])
     (corpus / "a.txt").write_bytes(b"one plus more")
-    (corpus / "node_modules").mkdir()          # a new directory appears mid-session
     watch.notify(corpus / "a.txt")
 
     assert counts() == before                  # nothing rescanned, nothing re-indexed
     assert len(_detections(scanned)) == 1      # only the detection
+    watch.close()
+
+
+def test_the_watch_observes_a_path_the_scan_would_have_excluded(scanned, corpus: Path):
+    # The reading, asserted so it cannot drift silently. `11` §4 says P3 "watches the
+    # selected roots" and narrows nothing; §1.1's exclusion is a rule for scanning.
+    # So a change under a directory the scan prunes still authors a detection — with
+    # an empty `file_id`, because no `files` row exists for it or ever will. P13's §4
+    # rule must therefore tolerate a detection that marks no review item stale.
+    watch = SessionWatch(scanned)
+    watch.open([corpus])
+    (corpus / "node_modules").mkdir()          # a new directory appears mid-session
+    (corpus / "node_modules" / "pkg.js").write_bytes(b"x")
+    watch.notify(corpus / "node_modules" / "pkg.js")
+
+    rows = _detections(scanned)
+    assert len(rows) == 1
+    assert CHANGE_APPEARED in rows[0]["explanation"]
+    assert rows[0]["file_id"] is None
+    assert rows[0]["subsystem"] == "P3"
+    # and it is still not a rescan: no `files` row was added for it
+    assert scanned.execute("SELECT count(*) c FROM files").fetchone()["c"] == 1
     watch.close()
 
 
@@ -4799,7 +5022,7 @@ class SessionWatch:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/p3/test_p3_watch.py -v`
-Expected: PASS — 9 passed
+Expected: PASS — 10 passed
 
 - [ ] **Step 5: Commit**
 
@@ -4821,7 +5044,11 @@ git commit -m "feat(P3): session watch, detections while open, no daemon, not a 
 
 **Two obligations, both negative.**
 
-**Done-means 17 — the ten fields are computed once, by P3.** *"The ten §1.2 fields are computed exactly once per file version, by P3; a fixture in which another part re-derives one of them fails."* O5's stated reason is drift: *"A second derivation of any of them — including a second MIME-type determination or a second hash — is a contract violation, not an optimization, because the two would drift and §3.4's cache key is built on the hash."* This is tested two ways: a **drift test** asserting the values P3 observed are exactly the values on the row, and a **source guard** asserting `scan_agent` contains no second hash and no second MIME determination.
+**Done-means 17 — the ten fields are computed once, by P3.** *"The ten §1.2 fields are computed exactly once per file version, by P3; a fixture in which another part re-derives one of them fails."* O5's stated reason is drift: *"A second derivation of any of them — including a second MIME-type determination or a second hash — is a contract violation, not an optimization, because the two would drift and §3.4's cache key is built on the hash."*
+
+**What discharges it is the API shape, not the drift test.** P1's `record_file` and `observe_path` take `filename`, `normalized_filename`, `extension`, `observed_size` and `observed_timestamps` as **keywords with no default** (`src/database_agent/files_table.py`, `record_file` and `observe_path`), and P1 carries an explicit `NOTE: P1 deliberately has no timestamp/filename derivation helper`. A part that wanted to re-derive one would have to be handed it first and then throw it away — the second derivation cannot happen silently, which is what Done-means 17's *"a fixture in which another part re-derives one of them fails"* is after. P3's side is held by the source guards below, which assert `src/scan_agent/` contains no second hash and no second MIME determination.
+
+**The drift test is a regression check, not the proof.** `test_the_observed_values_and_the_stored_values_are_the_same_values` re-stats the same path with the same syscall the scan used, so it agrees with the row whether or not a second derivation exists anywhere else; and the source guards see only `src/scan_agent/`, so they cannot see another part at all. The drift test earns its place by failing the moment P3's own hand-off stops matching what P3 observed — a mangled timestamp, a re-derived extension, a MIME value that came from somewhere other than the caller's strategy — and it is worth keeping for exactly that. It should not be read as evidence about what another part does.
 
 > **Divergence resolved — P1 changed, 2026-08-20.** This block previously recorded that P1's `record_file` re-derived filename, normalized filename, extension, size, timestamps and hash from the path rather than storing what P3 observed, which is a second computation of R2 and a violation of O5. **P1 was fixed:** the five §1.2 fields are now required keyword arguments with no default, P1 stats nothing and normalizes nothing, and only the content hash remains P1's (Contract in hands it *"its bytes to hash"*, and R1 identity is P1's). Consequently P3 OQ1 is **no longer answered in another part's code** — P1 does not normalize, P3 passes the name through unchanged, and the open question is genuinely open again. The drift test below stays: it is what catches a re-derivation if one is ever reintroduced.
 
@@ -5040,7 +5267,7 @@ No new module. If a guard fires, the fix is in the module that tripped it, never
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/p3/test_p3_no_invention.py -v`
-Expected: PASS — 15 passed
+Expected: PASS — 16 passed
 
 - [ ] **Step 5: Commit**
 
@@ -5177,7 +5404,7 @@ git commit -m "test(P3): walking-skeleton P3 step, node_modules skipped, every e
 
 **Registration.** P3 registers nothing (B5). All four types are reserved §8.2 names already in P1's frozen table; `scan_agent` contains no registration call, and Task 1 asserts both.
 
-**Open questions this plan does not answer.** Q1 (normalized filename) — P3 defines no normalization and Task 17 guards it; the plan reports that **P1's** `record_file` picks NFC. Q2 (which timestamps) — P3 observes size and mtime for §1.2's cache and adds no timestamp of its own. Q4 (scan-state enumeration) — the caller supplies one value; `scan_agent` holds no vocabulary. Q6 (MIME determination) — a caller-supplied strategy; no `mimetypes`, no signature table. Q7 (symlinks, aliases, packages, mounts) — recorded as `traversal behaviour unresolved`, never decided; `.app` bundles are descended, which is Q7's stated cost. Q8 (exclusion override) — no override exists; §1.1 gives the user no control over the rules and P3 adds none. Q9 (does the project-root rule exclude the root itself) — §1.1's literal word `descendants` is implemented and the marker-bearing directory's eligibility is asserted nowhere. Q11 (where R1 lives) — R1 is a plain record with no plan-version binding. Q12 (where `cross_folder_moves` is enforced) — recorded, enforced nowhere, guarded. Q13 (do exclusion verdicts get events) — R3 has its own table and appends no event, guarded. Q14 (disappearance) — `11` §4's watch rule is followed for the *event*; the `files` row is untouched and that half stays open. Q15 (hashing ceiling) — none held; the budget is a caller predicate. Q16 (scan identity) — a local handle, off `events`, joined to P1's `scan_id` by nothing. P4 OQ6 (`completeness` for a dataless file) — no run row, no completeness value, guarded. P1 OQ9 (volume identifier) — read by nothing.
+**Open questions this plan does not answer.** Q1 (normalized filename) — P3 defines no normalization, passes the filename through unchanged, and Task 17 guards it; P1 requires the field as a keyword with no default and derives nothing, so P3 is its only author and the question is genuinely open at P3's boundary. Q2 (which timestamps) — P3 observes size and mtime for §1.2's cache and adds no timestamp of its own. Q4 (scan-state enumeration) — the caller supplies one value; `scan_agent` holds no vocabulary. Q6 (MIME determination) — a caller-supplied strategy; no `mimetypes`, no signature table. Q7 (symlinks, aliases, packages, mounts) — recorded as `traversal behaviour unresolved`, never decided; `.app` bundles are descended, which is Q7's stated cost. Q8 (exclusion override) — no override exists; §1.1 gives the user no control over the rules and P3 adds none. Q9 (does the project-root rule exclude the root itself) — §1.1's literal word `descendants` is implemented and the marker-bearing directory's eligibility is asserted nowhere. Q11 (where R1 lives) — R1 is a plain record with no plan-version binding. Q12 (where `cross_folder_moves` is enforced) — recorded, enforced nowhere, guarded. Q13 (do exclusion verdicts get events) — R3 has its own table and appends no event, guarded. Q14 (disappearance) — `11` §4's watch rule is followed for the *event*; the `files` row is untouched and that half stays open. Q15 (hashing ceiling) — none held; the budget is a caller predicate. Q16 (scan identity) — a local handle, off `events`, joined to P1's `scan_id` by nothing. P4 OQ6 (`completeness` for a dataless file) — no run row, no completeness value, guarded. P1 OQ9 (volume identifier) — read by nothing.
 
 **Placeholder scan.** No "TBD", no "add error handling", no "similar to Task N", no angle-bracket placeholder standing in for a real name. Every code step carries complete runnable code and every test step names the exact `pytest` command and expected result.
 
@@ -5191,7 +5418,7 @@ git commit -m "test(P3): walking-skeleton P3 step, node_modules skipped, every e
 - **A metadata-safe replay writes no `files` row** (Task 15). §8.5's metadata-safe form has no bytes and P1's identity is the content hash. `record_file` would accept a supplied hash, but it is not identity resolution — it inserts unconditionally — and §8.2 gives identity resolution to P1's `observe_path`, which hashes from the path. Exclusion verdicts, cache verdicts and curation signals all reproduce, which is what Done-means 14 asks for; the `files` half does not.
 - **R4's `file_id` is `NULL` in a metadata-safe replay** for the same reason. *"File identity as resolved by P1"* reads as unknown rather than as a fabricated value.
 - **Two `external modification detection` rows on a content change** (Task 12): P3's, keyed on the stat difference that triggered the re-read, and P1's, keyed on the version being superseded. Both are P3-authored, both are true, both are append-only, and their explanations distinguish them. Recorded as a seam worth review rather than optimized away.
-- **P1 re-derives six of P3's ten fields** (Task 17). P1's Contract in says P3 hands them over; P1's plan has `record_file` stat and hash the path itself. The drift test catches a disagreement; the divergence is P1's to resolve.
+- **`11` §7's "two scans do not run on the same root" is not implemented, and is not P3's alone to settle.** `11-ops-runtime.md` §7: *"A second scan of an in-flight root is refused. A scan of a disjoint root may run."* Scanning is P3's operation and `scan_runs` already carries `started_at` and `completed_at`, so the refusal could live here — but the SPEC's *Runtime obligations* paragraph binds only `11` §1 (Full Disk Access), §4 (the session watch) and §5 (dataless items) and omits §7, so no contract assigns it to P3. Nothing in Tasks 1–18 refuses it: two `scan()` calls over one root interleave rows into `stat_cache_verdicts`, `exclusion_verdicts` and `directory_inventory` under two `scan_run_id`s, and each run's R5 then counts a partial corpus as if it were whole. Implementing it here would also mean P3 authoring what §7 does not define — whether a subdirectory of an in-flight root is "the same root", what a refusal raises, and who clears a run left open by a crash (`11` §6 covers apply, not scan). Recorded for the lead to place: §7 lands on P3, or on the P13 process that drives the scan.
 - **`create_scan_schema` is not called by `open_database`.** P1's handle now creates P1's own tables on open, but it knows nothing about P3's, so a caller that forgets `create_scan_schema` gets a database with `files` and `events` and none of P3's six. Not blocking Tasks 1–18.
 - **Schema migration.** P3 adds six tables to P1's database and stamps no version of its own. The first *change* to a P3 table needs one; the first creation does not.
 - **P3 samples no resource counter.** §8.6's six are P1's `scan_resource_usage` (P1 Contract out §10), and joining a P3 run to a P1 `scan_id` is SPEC Q16 / P1 OQ19 and is open. So a P13 progress line can render P3's five counters and P1's six, and cannot yet join them.
