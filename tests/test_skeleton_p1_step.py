@@ -8,7 +8,7 @@ keep green. It is deterministic: no model, no cloud, no embeddings.
 from datetime import datetime, timezone
 from pathlib import Path
 
-from conftest import p3_basic_record
+from p1_contract import p3_basic_record
 from database_agent.db import create_schema
 from database_agent.events import append_event
 from database_agent.files_table import get_file, observe_path

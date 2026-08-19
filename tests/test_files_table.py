@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from database_agent.db import create_schema
-from conftest import p3_basic_record
+from p1_contract import p3_basic_record
 from database_agent.files_table import FILES_COLUMNS, get_file, record_file
 
 

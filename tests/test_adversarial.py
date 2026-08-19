@@ -53,7 +53,7 @@ def scan(path, **overrides):
     P1 stores them and derives none of them, so a caller standing in for P3 has
     to supply them — that is the contract, not a test inconvenience.
     """
-    from conftest import p3_basic_record
+    from p1_contract import p3_basic_record
     return {**SCAN, **p3_basic_record(Path(path)), **overrides}
 
 

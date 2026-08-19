@@ -1606,7 +1606,12 @@ class FilesystemCorpusSource:
 
         `follow_symlinks=False` throughout: a symlink is reported as KIND_OTHER, so
         it is never descended (a loop would make traversal non-terminating) and never
-        handed to `hash_file`. SPEC Q7 stays open; this is termination, not policy.
+        handed to P1's hasher. SPEC Q7 stays open; this is termination, not policy.
+
+        The phrasing is deliberate. Task 7's guard asserts the name of P1's hashing
+        entry point appears nowhere in this module, and a prose mention would trip
+        it — the guard is blunt on purpose, because a narrower one that matched only
+        a call would stop catching an aliased import.
         """
         found: list[Entry] = []
         with os.scandir(directory) as scan:
@@ -2699,12 +2704,23 @@ def record_basic_record(conn: sqlite3.Connection, observed, *,
         # to catch, and P1's `record_file` now requires them with no default so the
         # violation cannot happen silently.
         filename=path.name,
-        normalized_filename=unicodedata.normalize("NFC", path.name),
+        # SPEC Q1 is OPEN: Unicode form, case folding, whitespace and separator
+        # collapse, extension retention and diacritic handling are all unstated.
+        # P3 therefore passes the name through UNCHANGED. This is not a
+        # normalization and must not be read as one — it is the only value that
+        # adds no information and answers nothing. Choosing NFC here would close
+        # Q1 inside an implementation, which is what P1 was doing until O5 moved
+        # the field, and §3.7's word-boundary matching would then run over a form
+        # nobody ratified. Task 17 greps this source for the names of the standard
+        # normalization calls and fails if one appears — including in a comment,
+        # so this note deliberately does not spell them.
+        normalized_filename=path.name,
         extension=path.suffix,
         observed_size=observed.size,
-        observed_timestamps=json.dumps({
-            "mtime": datetime.fromtimestamp(observed.mtime, timezone.utc).isoformat(),
-        }),
+        # SPEC Q2 is OPEN on timestamp representation. P3 records the stat value
+        # it observed and invents no format — an ISO string would be a choice of
+        # precision, timezone and which of mtime/ctime/birthtime matters.
+        observed_timestamps=json.dumps({"mtime": observed.mtime}),
         parent_folder_context=parent_folder_context(path),
         mime_type=mime_type_for(path),
         detected_format=None,        # not one of R2's ten; §2.9's determination is P5's
@@ -4807,7 +4823,7 @@ git commit -m "feat(P3): session watch, detections while open, no daemon, not a 
 
 **Done-means 17 — the ten fields are computed once, by P3.** *"The ten §1.2 fields are computed exactly once per file version, by P3; a fixture in which another part re-derives one of them fails."* O5's stated reason is drift: *"A second derivation of any of them — including a second MIME-type determination or a second hash — is a contract violation, not an optimization, because the two would drift and §3.4's cache key is built on the hash."* This is tested two ways: a **drift test** asserting the values P3 observed are exactly the values on the row, and a **source guard** asserting `scan_agent` contains no second hash and no second MIME determination.
 
-> **Divergence recorded, not fixed here.** P1's Contract in says P3 hands P1 *"a path, its stat result (size, timestamps), its bytes to hash, and the §1.2 per-file fields"*, but P1's **plan** has `record_file` call `path.stat()` and `hash_file(path, ...)` itself, deriving filename, normalized filename, extension, size, timestamps and content hash from the path rather than storing what P3 observed. That is P1 re-deriving six of P3's ten. P3 owns none of P1's files and does not change its signature; the drift test below is what catches it if the two ever disagree, and the divergence is reported for P1 to resolve. Related: P1's `record_file` normalizes with `unicodedata.normalize("NFC", ...)`, which **answers P3 OQ1** (*"`normalized filename` is undefined… Unicode form, case folding, whitespace and separator collapse, extension retention, and diacritic handling are all unstated"*) by picking one form. P3 does not ratify that choice and defines no normalization of its own; OQ1 stays open and is reported.
+> **Divergence resolved — P1 changed, 2026-08-20.** This block previously recorded that P1's `record_file` re-derived filename, normalized filename, extension, size, timestamps and hash from the path rather than storing what P3 observed, which is a second computation of R2 and a violation of O5. **P1 was fixed:** the five §1.2 fields are now required keyword arguments with no default, P1 stats nothing and normalizes nothing, and only the content hash remains P1's (Contract in hands it *"its bytes to hash"*, and R1 identity is P1's). Consequently P3 OQ1 is **no longer answered in another part's code** — P1 does not normalize, P3 passes the name through unchanged, and the open question is genuinely open again. The drift test below stays: it is what catches a re-derivation if one is ever reintroduced.
 
 **Every open question stays open.** Each guard below names the question it holds and fails the moment someone answers it in code instead of in a SPEC.
 

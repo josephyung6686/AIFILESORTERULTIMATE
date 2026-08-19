@@ -155,10 +155,17 @@ def test_create_eval_schema_is_idempotent(eval_conn):
 def test_p2_creates_no_p1_table(eval_conn):
     # §0: each part owns its own tables. P2 does not create, alter, or shadow
     # `files` or `events`; P1's create_schema is the only thing that makes them.
+    #
+    # The check is a DELTA, not an absence. P1's `open_database` calls its own
+    # `create_schema`, so `files` and `events` exist before P2 runs at all —
+    # asserting they are absent would test P1's wiring, not P2's restraint. What
+    # P2 must prove is that ITS schema call adds nothing outside its own set.
+    before = _table_names(eval_conn)
     create_eval_schema(eval_conn)
-    present = _table_names(eval_conn)
-    assert "files" not in present
-    assert "events" not in present
+    added = _table_names(eval_conn) - before
+    assert added <= set(EVAL_TABLES), f"P2 created tables it does not own: {added - set(EVAL_TABLES)}"
+    assert "files" not in added
+    assert "events" not in added
 
 
 def test_no_bundle_table_references_the_live_files_table(eval_conn):
@@ -4456,7 +4463,9 @@ CREATE TABLE IF NOT EXISTS shadow_run (
     move_plan_entries      TEXT NOT NULL DEFAULT '[]',   -- MUST be empty (§8.3)
     user_visible_tree_delta TEXT NOT NULL DEFAULT '[]',  -- MUST be empty (§8.5)
     surfaced_examples      TEXT NOT NULL,
-    model_call_audit_refs  TEXT NOT NULL                 -- P7's audit ids (§8.4)
+    model_call_audit_refs  TEXT NOT NULL,                -- P7's audit ids (§8.4)
+    foreign_table_counts   TEXT NOT NULL                 -- row counts of every table
+                                                         -- P2 does not own, at open
 );
 CREATE TABLE IF NOT EXISTS review_adjudication (
     adjudication_id  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -4501,6 +4510,10 @@ def run_shadow(conn: sqlite3.Connection, bundle_id: str, *, version_tuple: dict,
     from eval_harness.comparison import compare_runs, get_comparison
     from eval_harness.replay import replay_bundle
 
+    # Taken BEFORE any adapter runs: this is the baseline `assert_shadow_wrote_nothing`
+    # diffs against, and a snapshot taken afterwards would prove nothing.
+    opened_counts = foreign_table_counts(conn)
+
     refs = list(model_call_audit_refs)
     if run_settings.get("model_enabled") and not refs:
         raise UnauditedModelCall(
@@ -4520,10 +4533,11 @@ def run_shadow(conn: sqlite3.Connection, bundle_id: str, *, version_tuple: dict,
     surfaced = list(select(disagreements))
     conn.execute(
         "INSERT INTO shadow_run (shadow_run_id, live_run_id, comparison_id, "
-        "shadow_namespace, surfaced_examples, model_call_audit_refs) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "shadow_namespace, surfaced_examples, model_call_audit_refs, "
+        "foreign_table_counts) VALUES (?, ?, ?, ?, ?, ?, ?)",
         (shadow_run_id, live_run_id, comparison_id, shadow_run_id,
-         canonical_json(surfaced), canonical_json(refs)),
+         canonical_json(surfaced), canonical_json(refs),
+         canonical_json(opened_counts)),
     )
     return shadow_run_id
 
@@ -4545,6 +4559,7 @@ def shadow_record(conn: sqlite3.Connection, shadow_run_id: str) -> dict:
         "disagreement_set": get_comparison(conn, row["comparison_id"])["disagreements"],
         "surfaced_examples": json.loads(row["surfaced_examples"]),
         "model_call_audit_refs": json.loads(row["model_call_audit_refs"]),
+        "foreign_table_counts": json.loads(row["foreign_table_counts"]),
     }
 
 
@@ -5689,6 +5704,7 @@ absent, which is a valid run with nine not_run verdicts.
 """
 from pathlib import Path
 
+from conftest import p3_basic_record   # the R2 fields P3 computes once (O5)
 from database_agent.budget import all_ceilings
 from database_agent.db import create_schema
 from database_agent.files_table import get_file, observe_path

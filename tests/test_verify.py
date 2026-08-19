@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import p3_basic_record
+from p1_contract import p3_basic_record
 from database_agent.db import create_schema
 from database_agent.files_table import observe_path
 from database_agent.identity import hash_file

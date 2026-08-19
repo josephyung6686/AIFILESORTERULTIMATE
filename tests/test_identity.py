@@ -71,7 +71,7 @@ def test_volume_id_carries_its_observation_session(tmp_path: Path):
     assert from_another_session != value
 
 
-from conftest import p3_basic_record
+from p1_contract import p3_basic_record
 from database_agent.db import create_schema
 from database_agent.files_table import (
     ReservedScanState, file_path_history, get_file, observe_path,
