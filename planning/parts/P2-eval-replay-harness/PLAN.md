@@ -130,17 +130,26 @@ def _table_names(conn: sqlite3.Connection) -> set[str]:
             conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
 
 
-def test_create_eval_schema_creates_every_p2_table(eval_conn):
+def test_eval_tables_names_every_table_p2_will_own(eval_conn):
+    # EVAL_TABLES is the manifest of P2's surface. Tasks 3-15 each add the DDL
+    # for one or more of these names; this list is what Task 16's column guard
+    # walks, so a table missing from it escapes the no-aggregate scan.
+    assert len(EVAL_TABLES) == len(set(EVAL_TABLES)) == 18
+    assert EVAL_TABLES[0] == "eval_schema_meta"
+
+
+def test_create_eval_schema_creates_the_tables_wired_so_far(eval_conn):
+    # At Task 1 only the meta table is wired. From Task 3 onward each task's own
+    # test asserts its table exists; test_no_aggregate.py (Task 16) asserts at the
+    # end that every EVAL_TABLES name has been created.
     create_eval_schema(eval_conn)
-    present = _table_names(eval_conn)
-    for table in EVAL_TABLES:
-        assert table in present, f"missing P2 table {table}"
+    assert "eval_schema_meta" in _table_names(eval_conn)
 
 
 def test_create_eval_schema_is_idempotent(eval_conn):
     create_eval_schema(eval_conn)
     create_eval_schema(eval_conn)
-    assert set(EVAL_TABLES) <= _table_names(eval_conn)
+    assert "eval_schema_meta" in _table_names(eval_conn)
 
 
 def test_p2_creates_no_p1_table(eval_conn):
@@ -157,7 +166,8 @@ def test_no_bundle_table_references_the_live_files_table(eval_conn):
     # "without touching a live filesystem"; SPEC OQ5 on export). A foreign key
     # into P1's table would decide OQ5 by making that impossible.
     create_eval_schema(eval_conn)
-    for table in EVAL_TABLES:
+    created = _table_names(eval_conn) & set(EVAL_TABLES)
+    for table in created:
         targets = {r["table"] for r in
                    eval_conn.execute(f"PRAGMA foreign_key_list({table})")}
         assert "files" not in targets and "events" not in targets, table
@@ -255,20 +265,26 @@ CREATE TABLE IF NOT EXISTS eval_schema_meta (
 """
 
 
+def _ddl_scripts() -> list[str]:
+    """Every P2 table, each DDL owned by the module that publishes the surface.
+
+    Imported inside the function: `run`, `bundle` and the rest import `store` for
+    `canonical_json`, so a module-level import here would be circular. Tasks 3-15
+    each append exactly one name to this list.
+    """
+    return []
+
+
 def create_eval_schema(conn: sqlite3.Connection) -> None:
     """Create every P2-owned table. Idempotent. Creates no P1 table."""
     conn.executescript(_META_DDL)
-    for ddl in _DDL_SCRIPTS:
+    for ddl in _ddl_scripts():
         conn.executescript(ddl)
     conn.execute(
         "INSERT INTO eval_schema_meta (key, value) VALUES ('eval_schema_version', ?) "
         "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         (str(EVAL_SCHEMA_VERSION),),
     )
-
-
-#: Each task below appends its own DDL string here. Nothing is created twice.
-_DDL_SCRIPTS: list[str] = []
 
 
 def canonical_json(value) -> str:
@@ -307,7 +323,7 @@ __all__ = ["create_eval_schema", "EVAL_SCHEMA_VERSION"]
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `pytest tests/eval/test_store.py -v`
-Expected: PASS — 7 passed
+Expected: PASS — 8 passed
 
 - [ ] **Step 6: Commit**
 
