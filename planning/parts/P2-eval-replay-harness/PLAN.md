@@ -2100,3 +2100,543 @@ git commit -m "feat(P2): bundle carries P4's runs, outputs and text units verbat
 ```
 
 ---
+
+### Task 7: `bundle_learning_record[]` — the negative examples a replay needs
+
+**Files:**
+- Modify: `src/eval_harness/bundle.py` — add the table and its writer/reader
+- Test: `tests/eval/test_bundle_learning.py`
+
+**Interfaces:**
+- Consumes: `_require_open`, `canonical_json`; `database_agent.learning.learning_records(conn, scope, subject_id) -> list[sqlite3.Row]`, `database_agent.learning.SCOPES` (P1 Task 9); `database_agent.db.create_schema` (P1 Task 3).
+- Produces: `LEARNING_RECORD_FIELDS: tuple[str, ...]`, `capture_learning_records(conn, bundle_id, *, scope, subject_id) -> int`, `bundle_learning_records(conn, bundle_id, *, scope=None, subject_id=None) -> list[dict]`.
+
+**Why this table exists at all.** [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md), binding: *"a replay bundle that exercises SR6 or `USER_REJECTED_EQUIVALENT` must carry the matching `bundle_learning_record[]` rows. Otherwise a run with the store populated and a run without it compare as a grouping-quality regression when the cause is a missing negative example."* Six parts — P6, P7, P8, P9, P10, P11 — now query the learning store before they propose. A bundle that omits their inputs produces a comparison that blames the algorithm for the harness.
+
+**Same document, binding: the attribution does not move.** *"Dimension attribution stays with grouping / placement / factual_validation, not with a new stage."* This plan mints no learning stage and no learning dimension.
+
+**The three opaque fields are copied, never interpreted.** `polarity ∈ accept | reject`, `proposal_class` and `basis_key` are supplied by the acting part on the event it authors; P1 stores and returns all three and decides nothing from them, and P2 does the same. **P2 applies no suppression rule.** Query-before-propose is the *acting* part's rule, enforced in that part; a bundle carries the rows so that the part's rule has the same inputs it had live.
+
+**"Evidence refs" resolves to whatever P1's row carries.** SPEC Contract out §3 names *"evidence refs"* as a field of a `bundle_learning_record`. §8.2's event record field is *"a structured explanation **or** evidence reference"* — one field, which P1 spells `explanation`. Rather than mint a second name for it, `capture_learning_records` stores P1's whole row verbatim in a `row` column and promotes the five fields the SPEC enumerates by name. The naming divergence is recorded in the report accompanying this plan and **is not resolved here**.
+
+**A capture is a snapshot, not a live read.** The rows are copied into the bundle at capture time. A later reset in P1's store does not retroactively change a sealed bundle — which is the whole point: two runs over one bundle must see the same negative examples.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_bundle_learning.py
+import pytest
+from database_agent.db import create_schema
+from database_agent.events import append_event
+from database_agent.learning import SCOPES, reset_preferences
+
+from eval_harness.bundle import (
+    LEARNING_RECORD_FIELDS, bundle_learning_records, capture_learning_records,
+    open_bundle, seal_bundle,
+)
+from eval_harness.store import create_eval_schema
+
+
+def _reject(conn, *, subject, basis_key, proposal_class="group"):
+    """A user rejection, authored by the acting part (M8: P1 only writes)."""
+    return append_event(
+        conn, event_type="user group decision", subsystem="P9",
+        component_version="p9-fixture", observed_at="2026-08-19T00:00:00+00:00",
+        explanation="fixture rejection", user_id="u1",
+        correction_scope="group", correction_subject=subject,
+        polarity="reject", proposal_class=proposal_class, basis_key=basis_key,
+    )
+
+
+def _bundle(conn):
+    return open_bundle(conn, corpus_form="snapshot", source_scan_ref="scan-fixture",
+                       pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                       policy_settings={})
+
+
+def test_the_five_named_fields():
+    # SPEC Contract out §3: "scope, subject_id, proposal_class, basis_key,
+    # polarity, evidence refs."
+    assert LEARNING_RECORD_FIELDS == (
+        "scope", "subject_id", "polarity", "proposal_class", "basis_key",
+    )
+
+
+def test_a_rejection_is_captured_with_all_three_opaque_fields(eval_conn):
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    _reject(eval_conn, subject="group-7", basis_key="anchor-a|anchor-b")
+    bundle_id = _bundle(eval_conn)
+    assert capture_learning_records(eval_conn, bundle_id, scope="group",
+                                    subject_id="group-7") == 1
+    row = bundle_learning_records(eval_conn, bundle_id)[0]
+    assert row["scope"] == "group"
+    assert row["subject_id"] == "group-7"
+    assert row["polarity"] == "reject"
+    assert row["proposal_class"] == "group"
+    assert row["basis_key"] == "anchor-a|anchor-b"
+    # §8.2's "structured explanation or evidence reference" survives verbatim.
+    assert row["row"]["explanation"] == "fixture rejection"
+
+
+def test_p2_applies_no_suppression_rule(eval_conn):
+    # Query-before-propose is the ACTING part's rule (10-i4-learning-ops.md).
+    # P2 carries the rows; it never decides that a reject means "do not emit".
+    from pathlib import Path
+    src = Path(__file__).resolve().parents[2] / "src" / "eval_harness"
+    for path in src.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        assert "polarity ==" not in text, path.name
+        assert 'polarity") ==' not in text, path.name
+
+
+def test_a_sealed_bundle_keeps_the_records_a_later_reset_removed(eval_conn):
+    # Two runs over one bundle must see the same negative examples, or the
+    # comparison measures the store instead of the algorithm.
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    _reject(eval_conn, subject="group-7", basis_key="anchor-a")
+    bundle_id = _bundle(eval_conn)
+    capture_learning_records(eval_conn, bundle_id, scope="group", subject_id="group-7")
+    seal_bundle(eval_conn, bundle_id)
+    reset_preferences(eval_conn, "group", "group-7", author="P13",
+                      component_version="p13-fixture", user_id="u1")
+    assert len(bundle_learning_records(eval_conn, bundle_id)) == 1
+
+
+def test_an_empty_capture_is_recorded_as_empty_not_as_missing(eval_conn):
+    # A bundle with no negative example is a legal bundle. What must never happen
+    # is a bundle that silently omits one that existed.
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    assert capture_learning_records(eval_conn, bundle_id, scope="group",
+                                    subject_id="group-nothing") == 0
+    assert bundle_learning_records(eval_conn, bundle_id) == []
+
+
+def test_scope_is_p1s_and_is_exact(eval_conn):
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    assert set(SCOPES) == {"file", "group", "node", "template", "domain", "corpus"}
+    with pytest.raises(ValueError):
+        capture_learning_records(eval_conn, bundle_id, scope="destination node",
+                                 subject_id="n1")
+
+
+def test_a_file_scoped_record_is_not_returned_by_a_corpus_scoped_read(eval_conn):
+    # §8.7 scope discipline: one transcript belonging in a Columbia packet "should
+    # not teach the engine that all transcripts belong there." P2 reads scope; it
+    # never assigns or widens it.
+    create_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    append_event(eval_conn, event_type="user group decision", subsystem="P9",
+                 component_version="p9-fixture",
+                 observed_at="2026-08-19T00:00:00+00:00",
+                 explanation="file-scoped", user_id="u1",
+                 correction_scope="file", correction_subject="file-1",
+                 polarity="reject", proposal_class="membership",
+                 basis_key="group-1|file-1")
+    bundle_id = _bundle(eval_conn)
+    assert capture_learning_records(eval_conn, bundle_id, scope="corpus",
+                                    subject_id="file-1") == 0
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_bundle_learning.py -v`
+Expected: FAIL with `ImportError: cannot import name 'capture_learning_records' from 'eval_harness.bundle'`
+
+- [ ] **Step 3: Extend bundle.py**
+
+Append to `BUNDLE_DDL`:
+
+```sql
+CREATE TABLE IF NOT EXISTS bundle_learning_record (
+    bundle_id      TEXT NOT NULL REFERENCES bundle_manifest (bundle_id),
+    event_id       INTEGER NOT NULL,
+    scope          TEXT NOT NULL,
+    subject_id     TEXT NOT NULL,
+    polarity       TEXT,          -- opaque; accept | reject, supplied by the acting part
+    proposal_class TEXT,          -- opaque
+    basis_key      TEXT,          -- opaque
+    row            TEXT NOT NULL, -- P1's whole row, verbatim, incl. §8.2's explanation
+    PRIMARY KEY (bundle_id, event_id)
+);
+```
+
+Append to `bundle.py`:
+
+```python
+#: SPEC Contract out §3's named fields. "evidence refs" is §8.2's "structured
+#: explanation or evidence reference", which P1 spells `explanation` and which
+#: survives in the verbatim `row`. P2 mints no second name for it.
+LEARNING_RECORD_FIELDS: tuple[str, ...] = (
+    "scope", "subject_id", "polarity", "proposal_class", "basis_key",
+)
+
+
+def capture_learning_records(conn: sqlite3.Connection, bundle_id: str, *,
+                             scope: str, subject_id: str) -> int:
+    """Snapshot P1's §8.7 records at one scope and subject into the bundle.
+
+    Required by 10-i4-learning-ops.md: a bundle exercising SR6 or
+    USER_REJECTED_EQUIVALENT must carry these, or a store-populated run and a
+    store-empty run compare as a grouping regression when the cause is a missing
+    negative example.
+
+    P2 copies `polarity`, `proposal_class` and `basis_key` and interprets none of
+    them. Suppression is the acting part's rule, applied in that part.
+    """
+    from database_agent.learning import SCOPES, learning_records
+
+    _require_open(conn, bundle_id)
+    if scope not in SCOPES:
+        raise ValueError(f"unknown scope {scope!r}; §8.7 defines exactly {SCOPES}")
+    captured = 0
+    for row in learning_records(conn, scope, subject_id):
+        record = {k: row[k] for k in row.keys()}
+        conn.execute(
+            "INSERT INTO bundle_learning_record (bundle_id, event_id, scope, "
+            "subject_id, polarity, proposal_class, basis_key, row) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(bundle_id, event_id) DO NOTHING",
+            (bundle_id, row["event_id"], scope, subject_id, row["polarity"],
+             row["proposal_class"], row["basis_key"], canonical_json(record)),
+        )
+        captured += 1
+    return captured
+
+
+def bundle_learning_records(conn: sqlite3.Connection, bundle_id: str, *,
+                            scope: str | None = None,
+                            subject_id: str | None = None) -> list[dict]:
+    import json
+    sql = "SELECT * FROM bundle_learning_record WHERE bundle_id = ?"
+    args: list = [bundle_id]
+    if scope is not None:
+        sql += " AND scope = ?"
+        args.append(scope)
+    if subject_id is not None:
+        sql += " AND subject_id = ?"
+        args.append(subject_id)
+    out = []
+    for r in conn.execute(sql + " ORDER BY event_id", args):
+        record = {k: r[k] for k in r.keys()}
+        record["row"] = json.loads(r["row"])
+        out.append(record)
+    return out
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_bundle_learning.py -v`
+Expected: PASS — 7 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/bundle.py tests/eval/test_bundle_learning.py
+git commit -m "feat(P2): bundle carries P1's scoped learning records so a missing negative is not a regression"
+```
+
+---
+
+### Task 8: Accepted groups and `bundle_expectation[]` (Done-means 12)
+
+**Files:**
+- Modify: `src/eval_harness/bundle.py` — add the two tables and their writers/readers
+- Test: `tests/eval/test_bundle_expectation.py`
+
+**Interfaces:**
+- Consumes: `_require_open`, `canonical_json`; `DIMENSIONS`, `EXPECTED_OUTCOME_KINDS`, `EXPECTATION_SOURCES`, `check_dimension` (Task 2).
+- Produces: `add_accepted_group(conn, bundle_id, *, group_id, acceptance_row) -> None`, `accepted_groups(conn, bundle_id) -> list[dict]`, `add_expectation(conn, bundle_id, *, dimension, subject_ref, expected_value, expected_outcome_kind, source) -> None`, `expectations(conn, bundle_id, *, dimension=None) -> list[dict]`, `expectation_for(conn, bundle_id, dimension, subject_ref) -> dict | None`.
+
+**Accepted groups are resolved *as of* the pinned plan version, and the resolution is P9's.** SPEC Contract out §3: *"accepted groups as of the pinned plan version — resolved through P9's per-version `group_acceptance` record, since the group and membership records themselves are shared across plan versions."* P9 does not exist, so the caller hands over the already-resolved row and P2 stores it verbatim. **P2 does not resolve acceptance itself** — doing so would require reading P9's `Group.state`, `group_acceptance` and membership tables and re-deriving §8.8's per-version projection, which is P9's published surface, not P2's inference.
+
+**`expected_value` is opaque and P2 validates no member of it.** For `fact` it is field + value + reliability state (§3.13, P6's vocabulary); for `placement` a node id, a shallow-fallback node id, or abstain (§6.7, §6.10, P11's); for `residual` P11's published `outcome` plus its qualifier. SPEC Contract out §3 is explicit: *"The `residual` expectation is P11's published `outcome` vocabulary, not a P2 vocabulary."* Copying P11's eight-action table into P2's source would be exactly the two-vocabularies failure MINOR 7 forbids. The consequence is stated plainly: **a typo in an expected `outcome` is not caught here.** When P11 lands, import its vocabulary and validate against the imported names.
+
+**Done-means 12 is a round-trip test, not a validation test.** §7.8's worked example — the screenshot reading *"Your Columbia University application has been submitted"* — must be *representable* as `return_to_placement` with `return_target.kind = confirmed_domain_group`, and a run in which the file lands in a generic residual folder must come out `divergent` rather than a match. Representability is asserted here; the `divergent` half is asserted in Task 10, where the verdict function exists.
+
+**P2 fills no expectation.** SPEC *Deferred*: *"§8.5 requires a bundle to carry 'expected facts' and 'expected placement or abstention outcomes' but does not author them. The corpus selection, the labelling, and the per-subject expected values are hand work. P2 publishes `bundle_expectation`; it does not fill it."* No expected value appears anywhere in `src/eval_harness/`; Task 16 asserts it.
+
+**`source` distinguishes a label from a captured decision.** `hand-labelled` and `captured-from-accepted-user-decision` are the SPEC's two. The second is how §8.7 correction records become expectations — and **scope discipline applies**: a file-scoped correction becomes an expectation *for that file only*. P2 must not generalise it into a dimension-wide expectation (§8.7: one transcript in a Columbia packet *"should not teach the engine that all transcripts belong there"*). `add_expectation` takes one `subject_ref` and there is no bulk-apply path.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_bundle_expectation.py
+import pytest
+
+from eval_harness.bundle import (
+    accepted_groups, add_accepted_group, add_expectation, expectation_for,
+    expectations, open_bundle, seal_bundle,
+)
+from eval_harness.store import create_eval_schema
+from eval_harness.vocabulary import DIMENSIONS, UnknownDimension
+
+
+def _bundle(conn):
+    return open_bundle(conn, corpus_form="snapshot", source_scan_ref="scan-fixture",
+                       pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                       policy_settings={})
+
+
+def test_an_accepted_group_is_stored_as_p9_resolved_it(eval_conn):
+    # P9 owns the per-version resolution; P2 stores the row it is handed.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    row = {"group_id": "g-columbia", "plan_version": "1", "review_state": "accepted",
+           "members": ["file-1", "file-2"]}
+    add_accepted_group(eval_conn, bundle_id, group_id="g-columbia", acceptance_row=row)
+    assert accepted_groups(eval_conn, bundle_id) == [row]
+
+
+def test_every_dimension_can_carry_an_expectation(eval_conn):
+    # Done-means 2: all ten have a distinct assertion record; none is collapsed.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    for dimension in DIMENSIONS:
+        add_expectation(eval_conn, bundle_id, dimension=dimension,
+                        subject_ref=f"subject-{dimension}",
+                        expected_value={"fixture": dimension},
+                        expected_outcome_kind="produced", source="hand-labelled")
+    assert len({r["dimension"] for r in expectations(eval_conn, bundle_id)}) == 10
+
+
+def test_a_dimension_outside_the_ten_is_rejected(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    with pytest.raises(UnknownDimension):
+        add_expectation(eval_conn, bundle_id, dimension="candidate_node_retrieval",
+                        subject_ref="x", expected_value={},
+                        expected_outcome_kind="produced", source="hand-labelled")
+
+
+def test_the_columbia_screenshot_is_representable(eval_conn):
+    # Done-means 12 / §7.8's worked example: the correct outcome is retrieval of
+    # the accepted Columbia application group and a RETURN TO PLACEMENT, not a
+    # residual destination. The vocabulary is P11's; P2 stores it, validates none.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    add_expectation(
+        eval_conn, bundle_id, dimension="residual", subject_ref="file-screenshot",
+        expected_value={"outcome": "return_to_placement",
+                        "return_target": {"kind": "confirmed_domain_group",
+                                          "id": "g-columbia"}},
+        expected_outcome_kind="produced", source="hand-labelled",
+    )
+    stored = expectation_for(eval_conn, bundle_id, "residual", "file-screenshot")
+    assert stored["expected_value"]["outcome"] == "return_to_placement"
+    assert stored["expected_value"]["return_target"]["kind"] == "confirmed_domain_group"
+
+
+def test_all_eight_of_7_7s_actions_are_representable(eval_conn):
+    # Done-means 12: "Dimension 10 can express all eight of §7.7's actions."
+    # These strings are P11's published vocabulary, quoted in a test fixture, not
+    # declared as a P2 enum in src/.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    eight = [
+        {"outcome": "return_to_placement",
+         "return_target": {"kind": "confirmed_domain_group"}},
+        {"outcome": "return_to_placement",
+         "return_target": {"kind": "accepted_graph_or_purpose_packet"}},
+        {"outcome": "place", "destination": {"node_role": "residual"}},
+        {"outcome": "place", "destination": {"node_role": "ordinary"},
+         "decision_depth": {"unsupported_levels": ["term"]}},
+        {"outcome": "mark_review_later"},
+        {"outcome": "leave_in_place"},
+        {"outcome": "mark_state", "marked_state": "protected"},
+        {"outcome": "abstain", "abstention_reason": "no_supported_destination"},
+    ]
+    for i, value in enumerate(eight):
+        add_expectation(eval_conn, bundle_id, dimension="residual",
+                        subject_ref=f"file-{i}", expected_value=value,
+                        expected_outcome_kind=(
+                            "abstained" if value["outcome"] == "abstain" else "produced"),
+                        source="hand-labelled")
+    stored = expectations(eval_conn, bundle_id, dimension="residual")
+    assert len(stored) == 8
+    assert {r["expected_value"]["outcome"] for r in stored} == {
+        "return_to_placement", "place", "mark_review_later", "leave_in_place",
+        "mark_state", "abstain"}
+
+
+def test_an_abstention_is_an_expectable_outcome(eval_conn):
+    # §6.10: correct abstention is a successful outcome, so it must be expressible
+    # as an EXPECTATION, not only as an observation.
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    add_expectation(eval_conn, bundle_id, dimension="fact",
+                    subject_ref="file-1::field-a", expected_value=None,
+                    expected_outcome_kind="abstained", source="hand-labelled")
+    assert expectation_for(eval_conn, bundle_id, "fact",
+                           "file-1::field-a")["expected_outcome_kind"] == "abstained"
+
+
+def test_expected_outcome_kind_and_source_are_closed(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    with pytest.raises(ValueError):
+        add_expectation(eval_conn, bundle_id, dimension="fact", subject_ref="x",
+                        expected_value={}, expected_outcome_kind="maybe",
+                        source="hand-labelled")
+    with pytest.raises(ValueError):
+        add_expectation(eval_conn, bundle_id, dimension="fact", subject_ref="y",
+                        expected_value={}, expected_outcome_kind="produced",
+                        source="guessed")
+
+
+def test_there_is_no_bulk_apply_path(eval_conn):
+    # §8.7 scope discipline: a file-scoped correction is an expectation for that
+    # file only. P2 must not generalise one into a dimension-wide expectation.
+    import inspect
+
+    from eval_harness import bundle as bundle_module
+    for name, fn in inspect.getmembers(bundle_module, inspect.isfunction):
+        if "expectation" in name:
+            params = inspect.signature(fn).parameters
+            assert "subject_refs" not in params, name
+            assert "apply_to_all" not in params, name
+
+
+def test_a_sealed_bundle_takes_no_further_expectation(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _bundle(eval_conn)
+    seal_bundle(eval_conn, bundle_id)
+    from eval_harness.bundle import BundleSealed
+    with pytest.raises(BundleSealed):
+        add_expectation(eval_conn, bundle_id, dimension="fact", subject_ref="x",
+                        expected_value={}, expected_outcome_kind="produced",
+                        source="hand-labelled")
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_bundle_expectation.py -v`
+Expected: FAIL with `ImportError: cannot import name 'add_expectation' from 'eval_harness.bundle'`
+
+- [ ] **Step 3: Extend bundle.py**
+
+Append to `BUNDLE_DDL`:
+
+```sql
+CREATE TABLE IF NOT EXISTS bundle_accepted_group (
+    bundle_id TEXT NOT NULL REFERENCES bundle_manifest (bundle_id),
+    group_id  TEXT NOT NULL,
+    row       TEXT NOT NULL,   -- P9's group_acceptance row, resolved by P9, verbatim
+    PRIMARY KEY (bundle_id, group_id)
+);
+CREATE TABLE IF NOT EXISTS bundle_expectation (
+    bundle_id             TEXT NOT NULL REFERENCES bundle_manifest (bundle_id),
+    dimension             TEXT NOT NULL,
+    subject_ref           TEXT NOT NULL,
+    expected_value        TEXT,           -- canonical JSON; opaque, another part's vocabulary
+    expected_outcome_kind TEXT NOT NULL,
+    source                TEXT NOT NULL,
+    PRIMARY KEY (bundle_id, dimension, subject_ref)
+);
+```
+
+and the same three seal triggers, one per new table, copied from `bundle_file_entry`'s (INSERT, UPDATE, DELETE, each `WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL` — use `OLD` for UPDATE and DELETE). Write them out in full; do not factor them into a loop, because SQLite has no parameterized trigger and a partially-written set would leave one table mutable after sealing.
+
+Append to `bundle.py`:
+
+```python
+def add_accepted_group(conn: sqlite3.Connection, bundle_id: str, *, group_id: str,
+                       acceptance_row: dict) -> None:
+    """One accepted group, AS OF the bundle's pinned plan version.
+
+    The per-version resolution is P9's `group_acceptance` (§8.8) and the caller
+    hands over the already-resolved row. P2 does not re-derive acceptance from
+    membership records: that projection is P9's published surface.
+    """
+    _require_open(conn, bundle_id)
+    conn.execute(
+        "INSERT INTO bundle_accepted_group (bundle_id, group_id, row) VALUES (?, ?, ?)",
+        (bundle_id, group_id, canonical_json(acceptance_row)),
+    )
+
+
+def accepted_groups(conn: sqlite3.Connection, bundle_id: str) -> list[dict]:
+    import json
+    return [json.loads(r["row"]) for r in conn.execute(
+        "SELECT row FROM bundle_accepted_group WHERE bundle_id = ? ORDER BY group_id",
+        (bundle_id,))]
+
+
+def add_expectation(conn: sqlite3.Connection, bundle_id: str, *, dimension: str,
+                    subject_ref: str, expected_value, expected_outcome_kind: str,
+                    source: str) -> None:
+    """The expected side of one assertion, for one subject.
+
+    `expected_value` is opaque: for `fact` it is P6's field/value/reliability
+    state, for `placement` and `residual` it is P11's published vocabulary. P2
+    validates no member of it — see the module docstring.
+
+    One subject per call, with no bulk path: §8.7's scope discipline means a
+    file-scoped correction is an expectation for that file and no other.
+    """
+    from eval_harness.vocabulary import (
+        EXPECTATION_SOURCES, EXPECTED_OUTCOME_KINDS, check_dimension,
+    )
+    _require_open(conn, bundle_id)
+    check_dimension(dimension)
+    if expected_outcome_kind not in EXPECTED_OUTCOME_KINDS:
+        raise ValueError(f"expected_outcome_kind {expected_outcome_kind!r} is not "
+                         f"one of {EXPECTED_OUTCOME_KINDS}")
+    if source not in EXPECTATION_SOURCES:
+        raise ValueError(f"source {source!r} is not one of {EXPECTATION_SOURCES}")
+    conn.execute(
+        "INSERT INTO bundle_expectation (bundle_id, dimension, subject_ref, "
+        "expected_value, expected_outcome_kind, source) VALUES (?, ?, ?, ?, ?, ?)",
+        (bundle_id, dimension, subject_ref,
+         None if expected_value is None else canonical_json(expected_value),
+         expected_outcome_kind, source),
+    )
+
+
+def _expectation_row(row: sqlite3.Row) -> dict:
+    import json
+    record = {k: row[k] for k in row.keys()}
+    record["expected_value"] = (None if row["expected_value"] is None
+                                else json.loads(row["expected_value"]))
+    return record
+
+
+def expectations(conn: sqlite3.Connection, bundle_id: str, *,
+                 dimension: str | None = None) -> list[dict]:
+    if dimension is None:
+        rows = conn.execute(
+            "SELECT * FROM bundle_expectation WHERE bundle_id = ? "
+            "ORDER BY dimension, subject_ref", (bundle_id,))
+    else:
+        rows = conn.execute(
+            "SELECT * FROM bundle_expectation WHERE bundle_id = ? AND dimension = ? "
+            "ORDER BY subject_ref", (bundle_id, dimension))
+    return [_expectation_row(r) for r in rows]
+
+
+def expectation_for(conn: sqlite3.Connection, bundle_id: str, dimension: str,
+                    subject_ref: str) -> dict | None:
+    row = conn.execute(
+        "SELECT * FROM bundle_expectation WHERE bundle_id = ? AND dimension = ? "
+        "AND subject_ref = ?", (bundle_id, dimension, subject_ref)).fetchone()
+    return None if row is None else _expectation_row(row)
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_bundle_expectation.py -v`
+Expected: PASS — 9 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/bundle.py tests/eval/test_bundle_expectation.py
+git commit -m "feat(P2): accepted groups and expectations, opaque values, all eight residual actions representable"
+```
+
+---

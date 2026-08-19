@@ -1149,3 +1149,634 @@ git commit -m "feat(P3): software-project-root rule, four markers, descendants r
 ```
 
 ---
+
+### Task 6: Dataless iCloud detection, before hashing (`11-ops-runtime.md` §5)
+
+**Files:**
+- Create: `src/scan_agent/dataless.py`
+- Modify: `src/scan_agent/schema.py` — add `DATALESS_DDL`
+- Test: `tests/p3/test_p3_dataless.py`
+
+**Interfaces:**
+- Consumes: `create_scan_schema`.
+- Produces: `SF_DATALESS: int`, `is_dataless(stat_result) -> bool`, `DATALESS_DDL: str`, `record_dataless_detection(conn, scan_run_id, path) -> int`, `dataless_detections(conn, scan_run_id) -> list[sqlite3.Row]`.
+
+**Binding [`../../11-ops-runtime.md`](../../11-ops-runtime.md) §5.** *"macOS 'Optimize Mac Storage' presents Finder entries that are not on disk. Hashing or opening them **downloads** the file. P3 detects a dataless / not-downloaded ubiquitous item **before** hashing. Detection is a filesystem observation, not a handling class. Do not materialize, hash, or extract."*
+
+Three consequences, and this task is the whole of P3's half of the seam:
+
+- **Detection is from `stat`, never from opening.** macOS `sys/stat.h` sets `SF_DATALESS` (`0x40000000`) in `st_flags` for a ubiquitous item whose bytes are not on this machine. `os.stat` does not download; `open` does. Python's `stat` module does not publish the constant, so it is written here as the one platform value P3 needs, with its source named.
+- **P3 records the detection and writes no run row.** §5: *"Until it closes, P3 records the detection and writes no run row (P5 writes runs, not P3)."* Which `completeness` value such a file eventually carries is **P4 Open question 6** and none of P4's eight values means *"the bytes are not on this machine"*. This plan resolves nothing about it: the strings `extraction_runs` and `completeness` appear nowhere in `scan_agent`, and Task 17 asserts it.
+- **A dataless file gets no `files` row this scan.** P1's identity is the content hash and the hash cannot be taken without downloading. §5: *"Materialization is a user action, shown by P13. After the file is local, P3 re-stats and hashing proceeds as normal."* So the detection record is what P13 renders, and the next scan picks the file up normally once it is local.
+
+**Not detected here: the legacy `.icloud` placeholder form**, in which a not-downloaded `Foo.pdf` appears on disk as a separate hidden file named `.Foo.pdf.icloud`. That is a different on-disk shape, `11` §5 does not name it, and inventing a filename heuristic for it would be P3 authoring a detection rule the contract does not supply. Recorded as a known gap.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p3/test_p3_dataless.py
+import os
+from pathlib import Path
+
+import pytest
+
+from database_agent.db import create_schema
+
+from scan_agent.dataless import (
+    SF_DATALESS, dataless_detections, is_dataless, record_dataless_detection,
+)
+from scan_agent.run import start_scan_run
+from scan_agent.schema import create_scan_schema
+from scan_agent.selection import record_selection
+
+
+class FakeStat:
+    """Stands in for os.stat_result. SF_DATALESS is not user-settable (it is outside
+    macOS's SF_SETTABLE mask), so a real dataless file cannot be built in a fixture."""
+    def __init__(self, st_flags: int):
+        self.st_flags = st_flags
+
+
+@pytest.fixture()
+def run(conn, tmp_path: Path):
+    create_schema(conn)
+    create_scan_schema(conn)
+    selection = record_selection(conn, sources=[tmp_path], candidate_roots=[],
+                                 cross_folder_moves=False, selected_by=None)
+    return start_scan_run(conn, selection)
+
+
+def test_the_constant_is_macos_sf_dataless():
+    # macOS sys/stat.h. Python's `stat` module does not publish it.
+    assert SF_DATALESS == 0x40000000
+
+
+def test_a_file_carrying_sf_dataless_is_detected():
+    assert is_dataless(FakeStat(SF_DATALESS)) is True
+    assert is_dataless(FakeStat(SF_DATALESS | 0x00010000)) is True
+
+
+def test_an_ordinary_file_is_not_dataless(tmp_path: Path):
+    p = tmp_path / "local.bin"
+    p.write_bytes(b"bytes that are really here")
+    assert is_dataless(os.stat(p)) is False
+
+
+def test_a_platform_without_st_flags_reads_as_not_dataless():
+    class NoFlags:
+        pass
+    assert is_dataless(NoFlags()) is False
+
+
+def test_detection_never_opens_the_file():
+    # 11 §5: "Hashing or opening them downloads the file." Detection is a stat
+    # observation, so this module reads no bytes at all.
+    import scan_agent.dataless as module
+    source = Path(module.__file__).read_text()
+    assert "open(" not in source
+    assert "read_bytes" not in source
+    assert "hash_file" not in source
+
+
+def test_a_detection_is_recorded_and_is_readable(conn, run, tmp_path: Path):
+    # 11 §5: "§8.6's progress line must be able to name these files rather than
+    # folding them into OCR-capped or unreadable."
+    record_dataless_detection(conn, run, tmp_path / "Thesis.pdf")
+    rows = dataless_detections(conn, run)
+    assert [r["path"] for r in rows] == [str(tmp_path / "Thesis.pdf")]
+    assert rows[0]["observed_at"]
+
+
+def test_a_detection_writes_no_extraction_run_and_no_completeness(conn, run, tmp_path: Path):
+    # 11 §5 / SPEC: that record is P4's and P5 is its writer. Which `completeness`
+    # value a dataless file eventually carries is P4 Open question 6 and is NOT
+    # resolved here — none of P4's eight values means "the bytes are not on this
+    # machine", and P3 does not choose one or add a ninth.
+    record_dataless_detection(conn, run, tmp_path / "Thesis.pdf")
+    tables = [r["name"] for r in
+              conn.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+    assert "extraction_runs" not in tables
+    columns = [r["name"] for r in conn.execute("PRAGMA table_info(dataless_detections)")]
+    assert "completeness" not in columns
+
+    import scan_agent.dataless as module
+    assert "completeness" not in Path(module.__file__).read_text()
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p3/test_p3_dataless.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'scan_agent.dataless'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/scan_agent/dataless.py
+"""11-ops-runtime.md §5 — detect a dataless iCloud item BEFORE hashing.
+
+"macOS 'Optimize Mac Storage' presents Finder entries that are not on disk. Hashing
+or opening them downloads the file. P3 detects a dataless / not-downloaded ubiquitous
+item before hashing. Detection is a filesystem observation, not a handling class. Do
+not materialize, hash, or extract."
+
+This module reads `stat` and nothing else: `os.stat` does not download, `open` does.
+P3 records the detection and writes NO run row — that record is P4's and P5 is its
+writer, and which `completeness` value such a file eventually carries is P4 Open
+question 6, which nothing here resolves.
+"""
+from __future__ import annotations
+
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+
+#: macOS `sys/stat.h`. Marks a ubiquitous item whose bytes are not on this machine.
+#: Python's `stat` module does not publish the constant, so it is named here with
+#: its source. It is outside macOS's SF_SETTABLE mask, so it cannot be set by a test.
+SF_DATALESS = 0x40000000
+
+
+def is_dataless(stat_result) -> bool:
+    """True when the stat result says the bytes are not on this machine.
+
+    `st_flags` exists on BSD-family systems including macOS (v1 is macOS-only per
+    11-ops-runtime.md). A platform without it reads as not dataless, which is the
+    honest answer: P3 has observed nothing that says otherwise.
+    """
+    return bool(getattr(stat_result, "st_flags", 0) & SF_DATALESS)
+
+
+DATALESS_DDL = """
+CREATE TABLE IF NOT EXISTS dataless_detections (
+    detection_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    scan_run_id  TEXT NOT NULL REFERENCES scan_runs(scan_run_id),
+    path         TEXT NOT NULL,
+    observed_at  TEXT NOT NULL
+);
+"""
+
+
+def record_dataless_detection(conn: sqlite3.Connection, scan_run_id: str, path) -> int:
+    """Record that a path was observed dataless and skipped before hashing.
+
+    This is the record §8.6's progress line reads so that these files can be NAMED
+    rather than folded into OCR-capped or unreadable (11 §5). It is not an
+    `extraction_runs` row and carries no completeness value.
+    """
+    conn.execute(
+        "INSERT INTO dataless_detections (scan_run_id, path, observed_at) "
+        "VALUES (?, ?, ?)",
+        (scan_run_id, str(Path(path)), datetime.now(timezone.utc).isoformat()),
+    )
+    return conn.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+
+
+def dataless_detections(conn: sqlite3.Connection, scan_run_id: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM dataless_detections WHERE scan_run_id = ? ORDER BY detection_id",
+        (scan_run_id,),
+    ).fetchall()
+```
+
+Add to `create_scan_schema` in `src/scan_agent/schema.py`:
+
+```python
+from scan_agent.dataless import DATALESS_DDL
+...
+    conn.executescript(DATALESS_DDL)
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p3/test_p3_dataless.py -v`
+Expected: PASS — 7 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/scan_agent/dataless.py src/scan_agent/schema.py tests/p3/test_p3_dataless.py
+git commit -m "feat(P3): dataless iCloud detection from stat, before hashing, no run row"
+```
+
+---
+
+### Task 7: The corpus source — a live filesystem and a frozen snapshot (§8.5)
+
+**Files:**
+- Create: `src/scan_agent/corpus_source.py`
+- Test: `tests/p3/test_p3_corpus_source.py`
+
+**Interfaces:**
+- Consumes: `database_agent.identity.hash_file`, `scan_agent.dataless.is_dataless`.
+- Produces: `Entry` (frozen dataclass: `path`, `name`, `kind`, `size`, `mtime`, `dataless`), `KIND_DIRECTORY`, `KIND_FILE`, `KIND_OTHER`, `CorpusSource` (Protocol: `has_bytes: bool`, `entries(directory) -> list[Entry]`, `content_hash(entry) -> str`), `FilesystemCorpusSource`, `SnapshotCorpusSource`.
+
+**Why an interface at all.** SPEC Contract in, from P2: §8.5 requires evaluation *"without touching a live filesystem"*, and the bundle carries *"a frozen corpus snapshot or a metadata-safe representation of one"*. So **P3 must be runnable against a bundle-backed corpus source as well as a live filesystem, with identical exclusion and cache verdicts.** One interface with two implementations is the smallest thing that makes Done-means 14 provable.
+
+**P2's envelope is not defined here and not imported here.** P2 owns `bundle_manifest`, `bundle_file_entry` and `corpus_form`. This module imports no P2 code — P3 is buildable against P1 alone — and Task 15 defines only the payload P3 itself serializes and re-asserts, using P2's field spellings (`corpus_form`, `content_hash`) where P2 publishes one.
+
+**`has_bytes` is what a metadata-safe bundle costs.** §8.5's `metadata_safe` form has no file bytes, so no content hash can be computed from it and P1's content-hash identity is unavailable. `has_bytes` is False for that form, and Task 15's replay writes exclusion verdicts, cache verdicts and inventory rows — exactly the three things Done-means 14 asks to be identical — and no `files` rows. This is a consequence of §8.5's own two forms, recorded rather than papered over.
+
+**`kind` exists because SPEC Q7 is OPEN.** *"Scan-time traversal of symlinks, aliases, macOS packages and application bundles, network mounts, removable storage, and cloud-synced directories… Traversal is unstated."* This module resolves none of it. It reports three kinds — directory, regular file, and **other** — computed with `follow_symlinks=False`, so a symlink is never silently descended (a symlink loop would otherwise make traversal non-terminating, which is mechanics, not a design decision) and is never handed to `hash_file` (hashing a symlinked directory would raise). What the traversal then *does* with an `other` entry is Task 9's, and what it does is record it as unresolved and name Q7. A `.app` bundle is an ordinary directory and **is** descended today, because §1.1 supplies no rule that would stop it; that is Q7's stated cost and is a known gap, not a fix made here.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p3/test_p3_corpus_source.py
+from pathlib import Path
+
+import pytest
+
+from database_agent.identity import DatalessFileRefused, hash_file
+
+from scan_agent.corpus_source import (
+    KIND_DIRECTORY, KIND_FILE, KIND_OTHER, FilesystemCorpusSource, SnapshotCorpusSource,
+)
+
+
+def test_a_directory_listing_reports_kind_size_and_mtime(tmp_path: Path):
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "a.txt").write_bytes(b"abc")
+    entries = {e.name: e for e in FilesystemCorpusSource().entries(tmp_path)}
+    assert entries["sub"].kind == KIND_DIRECTORY
+    assert entries["a.txt"].kind == KIND_FILE
+    assert entries["a.txt"].size == 3
+    assert entries["a.txt"].mtime > 0
+    assert entries["a.txt"].dataless is False
+    assert entries["a.txt"].path == str(tmp_path / "a.txt")
+
+
+def test_a_listing_is_ordered_so_two_runs_agree(tmp_path: Path):
+    for name in ("c.txt", "a.txt", "b.txt"):
+        (tmp_path / name).write_bytes(b"x")
+    first = [e.path for e in FilesystemCorpusSource().entries(tmp_path)]
+    second = [e.path for e in FilesystemCorpusSource().entries(tmp_path)]
+    assert first == second == sorted(first)
+
+
+def test_a_symlink_is_neither_a_directory_nor_a_file(tmp_path: Path):
+    # SPEC Q7 is OPEN. `follow_symlinks=False` means a symlink is never silently
+    # descended and never handed to hash_file. What the traversal does with it is
+    # Task 9's, and Task 9 records it as unresolved rather than deciding.
+    (tmp_path / "real").mkdir()
+    (tmp_path / "link").symlink_to(tmp_path / "real")
+    entries = {e.name: e for e in FilesystemCorpusSource().entries(tmp_path)}
+    assert entries["link"].kind == KIND_OTHER
+
+
+def test_content_hash_matches_p1s_hash(tmp_path: Path):
+    p = tmp_path / "a.bin"
+    p.write_bytes(b"payload")
+    entry = FilesystemCorpusSource().entries(tmp_path)[0]
+    assert FilesystemCorpusSource().content_hash(entry) == hash_file(p, materialized=True)
+
+
+def test_a_dataless_entry_is_never_hashed(tmp_path: Path):
+    # 11 §5 + P1's DatalessFileRefused: P3 detects, and the refusal is the seam.
+    from dataclasses import replace
+    p = tmp_path / "cloud.bin"
+    p.write_bytes(b"bytes that must not be read")
+    entry = replace(FilesystemCorpusSource().entries(tmp_path)[0], dataless=True)
+    with pytest.raises(DatalessFileRefused):
+        FilesystemCorpusSource().content_hash(entry)
+
+
+def test_the_filesystem_source_has_bytes():
+    assert FilesystemCorpusSource().has_bytes is True
+
+
+def test_a_snapshot_source_lists_without_touching_a_filesystem(tmp_path: Path):
+    # §8.5: evaluation "without touching a live filesystem".
+    snapshot = {
+        "corpus_form": "metadata_safe",
+        "entries": [
+            {"path": "/c/sub", "name": "sub", "kind": KIND_DIRECTORY, "size": 0,
+             "mtime": 0.0, "dataless": False, "content_hash": None, "parent": "/c"},
+            {"path": "/c/a.txt", "name": "a.txt", "kind": KIND_FILE, "size": 3,
+             "mtime": 1.5, "dataless": False, "content_hash": "aaa", "parent": "/c"},
+        ],
+    }
+    source = SnapshotCorpusSource(snapshot)
+    entries = {e.name: e for e in source.entries("/c")}
+    assert entries["a.txt"].size == 3
+    assert entries["a.txt"].mtime == 1.5
+    assert source.content_hash(entries["a.txt"]) == "aaa"
+    assert source.entries("/c/sub") == []
+
+
+def test_a_metadata_safe_snapshot_has_no_bytes():
+    # §8.5's metadata-safe form carries no file bytes, so P1's content-hash identity
+    # cannot be recomputed from it. Recorded, not papered over.
+    assert SnapshotCorpusSource({"corpus_form": "metadata_safe", "entries": []}).has_bytes is False
+    assert SnapshotCorpusSource({"corpus_form": "snapshot", "entries": []}).has_bytes is True
+
+
+def test_the_module_imports_nothing_from_p2():
+    # P3 is buildable against P1 alone; P2 owns the bundle envelope.
+    import scan_agent.corpus_source as module
+    source = Path(module.__file__).read_text()
+    assert "eval_agent" not in source and "bundle_manifest" not in source
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p3/test_p3_corpus_source.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'scan_agent.corpus_source'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/scan_agent/corpus_source.py
+"""§8.5 — one interface over a live filesystem and a frozen corpus snapshot.
+
+SPEC Contract in (from P2): §8.5 requires evaluation "without touching a live
+filesystem", and the bundle contains "a frozen corpus snapshot or a metadata-safe
+representation of one". P3 must therefore be runnable against a bundle-backed corpus
+source as well as a live filesystem, with identical exclusion and cache verdicts.
+
+P2 owns the bundle ENVELOPE. This module imports no P2 code and defines none of it.
+"""
+from __future__ import annotations
+
+import os
+import stat as stat_module
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Protocol
+
+from database_agent.identity import hash_file
+
+from scan_agent.dataless import is_dataless
+
+KIND_DIRECTORY = "directory"
+KIND_FILE = "file"
+#: Anything that is neither: symlinks, aliases, sockets, fifos, devices. SPEC Q7 is
+#: OPEN on scan-time traversal of these, and this module decides nothing — it reports
+#: the kind and lets the traversal record the unresolved case.
+KIND_OTHER = "other"
+
+
+@dataclass(frozen=True)
+class Entry:
+    path: str
+    name: str
+    kind: str
+    size: int
+    mtime: float
+    dataless: bool
+
+
+class CorpusSource(Protocol):
+    has_bytes: bool
+
+    def entries(self, directory) -> list[Entry]: ...
+
+    def content_hash(self, entry: Entry) -> str: ...
+
+
+def _kind(mode: int) -> str:
+    if stat_module.S_ISDIR(mode):
+        return KIND_DIRECTORY
+    if stat_module.S_ISREG(mode):
+        return KIND_FILE
+    return KIND_OTHER
+
+
+class FilesystemCorpusSource:
+    """The live filesystem."""
+
+    has_bytes = True
+
+    def entries(self, directory) -> list[Entry]:
+        """One directory's entries, ordered by path so two runs agree.
+
+        `follow_symlinks=False` throughout: a symlink is reported as KIND_OTHER, so
+        it is never descended (a loop would make traversal non-terminating) and never
+        handed to `hash_file`. SPEC Q7 stays open; this is termination, not policy.
+        """
+        found: list[Entry] = []
+        with os.scandir(directory) as scan:
+            for item in scan:
+                st = item.stat(follow_symlinks=False)
+                found.append(Entry(
+                    path=item.path,
+                    name=item.name,
+                    kind=_kind(st.st_mode),
+                    size=st.st_size,
+                    mtime=st.st_mtime,
+                    dataless=is_dataless(st),
+                ))
+        return sorted(found, key=lambda entry: entry.path)
+
+    def content_hash(self, entry: Entry) -> str:
+        """P1 computes it. `materialized` is P3's dataless verdict (11 §5): a
+        dataless entry reaches P1 as materialized=False and P1 refuses to open it."""
+        return hash_file(Path(entry.path), materialized=not entry.dataless)
+
+
+class SnapshotCorpusSource:
+    """A frozen corpus snapshot (§8.5). Touches no filesystem at all.
+
+    `has_bytes` is False for §8.5's `metadata_safe` form: there are no bytes, so no
+    content hash can be recomputed and P1's content-hash identity is unavailable.
+    Exclusion, cache and inventory verdicts are all still reproducible, which is what
+    Done-means 14 asks to be identical.
+    """
+
+    def __init__(self, snapshot: dict):
+        self.has_bytes = snapshot["corpus_form"] == "snapshot"
+        self._by_parent: dict[str, list[Entry]] = {}
+        self._hashes: dict[str, str | None] = {}
+        for record in snapshot["entries"]:
+            entry = Entry(
+                path=record["path"], name=record["name"], kind=record["kind"],
+                size=record["size"], mtime=record["mtime"],
+                dataless=record["dataless"],
+            )
+            self._by_parent.setdefault(record["parent"], []).append(entry)
+            self._hashes[entry.path] = record["content_hash"]
+        for children in self._by_parent.values():
+            children.sort(key=lambda entry: entry.path)
+
+    def entries(self, directory) -> list[Entry]:
+        return list(self._by_parent.get(str(directory), []))
+
+    def content_hash(self, entry: Entry) -> str:
+        return self._hashes[entry.path]
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p3/test_p3_corpus_source.py -v`
+Expected: PASS — 9 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/scan_agent/corpus_source.py tests/p3/test_p3_corpus_source.py
+git commit -m "feat(P3): corpus source over a live filesystem and a frozen snapshot"
+```
+
+---
+
+### Task 8: Full Disk Access before traversal (`11-ops-runtime.md` §1)
+
+**Files:**
+- Create: `src/scan_agent/access.py`
+- Test: `tests/p3/test_p3_access.py`
+
+**Interfaces:**
+- Consumes: nothing.
+- Produces: `FullDiskAccessRequired`, `unreadable_roots(roots) -> tuple[Path, ...]`, `require_access(roots) -> None`.
+
+**Binding [`../../11-ops-runtime.md`](../../11-ops-runtime.md) §1.** *"Full Disk Access is required before P3 may scan Desktop, Downloads, Documents, or any user-selected root that TCC protects. Until it is granted, P3 does not traverse; P13 shows why. This is not a handling class and not a `NeedsConsent` model prompt."*
+
+**The OS is the oracle, not a list of folder names.** P3 holds no gazetteer of TCC-protected paths and does not test whether a path *is* protected: it attempts to list each selected root and treats `PermissionError` as the denial. That is exactly what a TCC refusal looks like from a process without Full Disk Access, and it needs no invented list.
+
+**The check runs once, before the first directory is listed, and covers every selected root.** *"Until it is granted, P3 does not traverse"* — so a scan with one unreadable root performs **zero** traversal, not partial traversal of the readable ones. §8.6 requires the difference between completed and deferred work to be visible so that no unscanned file reads as one that *"was understood and found unimportant"*; a corpus quietly missing a whole root is exactly that failure. **This is the plan's reading of §1's scope, not a sentence `11` states**, and it is reported as such.
+
+**A missing root is not a permission problem** and is not this function's business: `unreadable_roots` classifies `PermissionError` only, and a path that is absent at scan time is recorded by the traversal (Task 9) under SPEC Q14, which is open.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p3/test_p3_access.py
+import os
+from pathlib import Path
+
+import pytest
+
+from scan_agent.access import FullDiskAccessRequired, require_access, unreadable_roots
+
+needs_unprivileged = pytest.mark.skipif(
+    hasattr(os, "geteuid") and os.geteuid() == 0,
+    reason="root can list a 0o000 directory, so the TCC denial cannot be simulated",
+)
+
+
+def test_a_readable_root_passes(tmp_path: Path):
+    (tmp_path / "Downloads").mkdir()
+    require_access([tmp_path / "Downloads"])
+    assert unreadable_roots([tmp_path / "Downloads"]) == ()
+
+
+@needs_unprivileged
+def test_an_unreadable_root_is_refused(tmp_path: Path):
+    # 11 §1: "Until it is granted, P3 does not traverse."
+    protected = tmp_path / "Documents"
+    protected.mkdir()
+    protected.chmod(0o000)
+    try:
+        assert unreadable_roots([protected]) == (protected,)
+        with pytest.raises(FullDiskAccessRequired) as raised:
+            require_access([protected])
+        assert str(protected) in str(raised.value)
+    finally:
+        protected.chmod(0o700)
+
+
+@needs_unprivileged
+def test_one_unreadable_root_refuses_the_whole_check(tmp_path: Path):
+    # A corpus quietly missing a whole root is §8.6's "understood and found
+    # unimportant" failure. The refusal names every denied root, not just the first.
+    ok = tmp_path / "Downloads"
+    ok.mkdir()
+    protected = tmp_path / "Documents"
+    protected.mkdir()
+    protected.chmod(0o000)
+    try:
+        with pytest.raises(FullDiskAccessRequired):
+            require_access([ok, protected])
+    finally:
+        protected.chmod(0o700)
+
+
+def test_a_missing_root_is_not_a_permission_problem(tmp_path: Path):
+    # A path absent at scan time is SPEC Q14's territory and is recorded by the
+    # traversal, not classified as a TCC denial here.
+    assert unreadable_roots([tmp_path / "never-existed"]) == ()
+    require_access([tmp_path / "never-existed"])
+
+
+def test_p3_holds_no_list_of_protected_folders():
+    # 11 §1 names Desktop, Downloads and Documents as examples. P3 does not encode
+    # them: the OS's PermissionError is the oracle.
+    import scan_agent.access as module
+    source = Path(module.__file__).read_text()
+    for name in ("Desktop", "Downloads", "Documents", "TCC"):
+        assert name not in source.replace("Desktop, Downloads, Documents", "")
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p3/test_p3_access.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'scan_agent.access'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/scan_agent/access.py
+"""11-ops-runtime.md §1 — Full Disk Access before traversing a protected folder.
+
+"Full Disk Access is required before P3 may scan Desktop, Downloads, Documents, or
+any user-selected root that TCC protects. Until it is granted, P3 does not traverse;
+P13 shows why."
+
+P3 holds NO list of protected paths and does not decide which folders TCC covers.
+It attempts to list each selected root; a TCC refusal arrives as PermissionError,
+and that is the whole test. A root that is simply absent is not a permission problem
+and is left to the traversal (SPEC Q14 is open on disappearance).
+"""
+from __future__ import annotations
+
+import os
+from collections.abc import Iterable
+from pathlib import Path
+
+
+class FullDiskAccessRequired(Exception):
+    """11-ops-runtime.md §1 — until access is granted, P3 does not traverse."""
+
+
+def unreadable_roots(roots: Iterable[Path]) -> tuple[Path, ...]:
+    """The selected roots this process cannot list."""
+    denied: list[Path] = []
+    for root in roots:
+        try:
+            with os.scandir(root) as listing:
+                next(iter(listing), None)
+        except PermissionError:
+            denied.append(Path(root))
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+    return tuple(denied)
+
+
+def require_access(roots: Iterable[Path]) -> None:
+    """Run once, before the first directory is listed.
+
+    A scan with one unreadable root performs zero traversal rather than a partial
+    one: §8.6 requires the difference between completed and deferred work to be
+    visible, and a corpus quietly missing a whole root is not.
+    """
+    denied = unreadable_roots(roots)
+    if denied:
+        raise FullDiskAccessRequired(
+            "Full Disk Access is required before traversing "
+            + ", ".join(str(root) for root in denied)
+            + " (11-ops-runtime.md §1)"
+        )
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p3/test_p3_access.py -v`
+Expected: PASS — 5 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/scan_agent/access.py tests/p3/test_p3_access.py
+git commit -m "feat(P3): Full Disk Access precondition, the OS is the oracle"
+```
+
+---

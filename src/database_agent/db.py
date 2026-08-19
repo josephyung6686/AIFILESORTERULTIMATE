@@ -45,6 +45,11 @@ def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Con
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA synchronous = FULL")
     conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+    # Contract out §6 publishes "one local SQLite database ... transactional and
+    # inspectable" — a handle whose tables do not exist is not that. create_schema
+    # stays public and idempotent for callers that want it explicitly, but no
+    # neighbour has to remember a second call to get a usable database.
+    create_schema(conn)
     return conn
 
 
