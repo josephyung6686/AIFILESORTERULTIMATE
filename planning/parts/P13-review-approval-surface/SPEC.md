@@ -252,6 +252,9 @@ review_action
   subject_ref          decision_id | group_plan_id | set_id | node_id | plan_id
                        | journal_entry_id | consent_request_id | run_id
   plan_version         the version the surface was rendered against              §8.8
+  session_id           the sitting this action belongs to — groups progress,
+                       consent, and stale banners; not an §8.5 stage
+                       ([`../../11-ops-runtime.md`](../../11-ops-runtime.md))
   action               accept | accept_bulk | change_destination
                        | return_to_accepted_group | create_custom_folder
                        | mark_private | defer | leave_untouched | reject

@@ -746,8 +746,11 @@ The stage's characteristic scopes:
 **Negative feedback is stored, not discarded.** §8.7: "Rejected groups, rejected destination matches,
 rejected labels, and rejected residual recommendations must be stored with the evidence that produced
 them. Otherwise the system will repeatedly resurface the same attractive but incorrect grouping." A
-deleted branch candidate must not reappear on the next pass. Learned preferences are inspectable and
-resettable (§8.7), and nothing here trains a global model (§8.7).
+deleted branch candidate must not reappear on the next pass. **Before proposing a branch candidate,
+P10 queries P1 `learning_records`** for `proposal_class = branch` and
+`basis_key = (parent_node_id, dimension_or_label)`; a matching unresected reject omits the candidate
+from the canvas ([`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md)). Learned preferences
+are inspectable and resettable (§8.7), and nothing here trains a global model (§8.7).
 
 ### Plan versioning (§8.8)
 

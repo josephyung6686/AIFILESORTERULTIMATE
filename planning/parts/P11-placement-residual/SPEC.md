@@ -750,9 +750,12 @@ repeatedly placing product screenshots under Reference Clips may become a corpus
 
 **Negative examples are first-class** (§8.7, §7.10). Rejected destination matches, rejected residual
 recommendations, and rejected labels are stored **with the evidence that produced them**, so the same
-attractive-but-wrong destination is not resurfaced. §7.10's example is a required behaviour: PDFs
-rejected out of Receipts and Confirmations because they are actually school forms must route future
-similar files back toward Academic or Applications review.
+attractive-but-wrong destination is not resurfaced. **Before emitting `outcome = place` (or a residual
+equivalent), P11 queries P1 `learning_records`** for `placement` / `(subject_id, node_id)` or
+`residual` / `(file_id, residual_node_id)`. A matching unresected reject skips that node — never
+auto-place ([`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md)). §7.10's example is a
+required behaviour: PDFs rejected out of Receipts and Confirmations because they are actually school
+forms must route future similar files back toward Academic or Applications review.
 
 Preferences and negative examples are local, inspectable, and resettable; no silent global training
 (§8.7). Note that a user creating a custom folder during residual review is a **tree edit**, routed

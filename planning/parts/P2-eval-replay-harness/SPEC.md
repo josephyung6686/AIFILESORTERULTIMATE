@@ -211,6 +211,12 @@ bundle_text_unit[]          P4's `text_units` rows for those same runs — the t
                             Populated when corpus_form = snapshot; whether a metadata_safe bundle
                             may carry them is the export rule P2 does not define — see Open
                             question 5.                                      §8.5, §2.2, §2.4, §2.7
+bundle_learning_record[]    P1 `learning_records` rows needed for SR6 /
+                            USER_REJECTED_EQUIVALENT fixtures — scope, subject_id,
+                            proposal_class, basis_key, polarity, evidence refs.
+                            Without these, a store-populated run and a store-empty run
+                            compare as a grouping regression when the cause is a missing
+                            negative example ([`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md)).
 bundle_accepted_group[]     accepted groups as of the pinned plan version — resolved through P9's
                             per-version `group_acceptance` record, since the group and membership
                             records themselves are shared across plan versions      §8.5, §8.8, §5.12
@@ -337,7 +343,7 @@ run_manifest
     model_identifier
     template_library_version
     placement_scorer_version
-    analysis_tier                                                            §3.4
+    analysis_tiers_enabled[]  subset of filesystem | native | ocr | llm      §3.4, I4
   budget_ceilings      the §8.6 ceilings this run was given
   run_settings         independent stage disables — NOT version axes:
                        model_enabled, embeddings_enabled                     §8.5, §0

@@ -347,6 +347,15 @@ the scan unmeasurable.
 P3 consumes zero LLM and zero network budget: §1.1 and §1.2 describe only local filesystem reads and
 local hashing. P3 sits first in §8.6's degradation order, which begins with the cheap and reliable.
 
+**Runtime obligations** ([`../../11-ops-runtime.md`](../../11-ops-runtime.md)). While a session is
+open, P3 watches the selected roots and authors `external modification detection` for size/mtime
+changes, appearances, and disappearances — not a background daemon. Before hashing, P3 detects a
+dataless ubiquitous item and does **not** materialize it — no hash, no open, no download. P3 records
+the detection and moves on; it writes **no** `extraction_runs` row, because that record is P4's and
+P5 is its writer. Which `completeness` value a later attempted run carries is P4 Open question 6 —
+none of the eight existing values means "the bytes are not on this machine". Full Disk Access is
+required before traversing TCC-protected folders; until granted, P3 does not traverse.
+
 **On exhaustion**: P3 retains everything already recorded, marks the unreached remainder deferred,
 and reports it in R5. It does not sample, truncate the corpus silently, or relax an exclusion rule to
 finish faster. §8.6: "the product should retain extracted evidence, mark the deferred stage, and

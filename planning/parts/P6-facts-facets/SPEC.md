@@ -807,8 +807,12 @@ template / domain / corpus. Two of §8.7's worked examples are P6's own:
   distinction.
 
 **Negative feedback is mandatory storage** (§8.7). Rejected facts persist with their evidence so the
-same attractive-but-incorrect conclusion is not resurfaced. Learned preferences must be inspectable
-and resettable (§8.7). P6 performs no global training on the user's corpus (§8.7).
+same attractive-but-incorrect conclusion is not resurfaced. **Before writing a `file_facts` row that
+would revive a rejected claim, P6 queries P1 `learning_records`** for `proposal_class = fact` and
+`basis_key = (file_id, field, value_id)`. A matching unresected reject leaves the `rejected` row in
+place and does not re-propose. [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md). Learned
+preferences must be inspectable and resettable (§8.7). P6 performs no global training on the user's
+corpus (§8.7).
 
 ### Plan versioning (§8.8)
 
@@ -833,10 +837,10 @@ restoring a plan version changes which projections are valid, not what is known.
 Numbered; those marked **[seam]** threaten another part's contract and should be settled in the
 joint review, not later.
 
-1. **[seam]** `analysis tier` is a required cache-key component (§3.4) but is never defined. P5
-   (extractor tiers, §8.2 "extraction status by extractor tier"), P6, and P2 must share one enum.
-   Is §8.6's degradation ladder — rules → local extraction/OCR → graph retrieval → LLM — the tier
-   definition, or is tier an extraction-depth concept independent of it?
+1. ~~**[seam]** `analysis tier` is never defined.~~ **Settled — I4.** Closed vocabulary
+   `filesystem | native | ocr | llm`, owned by P5, consumed here in §3.4's cache key. It is a
+   process identity, not §8.6's degradation ladder: native and OCR share a ladder rung and must
+   not share a cache slot. [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
 3. Is `purpose` a universal field or an Applications-domain field? §3.9 requires it to be
    "first-class"; §3.11's universal list omits it and places it only under College applications.
 4. Are `subject` (§3.1's `subject = BUSIB 4300`, §3.12's field list) and `course` (§3.11's Academic

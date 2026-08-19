@@ -109,6 +109,10 @@ be accepted, `accept_context_supported` is the valid-but-context-supported outco
 user review, and P8 sets `requires_review: true` on every one of them. P9 also requires `unknown` /
 abstention to be a first-class response, not an error (§3.3, §3.6, §4.3) — P8's `abstain`.
 
+**From P1 — the §8.7 learning-record store (S5, G3).**
+`learning_records(scope, subject_id)` before SR6 and before a membership proposal. P9 supplies
+`proposal_class` and `basis_key` on the user-action events it authors. See Correction learning.
+
 **From P2 — eval and replay harness (§8.5).**
 Replay-bundle inputs and shadow-mode execution. P9 must be runnable from a bundle with the model
 disabled and with embeddings disabled, independently — P2's `run_manifest.run_settings`
@@ -601,10 +605,14 @@ P9 records these user actions as local learning records **with scope** (§8.7):
 | Repeatedly reject an association between authoring school and application documents | corpus — lower the weight of author-affiliation evidence (§8.7, §3.8) |
 
 Rejected groups, rejected memberships and rejected labels are stored **with their evidence**, or the
-system "will repeatedly resurface the same attractive but incorrect grouping" (§8.7). This store is
-what §4.9 SR6 queries. Learned preferences must be inspectable and resettable (§8.7). P9 does not train
-any model on the corpus; adaptation is local aliases, vocabulary, negative constraints and accepted
-examples inside the user's own database (§8.7).
+system "will repeatedly resurface the same attractive but incorrect grouping" (§8.7). **SR6 queries
+P1 `learning_records(scope, subject_id)` before a candidate group is surfaced and before a membership
+is proposed** — not current-version `group_acceptance` alone, which would let a v2 rejection
+resurface in v3. Equivalence is `proposal_class` + `basis_key` (`group` → sorted `anchor_facts[]`;
+`membership` → `(group_id, file_id)`). A matching unresected reject suppresses the proposal.
+[`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md). Learned preferences must be inspectable
+and resettable (§8.7). P9 does not train any model on the corpus; adaptation is local aliases,
+vocabulary, negative constraints and accepted examples inside the user's own database (§8.7).
 
 ### Plan versioning (§8.8)
 
@@ -666,9 +674,11 @@ values (§8.5, §8.6).
    `requires_review: true`. P9 therefore drops its own five-value enum and consumes P8's `outcome` +
    `reasons[]` directly; the five old values are recoverable as `(outcome, reason_code)` pairs, and the
    mapping table is in Contract out 2.
-7. **What makes two proposals "equivalent" for §4.9 SR6?** The stop rule turns on the user having
-   already rejected an equivalent proposal. Same basis facts? Same member set? Same label? Undefined.
-   Without an equivalence test, SR6 either never fires or fires on any overlap.
+7. ~~**What makes two proposals "equivalent" for §4.9 SR6?**~~ **Settled — learning resolution.**
+   Same `proposal_class` + `basis_key`. For a group, `basis_key` is the sorted `anchor_facts[]`, not
+   the member set and not the label. Query P1 `learning_records` before surfacing; current-version
+   `group_acceptance` alone is not enough (M15: acceptance is per version, the store is not).
+   [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
 8. ~~**Is acceptance state per plan version or global?**~~ **Settled — M15: per plan version.** Groups
    and memberships are shared evidence and no longer carry `plan_version_id`; acceptance, review state
    and user-edited labels live in `group_acceptance` (Contract out 8). The same candidate group can be

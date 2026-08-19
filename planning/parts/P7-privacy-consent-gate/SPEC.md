@@ -523,6 +523,12 @@ Broader scope is applied only where the user selects it. Whether repeated reclas
 auto-generalize the way §8.7 lets a repeated residual destination become a corpus preference is not
 settled — Open questions.
 
+**Query before classify.** Before assigning a handling class the user has already set or rejected at
+this scope, P7 queries P1 `learning_records` for `proposal_class = privacy` and
+`basis_key = (file_id, handling_class)` ([`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md)).
+A matching unresected reject does not re-prompt the same classification. Generalization of *repeated*
+reclassification to a corpus floor remains Open question 7.
+
 **Negative feedback:** §8.7 requires rejections be stored *with the evidence that produced them*. A user
 downgrading a classification stores the observation keys the detector fired on, so the same signal does
 not resurface the same false protection. **The key, not the id, is what makes that durable** (M14): a

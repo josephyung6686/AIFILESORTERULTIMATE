@@ -421,7 +421,7 @@ are zero observations.
   "extractor_name":    "ocr.apple_vision",    //                        §2.7 "provider"
   "extractor_version": "2.4.1",               //                        §2.7, §3.4
   "source_type":       "ocr",                 //                        §2.9
-  "tier":              "<see Open questions>",// §3.4 cache key, §8.2 "status by extractor tier"
+  "analysis_tier":     "ocr",                 // §3.4 cache key; closed: filesystem | native | ocr | llm (I4)
   "config":            { "dpi": 200, "languages": ["en","zh-Hans"],
                          "recognition": "accurate" },  // §2.7 "languages, configuration"
   "config_fingerprint":"sha256:…",            // so §3.4's key and §8.5's diff can tell configs apart
@@ -791,10 +791,9 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
 **M2**: yes, `signal_tier`, and P5 records it among its own settled-since-the-draft entries. *May an `unreadable` run carry observations?* — settled by
 **M3**: yes, at metadata level. *What is the supersede column set?* — settled by **M1**.
 
-1. **The extractor-tier vocabulary is never enumerated.** §3.4 puts "analysis tier" in the cache key;
-   §8.2 requires the file record retain "Extraction status by extractor tier". Neither lists the tiers.
-   Until they exist, §3.4's cache key cannot be formed and `run.tier` has no domain. *Threatens P5
-   (which tier does each extractor declare?), P6 (cache key), P2 (replay comparability).*
+1. ~~**The extractor-tier vocabulary is never enumerated.**~~ **Settled — I4** ([`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md)).
+   `analysis_tier ∈ filesystem | native | ocr | llm`. P5 owns the vocabulary and writes the first three;
+   P8 writes `llm`. A value outside the four is rejected. `source_type` remains a different field.
 
 2. **Is an observation owned by the content hash or by the file record?** §2.8's field list contains
    both. §2.1 says the engine should *"read each file once per content version"*; §8.2 says *"If the
@@ -827,3 +826,12 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    Unsettled: whether a user who sees an OCR misread can write a corrected observation (with what
    `extractor_name` and what reliability state), or whether the only route is a user-confirmed fact at
    P6. *Threatens P6 (§3.13 semantics) and P7 (§8.4's "reclassify a file as private").*
+
+6. **What `completeness` does a source that is not on this machine carry?** macOS "Optimize Mac
+   Storage" leaves a Finder entry whose bytes are not local; hashing or opening it triggers a
+   download, which [`../../11-ops-runtime.md`](../../11-ops-runtime.md) §5 forbids. None of the eight
+   values fits: `deferred` is budget exhaustion (§8.6), `unreadable` is encrypted-or-damaged (§2.5,
+   §2.9), `metadata_only` is a format decision (§2.9). The design does not contemplate a
+   not-downloaded source, so P4 does not invent a ninth value here. Until this closes, P3 records the
+   detection and no `extraction_runs` row is written for such a file. *Threatens P3 (detection),
+   P5 (the writer of runs), and §8.6's progress line, which cannot name the category without it.*

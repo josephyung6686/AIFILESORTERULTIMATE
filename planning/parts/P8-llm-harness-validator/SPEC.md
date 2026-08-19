@@ -682,9 +682,12 @@ be retrieved will, in §8.7's words, *"repeatedly resurface the same attractive 
 grouping."*
 
 **Pre-call suppression.** §4.9's stop rule — *"the user has already rejected an equivalent
-proposal"* — is enforced at P8's boundary: an equivalent dossier with an outstanding user rejection
-is refused (`abstain` / `USER_REJECTED_EQUIVALENT`) rather than re-issued unchanged. The definition
-of equivalence is [Q5](#open-questions).
+proposal"* — is enforced at P8's boundary. Before `Gate.release`, P8 queries P1
+`learning_records(scope, subject_id)` for the call site's `proposal_class` and `basis_key`
+([`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md)). An unresected reject with a matching
+pair is refused (`abstain` / `USER_REJECTED_EQUIVALENT`) rather than re-issued. Equivalence is that
+pair, not dossier bytes — a trivial dossier edit must not resurface the same claim, and a different
+`basis_key` must not be suppressed. `NeedsConsent` is still not an abstention (B2).
 
 **Scope discipline.** §8.7's six scopes — file / group / node / template / domain / corpus — appear
 on every verdict, **supplied by the owning part and never inferred or widened by P8**. §8.7's own
@@ -760,11 +763,10 @@ Each of the nine below names the part whose contract it threatens. None is answe
    span in redacted text back to the stored raw evidence so both `CITATION_SPAN_MISMATCH` and
    `CITATION_NOT_FOUND` can be evaluated. §8.4 requires redaction; §8.5 requires the excerpt-existence
    check; neither says who holds the map or how long it lives. *Threatens: P7.*
-5. **What makes a proposal "equivalent" to one the user already rejected?** §4.9's stop rule and
-   §8.7's negative feedback both depend on it. Same subject? Same subject and same candidate set?
-   Same dossier content hash? Too narrow and the same rejected proposal resurfaces under a trivially
-   different dossier; too broad and a genuinely new proposal is suppressed. *Threatens: P9, P2 (replay
-   determinism depends on the same answer being used every run).*
+5. ~~**What makes a proposal "equivalent" to one the user already rejected?**~~ **Settled — I4/learning
+   resolution.** Same `proposal_class` + `basis_key`, queried from P1 `learning_records` before
+   `Gate.release`. Not dossier bytes, not member-set, not display label. See Pre-call suppression and
+   [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
 6. **May a `weak` output re-enter a later dossier as evidence?** §3.6 forbids a possible-clue becoming
    a folder proposal or an asserted property, and §3.13 keeps `Possible` as a real state, but the
    design does not say whether a model may later *see* one. Including them risks a model confirming

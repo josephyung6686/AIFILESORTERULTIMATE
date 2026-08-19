@@ -153,6 +153,10 @@ rule is genuinely evaluated rather than vacuously satisfied, and a move is rever
 verification. **What it deliberately does not prove:** anything about model
 behaviour, grouping quality, or template design — those need depth, not a skeleton.
 
+**Second fixture path** (ops runtime, still no live model): a dossier that requires sensitive text;
+`Gate.release` returns `NeedsConsent`; P13 presents the four §8.4 options; choosing `no_model_use`
+does not become `abstain` inside P8. This is the B2 contract test the first path cannot exercise.
+
 ---
 
 ## Layout
@@ -162,6 +166,9 @@ planning/
 ├── 00-database-agent-product-design.md    source of truth — Joseph's wording is authoritative
 ├── 01-product-design-structured.md        the same content, §0–§8
 ├── 02-segmentation-map.md                 this file
+├── 03–09                                  contract reviews and audits
+├── 10-i4-learning-ops.md                  binding: analysis tiers + learning reads
+├── 11-ops-runtime.md                      how the product runs on a Mac (not a part)
 └── parts/
     └── P<n>-<name>/
         ├── SPEC.md      design slice owned · contract in · contract out · done-means ·

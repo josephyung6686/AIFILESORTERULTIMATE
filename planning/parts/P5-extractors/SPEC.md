@@ -535,9 +535,13 @@ improved engine recovers a university name, and **both extraction records remain
 resolver may mark the newer value preferred, but a user inspecting a placement must still be able to
 reach the origin of the conclusion (§8.2).
 
-**Cache key (§3.4).** Content hash + extractor version + analysis tier, plus provider/version/
+**Cache key (§3.4).** Content hash + extractor version + `analysis_tier`, plus provider/version/
 configuration for OCR. This is what makes a rename free and a content rewrite expensive, and what
-makes an extractor upgrade auditable. Tier enumeration is Open question #3.
+makes an extractor upgrade auditable. **`analysis_tier` is closed** (I4): `filesystem | native | ocr | llm`.
+P5 writes the first three and never writes `llm`. Mapping: filesystem observations re-emitted as
+`source_type: filesystem` are `filesystem`; E1–E5 are `native`; E6 is `ocr`. P5 also writes
+`extraction_status_by_tier` as a map from those four keys to P4 `completeness`; a missing key means
+that tier was not attempted.
 
 ### Budgets and degradation (§8.6)
 
@@ -633,8 +637,8 @@ and P5's perceptual hashes. *Non-macOS OCR* — settled by **S1**: there is none
 2. **Routing precedence for formats §2.9 lists twice.** CSV appears under both Spreadsheets and Code/
    structured data; PDF appears under both Text documents and Presentations ("PDF slide decks"). The
    design specifies different field lists for each and no tiebreak.
-3. **What are the analysis tiers?** §3.4 puts "analysis tier" in the cache key and §8.2 puts
-   "extraction status by extractor tier" in the file record. The tiers are never enumerated.
+3. ~~**What are the analysis tiers?**~~ **Settled — I4.** `filesystem | native | ocr | llm`. See
+   Cache key above and [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
 4. **Library and engine choices for every format.** The design names Apple Vision for macOS OCR
    (§2.7) — the one engine it names, and the whole of v1's OCR scope under S1 — and names no library
    for PDF, DOCX, HEIC, archives, spreadsheets, presentations, email, calendar, contacts, audio/video,

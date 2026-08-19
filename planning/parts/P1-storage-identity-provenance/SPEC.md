@@ -305,10 +305,19 @@ on every user-action event, so the store is a read surface over material that ex
 
 ```text
 learning_records(scope, subject_id)  -> the user-action events at that scope for that subject,
-                                        newest first, each with its §8.2 `explanation`
-                                        (a structured explanation or evidence reference)  §8.7
+                                        newest first, each with its §8.2 `explanation`,
+                                        `polarity`, `proposal_class`, `basis_key`, and
+                                        evidence reference                                 §8.7
 reset_preferences(scope, subject_id) -> appends a scoped reset record; deletes nothing     §8.7, R6
 ```
+
+User-action events carry three opaque fields the acting part supplies and P1 does not interpret
+(`polarity`, `proposal_class` and `basis_key`). `polarity ∈ accept | reject` is what makes §8.7's
+"rejected groups, rejected destination matches, rejected labels, and rejected residual
+recommendations" distinguishable from approvals on read — without it every query-before-propose
+reader would have to parse `explanation` free text to tell an approval from a rejection. P1 stores
+and returns all three and decides nothing from them. Vocabulary and equivalence are
+[`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
 
 - **Scope is the filter, and it is exact.** §8.7's six scopes are file / group / destination node /
   template / domain / corpus. A `file`-scoped correction is never returned by a `corpus`-scoped read.
@@ -321,11 +330,12 @@ reset_preferences(scope, subject_id) -> appends a scoped reset record; deletes n
 - **Reset is append-only.** §8.7 requires the user be able to "inspect or reset learned preferences."
   Reset appends a scoped reset record that later reads honour; it never deletes an event (R6), so the
   history of what was learned and un-learned stays inspectable.
-- **P13 is the reader.** Both calls are consumed by the review and approval surface (S4): P13 renders
-  the projection as §8.7's inspect view — scoped records and stored negative examples with the
-  evidence that produced them — and collects the reset, which P1 records. Every other consumer reads
-  the store for its own scope. P13 applies no learning and P1 applies none either; §8.7's "inspect or
-  reset" is a surface obligation over this projection and nothing more.
+- **Who reads.** **P13** is the inspect/reset surface (S4): it renders this projection and collects
+  `reset_learning`. **P6, P7, P8, P9, P10 and P11 query before they propose** — that is the half §8.7
+  requires and that was previously only implied. P13 applies no learning and P1 applies none either.
+  Query-before-propose, `proposal_class`, and `basis_key` are specified in
+  [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md). Acceptance is per plan version (M15);
+  this store is versionless, which is why SR6 cannot be a read of current-version acceptance alone.
 - **P1 does not learn.** No weighting, no generalization, no ranking, no application. What a record
   means is decided by the part that authored the correction — P6, P7, P9, P10, P11. §8.7's ban on
   silent global training is satisfied structurally: the store is one local table inside the one SQLite
@@ -439,7 +449,7 @@ What P1 must nonetheless *carry without containing* — deferred to the parts an
 | Gazetteer contents (the validated gazetteers §3.7 requires) | §3.7 (P6) | nothing — P1 stores no gazetteer |
 | Residual library contents beyond the nine templates §7.3 names | §7.2, §7.3 (P10 — M10 moved the definitions there; P11 keeps the §7.5–§7.11 workflow) | `placement recommendation` events (§8.2) naming nodes P1 does not define |
 | The five sensitivity handling classes' detection rules | §8.4 (P7) | an opaque `sensitivity_state` value |
-| Analysis-tier names | §3.4, §2.x (P5) | an opaque `extraction_status_by_tier` value |
+| Analysis-tier names | §3.4, §2.x (P5) — **I4 closed the names** as `filesystem \| native \| ocr \| llm` | an opaque `extraction_status_by_tier` map whose keys are those four; P1 still does not interpret completeness |
 | The **values** of §8.6's ceilings | §8.6 says only "configurable" — hand-authored, with the enforcing parts | keys in the budget configuration object (Contract out §8); P1 stores whatever is set and proposes no default |
 
 P1 invents none of these and must not be blocked on any of them: the substrate is buildable and
@@ -674,9 +684,12 @@ them; the rest are unanswered here.
     keys every cached extraction result on the content hash, so a later change re-keys the whole
     cache — `hash_algorithm` is stored per row (§8.2) precisely so such a migration is detectable.
 
-11. **What must survive a rebuild?** §0 says the product "can be rebuilt from the filesystem if
-    necessary", but `events` has no filesystem source — provenance is unreconstructible by definition.
-    What the rebuild guarantee covers is unstated.
+11. ~~**What must survive a rebuild?**~~ **Settled in part — ops runtime.** The database lives in
+    Application Support, never inside a scan root. Rebuild reconstructs identity + deterministic
+    extraction + facts those extractors can reproduce. It does **not** reconstruct `events`,
+    learning records, plan versions, consent grants, or review actions. P13 must say so before a
+    rebuild. [`../../11-ops-runtime.md`](../../11-ops-runtime.md) §2. What a *user* considers
+    essential besides that split remains a product-copy question, not a schema one.
 12. **Moved to P6 — M1.** `preferred` now sits on P6's `file_facts` alone, so whether it is
     chain-scoped or (file, field)-scoped is the resolver's question, not the substrate's. P1 keeps the
     at-most-one-per-chain rule for the column it publishes; §3.13's ranking across chains is P6's.

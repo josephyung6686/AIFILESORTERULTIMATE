@@ -565,6 +565,8 @@ authorship of its own detections only, never sole authorship of the type.
 | macOS package / application bundle | Do not move unless explicitly approved (§8.3) |
 | Source or destination unavailable | Refuse the move (§8.3) — covers an unmounted network volume or detached removable storage |
 | Cloud-synchronized path (iCloud Drive, Dropbox, Google Drive, OneDrive) | Treat as externally mutable: verify immediately before and after the action; pause when a sync conflict appears (§8.3) |
+| Dataless / not-downloaded ubiquitous item | Refuse — do not hash, copy, or download in order to move. This is §8.3's existing "source unavailable" refusal, not a new trigger. Materialization is a user action ([`../../11-ops-runtime.md`](../../11-ops-runtime.md) §5) |
+| Interrupted apply (crash) | On launch, recover from the journal before any new apply. Incomplete copy: source is truth, delete the unverified destination. Copy verified, source not removed: surface both, do not guess. [`../../11-ops-runtime.md`](../../11-ops-runtime.md) §6 |
 | Permission no longer available | `stale:permission_lost` (§8.3's fifth trigger), not a failure |
 | Protected or highly sensitive handling class | No automatic movement without a policy that explicitly permits it (§8.4) |
 | Destination in a different high-level folder, `cross_folder_moves` off | Refuse — `cross_folder_not_permitted` (§1.1), checked at mutation time alongside the volume check |
