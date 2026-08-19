@@ -715,7 +715,13 @@ them; the rest are unanswered here.
     "placement policy settings", and `tree.max_folder_proposals_and_depth` reads like one, yet §8.8's
     list names no ceiling and P1's state is versionless by design. If any ceiling turns out to be
     plan-scoped, it belongs in the plan version, not in P1's shared object. *Threatens:* P10, P11.
-19. **Should the scan identifier be published as shared identity?** New with D1. §8.6 says "every
+19. ~~**Should the scan identifier be published as shared identity?**~~ **Settled — ratified
+    2026-08-20. Yes, and P3 publishes it.** P3 owns the scan (§1.1), so P3's `scan_run_id`
+    IS the identity and `scan_resource_usage` is keyed on it. `start_scan` requires it with
+    no default: P1 mints nothing, because a value P1 minted is one nothing else can join.
+    That join is what lets P13 show §8.6's six counters beside the file counts from the same
+    scan, and what lets a P2 bundle name the scan it captured. The original wording follows.
+    New with D1. §8.6 says "every
     scan" and no part publishes a scan id — P4's `run_id` is per *(file × extractor)*, not per scan.
     P1 mints one locally for `scan_resource_usage` (Contract out §10) and deliberately keeps it off
     `events`, so §8.2's eleven fields and Done-means 7 are unaffected. If P2's replay or P13's progress

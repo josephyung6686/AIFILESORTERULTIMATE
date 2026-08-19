@@ -16,7 +16,7 @@ def test_the_six_resources_are_the_six_8_6_names():
 
 def test_a_completed_scan_yields_one_row_carrying_all_six(conn):
     create_schema(conn)
-    scan_id = start_scan(conn)
+    scan_id = start_scan(conn, scan_run_id="p3-scan-fixture")
     sample_scan_resources(conn, scan_id)
     record_llm_cost(conn, scan_id, {"currency": "USD", "amount": "0"}, author="P8")
 
@@ -31,7 +31,7 @@ def test_a_completed_scan_yields_one_row_carrying_all_six(conn):
 def test_p1_samples_five_and_p8_writes_the_sixth(conn):
     # SPEC §10: llm_cost is written by P8, "the only part that can know it" (O9).
     create_schema(conn)
-    scan_id = start_scan(conn)
+    scan_id = start_scan(conn, scan_run_id="p3-scan-fixture")
     sample_scan_resources(conn, scan_id)
     assert scan_resource_usage(conn, scan_id)["llm_cost"] is None
     record_llm_cost(conn, scan_id, {"currency": "USD", "amount": "1.25"}, author="P8")
@@ -42,7 +42,7 @@ def test_an_unsampled_counter_reads_as_unavailable_never_as_zero(conn):
     # There is no network byte counter, no portable current-RSS reading and no
     # accelerator time in the standard library. Each reads as null, not 0.
     create_schema(conn)
-    scan_id = start_scan(conn)
+    scan_id = start_scan(conn, scan_run_id="p3-scan-fixture")
     sample_scan_resources(conn, scan_id)
     row = scan_resource_usage(conn, scan_id)
 
@@ -56,7 +56,7 @@ def test_an_unsampled_counter_reads_as_unavailable_never_as_zero(conn):
 
 def test_what_could_be_sampled_is_a_number(conn):
     create_schema(conn)
-    scan_id = start_scan(conn)
+    scan_id = start_scan(conn, scan_run_id="p3-scan-fixture")
     sample_scan_resources(conn, scan_id)
     row = scan_resource_usage(conn, scan_id)
     assert json.loads(row["elapsed_time"])["seconds"] >= 0
@@ -69,7 +69,7 @@ def test_p1_rejects_no_operation_for_any_value_of_any_counter(conn):
     # Done-means 16's negative test. Recording six counters gives P1 no ceiling on
     # any of them: there is no threshold to hit.
     create_schema(conn)
-    scan_id = start_scan(conn)
+    scan_id = start_scan(conn, scan_run_id="p3-scan-fixture")
     record_llm_cost(conn, scan_id, {"currency": "USD", "amount": "999999999"},
                     author="P8")
     sample_scan_resources(conn, scan_id)          # still samples

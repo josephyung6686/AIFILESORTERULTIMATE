@@ -66,6 +66,20 @@ P3 remains scan-plus-stat-cache. **While a session is open**, P3 also watches th
 
 ---
 
+## 4b. Applications and system items — never read, never moved
+
+**Ratified 2026-08-20.** Full Disk Access grants the *ability* to read protected locations. It is
+not permission to use it. An application bundle, a macOS package, and anything under a system
+location is a **protected container**: P3 does not descend into one and hashes nothing inside it,
+and P12 never moves one. The rule and its label live in
+[`parts/P3-scan-corpus-selection/SPEC.md`](parts/P3-scan-corpus-selection/SPEC.md); this section
+exists so the runtime contract cannot be read as licence to traverse everything TCC will allow.
+
+The distinction that matters at runtime: FDA is about what the OS permits, and this is about what
+the product chooses. Granting FDA widens the first and changes nothing about the second.
+
+---
+
 ## 5. iCloud dataless files
 
 macOS "Optimize Mac Storage" presents Finder entries that are not on disk. Hashing or opening them **downloads** the file.

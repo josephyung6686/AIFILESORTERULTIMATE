@@ -562,7 +562,7 @@ authorship of its own detections only, never sole authorship of the type.
 | Object or condition | Behaviour, as settled by the design |
 |---|---|
 | Symbolic link | Do not follow during mutation (§8.3 safe default) |
-| macOS package / application bundle | Do not move unless explicitly approved (§8.3) |
+| macOS package, application bundle, or any system item | **Refuse. Absolutely, with no override.** A protected container and everything inside it is never moved, and no policy, approval, or user gesture makes it movable — unlike every other row in this table, this one has no approved path (P3 SPEC, ratified 2026-08-20). P12 also never receives such a file: P3 creates no `files` row inside a protected container, so there is nothing to plan a move for. This row exists so a future caller that constructs a plan by hand is refused too |
 | Source or destination unavailable | Refuse the move (§8.3) — covers an unmounted network volume or detached removable storage |
 | Cloud-synchronized path (iCloud Drive, Dropbox, Google Drive, OneDrive) | Treat as externally mutable: verify immediately before and after the action; pause when a sync conflict appears (§8.3) |
 | Dataless / not-downloaded ubiquitous item | Refuse — do not hash, copy, or download in order to move. This is §8.3's existing "source unavailable" refusal, not a new trigger. Materialization is a user action ([`../../11-ops-runtime.md`](../../11-ops-runtime.md) §5) |

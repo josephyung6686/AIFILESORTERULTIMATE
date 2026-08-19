@@ -813,7 +813,7 @@ def test_unsampleable_counters_read_as_null_never_as_zero(db):
     completed cheaply." """
     import json
 
-    scan_id = start_scan(db)
+    scan_id = start_scan(db, scan_run_id="p3-scan-fixture")
     sample_scan_resources(db, scan_id)
     row = scan_resource_usage(db, scan_id)
 
@@ -839,7 +839,7 @@ def test_storage_reads_as_unknown_when_the_database_has_no_file(db):
     memory_db.row_factory = sqlite3.Row
     try:
         create_schema(memory_db)
-        scan_id = start_scan(memory_db)
+        scan_id = start_scan(memory_db, scan_run_id="p3-scan-fixture")
         sample_scan_resources(memory_db, scan_id)
         storage = json.loads(scan_resource_usage(memory_db, scan_id)["storage"])
         assert storage["database_bytes"] is None, (
@@ -854,7 +854,7 @@ def test_recording_resources_imposes_no_ceiling(db, tmp_path):
     """PINS — Contract out §10 negative test: "P1 rejects no operation and defers no
     work for any value of any of the six — there is no threshold to hit." Holding
     §8.6's twelve ceilings must not leak into the six observability counters."""
-    scan_id = start_scan(db)
+    scan_id = start_scan(db, scan_run_id="p3-scan-fixture")
     for key in ("model.max_cost_per_scan", "ocr.max_time_per_scan"):
         set_ceiling(db, key, 0)
     record_llm_cost(db, scan_id, {"usd": 1_000_000}, author="P8")

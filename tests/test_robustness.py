@@ -172,3 +172,36 @@ def test_the_r2_fields_have_no_defaults(conn, tmp_path):
     with _pytest.raises(TypeError):
         record_file(conn, path, parent_folder_context="c", mime_type=None,
                     detected_format=None, scan_state="scanned", materialized=True)
+
+
+def test_p1_adopts_the_scan_identity_p3_publishes(conn):
+    """OQ16, ratified 2026-08-20: P3 owns the scan, so P3 publishes `scan_run_id`
+    and P1's resource row is keyed on that value rather than on one P1 minted.
+
+    Three documents previously named three scan identities — P1's private
+    `scan_id`, P3's private `scan_run_id`, and 11-ops-runtime §3 writing
+    `scan_run_id — P3's scan` as though it were already shared. With three
+    identities and no join, P13 cannot show §8.6's six counters beside the file
+    counts from the same scan, and a P2 bundle cannot name the scan it captured.
+    """
+    from database_agent.db import create_schema
+    from database_agent.scan_usage import scan_resource_usage, start_scan
+
+    create_schema(conn)
+    returned = start_scan(conn, scan_run_id="p3-run-7")
+    assert returned == "p3-run-7"
+    assert scan_resource_usage(conn, "p3-run-7") is not None
+
+
+def test_p1_mints_no_scan_identity_of_its_own(conn):
+    """P1 adopting P3's value means P1 has no fallback that would mint a second
+    one. A default here would let a caller omit it and get a private identifier
+    that nothing else can join — the exact failure OQ16 closed."""
+    import pytest as _pytest
+
+    from database_agent.db import create_schema
+    from database_agent.scan_usage import start_scan
+
+    create_schema(conn)
+    with _pytest.raises(TypeError):
+        start_scan(conn)

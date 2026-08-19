@@ -34,6 +34,36 @@ belongs." §1.1: "No sorting decision is made." P3 produces a corpus and a reaso
     `package.json`, `requirements.txt`, `Cargo.toml`, or `go.mod`. §1.1's stated reason: "This
     prevents the proposal engine from mistaking a dependency subdirectory for a meaningful personal
     destination."
+- **Protected containers are never opened, never read, never moved** (**ratified 2026-08-20**,
+  closing Q7). An application bundle, a macOS package, and anything under a system location is a
+  **protected container**. P3 does not descend into one, does not stat its contents, does not hash
+  a byte of it, and does not create a `files` row for anything inside it. P12 may never move one
+  or anything within one, and no policy, approval, or user gesture makes it movable — this is not
+  a default that review can override, which is what separates it from every other refusal in this
+  design.
+
+  **What is recorded is the container, not its contents.** P3 emits one R3 exclusion verdict for
+  the container itself with reason `protected_container`, carrying the container's own path and
+  nothing derived from inside it. The verdict says *this is an application or system item and its
+  contents were deliberately not examined* — it does not say how many files are in there, what
+  they are called, or what they contain, because learning any of that requires the read this rule
+  forbids. The label is **`untouched_protected`**, and it is a statement about the product's
+  restraint, not about the file.
+
+  **The user can find them.** P13 presents protected containers as a distinct, inspectable list
+  (§8.6's progress line names the category; the review surface offers no action on the rows,
+  because no action is permitted). A user who wonders why nothing was proposed for an application
+  gets an answer instead of silence.
+
+  **Why this is a rule and not a heuristic.** §1.1 already excludes dependency trees to stop the
+  engine mistaking a subdirectory for a personal destination. This is stronger and differently
+  motivated: an `.app` holds thousands of internal files whose names and contents are the vendor's,
+  not the user's, and reading them would put third-party material — and, under a system location,
+  material that is not the user's at all — into evidence the model may later see (§8.4). Descending
+  was never a quality problem to tune; it is a boundary the product does not cross. **Membership of
+  the protected set is authored, not inferred**: extension-based and location-based rules are
+  written into this SPEC, and P3 guesses no new ones at run time.
+
 - **Existing structure is mainly preserved** (§1.1). §1.1 states the system "should also know that
   existing folder structures should mainly be preserved," with the AIKonic Project example — a
   folder dense with JSON and software material that is "probably not supposed to be touched." P3
@@ -449,7 +479,14 @@ resolve, and record what settled them; the rest are unanswered here.
 15. **Hashing ceiling.** §8.2 makes the content hash mandatory identity; §8.6 names no ceiling for
     hashing or traversal. A 40 GB disk image is hashed in full under the current text. *Threatens
     §8.6's budget envelope.*
-16. **Scan identity, and the boundary that brackets it.** New with D1. §8.6 says *"every scan"*, and
+16. ~~**Scan identity, and the boundary that brackets it.**~~ **Settled — ratified 2026-08-20:
+    P3 publishes `scan_run_id`; P1 adopts it.** P3 owns the scan, so P3 owns its name. P1's
+    `start_scan(conn, *, scan_run_id)` takes the published value and keys
+    `scan_resource_usage` on it; `11-ops-runtime.md` §3's `scan_run_id — P3's scan` on the
+    session record is now true rather than aspirational. P3 may therefore sample §8.6's six
+    counters through P1 — the reason it previously could not (P3-H) was that no shared
+    identity existed to write them against. The original wording follows.
+    New with D1. §8.6 says *"every scan"*, and
     the six resource counters are recorded per scan by P1 as `scan_resource_usage` (P1 Contract out
     §10), keyed on a `scan_id` that P1 mints locally and deliberately keeps off `events`. R5 carries
     five counters and no identity at all, so P13 cannot join the file counts it renders to the

@@ -14,7 +14,6 @@ import json
 import resource
 import sqlite3
 import time
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -40,11 +39,22 @@ def _database_bytes(conn: sqlite3.Connection) -> int | None:
                if p.exists())
 
 
-def start_scan(conn: sqlite3.Connection) -> str:
-    """Mint the scan identifier and open its row. §8.6 says "every scan" and no part
-    publishes a scan id, so P1 mints one locally. Whether it should become shared
-    identity is SPEC OQ19 and is not decided here."""
-    scan_id = str(uuid.uuid4())
+def start_scan(conn: sqlite3.Connection, *, scan_run_id: str) -> str:
+    """Open the resource row for a scan P3 has already identified.
+
+    **OQ16/OQ19 closed, ratified 2026-08-20: P3 publishes the identity, P1 adopts
+    it.** P3 owns the scan (§1.1), so P3's `scan_run_id` IS the identity, and this
+    row is keyed on it. P1 mints nothing: `scan_run_id` is required with no
+    default, because a default would let a caller omit it and get a private
+    identifier nothing can join — which is what the three-identity split was.
+
+    Before this closed, P1 had a private `scan_id`, P3 had a private
+    `scan_run_id`, and 11-ops-runtime §3 wrote `scan_run_id — P3's scan` on the
+    session record as though the two were already the same. P13 could not put
+    §8.6's six counters beside the file counts from the same scan, and a P2 bundle
+    could not name the scan it was captured from.
+    """
+    scan_id = scan_run_id
     baseline = json.dumps({
         "monotonic": time.monotonic(),
         "cpu_seconds": _cpu_seconds(),
