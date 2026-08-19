@@ -717,3 +717,435 @@ git commit -m "feat(P3): local scan-run handle, published as nothing, OQ16 left 
 ```
 
 ---
+
+### Task 4: R3 — exclusion verdicts and §1.1's eleven literal directory names (Done-means 3, 6)
+
+**Files:**
+- Create: `src/scan_agent/exclusion.py`
+- Modify: `src/scan_agent/schema.py` — add `EXCLUSION_DDL`
+- Test: `tests/p3/test_p3_exclusion.py`
+
+**Interfaces:**
+- Consumes: `create_scan_schema`.
+- Produces: `EXCLUDED_DIRECTORY_NAMES: tuple[str, ...]` (eleven), `EXCLUSION_CATEGORIES: tuple[str, ...]` (five), `CATEGORY_MEMBERS: Mapping[str, tuple[str, ...]]`, `RULE_LITERAL_DIRECTORY_NAME`, `RULE_CATEGORY`, `RULE_PROJECT_ROOT_DESCENDANT`, `APPLIES_TO_SCANNED_SOURCE`, `APPLIES_TO_CANDIDATE_ROOT`, `ExclusionVerdict` (frozen dataclass), `exclusion_for(path, *, is_dir, applies_to, project_root_markers=()) -> ExclusionVerdict | None`, `EXCLUSION_DDL: str`, `record_exclusion(conn, scan_run_id, verdict) -> int`, `exclusion_verdicts(conn, scan_run_id) -> list[sqlite3.Row]`.
+
+**The eleven names are complete and implementable now.** §1.1 lists them literally: *"The engine should ignore `node_modules`, `.git`, `venv`, `build`, `dist`, `target`, `vendor`, `Pods`, `site-packages`, `Library`, `__pycache__`…"* They are copied verbatim, in the design's order, and nothing is added to the tuple.
+
+**The five categories are named and empty.** §1.1 continues *"…build artifacts, caches, auto-save folders, previews, and generated dependency trees"* and enumerates no member of any of them. SPEC Deferred: *"the category members are a hand-authored list and are not guessed here."* So the category rule is **wired and empty**: `CATEGORY_MEMBERS` maps each of the five names to an empty tuple, the matching loop runs and never fires, and the day the list is hand-authored the rule starts working with no code change. Guessing a member here — `.cache`, `Thumbs.db`, `~$doc` — would be P3 authoring a gazetteer the design does not supply.
+
+**They apply to directories.** §1.1: *"the system excludes **directories** that should not participate in organization"*, and R3's `rule_subject` is *"the literal directory name"*. A file that happens to be named `build` is not a directory and is not excluded by this rule.
+
+**An excluded path yields no `files` row and no descendants** (SPEC R3). The pruning is Task 9's; this task is the rule and the record.
+
+**A verdict is never deleted.** SPEC, *What P3 never overwrites*: *"Exclusion verdicts likewise survive a later rule-set change — an R3 record explaining why a path was skipped is not deleted when the path later becomes eligible."* Enforced by trigger, the same way P1 enforces `events`.
+
+**R3 is not an event, and that is an open question, not a decision.** SPEC Q13: *"Do exclusion verdicts get events? §8.2's event record is keyed on file ID; an excluded directory has no file record and no hash."* This plan therefore writes R3 to its own table and appends **no** event for an exclusion; Task 17 pins that as the current state and names Q13 as the reason.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p3/test_p3_exclusion.py
+import sqlite3
+from pathlib import Path
+
+import pytest
+
+from database_agent.db import create_schema
+
+from scan_agent.exclusion import (
+    APPLIES_TO_CANDIDATE_ROOT, APPLIES_TO_SCANNED_SOURCE, CATEGORY_MEMBERS,
+    EXCLUDED_DIRECTORY_NAMES, EXCLUSION_CATEGORIES, RULE_CATEGORY,
+    RULE_LITERAL_DIRECTORY_NAME, exclusion_for, exclusion_verdicts, record_exclusion,
+)
+from scan_agent.run import start_scan_run
+from scan_agent.schema import create_scan_schema
+from scan_agent.selection import record_selection
+
+
+@pytest.fixture()
+def run(conn, tmp_path: Path):
+    create_schema(conn)
+    create_scan_schema(conn)
+    selection = record_selection(conn, sources=[tmp_path], candidate_roots=[],
+                                 cross_folder_moves=False, selected_by=None)
+    return start_scan_run(conn, selection)
+
+
+def test_the_eleven_names_are_1_1s_eleven_verbatim_and_in_order():
+    assert EXCLUDED_DIRECTORY_NAMES == (
+        "node_modules", ".git", "venv", "build", "dist", "target", "vendor",
+        "Pods", "site-packages", "Library", "__pycache__",
+    )
+    assert len(EXCLUDED_DIRECTORY_NAMES) == 11
+
+
+def test_each_of_the_eleven_is_excluded_as_a_directory(tmp_path: Path):
+    for name in EXCLUDED_DIRECTORY_NAMES:
+        verdict = exclusion_for(tmp_path / name, is_dir=True,
+                                applies_to=APPLIES_TO_SCANNED_SOURCE)
+        assert verdict is not None, name
+        assert verdict.rule == RULE_LITERAL_DIRECTORY_NAME
+        assert verdict.rule_subject == name
+        assert verdict.applies_to == APPLIES_TO_SCANNED_SOURCE
+
+
+def test_the_rule_is_about_directories(tmp_path: Path):
+    # §1.1: "the system excludes directories that should not participate".
+    # A FILE named `build` is not a directory and this rule does not reach it.
+    assert exclusion_for(tmp_path / "build", is_dir=False,
+                         applies_to=APPLIES_TO_SCANNED_SOURCE) is None
+
+
+def test_an_ordinary_directory_is_not_excluded(tmp_path: Path):
+    assert exclusion_for(tmp_path / "Coursework", is_dir=True,
+                         applies_to=APPLIES_TO_SCANNED_SOURCE) is None
+
+
+def test_the_five_categories_are_named_and_have_no_members():
+    # SPEC Deferred: §1.1 names the categories and enumerates no member of any of
+    # them. The rule is wired and empty; guessing a member would be P3 authoring a
+    # gazetteer the design does not supply.
+    assert EXCLUSION_CATEGORIES == (
+        "build artifacts", "caches", "auto-save folders", "previews",
+        "generated dependency trees",
+    )
+    assert set(CATEGORY_MEMBERS) == set(EXCLUSION_CATEGORIES)
+    assert all(members == () for members in CATEGORY_MEMBERS.values())
+
+
+def test_the_category_rule_fires_the_day_a_member_is_authored(tmp_path: Path, monkeypatch):
+    # The rule is wired: authoring the deferred list is a data change, not a code
+    # change. This test proves the wiring without authoring anything.
+    from types import MappingProxyType
+
+    import scan_agent.exclusion as module
+    authored = dict.fromkeys(EXCLUSION_CATEGORIES, ())
+    authored["caches"] = ("SomeHandAuthoredCacheDirectory",)
+    monkeypatch.setattr(module, "CATEGORY_MEMBERS", MappingProxyType(authored))
+
+    verdict = module.exclusion_for(tmp_path / "SomeHandAuthoredCacheDirectory",
+                                   is_dir=True, applies_to=APPLIES_TO_SCANNED_SOURCE)
+    assert verdict is not None
+    assert verdict.rule == RULE_CATEGORY
+    assert verdict.rule_subject == "caches"
+
+
+def test_a_verdict_names_the_rule_that_rejected_the_path(conn, run, tmp_path: Path):
+    # Done-means 6, and §8.2's "structured explanation or evidence reference".
+    verdict = exclusion_for(tmp_path / "node_modules", is_dir=True,
+                            applies_to=APPLIES_TO_SCANNED_SOURCE)
+    record_exclusion(conn, run, verdict)
+    row = exclusion_verdicts(conn, run)[0]
+    assert row["path"] == str(tmp_path / "node_modules")
+    assert row["rule"] == RULE_LITERAL_DIRECTORY_NAME
+    assert row["rule_subject"] == "node_modules"
+    assert row["applies_to"] == APPLIES_TO_SCANNED_SOURCE
+    assert row["observed_at"]
+
+
+def test_applies_to_has_exactly_the_specs_two_values():
+    assert APPLIES_TO_SCANNED_SOURCE == "scanned source"
+    assert APPLIES_TO_CANDIDATE_ROOT == "candidate root"
+
+
+def test_a_verdict_is_never_deleted(conn, run, tmp_path: Path):
+    # SPEC, "What P3 never overwrites": a verdict explaining why a path was skipped
+    # is not deleted when the path later becomes eligible.
+    record_exclusion(conn, run, exclusion_for(tmp_path / ".git", is_dir=True,
+                                              applies_to=APPLIES_TO_SCANNED_SOURCE))
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute("DELETE FROM exclusion_verdicts")
+
+
+def test_an_exclusion_appends_no_event(conn, run, tmp_path: Path):
+    # SPEC Q13 is OPEN: §8.2's event record is keyed on file ID and an excluded
+    # directory has no file record. This plan does not answer it, so R3 lives in
+    # its own table and no event is appended. When Q13 closes, this test changes.
+    record_exclusion(conn, run, exclusion_for(tmp_path / "dist", is_dir=True,
+                                              applies_to=APPLIES_TO_SCANNED_SOURCE))
+    assert conn.execute("SELECT count(*) c FROM events").fetchone()["c"] == 0
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p3/test_p3_exclusion.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'scan_agent.exclusion'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/scan_agent/exclusion.py
+"""Contract out R3 — §1.1's exclusion rules and the verdict they produce.
+
+§1.1: "Before scanning, the system excludes directories that should not participate
+in organization… The exclusion must apply both to scanned sources and to candidate
+roots. The engine should ignore `node_modules`, `.git`, `venv`, `build`, `dist`,
+`target`, `vendor`, `Pods`, `site-packages`, `Library`, `__pycache__`, build
+artifacts, caches, auto-save folders, previews, and generated dependency trees. It
+should also reject descendants of software project roots indicated by files such as
+`package.json`, `requirements.txt`, `Cargo.toml`, or `go.mod`."
+
+An excluded path yields no `files` row and no descendants.
+"""
+from __future__ import annotations
+
+import sqlite3
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path, PurePath
+from types import MappingProxyType
+
+#: §1.1's eleven literal directory names, verbatim and in the design's order.
+EXCLUDED_DIRECTORY_NAMES: tuple[str, ...] = (
+    "node_modules", ".git", "venv", "build", "dist", "target", "vendor",
+    "Pods", "site-packages", "Library", "__pycache__",
+)
+
+#: §1.1's five open-ended categories. The design NAMES them and enumerates no member
+#: of any of them, so each maps to an empty membership (SPEC Deferred: "the category
+#: members are a hand-authored list and are not guessed here"). The rule below is
+#: wired against this mapping, so authoring the list is a data change, not a code one.
+EXCLUSION_CATEGORIES: tuple[str, ...] = (
+    "build artifacts", "caches", "auto-save folders", "previews",
+    "generated dependency trees",
+)
+CATEGORY_MEMBERS = MappingProxyType({name: () for name in EXCLUSION_CATEGORIES})
+
+#: R3's `rule` — which §1.1 rule fired. §1.1 states three rule kinds and no fourth.
+RULE_LITERAL_DIRECTORY_NAME = "literal directory name"
+RULE_CATEGORY = "category"
+RULE_PROJECT_ROOT_DESCENDANT = "software project root descendant"
+
+#: R3's `applies_to` — the SPEC's two words, and no third.
+APPLIES_TO_SCANNED_SOURCE = "scanned source"
+APPLIES_TO_CANDIDATE_ROOT = "candidate root"
+
+
+@dataclass(frozen=True)
+class ExclusionVerdict:
+    """R3. One per rejected path, emitted for both sides of the scan."""
+    path: str
+    rule: str
+    rule_subject: str
+    applies_to: str
+
+
+def exclusion_for(path, *, is_dir: bool, applies_to: str,
+                  project_root_markers: tuple[str, ...] = ()) -> ExclusionVerdict | None:
+    """The §1.1 verdict for one entry, or None when no rule fires.
+
+    `project_root_markers` are the markers observed in the entry's PARENT directory:
+    a non-empty tuple means this entry is a descendant of a software project root,
+    which §1.1 rejects whether it is a file or a directory.
+    """
+    name = PurePath(path).name
+    if project_root_markers:
+        return ExclusionVerdict(str(path), RULE_PROJECT_ROOT_DESCENDANT,
+                                project_root_markers[0], applies_to)
+    if is_dir and name in EXCLUDED_DIRECTORY_NAMES:
+        return ExclusionVerdict(str(path), RULE_LITERAL_DIRECTORY_NAME, name, applies_to)
+    if is_dir:
+        for category, members in CATEGORY_MEMBERS.items():
+            if name in members:
+                return ExclusionVerdict(str(path), RULE_CATEGORY, category, applies_to)
+    return None
+
+
+EXCLUSION_DDL = """
+CREATE TABLE IF NOT EXISTS exclusion_verdicts (
+    verdict_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    scan_run_id  TEXT NOT NULL REFERENCES scan_runs(scan_run_id),
+    path         TEXT NOT NULL,
+    rule         TEXT NOT NULL,
+    rule_subject TEXT NOT NULL,
+    applies_to   TEXT NOT NULL,
+    observed_at  TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS exclusion_verdicts_no_delete
+BEFORE DELETE ON exclusion_verdicts
+BEGIN
+    SELECT RAISE(ABORT, 'an exclusion verdict survives a later rule-set change');
+END;
+"""
+
+
+def record_exclusion(conn: sqlite3.Connection, scan_run_id: str,
+                     verdict: ExclusionVerdict) -> int:
+    conn.execute(
+        "INSERT INTO exclusion_verdicts "
+        "(scan_run_id, path, rule, rule_subject, applies_to, observed_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (scan_run_id, verdict.path, verdict.rule, verdict.rule_subject,
+         verdict.applies_to, datetime.now(timezone.utc).isoformat()),
+    )
+    return conn.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+
+
+def exclusion_verdicts(conn: sqlite3.Connection, scan_run_id: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM exclusion_verdicts WHERE scan_run_id = ? ORDER BY verdict_id",
+        (scan_run_id,),
+    ).fetchall()
+```
+
+Add to `create_scan_schema` in `src/scan_agent/schema.py`:
+
+```python
+from scan_agent.exclusion import EXCLUSION_DDL
+...
+    conn.executescript(EXCLUSION_DDL)
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p3/test_p3_exclusion.py -v`
+Expected: PASS — 10 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/scan_agent/exclusion.py src/scan_agent/schema.py tests/p3/test_p3_exclusion.py
+git commit -m "feat(P3): R3 exclusion verdicts, 1.1's eleven names, five categories wired and empty"
+```
+
+---
+
+### Task 5: The software-project-root rule (Done-means 4)
+
+**Files:**
+- Modify: `src/scan_agent/exclusion.py` — add `PROJECT_ROOT_MARKERS` and `project_root_markers_in`
+- Test: `tests/p3/test_p3_exclusion.py` — extend
+
+**Interfaces:**
+- Consumes: `exclusion_for` (Task 4).
+- Produces: `PROJECT_ROOT_MARKERS: tuple[str, str, str, str]`, `project_root_markers_in(entry_names: Iterable[tuple[str, bool]]) -> tuple[str, ...]`.
+
+**The four markers are literal and complete for now.** §1.1: *"descendants of software project roots indicated by files such as `package.json`, `requirements.txt`, `Cargo.toml`, or `go.mod`."* SPEC Deferred: *"§1.1's 'files such as' signals an extensible set without naming its other members. The four literal names are implementable now; any extension is hand-authored."* So four, and no fifth.
+
+**The rule rejects descendants.** §1.1's word is *descendants*, and Done-means 4 is *"A directory containing `package.json` … yields zero `files` rows from its **descendants**."* A file sitting directly inside the marker-bearing directory **is** a descendant of it, so it is rejected; the marker-bearing directory **itself** is not rejected by this rule. Its rejection would be a different rule, and whether it should be rejected is **SPEC Q9** — *"Does the project-root rule exclude the root directory itself, or only its descendants? … Whether the marker-bearing directory can still be a candidate root, or appear in the canvas at all, is unstated."* **Q9 stays open.** This plan implements §1.1's literal word and asserts nothing about the marker-bearing directory's eligibility as a candidate root; the directory keeps its R6 inventory row (Task 13) and the marker is recorded there as evidence, which is what §1.1's AIKonic case asks the scan to know.
+
+**The marker file is itself a descendant** and therefore excluded, with `rule_subject` naming it. It is still observable as R6 evidence because the traversal reads the directory listing before applying any rule.
+
+**Only the first marker in the design's order lands in `rule_subject`**, so the verdict is deterministic across runs and replays. All markers observed in a directory are recorded in R6's `curation_evidence` (Task 13), so nothing is lost.
+
+- [ ] **Step 1: Write the failing test**
+
+Append to `tests/p3/test_p3_exclusion.py`:
+
+```python
+from scan_agent.exclusion import (
+    PROJECT_ROOT_MARKERS, RULE_PROJECT_ROOT_DESCENDANT, project_root_markers_in,
+)
+
+
+def test_the_four_markers_are_1_1s_four_verbatim():
+    assert PROJECT_ROOT_MARKERS == (
+        "package.json", "requirements.txt", "Cargo.toml", "go.mod",
+    )
+
+
+def test_each_marker_makes_its_directory_a_project_root():
+    for marker in PROJECT_ROOT_MARKERS:
+        listing = [("README.md", False), (marker, False), ("src", True)]
+        assert project_root_markers_in(listing) == (marker,)
+
+
+def test_a_marker_must_be_a_file_not_a_directory():
+    # §1.1: "indicated by FILES such as package.json".
+    assert project_root_markers_in([("package.json", True)]) == ()
+
+
+def test_markers_are_reported_in_the_designs_order():
+    listing = [("go.mod", False), ("package.json", False)]
+    assert project_root_markers_in(listing) == ("package.json", "go.mod")
+
+
+def test_a_descendant_of_a_project_root_is_rejected(tmp_path: Path):
+    # Done-means 4. Both a file and a subdirectory inside the marker-bearing
+    # directory are descendants of it.
+    markers = ("package.json",)
+    for child, is_dir in (("notes.txt", False), ("src", True)):
+        verdict = exclusion_for(tmp_path / "app" / child, is_dir=is_dir,
+                                applies_to=APPLIES_TO_SCANNED_SOURCE,
+                                project_root_markers=markers)
+        assert verdict is not None
+        assert verdict.rule == RULE_PROJECT_ROOT_DESCENDANT
+        assert verdict.rule_subject == "package.json"
+
+
+def test_the_marker_file_is_itself_a_descendant_and_is_rejected(tmp_path: Path):
+    verdict = exclusion_for(tmp_path / "app" / "package.json", is_dir=False,
+                            applies_to=APPLIES_TO_SCANNED_SOURCE,
+                            project_root_markers=("package.json",))
+    assert verdict is not None
+    assert verdict.rule == RULE_PROJECT_ROOT_DESCENDANT
+
+
+def test_the_marker_bearing_directory_itself_is_not_rejected_by_this_rule(tmp_path: Path):
+    # SPEC Q9 is OPEN: §1.1 says "descendants of software project roots" and says
+    # nothing about the root directory itself. This plan implements §1.1's literal
+    # word and decides nothing about whether that directory may be a candidate root.
+    assert exclusion_for(tmp_path / "app", is_dir=True,
+                         applies_to=APPLIES_TO_SCANNED_SOURCE,
+                         project_root_markers=()) is None
+
+
+def test_the_project_root_rule_outranks_the_literal_name_rule(tmp_path: Path):
+    # A `build` directory inside a project root is rejected as a descendant. Both
+    # rules would fire; the verdict names one, deterministically.
+    verdict = exclusion_for(tmp_path / "app" / "build", is_dir=True,
+                            applies_to=APPLIES_TO_SCANNED_SOURCE,
+                            project_root_markers=("Cargo.toml",))
+    assert verdict.rule == RULE_PROJECT_ROOT_DESCENDANT
+    assert verdict.rule_subject == "Cargo.toml"
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p3/test_p3_exclusion.py -v`
+Expected: FAIL with `ImportError: cannot import name 'PROJECT_ROOT_MARKERS'`
+
+- [ ] **Step 3: Write the implementation**
+
+Insert into `src/scan_agent/exclusion.py`, below `EXCLUSION_CATEGORIES`:
+
+```python
+#: §1.1's four literal software-project-root markers, verbatim and in order.
+#: §1.1's "files such as" signals an extensible set and names no other member, so
+#: any extension is hand-authored (SPEC Deferred). Four, and no fifth.
+PROJECT_ROOT_MARKERS: tuple[str, str, str, str] = (
+    "package.json", "requirements.txt", "Cargo.toml", "go.mod",
+)
+```
+
+And below `exclusion_for`:
+
+```python
+def project_root_markers_in(entry_names) -> tuple[str, ...]:
+    """The §1.1 markers observed directly inside one directory, in the design's order.
+
+    A non-empty result makes that directory a software project root, so §1.1 rejects
+    its descendants. Whether the marker-bearing directory ITSELF is excluded — and
+    whether it may still be a candidate root — is SPEC Q9 and is OPEN: §1.1 says
+    only "descendants of software project roots". Nothing here decides it.
+
+    `entry_names` is an iterable of (name, is_dir) pairs: §1.1 says the markers are
+    FILES, so a directory called `package.json` is not one.
+    """
+    files = {name for name, is_dir in entry_names if not is_dir}
+    return tuple(marker for marker in PROJECT_ROOT_MARKERS if marker in files)
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p3/test_p3_exclusion.py -v`
+Expected: PASS — 18 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/scan_agent/exclusion.py tests/p3/test_p3_exclusion.py
+git commit -m "feat(P3): software-project-root rule, four markers, descendants rejected"
+```
+
+---
