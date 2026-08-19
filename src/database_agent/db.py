@@ -83,6 +83,38 @@ CREATE INDEX IF NOT EXISTS files_content_hash ON files (content_hash);
 """
 
 
+EVENTS_DDL = """
+CREATE TABLE IF NOT EXISTS events (
+    event_id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type         TEXT NOT NULL,
+    base_event_type    TEXT,
+    file_id            TEXT,
+    content_hash       TEXT,
+    old_path           TEXT,
+    new_path           TEXT,
+    subsystem          TEXT NOT NULL,
+    component_version  TEXT,
+    prompt_fingerprint TEXT,
+    user_id            TEXT,
+    observed_at        TEXT NOT NULL,
+    explanation        TEXT,
+    -- §8.7 columns. Not among §8.2's eleven fields (MINOR 1); on user-action events only.
+    correction_scope   TEXT,
+    correction_subject TEXT,
+    polarity           TEXT,
+    proposal_class     TEXT,
+    basis_key          TEXT
+);
+CREATE TRIGGER IF NOT EXISTS events_no_update
+BEFORE UPDATE ON events
+BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
+CREATE TRIGGER IF NOT EXISTS events_no_delete
+BEFORE DELETE ON events
+BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
+"""
+
+
 def create_schema(conn: sqlite3.Connection) -> None:
     """Create every P1-owned table. Idempotent."""
     conn.executescript(FILES_DDL)
+    conn.executescript(EVENTS_DDL)
