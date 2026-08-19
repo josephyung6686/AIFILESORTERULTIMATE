@@ -45,6 +45,8 @@ P2 is built on P1's substrate and on nothing else. The surfaces consumed, all fr
 
 **P1 must be green before Task 1 starts.** Run `pytest tests/ -q` and confirm P1's suite passes; P2's first import failure otherwise reads as a P2 defect when it is a missing substrate.
 
+**`tests/eval/conftest.py` must not shadow P1's.** Under pytest's default prepend import mode, with no `__init__.py` under `tests/`, EVERY `conftest.py` is imported as the top-level module `conftest`, and the second one wins in `sys.modules`. P1's shared hand-over helper therefore does not live in `tests/conftest.py` at all — it is `tests/p1_contract.py`, which cannot be shadowed that way. P2's own fixtures may live in `tests/eval/conftest.py`; nothing imported across parts by name may.
+
 **P2 does not modify any P1 file.** Not `db.py`, not `pyproject.toml`, not `tests/conftest.py`. P2's schema function is its own, its fixtures live in `tests/eval/conftest.py`, and its tests live in `tests/eval/` so that P1's `tests/conftest.py` stays untouched.
 
 ---
@@ -5704,7 +5706,7 @@ absent, which is a valid run with nine not_run verdicts.
 """
 from pathlib import Path
 
-from conftest import p3_basic_record   # the R2 fields P3 computes once (O5)
+from p1_contract import p3_basic_record   # the R2 fields P3 computes once (O5)
 from database_agent.budget import all_ceilings
 from database_agent.db import create_schema
 from database_agent.files_table import get_file, observe_path
