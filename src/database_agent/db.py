@@ -114,6 +114,15 @@ BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
 """
 
 
+# Inlined rather than imported from vectors.py, to avoid a circular import.
+VECTORS_DDL = """
+CREATE TABLE IF NOT EXISTS vector_arrays (
+    subject_key      TEXT PRIMARY KEY,
+    array_bytes      BLOB NOT NULL,
+    producer_version TEXT NOT NULL
+);
+"""
+
 # Inlined rather than imported from budget.py, to avoid a circular import.
 BUDGET_DDL = """
 CREATE TABLE IF NOT EXISTS budget_ceilings (
@@ -140,3 +149,4 @@ def create_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(EVENTS_DDL)
     conn.executescript(LEARNING_DDL)
     conn.executescript(BUDGET_DDL)
+    conn.executescript(VECTORS_DDL)

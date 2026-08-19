@@ -1307,3 +1307,421 @@ git commit -m "feat(P2): stage output envelope, opaque payload, foreign vocabula
 ```
 
 ---
+
+### Task 5: The replay bundle — manifest, file entries, sealing, supersession (Done-means 1)
+
+**Files:**
+- Create: `src/eval_harness/bundle.py`
+- Modify: `src/eval_harness/store.py` — add `bundle.BUNDLE_DDL` to `_ddl_scripts`
+- Test: `tests/eval/test_bundle.py`
+
+**Interfaces:**
+- Consumes: `canonical_json` (Task 1); `CORPUS_FORMS` (Task 2); `database_agent.db.transaction` (P1 Task 1).
+- Produces: `BUNDLE_CONTENTS: tuple[str, ...]` (§8.5's eight listed items), `open_bundle(conn, *, corpus_form, source_scan_ref, pinned_plan_id, pinned_plan_version, policy_settings, supersedes_bundle_id=None) -> str`, `add_file_entry(conn, bundle_id, *, file_id, content_hash, hash_algorithm, handling_class, payload_ref=None, metadata_only=None) -> None`, `seal_bundle(conn, bundle_id) -> None`, `get_bundle(conn, bundle_id) -> sqlite3.Row`, `bundle_files(conn, bundle_id) -> list[sqlite3.Row]`, `rebuild_bundle(conn, bundle_id, **overrides) -> str`, `BundleSealed`, `BodyMismatch`.
+
+**Immutability is enforced by trigger, not by convention** — the same discipline P1 applies to `events`. A bundle is opened, filled, and sealed; after `sealed_at` is stamped, every `UPDATE` on the manifest and every `INSERT`, `UPDATE` or `DELETE` on a child row raises. Before sealing, an abandoned draft can be discarded. **These triggers are on P2's own tables.** P2 does not touch `events`, and I6 (tombstone versus append) is deferred to P7 — nothing here forecloses it.
+
+**A rebuild is a new bundle that supersedes the old** (§8.2 supersede-never-overwrite; §8.8 *"a new plan should never silently reclassify or move old files"*). `rebuild_bundle` copies the manifest, applies overrides, sets `supersedes_bundle_id`, and **leaves the superseded bundle sealed and readable**. There is no delete path.
+
+**`body` is exactly one of two things, and which one is fixed by `corpus_form`.** SPEC Contract out §3: `payload_ref` when `corpus_form = snapshot`, `metadata_only` when `corpus_form = metadata_safe`. `add_file_entry` refuses an entry that carries the wrong one, or both, or neither — otherwise a metadata-safe bundle could silently acquire file bytes, which is the precise thing SPEC Open question 5 is unable to authorize.
+
+**P2 stores `handling_class` and `privacy_mode` as opaque strings and validates neither.** They are P7's closed vocabularies (five classes, four operation modes), published in P7's Contract out. Copying either list into P2's source would be two vocabularies for one concept. The consequence is stated plainly: **a typo in a handling class is not caught here.** When P7 lands, import its vocabulary and validate against the imported names — do not retype the strings. This is the same discipline P1 applied to P11's eight unspelled event types, and it is recorded as a known gap at the end of this plan.
+
+**P2 does not decide whether a bundle may leave the device.** SPEC Open question 5 is open. `corpus_form` is declared per bundle and `handling_class` is recorded per entry *"so that P7's §8.4 policy can be applied to a bundle without P2 deciding it"*. There is no export function in this plan, and no test asserts that any bundle is exportable.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_bundle.py
+import sqlite3
+
+import pytest
+
+from eval_harness.bundle import (
+    BUNDLE_CONTENTS, BodyMismatch, BundleSealed, add_file_entry, bundle_files,
+    get_bundle, open_bundle, rebuild_bundle, seal_bundle,
+)
+from eval_harness.store import create_eval_schema
+
+
+def _policy():
+    """§8.5's "policy settings". privacy_mode and placement_policy are P7's and
+    P10's vocabularies and are carried opaquely; the ceiling set is P1's keys."""
+    return {"privacy_mode": "offline", "placement_policy": "policy-fixture",
+            "budget_ceilings": {}}
+
+
+def _open(conn, **overrides):
+    fields = dict(corpus_form="snapshot", source_scan_ref="scan-fixture",
+                  pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                  policy_settings=_policy())
+    fields.update(overrides)
+    return open_bundle(conn, **fields)
+
+
+def test_the_manifest_carries_every_8_5_content_item():
+    # §8.5: "a frozen corpus snapshot or a metadata-safe representation of one,
+    # content hashes, extraction outputs, expected facts, accepted groups, tree
+    # versions, policy settings, and expected placement or abstention outcomes."
+    assert BUNDLE_CONTENTS == (
+        "corpus", "content_hashes", "extraction_outputs", "expected_facts",
+        "accepted_groups", "tree_versions", "policy_settings",
+        "expected_placement_or_abstention",
+    )
+    assert len(BUNDLE_CONTENTS) == 8
+
+
+def test_a_bundle_records_its_scan_plan_and_policy(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _open(eval_conn)
+    row = get_bundle(eval_conn, bundle_id)
+    assert row["corpus_form"] == "snapshot"
+    assert row["source_scan_ref"] == "scan-fixture"          # P3's scan_id (§1.1)
+    assert row["pinned_plan_id"] == "plan-fixture"           # §8.8
+    assert row["pinned_plan_version"] == "1"
+    assert '"privacy_mode":"offline"' in row["policy_settings"]
+    assert row["created_at"] and row["sealed_at"] is None
+    assert row["supersedes_bundle_id"] is None
+
+
+def test_a_corpus_form_outside_the_two_is_rejected(eval_conn):
+    create_eval_schema(eval_conn)
+    with pytest.raises(ValueError):
+        _open(eval_conn, corpus_form="redacted")
+
+
+def test_a_snapshot_entry_carries_a_payload_ref_and_not_metadata_only(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _open(eval_conn, corpus_form="snapshot")
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+                   hash_algorithm="sha256", handling_class="public_low",
+                   payload_ref="blobs/aa")
+    entry = bundle_files(eval_conn, bundle_id)[0]
+    assert entry["payload_ref"] == "blobs/aa"
+    assert entry["metadata_only"] is None
+    with pytest.raises(BodyMismatch):
+        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="sha256:bb",
+                       hash_algorithm="sha256", handling_class="public_low",
+                       metadata_only='{"size":10}')
+
+
+def test_a_metadata_safe_entry_carries_metadata_only_and_no_bytes(eval_conn):
+    # A metadata_safe bundle acquiring a payload_ref is the failure SPEC OQ5
+    # cannot authorize. Refused structurally, not by review.
+    create_eval_schema(eval_conn)
+    bundle_id = _open(eval_conn, corpus_form="metadata_safe")
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+                   hash_algorithm="sha256", handling_class="sensitive_personal",
+                   metadata_only='{"size":10}')
+    entry = bundle_files(eval_conn, bundle_id)[0]
+    assert entry["metadata_only"] == '{"size":10}'
+    assert entry["payload_ref"] is None
+    with pytest.raises(BodyMismatch):
+        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="sha256:bb",
+                       hash_algorithm="sha256", handling_class="public_low",
+                       payload_ref="blobs/bb")
+
+
+def test_an_entry_with_both_bodies_or_neither_is_refused(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _open(eval_conn)
+    with pytest.raises(BodyMismatch):
+        add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+                       hash_algorithm="sha256", handling_class="public_low",
+                       payload_ref="blobs/aa", metadata_only="{}")
+    with pytest.raises(BodyMismatch):
+        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="sha256:bb",
+                       hash_algorithm="sha256", handling_class="public_low")
+
+
+def test_a_sealed_bundle_cannot_be_changed(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _open(eval_conn)
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+                   hash_algorithm="sha256", handling_class="public_low",
+                   payload_ref="blobs/aa")
+    seal_bundle(eval_conn, bundle_id)
+    with pytest.raises(BundleSealed):
+        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="sha256:bb",
+                       hash_algorithm="sha256", handling_class="public_low",
+                       payload_ref="blobs/bb")
+    with pytest.raises(sqlite3.IntegrityError):
+        eval_conn.execute("UPDATE bundle_manifest SET corpus_form = 'metadata_safe' "
+                          "WHERE bundle_id = ?", (bundle_id,))
+    with pytest.raises(sqlite3.IntegrityError):
+        eval_conn.execute("DELETE FROM bundle_file_entry WHERE bundle_id = ?",
+                          (bundle_id,))
+
+
+def test_a_rebuild_supersedes_and_retains(eval_conn):
+    # §8.2 supersede-never-overwrite; §8.8 a new plan never silently reclassifies.
+    create_eval_schema(eval_conn)
+    first = _open(eval_conn)
+    add_file_entry(eval_conn, first, file_id="f1", content_hash="sha256:aa",
+                   hash_algorithm="sha256", handling_class="public_low",
+                   payload_ref="blobs/aa")
+    seal_bundle(eval_conn, first)
+    second = rebuild_bundle(eval_conn, first, pinned_plan_version="2")
+    assert second != first
+    assert get_bundle(eval_conn, second)["supersedes_bundle_id"] == first
+    assert get_bundle(eval_conn, second)["pinned_plan_version"] == "2"
+    # the old one is still there, still sealed, still readable
+    assert get_bundle(eval_conn, first)["sealed_at"]
+    assert bundle_files(eval_conn, first)[0]["content_hash"] == "sha256:aa"
+
+
+def test_p2_validates_no_p7_vocabulary(eval_conn):
+    # P7 owns the five handling classes and the four operation modes. P2 carries
+    # what it is handed. A typo is NOT caught here, deliberately: retyping P7's
+    # enum would be two vocabularies for one concept. See Known gaps.
+    create_eval_schema(eval_conn)
+    bundle_id = _open(eval_conn)
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+                   hash_algorithm="sha256", handling_class="anything-p7-says",
+                   payload_ref="blobs/aa")
+    assert bundle_files(eval_conn, bundle_id)[0]["handling_class"] == "anything-p7-says"
+
+
+def test_p2_source_carries_no_p7_class_or_mode_name():
+    from pathlib import Path
+    src = Path(__file__).resolve().parents[2] / "src" / "eval_harness"
+    forbidden = ("public_low", "personal_non_sensitive", "sensitive_personal",
+                 "highly_sensitive_credential_bearing", "unreadable_unclassified",
+                 "local_model", "cloud_assisted", "hybrid")
+    for path in src.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        for term in forbidden:
+            assert term not in text, f"{path.name} carries P7's {term!r}"
+
+
+def test_a_bundle_needs_no_live_filesystem(eval_conn, tmp_path):
+    # Done-means 1: built, stored, and read back with nothing on disk to consult.
+    create_eval_schema(eval_conn)
+    bundle_id = _open(eval_conn, corpus_form="metadata_safe")
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+                   hash_algorithm="sha256", handling_class="public_low",
+                   metadata_only='{"size":10}')
+    seal_bundle(eval_conn, bundle_id)
+    assert not any(tmp_path.glob("corpus*"))
+    assert bundle_files(eval_conn, bundle_id)[0]["content_hash"] == "sha256:aa"
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_bundle.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.bundle'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/bundle.py
+"""Contract out §3 — the replay bundle.
+
+Contents are exactly §8.5's list. A bundle is immutable once sealed, and a rebuild
+is a NEW bundle that supersedes the old and retains it (§8.2, §8.8).
+
+P2 records `handling_class` and `privacy_mode` and validates neither: those are
+P7's closed vocabularies and copying them here would be two vocabularies for one
+concept. P2 does not decide whether a bundle may leave the device — SPEC Open
+question 5 is open and there is no export path in this module.
+"""
+from __future__ import annotations
+
+import sqlite3
+import uuid
+from datetime import datetime, timezone
+
+from eval_harness.store import canonical_json
+from eval_harness.vocabulary import CORPUS_FORMS
+
+#: §8.5's contents list, verbatim, as the names of the things a bundle must hold.
+#: Each maps to a table created here or in Tasks 6-8.
+BUNDLE_CONTENTS: tuple[str, ...] = (
+    "corpus",                            # bundle_file_entry.body (both forms)
+    "content_hashes",                    # bundle_file_entry.content_hash
+    "extraction_outputs",                # bundle_extraction_output/_run/_text_unit (Task 6)
+    "expected_facts",                    # bundle_expectation, dimension = fact (Task 8)
+    "accepted_groups",                   # bundle_accepted_group (Task 8)
+    "tree_versions",                     # bundle_manifest.pinned_plan_id/version
+    "policy_settings",                   # bundle_manifest.policy_settings
+    "expected_placement_or_abstention",  # bundle_expectation, dimensions 9 and 10 (Task 8)
+)
+
+BUNDLE_DDL = """
+CREATE TABLE IF NOT EXISTS bundle_manifest (
+    bundle_id            TEXT PRIMARY KEY,
+    created_at           TEXT NOT NULL,
+    corpus_form          TEXT NOT NULL,
+    source_scan_ref      TEXT,
+    pinned_plan_id       TEXT,
+    pinned_plan_version  TEXT,
+    policy_settings      TEXT NOT NULL,
+    supersedes_bundle_id TEXT REFERENCES bundle_manifest (bundle_id),
+    sealed_at            TEXT
+);
+CREATE TABLE IF NOT EXISTS bundle_file_entry (
+    bundle_id      TEXT NOT NULL REFERENCES bundle_manifest (bundle_id),
+    file_id        TEXT NOT NULL,
+    content_hash   TEXT NOT NULL,
+    hash_algorithm TEXT NOT NULL,
+    handling_class TEXT,                 -- P7's vocabulary, carried opaquely
+    payload_ref    TEXT,                 -- corpus_form = snapshot
+    metadata_only  TEXT,                 -- corpus_form = metadata_safe
+    PRIMARY KEY (bundle_id, file_id)
+);
+
+-- A sealed bundle is immutable (Contract out §3). These triggers are on P2's own
+-- tables; `events` is P1's and P2 never writes it.
+CREATE TRIGGER IF NOT EXISTS bundle_manifest_sealed_no_update
+BEFORE UPDATE ON bundle_manifest
+WHEN OLD.sealed_at IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_manifest_sealed_no_delete
+BEFORE DELETE ON bundle_manifest
+WHEN OLD.sealed_at IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'a sealed bundle is retained, never deleted (8.2)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_file_entry_sealed_no_insert
+BEFORE INSERT ON bundle_file_entry
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_file_entry_sealed_no_update
+BEFORE UPDATE ON bundle_file_entry
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_file_entry_sealed_no_delete
+BEFORE DELETE ON bundle_file_entry
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+"""
+
+
+class BundleSealed(Exception):
+    """A sealed bundle was written to. Rebuild instead — it supersedes (§8.2)."""
+
+
+class BodyMismatch(Exception):
+    """An entry's body does not match its bundle's declared corpus_form."""
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def open_bundle(conn: sqlite3.Connection, *, corpus_form: str,
+                source_scan_ref: str | None, pinned_plan_id: str | None,
+                pinned_plan_version: str | None, policy_settings: dict,
+                supersedes_bundle_id: str | None = None) -> str:
+    """Open a draft bundle. Fill it, then `seal_bundle` to make it immutable."""
+    if corpus_form not in CORPUS_FORMS:
+        raise ValueError(f"corpus_form {corpus_form!r} is not one of {CORPUS_FORMS}")
+    bundle_id = str(uuid.uuid4())
+    conn.execute(
+        "INSERT INTO bundle_manifest (bundle_id, created_at, corpus_form, "
+        "source_scan_ref, pinned_plan_id, pinned_plan_version, policy_settings, "
+        "supersedes_bundle_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (bundle_id, _now(), corpus_form, source_scan_ref, pinned_plan_id,
+         pinned_plan_version, canonical_json(policy_settings), supersedes_bundle_id),
+    )
+    return bundle_id
+
+
+def _require_open(conn: sqlite3.Connection, bundle_id: str) -> sqlite3.Row:
+    row = get_bundle(conn, bundle_id)
+    if row is None:
+        raise KeyError(f"no bundle {bundle_id!r}")
+    if row["sealed_at"] is not None:
+        raise BundleSealed(
+            f"bundle {bundle_id} was sealed at {row['sealed_at']}; a rebuild "
+            "creates a new bundle that supersedes it (§8.2)"
+        )
+    return row
+
+
+def add_file_entry(conn: sqlite3.Connection, bundle_id: str, *, file_id: str,
+                   content_hash: str, hash_algorithm: str,
+                   handling_class: str | None,
+                   payload_ref: str | None = None,
+                   metadata_only: str | None = None) -> None:
+    """One `bundle_file_entry`. Exactly one body, fixed by the bundle's corpus_form."""
+    row = _require_open(conn, bundle_id)
+    if (payload_ref is None) == (metadata_only is None):
+        raise BodyMismatch("an entry carries exactly one body: payload_ref "
+                           "(snapshot) or metadata_only (metadata_safe)")
+    if row["corpus_form"] == "snapshot" and payload_ref is None:
+        raise BodyMismatch("a snapshot bundle's entries carry payload_ref")
+    if row["corpus_form"] == "metadata_safe" and metadata_only is None:
+        raise BodyMismatch(
+            "a metadata_safe bundle's entries carry metadata_only; whether such a "
+            "bundle may carry anything more is SPEC Open question 5, not P2's call"
+        )
+    conn.execute(
+        "INSERT INTO bundle_file_entry (bundle_id, file_id, content_hash, "
+        "hash_algorithm, handling_class, payload_ref, metadata_only) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (bundle_id, file_id, content_hash, hash_algorithm, handling_class,
+         payload_ref, metadata_only),
+    )
+
+
+def seal_bundle(conn: sqlite3.Connection, bundle_id: str) -> None:
+    _require_open(conn, bundle_id)
+    conn.execute("UPDATE bundle_manifest SET sealed_at = ? WHERE bundle_id = ?",
+                 (_now(), bundle_id))
+
+
+def get_bundle(conn: sqlite3.Connection, bundle_id: str) -> sqlite3.Row:
+    return conn.execute("SELECT * FROM bundle_manifest WHERE bundle_id = ?",
+                        (bundle_id,)).fetchone()
+
+
+def bundle_files(conn: sqlite3.Connection, bundle_id: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM bundle_file_entry WHERE bundle_id = ? ORDER BY file_id",
+        (bundle_id,)).fetchall()
+
+
+def rebuild_bundle(conn: sqlite3.Connection, bundle_id: str, **overrides) -> str:
+    """Open a NEW bundle that supersedes `bundle_id`. The old one is retained.
+
+    §8.2's supersede-never-overwrite, applied to bundles. The caller re-adds the
+    contents it wants; nothing is copied silently, because a rebuild that quietly
+    carried the old contents forward would make the two indistinguishable.
+    """
+    old = get_bundle(conn, bundle_id)
+    if old is None:
+        raise KeyError(f"no bundle {bundle_id!r}")
+    import json
+    fields = dict(
+        corpus_form=old["corpus_form"], source_scan_ref=old["source_scan_ref"],
+        pinned_plan_id=old["pinned_plan_id"],
+        pinned_plan_version=old["pinned_plan_version"],
+        policy_settings=json.loads(old["policy_settings"]),
+    )
+    fields.update(overrides)
+    return open_bundle(conn, supersedes_bundle_id=bundle_id, **fields)
+```
+
+Add to `store.py`'s `_ddl_scripts`:
+
+```python
+    from eval_harness import bundle, run, stage_output
+    return [bundle.BUNDLE_DDL, run.RUN_DDL, stage_output.STAGE_DDL]
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_bundle.py -v`
+Expected: PASS — 11 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/bundle.py src/eval_harness/store.py tests/eval/test_bundle.py
+git commit -m "feat(P2): replay bundle, sealed by trigger, superseded never overwritten"
+```
+
+---
