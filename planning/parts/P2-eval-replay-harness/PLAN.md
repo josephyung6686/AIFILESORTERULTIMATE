@@ -92,3 +92,461 @@ tests/eval/test_skeleton_p2_step.py     Done-means 11
 Files split by published surface, not by technical layer — each module is one Contract-out section, so a reviewer can reject one without touching its neighbours.
 
 ---
+
+### Task 1: Package skeleton and the eval store
+
+**Files:**
+- Create: `src/eval_harness/__init__.py`
+- Create: `src/eval_harness/store.py`
+- Create: `tests/eval/conftest.py`
+- Test: `tests/eval/test_store.py`
+
+**Interfaces:**
+- Consumes: `database_agent.db.open_database(path, *, scan_roots=()) -> sqlite3.Connection` (P1 Task 1).
+- Produces: `EVAL_SCHEMA_VERSION: int`, `create_eval_schema(conn: sqlite3.Connection) -> None`, `EVAL_TABLES: tuple[str, ...]`, `canonical_json(value) -> str`, `content_ref(text: str) -> str`.
+
+**P2 owns tables inside P1's database, and creates them itself.** §0 gives the product one local SQLite database and each part its own tables within it. P2 therefore does **not** add DDL to `database_agent/db.py`: `create_eval_schema` takes the connection P1 hands out and runs P2's own script. Two reasons beyond file ownership. First, P1's `create_schema` is *"Create every P1-owned table"* and a P2 table in it would make P1's Done-means 8 vocabulary guard scan a table P1 does not own. Second, P2 must be droppable — an eval store is not a precondition for a live scan — and a part whose tables are welded into the substrate's schema function cannot be.
+
+**No foreign key from a bundle row into `files`.** A bundle is a frozen capture that §8.5 requires be re-runnable *"without touching a live filesystem"*, and SPEC Open question 5 asks whether a metadata-safe bundle may leave the device at all. Both readings require a bundle to load into a database whose `files` table does not contain those rows. `bundle_file_entry.file_id` and `content_hash` are therefore plain columns carrying P1's identity values, not references into P1's table. P2 does not answer OQ5 by doing this; it stops the schema from deciding OQ5 by accident.
+
+**`content_ref` is a hash, not an identity claim.** It exists so two structurally identical version tuples (Task 4) share a stable reference. Computing one says nothing about whether re-running a bundle under one tuple reproduces its outputs — that is SPEC Open question 11, and it stays open.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_store.py
+import sqlite3
+from pathlib import Path
+
+from database_agent.db import open_database
+
+from eval_harness.store import (
+    EVAL_SCHEMA_VERSION, EVAL_TABLES, canonical_json, content_ref, create_eval_schema,
+)
+
+
+def _table_names(conn: sqlite3.Connection) -> set[str]:
+    return {r["name"] for r in
+            conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+
+
+def test_create_eval_schema_creates_every_p2_table(eval_conn):
+    create_eval_schema(eval_conn)
+    present = _table_names(eval_conn)
+    for table in EVAL_TABLES:
+        assert table in present, f"missing P2 table {table}"
+
+
+def test_create_eval_schema_is_idempotent(eval_conn):
+    create_eval_schema(eval_conn)
+    create_eval_schema(eval_conn)
+    assert set(EVAL_TABLES) <= _table_names(eval_conn)
+
+
+def test_p2_creates_no_p1_table(eval_conn):
+    # §0: each part owns its own tables. P2 does not create, alter, or shadow
+    # `files` or `events`; P1's create_schema is the only thing that makes them.
+    create_eval_schema(eval_conn)
+    present = _table_names(eval_conn)
+    assert "files" not in present
+    assert "events" not in present
+
+
+def test_no_bundle_table_references_the_live_files_table(eval_conn):
+    # A bundle must load into a database whose `files` table is empty (§8.5
+    # "without touching a live filesystem"; SPEC OQ5 on export). A foreign key
+    # into P1's table would decide OQ5 by making that impossible.
+    create_eval_schema(eval_conn)
+    for table in EVAL_TABLES:
+        targets = {r["table"] for r in
+                   eval_conn.execute(f"PRAGMA foreign_key_list({table})")}
+        assert "files" not in targets and "events" not in targets, table
+
+
+def test_schema_version_is_recorded_separately_from_p1s(eval_conn):
+    create_eval_schema(eval_conn)
+    row = eval_conn.execute(
+        "SELECT value FROM eval_schema_meta WHERE key = 'eval_schema_version'"
+    ).fetchone()
+    assert int(row["value"]) == EVAL_SCHEMA_VERSION
+
+
+def test_canonical_json_is_order_independent():
+    # Value comparison in Task 10 is exact equality over this form, so the form
+    # must not depend on key order. No tolerance, no rounding (SPEC OQ2 open).
+    assert canonical_json({"b": 1, "a": [2, 3]}) == canonical_json({"a": [2, 3], "b": 1})
+    assert canonical_json({"a": 1}) != canonical_json({"a": 1.0000001})
+
+
+def test_content_ref_is_stable_and_distinguishing():
+    assert content_ref(canonical_json({"a": 1})) == content_ref(canonical_json({"a": 1}))
+    assert content_ref(canonical_json({"a": 1})) != content_ref(canonical_json({"a": 2}))
+    assert len(content_ref("x")) == 71 and content_ref("x").startswith("sha256:")
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_store.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness'`
+
+- [ ] **Step 3: Write the conftest**
+
+```python
+# tests/eval/conftest.py
+"""P2 fixtures. Deliberately separate from tests/conftest.py, which is P1's."""
+from pathlib import Path
+
+import pytest
+
+from database_agent.db import open_database
+
+
+@pytest.fixture()
+def eval_conn(tmp_path: Path):
+    """P1's handle (§0: one local database). P2 owns tables inside it."""
+    c = open_database(tmp_path / "agent.sqlite")
+    yield c
+    c.close()
+```
+
+- [ ] **Step 4: Write the store**
+
+```python
+# src/eval_harness/store.py
+"""P2's tables, created inside P1's single local database (§0).
+
+P1's `create_schema` is not touched: §0 gives each part its own tables, and an
+eval store is droppable in a way the substrate is not.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import sqlite3
+
+EVAL_SCHEMA_VERSION = 1
+
+EVAL_TABLES: tuple[str, ...] = (
+    "eval_schema_meta",
+    "bundle_manifest",
+    "bundle_file_entry",
+    "bundle_extraction_output",
+    "bundle_extraction_run",
+    "bundle_text_unit",
+    "bundle_learning_record",
+    "bundle_accepted_group",
+    "bundle_expectation",
+    "version_tuple",
+    "run_manifest",
+    "stage_output",
+    "stage_dimension_value",
+    "assertion",
+    "comparison",
+    "comparison_dimension",
+    "shadow_run",
+    "review_adjudication",
+)
+
+_META_DDL = """
+CREATE TABLE IF NOT EXISTS eval_schema_meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+"""
+
+
+def create_eval_schema(conn: sqlite3.Connection) -> None:
+    """Create every P2-owned table. Idempotent. Creates no P1 table."""
+    conn.executescript(_META_DDL)
+    for ddl in _DDL_SCRIPTS:
+        conn.executescript(ddl)
+    conn.execute(
+        "INSERT INTO eval_schema_meta (key, value) VALUES ('eval_schema_version', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (str(EVAL_SCHEMA_VERSION),),
+    )
+
+
+#: Each task below appends its own DDL string here. Nothing is created twice.
+_DDL_SCRIPTS: list[str] = []
+
+
+def canonical_json(value) -> str:
+    """The one serialization P2 compares by.
+
+    Sorted keys, no whitespace, no float coercion. Exact equality over this form
+    is the whole of P2's value comparison: §8.5 states no tolerance and SPEC Open
+    question 2 ("what distinguishes a regression from run-to-run noise, and who
+    sets it?") is NOT answered here.
+    """
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def content_ref(text: str) -> str:
+    """A stable reference to a canonical serialization. `sha256:` + 64 hex chars.
+
+    Used for the version tuple (Task 4) so two runs given the same tuple share a
+    reference. It is an identity of the *tuple*, not a claim that re-running one
+    bundle under it reproduces its outputs — SPEC Open question 11 stays open.
+    """
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+```
+
+```python
+# src/eval_harness/__init__.py
+"""P2 — evaluation and replay harness (§8.5).
+
+P2 asserts on outcomes. It does not repair them, does not re-rank, and does not
+feed its verdicts back into any live decision path.
+"""
+from eval_harness.store import EVAL_SCHEMA_VERSION, create_eval_schema
+
+__all__ = ["create_eval_schema", "EVAL_SCHEMA_VERSION"]
+```
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_store.py -v`
+Expected: PASS — 7 passed
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/eval_harness/__init__.py src/eval_harness/store.py tests/eval/conftest.py tests/eval/test_store.py
+git commit -m "feat(P2): eval store inside P1's database, created by P2, referencing no P1 table"
+```
+
+---
+
+### Task 2: The ten stages and the ten dimensions, kept apart (Done-means 2)
+
+**Files:**
+- Create: `src/eval_harness/vocabulary.py`
+- Test: `tests/eval/test_vocabulary.py`
+
+**Interfaces:**
+- Consumes: nothing.
+- Produces: `STAGE_IDS: tuple[str, ...]` (ten, in §8.5's order), `DIMENSIONS: tuple[str, ...]` (ten), `PLAN_SCOPED_DIMENSIONS: frozenset[str]`, `SHARED_EVIDENCE_DIMENSIONS: frozenset[str]`, `OUTCOMES: tuple[str, ...]`, `BUDGET_STATES: tuple[str, ...]`, `VERDICTS: tuple[str, ...]`, `RUN_KINDS: tuple[str, ...]`, `CORPUS_FORMS: tuple[str, ...]`, `EXPECTED_OUTCOME_KINDS: tuple[str, ...]`, `EXPECTATION_SOURCES: tuple[str, ...]`, `UnknownStage`, `UnknownDimension`.
+
+**The two lists are not the same list and this module does not merge them.** SPEC Contract out §2: *"§8.5 lists the measured dimensions as a **separate** ten-item list from the attribution stages."* `factual_validation` and `candidate_node_retrieval` are stages with no same-named dimension; `residual` is a dimension with no same-named stage. That asymmetry is **SPEC Open question 1** and this plan does not answer it. Concretely: **there is no `STAGE_FOR_DIMENSION` mapping in P2's source, and no code path derives one.** A dimension value is attributed to a stage because the emitting stage names itself when it emits (Task 9), never because P2 looked the dimension up. If OQ1 later gives §7 residual handling its own attribution stage, or §6.2 its own dimension, this module gains a name and nothing else changes.
+
+**Both tuples are ordered, and the stage order is load-bearing.** §8.5's list order *"is also the pipeline order of §4.10 and §6.12"* (SPEC Contract out §1). Task 11 uses that order as the tie-break when two divergent stages sit at the same depth on an `inputs[]` chain, so the order is a contract, not a formatting choice.
+
+**Why P2 carries these enums when it carries no neighbour's.** Every name here is printed literally inside P2's own Contract out — the ten `stage_id`s, the ten `dimension`s, `outcome`, `budget_state`, `verdict`, `run_kind`, `corpus_form`, `expected_outcome_kind`, `source`. P7's five handling classes, P11's `abstention_reason` members and P6's fact fields are printed in *their* Contract outs and are stored here as opaque strings (Tasks 5, 8).
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/eval/test_vocabulary.py
+import pytest
+
+from eval_harness import vocabulary as V
+
+
+def test_there_are_exactly_ten_attribution_stages_in_8_5_order():
+    assert V.STAGE_IDS == (
+        "extraction", "factual_validation", "retrieval", "graph_construction",
+        "llm_interpretation", "grouping", "template_generation", "tree_design",
+        "candidate_node_retrieval", "placement_scoring",
+    )
+    assert len(V.STAGE_IDS) == len(set(V.STAGE_IDS)) == 10
+
+
+def test_there_are_exactly_ten_measured_dimensions():
+    assert V.DIMENSIONS == (
+        "extraction", "fact", "retrieval", "graph", "llm_grounding",
+        "grouping", "template", "tree", "placement", "residual",
+    )
+    assert len(V.DIMENSIONS) == len(set(V.DIMENSIONS)) == 10
+
+
+def test_the_two_lists_are_not_the_same_list():
+    # SPEC Contract out §2: a SEPARATE ten-item list. Done-means 2: none is
+    # collapsed into another.
+    assert set(V.STAGE_IDS) != set(V.DIMENSIONS)
+
+
+def test_the_two_asymmetries_are_recorded_as_found_not_resolved():
+    # SPEC Open question 1 is OPEN. These three names are the whole of it, and
+    # this test is the standing record: it fails the day someone quietly adds a
+    # `residual` stage or a `factual_validation` dimension to close the gap in
+    # code instead of in the design.
+    assert "factual_validation" in V.STAGE_IDS and "factual_validation" not in V.DIMENSIONS
+    assert "candidate_node_retrieval" in V.STAGE_IDS and "candidate_node_retrieval" not in V.DIMENSIONS
+    assert "residual" in V.DIMENSIONS and "residual" not in V.STAGE_IDS
+
+
+def test_no_dimension_to_stage_mapping_exists_anywhere_in_p2():
+    # Answering OQ1 in code would look exactly like this mapping appearing.
+    # The emitting stage names itself (Task 9); P2 never looks a dimension up.
+    from pathlib import Path
+    src = Path(__file__).resolve().parents[2] / "src" / "eval_harness"
+    for path in src.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        assert "STAGE_FOR_DIMENSION" not in text, path.name
+        assert "DIMENSION_TO_STAGE" not in text, path.name
+
+
+def test_five_dimensions_are_plan_scoped_and_five_are_not():
+    # SPEC Cross-cutting answers → Plan versioning (§8.8): the evidence database
+    # remains shared across plan versions, so five dimensions move with the
+    # pinned plan version and five do not.
+    assert V.PLAN_SCOPED_DIMENSIONS == frozenset(
+        {"grouping", "template", "tree", "placement", "residual"})
+    assert V.SHARED_EVIDENCE_DIMENSIONS == frozenset(
+        {"extraction", "fact", "retrieval", "graph", "llm_grounding"})
+    assert V.PLAN_SCOPED_DIMENSIONS | V.SHARED_EVIDENCE_DIMENSIONS == set(V.DIMENSIONS)
+    assert not (V.PLAN_SCOPED_DIMENSIONS & V.SHARED_EVIDENCE_DIMENSIONS)
+
+
+def test_the_five_envelope_outcomes():
+    assert V.OUTCOMES == ("produced", "abstained", "deferred", "not_implemented", "error")
+    assert V.BUDGET_STATES == ("within_ceiling", "ceiling_reached")
+
+
+def test_the_seven_verdicts():
+    assert V.VERDICTS == (
+        "match", "divergent", "abstained_correctly", "abstained_incorrectly",
+        "asserted_incorrectly", "deferred", "not_run",
+    )
+
+
+def test_the_remaining_closed_vocabularies():
+    assert V.RUN_KINDS == ("replay", "shadow", "adversarial")
+    assert V.CORPUS_FORMS == ("snapshot", "metadata_safe")
+    assert V.EXPECTED_OUTCOME_KINDS == ("produced", "abstained", "not-applicable")
+    assert V.EXPECTATION_SOURCES == ("hand-labelled", "captured-from-accepted-user-decision")
+
+
+def test_an_unknown_stage_or_dimension_is_rejected():
+    with pytest.raises(V.UnknownStage):
+        V.check_stage("residual")            # a dimension, not a stage — OQ1
+    with pytest.raises(V.UnknownDimension):
+        V.check_dimension("factual_validation")   # a stage, not a dimension — OQ1
+    V.check_stage("placement_scoring")
+    V.check_dimension("placement")
+
+
+def test_stage_order_is_the_pipeline_order_used_for_attribution():
+    assert V.stage_order("extraction") == 0
+    assert V.stage_order("placement_scoring") == 9
+    assert V.stage_order("grouping") < V.stage_order("tree_design")
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_vocabulary.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'eval_harness.vocabulary'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/eval_harness/vocabulary.py
+"""Contract out §1 and §2 — the ten attribution stages and the ten measured
+dimensions, which are two different ten-item lists (§8.5).
+
+They are NOT merged here and no mapping between them is derived. `factual_validation`
+and `candidate_node_retrieval` are stages with no same-named dimension; `residual` is
+a dimension with no same-named stage. That is SPEC Open question 1, and it is open:
+whether §7 residual handling gets its own attribution stage, and whether §6.2
+candidate-node retrieval gets its own dimension, is for the design to settle. A
+dimension value reaches a stage because the emitting stage names itself, never
+because this module looked it up.
+"""
+from __future__ import annotations
+
+#: §8.5's attribution stages, in §8.5's order — which is also the pipeline order of
+#: §4.10 and §6.12. The order is used as the tie-break in earliest-divergence
+#: attribution (Task 11), so it is a contract, not formatting.
+STAGE_IDS: tuple[str, ...] = (
+    "extraction",               # P5 (§2), shape from P4 (§2.8)
+    "factual_validation",       # P6 (§3.5, §3.6)
+    "retrieval",                # P9 (§4.2)
+    "graph_construction",       # P9 (§4.3)
+    "llm_interpretation",       # P8 (§3.3, §4.5)
+    "grouping",                 # P9 (§4)
+    "template_generation",      # P10 (§5.4, §5.7)
+    "tree_design",              # P10 (§5)
+    "candidate_node_retrieval", # P11 (§6.2)
+    "placement_scoring",        # P11 (§6.10)
+)
+
+#: §8.5's measured dimensions. A separate list from the one above.
+DIMENSIONS: tuple[str, ...] = (
+    "extraction",     # "Did the expected text, metadata, table values, OCR text, or image facts appear?"
+    "fact",           # "Did the system create the correct direct and validated facts? Did it abstain...?"
+    "retrieval",      # "For sparse files, did the correct anchors appear in the top candidate neighborhood?"
+    "graph",          # "Did edges reflect meaningful typed relationships? Did generic hubs create false...?"
+    "llm_grounding",  # "Did every cited excerpt exist? Did the model return unknown...?"
+    "grouping",       # "Did candidate groups include correct members, exclude outliers...?"
+    "template",       # "Did a template generate useful real branches without needless depth?"
+    "tree",           # "Did users accept, rename, merge, split, or reject proposed branches?"
+    "placement",      # "Did the engine choose the correct frozen node, an appropriate shallow fallback, or abstain?"
+    "residual",       # "Did the system avoid inventing associations for isolated files?"
+)
+
+#: §8.8: the destination tree and user policy define which projections are valid in
+#: each version, while "the evidence database remains shared across plan versions."
+PLAN_SCOPED_DIMENSIONS = frozenset({"grouping", "template", "tree", "placement", "residual"})
+SHARED_EVIDENCE_DIMENSIONS = frozenset({"extraction", "fact", "retrieval", "graph", "llm_grounding"})
+
+#: Contract out §4. `not_implemented` is what makes the harness runnable before the
+#: stages exist (02-segmentation-map.md, Order).
+OUTCOMES: tuple[str, ...] = ("produced", "abstained", "deferred", "not_implemented", "error")
+BUDGET_STATES: tuple[str, ...] = ("within_ceiling", "ceiling_reached")
+
+#: Contract out §6. Seven, exactly. `abstained_correctly` is a PASS (§6.10);
+#: `deferred` is a budget event and never a divergence (§8.6).
+VERDICTS: tuple[str, ...] = (
+    "match", "divergent", "abstained_correctly", "abstained_incorrectly",
+    "asserted_incorrectly", "deferred", "not_run",
+)
+
+RUN_KINDS: tuple[str, ...] = ("replay", "shadow", "adversarial")            # §8.5
+CORPUS_FORMS: tuple[str, ...] = ("snapshot", "metadata_safe")               # §8.5
+EXPECTED_OUTCOME_KINDS: tuple[str, ...] = ("produced", "abstained", "not-applicable")
+EXPECTATION_SOURCES: tuple[str, ...] = (
+    "hand-labelled", "captured-from-accepted-user-decision",
+)
+
+_STAGE_ORDER = {name: i for i, name in enumerate(STAGE_IDS)}
+
+
+class UnknownStage(Exception):
+    """A stage_id outside §8.5's closed ten."""
+
+
+class UnknownDimension(Exception):
+    """A dimension outside §8.5's closed ten."""
+
+
+def check_stage(stage_id: str) -> str:
+    if stage_id not in _STAGE_ORDER:
+        raise UnknownStage(f"{stage_id!r} is not one of §8.5's ten attribution stages")
+    return stage_id
+
+
+def check_dimension(dimension: str) -> str:
+    if dimension not in DIMENSIONS:
+        raise UnknownDimension(f"{dimension!r} is not one of §8.5's ten measured dimensions")
+    return dimension
+
+
+def stage_order(stage_id: str) -> int:
+    """Position in §8.5's list, which is §4.10's and §6.12's pipeline order."""
+    return _STAGE_ORDER[check_stage(stage_id)]
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_vocabulary.py -v`
+Expected: PASS — 11 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/eval_harness/vocabulary.py tests/eval/test_vocabulary.py
+git commit -m "feat(P2): the ten stages and the ten dimensions, two lists, never merged"
+```
+
+---

@@ -60,3 +60,97 @@ def test_a_correction_is_a_new_event_not_an_edit(conn):
     append_event(conn, **_minimal(explanation="corrected"))
     rows = conn.execute("SELECT explanation FROM events ORDER BY event_id").fetchall()
     assert [r["explanation"] for r in rows] == ["first", "corrected"]
+
+
+from database_agent.events import (
+    EVENT_TYPES, REGISTERED_EVENT_TYPES, RESERVED_EVENT_TYPES, UnregisteredEventType,
+)
+
+
+def test_the_nineteen_reserved_names_are_present():
+    assert len(RESERVED_EVENT_TYPES) == 19
+    for name in ("discovery", "stat observation", "hashing", "extraction", "OCR",
+                 "undo", "external modification detection", "planned move"):
+        assert name in RESERVED_EVENT_TYPES
+
+
+def test_registered_names_never_shadow_a_reserved_name():
+    # Rule 1: the nineteen may not be redefined, narrowed, or reused.
+    assert not set(REGISTERED_EVENT_TYPES) & set(RESERVED_EVENT_TYPES)
+
+
+def test_the_registered_table_matches_the_declaring_specs():
+    # Rule 2: the declaration is the definition, and it lives in the authoring
+    # part's SPEC. Counts are P1 SPEC Contract out §3's table.
+    p7 = {"classification_assigned", "classification_superseded", "policy_set",
+          "consent_granted", "consent_revoked", "model_release",
+          "model_release_denied", "consent_requested"}
+    p8 = {"model_call_issued", "model_response_received", "validation_verdict",
+          "verdict_superseded", "call_refused"}
+    p13 = {"review presentation", "review action routed", "apply review approval"}
+    assert len(p7) == 8 and len(p8) == 5 and len(p13) == 3
+    assert set(REGISTERED_EVENT_TYPES) == p7 | p8 | p13
+    # 19 + 8 + 5 + 3. Forty-three once P11's eight are spelled.
+    assert len(EVENT_TYPES) == 35
+
+
+def test_the_table_cannot_be_mutated_at_run_time():
+    # Rule 4: a part cannot mint a type at run time.
+    with pytest.raises(TypeError):
+        EVENT_TYPES["invented at runtime"] = None
+    with pytest.raises(TypeError):
+        REGISTERED_EVENT_TYPES["invented at runtime"] = None
+
+
+def test_the_module_publishes_no_registration_call():
+    # There is no run-time registration path at all — not a guarded one.
+    import database_agent.events as events_module
+    assert not [n for n, v in vars(events_module).items()
+                if callable(v) and n.lower().startswith("register")]
+
+
+def test_writer_accepts_a_type_declared_by_another_part(conn):
+    # Done-means 11's fixture: P13's `apply review approval`, accepted with no
+    # registration call because the declaration is in P13's SPEC.
+    create_schema(conn)
+    event_id = append_event(conn, **_minimal(event_type="apply review approval",
+                                             subsystem="P13", user_id="u1"))
+    assert event_id
+
+
+def test_writer_rejects_an_undeclared_type(conn):
+    create_schema(conn)
+    with pytest.raises(UnregisteredEventType):
+        append_event(conn, **_minimal(event_type="invented at runtime"))
+
+
+def test_a_specialization_stores_its_reserved_base_type(conn):
+    # The mechanism, driven off the frozen table rather than a name typed here.
+    create_schema(conn)
+    specializations = [(n, b) for n, b in EVENT_TYPES.items() if b is not None]
+    for name, base in specializations:
+        event_id = append_event(conn, **_minimal(event_type=name, subsystem="P11"))
+        row = conn.execute("SELECT * FROM events WHERE event_id = ?",
+                           (event_id,)).fetchone()
+        assert row["base_event_type"] == base
+
+
+def test_p11s_eight_specializations_are_declared_but_unspelled():
+    # P11's SPEC declares eight specializations of `placement recommendation` in
+    # prose and publishes no identifiers, so P1 has no name to register. Inventing
+    # one would be P1 authoring P11's vocabulary. This test is the standing record
+    # of that gap: it starts failing the day P11 prints the eight names, which is
+    # the day this plan's registry must gain them.
+    assert [n for n, b in EVENT_TYPES.items()
+            if b == "placement recommendation"] == []
+
+
+def test_two_parts_may_author_the_same_reserved_type(conn):
+    # M8: external modification detection has two authors, separable by subsystem.
+    create_schema(conn)
+    append_event(conn, **_minimal(event_type="external modification detection", subsystem="P12"))
+    append_event(conn, **_minimal(event_type="external modification detection", subsystem="P3"))
+    rows = conn.execute(
+        "SELECT subsystem FROM events WHERE event_type = 'external modification detection'"
+    ).fetchall()
+    assert sorted(r["subsystem"] for r in rows) == ["P12", "P3"]

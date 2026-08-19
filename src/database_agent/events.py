@@ -24,12 +24,81 @@ CORRECTION_FIELDS: tuple[str, ...] = (
 _WRITABLE = (*EVENT_FIELDS, *CORRECTION_FIELDS, "base_event_type")
 
 
+from types import MappingProxyType
+
+#: §8.2's nineteen, verbatim. Reserved: no part may redefine, narrow, or reuse one.
+RESERVED_EVENT_TYPES: frozenset[str] = frozenset({
+    "discovery", "stat observation", "hashing", "extraction", "OCR",
+    "fact creation", "fact rejection", "graph-edge creation",
+    "group membership proposal", "user group decision", "template application",
+    "destination-tree edit", "placement recommendation",
+    "filename-collision resolution", "planned move", "executed move",
+    "failed move", "external modification detection", "undo",
+})
+
+# Registration is a spec-level act (rule 4), so this table is compiled from the
+# declaring SPECs and frozen at import. There is no run-time registration call.
+# name -> base type when the name is a typed specialization of a reserved name.
+_REGISTERED: dict[str, str | None] = {
+    # P7 SPEC, Cross-cutting answers -> Provenance. Eight.
+    "classification_assigned": None,
+    "classification_superseded": None,
+    "policy_set": None,
+    "consent_granted": None,
+    "consent_revoked": None,
+    "model_release": None,
+    "model_release_denied": None,
+    "consent_requested": None,
+    # P8 SPEC, section 8 "Events appended". Five.
+    "model_call_issued": None,
+    "model_response_received": None,
+    "validation_verdict": None,
+    "verdict_superseded": None,
+    "call_refused": None,
+    # P13 SPEC, Cross-cutting answers -> Provenance. Three.
+    "review presentation": None,
+    "review action routed": None,
+    "apply review approval": None,
+    # P11's eight typed specializations of "placement recommendation" belong here
+    # and are ABSENT ON PURPOSE: P11's SPEC declares them as prose descriptions and
+    # publishes no identifiers. P1 does not coin a name another part owns. When P11
+    # prints the eight, add them here with base="placement recommendation".
+}
+
+# Rule 1, checked once at import: a collision is an import error, not a run-time
+# rejection, because there is no run time at which a name could be added.
+_collisions = set(_REGISTERED) & RESERVED_EVENT_TYPES
+if _collisions:
+    raise ImportError(f"registered names shadow reserved 8.2 names: {sorted(_collisions)}")
+_bad_bases = {b for b in _REGISTERED.values() if b is not None} - RESERVED_EVENT_TYPES
+if _bad_bases:
+    raise ImportError(f"specialization base is not a reserved name: {sorted(_bad_bases)}")
+
+REGISTERED_EVENT_TYPES = MappingProxyType(_REGISTERED)
+EVENT_TYPES = MappingProxyType(
+    {name: None for name in RESERVED_EVENT_TYPES} | _REGISTERED
+)
+
+
+class UnregisteredEventType(Exception):
+    """Rule 3: an unregistered type is rejected at the writer, never silently stored."""
+
+
 def append_event(conn: sqlite3.Connection, **fields) -> int:
     """Append one event. Returns its monotonic event_id.
 
     `subsystem` is the authoring part (§8.2 "the responsible subsystem"). P1 never
     fills it in: the acting part authors, P1 writes (M8).
     """
+    event_type = fields.get("event_type")
+    if event_type not in EVENT_TYPES:
+        raise UnregisteredEventType(
+            f"{event_type!r} is neither one of §8.2's nineteen reserved names nor "
+            "declared by a part's SPEC; registration is a spec-level act (rule 4)"
+        )
+    base = EVENT_TYPES[event_type]
+    if base is not None:
+        fields.setdefault("base_event_type", base)
     columns = [k for k in fields if k in _WRITABLE]
     values = [fields[k] for k in columns]
     cursor = conn.execute(
