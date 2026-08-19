@@ -58,3 +58,31 @@ def transaction(conn: sqlite3.Connection):
         conn.execute("ROLLBACK")
         raise
     conn.execute("COMMIT")
+
+
+FILES_DDL = """
+CREATE TABLE IF NOT EXISTS files (
+    file_id                   TEXT PRIMARY KEY,
+    current_path              TEXT NOT NULL,
+    filename                  TEXT NOT NULL,
+    normalized_filename       TEXT NOT NULL,
+    extension                 TEXT NOT NULL,
+    directory_position        TEXT,
+    volume_id                 TEXT,          -- nullable: P1 OQ9 is OPEN (Task 2)
+    content_hash              TEXT NOT NULL,
+    hash_algorithm            TEXT NOT NULL,
+    observed_size             INTEGER NOT NULL,
+    observed_timestamps       TEXT NOT NULL,
+    mime_type                 TEXT,
+    detected_format           TEXT,
+    scan_state                TEXT NOT NULL,
+    extraction_status_by_tier TEXT NOT NULL DEFAULT '{}',
+    sensitivity_state         TEXT
+);
+CREATE INDEX IF NOT EXISTS files_content_hash ON files (content_hash);
+"""
+
+
+def create_schema(conn: sqlite3.Connection) -> None:
+    """Create every P1-owned table. Idempotent."""
+    conn.executescript(FILES_DDL)
