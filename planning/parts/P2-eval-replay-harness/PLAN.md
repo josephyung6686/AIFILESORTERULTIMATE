@@ -1376,7 +1376,13 @@ def test_a_bundle_records_its_scan_plan_and_policy(eval_conn):
     bundle_id = _open(eval_conn)
     row = get_bundle(eval_conn, bundle_id)
     assert row["corpus_form"] == "snapshot"
-    assert row["source_scan_ref"] == "scan-fixture"          # P3's scan_id (§1.1)
+    # NOT P3's scan_id: no part publishes one. P1 mints `scan_id` on
+    # scan_resource_usage and keeps it off `events` (P1 OQ19); P3 has a local
+    # `scan_run_id` it publishes to nobody (P3 OQ16). `source_scan_ref` is an
+    # opaque handle P2 stores and never joins on. Wiring it to either identifier
+    # before OQ16 closes would put a private handle in a field P13 and P2 both
+    # read as shared identity.
+    assert row["source_scan_ref"] == "scan-fixture"
     assert row["pinned_plan_id"] == "plan-fixture"           # §8.8
     assert row["pinned_plan_version"] == "1"
     assert '"privacy_mode":"offline"' in row["policy_settings"]
@@ -4215,7 +4221,7 @@ git commit -m "feat(P2): comparison record, ten blocks always, deferral separate
 - Consumes: `replay_bundle` (Task 9); `assert_run` (Task 10); `attribute_run` (Task 11); `compare_runs`, `get_comparison` (Task 12).
 - Produces: `run_shadow(conn, bundle_id, *, version_tuple, budget_ceilings, run_settings, adapters, live_run_id, select, model_call_audit_refs=()) -> str`, `shadow_record(conn, shadow_run_id) -> dict`, `record_adjudication(conn, shadow_run_id, *, subject_ref, dimension, reviewer_verdict, note=None) -> int`, `adjudications(conn, shadow_run_id) -> list[sqlite3.Row]`, `assert_shadow_wrote_nothing(conn, shadow_run_id) -> None`, `UnauditedModelCall`, `ShadowWroteLiveState`.
 
-**The three empties are proved, not promised.** §8.5: shadow mode generates parallel recommendations *"without changing the user-visible tree or move plan."* `plan_version_writes`, `move_plan_entries` and `user_visible_tree_delta` are columns on the shadow record that must be empty, and `assert_shadow_wrote_nothing` raises `ShadowWroteLiveState` if any is not. **P10 and P12 do not exist**, so nothing can write a plan version or a move plan today — which is exactly why the check is built now: the day P10 lands, a shadow adapter that writes one fails this assertion instead of shipping.
+**The three empties are self-reported; the foreign-table snapshot is the proof.** §8.5: shadow mode generates parallel recommendations *"without changing the user-visible tree or move plan."* `plan_version_writes`, `move_plan_entries` and `user_visible_tree_delta` are columns on the shadow record that must be empty, and `assert_shadow_wrote_nothing` raises `ShadowWroteLiveState` if any is not. **P10 and P12 do not exist**, so nothing can write a plan version or a move plan today — which is exactly why the check is built now: the day P10 lands, a shadow adapter that writes one fails this assertion instead of shipping.
 
 **Everything a shadow run writes goes into `shadow_namespace`.** SPEC Cross-cutting answers → Provenance: replay's derived outputs go to a run-scoped namespace and shadow outputs to `shadow_namespace`. The namespace is the run id, recorded explicitly so a reader never has to infer it. **Whether replay may write *any* derived evidence into the shared database is SPEC Open question 7 and is not answered here:** P2 writes nothing outside its own tables, which is compatible with either answer.
 
@@ -4542,14 +4548,52 @@ def shadow_record(conn: sqlite3.Connection, shadow_run_id: str) -> dict:
     }
 
 
+def foreign_table_counts(conn: sqlite3.Connection) -> dict[str, int]:
+    """Row counts for every table P2 does not own.
+
+    P2 owns `EVAL_TABLES`. Everything else in the database belongs to another
+    part — P1's `files` and `events` today, P10's plan versions and P12's move
+    plan when they land. A shadow run must leave all of it byte-for-byte alone.
+    """
+    names = [r["name"] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+    ) if r["name"] not in EVAL_TABLES]
+    return {n: conn.execute(f"SELECT count(*) AS c FROM {n}").fetchone()["c"] for n in names}
+
+
 def assert_shadow_wrote_nothing(conn: sqlite3.Connection, shadow_run_id: str) -> None:
-    """Done-means 9's three provable empties. Raises rather than reporting."""
+    """Done-means 9. Raises rather than reporting.
+
+    Two checks, and the second is the one that is actually a proof.
+
+    The three columns are self-reported: a shadow adapter that writes a plan
+    version straight into P10's table never touches them, so on their own they
+    prove only that a well-behaved adapter behaved well. That is an honour system
+    wearing the shape of an assertion.
+
+    So the run also snapshots the row count of EVERY table P2 does not own, at
+    open, and this compares. Any foreign table that grew or shrank during the run
+    fails, whether or not the adapter admitted to it. It works today against P1's
+    `files` and `events`, and it covers P10's plan versions and P12's move plan on
+    the day those tables exist — without this function being edited, which is the
+    point: the check must not depend on remembering to extend it.
+    """
     record = shadow_record(conn, shadow_run_id)
     non_empty = [name for name in EMPTY_COLUMNS if record[name]]
     if non_empty:
         raise ShadowWroteLiveState(
             f"shadow run {shadow_run_id} wrote {non_empty}; §8.5 requires parallel "
             "recommendations WITHOUT changing the user-visible tree or move plan"
+        )
+
+    opened = json.loads(record["foreign_table_counts"])
+    now = foreign_table_counts(conn)
+    changed = {n: (opened.get(n), now[n]) for n in now if opened.get(n) != now[n]}
+    changed.update({n: (opened[n], None) for n in opened if n not in now})
+    if changed:
+        raise ShadowWroteLiveState(
+            f"shadow run {shadow_run_id} changed tables it does not own: {changed}; "
+            "§8.5 requires parallel recommendations WITHOUT changing user-visible state"
         )
 
 

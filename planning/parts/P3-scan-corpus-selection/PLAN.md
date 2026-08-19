@@ -73,10 +73,24 @@ database_agent.files_table record_file(conn, path, *, filename, normalized_filen
 database_agent.events      append_event(conn, **fields) -> int
                            RESERVED_EVENT_TYPES: frozenset[str]
                            EVENT_FIELDS: tuple[str, ...]          (eleven)
-database_agent.scan_usage  start_scan(conn) -> str
-                           sample_scan_resources(conn, scan_id) -> None
-                           scan_resource_usage(conn, scan_id) -> sqlite3.Row
 ```
+
+**P3 consumes nothing from `database_agent.scan_usage`, deliberately.** An earlier
+draft of this table listed `start_scan`, `sample_scan_resources` and
+`scan_resource_usage`, and Task 3 asserts that import is *absent* — an implementer
+reading the table would have wired the very import the task forbids.
+
+The reason is an unclosed seam, not an oversight. Three documents currently name
+three different scan identities: P1 mints `scan_id` on `scan_resource_usage` and
+keeps it off `events` (P1 OQ19); this plan has a local `scan_run_id` that it
+publishes to nobody (P3 OQ16); and [`../../11-ops-runtime.md`](../../11-ops-runtime.md)
+§3 writes `scan_run_id — P3's scan` on the session record as though it were
+already shared. **P3 does not resolve that by joining to P1's identifier in code.**
+Doing so would mint the shared identity in an implementation rather than in a
+contract, which is how two vocabularies for one concept get created. OQ16 is closed
+in the SPEC or it stays open; until then P3's run identifier is P3's alone, and
+§8.6's six counters stay unsampled (P3-H) rather than being written against an
+identifier no part published.
 
 Three consequences for the tasks below:
 
