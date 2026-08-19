@@ -1,10 +1,8 @@
 """Contract out §2 — the `files` row: the union of §8.2's file record and §1.2's per-file record."""
 from __future__ import annotations
 
-import json
 import os
 import sqlite3
-import unicodedata
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,12 +25,9 @@ class ReservedScanState(Exception):
     """P3 owns `scan_state` except for P1's R3 sentinel, which P1 writes itself."""
 
 
-def _timestamps(path: Path) -> str:
-    stat = path.stat()
-    return json.dumps({
-        "mtime": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
-        "ctime": datetime.fromtimestamp(stat.st_ctime, timezone.utc).isoformat(),
-    })
+# NOTE: P1 deliberately has no timestamp/filename derivation helper. P3 computes
+# the R2 record once (O5) and hands it over; a helper here would be an invitation
+# to re-derive it, which is the contract violation P3's drift test exists to catch.
 
 
 def _is_same_file(recorded: str, observed: Path) -> bool:
@@ -68,6 +63,11 @@ def _require_caller_scan_state(scan_state: str) -> None:
 
 
 def record_file(conn: sqlite3.Connection, path: Path, *,
+                filename: str,
+                normalized_filename: str,
+                extension: str,
+                observed_size: int,
+                observed_timestamps: str,
                 parent_folder_context: str | None,
                 mime_type: str | None,
                 detected_format: str | None,
@@ -82,6 +82,17 @@ def record_file(conn: sqlite3.Connection, path: Path, *,
     is §2.9's published name, stored in the `directory_position` column (§1.2's
     word) — one field, not two (MINOR 11).
 
+    **P1 derives none of the R2 record.** Contract in: P3 hands P1 "its stat result
+    (size, timestamps) ... and the §1.2 per-file fields — filename, normalized
+    filename, extension", and P1's obligation is "store them". P3 SPEC O5 makes
+    that exclusive: R2 is "the only computation of this record", and P3's plan has
+    a drift test that a second derivation fails. So `filename`,
+    `normalized_filename`, `extension`, `observed_size` and `observed_timestamps`
+    are required keywords with no default — a default would let a caller omit one
+    and silently get P1's derivation, which is the same violation wearing a
+    friendlier face. P1 still computes the CONTENT HASH, because Contract in hands
+    it "its bytes to hash" and R1 identity is P1's.
+
     `materialized` is passed through to `hash_file` (11-ops-runtime.md §5).
     `content_hash` is P1's: when the caller has already hashed this path (R1),
     pass it so the row is keyed on the digest identity resolution used. A second
@@ -94,16 +105,15 @@ def record_file(conn: sqlite3.Connection, path: Path, *,
         else hash_file(path, materialized=materialized)
     )
     file_id = str(uuid.uuid4())
-    stat = path.stat()
     conn.execute(
         f"INSERT INTO files ({','.join(FILES_COLUMNS)}) "
         f"VALUES ({','.join('?' * len(FILES_COLUMNS))})",
         (
-            file_id, str(path), path.name,
-            unicodedata.normalize("NFC", path.name), path.suffix,
+            file_id, str(path), filename,
+            normalized_filename, extension,
             parent_folder_context, volume_id_for(path),
             digest, HASH_ALGORITHM,
-            stat.st_size, _timestamps(path),
+            observed_size, observed_timestamps,
             mime_type, detected_format,
             scan_state, "{}", None,
         ),
@@ -136,6 +146,11 @@ def invalidate_extraction_state(conn: sqlite3.Connection, file_id: str, *,
 def observe_path(conn: sqlite3.Connection, path: Path, *,
                  author: str,
                  component_version: str,
+                 filename: str,
+                 normalized_filename: str,
+                 extension: str,
+                 observed_size: int,
+                 observed_timestamps: str,
                  parent_folder_context: str | None,
                  mime_type: str | None,
                  detected_format: str | None,
@@ -222,7 +237,10 @@ def observe_path(conn: sqlite3.Connection, path: Path, *,
                                     component_version=component_version)
 
     file_id = record_file(
-        conn, path, parent_folder_context=parent_folder_context,
+        conn, path, filename=filename, normalized_filename=normalized_filename,
+        extension=extension, observed_size=observed_size,
+        observed_timestamps=observed_timestamps,
+        parent_folder_context=parent_folder_context,
         mime_type=mime_type, detected_format=detected_format,
         scan_state=scan_state, materialized=materialized,
         content_hash=content_hash,

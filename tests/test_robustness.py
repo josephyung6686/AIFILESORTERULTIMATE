@@ -118,3 +118,57 @@ def test_the_writer_and_the_learning_store_share_one_scope_vocabulary():
     from database_agent.events import CORRECTION_SCOPES
     from database_agent.learning import SCOPES
     assert SCOPES is CORRECTION_SCOPES
+
+
+def test_p1_stores_p3s_basic_record_and_derives_none_of_it(conn, tmp_path):
+    """P1 SPEC Contract in: P3 hands P1 "its stat result (size, timestamps) ... and
+    the §1.2 per-file fields — filename, normalized filename, extension" and P1's
+    obligation is "store them". P3 SPEC O5: R2 is "the only computation of this
+    record"; a second derivation is a contract violation, and P3's plan has a drift
+    test that fails on one.
+
+    The strong form: hand P1 values that DISAGREE with the filesystem and assert P1
+    stored what it was given. If P1 re-derives, the assertion fails — and downstream
+    §3.7 word-boundary matching, §2.9's duplicate family and P5's filesystem
+    observations would all be reading a string P3 never produced.
+    """
+    from database_agent.db import create_schema
+    from database_agent.files_table import get_file, record_file
+
+    create_schema(conn)
+    path = tmp_path / "on-disk-name.txt"
+    path.write_bytes(b"bytes")
+
+    file_id = record_file(
+        conn, path,
+        filename="P3-SUPPLIED.txt",
+        normalized_filename="p3-supplied.txt",
+        extension=".p3",
+        observed_size=999999,
+        observed_timestamps='{"mtime": "from-P3"}',
+        parent_folder_context="corpus",
+        mime_type="text/plain", detected_format="txt",
+        scan_state="scanned", materialized=True,
+    )
+    row = get_file(conn, file_id)
+    assert row["filename"] == "P3-SUPPLIED.txt"
+    assert row["normalized_filename"] == "p3-supplied.txt"
+    assert row["extension"] == ".p3"
+    assert row["observed_size"] == 999999
+    assert row["observed_timestamps"] == '{"mtime": "from-P3"}'
+
+
+def test_the_r2_fields_have_no_defaults(conn, tmp_path):
+    """O5 again: a default would let a caller omit the field and get P1's derivation
+    silently, which is the violation wearing a friendlier face."""
+    import pytest as _pytest
+
+    from database_agent.db import create_schema
+    from database_agent.files_table import record_file
+
+    create_schema(conn)
+    path = tmp_path / "f.txt"
+    path.write_bytes(b"bytes")
+    with _pytest.raises(TypeError):
+        record_file(conn, path, parent_folder_context="c", mime_type=None,
+                    detected_format=None, scan_state="scanned", materialized=True)

@@ -47,6 +47,9 @@ Every task's requirements implicitly include these.
 
 Written against the interfaces P1's plan **Produces**. Nothing else in `database_agent` is touched.
 
+Checked against `src/database_agent/` as implemented on 2026-08-19, not only against
+P1's plan — P1 is being built in parallel and two of its signatures have already moved.
+
 ```text
 database_agent.db          open_database(path, *, scan_roots=()) -> sqlite3.Connection
                            create_schema(conn) -> None
@@ -55,12 +58,14 @@ database_agent.identity    HASH_ALGORITHM: str
                            hash_file(path, *, materialized: bool) -> str
                            DatalessFileRefused
 database_agent.files_table record_file(conn, path, *, parent_folder_context, mime_type,
-                                       detected_format, scan_state, materialized) -> str
+                                       detected_format, scan_state, materialized,
+                                       content_hash=None) -> str
                            observe_path(conn, path, *, author, component_version,
                                         parent_folder_context, mime_type, detected_format,
                                         scan_state, materialized) -> str
                            get_file(conn, file_id) -> sqlite3.Row
                            file_path_history(conn, file_id) -> list[sqlite3.Row]
+                           ReservedScanState
 database_agent.events      append_event(conn, **fields) -> int
                            RESERVED_EVENT_TYPES: frozenset[str]
                            EVENT_FIELDS: tuple[str, ...]          (eleven)
@@ -68,6 +73,17 @@ database_agent.scan_usage  start_scan(conn) -> str
                            sample_scan_resources(conn, scan_id) -> None
                            scan_resource_usage(conn, scan_id) -> sqlite3.Row
 ```
+
+Three consequences for the tasks below:
+
+- **`open_database` already runs P1's `create_schema`.** It stays public and idempotent,
+  so every test here calls it explicitly and would still pass if that changed back.
+  P3's `create_scan_schema` is a separate call and is never invoked for you.
+- **`scan_state = "superseded_content"` is refused** with `ReservedScanState`: it is P1's
+  R3 sentinel (P1 OQ1). P3 never supplies it, and Task 17's guard forbids the literal.
+- **`record_file` accepts a supplied `content_hash`.** P3 does not use it, because
+  `record_file` inserts a new row and mints a new `file_id` unconditionally, which
+  bypasses §8.2's identity resolution. Every P3 write goes through `observe_path`.
 
 **`detected_format` is not one of P3's ten fields.** R2 lists ten and `detected_format` is not among them — it is §8.2's file-record field, and §2.9's *"inspect the real MIME type or file signature"* is P5's territory. P1's `record_file` requires the keyword, so P3 passes `detected_format=None` and invents no value another part owns. Task 10 asserts the column is `NULL` on every row P3 writes.
 
@@ -4068,7 +4084,7 @@ git commit -m "feat(P3): R5 scan run summary, five counters, deferral visible no
 
 **P2 owns the envelope; this is the payload.** The snapshot uses P2's field spellings where P2 publishes one — `corpus_form` with values `snapshot | metadata_safe`, and `content_hash` per indexed file, which §8.5's bundle requires and P2's `bundle_file_entry` carries. P2 wraps this; `replay.py` imports no P2 code, so P3 stays buildable against P1 alone.
 
-**A replay writes no `files` row, and that is §8.5's own cost.** A `metadata_safe` corpus has no bytes, so no content hash can be computed and P1's content-hash identity is unavailable; P1 also publishes no entry point that records a file from a *supplied* hash. Done-means 14 asks for identical **exclusion verdicts**, **cache verdicts** and **`curation_signal` values**, and all three are reproduced. The gap is recorded, not papered over, and reported.
+**A replay writes no `files` row, and that is §8.5's own cost.** A `metadata_safe` corpus has no bytes. P1's `record_file` will take a supplied `content_hash`, but it inserts a row and mints a `file_id` unconditionally — it is not identity resolution, and §8.2 makes identity resolution P1's job through `observe_path`, which hashes from the path it is handed. Writing rows through `record_file` here would mean P3 deciding, from a bundle, that two hashes are the same file version, which is exactly the decision §8.2 gives P1. Done-means 14 asks for identical **exclusion verdicts**, **cache verdicts** and **`curation_signal` values**, and all three are reproduced. The gap is recorded, not papered over, and reported.
 
 **A replay runs against a fresh database.** `11-ops-runtime.md` §3: *"P2 replay is not a session; it is a harness run."* In a fresh database there is no prior observation, so every cache verdict is `first observation` / `recompute` — which is exactly what the original **first** scan produced, and is what the comparison asserts.
 
@@ -4833,7 +4849,7 @@ def test_the_observed_values_and_the_stored_values_are_the_same_values(ready, co
     assert row["mime_type"] == fixture_mime(document)
 
 
-def test_p3_hashes_nothing_itself(all_modules=None):
+def test_p3_hashes_nothing_itself():
     # O5: a second hash is a contract violation. P1's hash_file is the only one.
     source = all_source()
     assert "hashlib" not in source
@@ -4841,7 +4857,7 @@ def test_p3_hashes_nothing_itself(all_modules=None):
     assert "md5" not in source
 
 
-def test_p3_determines_no_mime_type(all_modules=None):
+def test_p3_determines_no_mime_type():
     # SPEC Q6 is OPEN: whether P3 sniffs a signature or records an extension-derived
     # type P5 later corrects is unsettled. P3 does neither.
     source = all_source()
@@ -4887,7 +4903,7 @@ def test_p3_holds_no_ceiling_and_no_threshold():
         assert token not in source, token
 
 
-def test_p3_never_deletes_or_updates_an_event(all_modules=None):
+def test_p3_never_deletes_or_updates_an_event():
     source = all_source().upper()
     assert "DELETE FROM EVENTS" not in source
     assert "UPDATE EVENTS" not in source
@@ -5127,11 +5143,11 @@ git commit -m "test(P3): walking-skeleton P3 step, node_modules skipped, every e
 - **The FSEvents / `DispatchSource` adapter** (Task 16). The standard library supplies no binding and this plan adds no runtime dependency. `SessionWatch.notify` is the entry point such an adapter calls and every semantic rule `11` §4 states is implemented and tested against it; `poll` is the stdlib driver. The platform callback itself is missing and is not faked.
 - **The legacy `.icloud` placeholder form** (Task 6). A not-downloaded `Foo.pdf` can appear on disk as a hidden `.Foo.pdf.icloud`. `11` §5 does not name that shape and inventing a filename heuristic for it would be P3 authoring a detection rule the contract does not supply. `SF_DATALESS` is the one detection built.
 - **macOS packages and application bundles are descended** (Task 7). They are ordinary directories and §1.1 supplies no rule that stops the traversal. SPEC Q7 names this exact cost — *"a descended `.app` bundle alone would inject thousands of spurious rows"* — and this plan records it rather than inventing the rule.
-- **A metadata-safe replay writes no `files` row** (Task 15). §8.5's metadata-safe form has no bytes, P1's identity is the content hash, and P1 publishes no entry point that records a file from a supplied hash. Exclusion verdicts, cache verdicts and curation signals all reproduce, which is what Done-means 14 asks for; the `files` half does not.
+- **A metadata-safe replay writes no `files` row** (Task 15). §8.5's metadata-safe form has no bytes and P1's identity is the content hash. `record_file` would accept a supplied hash, but it is not identity resolution — it inserts unconditionally — and §8.2 gives identity resolution to P1's `observe_path`, which hashes from the path. Exclusion verdicts, cache verdicts and curation signals all reproduce, which is what Done-means 14 asks for; the `files` half does not.
 - **R4's `file_id` is `NULL` in a metadata-safe replay** for the same reason. *"File identity as resolved by P1"* reads as unknown rather than as a fabricated value.
 - **Two `external modification detection` rows on a content change** (Task 12): P3's, keyed on the stat difference that triggered the re-read, and P1's, keyed on the version being superseded. Both are P3-authored, both are true, both are append-only, and their explanations distinguish them. Recorded as a seam worth review rather than optimized away.
 - **P1 re-derives six of P3's ten fields** (Task 17). P1's Contract in says P3 hands them over; P1's plan has `record_file` stat and hash the path itself. The drift test catches a disagreement; the divergence is P1's to resolve.
-- **`create_scan_schema` is not called by `open_database`**, the same gap P1 carries. Every caller must run P1's `create_schema` and then P3's. Not blocking Tasks 1–18.
+- **`create_scan_schema` is not called by `open_database`.** P1's handle now creates P1's own tables on open, but it knows nothing about P3's, so a caller that forgets `create_scan_schema` gets a database with `files` and `events` and none of P3's six. Not blocking Tasks 1–18.
 - **Schema migration.** P3 adds six tables to P1's database and stamps no version of its own. The first *change* to a P3 table needs one; the first creation does not.
 - **P3 samples no resource counter.** §8.6's six are P1's `scan_resource_usage` (P1 Contract out §10), and joining a P3 run to a P1 `scan_id` is SPEC Q16 / P1 OQ19 and is open. So a P13 progress line can render P3's five counters and P1's six, and cannot yet join them.
 

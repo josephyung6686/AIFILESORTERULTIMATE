@@ -3,21 +3,24 @@ from pathlib import Path
 import pytest
 
 from database_agent.db import create_schema
+from conftest import p3_basic_record
 from database_agent.files_table import FILES_COLUMNS, get_file, record_file
 
 
-def _p3_fields(**overrides):
+def _p3_fields(path=None, **overrides):
     """The §1.2 fields P3 hands P1 (SPEC Contract in). A test stands in for P3;
     P1 never derives any of these itself."""
     fields = dict(parent_folder_context="corpus", mime_type="application/pdf",
                   detected_format="pdf", scan_state="scanned", materialized=True)
+    if path is not None:
+        fields.update(p3_basic_record(path))
     fields.update(overrides)
     return fields
 
 
 def test_record_file_writes_every_column(conn, sample_file: Path):
     create_schema(conn)
-    file_id = record_file(conn, sample_file, **_p3_fields())
+    file_id = record_file(conn, sample_file, **_p3_fields(sample_file))
     row = get_file(conn, file_id)
     for column in FILES_COLUMNS:
         assert column in row.keys(), f"missing column {column}"

@@ -47,6 +47,16 @@ SCAN = dict(
 )
 
 
+def scan(path, **overrides):
+    """SCAN plus the R2 fields P3 computes once (O5) and hands to P1.
+
+    P1 stores them and derives none of them, so a caller standing in for P3 has
+    to supply them — that is the contract, not a test inconvenience.
+    """
+    from conftest import p3_basic_record
+    return {**SCAN, **p3_basic_record(Path(path)), **overrides}
+
+
 @pytest.fixture()
 def db(conn: sqlite3.Connection) -> sqlite3.Connection:
     create_schema(conn)
@@ -73,12 +83,12 @@ def test_deleting_one_of_two_live_copies_does_not_hijack_the_survivor(db, tmp_pa
     a, b = tmp_path / "A.pdf", tmp_path / "B.pdf"
     a.write_bytes(b"duplicate bytes")
     b.write_bytes(b"duplicate bytes")
-    file_a = observe_path(db, a, **SCAN)
-    file_b = observe_path(db, b, **SCAN)
+    file_a = observe_path(db, a, **scan(a))
+    file_b = observe_path(db, b, **scan(b))
     assert file_a != file_b, "two live copies are two rows (OQ2)"
 
     a.unlink()
-    again = observe_path(db, b, **SCAN)
+    again = observe_path(db, b, **scan(b))
 
     assert again == file_b, "re-observing a live path must resolve to that path's own row"
     paths = [r["current_path"] for r in db.execute("SELECT current_path FROM files")]
@@ -94,7 +104,7 @@ def test_three_live_copies_of_one_hash_are_three_rows(db, tmp_path):
     for name in ("one.txt", "two.txt", "three.txt"):
         p = tmp_path / name
         p.write_bytes(b"identical content")
-        ids.append(observe_path(db, p, **SCAN))
+        ids.append(observe_path(db, p, **scan(p)))
     assert len(set(ids)) == 3
     hashes = {get_file(db, i)["content_hash"] for i in ids}
     assert len(hashes) == 1, "one hash, three separately addressable versions"
@@ -107,11 +117,11 @@ def test_content_reverting_to_a_previous_version_does_not_resurrect_it(db, tmp_p
     and would leave the Y row with no successor."""
     p = tmp_path / "doc.txt"
     p.write_bytes(b"version X")
-    first = observe_path(db, p, **SCAN)
+    first = observe_path(db, p, **scan(p))
     p.write_bytes(b"version Y")
-    second = observe_path(db, p, **SCAN)
+    second = observe_path(db, p, **scan(p))
     p.write_bytes(b"version X")
-    third = observe_path(db, p, **SCAN)
+    third = observe_path(db, p, **scan(p))
 
     assert len({first, second, third}) == 3, "a reverted content hash is still a new version"
     assert get_file(db, first)["scan_state"] == "superseded_content"
@@ -126,14 +136,14 @@ def test_a_superseded_row_is_never_re_selected_by_a_later_observation(db, tmp_pa
     P6's facts were extracted from."""
     p = tmp_path / "doc.txt"
     p.write_bytes(b"old bytes")
-    old = observe_path(db, p, **SCAN)
+    old = observe_path(db, p, **scan(p))
     p.write_bytes(b"new bytes")
-    observe_path(db, p, **SCAN)
+    observe_path(db, p, **scan(p))
     assert get_file(db, old)["scan_state"] == "superseded_content"
 
     elsewhere = tmp_path / "moved.txt"
     elsewhere.write_bytes(b"old bytes")
-    revived = observe_path(db, elsewhere, **SCAN)
+    revived = observe_path(db, elsewhere, **scan(elsewhere))
 
     assert revived != old, "a superseded version is never revived by a new observation"
     assert get_file(db, old)["current_path"] == str(p), "the superseded row keeps its path"
@@ -145,7 +155,7 @@ def test_caller_supplied_scan_state_can_forge_the_superseded_sentinel(db, tmp_pa
     """
     p = tmp_path / "doc.txt"
     p.write_bytes(b"bytes")
-    forged = dict(SCAN, scan_state="superseded_content")
+    forged = scan(p, scan_state="superseded_content")
     with pytest.raises(ReservedScanState):
         observe_path(db, p, **forged)
 
@@ -168,7 +178,7 @@ def test_observe_path_hashes_once_so_the_row_and_its_event_agree(db, tmp_path, m
 
     p = tmp_path / "syncing.txt"
     p.write_bytes(b"bytes at time of first read")
-    file_id = observe_path(db, p, **SCAN)
+    file_id = observe_path(db, p, **scan(p))
 
     assert len(calls) == 1, f"observe_path read the file {len(calls)} times to record it once"
     row_hash = get_file(db, file_id)["content_hash"]
@@ -185,7 +195,7 @@ def test_an_empty_file_is_a_normal_file_version(db, tmp_path):
     identity or none at all."""
     p = tmp_path / "empty.txt"
     p.write_bytes(b"")
-    file_id = observe_path(db, p, **SCAN)
+    file_id = observe_path(db, p, **scan(p))
     row = get_file(db, file_id)
     assert row["observed_size"] == 0
     assert len(row["content_hash"]) == 64
@@ -363,7 +373,7 @@ def test_p1_authors_nothing_but_its_own_verifications(db, tmp_path):
     """
     p = tmp_path / "doc.txt"
     p.write_bytes(b"bytes")
-    file_id = observe_path(db, p, **SCAN)
+    file_id = observe_path(db, p, **scan(p))
     reset_preferences(db, "file", file_id, author="P13", component_version="p13-1",
                       user_id="u1")
 
@@ -546,7 +556,7 @@ def test_verification_of_a_vanished_file_reports_mismatch_not_an_exception(db, t
     """
     p = tmp_path / "doc.txt"
     p.write_bytes(b"content")
-    file_id = observe_path(db, p, **SCAN)
+    file_id = observe_path(db, p, **scan(p))
     expected = get_file(db, file_id)["content_hash"]
     before = db.execute("SELECT COUNT(*) c FROM events").fetchone()["c"]
     p.unlink()
@@ -570,7 +580,7 @@ def test_verification_of_a_path_replaced_by_a_directory_reports_mismatch(db, tmp
     exists to catch. `hash_file` raises IsADirectoryError instead."""
     p = tmp_path / "doc.txt"
     p.write_bytes(b"content")
-    file_id = observe_path(db, p, **SCAN)
+    file_id = observe_path(db, p, **scan(p))
     expected = get_file(db, file_id)["content_hash"]
     p.unlink()
     p.mkdir()
@@ -629,7 +639,7 @@ def test_v4_refuses_a_destination_that_exists_but_is_empty(db, tmp_path):
     source.write_bytes(b"payload that matters")
     destination = tmp_path / "dst.bin"
     destination.write_bytes(b"")
-    expected = get_file(db, observe_path(db, source, **SCAN))["content_hash"]
+    expected = get_file(db, observe_path(db, source, **scan(source)))["content_hash"]
 
     assert confirm_cross_volume_copy(
         db, source=source, destination=destination, expected_hash=expected,
@@ -656,7 +666,7 @@ def test_a_verification_records_the_hash_it_actually_read(db, tmp_path):
     match in the log and §8.3's undo precondition could not be reconstructed."""
     p = tmp_path / "doc.txt"
     p.write_bytes(b"real content")
-    file_id = observe_path(db, p, **SCAN)
+    file_id = observe_path(db, p, **scan(p))
     actual = get_file(db, file_id)["content_hash"]
 
     assert verify_content(db, file_id, "0" * 64, point=VerificationPoint.V3,
@@ -769,7 +779,7 @@ def test_no_vector_reaches_files_or_events(db, tmp_path):
     arrays", never a vector database, and `files` and `events` hold no vectors."""
     p = tmp_path / "doc.txt"
     p.write_bytes(b"bytes")
-    file_id = observe_path(db, p, **SCAN)
+    file_id = observe_path(db, p, **scan(p))
     put_embedding(db, file_id, b"\x00\x01", producer_version="p9-1")
 
     for table in ("files", "events"):
@@ -852,7 +862,7 @@ def test_recording_resources_imposes_no_ceiling(db, tmp_path):
 
     p = tmp_path / "doc.txt"
     p.write_bytes(b"bytes")
-    assert observe_path(db, p, **SCAN), "a zero ceiling must not stop the substrate working"
+    assert observe_path(db, p, **scan(p)), "a zero ceiling must not stop the substrate working"
 
 
 def test_scan_id_is_not_a_column_on_events(db):
@@ -991,14 +1001,14 @@ def test_rollback_leaves_files_and_events_consistent_with_each_other(db, tmp_pat
 
     with pytest.raises(RuntimeError):
         with transaction(db):
-            observe_path(db, p, **SCAN)
+            observe_path(db, p, **scan(p))
             raise RuntimeError("the caller failed after writing")
 
     assert db.execute("SELECT COUNT(*) c FROM files").fetchone()["c"] == 0
     assert db.execute("SELECT COUNT(*) c FROM events").fetchone()["c"] == 0
 
     with transaction(db):
-        file_id = observe_path(db, p, **SCAN)
+        file_id = observe_path(db, p, **scan(p))
     orphans = db.execute(
         "SELECT COUNT(*) c FROM events WHERE file_id IS NOT NULL AND file_id NOT IN "
         "(SELECT file_id FROM files)"
@@ -1123,8 +1133,8 @@ def test_nfc_and_nfd_spellings_of_one_path_are_one_file_version(db, tmp_path):
     if not (decomposed.exists() and decomposed.read_bytes() == composed.read_bytes()):
         pytest.skip("filesystem does not fold NFC/NFD; here the two names are two files")
 
-    first = observe_path(db, composed, **SCAN)
-    second = observe_path(db, decomposed, **SCAN)
+    first = observe_path(db, composed, **scan(composed))
+    second = observe_path(db, decomposed, **scan(decomposed))
 
     assert first == second, (
         "one file on disk was recorded as two file versions because its path was "
@@ -1156,8 +1166,8 @@ def test_a_symlink_and_its_target_are_recorded_as_two_file_versions(db, tmp_path
     link = tmp_path / "link.txt"
     link.symlink_to(target)
 
-    target_id = observe_path(db, target, **SCAN)
-    link_id = observe_path(db, link, **SCAN)
+    target_id = observe_path(db, target, **scan(target))
+    link_id = observe_path(db, link, **scan(link))
 
     assert target_id != link_id, "current behaviour: two independent file versions"
     rows = {r["file_id"]: r for r in db.execute("SELECT * FROM files")}
@@ -1179,10 +1189,10 @@ def test_path_history_shows_both_ends_of_a_move_in_order(db, tmp_path):
 
     original = tmp_path / "before.txt"
     original.write_bytes(b"movable bytes")
-    file_id = observe_path(db, original, **SCAN)
+    file_id = observe_path(db, original, **scan(original))
     moved = tmp_path / "after.txt"
     original.rename(moved)
-    assert observe_path(db, moved, **SCAN) == file_id, "a move is not a new version (R2)"
+    assert observe_path(db, moved, **scan(moved)) == file_id, "a move is not a new version (R2)"
 
     history = file_path_history(db, file_id)
     assert [Path(r["path"]).name for r in history] == ["before.txt", "after.txt"]

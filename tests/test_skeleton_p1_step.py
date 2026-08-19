@@ -8,6 +8,7 @@ keep green. It is deterministic: no model, no cloud, no embeddings.
 from datetime import datetime, timezone
 from pathlib import Path
 
+from conftest import p3_basic_record
 from database_agent.db import create_schema
 from database_agent.events import append_event
 from database_agent.files_table import get_file, observe_path
@@ -29,6 +30,8 @@ def test_skeleton_p1_step(conn, tmp_path: Path):
         conn, document, author="P3", component_version="p3-fixture",
         parent_folder_context="corpus", mime_type="application/pdf",
         detected_format="pdf", scan_state="scanned", materialized=True,
+        # P3 computes the R2 record once (O5); P1 stores it and derives none of it.
+        **p3_basic_record(document),
     )
     append_event(
         conn, event_type="discovery", file_id=file_id,
