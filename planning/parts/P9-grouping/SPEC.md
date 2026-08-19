@@ -220,6 +220,9 @@ field P10 asks for under that name; it was `basis_facts[]` and is renamed here, 
 membership_id
 group_id, file_id, content_hash
 basis                    direct-anchor | context-supported | user-attached              (§4.3, §4.8, §4.9)
+                         P9 owns this vocabulary; P8's dossier `evidence_items[].basis` draws
+                         from it. P9's own `support_kind` below is a DIFFERENT field (retrieval
+                         channel) — do not merge the two.
 decision                 included | excluded | uncertain                               (§4.5 task 2)
 decision_source          rules | llm | validator | user                                (§4.1, §4.8, §8.7)
 support[]                one or more {support_kind, observation_key, quote_or_field,

@@ -637,8 +637,10 @@ and P5's perceptual hashes. *Non-macOS OCR* — settled by **S1**: there is none
 2. **Routing precedence for formats §2.9 lists twice.** CSV appears under both Spreadsheets and Code/
    structured data; PDF appears under both Text documents and Presentations ("PDF slide decks"). The
    design specifies different field lists for each and no tiebreak.
-3. ~~**What are the analysis tiers?**~~ **Settled — I4.** `filesystem | native | ocr | llm`. See
-   Cache key above and [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
+3. ~~**What are the analysis tiers?**~~ **Settled — I4, ratified 2026-08-19.**
+   `filesystem | native | ocr | llm`, closed. P5 owns the vocabulary and writes the first three;
+   P8 is the only writer of `llm`. See Cache key above and
+   [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
 4. **Library and engine choices for every format.** The design names Apple Vision for macOS OCR
    (§2.7) — the one engine it names, and the whole of v1's OCR scope under S1 — and names no library
    for PDF, DOCX, HEIC, archives, spreadsheets, presentations, email, calendar, contacts, audio/video,

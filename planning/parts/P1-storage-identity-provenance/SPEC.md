@@ -684,7 +684,7 @@ them; the rest are unanswered here.
     keys every cached extraction result on the content hash, so a later change re-keys the whole
     cache — `hash_algorithm` is stored per row (§8.2) precisely so such a migration is detectable.
 
-11. ~~**What must survive a rebuild?**~~ **Settled in part — ops runtime.** The database lives in
+11. ~~**What must survive a rebuild?**~~ **Settled in part — ops runtime, ratified 2026-08-19.** The database lives in
     Application Support, never inside a scan root. Rebuild reconstructs identity + deterministic
     extraction + facts those extractors can reproduce. It does **not** reconstruct `events`,
     learning records, plan versions, consent grants, or review actions. P13 must say so before a

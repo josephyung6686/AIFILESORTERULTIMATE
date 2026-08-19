@@ -134,8 +134,10 @@ means no privacy gate is exercised, because nothing leaves the machine.
 ```text
 input   one PDF whose title carries a course code
 
-P1      hash it, create the file record, append a discovery event
-P3      scan a fixture directory; assert the exclusion rules skip node_modules
+P1      hash it, create the file record — P1 *writes*; it authors no event of
+        its own (§8.2, M8: the acting part authors, P1 stores)
+P3      scan a fixture directory; assert the exclusion rules skip node_modules;
+        P3 authors the discovery and stat-observation events P1 stores
 P4/P5   extract page-one text; emit ONE observation in the frozen shape
 P6      resolve it to ONE validated fact (course = X) with its evidence link
 P8      not exercised — the fact is rule-validated, no model needed
@@ -146,6 +148,13 @@ P11     exact fact match to that node; emit a placement decision
 P12     plan → verify preconditions → move → verify hash → undo → verify restored
 P2      the whole run replays from a bundle and asserts each stage's output
 ```
+
+**Authorship, not order.** The lines above are the seams the skeleton touches, not a claim about
+who acts first. P1 never originates a `discovery`, `stat observation`, `hashing` or `external
+modification detection` event: §8.2's reconstruction requirement is unmeetable from a log whose
+author field names the storage substrate as the thing that discovered the corpus. P3 authors the
+scan events, P12 authors the V1–V4 `hashing` events with P1 named as performer, and P1 writes what
+it is handed.
 
 **What it proves:** every table exists and connects, the observation shape survives a real
 extractor, a fact carries its evidence, freeze actually constrains placement, the two-condition

@@ -7,10 +7,9 @@ venv/
 .venv/
 .pytest_cache/
 
-# Local experiments — GitHub is planning specs only until the plan is locked
-database_agent/
-tests/
-pyproject.toml
+# P1 implementation is tracked from 2026-08-19: the plan is locked and the
+# walking skeleton is the integration test every later part must keep green.
+*.egg-info/
 
 # graphify build artifacts — regenerable, rebuilt by `graphify update .`
 graphify-out/
