@@ -1725,3 +1725,378 @@ git commit -m "feat(P2): replay bundle, sealed by trigger, superseded never over
 ```
 
 ---
+
+### Task 6: Bundle extraction rows — outputs, runs, and text units (Done-means 1)
+
+**Files:**
+- Modify: `src/eval_harness/bundle.py` — add the three tables and their writers
+- Create: `tests/eval/fixtures/p4_runs.json`
+- Create: `tests/eval/fixtures/p4_text_units.json`
+- Test: `tests/eval/test_bundle_extraction.py`
+
+**Interfaces:**
+- Consumes: `open_bundle`, `add_file_entry`, `seal_bundle`, `_require_open` (Task 5); `canonical_json` (Task 1).
+- Produces: `add_extraction_output(conn, bundle_id, *, content_hash, extractor_version, observation_key, payload) -> None`, `add_extraction_run(conn, bundle_id, *, row: dict) -> None`, `add_text_unit(conn, bundle_id, *, row: dict) -> None`, `extraction_outputs(conn, bundle_id, *, content_hash=None, extractor_version=None) -> list[sqlite3.Row]`, `extraction_runs(conn, bundle_id) -> list[dict]`, `text_units(conn, bundle_id, *, run_id=None) -> list[dict]`, `P4_RUN_FIELDS: tuple[str, ...]`, `P4_TEXT_UNIT_FIELDS: tuple[str, ...]`.
+
+**P4 does not exist, so these rows come from a recorded fixture, and the fixture is copied from P4's SPEC.** [`../P4-evidence-shape/SPEC.md`](../P4-evidence-shape/SPEC.md) Record 2 and Record 3 print both shapes in full; the fixture files below carry those field names and those example values, and nothing invented. **P2 defines no part of either shape.** When P4 lands, the fixtures are replaced by real rows and the column list is checked against P4's, not rewritten from memory.
+
+**The full P4 row is stored verbatim alongside the queried columns.** SPEC Contract out §3: *"Read exactly as P4 publishes them; P2 defines none of it."* The columns P2 promotes are exactly the ones §3 enumerates — `run_id`, `file_id`, `content_hash`, extractor name and version, `source_type`, `config_fingerprint`, `completeness`, `coverage`, `observation_count` — because Done-means 13's count line and adversarial case A9 query them. Every other field P4 publishes is retained in a verbatim `row` column, so a bundle never becomes a lossy copy of the record it exists to replay.
+
+**Keying is deliberately divergent from P4, and neither side should later be "fixed" into agreement.** SPEC Contract out §3: `bundle_extraction_output[]` is keyed by content hash **plus extractor version**, so one bundle holds two versions' outputs side by side for a diff. P4's `observation_key` deliberately **excludes** the version — `sha256(content_hash ‖ extractor_name ‖ locator ‖ raw_value)` — so a citation recorded today still resolves after an extractor upgrade (§8.7). Both are stored, and the test below asserts both properties on the same rows.
+
+**Why the text rows are here.** After P4's D12 the text is not on the observation — an observation is a *located value* and `text_units` is the unit it points into. Dimension 1 is §8.5's *"Did the expected text … appear?"*, which P4 states is a query against `text_units`. Without these rows the first of the ten dimensions has nothing to query, and a `capped` OCR run's recovered text — exactly what a version-to-version diff of a new OCR engine must compare — is absent from the bundle. **Whether a `metadata_safe` bundle may carry them is SPEC Open question 5 and is not answered here:** `add_text_unit` refuses on a `metadata_safe` bundle with an error naming OQ5, rather than silently allowing or silently forbidding it. That refusal is reversible in one line the day OQ5 closes; a silent allow would not be.
+
+- [ ] **Step 1: Write the fixtures**
+
+```json
+// tests/eval/fixtures/p4_runs.json
+// P4 SPEC Record 2 (D5). Field names and example values copied from that record.
+// P2 defines none of this shape. Replace with real P4 rows when P4 lands.
+[
+  {
+    "run_id": "run-ocr-1", "file_id": "file-book", "content_hash": "sha256:book",
+    "extractor_name": "ocr.apple_vision", "extractor_version": "2.4.1",
+    "source_type": "ocr", "analysis_tier": "ocr",
+    "config": {"dpi": 200, "languages": ["en", "zh-Hans"], "recognition": "accurate"},
+    "config_fingerprint": "sha256:cfg-ocr", "completeness": "capped",
+    "coverage": {"units": "pages", "processed": 40, "total": 312},
+    "observation_count": 118,
+    "started_at": "2026-08-19T00:00:00+00:00",
+    "finished_at": "2026-08-19T00:04:00+00:00", "failure_reason": null
+  },
+  {
+    "run_id": "run-native-1", "file_id": "file-syllabus", "content_hash": "sha256:syl",
+    "extractor_name": "pdf.native", "extractor_version": "1.0.0",
+    "source_type": "text", "analysis_tier": "native",
+    "config": {}, "config_fingerprint": "sha256:cfg-native",
+    "completeness": "complete",
+    "coverage": {"units": "pages", "processed": 3, "total": 3},
+    "observation_count": 7,
+    "started_at": "2026-08-19T00:00:00+00:00",
+    "finished_at": "2026-08-19T00:00:02+00:00", "failure_reason": null
+  },
+  {
+    "run_id": "run-broken-1", "file_id": "file-broken", "content_hash": "sha256:brk",
+    "extractor_name": "pdf.native", "extractor_version": "1.0.0",
+    "source_type": "text", "analysis_tier": "native",
+    "config": {}, "config_fingerprint": "sha256:cfg-native",
+    "completeness": "unreadable",
+    "coverage": {"units": "pages", "processed": 0, "total": 12},
+    "observation_count": 0,
+    "started_at": "2026-08-19T00:00:00+00:00",
+    "finished_at": "2026-08-19T00:00:01+00:00",
+    "failure_reason": "damaged"
+  }
+]
+```
+
+```json
+// tests/eval/fixtures/p4_text_units.json
+// P4 SPEC Record 3 (D12, G1). Keyed by (run_id, container_path).
+[
+  {"run_id": "run-ocr-1", "container_path": [{"kind": "page", "index": 4}],
+   "unit_locator": "page=4", "text": "recovered page four text",
+   "length": 24, "truncated": false},
+  {"run_id": "run-native-1", "container_path": [],
+   "unit_locator": "", "text": "the whole syllabus text",
+   "length": 23, "truncated": false}
+]
+```
+
+- [ ] **Step 2: Write the failing test**
+
+```python
+# tests/eval/test_bundle_extraction.py
+import json
+from pathlib import Path
+
+import pytest
+
+from eval_harness.bundle import (
+    P4_RUN_FIELDS, P4_TEXT_UNIT_FIELDS, add_extraction_output, add_extraction_run,
+    add_file_entry, add_text_unit, extraction_outputs, extraction_runs, open_bundle,
+    text_units,
+)
+from eval_harness.store import create_eval_schema
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def _load(name):
+    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+
+
+def _snapshot(conn):
+    return open_bundle(conn, corpus_form="snapshot", source_scan_ref="scan-fixture",
+                       pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                       policy_settings={})
+
+
+def test_the_promoted_run_columns_are_exactly_the_ones_the_spec_enumerates():
+    # SPEC Contract out §3: "run_id, file_id, content_hash, extractor name and
+    # version, source_type, config_fingerprint, completeness, coverage,
+    # observation_count."
+    assert P4_RUN_FIELDS == (
+        "run_id", "file_id", "content_hash", "extractor_name", "extractor_version",
+        "source_type", "config_fingerprint", "completeness", "coverage",
+        "observation_count",
+    )
+    assert P4_TEXT_UNIT_FIELDS == (
+        "run_id", "container_path", "unit_locator", "text", "length", "truncated",
+    )
+
+
+def test_a_run_row_round_trips_every_field_p4_publishes(eval_conn):
+    # "Read exactly as P4 publishes them; P2 defines none of it." Fields P2 does
+    # not promote to columns survive in the verbatim row.
+    create_eval_schema(eval_conn)
+    bundle_id = _snapshot(eval_conn)
+    for row in _load("p4_runs.json"):
+        add_extraction_run(eval_conn, bundle_id, row=row)
+    stored = {r["run_id"]: r for r in extraction_runs(eval_conn, bundle_id)}
+    ocr = stored["run-ocr-1"]
+    assert ocr["completeness"] == "capped"
+    assert ocr["coverage"] == {"units": "pages", "processed": 40, "total": 312}
+    assert ocr["analysis_tier"] == "ocr"          # not promoted, not lost
+    assert ocr["config"] == {"dpi": 200, "languages": ["en", "zh-Hans"],
+                             "recognition": "accurate"}
+    assert stored["run-broken-1"]["failure_reason"] == "damaged"
+
+
+def test_two_extractor_versions_of_one_content_hash_coexist(eval_conn):
+    # This is why bundle_extraction_output is keyed by hash PLUS version: one
+    # bundle holds both sides of a version-to-version diff (§8.5).
+    create_eval_schema(eval_conn)
+    bundle_id = _snapshot(eval_conn)
+    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:syl",
+                          extractor_version="1.0.0",
+                          observation_key="sha256:obs-a", payload='{"v":"old"}')
+    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:syl",
+                          extractor_version="2.0.0",
+                          observation_key="sha256:obs-a", payload='{"v":"new"}')
+    both = extraction_outputs(eval_conn, bundle_id, content_hash="sha256:syl")
+    assert {r["extractor_version"] for r in both} == {"1.0.0", "2.0.0"}
+    assert {r["payload"] for r in both} == {'{"v":"old"}', '{"v":"new"}'}
+
+
+def test_the_observation_key_survives_an_extractor_upgrade(eval_conn):
+    # P4's observation_key deliberately EXCLUDES the extractor version, so a
+    # citation recorded today still resolves after an upgrade (§8.7). P2's key
+    # deliberately includes it. Neither should be "fixed" into agreement.
+    create_eval_schema(eval_conn)
+    bundle_id = _snapshot(eval_conn)
+    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:syl",
+                          extractor_version="1.0.0",
+                          observation_key="sha256:obs-a", payload='{"v":"old"}')
+    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:syl",
+                          extractor_version="2.0.0",
+                          observation_key="sha256:obs-a", payload='{"v":"new"}')
+    cited = eval_conn.execute(
+        "SELECT DISTINCT observation_key FROM bundle_extraction_output "
+        "WHERE bundle_id = ?", (bundle_id,)).fetchall()
+    assert [r["observation_key"] for r in cited] == ["sha256:obs-a"]
+
+
+def test_an_extraction_payload_is_opaque(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _snapshot(eval_conn)
+    blob = "not JSON, still an observation payload"
+    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:x",
+                          extractor_version="1.0.0", observation_key="sha256:k",
+                          payload=blob)
+    assert extraction_outputs(eval_conn, bundle_id)[0]["payload"] == blob
+
+
+def test_text_units_round_trip_with_their_container_path(eval_conn):
+    create_eval_schema(eval_conn)
+    bundle_id = _snapshot(eval_conn)
+    for row in _load("p4_text_units.json"):
+        add_text_unit(eval_conn, bundle_id, row=row)
+    page_four = text_units(eval_conn, bundle_id, run_id="run-ocr-1")[0]
+    assert page_four["container_path"] == [{"kind": "page", "index": 4}]
+    assert page_four["unit_locator"] == "page=4"
+    assert page_four["text"] == "recovered page four text"
+    assert page_four["truncated"] is False
+    whole_file = text_units(eval_conn, bundle_id, run_id="run-native-1")[0]
+    assert whole_file["container_path"] == []          # D12: [] is the whole file
+
+
+def test_a_metadata_safe_bundle_refuses_text_units_and_names_the_open_question(eval_conn):
+    # SPEC Open question 5: "What exactly does 'metadata-safe' exclude?" P2 does
+    # not answer it. It refuses, naming OQ5, rather than deciding either way in
+    # silence. One line changes the day OQ5 closes.
+    create_eval_schema(eval_conn)
+    bundle_id = open_bundle(eval_conn, corpus_form="metadata_safe",
+                            source_scan_ref="scan-fixture",
+                            pinned_plan_id="plan-fixture", pinned_plan_version="1",
+                            policy_settings={})
+    with pytest.raises(NotImplementedError) as excinfo:
+        add_text_unit(eval_conn, bundle_id, row=_load("p4_text_units.json")[0])
+    assert "Open question 5" in str(excinfo.value)
+
+
+def test_p2_invents_no_text_unit_field():
+    # The shape is P4's D12 and P2 publishes none of it.
+    src = Path(__file__).resolve().parents[2] / "src" / "eval_harness" / "bundle.py"
+    text = src.read_text(encoding="utf-8")
+    for invented in ("excerpt", "snippet", "page_text", "ocr_text", "full_text"):
+        assert invented not in text
+```
+
+- [ ] **Step 3: Run test to verify it fails**
+
+Run: `pytest tests/eval/test_bundle_extraction.py -v`
+Expected: FAIL with `ImportError: cannot import name 'add_extraction_run' from 'eval_harness.bundle'`
+
+- [ ] **Step 4: Extend bundle.py**
+
+Append to `BUNDLE_DDL`:
+
+```sql
+CREATE TABLE IF NOT EXISTS bundle_extraction_output (
+    bundle_id         TEXT NOT NULL REFERENCES bundle_manifest (bundle_id),
+    content_hash      TEXT NOT NULL,
+    extractor_version TEXT NOT NULL,
+    observation_key   TEXT NOT NULL,   -- P4's citation handle; EXCLUDES the version
+    payload           TEXT,            -- opaque observation payload
+    PRIMARY KEY (bundle_id, content_hash, extractor_version, observation_key)
+);
+CREATE TABLE IF NOT EXISTS bundle_extraction_run (
+    bundle_id          TEXT NOT NULL REFERENCES bundle_manifest (bundle_id),
+    run_id             TEXT NOT NULL,
+    file_id            TEXT,
+    content_hash       TEXT,
+    extractor_name     TEXT,
+    extractor_version  TEXT,
+    source_type        TEXT,
+    config_fingerprint TEXT,
+    completeness       TEXT,
+    coverage           TEXT,           -- P4's {units, processed, total}, canonical JSON
+    observation_count  INTEGER,
+    row                TEXT NOT NULL,  -- P4's whole row, verbatim; nothing is lost
+    PRIMARY KEY (bundle_id, run_id)
+);
+CREATE TABLE IF NOT EXISTS bundle_text_unit (
+    bundle_id     TEXT NOT NULL REFERENCES bundle_manifest (bundle_id),
+    run_id        TEXT NOT NULL,
+    unit_locator  TEXT NOT NULL,
+    row           TEXT NOT NULL,       -- P4's whole row, verbatim
+    PRIMARY KEY (bundle_id, run_id, unit_locator)
+);
+```
+
+Append the writers and readers to `bundle.py`:
+
+```python
+#: P4 SPEC Record 2 (D5), the subset SPEC Contract out §3 enumerates and P2 queries.
+#: Every other field P4 publishes is retained verbatim in the `row` column.
+P4_RUN_FIELDS: tuple[str, ...] = (
+    "run_id", "file_id", "content_hash", "extractor_name", "extractor_version",
+    "source_type", "config_fingerprint", "completeness", "coverage",
+    "observation_count",
+)
+
+#: P4 SPEC Record 3 (D12, G1). P2 defines none of it.
+P4_TEXT_UNIT_FIELDS: tuple[str, ...] = (
+    "run_id", "container_path", "unit_locator", "text", "length", "truncated",
+)
+
+
+def add_extraction_output(conn: sqlite3.Connection, bundle_id: str, *,
+                          content_hash: str, extractor_version: str,
+                          observation_key: str, payload: str | None) -> None:
+    """One opaque observation payload, keyed by content hash PLUS extractor version.
+
+    The key deliberately diverges from P4's `observation_key`, which excludes the
+    version so a citation survives an upgrade (§8.7). Both are stored: the key
+    holds two versions apart for a diff, `observation_key` holds them together for
+    a citation.
+    """
+    _require_open(conn, bundle_id)
+    conn.execute(
+        "INSERT INTO bundle_extraction_output (bundle_id, content_hash, "
+        "extractor_version, observation_key, payload) VALUES (?, ?, ?, ?, ?)",
+        (bundle_id, content_hash, extractor_version, observation_key, payload),
+    )
+
+
+def add_extraction_run(conn: sqlite3.Connection, bundle_id: str, *, row: dict) -> None:
+    """One P4 `extraction_runs` row, read exactly as P4 publishes it."""
+    _require_open(conn, bundle_id)
+    promoted = [row.get(f) for f in P4_RUN_FIELDS]
+    promoted[P4_RUN_FIELDS.index("coverage")] = canonical_json(row.get("coverage"))
+    conn.execute(
+        "INSERT INTO bundle_extraction_run (bundle_id, "
+        + ", ".join(P4_RUN_FIELDS) + ", row) VALUES ("
+        + ", ".join("?" * (len(P4_RUN_FIELDS) + 2)) + ")",
+        (bundle_id, *promoted, canonical_json(row)),
+    )
+
+
+def add_text_unit(conn: sqlite3.Connection, bundle_id: str, *, row: dict) -> None:
+    """One P4 `text_units` row (D12, G1), read exactly as P4 publishes it."""
+    manifest = _require_open(conn, bundle_id)
+    if manifest["corpus_form"] == "metadata_safe":
+        raise NotImplementedError(
+            "whether a metadata_safe bundle may carry text_units is SPEC Open "
+            "question 5 (§8.4 requires full extracted text to remain local; §8.5 "
+            "offers a metadata-safe representation and defines neither). P2 does "
+            "not decide it."
+        )
+    conn.execute(
+        "INSERT INTO bundle_text_unit (bundle_id, run_id, unit_locator, row) "
+        "VALUES (?, ?, ?, ?)",
+        (bundle_id, row["run_id"], row["unit_locator"], canonical_json(row)),
+    )
+
+
+def extraction_outputs(conn: sqlite3.Connection, bundle_id: str, *,
+                       content_hash: str | None = None,
+                       extractor_version: str | None = None) -> list[sqlite3.Row]:
+    sql = "SELECT * FROM bundle_extraction_output WHERE bundle_id = ?"
+    args: list = [bundle_id]
+    if content_hash is not None:
+        sql += " AND content_hash = ?"
+        args.append(content_hash)
+    if extractor_version is not None:
+        sql += " AND extractor_version = ?"
+        args.append(extractor_version)
+    return conn.execute(sql + " ORDER BY content_hash, extractor_version",
+                        args).fetchall()
+
+
+def extraction_runs(conn: sqlite3.Connection, bundle_id: str) -> list[dict]:
+    """P4's rows, as P4 wrote them."""
+    import json
+    return [json.loads(r["row"]) for r in conn.execute(
+        "SELECT row FROM bundle_extraction_run WHERE bundle_id = ? ORDER BY run_id",
+        (bundle_id,))]
+
+
+def text_units(conn: sqlite3.Connection, bundle_id: str, *,
+               run_id: str | None = None) -> list[dict]:
+    import json
+    if run_id is None:
+        rows = conn.execute(
+            "SELECT row FROM bundle_text_unit WHERE bundle_id = ? "
+            "ORDER BY run_id, unit_locator", (bundle_id,))
+    else:
+        rows = conn.execute(
+            "SELECT row FROM bundle_text_unit WHERE bundle_id = ? AND run_id = ? "
+            "ORDER BY unit_locator", (bundle_id, run_id))
+    return [json.loads(r["row"]) for r in rows]
+```
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+Run: `pytest tests/eval/test_bundle_extraction.py -v`
+Expected: PASS — 8 passed
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/eval_harness/bundle.py tests/eval/fixtures/p4_runs.json tests/eval/fixtures/p4_text_units.json tests/eval/test_bundle_extraction.py
+git commit -m "feat(P2): bundle carries P4's runs, outputs and text units verbatim, keyed for a version diff"
+```
+
+---

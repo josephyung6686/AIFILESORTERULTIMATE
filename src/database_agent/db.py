@@ -114,6 +114,21 @@ BEGIN SELECT RAISE(ABORT, 'events is append-only (R6, 8.2)'); END;
 """
 
 
+SCAN_USAGE_DDL = """
+CREATE TABLE IF NOT EXISTS scan_resource_usage (
+    scan_id         TEXT PRIMARY KEY,   -- minted by P1, deliberately not on events
+    elapsed_time    TEXT,               -- every counter: JSON, or NULL for unavailable
+    memory          TEXT,
+    cpu_accelerator TEXT,
+    storage         TEXT,
+    network         TEXT,
+    llm_cost        TEXT,               -- written by P8 (O9), never sampled here
+    started_at      TEXT NOT NULL,      -- (mechanics) so elapsed_time is computable
+    baseline        TEXT NOT NULL,      -- (mechanics) at-start samples, for deltas
+    observed_at     TEXT
+);
+"""
+
 # Inlined rather than imported from vectors.py, to avoid a circular import.
 VECTORS_DDL = """
 CREATE TABLE IF NOT EXISTS vector_arrays (
@@ -150,3 +165,4 @@ def create_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(LEARNING_DDL)
     conn.executescript(BUDGET_DDL)
     conn.executescript(VECTORS_DDL)
+    conn.executescript(SCAN_USAGE_DDL)
