@@ -159,10 +159,12 @@ def test_a_psd_is_indexed_but_unreadable_and_never_zero_rows(sink):
     sink.write(unrouted_result(file_row=row, decision=decision, now=FIXED_CLOCK))
     assert sink.runs[0]["completeness"] == "unreadable"
     assert sink.runs[0]["source_type"] == "design_creative"
+    assert sink.runs[0]["extractor_name"] == "format.unrouted"
     assert sink.runs[0]["failure_reason"]
     emitted = {locator_for(o["location"]): o["raw_value"] for o in sink.observations}
     assert emitted["filename"] == "design.psd"
     assert emitted["metadata:field=format"] == "psd"
+    assert {o["extractor_name"] for o in sink.observations} == {"format.unrouted"}
     sink.conforms()
 
 

@@ -138,7 +138,7 @@ def unrouted_result(*, file_row: Mapping[str, Any], decision,
         )
         observations.append(observation(
             file_id=file_row["file_id"], content_hash=file_row["content_hash"],
-            extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+            extractor_name=STOPPED_EXTRACTOR_NAME, extractor_version=VERSION,
             source_type=source_type, raw_value=file_row["filename"],
             location=location(zone="filename"),
             observed_at=now, reliability="possible",
@@ -147,7 +147,7 @@ def unrouted_result(*, file_row: Mapping[str, Any], decision,
         if detected:
             observations.append(observation(
                 file_id=file_row["file_id"], content_hash=file_row["content_hash"],
-                extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+                extractor_name=STOPPED_EXTRACTOR_NAME, extractor_version=VERSION,
                 source_type=source_type, raw_value=detected,
                 location=location(zone="metadata",
                                   container_path=(segment("field", label="format"),)),
