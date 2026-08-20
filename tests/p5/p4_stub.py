@@ -248,19 +248,20 @@ def validate_observation(observation: Mapping[str, Any], *,
 
 
 def _p4_run_mapping(run: Mapping[str, Any]) -> dict:
-    """P5's run dict as the mapping P4's `runs.run_from_mapping` reads.
+    """P5's run dict as the mapping P4's `runs.run_from_mapping` reads. Identity.
 
-    `config_fingerprint` is dropped, and this is the one substantive disagreement
-    between the two shipped packages. P4's `runs.config_fingerprint` is
-    `sha256_of(canonical_json(config))`, which length-prefixes the part before
-    hashing; P5's `extractors.shape.fingerprint` is
-    `sha256(canonical_json(config).encode())`, which does not. The canonical JSON is
-    byte-identical, the digests never are, so P4 rejects EVERY run record P5 emits
-    with "config_fingerprint ... is not the fingerprint of this config". P4 already
-    treats the field as optional in `run_from_mapping` (it is the one name exempted
-    from the missing-fields check), so omitting it lets P4 check the other fourteen
-    fields for real. Reported, not resolved: P4 owns the field, and the fix belongs in
-    src/extractors/shape.py, not in a test harness.
+    This function once DROPPED `config_fingerprint`, because P4's
+    `runs.config_fingerprint` length-prefixes the part before hashing and P5's
+    `extractors.shape.fingerprint` called `hashlib.sha256` directly: the canonical
+    JSON was byte-identical, the digests never were, and P4 rejected every run record
+    P5 emitted. Dropping the field let P4 check the other fourteen for real while the
+    break stood.
+
+    The break was fixed at its source -- `extractors.shape.fingerprint` delegates to
+    P4 -- so nothing is dropped and P4 validates the fingerprint for real. The
+    conversion is kept as a named seam rather than inlined so that the next
+    P5-mapping-to-P4-mapping difference has one place to live and one place to be
+    read; its emptiness is the point.
     """
     return dict(run)      # nothing dropped: P5 now delegates the fingerprint to P4
 

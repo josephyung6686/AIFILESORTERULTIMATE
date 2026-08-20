@@ -9,11 +9,17 @@ One column is not a published field. P1's `mark_superseded` and `chain` are
 diverge, does not appear in `PRAGMA table_info`, and lets P1's tested supersede
 functions be reused verbatim instead of written a second time under a second name.
 
-The foreign keys run one way. Nothing references P1's `files`: Open question 2 --
+The foreign keys run one way. Nothing references P1's `files`, and since 2026-08-20
+that is a CONSEQUENCE of an answer rather than the absence of one: Open question 2 --
 whether an observation is owned by the content hash or by the file record -- is
-unsettled, and a foreign key would answer it in DDL. P4 must also be buildable and
-testable with no `files` row in existence, which is what lets P6 be built entirely
-against P4's fixtures with no extractor and no scan.
+closed, and the content hash owns it. A foreign key to `files` would say the file
+record owns it, which is now the wrong answer, not merely a premature one. `file_id`
+stays on the row as the convenience handle §8.2's explanations render; identity is
+`content_hash` (P1 R1).
+
+Kept from the open-question era, and still true: P4 must be buildable and testable
+with no `files` row in existence, which is what lets P6 be built entirely against
+P4's fixtures with no extractor and no scan.
 """
 from __future__ import annotations
 
