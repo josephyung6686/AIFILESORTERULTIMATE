@@ -28,6 +28,24 @@ class DatalessFileRefused(Exception):
     """
 
 
+#: A digest `hash_file` produced: `hashlib.sha256().hexdigest()` and nothing else.
+#: Published as a predicate because R1 makes the content hash the identity of a file
+#: version and P1 owns that identity -- a consumer that re-spelled "64 lowercase hex"
+#: would be a second definition of one rule, which is how P5 came to compute a second
+#: `config_fingerprint` that P4 rejected. P4 imports this; it does not restate it.
+#:
+#: Deliberately NOT algorithm-prefixed, and `sha256_of`'s output deliberately is: P4's
+#: citation keys and P1's file identity must stay distinguishable, or a key stored in
+#: a `content_hash` column would look like a hash.
+_HEX = frozenset("0123456789abcdef")
+
+
+def is_content_hash(value: object) -> bool:
+    """Is this a digest P1 produced (R1)? 64 lowercase hex characters."""
+    return (isinstance(value, str) and len(value) == 64
+            and _HEX.issuperset(value))
+
+
 def hash_file(path: Path, *, materialized: bool) -> str:
     """Content hash of a file's bytes, streamed. 64 hex chars.
 

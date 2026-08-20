@@ -16,7 +16,7 @@ from conftest import FIXED_CLOCK
 
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
-FILE_ROW = {"file_id": "f1", "content_hash": "sha256:abc", "filename": "Hw 5.pdf"}
+FILE_ROW = {"file_id": "f1", "content_hash": "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", "filename": "Hw 5.pdf"}
 
 
 def a_pdf(text: str) -> PdfDocument:
@@ -42,7 +42,7 @@ def test_a_photographed_page_has_no_text_layer_and_routes_directly(sink):
     # `text_layer_absent` -> direct OCR route, no language check."
     asked = []
     decision = document_ocr_decision(
-        result=extracted(""), file_id="f1", content_hash="sha256:abc",
+        result=extracted(""), file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
         no_usable_facts=lambda file_id, content_hash: asked.append(file_id) or True)
     assert decision.state == "text_layer_absent"
     assert decision.run_ocr is True
@@ -55,7 +55,7 @@ def test_a_photographed_page_has_no_text_layer_and_routes_directly(sink):
 def test_a_usable_text_layer_does_not_reach_ocr():
     decision = document_ocr_decision(
         result=extracted("Homework 5. Solve for x."), file_id="f1",
-        content_hash="sha256:abc",
+        content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
         no_usable_facts=lambda file_id, content_hash: False)
     assert decision.state == "text_layer_usable"
     assert decision.run_ocr is False
@@ -66,13 +66,13 @@ def test_a_broken_text_layer_waits_for_p6_and_is_then_targeted():
     # OCR until P6 returns no-usable-facts."
     result = extracted("�� garbled � text that is not empty")
     still_useful = document_ocr_decision(
-        result=result, file_id="f1", content_hash="sha256:abc",
+        result=result, file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
         no_usable_facts=lambda file_id, content_hash: False)
     assert still_useful.state == "text_layer_usable"
     assert still_useful.run_ocr is False
 
     no_facts = document_ocr_decision(
-        result=result, file_id="f1", content_hash="sha256:abc",
+        result=result, file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
         no_usable_facts=lambda file_id, content_hash: True)
     assert no_facts.state == "text_layer_broken"
     assert no_facts.run_ocr is True
@@ -132,7 +132,7 @@ def test_an_image_with_no_text_and_no_metadata_reaches_ocr(sink):
     from extractors.shape import run
     from extractors.sink import ExtractionResult
     opaque = ExtractionResult(
-        run=run(file_id="f1", content_hash="sha256:abc",
+        run=run(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                 extractor_name="image.metadata", extractor_version="0.1.0",
                 source_type="image", analysis_tier="native", config={},
                 completeness="complete",
@@ -148,14 +148,14 @@ def test_an_image_with_usable_metadata_does_not_reach_ocr():
     from extractors.shape import location, observation, run, segment
     from extractors.sink import ExtractionResult
     with_exif = ExtractionResult(
-        run=run(file_id="f1", content_hash="sha256:abc",
+        run=run(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                 extractor_name="image.metadata", extractor_version="0.1.0",
                 source_type="image", analysis_tier="native", config={},
                 completeness="complete",
                 coverage={"units": "images", "processed": 1, "total": 1},
                 observation_count=1, started_at=FIXED_CLOCK, finished_at=FIXED_CLOCK),
         observations=(observation(
-            file_id="f1", content_hash="sha256:abc",
+            file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
             extractor_name="image.metadata", extractor_version="0.1.0",
             source_type="image", raw_value="Canon",
             location=location(zone="metadata",
@@ -177,5 +177,5 @@ def test_ocr_text_density_is_not_an_input_anywhere_in_the_policy():
 
 def test_text_layer_state_is_available_on_its_own():
     assert text_layer_state(result=extracted(""), file_id="f1",
-                            content_hash="sha256:abc",
+                            content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                             no_usable_facts=lambda f, c: False) == "text_layer_absent"

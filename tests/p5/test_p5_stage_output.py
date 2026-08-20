@@ -23,7 +23,7 @@ P4_COMPLETENESS = ("complete", "capped", "partial", "metadata_only", "deferred",
 
 
 def a_run(completeness="complete", extractor_name="pdf.text", version="0.1.0"):
-    return {"file_id": "f-1", "content_hash": "sha256:abc",
+    return {"file_id": "f-1", "content_hash": "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
             "extractor_name": extractor_name, "extractor_version": version,
             "source_type": "text_document", "analysis_tier": "native",
             "completeness": completeness, "observation_count": 3,
@@ -71,7 +71,7 @@ def test_abstention_and_budget_deferral_are_different_values():
 
 def test_inputs_is_the_content_hash_so_a_rename_is_free():
     envelope = extraction_stage_output(run=a_run())
-    assert envelope["inputs"] == ("sha256:abc",)
+    assert envelope["inputs"] == ("67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",)
     assert envelope["subject_ref"] == "f-1"
 
 

@@ -13,7 +13,7 @@ from extractors.budgets import (
 
 from conftest import FIXED_CLOCK
 
-FILE_ROW = {"file_id": "f-book", "content_hash": "sha256:book",
+FILE_ROW = {"file_id": "f-book", "content_hash": "338b639c2b1f4ae1ae5341132963e1a4ec8a5017775c92300270d14dbff12f4c",
             "filename": "scanned-book-400pp.pdf"}
 
 

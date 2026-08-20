@@ -18,7 +18,7 @@ from p4_stub import locator_for
 
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
-FILE_ROW = {"file_id": "f-readme", "content_hash": "sha256:readme",
+FILE_ROW = {"file_id": "f-readme", "content_hash": "c4b68614329771504e26f782d73842637dfa7ece1ad2bc377faae5c296806a0b",
             "filename": "README.md"}
 
 BODY = "This project belongs to U Chicago and ships from src.\n"

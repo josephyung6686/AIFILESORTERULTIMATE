@@ -67,7 +67,7 @@ def test_p1_may_never_be_named_as_the_author_of_an_extraction():
 def test_event_defaults_fill_in_8_2s_authorship_fields():
     fields = event_defaults(author="P5", component_version="pdf.text/3.1.0",
                             event_type="extraction", file_id="f1",
-                            content_hash="sha256:abc", explanation="{}")
+                            content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", explanation="{}")
     assert fields["subsystem"] == "P5"
     assert fields["component_version"] == "pdf.text/3.1.0"
     assert fields["event_type"] == "extraction"
@@ -95,7 +95,7 @@ def test_what_event_defaults_produces_is_accepted_by_p1s_writer(conn):
     # key, so this needs no `files` row and no extractor.
     event_id = append_event(conn, **event_defaults(
         author="P5", component_version="ocr.apple_vision/2.4.1", event_type="OCR",
-        file_id="f1", content_hash="sha256:abc", explanation='{"run_id": "r1"}'))
+        file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", explanation='{"run_id": "r1"}'))
     row = conn.execute("SELECT * FROM events WHERE event_id = ?", (event_id,)).fetchone()
     assert row["event_type"] == "OCR"
     assert row["subsystem"] == "P5"

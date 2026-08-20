@@ -17,7 +17,7 @@ RECOVERED = "Your Columbia University"
 
 def _ocr_run(run_id, version):
     return ExtractionRun(
-        run_id=run_id, file_id="f1", content_hash="sha256:abc",
+        run_id=run_id, file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
         extractor_name="ocr.apple_vision", extractor_version=version,
         source_type="ocr", analysis_tier="ocr", config={"dpi": 200},
         completeness="complete", started_at="2026-08-19T14:00:00+00:00",
@@ -26,7 +26,7 @@ def _ocr_run(run_id, version):
 
 def _ocr_observation(run_id, version, raw_value):
     return Observation(
-        file_id="f1", content_hash="sha256:abc", extractor_name="ocr.apple_vision",
+        file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="ocr.apple_vision",
         extractor_version=version, source_type="ocr", raw_value=raw_value,
         location=Location("ocr", (Segment("page", 4), Segment("region", 2)),
                           text_span=TextSpan(0, len(raw_value))),

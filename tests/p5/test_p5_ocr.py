@@ -22,7 +22,7 @@ from conftest import FIXED_CLOCK
 
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
-FILE_ROW = {"file_id": "f-scan", "content_hash": "sha256:scan",
+FILE_ROW = {"file_id": "f-scan", "content_hash": "bcbb377bc839704c4e4ccf7781cce3dcc88cc8a288c9eebbffa245a3476c56e9",
             "filename": "hw5-photographed.pdf"}
 
 #: Every value here is the CALLER's. §2.7's language list is Deferred and its DPI is
@@ -82,7 +82,7 @@ def test_all_nine_section_2_7_fields_have_a_home_and_are_populated(sink):
     unit = sink.units_for(run_id)[0]
     found = sink.observations_for(run_id)[0]
 
-    assert row["extractor_name"] == "ocr.apple-vision"          # provider
+    assert row["extractor_name"] == "ocr.apple_vision"          # provider
     assert row["extractor_version"] == "19.1"                   # version
     assert row["config"]["languages"] == ["en-US"]              # languages
     assert row["config_fingerprint"] == fingerprint(FIXTURE_CONFIG)  # configuration
@@ -146,7 +146,9 @@ def test_a_screenshot_with_no_structured_strings_is_complete_with_zero_rows(sink
 def test_the_provider_is_the_engines_and_p5_spells_none():
     # S1: Apple Vision is the one engine §2.7 names and the whole of v1's scope, and
     # §2.7's first persisted field is that the PROVIDER reports its own name.
-    assert extractor_name_for("apple-vision") == "ocr.apple-vision"
+    assert extractor_name_for("apple-vision") == "ocr.apple_vision"
+    # The engine still supplies the name -- a different engine gets a different one.
+    assert extractor_name_for("tesseract") == "ocr.tesseract"
     assert analysis_tier_for("ocr.apple-vision") == ANALYSIS_TIER == "ocr"
     # Scoped to real module-level constants, NOT to `__doc__`: the docstring quotes
     # §2.7 and names the engine, and a guard that matched prose would fail on the
@@ -239,3 +241,35 @@ def test_a_dataless_file_is_never_ocred():
                     ocr_engine=lambda target, *, config: pytest.fail("engine ran"),
                     config=FIXTURE_CONFIG, find_structured_strings=lambda text: (),
                     now=FIXED_CLOCK, context_window=20)
+
+
+# --- One engine, one extractor_name (stress test 2026-08-21) ------------------
+#
+# `extractor_name_for` concatenated the provider string verbatim, so an engine
+# reporting `apple-vision` produced `ocr.apple-vision` while P4's nineteen fixtures
+# and P2's examples say `ocr.apple_vision`. `extractor_name` is an input to
+# `observation_key`, to §3.4's cache key and to rule 8's replay key, so two spellings
+# of ONE engine are two citation handles, two cache entries and two replay sets --
+# the same defect as the two `config_fingerprint` computations, one layer up.
+#
+# P5 still spells no provider name: the engine reports it. What P5 refuses is to let
+# two spellings of one reported name become two identities.
+
+def test_two_spellings_of_one_engine_are_one_extractor_name():
+    from extractors.ocr import extractor_name_for
+    names = {extractor_name_for(p) for p in
+             ("apple-vision", "apple_vision", "Apple Vision", "APPLE-VISION")}
+    assert names == {"ocr.apple_vision"}
+
+
+def test_the_pinned_spelling_is_the_one_p4s_fixtures_carry():
+    from extractors.ocr import extractor_name_for
+    from evidence_shape.fixtures import by_number
+    ocr_fixture = next(f for f in (by_number(n) for n in range(1, 20))
+                       if f.run.analysis_tier == "ocr")
+    assert extractor_name_for("apple-vision") == ocr_fixture.run.extractor_name
+
+
+def test_two_genuinely_different_engines_stay_two_names():
+    from extractors.ocr import extractor_name_for
+    assert extractor_name_for("apple-vision") != extractor_name_for("tesseract")

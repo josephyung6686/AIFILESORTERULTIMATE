@@ -23,7 +23,7 @@ from p4_stub import locator_for, unit_locator_for
 
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
-FILE_ROW = {"file_id": "f-lt", "content_hash": "sha256:lt", "filename": "thing"}
+FILE_ROW = {"file_id": "f-lt", "content_hash": "751d1abc2d16b803289d9eb0ac7f8b7cf540c7c5f48fe9dca0b2f19260cfca74", "filename": "thing"}
 
 NEVER = lambda: False
 ALWAYS = lambda: True

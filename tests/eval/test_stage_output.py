@@ -26,7 +26,7 @@ def run(eval_conn):
 
 
 def _emit(conn, run_id, ref, **overrides):
-    fields = dict(run_id=run_id, stage_id="extraction", subject_ref="sha256:aa",
+    fields = dict(run_id=run_id, stage_id="extraction", subject_ref="e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0",
                   outcome="produced", payload='{"opaque": true}',
                   version_tuple_ref=ref, inputs=[], budget_state="within_ceiling")
     fields.update(overrides)
@@ -42,13 +42,13 @@ def test_the_envelope_has_exactly_the_nine_contract_fields():
 
 def test_every_envelope_field_is_stored(eval_conn, run):
     run_id, ref = run
-    _emit(eval_conn, run_id, ref, inputs=["sha256:bb"])
+    _emit(eval_conn, run_id, ref, inputs=["9b03bd19f9d5570d829ed2eda88b07e57b33c0a602f88cfa0d8283c087bd3d14"])
     row = stage_outputs(eval_conn, run_id)[0]
     assert row["stage_id"] == "extraction"
-    assert row["subject_ref"] == "sha256:aa"
+    assert row["subject_ref"] == "e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0"
     assert row["outcome"] == "produced"
     assert row["version_tuple_ref"] == ref
-    assert row["inputs"] == '["sha256:bb"]'
+    assert row["inputs"] == '["9b03bd19f9d5570d829ed2eda88b07e57b33c0a602f88cfa0d8283c087bd3d14"]'
     assert row["budget_state"] == "within_ceiling"
     assert row["produced_at"]
 

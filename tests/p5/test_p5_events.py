@@ -20,13 +20,13 @@ CONFIG = {"recognition": "accurate", "languages": ["en-US"], "dpi": 200}
 
 def an_extraction_event():
     return extraction_event(run_id="run-7", file_id="f-1",
-                            content_hash="sha256:abc", extractor_name="pdf.text",
+                            content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
                             extractor_version="0.1.0", completeness="complete",
                             observed_at=FIXED_CLOCK)
 
 
 def an_ocr_event():
-    return ocr_event(run_id="run-8", file_id="f-1", content_hash="sha256:abc",
+    return ocr_event(run_id="run-8", file_id="f-1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      provider="apple-vision", provider_version="19.1",
                      config=CONFIG, completeness="capped",
                      observed_at=FIXED_CLOCK)
@@ -57,7 +57,7 @@ def test_an_extraction_event_round_trips_through_p1(conn):
     assert row["event_type"] == "extraction"
     assert row["subsystem"] == "P5"
     assert row["file_id"] == "f-1"
-    assert row["content_hash"] == "sha256:abc"
+    assert row["content_hash"] == "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124"
     assert row["observed_at"] == FIXED_CLOCK
 
 
@@ -119,7 +119,7 @@ def test_a_second_run_appends_a_second_event_and_the_first_remains(conn):
     create_schema(conn)
     append(conn, an_extraction_event())
     append(conn, extraction_event(
-        run_id="run-9", file_id="f-1", content_hash="sha256:abc",
+        run_id="run-9", file_id="f-1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
         extractor_name="pdf.text", extractor_version="0.2.0",
         completeness="complete", observed_at=FIXED_CLOCK))
     rows = conn.execute("SELECT * FROM events ORDER BY event_id").fetchall()

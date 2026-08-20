@@ -18,7 +18,7 @@ from evidence_shape.text_units import TextUnit
 
 def _run(**overrides):
     payload = dict(
-        run_id="r1", file_id="f1", content_hash="sha256:abc",
+        run_id="r1", file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
         extractor_name="pdf.text", extractor_version="3.1.0",
         source_type="text_document", analysis_tier="native", config={},
         completeness="complete", started_at="2026-08-19T14:00:00+00:00",
@@ -79,8 +79,8 @@ def test_runs_are_findable_by_content_hash(p4_conn):
     # §2.1: "read each file once per content version"; §3.4 keys on the content hash.
     record_run(p4_conn, _run())
     record_run(p4_conn, _ocr_run())
-    assert len(runs_for_content(p4_conn, "sha256:abc")) == 2
-    assert runs_for_content(p4_conn, "sha256:other") == []
+    assert len(runs_for_content(p4_conn, "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124")) == 2
+    assert runs_for_content(p4_conn, "08da1122759d0a1822140a5d9ac70b8daec5393fbaa23cafd3024817d0c59c3c") == []
 
 
 def test_an_unknown_run_is_a_key_error(p4_conn):
@@ -99,7 +99,7 @@ def test_a_native_run_appends_8_2s_extraction_event(p4_conn):
     assert row["subsystem"] == "P5"
     assert row["component_version"] == "3.1.0"
     assert row["file_id"] == "f1"
-    assert row["content_hash"] == "sha256:abc"
+    assert row["content_hash"] == "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124"
     assert row["observed_at"] == "2026-08-19T14:03:22+00:00"
 
 
@@ -170,7 +170,7 @@ PAGE_ONE = "Syllabus — BUSIB 4300 — Spring 2026"
 
 def _observation(**overrides):
     payload = dict(
-        file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
+        file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
         extractor_version="3.1.0", source_type="text_document",
         raw_value="BUSIB 4300",
         location=Location("heading", (Segment("page", 1),), text_span=TextSpan(11, 21)),
@@ -237,7 +237,7 @@ def test_one_key_resolves_to_every_row_that_carries_it(p4_conn):
 
 
 def test_an_unknown_key_resolves_to_nothing_rather_than_raising(p4_conn):
-    assert observations_by_key(p4_conn, "sha256:never-written") == []
+    assert observations_by_key(p4_conn, "f6c040e7678e9b8d8f7b29d0d9503b0428cc43a15e45b4258204def0a3aab59a") == []
 
 
 def test_observations_are_findable_by_file(p4_conn):

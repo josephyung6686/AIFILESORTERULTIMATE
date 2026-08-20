@@ -17,7 +17,7 @@ CONFIG = {"languages": ["en", "zh-Hans"], "recognition": "accurate"}
 
 def _run(run_id, *, version="3.1.0", config=CONFIG, name="pdf.text"):
     return ExtractionRun(
-        run_id=run_id, file_id="f1", content_hash="sha256:abc", extractor_name=name,
+        run_id=run_id, file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name=name,
         extractor_version=version, source_type="text_document",
         analysis_tier="native", config=config, completeness="complete",
         started_at="2026-08-19T14:00:00+00:00")
@@ -26,7 +26,7 @@ def _run(run_id, *, version="3.1.0", config=CONFIG, name="pdf.text"):
 def _observation(run_id, *, version="3.1.0", name="pdf.text",
                  raw_value="BUSIB 4300", heading=2, observed_at="2026-08-19T14:03:22+00:00"):
     return Observation(
-        file_id="f1", content_hash="sha256:abc", extractor_name=name,
+        file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name=name,
         extractor_version=version, source_type="text_document", raw_value=raw_value,
         location=Location("heading", (Segment("page", 1), Segment("heading", heading))),
         occurrence_count=3, observed_at=observed_at, reliability="possible",

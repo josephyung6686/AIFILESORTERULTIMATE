@@ -22,7 +22,7 @@ def detector(mapping):
 def test_a_txt_that_is_a_zip_by_signature_routes_to_the_archive_extractor():
     # SPEC fixture: "`report.txt` that is a ZIP by signature | §2.9 | routes by
     # signature, not extension."
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/report.txt"), extension=".txt",
                      detect_format=detector({"report.txt": "zip"}))
     assert decision.detected_format == "zip"
@@ -33,7 +33,7 @@ def test_a_txt_that_is_a_zip_by_signature_routes_to_the_archive_extractor():
 
 
 def test_agreement_is_recorded_as_agreement():
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/Syllabus.pdf"), extension=".pdf",
                      detect_format=detector({"Syllabus.pdf": "pdf"}))
     assert decision.disagree is False
@@ -42,7 +42,7 @@ def test_agreement_is_recorded_as_agreement():
 
 def test_the_extension_is_used_when_the_detector_cannot_identify_the_file():
     # §2.9: "inspect the real MIME type or file signature WHERE POSSIBLE".
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/notes.md"), extension=".md",
                      detect_format=lambda path: None)
     assert decision.detected_format is None
@@ -58,7 +58,7 @@ def test_pdf_and_csv_carry_both_of_the_families_2_9_lists_them_under():
     # lists for each and no tiebreak." Not answered here.
     assert SOURCE_TYPE_BY_FORMAT["pdf"] == ("text_document", "presentation")
     assert SOURCE_TYPE_BY_FORMAT["csv"] == ("spreadsheet", "code_structured")
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/grades.csv"), extension=".csv",
                      detect_format=detector({"grades.csv": "csv"}))
     assert decision.source_type_candidates == ("spreadsheet", "code_structured")
@@ -93,7 +93,7 @@ def test_no_audio_or_video_format_is_enumerated():
 def test_an_unknown_format_is_unsupported_and_never_an_empty_document():
     # §2.4: "an empty extraction result is different from an extractor that does not
     # yet exist."
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/thing.qqq"), extension=".qqq",
                      detect_format=lambda path: None)
     assert decision.extractor_name is None
@@ -104,7 +104,7 @@ def test_a_disk_image_and_an_executable_stop_at_metadata_only():
     # SPEC fixture: "`archive.dmg`, `tool.bin` | §2.9 | `metadata_only`."
     for name, extension, fmt in (("archive.dmg", ".dmg", "dmg"),
                                  ("tool.bin", ".bin", "bin")):
-        decision = route(file_id="f1", content_hash="sha256:abc",
+        decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                          path=Path("/corpus") / name, extension=extension,
                          detect_format=detector({name: fmt}))
         assert decision.source_type == "opaque_binary"
@@ -115,7 +115,7 @@ def test_a_disk_image_and_an_executable_stop_at_metadata_only():
 def test_a_proprietary_design_format_is_unreadable_not_unsupported():
     # SPEC fixture: "`design.psd` | §2.9 | `unreadable` carrying metadata-level
     # observations (M3) - indexed-but-unreadable, never zero rows."
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/design.psd"), extension=".psd",
                      detect_format=detector({"design.psd": "psd"}))
     assert decision.source_type == "design_creative"
@@ -125,7 +125,7 @@ def test_a_proprietary_design_format_is_unreadable_not_unsupported():
 
 def test_svg_routes_to_the_image_extractor():
     # SPEC routing table: design and creative -> "E5 (raster/SVG), else `unreadable`".
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/logo.svg"), extension=".svg",
                      detect_format=detector({"logo.svg": "svg"}))
     assert decision.extractor_name == "image.metadata"
@@ -145,7 +145,7 @@ def test_pdf_slide_decks_route_to_e1_and_the_question_stays_open():
     # SPEC routing table: "Presentations | ... PDF slide decks | ... | E3 (PDF decks:
     # E1)". There is no deck detection anywhere: distinguishing a slide deck from a
     # document is OQ2's other half and is not answered in code.
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/deck.pdf"), extension=".pdf",
                      detect_format=detector({"deck.pdf": "pdf"}))
     assert decision.extractor_name == "pdf.text"
@@ -155,11 +155,11 @@ def test_pdf_slide_decks_route_to_e1_and_the_question_stays_open():
 def test_the_decision_is_recorded_and_readable(conn):
     create_schema(conn)
     create_extraction_schema(conn)
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/report.txt"), extension=".txt",
                      detect_format=detector({"report.txt": "zip"}))
     record_routing_decision(conn, decision)
-    rows = routing_decisions(conn, "f1", "sha256:abc")
+    rows = routing_decisions(conn, "f1", "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124")
     assert len(rows) == 1
     assert rows[0]["detected_format"] == "zip"
     assert rows[0]["declared_extension"] == ".txt"

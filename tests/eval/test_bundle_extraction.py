@@ -60,13 +60,13 @@ def test_two_extractor_versions_of_one_content_hash_coexist(eval_conn):
     # bundle holds both sides of a version-to-version diff (§8.5).
     create_eval_schema(eval_conn)
     bundle_id = _snapshot(eval_conn)
-    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:syl",
+    add_extraction_output(eval_conn, bundle_id, content_hash="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a",
                           extractor_version="1.0.0",
                           observation_key="sha256:obs-a", payload='{"v":"old"}')
-    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:syl",
+    add_extraction_output(eval_conn, bundle_id, content_hash="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a",
                           extractor_version="2.0.0",
                           observation_key="sha256:obs-a", payload='{"v":"new"}')
-    both = extraction_outputs(eval_conn, bundle_id, content_hash="sha256:syl")
+    both = extraction_outputs(eval_conn, bundle_id, content_hash="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a")
     assert {r["extractor_version"] for r in both} == {"1.0.0", "2.0.0"}
     assert {r["payload"] for r in both} == {'{"v":"old"}', '{"v":"new"}'}
 
@@ -77,10 +77,10 @@ def test_the_observation_key_survives_an_extractor_upgrade(eval_conn):
     # deliberately includes it. Neither should be "fixed" into agreement.
     create_eval_schema(eval_conn)
     bundle_id = _snapshot(eval_conn)
-    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:syl",
+    add_extraction_output(eval_conn, bundle_id, content_hash="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a",
                           extractor_version="1.0.0",
                           observation_key="sha256:obs-a", payload='{"v":"old"}')
-    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:syl",
+    add_extraction_output(eval_conn, bundle_id, content_hash="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a",
                           extractor_version="2.0.0",
                           observation_key="sha256:obs-a", payload='{"v":"new"}')
     cited = eval_conn.execute(
@@ -93,7 +93,7 @@ def test_an_extraction_payload_is_opaque(eval_conn):
     create_eval_schema(eval_conn)
     bundle_id = _snapshot(eval_conn)
     blob = "not JSON, still an observation payload"
-    add_extraction_output(eval_conn, bundle_id, content_hash="sha256:x",
+    add_extraction_output(eval_conn, bundle_id, content_hash="fe8eb9ab9836bcf963c044b6f84eb71c089db399876f45e72a6c21b488da26c4",
                           extractor_version="1.0.0", observation_key="sha256:k",
                           payload=blob)
     assert extraction_outputs(eval_conn, bundle_id)[0]["payload"] == blob

@@ -99,14 +99,14 @@ def _run_with(eval_conn, *, expectation, adapter):
 
 def test_assert_run_writes_one_assertion_per_expectation(eval_conn):
     def adapter(ctx: ReplayContext):
-        return [StageResult(subject_ref="sha256:syl", outcome="produced",
+        return [StageResult(subject_ref="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a", outcome="produced",
                             payload=None, inputs=[], budget_state="within_ceiling",
-                            values=[DimensionValue("extraction", "sha256:syl",
+                            values=[DimensionValue("extraction", "20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a",
                                                    "produced", {"text": "COMS 4995"})])]
 
     _, run_id = _run_with(
         eval_conn,
-        expectation=dict(dimension="extraction", subject_ref="sha256:syl",
+        expectation=dict(dimension="extraction", subject_ref="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a",
                          expected_value={"text": "COMS 4995"},
                          expected_outcome_kind="produced", source="hand-labelled"),
         adapter={"extraction": adapter})
@@ -157,12 +157,12 @@ def test_verdict_counts_separates_passes_deferrals_and_unverdicted(eval_conn):
     def adapter(ctx: ReplayContext):
         return [StageResult(subject_ref="s", outcome="deferred", payload=None,
                             inputs=[], budget_state="ceiling_reached",
-                            values=[DimensionValue("extraction", "sha256:syl",
+                            values=[DimensionValue("extraction", "20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a",
                                                    "deferred", None)])]
 
     _, run_id = _run_with(
         eval_conn,
-        expectation=dict(dimension="extraction", subject_ref="sha256:syl",
+        expectation=dict(dimension="extraction", subject_ref="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a",
                          expected_value={"text": "x"},
                          expected_outcome_kind="produced", source="hand-labelled"),
         adapter={"extraction": adapter})

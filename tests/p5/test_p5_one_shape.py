@@ -27,7 +27,7 @@ from p4_stub import locator_for, observation_key
 
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
-FILE_ROW = {"file_id": "f-1", "content_hash": "sha256:one",
+FILE_ROW = {"file_id": "f-1", "content_hash": "273433e673d6b366684561c0fa5d9bbb72c96174be4c68f0dde483c278aa5d97",
             "filename": "U Chicago admission.pdf",
             "normalized_filename": "u chicago admission.pdf", "extension": ".pdf",
             "mime_type": "application/pdf", "directory_position": "/corpus/apps"}

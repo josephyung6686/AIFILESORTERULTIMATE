@@ -23,6 +23,7 @@ are illustrative for the same reason: P5 owns the routing table and the real nam
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field as dataclass_field
 
 from evidence_shape.canonical import sha256_of
@@ -64,7 +65,13 @@ class Fixture:
 
 
 def _content_hash(number: int) -> str:
-    return sha256_of(f"fixture-{number}")
+    """P1's digest shape, because a fixture is what six extractor authors copy.
+
+    These were `sha256_of(...)` -- P4's algorithm-prefixed key form, which P1 never
+    produces. Nineteen golden records therefore modelled a `content_hash` no live
+    scan could ever hand P5.
+    """
+    return hashlib.sha256(f"fixture-{number}".encode()).hexdigest()
 
 
 def _run(number: int, *, source_type: str, extractor_name: str, analysis_tier: str,

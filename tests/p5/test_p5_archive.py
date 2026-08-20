@@ -19,7 +19,7 @@ from p4_stub import locator_for
 
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
-FILE_ROW = {"file_id": "f-zip", "content_hash": "sha256:zip",
+FILE_ROW = {"file_id": "f-zip", "content_hash": "be0cf129543c52347040cf761dcc995196f5a6a073c67e7bb336731a4c95ef50",
             "filename": "submission.zip"}
 
 PACKET = ("transcript.pdf", "personal-statement.docx", "resume.pdf",

@@ -19,7 +19,7 @@ from conftest import FIXED_CLOCK
 
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
-FILE_ROW = {"file_id": "f-img", "content_hash": "sha256:img",
+FILE_ROW = {"file_id": "f-img", "content_hash": "c977b477a6329f00518d55e10bb5c469fc6b24e8528f3fc1a9bbbbe94a6feada",
             "filename": "IMG_4821.heic"}
 
 NO_DIMENSION_SIGNAL = lambda width, height: None

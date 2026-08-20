@@ -25,7 +25,7 @@ EMOJI_VALUE = "Columbia"
 
 def _run(run_id="r1"):
     return ExtractionRun(
-        run_id=run_id, file_id="f1", content_hash="sha256:abc",
+        run_id=run_id, file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
         extractor_name="ocr.apple_vision", extractor_version="2.4.1",
         source_type="ocr", analysis_tier="ocr",
         config={"languages": ["ja", "en"]}, completeness="complete",
@@ -36,7 +36,7 @@ def _pair(page, value, *, start=None, end=None):
     start = page.index(value) if start is None else start
     end = start + len(value) if end is None else end
     observation = Observation(
-        file_id="f1", content_hash="sha256:abc", extractor_name="ocr.apple_vision",
+        file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="ocr.apple_vision",
         extractor_version="2.4.1", source_type="ocr", raw_value=value,
         location=Location("ocr", (Segment("page", 1),),
                           text_span=TextSpan(start, end)),

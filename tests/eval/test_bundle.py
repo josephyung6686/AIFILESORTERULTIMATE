@@ -67,14 +67,14 @@ def test_a_corpus_form_outside_the_two_is_rejected(eval_conn):
 def test_a_snapshot_entry_carries_a_payload_ref_and_not_metadata_only(eval_conn):
     create_eval_schema(eval_conn)
     bundle_id = _open(eval_conn, corpus_form="snapshot")
-    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0",
                    hash_algorithm="sha256", handling_class="public_low",
                    payload_ref="blobs/aa")
     entry = bundle_files(eval_conn, bundle_id)[0]
     assert entry["payload_ref"] == "blobs/aa"
     assert entry["metadata_only"] is None
     with pytest.raises(BodyMismatch):
-        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="sha256:bb",
+        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="9b03bd19f9d5570d829ed2eda88b07e57b33c0a602f88cfa0d8283c087bd3d14",
                        hash_algorithm="sha256", handling_class="public_low",
                        metadata_only='{"size":10}')
 
@@ -84,14 +84,14 @@ def test_a_metadata_safe_entry_carries_metadata_only_and_no_bytes(eval_conn):
     # cannot authorize. Refused structurally, not by review.
     create_eval_schema(eval_conn)
     bundle_id = _open(eval_conn, corpus_form="metadata_safe")
-    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0",
                    hash_algorithm="sha256", handling_class="sensitive_personal",
                    metadata_only='{"size":10}')
     entry = bundle_files(eval_conn, bundle_id)[0]
     assert entry["metadata_only"] == '{"size":10}'
     assert entry["payload_ref"] is None
     with pytest.raises(BodyMismatch):
-        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="sha256:bb",
+        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="9b03bd19f9d5570d829ed2eda88b07e57b33c0a602f88cfa0d8283c087bd3d14",
                        hash_algorithm="sha256", handling_class="public_low",
                        payload_ref="blobs/bb")
 
@@ -100,23 +100,23 @@ def test_an_entry_with_both_bodies_or_neither_is_refused(eval_conn):
     create_eval_schema(eval_conn)
     bundle_id = _open(eval_conn)
     with pytest.raises(BodyMismatch):
-        add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+        add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0",
                        hash_algorithm="sha256", handling_class="public_low",
                        payload_ref="blobs/aa", metadata_only="{}")
     with pytest.raises(BodyMismatch):
-        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="sha256:bb",
+        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="9b03bd19f9d5570d829ed2eda88b07e57b33c0a602f88cfa0d8283c087bd3d14",
                        hash_algorithm="sha256", handling_class="public_low")
 
 
 def test_a_sealed_bundle_cannot_be_changed(eval_conn):
     create_eval_schema(eval_conn)
     bundle_id = _open(eval_conn)
-    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0",
                    hash_algorithm="sha256", handling_class="public_low",
                    payload_ref="blobs/aa")
     seal_bundle(eval_conn, bundle_id)
     with pytest.raises(BundleSealed):
-        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="sha256:bb",
+        add_file_entry(eval_conn, bundle_id, file_id="f2", content_hash="9b03bd19f9d5570d829ed2eda88b07e57b33c0a602f88cfa0d8283c087bd3d14",
                        hash_algorithm="sha256", handling_class="public_low",
                        payload_ref="blobs/bb")
     with pytest.raises(sqlite3.IntegrityError):
@@ -131,7 +131,7 @@ def test_a_rebuild_supersedes_and_retains(eval_conn):
     # §8.2 supersede-never-overwrite; §8.8 a new plan never silently reclassifies.
     create_eval_schema(eval_conn)
     first = _open(eval_conn)
-    add_file_entry(eval_conn, first, file_id="f1", content_hash="sha256:aa",
+    add_file_entry(eval_conn, first, file_id="f1", content_hash="e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0",
                    hash_algorithm="sha256", handling_class="public_low",
                    payload_ref="blobs/aa")
     seal_bundle(eval_conn, first)
@@ -141,7 +141,7 @@ def test_a_rebuild_supersedes_and_retains(eval_conn):
     assert get_bundle(eval_conn, second)["pinned_plan_version"] == "2"
     # the old one is still there, still sealed, still readable
     assert get_bundle(eval_conn, first)["sealed_at"]
-    assert bundle_files(eval_conn, first)[0]["content_hash"] == "sha256:aa"
+    assert bundle_files(eval_conn, first)[0]["content_hash"] == "e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0"
 
 
 def test_p2_validates_no_p7_vocabulary(eval_conn):
@@ -150,7 +150,7 @@ def test_p2_validates_no_p7_vocabulary(eval_conn):
     # enum would be two vocabularies for one concept. See Known gaps.
     create_eval_schema(eval_conn)
     bundle_id = _open(eval_conn)
-    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0",
                    hash_algorithm="sha256", handling_class="anything-p7-says",
                    payload_ref="blobs/aa")
     assert bundle_files(eval_conn, bundle_id)[0]["handling_class"] == "anything-p7-says"
@@ -160,9 +160,9 @@ def test_a_bundle_needs_no_live_filesystem(eval_conn, tmp_path):
     # Done-means 1: built, stored, and read back with nothing on disk to consult.
     create_eval_schema(eval_conn)
     bundle_id = _open(eval_conn, corpus_form="metadata_safe")
-    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="sha256:aa",
+    add_file_entry(eval_conn, bundle_id, file_id="f1", content_hash="e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0",
                    hash_algorithm="sha256", handling_class="public_low",
                    metadata_only='{"size":10}')
     seal_bundle(eval_conn, bundle_id)
     assert not any(tmp_path.glob("corpus*"))
-    assert bundle_files(eval_conn, bundle_id)[0]["content_hash"] == "sha256:aa"
+    assert bundle_files(eval_conn, bundle_id)[0]["content_hash"] == "e13d86e11689d3f85975e6a0359f8bed67e03a82c907e67968f8cfcc925bbaf0"

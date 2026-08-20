@@ -99,9 +99,29 @@ class OcrOutput:
     capped: bool = False
 
 
+#: The characters a provider may spell a word break with. Folded to `_` so that one
+#: engine has one name.
+_WORD_BREAKS = (" ", "-", ".")
+
+
 def extractor_name_for(provider: str) -> str:
-    """Section 2.7's first persisted field, as P4's `extractor_name`."""
-    return f"{EXTRACTOR_NAME_PREFIX}{provider}"
+    """Section 2.7's first persisted field, as P4's `extractor_name`.
+
+    The provider reports its own name (section 2.7) and P5 spells none. What P5 does
+    own is IDENTITY: `extractor_name` is an input to `observation_key`, to section
+    3.4's cache key and to conformance rule 8's replay key, so an engine reporting
+    `apple-vision` on one machine and `Apple Vision` on another would be two citation
+    handles, two cache entries and two replay sets for one engine. That is the
+    `config_fingerprint` break one layer up.
+
+    Word breaks fold to `_` and case folds down. Nothing else is touched, so two
+    genuinely different engines stay two names -- this collapses spellings, not
+    providers.
+    """
+    token = provider.strip().casefold()
+    for character in _WORD_BREAKS:
+        token = token.replace(character, "_")
+    return f"{EXTRACTOR_NAME_PREFIX}{token}"
 
 
 def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy,

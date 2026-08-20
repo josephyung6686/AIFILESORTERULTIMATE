@@ -13,7 +13,7 @@ PAGE_ONE = "Syllabus — BUSIB 4300 — Spring 2026"
 
 def _observation(**overrides):
     payload = dict(
-        file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
+        file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
         extractor_version="3.1.0", source_type="text_document",
         raw_value="BUSIB 4300",
         location=Location("heading", (Segment("page", 1),),

@@ -25,6 +25,7 @@ from dataclasses import dataclass
 
 from database_agent.supersede import SUPERSEDE_COLUMNS
 
+from database_agent.identity import is_content_hash
 from evidence_shape.canonical import sha256_of
 from evidence_shape.location import Location
 from evidence_shape.locator import (
@@ -125,6 +126,14 @@ class Observation:
             if not isinstance(value, str) or not value:
                 raise MalformedObservation(
                     f"{name} is a non-empty string, not {value!r}")
+        # R1's identity, in P1's spelling and no other. `observation_key` hashes
+        # `content_hash` first, so one file under two spellings is two citation
+        # handles and §3.4's cache misses on a file it already extracted. The
+        # predicate is P1's; P4 does not restate "64 lowercase hex".
+        if not is_content_hash(self.content_hash):
+            raise MalformedObservation(
+                f"content_hash is the digest P1 stored (R1), not {self.content_hash!r}"
+            )
         check(self.source_type, SOURCE_TYPES, name="source_type")
         # D11: an extractor writes two of §3.13's six. The other four are fact-layer
         # outcomes (§3.5) and §2.8 forbids treating model output as proof.

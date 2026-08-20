@@ -17,7 +17,7 @@ NOW = "2026-08-19T12:00:00+00:00"
 
 def an_observation(**overrides):
     fields = dict(
-        file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
+        file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
         extractor_version="0.1.0", source_type="text_document",
         raw_value="BUSIB 4300",
         location=location(zone="heading",
@@ -168,7 +168,7 @@ def test_text_offsets_are_counted_in_code_points():
 
 
 def test_the_run_record_carries_every_p4_field_and_a_config_fingerprint():
-    row = run(file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
+    row = run(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
               extractor_version="0.1.0", source_type="text_document",
               analysis_tier="native", config={"reader": "fixture"},
               completeness="complete",
@@ -185,7 +185,7 @@ def test_p5_never_writes_the_llm_analysis_tier():
     assert ANALYSIS_TIERS == ("filesystem", "native", "ocr", "llm")
     assert P5_ANALYSIS_TIERS == ("filesystem", "native", "ocr")
     with pytest.raises(ForbiddenAnalysisTier):
-        run(file_id="f1", content_hash="sha256:abc", extractor_name="x",
+        run(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="x",
             extractor_version="0.1.0", source_type="text_document",
             analysis_tier="llm", config={}, completeness="complete",
             coverage={"units": "files", "processed": 1, "total": 1},
@@ -210,7 +210,7 @@ def test_canonical_json_is_stable_across_key_order():
 
 def test_an_extraction_result_is_one_run_and_its_whole_batch(sink):
     result = ExtractionResult(
-        run=run(file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
+        run=run(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
                 extractor_version="0.1.0", source_type="text_document",
                 analysis_tier="native", config={}, completeness="complete",
                 coverage={"units": "pages", "processed": 1, "total": 1},

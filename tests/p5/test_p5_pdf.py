@@ -16,7 +16,7 @@ from p4_stub import locator_for
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
 
-FILE_ROW = {"file_id": "f1", "content_hash": "sha256:abc",
+FILE_ROW = {"file_id": "f1", "content_hash": "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
             "filename": "syllabus-busib4300.pdf"}
 
 PAGE_1 = ("BUSIB 4300 Course Information\n"

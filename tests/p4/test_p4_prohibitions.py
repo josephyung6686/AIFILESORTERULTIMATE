@@ -5,6 +5,8 @@ Task 13 tests that the validator REPORTS a violation. This file tests that the s
 makes the thing impossible: the constructor refuses it, the table has no column for
 it, the trigger aborts it. A validator is a call an author can forget; a schema is not.
 """
+import hashlib
+
 import pytest
 
 from evidence_shape.location import Location, Segment
@@ -33,7 +35,7 @@ P4_TABLES = ("evidence", "extraction_runs", "text_units")
 
 def _run(run_id="r1", file_id="f1", *, completeness="complete", number=1):
     return ExtractionRun(
-        run_id=run_id, file_id=file_id, content_hash=f"sha256:abc{number}",
+        run_id=run_id, file_id=file_id, content_hash=hashlib.sha256(f"abc{number}".encode()).hexdigest(),
         extractor_name="pdf.text", extractor_version="3.1.0",
         source_type="text_document", analysis_tier="native", config={},
         completeness=completeness, started_at="2026-08-19T14:00:00+00:00")
@@ -70,7 +72,7 @@ def test_the_refusal_is_in_the_record_not_only_in_the_validator():
     # An extractor that never calls validate_observation still cannot write one.
     with pytest.raises(NotInVocabulary):
         Observation(
-            file_id="f1", content_hash="sha256:abc", extractor_name="llm.dossier",
+            file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="llm.dossier",
             extractor_version="1.0.0", source_type="text_document",
             raw_value="Columbia", location=Location("body", (Segment("page", 1),)),
             occurrence_count=1, observed_at="2026-08-19T14:03:22+00:00",

@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from database_agent.identity import is_content_hash
 from evidence_shape.canonical import canonical_json, sha256_of
 from evidence_shape.vocabulary import (
     ANALYSIS_TIERS, COMPLETENESS, SOURCE_TYPES, check,
@@ -97,6 +98,12 @@ class ExtractionRun:
             value = getattr(self, name)
             if not isinstance(value, str) or not value:
                 raise MalformedRun(f"{name} is a non-empty string, not {value!r}")
+        # R1's identity, in P1's spelling. §3.4 keys its cache on (content hash,
+        # extractor version, config fingerprint); a second spelling of the first
+        # part re-extracts a file the database already holds.
+        if not is_content_hash(self.content_hash):
+            raise MalformedRun(
+                f"content_hash is the digest P1 stored (R1), not {self.content_hash!r}")
         check(self.source_type, SOURCE_TYPES, name="source_type")
         # I4: "A value outside the four is rejected."
         check(self.analysis_tier, ANALYSIS_TIERS, name="analysis_tier")

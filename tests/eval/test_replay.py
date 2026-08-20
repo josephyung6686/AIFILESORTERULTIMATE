@@ -21,7 +21,7 @@ def _bundle(conn):
                             pinned_plan_id="plan-fixture", pinned_plan_version="1",
                             policy_settings={})
     add_expectation(conn, bundle_id, dimension="extraction",
-                    subject_ref="sha256:syl", expected_value={"text": "COMS 4995"},
+                    subject_ref="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a", expected_value={"text": "COMS 4995"},
                     expected_outcome_kind="produced", source="hand-labelled")
     seal_bundle(conn, bundle_id)
     return bundle_id
@@ -30,9 +30,9 @@ def _bundle(conn):
 def _extraction_adapter(ctx: ReplayContext) -> list[StageResult]:
     """Stands in for P5, which does not exist. It reads the bundle, not the disk."""
     return [StageResult(
-        subject_ref="sha256:syl", outcome="produced",
+        subject_ref="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a", outcome="produced",
         payload='{"p5": "opaque"}', inputs=[], budget_state="within_ceiling",
-        values=[DimensionValue("extraction", "sha256:syl", "produced",
+        values=[DimensionValue("extraction", "20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a", "produced",
                                {"text": "COMS 4995"})],
     )]
 
@@ -115,10 +115,10 @@ def test_an_adapter_that_defers_is_recorded_as_deferred(eval_conn):
     bundle_id = _bundle(eval_conn)
 
     def deferring(ctx: ReplayContext) -> list[StageResult]:
-        return [StageResult(subject_ref="sha256:syl", outcome="deferred",
+        return [StageResult(subject_ref="20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a", outcome="deferred",
                             payload=None, inputs=[],
                             budget_state="ceiling_reached",
-                            values=[DimensionValue("extraction", "sha256:syl",
+                            values=[DimensionValue("extraction", "20047214e6930e1557c8bbd7f229baaf1e671e86f2640ac0520e4e7dfbe7d00a",
                                                    "deferred", None)])]
 
     run_id = replay_bundle(eval_conn, bundle_id, version_tuple=_tuple(),

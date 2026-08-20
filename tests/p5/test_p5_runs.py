@@ -69,7 +69,7 @@ def test_a_rename_is_free_because_the_path_is_not_in_the_cache_key():
 
 
 def test_a_content_rewrite_an_upgrade_and_a_config_change_each_change_the_key():
-    base = dict(content_hash="sha256:abc", extractor_name="pdf.text",
+    base = dict(content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
                 extractor_version="0.1.0", analysis_tier="native",
                 config_fingerprint="sha256:cfg")
     original = cache_key(**base)

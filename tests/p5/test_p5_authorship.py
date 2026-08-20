@@ -41,7 +41,7 @@ def test_p5_publishes_no_registration_call():
 
 def test_event_defaults_fill_in_8_2s_authorship_fields():
     fields = event_defaults(event_type="extraction", file_id="f1",
-                            content_hash="sha256:abc", explanation="{}")
+                            content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", explanation="{}")
     assert fields["subsystem"] == "P5"
     assert fields["component_version"] == COMPONENT_VERSION
     assert fields["observed_at"]

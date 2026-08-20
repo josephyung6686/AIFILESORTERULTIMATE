@@ -14,7 +14,7 @@ from evidence_shape.vocabulary import NotInVocabulary
 #: SPEC fixture 1: §2.8's "page 1, heading 2", which is also §3.2's worked syllabus
 #: and the walking skeleton's one observation.
 FIXTURE_1 = dict(
-    file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
+    file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
     extractor_version="3.1.0", source_type="text_document", raw_value="BUSIB 4300",
     location=Location("heading", (Segment("page", 1),
                                   Segment("heading", 2, label="Course Information"))),
@@ -87,7 +87,7 @@ def test_the_key_is_stable_across_extractor_versions():
 def test_the_key_moves_when_any_of_its_four_inputs_moves():
     first = Observation(**FIXTURE_1)
     for changed in ({"raw_value": "BUSIB 4301"},
-                    {"content_hash": "sha256:def"},
+                    {"content_hash": "4d1a63c3c4252d242ad0942e7d6731fa687178274989ee7d42abf462d4d627b1"},
                     {"extractor_name": "ocr.apple_vision"},
                     {"location": Location("body", (Segment("page", 1),))}):
         assert Observation(**{**FIXTURE_1, **changed}).observation_key != \
@@ -96,7 +96,7 @@ def test_the_key_moves_when_any_of_its_four_inputs_moves():
 
 def test_the_key_function_takes_the_four_inputs_the_spec_names():
     observation = Observation(**FIXTURE_1)
-    assert observation_key(content_hash="sha256:abc", extractor_name="pdf.text",
+    assert observation_key(content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
                            locator="heading:page=1/heading=2",
                            raw_value="BUSIB 4300") == observation.observation_key
 

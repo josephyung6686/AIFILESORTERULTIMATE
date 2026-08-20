@@ -18,7 +18,7 @@ from conftest import FIXED_CLOCK
 
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
-FILE_ROW = {"file_id": "f-scan", "content_hash": "sha256:scan",
+FILE_ROW = {"file_id": "f-scan", "content_hash": "bcbb377bc839704c4e4ccf7781cce3dcc88cc8a288c9eebbffa245a3476c56e9",
             "filename": "transcript-scan.pdf"}
 CONFIG = {"recognition": "accurate", "languages": ["en-US"]}
 

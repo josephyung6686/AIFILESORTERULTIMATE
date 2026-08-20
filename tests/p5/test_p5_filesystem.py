@@ -16,7 +16,7 @@ OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
 
 FILE_ROW = {
     "file_id": "f1",
-    "content_hash": "sha256:abc",
+    "content_hash": "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
     "filename": "Wash U.docx",
     "normalized_filename": "wash u.docx",
     "extension": ".docx",
@@ -118,7 +118,7 @@ def test_this_module_recomputes_none_of_p3s_ten_fields():
 def test_an_unsupported_format_carries_zero_observations(sink):
     # §2.4: "an empty extraction result is different from an extractor that does not
     # yet exist." P4 conformance rule 9.
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/thing.qqq"), extension=".qqq",
                      detect_format=lambda path: None)
     sink.write(unrouted_result(file_row={**FILE_ROW, "filename": "thing.qqq"},
@@ -131,7 +131,7 @@ def test_an_unsupported_format_carries_zero_observations(sink):
 def test_a_disk_image_stops_at_metadata_only_and_is_still_indexed(sink):
     # P4 fixture 19: "run: `completeness: metadata_only` ... The file is still
     # indexed through its `filesystem` observations (fixture 11)."
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/archive.dmg"), extension=".dmg",
                      detect_format=lambda path: "dmg")
     row = {**FILE_ROW, "filename": "archive.dmg", "extension": ".dmg",
@@ -151,7 +151,7 @@ def test_a_disk_image_stops_at_metadata_only_and_is_still_indexed(sink):
 def test_a_psd_is_indexed_but_unreadable_and_never_zero_rows(sink):
     # SPEC fixture: "`design.psd` | §2.9 | `unreadable` carrying metadata-level
     # observations (M3) - indexed-but-unreadable, never zero rows."
-    decision = route(file_id="f1", content_hash="sha256:abc",
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/design.psd"), extension=".psd",
                      detect_format=lambda path: "psd")
     row = {**FILE_ROW, "filename": "design.psd", "extension": ".psd",

@@ -82,13 +82,13 @@ def test_a_file_with_one_complete_and_one_capped_run_is_not_fully_extracted(eval
     # a complete native run and a capped OCR run on the same content hash (I4).
     create_eval_schema(eval_conn)
     runs = [
-        {"run_id": "r1", "file_id": "f1", "content_hash": "sha256:f1",
+        {"run_id": "r1", "file_id": "f1", "content_hash": "9eead433dd759f8dc3419cff9a314238f78e6a2e372ce3c19763d5a0c01b4906",
          "extractor_name": "pdf.native", "extractor_version": "1.0.0",
          "source_type": "text", "config_fingerprint": "sha256:c",
          "completeness": "complete",
          "coverage": {"units": "pages", "processed": 2, "total": 2},
          "observation_count": 3},
-        {"run_id": "r2", "file_id": "f1", "content_hash": "sha256:f1",
+        {"run_id": "r2", "file_id": "f1", "content_hash": "9eead433dd759f8dc3419cff9a314238f78e6a2e372ce3c19763d5a0c01b4906",
          "extractor_name": "ocr.fixture", "extractor_version": "1.0.0",
          "source_type": "ocr", "config_fingerprint": "sha256:c",
          "completeness": "capped",
@@ -121,7 +121,7 @@ def test_a_dataless_source_gets_its_own_count_and_is_not_called_unreadable(eval_
     create_eval_schema(eval_conn)
     runs = json.loads((FIXTURES / "p4_runs.json").read_text(encoding="utf-8"))
     cloud = {**runs[0], "run_id": "run-cloud", "file_id": "file-cloud",
-             "content_hash": "sha256:file-cloud", "completeness": "dataless",
+             "content_hash": "d86ab57caa481a3640fb0e3c47cf469c0a82951b917b415679580495789a975d", "completeness": "dataless",
              "observation_count": 0}
     bundle_id = _bundle_with_runs(eval_conn, [cloud], entries=["file-cloud"])
     counts = bundle_counts(eval_conn, bundle_id)

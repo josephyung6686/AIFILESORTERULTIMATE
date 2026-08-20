@@ -10,7 +10,7 @@ from evidence_shape.vocabulary import NotInVocabulary
 
 #: The SPEC's own worked run: an OCR pass that stopped at a ceiling.
 OCR_RUN = dict(
-    run_id="r1", file_id="f1", content_hash="sha256:abc",
+    run_id="r1", file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
     extractor_name="ocr.apple_vision", extractor_version="2.4.1", source_type="ocr",
     analysis_tier="ocr",
     config={"dpi": 200, "languages": ["en", "zh-Hans"], "recognition": "accurate"},

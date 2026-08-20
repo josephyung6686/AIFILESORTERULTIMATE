@@ -15,7 +15,7 @@ SPAN = TextSpan(PAGE_TEXT.index("BUSIB"), PAGE_TEXT.index("BUSIB") + len("BUSIB 
 
 def _run(completeness="complete", run_id="r1", **overrides):
     fields = dict(
-        run_id=run_id, file_id="f1", content_hash="sha256:abc",
+        run_id=run_id, file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
         extractor_name="pdf.text", extractor_version="3.1.0",
         source_type="text_document", analysis_tier="native", config={},
         completeness=completeness, started_at="2026-08-19T14:00:00+00:00",
@@ -27,7 +27,7 @@ def _run(completeness="complete", run_id="r1", **overrides):
 def _observation(run_id="r1", *, text_span=None, container_path=(Segment("page", 1),),
                  raw_value="BUSIB 4300", **overrides):
     fields = dict(
-        file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
+        file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
         extractor_version="3.1.0", source_type="text_document", raw_value=raw_value,
         location=Location("body", container_path, text_span=text_span),
         occurrence_count=1, observed_at="2026-08-19T14:03:22+00:00",

@@ -18,7 +18,7 @@ def _columns(conn, table):
 
 
 def _insert_run(conn, run_id="r1", **overrides):
-    values = dict(run_id=run_id, file_id="f1", content_hash="sha256:abc",
+    values = dict(run_id=run_id, file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                   extractor_name="pdf.text", extractor_version="3.1.0",
                   source_type="text_document", analysis_tier="native", config="{}",
                   config_fingerprint="sha256:cfg", completeness="complete",
@@ -32,7 +32,7 @@ def _insert_run(conn, run_id="r1", **overrides):
 
 def _insert_observation(conn, observation_id, run_id="r1", **overrides):
     values = dict(observation_id=observation_id, observation_key="sha256:k",
-                  file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
+                  file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", extractor_name="pdf.text",
                   extractor_version="3.1.0", source_type="text_document",
                   raw_value="BUSIB 4300", normalized_value=None,
                   location='{"zone":"heading"}', context_before=None,
