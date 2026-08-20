@@ -36,7 +36,7 @@ Every task's requirements implicitly include these.
 - **Full Disk Access before traversal.** `11-ops-runtime.md` §1: *"Until it is granted, P3 does not traverse."* Checked once per scan, before the first directory is listed (Task 8).
 - **No invented values.** No numeric threshold, no ceiling value, no gazetteer, no category membership, no scan-state enumeration, no MIME determination method. Where the design leaves a value open, this plan holds a **key or a caller-supplied strategy, never a number and never a vocabulary**.
 - **No durable volume identifier is built on.** P1 OQ9 is open; P1's `volume_id` is session-tagged and nullable on purpose. `scan_agent` reads it for nothing and compares it to nothing.
-- **P3's scan-run handle is local and unpublished.** SPEC OQ16 is open. See Task 3.
+- **P3 publishes the scan identity.** SPEC OQ16 closed, ratified 2026-08-20: P3 owns the scan (§1.1), so P3 owns its name. `scan_run_id` is minted in Task 3 and handed to P1's `start_scan(conn, *, scan_run_id)`, which mints nothing (P1 OQ19, settled the same day). Published is not the same as on the event row: the identity still never reaches `events` (MINOR 1).
 - **Fixture directories, never the user's disk.** Every test builds its corpus under `tmp_path`.
 - **Python 3.12**, stdlib only. `scan_agent` adds no third-party dependency.
 - **P3 creates and modifies no P1 file.** `pyproject.toml`, `tests/conftest.py` and everything under `src/database_agent/` belong to P1. P1's `[tool.setuptools.packages.find] where = ["src"]` already discovers `scan_agent`, and P1's `pythonpath = ["src"]` already makes it importable under pytest, so nothing in P1 needs to change. P3's tests live in `tests/p3/` with their own `conftest.py`, and inherit P1's root fixtures (`conn`, `sample_file`) without editing them.
@@ -73,24 +73,30 @@ database_agent.files_table record_file(conn, path, *, filename, normalized_filen
 database_agent.events      append_event(conn, **fields) -> int
                            RESERVED_EVENT_TYPES: frozenset[str]
                            EVENT_FIELDS: tuple[str, ...]          (eleven)
+database_agent.scan_usage  start_scan(conn, *, scan_run_id: str) -> str
+                           sample_scan_resources(conn, scan_id) -> None
+                           scan_resource_usage(conn, scan_id) -> sqlite3.Row
+                           RESOURCE_COUNTERS: tuple[str, ...]     (six)
 ```
 
-**P3 consumes nothing from `database_agent.scan_usage`, deliberately.** An earlier
-draft of this table listed `start_scan`, `sample_scan_resources` and
-`scan_resource_usage`, and Task 3 asserts that import is *absent* — an implementer
-reading the table would have wired the very import the task forbids.
+**P3 consumes `database_agent.scan_usage`, as of OQ16's closure.** This table has
+been wrong in both directions: an early draft listed these four while Task 3 asserted
+the import was *absent*, and the correction then deleted them on the reasoning that
+P3 published no identity to write counters against. OQ16 closed that reasoning on
+2026-08-20 — P3 publishes `scan_run_id`, so the counters have a key — and the four
+are consumed again. The lesson that survives both errors: this table and Task 3 must
+be read as one claim, because an implementer wires what the table says.
 
 The reason is an unclosed seam, not an oversight. Three documents currently name
-three different scan identities: P1 mints `scan_id` on `scan_resource_usage` and
-keeps it off `events` (P1 OQ19); this plan has a local `scan_run_id` that it
-publishes to nobody (P3 OQ16); and [`../../11-ops-runtime.md`](../../11-ops-runtime.md)
-§3 writes `scan_run_id — P3's scan` on the session record as though it were
-already shared. **P3 does not resolve that by joining to P1's identifier in code.**
-Doing so would mint the shared identity in an implementation rather than in a
-contract, which is how two vocabularies for one concept get created. OQ16 is closed
-in the SPEC or it stays open; until then P3's run identifier is P3's alone, and
-§8.6's six counters stay unsampled (P3-H) rather than being written against an
-identifier no part published.
+three different scan identities: P1 minted `scan_id` on `scan_resource_usage` and
+kept it off `events` (P1 OQ19); this plan had a local `scan_run_id` that it
+published to nobody (P3 OQ16); and [`../../11-ops-runtime.md`](../../11-ops-runtime.md)
+§3 wrote `scan_run_id — P3's scan` on the session record as though it were
+already shared. **That is settled — ratified 2026-08-20 in both SPECs.** P3 owns the
+scan (§1.1), so P3 publishes the name and P1 adopts it; the resolution was made in
+the contracts, not minted inside an implementation, which is the condition this plan
+held out for. §3's line is now true rather than aspirational, and §8.6's six counters
+are sampled (lifting P3-H, whose only cause was the absence of a shared key).
 
 Three consequences for the tasks below:
 
@@ -114,7 +120,7 @@ src/scan_agent/__init__.py          package marker; exports scan
 src/scan_agent/authorship.py        P3 is the author — subsystem, version, the four event types
 src/scan_agent/schema.py            create_scan_schema — P3's six tables, all inside P1's database
 src/scan_agent/selection.py         Contract out R1 — the corpus selection record (§1.1)
-src/scan_agent/run.py               P3's local scan-run handle (OQ16 held open)
+src/scan_agent/run.py               P3's scan-run handle — published to P1 (OQ16 closed)
 src/scan_agent/exclusion.py         Contract out R3 — §1.1's rules and the verdict record
 src/scan_agent/dataless.py          11-ops-runtime.md §5 — detect before hashing
 src/scan_agent/corpus_source.py     §8.5 — one interface over a live filesystem and a snapshot
@@ -132,7 +138,7 @@ src/scan_agent/watch.py             11-ops-runtime.md §4 — the session watch
 tests/p3/conftest.py                fixture corpus builders, recording fakes
 tests/p3/test_p3_authorship.py      the authorship rule
 tests/p3/test_p3_selection.py       Done-means 12
-tests/p3/test_p3_run.py             OQ16 held open
+tests/p3/test_p3_run.py             OQ16 closed — P3 publishes, P1 adopts
 tests/p3/test_p3_exclusion.py       Done-means 3, 4, 5, 6
 tests/p3/test_p3_dataless.py        11 §5
 tests/p3/test_p3_corpus_source.py   §8.5 groundwork
@@ -580,7 +586,7 @@ git commit -m "feat(P3): R1 corpus selection record, three choices, roots carry 
 
 ---
 
-### Task 3: The scan-run handle — local, and OQ16 stays open
+### Task 3: The scan-run handle — P3 publishes it, P1 adopts it
 
 **Files:**
 - Create: `src/scan_agent/run.py`
@@ -588,17 +594,17 @@ git commit -m "feat(P3): R1 corpus selection record, three choices, roots carry 
 - Test: `tests/p3/test_p3_run.py`
 
 **Interfaces:**
-- Consumes: `create_scan_schema`, `record_selection`.
+- Consumes: `create_scan_schema`, `record_selection`; P1's `start_scan`, `sample_scan_resources`.
 - Produces: `RUN_DDL: str`, `start_scan_run(conn, selection_id) -> str`, `finish_scan_run(conn, scan_run_id) -> None`, `get_scan_run(conn, scan_run_id) -> sqlite3.Row`.
 
-**SPEC OQ16 is OPEN and this task does not close it.** OQ16 asks for *"Scan identity, and the boundary that brackets it"* and records that R5 *"carries five counters and no identity at all"*, that P1 mints a `scan_id` for `scan_resource_usage` which it *"deliberately keeps off `events`"*, and that P3 *"does not settle another part's open question inside its own contract"*.
+**SPEC OQ16 is CLOSED — ratified 2026-08-20 — and this task implements the closed reading.** P3 owns the scan (§1.1), so P3 owns its name: `scan_run_id` is minted here and **published**. P1's `start_scan(conn, *, scan_run_id)` adopts that value and keys `scan_resource_usage` on it, minting nothing of its own (P1 OQ19, settled the same day: *"a value P1 minted is one nothing else can join"*).
 
-So this task does the minimum that lets P3's own five tables have a key, and publishes nothing:
+Why the earlier local-only reading was a defect and not merely a narrower choice: three private identifiers meant P13 could not put §8.6's six counters beside the file counts from the same scan, and a P2 bundle could not name the scan it was captured from. One published identity closes all three seams at once.
 
-- `scan_run_id` is minted locally by P3 and used only as a foreign key inside `scan_agent`'s tables.
-- It is **never** written to `events`. §8.2's event record keeps its eleven fields (MINOR 1).
-- It is **not** joined to P1's `scan_id` and no function here returns one from the other. Whether they are the same identity is OQ16 and P1 OQ19, and both stay open.
-- The name is not coined here: `11-ops-runtime.md` §3 already writes `scan_run_id — P3's scan` in the session record. **Conflict, recorded not resolved:** §3 treats that identifier as something P3 publishes, which is more than SPEC OQ16 concedes. This plan implements the narrower reading (local handle, published as nothing) and reports the discrepancy.
+- `scan_run_id` is minted by P3 and handed to P1 at run start. **P1 mints nothing.**
+- It is still **never** written to `events`. §8.2's record keeps its eleven fields (MINOR 1). Publishing an identity and putting it on the event row are two different claims, and only the first was ratified.
+- P3 now samples §8.6's six counters through P1. The sole cause of the earlier refusal (P3-H) was that no shared identity existed to write them against; that cause is gone.
+- `11-ops-runtime.md` §3's `scan_run_id — P3's scan` on the session record is now true rather than aspirational. The conflict this task previously recorded is resolved, and resolved in the contracts rather than minted inside an implementation.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -633,8 +639,9 @@ def test_a_run_brackets_a_start_and_an_end(conn, selection):
 
 
 def test_the_run_handle_is_never_written_to_events(conn, selection):
-    # SPEC OQ16 / P1 §10: the scan identifier stays off `events`; §8.2's event
-    # record keeps its eleven fields (MINOR 1).
+    # OQ16 closed the PUBLICATION question, not the event-row question. P1 §10 keeps
+    # the scan identifier off `events`; §8.2's record keeps its eleven fields
+    # (MINOR 1). This test is what stops the closure being over-read.
     start_scan_run(conn, selection)
     assert "scan_run_id" not in EVENT_FIELDS
     assert "scan_id" not in EVENT_FIELDS
@@ -642,14 +649,25 @@ def test_the_run_handle_is_never_written_to_events(conn, selection):
     assert "scan_run_id" not in columns
 
 
-def test_p3_publishes_no_scan_identity_and_joins_none(conn, selection):
-    # OQ16 is open. P3 does not claim this handle as §8.6's scan identity and does
-    # not resolve it against P1's `scan_id` (P1 OQ19). No function here does either.
-    import scan_agent.run as module
-    assert not [n for n in vars(module) if "scan_id" in n]
-    assert "scan_resource_usage" not in module.__dict__
-    source = Path(module.__file__).read_text()
-    assert "database_agent.scan_usage" not in source
+def test_p3_publishes_the_scan_identity_and_p1_adopts_it(conn, selection):
+    # OQ16 closed 2026-08-20: P3 owns the scan, so P3 owns its name. P1 keys
+    # `scan_resource_usage` on the value P3 hands it and mints none of its own.
+    from database_agent.scan_usage import scan_resource_usage
+
+    scan_run_id = start_scan_run(conn, selection)
+    assert scan_resource_usage(conn, scan_run_id)["scan_id"] == scan_run_id
+
+
+def test_the_six_counters_land_against_the_published_identity(conn, selection):
+    # P3-H is lifted: sampling was blocked only by the absence of a shared key.
+    from database_agent.scan_usage import RESOURCE_COUNTERS, scan_resource_usage
+
+    scan_run_id = start_scan_run(conn, selection)
+    finish_scan_run(conn, scan_run_id)
+    row = scan_resource_usage(conn, scan_run_id)
+    assert set(RESOURCE_COUNTERS) <= set(row.keys())
+    assert row["elapsed_time"] is not None   # P1 samples five of the six
+    assert row["llm_cost"] is None           # the sixth is P8's (O9), never P3's
 
 
 def test_a_run_names_the_selection_it_scanned(conn, selection):
@@ -672,24 +690,23 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'scan_agent.run'`
 
 ```python
 # src/scan_agent/run.py
-"""P3's local scan-run handle.
+"""P3's scan-run handle — minted here, published, adopted by P1.
 
-SPEC OQ16 is OPEN and this module does not close it. §8.6 says "every scan"; P1
-records six resource counters per scan under a `scan_id` it mints locally and
-deliberately keeps off `events` (P1 Contract out §10, P1 OQ19); P3's SPEC records
-that R5 "carries five counters and no identity at all" and that "P3 does not settle
-another part's open question inside its own contract".
+**SPEC OQ16 closed, ratified 2026-08-20.** §8.6 says "every scan", and P3 owns the
+scan (§1.1), so P3 owns its name. `scan_run_id` is minted here and handed to P1's
+`start_scan(conn, *, scan_run_id)`, which keys `scan_resource_usage` on it and mints
+nothing of its own (P1 OQ19, settled the same day).
 
-What this module therefore is: a foreign key for P3's own tables, minted by P3 and
-published as nothing. It is not written to `events`, it is not resolved against
-P1's `scan_id`, and no function here claims it as §8.6's scan identity. When OQ16
-closes, the published identity lands here and this row is what carries it.
+The identity is published; it is still not an event field. §8.2's record keeps its
+eleven fields (MINOR 1) — two different claims, and only the first was ratified.
 """
 from __future__ import annotations
 
 import sqlite3
 import uuid
 from datetime import datetime, timezone
+
+from database_agent.scan_usage import sample_scan_resources, start_scan
 
 RUN_DDL = """
 CREATE TABLE IF NOT EXISTS scan_runs (
@@ -702,22 +719,33 @@ CREATE TABLE IF NOT EXISTS scan_runs (
 
 
 def start_scan_run(conn: sqlite3.Connection, selection_id: str) -> str:
-    """Open a scan run against one R1 selection. Returns P3's local run handle."""
+    """Open a scan run against one R1 selection and register it with P1.
+
+    P3's own INSERT runs first, deliberately: `selection_id` is a foreign key, so a
+    selection that does not exist must fail here rather than after P1 has already
+    opened a counter row for a scan that never starts.
+    """
     scan_run_id = str(uuid.uuid4())
     conn.execute(
         "INSERT INTO scan_runs (scan_run_id, selection_id, started_at) VALUES (?, ?, ?)",
         (scan_run_id, selection_id, datetime.now(timezone.utc).isoformat()),
     )
+    start_scan(conn, scan_run_id=scan_run_id)
     return scan_run_id
 
 
 def finish_scan_run(conn: sqlite3.Connection, scan_run_id: str) -> None:
-    """Close the run. `completed_at` brackets the run for P3's own reads only —
-    §8.6's `elapsed_time` is measured by P1's `scan_resource_usage`, not here."""
+    """Close the run and take P1's final sample of §8.6's counters.
+
+    `completed_at` brackets the run for P3's own reads. §8.6's `elapsed_time` is
+    measured by P1 against the baseline it took at `start_scan` — not recomputed
+    here, because two subtractions of two clocks is two answers to one question.
+    """
     conn.execute(
         "UPDATE scan_runs SET completed_at = ? WHERE scan_run_id = ?",
         (datetime.now(timezone.utc).isoformat(), scan_run_id),
     )
+    sample_scan_resources(conn, scan_run_id)
 
 
 def get_scan_run(conn: sqlite3.Connection, scan_run_id: str) -> sqlite3.Row:
@@ -742,13 +770,13 @@ def create_scan_schema(conn: sqlite3.Connection) -> None:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/p3/test_p3_run.py -v`
-Expected: PASS — 5 passed
+Expected: PASS — 6 passed
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add src/scan_agent/run.py src/scan_agent/schema.py tests/p3/test_p3_run.py
-git commit -m "feat(P3): local scan-run handle, published as nothing, OQ16 left open"
+git commit -m "feat(P3): scan-run handle published to P1, implementing OQ16 closed"
 ```
 
 ---
@@ -5219,8 +5247,10 @@ def test_nothing_branches_on_cross_folder_moves():
         assert "cross_folder_moves" not in source, path.name
 
 
-def test_p3_publishes_no_scan_identity_and_no_placement_vocabulary():
-    # SPEC Q16 is OPEN (scan identity); §1.1's roots are context, not permission.
+def test_p3_holds_no_placement_vocabulary():
+    # §1.1's roots are context, not permission. (This guard never asserted anything
+    # about scan identity — it was named for a claim its body does not make, and
+    # SPEC Q16 has since closed the other way: P3 DOES publish the scan identity.)
     source = all_source()
     for token in ("placement", "destination_node", "authorize", "approved_move",
                   "template_id", "domain_id"):
@@ -5404,7 +5434,7 @@ git commit -m "test(P3): walking-skeleton P3 step, node_modules skipped, every e
 
 **Registration.** P3 registers nothing (B5). All four types are reserved §8.2 names already in P1's frozen table; `scan_agent` contains no registration call, and Task 1 asserts both.
 
-**Open questions this plan does not answer.** Q1 (normalized filename) — P3 defines no normalization, passes the filename through unchanged, and Task 17 guards it; P1 requires the field as a keyword with no default and derives nothing, so P3 is its only author and the question is genuinely open at P3's boundary. Q2 (which timestamps) — P3 observes size and mtime for §1.2's cache and adds no timestamp of its own. Q4 (scan-state enumeration) — the caller supplies one value; `scan_agent` holds no vocabulary. Q6 (MIME determination) — a caller-supplied strategy; no `mimetypes`, no signature table. Q7 (symlinks, aliases, packages, mounts) — recorded as `traversal behaviour unresolved`, never decided; `.app` bundles are descended, which is Q7's stated cost. Q8 (exclusion override) — no override exists; §1.1 gives the user no control over the rules and P3 adds none. Q9 (does the project-root rule exclude the root itself) — §1.1's literal word `descendants` is implemented and the marker-bearing directory's eligibility is asserted nowhere. Q11 (where R1 lives) — R1 is a plain record with no plan-version binding. Q12 (where `cross_folder_moves` is enforced) — recorded, enforced nowhere, guarded. Q13 (do exclusion verdicts get events) — R3 has its own table and appends no event, guarded. Q14 (disappearance) — `11` §4's watch rule is followed for the *event*; the `files` row is untouched and that half stays open. Q15 (hashing ceiling) — none held; the budget is a caller predicate. Q16 (scan identity) — a local handle, off `events`, joined to P1's `scan_id` by nothing. P4 OQ6 (`completeness` for a dataless file) — no run row, no completeness value, guarded. P1 OQ9 (volume identifier) — read by nothing.
+**Open questions this plan does not answer.** Q1 (normalized filename) — P3 defines no normalization, passes the filename through unchanged, and Task 17 guards it; P1 requires the field as a keyword with no default and derives nothing, so P3 is its only author and the question is genuinely open at P3's boundary. Q2 (which timestamps) — P3 observes size and mtime for §1.2's cache and adds no timestamp of its own. Q4 (scan-state enumeration) — the caller supplies one value; `scan_agent` holds no vocabulary. Q6 (MIME determination) — a caller-supplied strategy; no `mimetypes`, no signature table. Q7 (symlinks, aliases, packages, mounts) — recorded as `traversal behaviour unresolved`, never decided; `.app` bundles are descended, which is Q7's stated cost. Q8 (exclusion override) — no override exists; §1.1 gives the user no control over the rules and P3 adds none. Q9 (does the project-root rule exclude the root itself) — §1.1's literal word `descendants` is implemented and the marker-bearing directory's eligibility is asserted nowhere. Q11 (where R1 lives) — R1 is a plain record with no plan-version binding. Q12 (where `cross_folder_moves` is enforced) — recorded, enforced nowhere, guarded. Q13 (do exclusion verdicts get events) — R3 has its own table and appends no event, guarded. Q14 (disappearance) — `11` §4's watch rule is followed for the *event*; the `files` row is untouched and that half stays open. Q15 (hashing ceiling) — none held; the budget is a caller predicate. Q16 (scan identity) — **closed, ratified 2026-08-20**, and therefore no longer an open question this plan holds: P3 publishes `scan_run_id`, P1's `start_scan` adopts it, and the identity is still kept off `events`. P4 OQ6 (`completeness` for a dataless file) — no run row, no completeness value, guarded. P1 OQ9 (volume identifier) — read by nothing.
 
 **Placeholder scan.** No "TBD", no "add error handling", no "similar to Task N", no angle-bracket placeholder standing in for a real name. Every code step carries complete runnable code and every test step names the exact `pytest` command and expected result.
 
@@ -5421,7 +5451,7 @@ git commit -m "test(P3): walking-skeleton P3 step, node_modules skipped, every e
 - **`11` §7's "two scans do not run on the same root" is not implemented, and is not P3's alone to settle.** `11-ops-runtime.md` §7: *"A second scan of an in-flight root is refused. A scan of a disjoint root may run."* Scanning is P3's operation and `scan_runs` already carries `started_at` and `completed_at`, so the refusal could live here — but the SPEC's *Runtime obligations* paragraph binds only `11` §1 (Full Disk Access), §4 (the session watch) and §5 (dataless items) and omits §7, so no contract assigns it to P3. Nothing in Tasks 1–18 refuses it: two `scan()` calls over one root interleave rows into `stat_cache_verdicts`, `exclusion_verdicts` and `directory_inventory` under two `scan_run_id`s, and each run's R5 then counts a partial corpus as if it were whole. Implementing it here would also mean P3 authoring what §7 does not define — whether a subdirectory of an in-flight root is "the same root", what a refusal raises, and who clears a run left open by a crash (`11` §6 covers apply, not scan). Recorded for the lead to place: §7 lands on P3, or on the P13 process that drives the scan.
 - **`create_scan_schema` is not called by `open_database`.** P1's handle now creates P1's own tables on open, but it knows nothing about P3's, so a caller that forgets `create_scan_schema` gets a database with `files` and `events` and none of P3's six. Not blocking Tasks 1–18.
 - **Schema migration.** P3 adds six tables to P1's database and stamps no version of its own. The first *change* to a P3 table needs one; the first creation does not.
-- **P3 samples no resource counter.** §8.6's six are P1's `scan_resource_usage` (P1 Contract out §10), and joining a P3 run to a P1 `scan_id` is SPEC Q16 / P1 OQ19 and is open. So a P13 progress line can render P3's five counters and P1's six, and cannot yet join them.
+- **P3 samples §8.6's six resource counters through P1.** They live on P1's `scan_resource_usage` (P1 Contract out §10) and are keyed on the `scan_run_id` P3 publishes — Q16 / P1 OQ19, closed 2026-08-20. A P13 progress line can now render P3's five counters and P1's six **and join them**, which was the whole point of closing the question. P1 samples five; `llm_cost` is P8's (O9) and P3 writes it never.
 
 ## Execution Handoff
 

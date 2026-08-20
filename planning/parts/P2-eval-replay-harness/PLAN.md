@@ -1389,12 +1389,14 @@ def test_a_bundle_records_its_scan_plan_and_policy(eval_conn):
     bundle_id = _open(eval_conn)
     row = get_bundle(eval_conn, bundle_id)
     assert row["corpus_form"] == "snapshot"
-    # NOT P3's scan_id: no part publishes one. P1 mints `scan_id` on
-    # scan_resource_usage and keeps it off `events` (P1 OQ19); P3 has a local
-    # `scan_run_id` it publishes to nobody (P3 OQ16). `source_scan_ref` is an
-    # opaque handle P2 stores and never joins on. Wiring it to either identifier
-    # before OQ16 closes would put a private handle in a field P13 and P2 both
-    # read as shared identity.
+    # `source_scan_ref` IS P3's published `scan_run_id` — P3 OQ16 / P1 OQ19 closed
+    # 2026-08-20: P3 owns the scan (§1.1) so P3 publishes the name, and P1's
+    # `start_scan(conn, *, scan_run_id)` keys `scan_resource_usage` on it. That
+    # join is what lets a bundle name the scan it captured, and lets P13 put
+    # §8.6's six counters beside the file counts from the same scan.
+    # The fixture below is still a literal, because this test builds no scan: a
+    # bundle stores whatever handle it is given. What changed is that the field is
+    # now a shared identity rather than an opaque string P2 must never join on.
     assert row["source_scan_ref"] == "scan-fixture"
     assert row["pinned_plan_id"] == "plan-fixture"           # §8.8
     assert row["pinned_plan_version"] == "1"

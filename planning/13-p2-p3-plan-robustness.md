@@ -1,171 +1,151 @@
 # P2 and P3 plan robustness
 
-Date: 2026-08-19
-Status: **wave-1 plans are complete TDD packages; do not execute until P1's rewritten substrate is green, and do not treat either plan as perfect**
-Scope: live [`parts/P2-eval-replay-harness/PLAN.md`](parts/P2-eval-replay-harness/PLAN.md) (17 tasks, frozen ~17:37) and [`parts/P3-scan-corpus-selection/PLAN.md`](parts/P3-scan-corpus-selection/PLAN.md) (18 tasks, frozen ~17:40) against their SPECs, [`01-product-design-structured.md`](01-product-design-structured.md) §1.1 / §1.2 / §8.5, [`02-segmentation-map.md`](02-segmentation-map.md), [`10-i4-learning-ops.md`](10-i4-learning-ops.md), [`11-ops-runtime.md`](11-ops-runtime.md), and the rewritten P1 plan. Earlier draft of this pass was discarded because both PLANs were still being written.
+Date: 2026-08-20 (re-check)
+Status: **not all good** — yesterday's three wave seams are mostly *named*; two of them are closed in SPECs and still open in the PLANs that would implement them. Do not execute wave 1 as a stack.
+Scope: live P2 PLAN (6194 lines, 17 tasks) and P3 PLAN (5433 lines, 18 tasks) against live SPECs, [`11-ops-runtime.md`](11-ops-runtime.md), and the live P1 PLAN (mtime 2026-08-19 15:57 — **not updated overnight**). Prior pass: this file as of 2026-08-19 17:42.
 Source of truth: [`00-database-agent-product-design.md`](00-database-agent-product-design.md)
 
-These two plans were written after [`12-p1-plan-robustness.md`](12-p1-plan-robustness.md) and after P1's PLAN was rewritten to match it. They assume that rewritten P1, not the P1 plan 12 judged.
-
-**Verdict.** Neither plan is perfect. Both are substantially more disciplined than the P1 plan 12 reviewed: open questions are held open by tests, not comments; authorship is treated as load-bearing; no neighbour's vocabulary is retyped. P2 is the stronger of the two as a self-contained harness. P3 is the stronger as a contract-with-P1. The wave as a whole still has three seams that will poison later parts if executed as written: unpublished scan identity, P1 re-deriving P3's fields, and a shadow "empty" proof that only checks P2's own columns.
-
-| | P2 | P3 |
-|---|---|---|
-| Tasks | 17, plus Self-Review | 18, plus Self-Review |
-| Done-means in SPEC | 13 | 18 |
-| Done-means with a task | 13 / 13 | 18 / 18 |
-| Open questions held open by a mechanism | 12 / 12 | 14 / 14 remaining |
-| Must not execute before | P1 rewritten plan is green | P1 rewritten plan is green **and** P1 stops re-deriving R2 fields |
-| Graphify path-check | absent | absent |
-
-A plan is robust here if a later part can be built against it without inheriting a foreign-key lie, a provenance lie, or a silently answered open question. Completeness of pytest steps is not the test.
-
 ---
 
-## Wave 1 as a unit
+## Resolved 2026-08-20 — all findings actioned, one correction to the report
 
-```
-P1 (rewritten substrate) → P2 (harness) → P3 (scan)
-```
+Every blocking finding below is closed. The report's own headline is corrected:
 
-That order is forced by the structure map: per-stage measurement cannot be retrofitted, and P3 must be runnable against a P2 bundle. Both later plans are honest about depending on P1 alone for their own tests. The remaining wave defects sit *between* the three, not inside any one task list.
-
-| Seam | What each plan does | Why it is a wave defect |
-|---|---|---|
-| Scan identity | P1 mints `scan_id` on `scan_resource_usage` and keeps it off `events` (OQ19). P3 has a local `scan_run_id`, unpublished, and **forbids** importing `database_agent.scan_usage`. P2 stores `source_scan_ref` and comments it as *"P3's scan_id (§1.1)"*. [`11`](11-ops-runtime.md) §3 already writes `scan_run_id — P3's scan` on the session record as if it were published. | P13 cannot join file counts to resource counters. A P2 bundle cannot name the scan it was captured from. Three documents, three identities, none joined. P3 records this as OQ16 held open; P2's comment treats it as closed. |
-| Who computes the ten §1.2 fields | P3 SPEC: P3 computes them once; a second derivation is a contract violation (O5, Done-means 17). P3 PLAN: `observe_path` hands a path; P1's `record_file` stats and hashes it. Drift test compares `os.stat` to the stored row, which both computers read from the same path, so it **passes while the contract is violated**. | §3.4's cache key is built on the hash. Two computers of MIME, timestamps, and hash from the same path will drift the first time they disagree (symlink, dataless race, clock). P3 owns none of P1's files and correctly refuses to patch P1. Do not execute P3 Task 10 until P1's `record_file` stores what P3 observed. |
-| Authorship of scan events | Structure map and both SPECs: P3 authors, P1 writes. Rewritten P1 takes `author=` and tests it. P3 supplies `author="P3"` everywhere and guards a second route. P2's skeleton uses a P3 fixture as author. | This seam is **recovered**. It was B1 in 12. Do not re-litigate it. |
-| Replay without a live filesystem | P2 deletes the source file before replay (Task 17). P3 serializes listings and re-fires exclusion rules (Task 15). A metadata-safe P3 replay writes **no** `files` row, because P1 has no "record from a supplied hash" entry point. | Done-means 14's exclusion/cache/curation half holds. The `files` half of a metadata-safe bundle cannot round-trip through P1. Recorded, not papered. Needs a P1 surface or a SPEC narrowing before P2's `metadata_safe` form can populate identity. |
-
-**Graphify.** The structure map's standing rule still has no home in either plan: no `graphify-out/`, no hook, no `graphify path` before code. This pass is again the 6,000-line read the map forbids. Same miss as 12.
-
----
-
-## P2 — Evaluation and replay harness
-
-**Judgment:** robust as a harness that must exist before the stages it measures. Not perfect. Executable after rewritten P1 is green, with the scan-identity comment treated as a fixture string and not as a published P3 id.
-
-### What holds
-
-| What | Evidence |
+| Finding | Status |
 |---|---|
-| Stages and dimensions kept apart | No `STAGE_FOR_DIMENSION`. OQ1 held by a test that fails if one is added. |
-| `not_implemented` is a legal run | Adapter registry is an argument, not a process-local dict. Nine absent stages yield `not_run`, never `pass`. Learned the P1 registry lesson. |
-| No aggregate accuracy | Column names, return keys, and identifier parts all guarded (Task 16). `GateReport` has no `passed` boolean. |
-| Abstention is a pass; deferral is not divergence | `PASSING_VERDICTS = {match, abstained_correctly}`. Ceiling-only change produces zero new divergences. |
-| Open questions held by mechanism | All twelve have a named refusal: no export, no tolerance argument, no shadow selector default, no promotion function, `run_gate` raises nothing. |
-| Learning rows in the bundle | Task 7 captures P1's store so a store-empty replay cannot be blamed on grouping. Binding from 10. |
-| Adversarial gate does not silently pass | A1–A8, A10–A12 are `not_run` until their stage exists. Only A9 can pass today, from the bundle alone. |
-| P2 authors no `events` | `src/eval_harness/` must not import `append_event`. Tests that seed P1 (Task 7) do so as P9 fixtures, which is correct M8. |
-| No neighbour enums retyped | Handling class, privacy mode, residual `outcome` stored opaque. Known gap: a typo is not caught. Correct trade. |
-| Skeleton deletes the file before replay | Done-means 1 is asserted, not assumed. |
+| **P3 PLAN Task 3** implements the OQ16-open reading | **Fixed.** Task 3 now mints `scan_run_id`, publishes it, calls P1's `start_scan(conn, *, scan_run_id)`, and samples §8.6's six counters. Title, header, consume table, file map, Task 17's mis-named guard, and the Self-Review's two stale claims all follow. **Assembled and run: 6 passed** (19 passed across Tasks 1–3). |
+| **P2 SPEC** lists `source_scan_ref` twice | **Fixed.** The stale duplicate is deleted; one line, one meaning. |
+| **P2 PLAN** comment says P3 "publishes to nobody" | **Fixed** — a survivor the report missed, stale in the *opposite* direction after OQ16 closed. |
+| **P1 PLAN** is stale (`record_file` derives, `start_scan` mints) | **Real, and severity corrected — see below.** Marked superseded, with the complete divergence list. |
 
-### Do not treat as closed
+**The report's headline is wrong: P3 Task 10 was never blocked.** It reads the live P1 PLAN as "the substrate they call". The substrate is `src/database_agent/`, and P1 **shipped on 2026-08-19 with 152 tests**. The shipped `record_file` and `observe_path` already require all five §1.2 fields as keywords with no default, and the shipped `start_scan` already takes `scan_run_id` and mints nothing. P3 Task 10's call matches the shipped signature exactly. What is stale is `P1-storage-identity-provenance/PLAN.md` — the construction record, not the code.
 
-| ID | Where | What | Risk |
-|---|---|---|---|
-| **P2-A** | Task 5 comment on `source_scan_ref` | Comment calls the fixture string "P3's scan_id". P3 OQ16 and P3 Task 3 publish nothing. | Later capture code will write a local handle into a field P13/P2 think is shared identity. |
-| **P2-B** | Task 13 `assert_shadow_wrote_nothing` | `plan_version_writes` / `move_plan_entries` / `user_visible_tree_delta` default to `'[]'` on P2's own `shadow_run` row. The check never looks at P10 or P12 tables. | The day a shadow adapter writes a real plan version, this assertion still passes unless the adapter also copies into those three columns. The "proved not promised" claim is self-referential. |
-| **P2-C** | Task 14 `run_gate` | Returns a report. Raises nothing. OQ9 left open on purpose. | §8.5's "before it affects a user's live plan" has no enforcer. Fine as a SPEC deferral; not fine if anyone reads the gate as a ship block. |
-| **P2-D** | Attribution `inputs[]` | Bare `subject_ref`s; two stages on one subject both match. Recorded, SPEC not changed. | Earliest-divergence can name the wrong stage when P9 and P11 both decided about the same file. |
-| **P2-E** | "Files indexed" | Contract-out §3 and P5's mapping disagree. `bundle_counts` returns both and picks neither. | P13 will pick one. Pick in the SPEC before a renderer exists. |
-| **P2-F** | P2's own §8.6 ceilings | Bundle count, bundle storage, adversarial wall-clock named in SPEC, not implemented. Adding a key requires editing P1's `CEILING_KEYS`. | A snapshot bundle of a real Downloads folder has no size cap. Same class of hole as P1 OQ15 / P3 Q15. |
-| **P2-G** | `outcome = error` / `not-applicable` | NULL verdict, counted as `unverdicted`. No eighth name minted. | Honest. Neighbouring assertion dashboards will treat NULL as a bug unless the SPEC is updated. |
+That document was **not** rewritten to match the code: rewriting a build record to resemble what it produced destroys the history and still leaves every task's TDD steps inconsistent. It now carries a supersession header naming the divergences, verified by parsing all 42 of its `def`s against the shipped modules. **Exactly four differ** — `record_file`, `observe_path`, `start_scan`, and the private helper `_check` (parameter renamed). The other 38 shipped identically.
 
-OQ4 (`tree` as assertion vs observation) is held open by doing nothing special. That means a bundle replay will emit pass/fail verdicts on a dimension §8.5 phrased as user behaviour. The plan says it does not decide whether those verdicts are meaningful. A later P10 will inherit fake tree-quality scores unless P2 or P10 special-cases it when the SPEC closes.
-
-### Execute?
-
-Yes, Tasks 1–17, **after** rewritten P1 is green. Do not wire `source_scan_ref` to P3's local handle. Do not treat Task 13's three empties as a substitute for "shadow adapters must not call P10/P12". Do not treat `run_gate` as a release block.
+**What the report got right, and what it cost to miss.** P3 Task 3 was a genuine blocker and my prior "ready to implement" verdict missed it. My checker verified internal consistency, call-signature agreement, and invented values — it does not compare a PLAN's *open-question status* against its SPEC's *ratified status*. Task 3's defect was invisible to a call-site checker precisely because the defect was a **missing call plus a guard asserting it stay missing**. That is a new defect class, now named: **a plan that is internally consistent, correctly typed, and implements a superseded decision.**
 
 ---
 
-## P3 — Scan and corpus selection
+**Verdict.** It is not all good. The plans got better: P2's shadow proof now snapshots every non-eval table; P3 no longer lists `scan_usage` as consumed; P3 now *passes* the §1.2 fields instead of hoping P1 will ignore them; P2 claims its own pytest blocks were actually run (154 passed). What is not good is that **the SPECs moved and the implementing plans did not move with them**, and **P3's PLAN describes a P1 that the P1 PLAN does not contain**.
 
-**Judgment:** the authorship half of wave 1 is now actually specified. The plan is the right shape (pure `walk`, separate writer, caller-supplied MIME/scan_state/budget, ops-runtime bound). It is not executable as a faithful O5 implementation until P1 stores P3's observations instead of re-statting the path. It is not perfect.
+An implementer who executes P1 PLAN then P3 PLAN will hit a signature mismatch on Task 10. An implementer who trusts P3 SPEC OQ16 (closed) then reads P3 PLAN Task 3 (still "OQ16 stays open") will ship two scan identities again.
 
-### What holds
-
-| What | Evidence |
-|---|---|
-| P3 authors, P1 writes | `event_defaults` is the only place `subsystem` is set; refuses any value but `"P3"`; refuses a type P3 does not author. Task 17 guards a second route. Matches the structure map's rewritten skeleton line. |
-| Registers nothing | Four reserved §8.2 names. No `register_event_type`. B5. |
-| No invented thresholds | Eleven literal directory names and four marker files only. Five open-ended categories deferred. Curation signal is `undetermined` until a threshold is authored. Budget is a caller predicate with no default. |
-| Q4 / Q6 held open | `scan_state` and `mime_type_for` are required keywords. No `mimetypes`, no signature table, no scan-state enum in `scan_agent`. |
-| `cross_folder_moves` recorded, not enforced | Q12 guarded. |
-| Exclusion verdicts are not events | Own table; Q13 named. Replay can still reproduce the boundary. |
-| Dataless before hashing | Detects `SF_DATALESS`; never passes `materialized=True` for it; writes no `extraction_runs` row (P4 OQ6 left to P4). |
-| Full Disk Access | Lists the root; `PermissionError` is the oracle; no gazetteer of TCC paths. |
-| Stat cache is a difference test | Size-or-mtime, including mtime moving backwards. Done-means 8 and 9 have tasks. |
-| Session watch | `notify` implements 11 §4's four rules against a stdlib `poll`. No fake FSEvents. No daemon. Disappearance authors the event (11 wins over Q14 for the *event*); `files` row untouched (Q14's other half stays open). |
-| Replay re-fires rules | Serializes listings, not conclusions. `node_modules` still excluded on replay. |
-| Candidate roots are landscape | Exclusion + inventory, no `files` rows. Stated as a reading of §1.1, not as a SPEC sentence. Honest. |
-
-### Do not execute these as written — or execute only after P1 changes
-
-| ID | Where | What | Why it is blocking |
+| | P2 | P3 | P1 PLAN (the substrate they call) |
 |---|---|---|---|
-| **P3-A** | Task 10 / Done-means 17 | P1 `record_file` re-derives filename, normalized filename, extension, size, timestamps, hash. P3's drift test cannot fail that. | O5 says a second derivation is a contract violation. The plan reports the divergence for P1 to resolve and then proceeds to write through the violating API. Fix P1 first. |
-| **P3-B** | Task 3 vs consume table vs 11 vs P2 | Header lists `database_agent.scan_usage.start_scan` as consumed. Task 3 asserts that import is absent. 11 treats `scan_run_id` as published. P2 comments `source_scan_ref` as P3's scan id. | The consume table is stale. The identity seam is the wave defect above. Do not "fix" it by joining in P3 code; close OQ16 in the SPEC. |
-| **P3-C** | Q1 vs P1 NFC | P3 defines no normalization and guards it. P1's `record_file` already does `unicodedata.normalize("NFC", path.name)`. P3 reports this and does not ratify it. | §3.7 word-boundary matching runs over this string. A1/A2 (P2 adversarial) will fire on whatever P1 stored. The open question is already answered in another part's code. Close it in P3 SPEC or stop P1 from normalizing. |
+| Tasks | 17 + Self-Review | 18 + Self-Review | last write 2026-08-19 15:57 |
+| SPEC overnight | `source_scan_ref` now "P3's published `scan_run_id`" — **and the old line is still there** | OQ16 **settled** 2026-08-20 | OQ19 **settled** 2026-08-20: `start_scan` takes P3's id |
+| PLAN overnight | comment now says the fixture is **not** P3's scan_id | Task 3 still titled **"OQ16 stays open"**; still forbids `scan_usage` | `start_scan(conn) -> str` still **mints** an id; `record_file` still NFC-normalizes and re-stats |
 
-### Serious, not blocking the skeleton
-
-| ID | Where | What | Risk |
-|---|---|---|---|
-| **P3-D** | Q7 / known gap | `.app` bundles and packages are descended. SPEC names "thousands of spurious rows." Plan records rather than invents a rule. | A user who selects `/Applications` or a folder containing one `.app` will hash a corpus the product cannot mean to organize. Skeleton is fine; first real Mac scan is not. Needs a SPEC rule before v1, not a guessed heuristic in this plan. |
-| **P3-E** | Task 6 known gap | Legacy `.Foo.pdf.icloud` placeholders are not detected. 11 §5 does not name that shape. | Optimize Mac Storage still has two on-disk forms. `SF_DATALESS` is the one 11 specified. Accept for this plan; do not invent the filename rule here. |
-| **P3-F** | Task 15 | Metadata-safe replay writes no `files` row; R4 `file_id` is NULL. | Correct given P1. A P2 `metadata_safe` bundle cannot round-trip identity. |
-| **P3-G** | Task 12 | Content change yields two P3-authored `external modification detection` rows (P3's stat difference and P1's version supersession). | Append-only and distinguishable by explanation. Fine if consumers filter; surprising if they count. |
-| **P3-H** | Resource observability | P3 samples no `scan_resource_usage` counter, by OQ16. | A scan can run with P1's six counters stuck at unavailable. 11 and §8.6 wanted them observable. Closing OQ16 is what unsticks this, not a P3 invention of a thirteenth ceiling. |
-| **P3-I** | Consume table | Lists `scan_usage` APIs P3 then forbids itself from importing. | Agent executing Task 1 will wire `start_scan` because the header said to. Delete those three lines from "What P3 consumes from P1" before anyone implements. |
-
-Normalization of filename (Q1), timestamps (Q2), MIME (Q6), scan_state (Q4), hashing ceiling (Q15), exclusion override (Q8), R1 plan-versioning (Q11) are correctly not answered. Do not invent them to look finished.
-
-### Execute?
-
-Tasks 1–9, 11–14, 16–18 can proceed against rewritten P1. **Do not execute Task 10** (R2 write) until P1 accepts observed fields instead of re-statting. **Do not execute Task 15** as a claim that `files` round-trips from a metadata-safe bundle. Fix the consume-table stale lines before Task 1 so an implementer does not import `scan_usage`.
+A plan is robust if a later part can be built against it without inheriting a lie. Right now the lie is between documents dated the same morning.
 
 ---
 
-## Against the structure map
+## Re-check of yesterday's findings
 
-| Map rule | P2 | P3 |
+| ID | Yesterday | Today |
 |---|---|---|
-| SPECs freeze, then plans | Both plans hold SPEC open questions open rather than answering them in code. Recovered from P1's earlier failure on I1/I2. | Same. Exception: P1's NFC silently answers P3 Q1. |
-| Walking skeleton, deterministic | Task 17: one file, nine stages `not_run`, file deleted before replay, model and embeddings off. | Task 18: fixture directory, `node_modules` skipped, every event `subsystem="P3"`. |
-| P2 before the stages it measures | Adapter registry with `not_implemented`. Correct. | n/a |
-| P3 authors scan events | Skeleton uses a P3 fixture author. | Load-bearing rule of the whole plan. |
-| Graphify path-check before code | Absent. | Absent. |
-| Second privacy fixture (11, still no model) | Out of scope (P7/P8/P13). | Out of scope. Neither plan claims it. |
+| **P2-A** `source_scan_ref` treated as P3's scan_id | Live in PLAN comment | **Closed in P2 PLAN** (comment now says no part publishes one). **Reopened as a SPEC defect:** P2 SPEC Contract out §3 lists `source_scan_ref` twice — once as "P3's published `scan_run_id` (P3 OQ16, closed 2026-08-20)" and once as the old opaque "P3 scan and exclusion set". Two lines, two meanings. |
+| **P2-B** shadow empties only check P2's own columns | Blocking | **Closed.** `foreign_table_counts` snapshots every table not in `EVAL_TABLES` before the adapter runs and diffs after. P10/P12 tables are covered by subtraction the day they appear. Honour-system columns remain as a second check. |
+| **P2-C** `run_gate` does not block | Advisory, SPEC OQ9 | Still true. Still correctly deferred. Not a reason to refuse P2. |
+| **P2-D** `inputs[]` ambiguous | Recorded | Still recorded. Still a recommended SPEC change, not made. |
+| **P2-E** "files indexed" two definitions | Recorded | Still both reported, neither picked. |
+| **P2-F** P2's own §8.6 ceilings | Missing | Still missing. |
+| **P2-G** NULL verdict / `unverdicted` | Honest | Sharpened: P2 now says the four unpublished strings (`stage_error`, `expectation_not_applicable`, `unverdicted`, gate `pass`/`fail`) **cross into P13** and must be published in the P2 SPEC before P13 invents names. Still not published. |
+| **P3-A** P1 re-derives R2 fields | Blocking Task 10 | **P3 PLAN claims this was fixed 2026-08-20.** Live P1 PLAN was **not** updated. `record_file` still does `path.stat()`, `unicodedata.normalize("NFC", path.name)`, and hashes from the path. `observe_path` *Produces* line still has no `filename=` / `normalized_filename=` / `observed_size=` keywords. P3 Task 10 calls those keywords. **The claim is false against the live P1 PLAN.** |
+| **P3-B** three unjoined scan identities | Wave defect | **SPECs closed it** (P3 OQ16, P1 OQ19, P2 `source_scan_ref`). **P3 PLAN and P1 PLAN did not.** P3 Task 3 still publishes to nobody and asserts `database_agent.scan_usage` is absent. P1 PLAN `start_scan(conn)` still mints `scan_id`. |
+| **P3-C** P1 NFC answers P3 Q1 | Live | **P3 PLAN** now passes `normalized_filename=path.name` unchanged and greps out Unicode-form names. **P1 PLAN** still NFC-normalizes. Same split as P3-A. |
+| **P3-I** stale consume-table `scan_usage` lines | Implementer trap | **Closed.** Header now says P3 consumes nothing from `scan_usage`, deliberately, and explains why. |
+| Graphify path-check | Absent | Still absent. |
+| `.app` descent, `.icloud` placeholders, metadata-safe no `files` row, two modification events, no FDA fake | Known gaps | Still correctly carried. New known gap: **11 §7 "two scans do not run on the same root" is unimplemented** and unassigned (P3 SPEC runtime paragraph never bound §7). |
+
+New since yesterday, P2's own honesty:
+
+- **`evidence_ref = NULL` on every machine-written assertion.** Contract out §6 requires it; the stage envelope has no field to carry one; payload is opaque. Reconstruction obligation unmet. Recommended SPEC change, not made.
+- **A08 and A11 pin one of several legal outcomes.** Exact equality will `fail` a system that takes the other legal option. Recorded.
+- Self-review claims the code blocks were extracted and **`pytest tests/eval -q` → 154 passed**. That is a real upgrade from "runnable on paper." It does not make the SPEC/PLAN desync go away.
 
 ---
 
-## Already sound — do not re-litigate
+## The actual blocker: SPECs closed seams the PLANs still implement as open
 
-- Thirteen-part cut, P2-before-stages, P4-before-P5, P7-before-P8.
-- No invented templates, gazetteers, domain fields, or numeric thresholds in either plan.
-- `deferred` never scored as quality failure.
-- Correct abstention is a pass.
-- I6 (delete vs append-only) untouched; neither plan `DELETE`s from `events`.
-- I4 four analysis tiers used only where P2's own `run_manifest` prints them.
-- 11's dataless / FDA / no-daemon / crash-is-P12 rules are bound in P3 rather than ignored.
-- P3 writing no `extraction_runs` / `completeness` (P4 OQ6) is correct refusal.
-- P2 not rendering (P13 owns the eval view) is correct refusal.
+This is the one finding that matters more than the rest.
+
+**Scan identity (yesterday's wave defect).**
+
+- P3 SPEC OQ16: settled 2026-08-20. P3 publishes `scan_run_id`; P1 `start_scan(conn, *, scan_run_id)` takes it; P3 may sample the six §8.6 counters.
+- P1 SPEC OQ19: settled the same day. P1 mints nothing.
+- P2 SPEC: `source_scan_ref` is that published id — plus a leftover duplicate line with the old meaning.
+- P3 PLAN Task 3 title: *"The scan-run handle — local, and OQ16 stays open."* Still forbids importing `scan_usage`. Header: *"OQ16 is closed in the SPEC or it stays open; until then P3's run identifier is P3's alone."*
+- P1 PLAN Task for `scan_usage`: `start_scan(conn) -> str` still mints.
+
+If you execute the PLANs, you re-create the three-identity hole the SPECs just closed. If you execute the SPECs, Task 3 and P1's `start_scan` have to be rewritten first.
+
+**R2 field ownership (yesterday's P3-A).**
+
+- P3 PLAN Task 10 and Task 17: P1 `record_file` / `observe_path` take `filename`, `normalized_filename`, `extension`, `observed_size`, `observed_timestamps` as required keywords; P1 stats nothing and normalizes nothing; only the content hash stays P1's.
+- Live P1 PLAN `record_file`: still `path.name`, NFC, `path.suffix`, `stat.st_size`, `_timestamps(path)`. No those keywords.
+
+P3's "Divergence resolved — P1 changed, 2026-08-20" is a note about a P1 that is not in `P1-storage-identity-provenance/PLAN.md`. Do not execute P3 Task 10 against the live P1 PLAN. Either patch P1 PLAN to match P3's call, or patch P3's call to match P1 PLAN. The SPEC Contract in already says P1 *stores* what P3 hands it — the P1 PLAN is the document that is behind.
+
+**P2 SPEC mechanical defect.** Contract out §3's `bundle_manifest` block contains `source_scan_ref` twice. Do not freeze that page.
 
 ---
 
-## Edit order if you want wave 1 executable
+## What is actually good now
 
-Nothing below is a redesign.
+Do not re-open these. They were real holes yesterday and they are fixed in the live plans.
 
-| Order | Owner | Change | Unblocks |
-|---|---|---|---|
-| 1 | P1 | `record_file` / `observe_path` store the §1.2 fields P3 observed. Stop re-statting and re-hashing inside P1. Stop NFC-normalizing unless P3 SPEC closes Q1 that way. | P3 Task 10, O5, P3 Q1 |
-| 2 | P3 SPEC + 11 + P2 | Close OQ16 or explicitly say the three ids stay distinct. If they stay distinct, delete P2's "P3's scan_id" comment and P3's consume-table `scan_usage` lines. If they join, P3 publishes and P1's `scan_id` is that value. | P13 progress line, P2 `source_scan_ref`, §8.6 observability |
-| 3 | P2 Task 13 | `assert_shadow_wrote_nothing` must inspect P10/P12 tables (or a published "live writes" surface), not three columns P2 itself defaults to `[]`. | Done-means 9 as a real proof |
-| 4 | P1 or P3 SPEC | Either P1 grows "record this hash without opening bytes" or P2/P3 SPEC says metadata-safe bundles do not round-trip `files`. | P2 `metadata_safe` identity |
-| 5 | Lead | Graphify hook on the planning corpus; path-check `events.subsystem=P3` → P1 writer and `stage_output.stage_id` → P5/P6/P8/P9/P10/P11 before writing code. | Map standing rule |
-| 6 | P3 SPEC, later | Q7: do not descend `.app` / packages. Skeleton does not need it; v1 does. | First real Mac scan |
+- P2 shadow proof is no longer self-referential. Foreign-table snapshot by subtraction is the right shape.
+- P2 `source_scan_ref` *comment* no longer pretends P3 published an id. (The SPEC still does, twice.)
+- P3 consume table no longer tells an implementer to import `scan_usage`.
+- P3 authorship rule, registration-nothing, caller-supplied MIME/scan_state/budget, dataless-before-hash, FDA-as-PermissionError, watch-without-faking-FSEvents, replay-re-fires-rules, curation=`undetermined` — all still hold.
+- P2 still keeps stages and dimensions apart, never folds `not_run` into `pass`, never scores deferral as divergence, never authors `events`.
+- Neither plan invents thresholds, gazetteers, or templates.
+- 11 form-factor and Application Support location are now marked ratified. Irrelevant to execute-order except P1 `open_database(scan_roots=…)` already knew it.
 
-Then: rewritten P1 green → P2 Tasks 1–17 → P3 Tasks 1–9 and 11–18 → P3 Task 10 last.
+---
+
+## Still not perfect (and not pretending to be)
+
+These are honest known gaps. They do not block a walking skeleton. They block a first real Mac scan or a first P13 eval view.
+
+- Q7: `.app` bundles descended.
+- Legacy `.icloud` placeholders undetected.
+- Metadata-safe replay writes no `files` row (now also in P2 SPEC as ratified 2026-08-20 — that half is aligned).
+- Two `external modification detection` rows on content change.
+- 11 §7 concurrency (two scans, same root) unowned.
+- P2 `evidence_ref` NULL; four unpublished verdict-adjacent strings; A08/A11 single-valued; no P2 storage ceiling; `inputs[]` ambiguous; "files indexed" dual; `tree` dimension pass/fail on user behaviour (OQ4).
+- Graphify standing rule still has no home.
+- `create_scan_schema` still not called from `open_database`.
+
+---
+
+## Execute?
+
+**No, not the stack.**
+
+| Document | Execute? |
+|---|---|
+| P2 PLAN Tasks 1–17 | Yes, against rewritten P1, **if** you treat `source_scan_ref` as an opaque fixture string until OQ16 is implemented the SPEC's way. Do not wire it to P3's unpublished handle. |
+| P3 PLAN Tasks 1–9, 11–14, 16–18 | Yes, against rewritten P1. |
+| P3 PLAN Task 3 as written | **No.** SPEC closed OQ16; this task still implements the open reading. Rewrite to publish `scan_run_id` and pass it to P1 `start_scan`, *after* P1 PLAN grows that keyword. |
+| P3 PLAN Task 10 as written | **No**, until P1 PLAN's `record_file` / `observe_path` actually take the observed fields. As of this re-check they do not. |
+| P3 PLAN Task 15 | Exclusion/cache/curation only. Do not claim `files` round-trip from `metadata_safe`. P2 SPEC now agrees. |
+| P1 PLAN `start_scan` / `record_file` | Must be edited to match the 2026-08-20 SPEC settlements **before** P3 Tasks 3 and 10. |
+
+---
+
+## Edit order (revised)
+
+Yesterday's order 1–2–3 is now: SPECs already did 2; PLANs did 3; nobody did 1 or the P1 half of 2.
+
+| Order | Owner | Change |
+|---|---|---|
+| 1 | P1 PLAN | `record_file` / `observe_path` take the §1.2 fields as required keywords; stop NFC; stop re-statting. `start_scan(conn, *, scan_run_id)` takes P3's id; mint nothing. Match P1 SPEC OQ19 and Contract in. |
+| 2 | P3 PLAN Task 3 | Stop saying OQ16 is open. Publish `scan_run_id`. Call P1 `start_scan`. Sample the six counters. Delete the "forbids scan_usage" test or invert it. |
+| 3 | P2 SPEC | Delete the duplicate `source_scan_ref` line. Keep the closed-OQ16 reading. |
+| 4 | P2 SPEC | Publish `no_verdict_reason`, `unverdicted`, and the gate's `pass`/`fail`/`not_run` before P13. Give `stage_output` a channel for `evidence_ref`, or drop the reconstruction sentence. |
+| 5 | Lead | Place 11 §7 (two scans, same root). P3 already refused to invent it. |
+| 6 | Lead | Graphify hook. Still unpaid. |
+
+Then: P1 PLAN green against the 2026-08-20 SPECs → P2 1–17 → P3 1–18 including 3 and 10.

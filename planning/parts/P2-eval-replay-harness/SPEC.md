@@ -196,7 +196,6 @@ bundle_manifest
   source_scan_ref           P3's published `scan_run_id` (P3 OQ16, closed
                             2026-08-20). Before it closed this was an opaque handle
                             P2 stored and never joined on.                    §1.1
-  source_scan_ref           the P3 scan and exclusion set it was captured from   §1.1
   pinned_plan_version       plan id + version                                §8.5 "tree versions", §8.8
   policy_settings                                                            §8.5
     privacy_mode            one of the four §8.4 operation modes
