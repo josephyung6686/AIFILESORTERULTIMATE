@@ -1,7 +1,9 @@
 # P4 / P5 stress test — what actually breaks
 
 Date: 2026-08-21
-Status: **The packages are green in isolation and do not join.** `pytest tests/p4 tests/p5 -q` → **623 passed**. Every break below was executed against live `src/evidence_shape/` and `src/extractors/`, not inferred from PLAN prose.
+Status: **Not perfect.** Rechecked later the same night: break 1 (fingerprint) is **closed**. Breaks 2–5 and the corpus holes are **unchanged**. Live probes 2026-08-21 ~00:22.
+
+Original pass: packages green in isolation and did not join. `pytest tests/p4 tests/p5 -q` → **623 passed**. Every break was executed against live `src/evidence_shape/` and `src/extractors/`, not inferred from PLAN prose.
 Source of truth: [`00-database-agent-product-design.md`](00-database-agent-product-design.md). Ratifications 2026-08-20 still stand; several of them are **not what the code does**.
 
 This is not a re-read of [`15-p4-p5-plan-robustness.md`](15-p4-p5-plan-robustness.md) or [`18-p4-p5-prebuild.md`](18-p4-p5-prebuild.md). Those reviewed plans. This tried to break the running packages the way a messy Mac corpus would.
@@ -10,9 +12,11 @@ This is not a re-read of [`15-p4-p5-plan-robustness.md`](15-p4-p5-plan-robustnes
 
 ## Verdict
 
-P4 and P5 each do what their unit tests ask. Together they cannot store a run, cannot write extraction status for an unrouted file, and cannot survive a password-protected PDF. A “perfect database sorter” is not blocked by missing gazetteers here. It is blocked by **a fingerprint that will never match**, **a status map that raises on the normal unrouted path**, and **no `failed` catcher**.
+P4 and P5 each do what their unit tests ask. They are **not** a working join and **not** a perfect sorter.
 
-Do not start the Wave-2 orchestrator until the five confirmed breaks in the next section are closed. Coverage holes after that are product-scope, not join-blockers.
+**Recheck 2026-08-21 ~00:22.** Break 1 is closed: P5 `fingerprint` now calls P4 `sha256_of`, and `run_from_mapping` accepts a P5 run. Still open: `TierConflict` on `.dmg` / `.psd`, zero `except` in `src/extractors/`, D10 only on PDF and archives, P5 `append` still writes around P4, no `EvidenceSink.write`, no `dataless_result`, no `extract(...)` dispatcher. GIF/WebP/audio still `unsupported`.
+
+Do not start the Wave-2 orchestrator until breaks 2–5 are closed. Coverage holes after that are product-scope, not join-blockers.
 
 ---
 

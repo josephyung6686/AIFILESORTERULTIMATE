@@ -28,6 +28,16 @@ from extractors.sink import ExtractionResult
 
 VERSION = "0.1.0"
 EXTRACTOR_NAME = "filesystem.record"
+
+#: A4, ratified 2026-08-20: a routed-but-stopped run carries `analysis_tier: native`.
+#: It is NOT a second filesystem extract -- it is the native extractor that did not
+#: exist or refused to open. Reusing `filesystem.record` and the filesystem tier put
+#: two runs at one tier (`complete` from the indexer, `metadata_only` from the
+#: stopper) and `extraction_status_by_tier` raised TierConflict on the first .dmg.
+#: It also made §3.4's cache key for "no extractor" look like "the filesystem
+#: extractor ran twice".
+STOPPED_EXTRACTOR_NAME = "format.unrouted"
+STOPPED_ANALYSIS_TIER = "native"
 SOURCE_TYPE = "filesystem"
 ANALYSIS_TIER = "filesystem"
 
@@ -146,8 +156,8 @@ def unrouted_result(*, file_row: Mapping[str, Any], decision,
 
     return ExtractionResult(
         run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
-                extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
-                source_type=source_type, analysis_tier=ANALYSIS_TIER, config={},
+                extractor_name=STOPPED_EXTRACTOR_NAME, extractor_version=VERSION,
+                source_type=source_type, analysis_tier=STOPPED_ANALYSIS_TIER, config={},
                 completeness=completeness,
                 coverage=coverage("files", 0, 1),
                 observation_count=len(observations), started_at=now, finished_at=now,

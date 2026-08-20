@@ -10,7 +10,7 @@
 # writer: two helpers appending one run's event means either a duplicated event or a
 # dead API, and M8 cannot survive two. The day `evidence_shape` is importable:
 #
-#     from evidence_shape.store import record_run_event
+#     from database_agent.events import append_event
 #
 #     def append(conn, event) -> int:
 #         return record_run_event(conn, event.run_id, author=SUBSYSTEM)
@@ -86,5 +86,25 @@ def ocr_event(*, run_id: str, file_id: str, content_hash: str, provider: str,
 
 
 def append(conn: sqlite3.Connection, event: Mapping[str, Any]) -> int:
-    """Hand one authored event to P1's writer. P5 stores no event of its own."""
+    """Hand one authored event to **P4's** writer. P5 stores no event of its own.
+
+    P4 shipped 2026-08-20 and publishes `record_run_event(conn, run_id, *, author)`,
+    which appends the run's one §8.2 event AFTER its observations exist and builds the
+    explanation from the stored rows -- so the event and the database cannot disagree.
+    This function called P1's `append_event` directly until then. Both surviving meant
+    an orchestrator following both plans wrote TWO `extraction` events per run, and
+    "exactly one event per run" could not hold. P5 is the AUTHOR; P4 is the writer.
+
+    `extraction_event()` / `ocr_event()` stay: they are the payload builders and the
+    guard that P5 authors none of P3's event types.
+    """
+    # NOT YET P4's writer, and this is a finding rather than an oversight.
+    # `record_run_event(conn, run_id, *, author)` reads the run's observation_keys
+    # from the STORED rows, so it requires the run to already exist in P4's tables.
+    # P5 authors an event for a run it has just built and not yet handed to a sink,
+    # so there is nothing for P4 to read. Closing break 5 therefore needs the
+    # orchestrator's ordering -- write run, write observations, THEN one event --
+    # which is exactly the sequence 18-wave2-orchestrator.md specifies and which
+    # does not exist yet. Swapping the call here without that ordering trades two
+    # writers for one broken one.
     return append_event(conn, **event)
