@@ -459,7 +459,7 @@
           "design_cite": "§3.7 \"it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet\""
         },
         {
-          "domain": "career slice — employment and benefits",
+          "domain": "career.retirement-records",
           "signal": "an employer-sponsored scheme document is also an employment benefit record. The career slice owns the employment relationship; this entry owns the scheme record",
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type\""
         },
@@ -824,7 +824,7 @@
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         },
         {
-          "domain": "travel slice",
+          "domain": "pers.travel-record",
           "signal": "§7.3's own list puts booking records, boarding passes and event tickets in this material, and all three also read as travel records",
           "design_cite": "§7.3: \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\""
         }
@@ -934,7 +934,7 @@
           "design_cite": "§3.9 \"The documents are content-incoherent but purpose-coherent.\""
         },
         {
-          "domain": "career slice — employment records",
+          "domain": "career.employment-contract",
           "signal": "a claim is an artefact of an employment relationship. The career slice owns the relationship; this entry owns the claim",
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type\""
         },
@@ -1334,7 +1334,12 @@
           "design_cite": "§4.9 \"members carry irreconcilable course, institution, project, term, or purpose facts\""
         },
         {
-          "domain": "biz.invoice-issued and biz.invoice-received",
+          "domain": "biz.invoice-issued",
+          "signal": "every invoice on either side is also a ledger entry here",
+          "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
+        },
+        {
+          "domain": "biz.invoice-received",
           "signal": "every invoice on either side is also a ledger entry here",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         }
@@ -1440,7 +1445,7 @@
       },
       "collides_with": [
         {
-          "domain": "career slice — the employee's own payslips",
+          "domain": "career.payroll",
           "signal": "the career slice owns the employee side. A payslip is an employment record about one person; this entry is the employer's run covering everyone. They look alike, they are not the same domain, and the register carries a document-level signal the payslip does not: multiple employees",
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type\""
         },
@@ -1687,7 +1692,7 @@
           "design_cite": "§3.9 \"The documents are content-incoherent but purpose-coherent.\""
         },
         {
-          "domain": "career slice — employee equity",
+          "domain": "career.equity-compensation",
           "signal": "an employee option grant is compensation as much as it is a cap-table instrument. The career slice owns the employee's own copy; this entry owns the issuer's record",
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type\""
         },
@@ -2176,12 +2181,12 @@
       },
       "collides_with": [
         {
-          "domain": "medical safety domain (§3.15)",
+          "domain": "med.insurance-claim-eob",
           "signal": "a health claim carries clinical content. §3.15 names medical as its own safety domain; the clinical material is not this entry's to hold and must not be pulled into a finance branch",
           "design_cite": "§3.15: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\""
         },
         {
-          "domain": "travel slice",
+          "domain": "pers.travel-record",
           "signal": "travel insurance is a travel record and an insurance record at once",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         },
@@ -2308,7 +2313,7 @@
       },
       "collides_with": [
         {
-          "domain": "career slice — employment contracts",
+          "domain": "career.employment-contract",
           "signal": "an employment contract is a contract by form and an employment record by function. The career slice owns it; this entry must not absorb it, and the distinguishing signal is an employee role rather than a counterparty role",
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type\""
         },
@@ -2446,7 +2451,7 @@
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         },
         {
-          "domain": "personal slice — home and property records",
+          "domain": "pers.home-tenure",
           "signal": "utilities, insurance and maintenance for the same property gather around the address rather than the lease; the personal slice owns the property as a life area",
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type\""
         },
@@ -2706,7 +2711,7 @@
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         },
         {
-          "domain": "personal slice — identity and family records",
+          "domain": "pers.identity-document",
           "signal": "a death certificate is an identity document and an estate document at once",
           "design_cite": "§7.3: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\""
         }
@@ -2818,7 +2823,7 @@
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type\""
         },
         {
-          "domain": "medical safety domain (§3.15)",
+          "domain": "med.advance-directive",
           "signal": "a health-and-welfare authority or advance directive touches clinical decision-making; §3.15 gives medical its own safety domain and this entry does not claim that content",
           "design_cite": "§3.15: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\""
         },
@@ -3069,7 +3074,7 @@
           "design_cite": "§3.7 \"it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet\""
         },
         {
-          "domain": "career slice — training and certification records",
+          "domain": "career.continuing-education",
           "signal": "individual compliance training certificates are career records about a person, not entity-level compliance evidence. The career slice owns them",
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type\""
         },
@@ -3188,7 +3193,7 @@
       },
       "collides_with": [
         {
-          "domain": "personal slice — identity documents",
+          "domain": "pers.identity-document",
           "signal": "a driving licence is an identity document before it is a permission, and §7.3's Protected Records template names that material: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\". This entry does not claim identity documents",
           "design_cite": "§4.9: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records\""
         },
@@ -3326,7 +3331,7 @@
       },
       "collides_with": [
         {
-          "domain": "research slice",
+          "domain": "res.patent-disclosure",
           "signal": "an invention disclosure, a draft specification and the paper describing the same work are research artefacts; §3.11 gives Research its own fields and that slice owns the project-linked material",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         },
@@ -3457,22 +3462,22 @@
       },
       "collides_with": [
         {
-          "domain": "applications slice — university application packets",
+          "domain": "acad.college-application",
           "signal": "a study visa attaches to a university application and the two packets share evidence. §4.8's rule against absorbing a document with a conflicting target institution is the direct analogue: an immigration packet must not absorb a document naming a different destination or institution",
           "design_cite": "§4.8: \"an application packet does not silently absorb a document with a conflicting target institution\""
         },
         {
-          "domain": "personal slice — identity documents",
+          "domain": "pers.identity-document",
           "signal": "passports and biometric cards are identity documents that immigration paperwork depends on; §4.9 already treats them as protected records in their own right",
           "design_cite": "§4.9: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records\""
         },
         {
-          "domain": "travel slice",
+          "domain": "pers.travel-visa-entry",
           "signal": "visas and entry records read as travel history",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         },
         {
-          "domain": "career slice — employment records",
+          "domain": "career.work-authorization",
           "signal": "a sponsorship certificate is an employment artefact and an immigration artefact",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         }
@@ -3701,7 +3706,27 @@
       },
       "collides_with": [
         {
-          "domain": "every other entry in this slice",
+          "domain": "legal.lease",
+          "signal": "this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner",
+          "design_cite": "§3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder"
+        },
+        {
+          "domain": "legal.power-of-attorney",
+          "signal": "this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner",
+          "design_cite": "§3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder"
+        },
+        {
+          "domain": "legal.wills-trusts-estates",
+          "signal": "this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner",
+          "design_cite": "§3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder"
+        },
+        {
+          "domain": "corp.business-formation",
+          "signal": "this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner",
+          "design_cite": "§3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder"
+        },
+        {
+          "domain": "write.translation",
           "signal": "this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner",
           "design_cite": "§3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder"
         },
@@ -3820,7 +3845,12 @@
       },
       "collides_with": [
         {
-          "domain": "fin.credit and fin.loan-mortgage",
+          "domain": "fin.credit",
+          "signal": "the same account reference appears in both, and a collection file must not absorb the account's ordinary statement history",
+          "design_cite": "§4.8: \"an application packet does not silently absorb a document with a conflicting target institution\" — the same rule against silent absorption"
+        },
+        {
+          "domain": "fin.loan-mortgage",
           "signal": "the same account reference appears in both, and a collection file must not absorb the account's ordinary statement history",
           "design_cite": "§4.8: \"an application packet does not silently absorb a document with a conflicting target institution\" — the same rule against silent absorption"
         },
@@ -4187,12 +4217,12 @@
       },
       "collides_with": [
         {
-          "domain": "research slice",
+          "domain": "res.research-project",
           "signal": "a research grant is a Research-domain object first; §3.11 gives Research the fields project, stage, artifact type, lab and venue, and that slice owns the project-linked material. This entry claims the funding relationship, not the science",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         },
         {
-          "domain": "education slice — scholarships and financial aid",
+          "domain": "acad.scholarship-fellowship",
           "signal": "a scholarship is an award to a student and belongs with the education record as much as here",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information\""
         },
@@ -4433,7 +4463,7 @@
           "design_cite": "§3.7 \"it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet\""
         },
         {
-          "domain": "personal slice — home inventory and possessions",
+          "domain": "pers.household-inventory",
           "signal": "the item itself is a possession record; this entry claims only the promise attached to it",
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type\""
         }

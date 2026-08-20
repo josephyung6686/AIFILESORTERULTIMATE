@@ -700,8 +700,8 @@ A notebook whose cells are the record of someone working a problem out, not a pr
 
 | domain | signal | design cite |
 |---|---|---|
-| `res.analysis-notebook` | a notebook that produced a figure in a manuscript is a research artifact and the research slice has a claim on it. Cross-slice ownership, recorded not resolved | §3.11 "One file may hold facts from more than one domain without losing information." |
-| `acad.coursework` | the brief's named collision - a notebook that is also coursework. The discriminator is an academic fact at the same root, and §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" supplies the rule shape for that. | §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" |
+| `res.computational-notebook` | a notebook that produced a figure in a manuscript is a research artifact and the research slice has a claim on it. Cross-slice ownership, recorded not resolved | §3.11 "One file may hold facts from more than one domain without losing information." |
+| `acad.course-enrollment` | the brief's named collision - a notebook that is also coursework. The discriminator is an academic fact at the same root, and §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" supplies the rule shape for that. | §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" |
 | `soft.ml-experiment` | a notebook that trains a model and records a run is both; the experiment entry owns it once run and metric artifacts are present | §3.11 "One file may hold facts from more than one domain without losing information." |
 
 ---
@@ -753,7 +753,7 @@ The record of training a model - what was tried, on what data, and what came out
 | domain | signal | design cite |
 |---|---|---|
 | `soft.notebook-analysis` | training done inside a notebook sits in both; this entry owns it once run records exist | §3.11 "One file may hold facts from more than one domain without losing information." |
-| `res.experiment` | an ML experiment run for a paper is a research artifact and the research slice has a claim. Cross-slice, recorded not resolved | §3.11 "One file may hold facts from more than one domain without losing information." |
+| `res.research-project` | an ML experiment run for a paper is a research artifact and the research slice has a claim. Cross-slice, recorded not resolved | §3.11 "One file may hold facts from more than one domain without losing information." |
 
 **Open question** — Joseph's, unresolved.
 
@@ -807,7 +807,7 @@ A file whose content is rows of data the user keeps as data, rather than as a do
 | domain | signal | design cite |
 |---|---|---|
 | `soft.database-schema-migration` | a `.sql` file of rows versus a `.sql` file of structure | §3.3 "have multiple plausible domains" |
-| `fin.records` | a CSV of transactions is a finance record before it is a dataset, and finance is a SAFETY domain: §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" | §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" |
+| `fin.financial-records` | a CSV of transactions is a finance record before it is a dataset, and finance is a SAFETY domain: §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" | §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" |
 
 ---
 
@@ -961,7 +961,7 @@ A prose document written to propose a change and get agreement on it before the 
 | domain | signal | design cite |
 |---|---|---|
 | `soft.technical-specification` | a proposal argues for a change; a specification states what a thing does. Documents routinely do both and this is the weakest boundary in the document cluster | §3.3 "have multiple plausible domains" |
-| `pm.product-document` | the brief's named collision - a spec that is also a product-management document. The discriminator is whether the document sits at a repository root; a product document usually does not | §3.3 "routing obvious files into plausible domains" |
+| `ops.product-requirements` | the brief's named collision - a spec that is also a product-management document. The discriminator is whether the document sits at a repository root; a product document usually does not | §3.3 "routing obvious files into plausible domains" |
 
 **Open question** — Joseph's, unresolved.
 
@@ -1566,7 +1566,7 @@ Documents and exports collected to show an auditor that a technical control is a
 
 | domain | signal | design cite |
 |---|---|---|
-| `law.compliance` | cross-slice; the legal slice may own the whole of this. Recorded, not resolved | §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" |
+| `law.compliance-programme` | cross-slice; the legal slice may own the whole of this. Recorded, not resolved | §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" |
 | `soft.security-finding-report` | a penetration test submitted as evidence is both | §3.11 "One file may hold facts from more than one domain without losing information." |
 
 ---
@@ -1615,7 +1615,7 @@ The licence a project is released under and the record of what it depends on and
 
 | domain | signal | design cite |
 |---|---|---|
-| `law.contract` | a negotiated commercial licence is a legal document; an open-source licence file is a repository artifact. Cross-slice | §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" |
+| `legal.contracts` | a negotiated commercial licence is a legal document; an open-source licence file is a repository artifact. Cross-slice | §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" |
 
 ---
 
@@ -1815,7 +1815,7 @@ A game project, where the authored work is as much art, audio and level data as 
 | domain | signal | design cite |
 |---|---|---|
 | `soft.source-project` | a game IS a source project; it is separated only because its authored work is predominantly non-code, which changes the template | §3.11 "One file may hold facts from more than one domain without losing information." |
-| `design.creative-asset` | art assets belong to the creative slice when they exist independently of a game project. Cross-slice | §2.9 "Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty." |
+| `studio.stock-asset-library` | art assets belong to the creative slice when they exist independently of a game project. Cross-slice | §2.9 "Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty." |
 
 **Open question** — Joseph's, unresolved.
 
@@ -1919,7 +1919,7 @@ Schematics, board layouts and mechanical models - the drawings a physical thing 
 | domain | signal | design cite |
 |---|---|---|
 | `soft.embedded-firmware` | as above - one project, two file families | §3.11 "One file may hold facts from more than one domain without losing information." |
-| `design.creative-asset` | 3D files span mechanical design and creative work; §2.9 names them once and does not separate the two uses. Cross-slice | §2.9 "Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty." |
+| `cg.3d-asset` | 3D files span mechanical design and creative work; §2.9 names them once and does not separate the two uses. Cross-slice | §2.9 "Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty." |
 
 ---
 
@@ -2017,8 +2017,8 @@ The list of what hardware and software exists, who has it, and what it is licens
 
 | domain | signal | design cite |
 |---|---|---|
-| `career.employment-record` | equipment assigned to a person by an employer is an employment record too. Cross-slice | §3.11 "One file may hold facts from more than one domain without losing information." |
-| `fin.purchase-record` | an asset list and a purchase record overlap where the list carries prices; finance is a safety domain and §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" | §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" |
+| `career.onboarding-paperwork` | equipment assigned to a person by an employer is an employment record too. Cross-slice | §3.11 "One file may hold facts from more than one domain without losing information." |
+| `fin.receipts-expenses` | an asset list and a purchase record overlap where the list carries prices; finance is a safety domain and §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" | §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" |
 
 ---
 
@@ -2165,9 +2165,9 @@ Material prepared to teach a technical subject to other people.
 
 | domain | signal | design cite |
 |---|---|---|
-| `acad.coursework` | material the user TAUGHT versus material they were TAUGHT - the clearest instance of §3.8 "The system must separate roles that happen to contain the same entity type." in this slice, and the academic slice owns the receiving side. | §3.8 "The system must separate roles that happen to contain the same entity type." |
+| `acad.course-enrollment` | material the user TAUGHT versus material they were TAUGHT - the clearest instance of §3.8 "The system must separate roles that happen to contain the same entity type." in this slice, and the academic slice owns the receiving side. | §3.8 "The system must separate roles that happen to contain the same entity type." |
 | `soft.user-documentation` | a tutorial serves both; the discriminator is whether there is an exercise or assessment component | §3.3 "have multiple plausible domains" |
-| `career.professional-development` | training delivered as part of a job is a career artifact too. Cross-slice | §3.11 "One file may hold facts from more than one domain without losing information." |
+| `hr.training-lnd` | training delivered as part of a job is a career artifact too. Cross-slice | §3.11 "One file may hold facts from more than one domain without losing information." |
 
 ---
 

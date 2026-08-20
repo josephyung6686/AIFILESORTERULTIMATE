@@ -22,6 +22,31 @@ from extractors.shape import run
 from extractors.sink import ExtractionResult
 
 
+class ContractViolation(Exception):
+    """Raised about the CALL, never about the file. Always propagates.
+
+    §2.4's rule produced a catch-all: "a reader that raises becomes one `failed` run
+    rather than the end of the scan", because an unreadable file must never be
+    "silently treated as an empty document" and a crashed scan is a worse version of
+    the same lie. But a catch that turns every exception into `failed` cannot tell
+    *this PDF is encrypted* from *you called me in the wrong order*, and the second is
+    not a fact about the file.
+
+    It matters because the fix for a real ordering defect is a raise. P6's verdict
+    `no_usable_facts` is defined only after P6's deterministic pass, and the plan for
+    making that enforceable is for P6 to raise when consulted too early. Executed
+    against the live caller before this existed, that raise became
+    `pdf.text · native · failed` for every text-bearing PDF, with the ordering error
+    stored as the file's `failure_reason` and the scan continuing — so the guard
+    meant to make the defect visible was the thing that hid it.
+
+    Anything that is a statement about the caller inherits this. Anything that is a
+    statement about the bytes does not, and becomes a `failed` run as before. The two
+    §4b/§5 refusals are deliberately NOT contract violations: they are decisions about
+    a file, they predate this, and the caller handles each specifically.
+    """
+
+
 def failed_result(*, file_row: Mapping[str, Any], error: BaseException,
                   extractor_name: str, extractor_version: str,
                   source_type: str, now: str,

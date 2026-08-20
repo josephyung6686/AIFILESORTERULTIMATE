@@ -511,3 +511,58 @@ def test_a_real_verdict_is_still_accepted(db, corpus):
     assert asked, "the verdict was never consulted, so the seam is not wired at all"
     for file_id, content_hash in asked:
         assert file_id and len(content_hash) == 64
+
+
+# ------------------------- a caller's error is not the file's failure
+#
+# Found by review round 2, which proved it by running it. `_extract_one` catches
+# `Exception` so that "a reader that raises becomes one `failed` run rather than the
+# end of the scan" (§2.4). But that catch cannot tell "this PDF is encrypted" from
+# "you called me in the wrong order" — and P6's plan proposes exactly the second, a
+# verdict that raises when consulted before its deterministic pass has run.
+#
+# Executed against the live harness before the fix: every text-bearing PDF became
+# `pdf.text · native · failed`, with the ordering error recorded as the file's
+# `failure_reason`, and the scan continued. The corpus would have been quietly
+# mis-recorded and the guard that was supposed to make the ordering visible would
+# have been the thing that hid it.
+
+def test_a_contract_violation_propagates_rather_than_becoming_a_failed_run(db, corpus):
+    from extractors.failure import ContractViolation
+
+    class FactPassNotRun(ContractViolation):
+        """What P6 raises if its verdict is consulted before its pass has run."""
+
+    def too_early(file_id, content_hash):
+        raise FactPassNotRun("P6 has not run for this content hash")
+
+    with pytest.raises(FactPassNotRun):
+        go(db, corpus, no_usable_facts=too_early)
+
+    # And nothing was recorded as the file's fault.
+    failed = db.execute(
+        "SELECT count(*) c FROM extraction_runs WHERE completeness = 'failed'"
+    ).fetchone()["c"]
+    assert failed == 0
+
+
+def test_a_reader_failure_is_still_the_files_failure(db, corpus):
+    """The property the catch exists for, unchanged: §2.4 forbids treating an
+    unreadable file as an empty document, and a crashed scan is worse."""
+    def locked(path):
+        raise ValueError("file has not been decrypted")
+
+    go(db, corpus, readers={"read_pdf": locked})
+    rows = db.execute(
+        "SELECT failure_reason FROM extraction_runs WHERE completeness = 'failed'"
+    ).fetchall()
+    assert len(rows) == 1
+    assert rows[0]["failure_reason"] == "ValueError: file has not been decrypted"
+
+
+def test_the_two_refusals_still_propagate_and_are_not_contract_violations():
+    """11 §4b and §5 predate this and keep their own handling in the caller."""
+    from extractors.failure import ContractViolation
+    from extractors.safety import DatalessRefused, ProtectedContainerRefused
+    for refusal in (DatalessRefused, ProtectedContainerRefused):
+        assert not issubclass(refusal, ContractViolation), refusal.__name__

@@ -125,12 +125,12 @@
           "design_cite": "§3.5: ''BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”''"
         },
         {
-          "domain": "code.project",
+          "domain": "soft.source-project",
           "signal": "both carry `project` as a literal field name; §3.11 gives Code its own row, so the same value can legitimately activate both schemas at once",
           "design_cite": "§3.11: “Code files may use project, repository, programming language, and artifact type.”"
         },
         {
-          "domain": "app.application-packet",
+          "domain": "acad.college-application",
           "signal": "a research artifact can be a supporting document in an application packet without leaving Research",
           "design_cite": "§4.9: “a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet”"
         }
@@ -264,7 +264,7 @@
           "design_cite": "§3.5: ''BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”''"
         },
         {
-          "domain": "app.application-packet",
+          "domain": "acad.college-application",
           "signal": "a manuscript packet must not absorb a draft belonging to a different study, for the same reason an application packet must not absorb a conflicting institution",
           "design_cite": "§4.8: “an application packet does not silently absorb a document with a conflicting target institution”"
         }
@@ -379,7 +379,7 @@
           "design_cite": null
         },
         {
-          "domain": "app.application-packet",
+          "domain": "acad.college-application",
           "signal": "both are purpose-defined packets assembled for an external body; only the application carries a target institution and a cycle",
           "design_cite": "§4.8: “an application packet does not silently absorb a document with a conflicting target institution”"
         }
@@ -957,7 +957,7 @@
           "design_cite": null
         },
         {
-          "domain": "photos.event",
+          "domain": "pers.photo-event",
           "signal": "§3.11's Photos row claims images generically; a microscopy panel carries capture metadata and would otherwise route there",
           "design_cite": "§3.11: “Photos may use capture year, event, location, people, camera information, and media type.”"
         }
@@ -1332,7 +1332,7 @@
           "design_cite": null
         },
         {
-          "domain": "code.project",
+          "domain": "soft.source-project",
           "signal": "§3.11 gives Code its own row, so the same repository legitimately activates both schemas at once",
           "design_cite": "§3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.”"
         }
@@ -1951,7 +1951,7 @@
           "design_cite": "§2.9: “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.”"
         },
         {
-          "domain": "photos.event",
+          "domain": "pers.photo-event",
           "signal": "§3.11's Photos row claims images with capture metadata generically, and microscopy output would route there on capture date alone",
           "design_cite": "§3.11: “Photos may use capture year, event, location, people, camera information, and media type.”"
         },
@@ -2203,7 +2203,7 @@
       },
       "collides_with": [
         {
-          "domain": "app.application-packet",
+          "domain": "acad.grad-school-application",
           "signal": "a grant proposal and a graduate-admissions packet are both purpose-defined application packets; only the grant carries a funder and an opportunity number, and neither packet may absorb the other's documents",
           "design_cite": "§4.8: “an application packet does not silently absorb a document with a conflicting target institution”"
         },
@@ -2213,7 +2213,7 @@
           "design_cite": null
         },
         {
-          "domain": "fin.records",
+          "domain": "fin.financial-records",
           "signal": "§3.11 gives Finance its own row and a budget is honestly financial; the narrative is not",
           "design_cite": "§3.11: “Finance files may use institution, account type, tax year, and record type.”"
         },
@@ -2331,7 +2331,7 @@
           "design_cite": "§4.8: “an application packet does not silently absorb a document with a conflicting target institution”"
         },
         {
-          "domain": "fin.records",
+          "domain": "fin.financial-records",
           "signal": "financial reports are financial records with a research purpose",
           "design_cite": "§3.11: “Finance files may use institution, account type, tax year, and record type.”"
         },
@@ -2468,7 +2468,7 @@
           "design_cite": null
         },
         {
-          "domain": "legal.records",
+          "domain": "corp.compliance-audit",
           "signal": "§3.15 makes legal material a safety domain; an approval letter is a compliance record",
           "design_cite": "§3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.”"
         }
@@ -2584,7 +2584,7 @@
           "design_cite": "§3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.”"
         },
         {
-          "domain": "identity.records",
+          "domain": "pers.identity-document",
           "signal": "§3.15 makes identity a safety domain; an executed form carries a real person's name and signature",
           "design_cite": "§3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.”"
         },
@@ -2716,7 +2716,7 @@
           "design_cite": null
         },
         {
-          "domain": "medical.records",
+          "domain": "med.personal-health-record",
           "signal": "§3.15 makes medical material a safety domain",
           "design_cite": "§3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.”"
         },
@@ -2838,7 +2838,7 @@
       },
       "collides_with": [
         {
-          "domain": "legal.records",
+          "domain": "legal.contracts",
           "signal": "§3.15 makes legal material a safety domain and an executed contract is legal material",
           "design_cite": "§3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.”"
         },
@@ -2980,7 +2980,7 @@
           "design_cite": "§4.8: “an application packet does not silently absorb a document with a conflicting target institution”"
         },
         {
-          "domain": "app.application-packet",
+          "domain": "acad.college-application",
           "signal": "the design's own multi-membership case is exactly this artifact",
           "design_cite": "§4.9: “a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet”"
         }
@@ -3691,7 +3691,7 @@
           "design_cite": "§3.11: “Academic files may use school, term, course, instructor, and work type.”"
         },
         {
-          "domain": "career.recruiting",
+          "domain": "career.reference-and-recommendation",
           "signal": "recommendation letters written for a student are recruiting documents",
           "design_cite": "§3.3: “The LLM may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain”"
         },
@@ -3816,7 +3816,7 @@
       },
       "collides_with": [
         {
-          "domain": "legal.records",
+          "domain": "legal.ip-registration",
           "signal": "§3.15 makes legal material a safety domain",
           "design_cite": "§3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.”"
         },
@@ -3958,7 +3958,7 @@
           "design_cite": null
         },
         {
-          "domain": "code.project",
+          "domain": "soft.source-project",
           "signal": "§3.11 gives Code its own row and the same repository activates both",
           "design_cite": "§3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.”"
         },
@@ -4464,7 +4464,7 @@
           "design_cite": "§3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.”"
         },
         {
-          "domain": "fin.records",
+          "domain": "fin.financial-records",
           "signal": "§3.11 gives Finance its own row and an invoice is a financial record",
           "design_cite": "§3.11: “Finance files may use institution, account type, tax year, and record type.”"
         },
@@ -4588,7 +4588,7 @@
       },
       "collides_with": [
         {
-          "domain": "photos.event",
+          "domain": "pers.photo-event",
           "signal": "§3.11's Photos row claims images by capture year, event and location; field photographs satisfy all three and would route there",
           "design_cite": "§3.11: “Photos may use capture year, event, location, people, camera information, and media type.”"
         },
@@ -4603,7 +4603,7 @@
           "design_cite": null
         },
         {
-          "domain": "travel.records",
+          "domain": "pers.travel-record",
           "signal": "§3.3 names 'travel record' as a separate LLM determination, and a field trip generates both",
           "design_cite": "§3.3: “The LLM may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain”"
         },

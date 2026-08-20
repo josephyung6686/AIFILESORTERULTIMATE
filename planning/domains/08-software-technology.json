@@ -1230,12 +1230,12 @@
       },
       "collides_with": [
         {
-          "domain": "res.analysis-notebook",
+          "domain": "res.computational-notebook",
           "signal": "a notebook that produced a figure in a manuscript is a research artifact and the research slice has a claim on it. Cross-slice ownership, recorded not resolved",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information.\""
         },
         {
-          "domain": "acad.coursework",
+          "domain": "acad.course-enrollment",
           "signal": "the brief's named collision - a notebook that is also coursework. The discriminator is an academic fact at the same root, and §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" supplies the rule shape for that.",
           "design_cite": "§3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\""
         },
@@ -1353,7 +1353,7 @@
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information.\""
         },
         {
-          "domain": "res.experiment",
+          "domain": "res.research-project",
           "signal": "an ML experiment run for a paper is a research artifact and the research slice has a claim. Cross-slice, recorded not resolved",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information.\""
         }
@@ -1455,7 +1455,7 @@
           "design_cite": "§3.3 \"have multiple plausible domains\""
         },
         {
-          "domain": "fin.records",
+          "domain": "fin.financial-records",
           "signal": "a CSV of transactions is a finance record before it is a dataset, and finance is a SAFETY domain: §3.15 \"Finance, identity, medical, and legal material should be implemented first as safety domains\"",
           "design_cite": "§3.15 \"Finance, identity, medical, and legal material should be implemented first as safety domains\""
         }
@@ -1762,7 +1762,7 @@
           "design_cite": "§3.3 \"have multiple plausible domains\""
         },
         {
-          "domain": "pm.product-document",
+          "domain": "ops.product-requirements",
           "signal": "the brief's named collision - a spec that is also a product-management document. The discriminator is whether the document sits at a repository root; a product document usually does not",
           "design_cite": "§3.3 \"routing obvious files into plausible domains\""
         }
@@ -2902,7 +2902,7 @@
       },
       "collides_with": [
         {
-          "domain": "law.compliance",
+          "domain": "law.compliance-programme",
           "signal": "cross-slice; the legal slice may own the whole of this. Recorded, not resolved",
           "design_cite": "§3.15 \"Finance, identity, medical, and legal material should be implemented first as safety domains\""
         },
@@ -2995,7 +2995,7 @@
       },
       "collides_with": [
         {
-          "domain": "law.contract",
+          "domain": "legal.contracts",
           "signal": "a negotiated commercial licence is a legal document; an open-source licence file is a repository artifact. Cross-slice",
           "design_cite": "§3.15 \"Finance, identity, medical, and legal material should be implemented first as safety domains\""
         }
@@ -3361,7 +3361,7 @@
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information.\""
         },
         {
-          "domain": "design.creative-asset",
+          "domain": "studio.stock-asset-library",
           "signal": "art assets belong to the creative slice when they exist independently of a game project. Cross-slice",
           "design_cite": "§2.9 \"Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.\""
         }
@@ -3564,7 +3564,7 @@
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information.\""
         },
         {
-          "domain": "design.creative-asset",
+          "domain": "cg.3d-asset",
           "signal": "3D files span mechanical design and creative work; §2.9 names them once and does not separate the two uses. Cross-slice",
           "design_cite": "§2.9 \"Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.\""
         }
@@ -3751,12 +3751,12 @@
       },
       "collides_with": [
         {
-          "domain": "career.employment-record",
+          "domain": "career.onboarding-paperwork",
           "signal": "equipment assigned to a person by an employer is an employment record too. Cross-slice",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information.\""
         },
         {
-          "domain": "fin.purchase-record",
+          "domain": "fin.receipts-expenses",
           "signal": "an asset list and a purchase record overlap where the list carries prices; finance is a safety domain and §3.15 \"Finance, identity, medical, and legal material should be implemented first as safety domains\"",
           "design_cite": "§3.15 \"Finance, identity, medical, and legal material should be implemented first as safety domains\""
         }
@@ -4037,7 +4037,7 @@
       },
       "collides_with": [
         {
-          "domain": "acad.coursework",
+          "domain": "acad.course-enrollment",
           "signal": "material the user TAUGHT versus material they were TAUGHT - the clearest instance of §3.8 \"The system must separate roles that happen to contain the same entity type.\" in this slice, and the academic slice owns the receiving side.",
           "design_cite": "§3.8 \"The system must separate roles that happen to contain the same entity type.\""
         },
@@ -4047,7 +4047,7 @@
           "design_cite": "§3.3 \"have multiple plausible domains\""
         },
         {
-          "domain": "career.professional-development",
+          "domain": "hr.training-lnd",
           "signal": "training delivered as part of a job is a career artifact too. Cross-slice",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information.\""
         }

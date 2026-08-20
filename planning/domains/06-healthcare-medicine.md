@@ -150,7 +150,7 @@ A person's own consolidated medical record as they hold it: patient-portal expor
 |---|---|---|
 | `med.clinician-patient-chart` | identical vocabulary; the discriminator is holder role, not content. A patient's own portal export names one subject; a clinician's chart set names many, and carries practice-management or EHR-authoring provenance rather than portal-export provenance. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `med.lab-result` | a portal export bundles lab results inside itself; the bundle is the record, the individual result is the lab-result domain. Extracting both is correct — one file may hold facts from more than one domain. | — |
-| `identity.personal-documents` | both carry a labeled person identity; only the health record carries a facility and a clinical document type. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `pers.identity-document` | both carry a labeled person identity; only the health record carries a facility and a clinical document type. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Sensitivity:** `potentially_sensitive` — A person's own medical record — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -211,8 +211,8 @@ Results of a laboratory or point-of-care test performed on a person's specimen, 
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `acad.lab-report` | a chemistry or biology lab report carries analytes and units and the word 'lab'; it carries no reference range, no specimen collection date, and no performing laboratory. Where an academic anchor co-occurs the file has two plausible domains and belongs to the model, not to either rule. | §3.3: the LLM handles files that 'have multiple plausible domains' |
-| `research.assay-data` | research assay output carries analytes, units and often reference values, but names a protocol and a study rather than an ordering provider and a subject person. | — |
+| `acad.lab-course` | a chemistry or biology lab report carries analytes and units and the word 'lab'; it carries no reference range, no specimen collection date, and no performing laboratory. Where an academic anchor co-occurs the file has two plausible domains and belongs to the model, not to either rule. | §3.3: the LLM handles files that 'have multiple plausible domains' |
+| `res.dataset` | research assay output carries analytes, units and often reference values, but names a protocol and a study rather than an ordering provider and a subject person. | — |
 | `med.genetic-testing-report` | a genetic report is a laboratory report; it is separated because its schema legitimises gene and variant-interpretation fields that an ordinary panel must not be allowed to claim. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 | `med.occupational-health-screening` | an employment drug screen or pre-placement physical is a lab result whose recipient is an employer; the employer role belongs to the career slice and must not be written as `ordering provider`. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
@@ -275,7 +275,7 @@ Diagnostic imaging performed on a person: the image data and the radiologist's r
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `research.imaging-dataset` | identical file format and often identical modality tags; the discriminator is a populated clinical patient identity and a named referring clinician versus a study protocol and a subject code. | — |
+| `res.dataset` | identical file format and often identical modality tags; the discriminator is a populated clinical patient identity and a named referring clinician versus a study protocol and a subject code. | — |
 | `med.veterinary-practice` | veterinary imaging is also DICOM and also carries a patient-identity tag; the species descriptor and the owner-and-animal pairing are the discriminator. | — |
 | `med.dental-record` | dental radiographs are imaging studies; they are left in the dental domain because their schema legitimises tooth-level fields that a general imaging study must not claim. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 
@@ -336,7 +336,7 @@ What a person has been prescribed or dispensed, and the list they maintain of it
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.pharmacy-operations` | a dispensing record exists on both sides; the person's copy names one subject, the pharmacy's ledger names many and carries a registrant identity. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `finance.receipts` | a pharmacy receipt is simultaneously a purchase record. Only the sig-and-refills structure makes it a prescription fact; without it, it is a receipt. | — |
+| `fin.receipts-expenses` | a pharmacy receipt is simultaneously a purchase record. Only the sig-and-refills structure makes it a prescription fact; without it, it is a receipt. | — |
 | `med.insurance-claim-eob` | a pharmacy benefit statement names the same medication and the same fill date but carries a claim identifier and a payer, which belong to the claim schema. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 
 **Sensitivity:** `potentially_sensitive` — What a named person takes, which discloses their conditions — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -391,8 +391,8 @@ A person's record of vaccines administered, and the certificates issued from it.
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `edu.enrolment-packet` | a school immunisation form is required by an institution and is often filed with enrolment paperwork; it carries both an educational purpose and a clinical administration record. | §3.9: 'The documents are content-incoherent but purpose-coherent.' |
-| `travel.trip-documents` | travel vaccination records are assembled for a trip and are purpose-coherent with it rather than with the rest of the medical corpus. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `acad.k12-schooling` | a school immunisation form is required by an institution and is often filed with enrolment paperwork; it carries both an educational purpose and a clinical administration record. | §3.9: 'The documents are content-incoherent but purpose-coherent.' |
+| `pers.travel-record` | travel vaccination records are assembled for a trip and are purpose-coherent with it rather than with the rest of the medical corpus. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
 | `med.occupational-health-screening` | employer-required immunity evidence is the same artifact addressed to an employer. | — |
 
 **Sensitivity:** `potentially_sensitive` — A named person's immunisation history — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -511,7 +511,7 @@ An episode of inpatient, emergency or urgent care as the person holds it, from a
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.provider-billing-dispute` | the same episode produces a clinical record and a bill; §4.8's rule that a packet must not silently absorb a conflicting document applies to keeping the financial and clinical halves distinguishable. | §4.8: 'an application packet does not silently absorb a document with a conflicting target institution' |
-| `edu.admissions-application` | 'admission' is the shared token and means something entirely different on each side; only the paired admission/discharge date labels and a facility make it a clinical episode. | — |
+| `acad.college-application` | 'admission' is the shared token and means something entirely different on each side; only the paired admission/discharge date labels and a facility make it a clinical episode. | — |
 | `med.surgical-procedure-record` | a surgical admission produces both; the operative report belongs to the surgical schema because it legitimises procedure-level fields this one must not claim. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 
 **Sensitivity:** `potentially_sensitive` — A named person's hospitalisation — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -572,7 +572,7 @@ A specific operation or invasive procedure: consent, operative report, implant d
 |---|---|---|
 | `med.device-and-implant-record` | an implant card is held by the person and logged by the practice; the person's card is filed with the procedure that placed it, the practice's log is an asset record. | — |
 | `med.hospital-admission-discharge` | a surgical admission generates both records; the operative report's diagnosis pair is the discriminator. | — |
-| `legal.personal-injury-matter` | an operative report is routinely a legal exhibit; the same file then carries both a clinical and a litigation purpose. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `legal.litigation-dispute` | an operative report is routinely a legal exhibit; the same file then carries both a clinical and a litigation purpose. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
 
 **Sensitivity:** `potentially_sensitive` — An operation performed on a named person — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -628,7 +628,7 @@ A course of physical, occupational, or speech therapy: the plan of care, the pre
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.wearable-health-export` | an activity or workout log looks like a therapy adherence log; only the therapist, diagnosis and authorisation period make it clinical. | — |
-| `personal.fitness-training` | a coached training plan and a therapy home programme share their entire structure; the credentialed therapist and the referring diagnosis are the only reliable discriminators. | — |
+| `pers.fitness-activity` | a coached training plan and a therapy home programme share their entire structure; the credentialed therapist and the referring diagnosis are the only reliable discriminators. | — |
 | `med.insurance-claim-eob` | therapy authorisation and visit limits are payer artifacts that sit inside the clinical file. | — |
 
 **Sensitivity:** `potentially_sensitive` — A named person's injury, function, and course of treatment — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -683,8 +683,8 @@ A person's own therapy, counselling, or psychiatric records and the administrati
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `personal.journal-and-notes` | a private journal may be therapeutic material or may be an ordinary diary; nothing in the file distinguishes them, and reading further to decide is itself a privacy decision. | — |
-| `research.psychology-data` | instrument names and score sheets appear identically in coursework and research datasets. | — |
+| `pers.journal` | a private journal may be therapeutic material or may be an ordinary diary; nothing in the file distinguishes them, and reading further to decide is itself a privacy decision. | — |
+| `res.survey-instrument` | instrument names and score sheets appear identically in coursework and research datasets. | — |
 | `med.medical-certification-letter` | a clinician's letter supporting leave or accommodation is often the only mental-health artifact in a corpus and reaches an employer or a school. | — |
 
 **Sensitivity:** `potentially_sensitive` — A named person's mental-health care — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -746,7 +746,7 @@ A person's dental care: charting, treatment plans, radiographs, and dental claim
 |---|---|---|
 | `med.imaging-radiology` | dental radiographs are imaging studies but carry tooth-level fields the general imaging schema does not legitimise. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 | `med.insurance-claim-eob` | dental benefits are usually a separate plan with a separate payer, and the claim is filed on a dental-specific form. | — |
-| `finance.instalment-agreement` | an orthodontic contract is a credit agreement whose subject happens to be dental treatment. | — |
+| `fin.loan-mortgage` | an orthodontic contract is a credit agreement whose subject happens to be dental treatment. | — |
 
 **Sensitivity:** `potentially_sensitive` — A named person's dental treatment — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -801,7 +801,7 @@ Eye examinations, spectacle and contact-lens prescriptions, and ophthalmic treat
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.imaging-radiology` | retinal and field imaging are imaging studies reported inside eye-care records. | — |
-| `finance.receipts` | the optical purchase and the clinical prescription usually arrive in the same envelope. | — |
+| `fin.receipts-expenses` | the optical purchase and the clinical prescription usually arrive in the same envelope. | — |
 
 **Sensitivity:** `potentially_sensitive` — A named person's eye examination and correction — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -855,8 +855,8 @@ Documented allergies, intolerances, and the testing and emergency planning aroun
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.personal-health-record` | an allergy list is most often a section inside a larger record rather than a standalone file, and the domain exists chiefly so `allergen` and `reaction` are legal fields somewhere. | — |
-| `edu.school-forms` | a child's allergy action plan is filed with school paperwork and is required by the school. | — |
-| `personal.dietary-and-recipes` | the same substance names appear with no clinical meaning at all. | — |
+| `acad.k12-schooling` | a child's allergy action plan is filed with school paperwork and is required by the school. | — |
+| `pers.recipe-meal` | the same substance names appear with no clinical meaning at all. | — |
 
 **Sensitivity:** `potentially_sensitive` — A named person's allergies — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -911,7 +911,7 @@ The ongoing self-management of a diagnosed long-term condition: care plans, moni
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.wearable-health-export` | a device export and a clinician-directed monitoring log are the same table; only a clinician-supplied target band or an issuing care plan separates them. | — |
-| `personal.habit-tracking` | weight, sleep and activity logs are kept by people with no clinical involvement whatsoever. | — |
+| `pers.fitness-activity` | weight, sleep and activity logs are kept by people with no clinical involvement whatsoever. | — |
 | `med.lab-result` | monitoring measures are often lab values; the log is the person's, the result is the laboratory's. | — |
 
 **Sensitivity:** `potentially_sensitive` — An ongoing condition and the readings taken for it — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -972,7 +972,7 @@ Antenatal, birth, and postnatal care records for one pregnancy.
 |---|---|---|
 | `med.paediatric-child-health` | birth records straddle both subjects — one file is simultaneously the parent's maternity record and the child's earliest health record, with two different subject persons. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `med.imaging-radiology` | obstetric scans are imaging studies reported inside maternity care. | — |
-| `personal.photos` | scan images are kept as photographs as often as they are kept as records. | — |
+| `pers.photo-occasion` | scan images are kept as photographs as often as they are kept as records. | — |
 
 **Sensitivity:** `potentially_sensitive` — Pregnancy and birth records for a named person — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -1030,7 +1030,7 @@ Health records whose subject is a dependent child and whose holder is the parent
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `edu.school-forms` | a school health form is required by a school and filed with enrolment paperwork; it is simultaneously an educational and a clinical artifact. | §3.9: 'The documents are content-incoherent but purpose-coherent.' |
+| `acad.k12-schooling` | a school health form is required by a school and filed with enrolment paperwork; it is simultaneously an educational and a clinical artifact. | §3.9: 'The documents are content-incoherent but purpose-coherent.' |
 | `med.immunisation-record` | school immunisation requirements are the most common reason a child's immunisation record exists as a file at all. | — |
 | `med.caregiving-dependant` | both are records about someone other than the holder; the schemas are kept apart because a child's record legitimises guardian and school-requirement fields an adult dependant's does not. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 
@@ -1086,7 +1086,7 @@ Records held by a carer about another adult's health and care: care coordination
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.advance-directive` | a health power of attorney is both the authority a carer acts under and the cared-for person's own directive. | — |
-| `legal.estate-and-authority` | powers of attorney, guardianship and deputyship are legal instruments whose subject matter is health. | — |
+| `legal.power-of-attorney` | powers of attorney, guardianship and deputyship are legal instruments whose subject matter is health. | — |
 | `med.personal-health-record` | the carer's own records and the cared-for person's records sit in the same corpus and are separated only by `subject person`. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Sensitivity:** `potentially_sensitive` — Another person's health and care arrangements — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -1146,9 +1146,9 @@ Instruments stating a person's wishes for care and who may decide for them.
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `legal.estate-planning` | a living will and a last will are executed together, look alike, and are filed together; only the health-specific instrument name separates them. | — |
+| `legal.wills-trusts-estates` | a living will and a last will are executed together, look alike, and are filed together; only the health-specific instrument name separates them. | — |
 | `med.caregiving-dependant` | the same instrument is the principal's directive and the agent's authority. | — |
-| `identity.vital-documents` | both are rare, high-consequence documents; §4.9 already says such files may be surfaced as protected records even outside normal grouping. | §4.9: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' |
+| `pers.identity-document` | both are rare, high-consequence documents; §4.9 already says such files may be surfaced as protected records even outside normal grouping. | §4.9: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' |
 
 **Sensitivity:** `potentially_sensitive` — A person's instructions for their own care and who may decide for them — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -1204,9 +1204,9 @@ Clinical genetic results and consumer genomics exports about a person, and the f
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `research.sequencing-data` | the file formats are the same and the vocabulary is the same; a reporting laboratory and a clinical interpretation column are the only reliable clinical markers. | — |
+| `res.dataset` | the file formats are the same and the vocabulary is the same; a reporting laboratory and a clinical interpretation column are the only reliable clinical markers. | — |
 | `med.lab-result` | a genetic report is a laboratory report; it is separated so that gene and interpretation fields are legal only where they belong. | §4.8: 'each fact or label belongs to an allowed domain schema' |
-| `personal.genealogy` | consumer genomics exports are kept for ancestry as often as for health, and the same file serves both purposes. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `pers.genealogy` | consumer genomics exports are kept for ancestry as often as for health, and the same file serves both purposes. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
 
 **Sensitivity:** `potentially_sensitive` — Genetic results, which concern the person and their relatives — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -1263,9 +1263,9 @@ A person's own record of taking part in a study: consent, visit schedules, subje
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `research.study-conduct` | the same study produces investigator-side files; the discriminator is whether the holder is the subject or the researcher, and a signed participant consent is the clearest marker. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `res.clinical-trial` | the same study produces investigator-side files; the discriminator is whether the holder is the subject or the researcher, and a signed participant consent is the clearest marker. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `med.clinician-clinical-note` | study visits generate clinical records inside the trial rather than inside ordinary care. | — |
-| `finance.reimbursements` | participation stipends arrive as ordinary payment records. | — |
+| `biz.expense-report` | participation stipends arrive as ordinary payment records. | — |
 
 **Sensitivity:** `potentially_sensitive` — Participation in a study, which discloses a condition or an eligibility — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -1319,7 +1319,7 @@ A trip taken to receive treatment: the clinical arrangements and the travel arra
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `travel.trip` | the travel half of the packet belongs equally to the travel domain, and the user may reasonably want it filed there instead. | §5.6: 'The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.' |
+| `pers.travel-record` | the travel half of the packet belongs equally to the travel domain, and the user may reasonably want it filed there instead. | §5.6: 'The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.' |
 | `med.surgical-procedure-record` | the clinical half is an ordinary surgical record that happens to have been performed away from home. | — |
 | `med.insurance-claim-eob` | care abroad generates authorisation and reimbursement claims of its own. | — |
 
@@ -1376,8 +1376,8 @@ Bulk exports from a consumer health platform, fitness tracker, or home monitorin
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.chronic-condition-management` | a clinician-directed monitoring log and a consumer export are the same table; only a clinician-supplied target band or an issuing care plan separates them. | — |
-| `personal.habit-tracking` | the majority of these exports have no clinical involvement at all and belong to personal material, not to a medical branch. | — |
-| `code.data-exports` | large structured exports are also ordinary data files, and their format alone says nothing about their subject. | §2.9: 'treat the file extension as a routing signal rather than an assumption about meaning' |
+| `pers.fitness-activity` | the majority of these exports have no clinical involvement at all and belong to personal material, not to a medical branch. | — |
+| `soft.dataset-artifact` | large structured exports are also ordinary data files, and their format alone says nothing about their subject. | §2.9: 'treat the file extension as a routing signal rather than an assumption about meaning' |
 
 **Sensitivity:** `potentially_sensitive` — Continuous measurements of a person's body and movements — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -1432,8 +1432,8 @@ A clinician's letter written for a third party: fitness for work or study, absen
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `edu.accommodation-and-support` | a disability accommodation letter is filed by the student with their education records and by the clinician as a letter sent; the same file has two homes and two purposes. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
-| `career.leave-and-benefits` | employer leave certification lives in the employment file as much as in the medical one. | — |
+| `acad.accommodations` | a disability accommodation letter is filed by the student with their education records and by the clinician as a letter sent; the same file has two homes and two purposes. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `career.sabbatical-and-leave` | employer leave certification lives in the employment file as much as in the medical one. | — |
 | `med.clinician-referral-sent` | on the clinician's side this is an outgoing letter in a correspondence log, not a record about them. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Sensitivity:** `potentially_sensitive` — A letter that states a named person's capacity or condition to a third party — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -1489,7 +1489,7 @@ Health assessment carried out because of a job: pre-placement examinations, expo
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `career.employment-file` | the employer holds a copy and files it with employment records; the same document is a career artifact and a medical one. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `hr.health-safety` | the employer holds a copy and files it with employment records; the same document is a career artifact and a medical one. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
 | `med.lab-result` | a workplace drug screen or bloodwork is a laboratory report whose recipient is an employer; `employer` must not be written into the lab schema as `ordering provider`. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 | `med.medical-certification-letter` | a fitness determination is often issued as a letter, and the two domains overlap almost entirely for that work type. | — |
 
@@ -1550,8 +1550,8 @@ What a person is covered for: the plan, its benefits schedule, its formulary, an
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `finance.insurance-policies` | motor, home, life and health policies are structurally identical documents from structurally identical senders; the member-and-dependant structure and the covered-service schedule are the health markers. | — |
-| `career.benefits-enrolment` | employer-sponsored coverage arrives inside HR onboarding material and is filed there as often as here. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `fin.insurance` | motor, home, life and health policies are structurally identical documents from structurally identical senders; the member-and-dependant structure and the covered-service schedule are the health markers. | — |
+| `career.benefits-enrollment` | employer-sponsored coverage arrives inside HR onboarding material and is filed there as often as here. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
 | `med.insurance-claim-eob` | the plan document says what is covered; the claim says what happened. Sharing a payer and a member identifier does not make them one domain. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 
 **Sensitivity:** `potentially_sensitive` — Membership identifiers and the dependants named on a plan — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -1611,7 +1611,7 @@ What was claimed from a payer for a service and what the payer decided about it.
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.provider-billing-dispute` | the two arrive together, name the same service date and the same provider, and are constantly confused by people; the payer-versus-provider sender and the claim-number-versus-account-number identifier are the discriminators. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `finance.insurance-claims` | non-health claims share every structural feature; the member-and-patient pairing and the service-date label are what make a claim medical. | — |
+| `fin.insurance` | non-health claims share every structural feature; the member-and-patient pairing and the service-date label are what make a claim medical. | — |
 | `med.clinician-malpractice-incident` | a liability claim and a benefits claim share the word and nothing else. | — |
 
 **Sensitivity:** `potentially_sensitive` — What service a named person received and from whom — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -1668,7 +1668,7 @@ What a clinician or facility charged a person, and the correspondence when that 
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `finance.bills-and-statements` | a medical bill is a bill; whether it lives in a finance branch or a medical branch is a genuine user choice and both are defensible. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `fin.financial-records` | a medical bill is a bill; whether it lives in a finance branch or a medical branch is a genuine user choice and both are defensible. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
 | `med.insurance-claim-eob` | the pair is the most confused in the whole slice; the sender role and the identifier type separate them. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `med.hospital-admission-discharge` | the same episode produces the clinical record and the bill, and they share dates and a facility. | — |
 
@@ -1728,7 +1728,7 @@ The longitudinal record a practice keeps about a patient, as a working file in t
 |---|---|---|
 | `med.personal-health-record` | the same content held by the other party. Holder role, corpus cardinality and export provenance are the discriminators; content is not. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `med.clinician-clinical-note` | a chart contains notes; the chart is the container and the note is the encounter, and they legitimise different fields. | §4.8: 'each fact or label belongs to an allowed domain schema' |
-| `research.study-data` | de-identified chart extracts are research data, and the same export is both. | — |
+| `res.dataset` | de-identified chart extracts are research data, and the same export is both. | — |
 
 **Sensitivity:** `potentially_sensitive` — Another person's complete medical record held by a professional — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -1788,7 +1788,7 @@ The record of one encounter, written by the clinician who conducted it.
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `edu.coursework` | a student's care-plan or SOAP-note assignment is textually indistinguishable from a real note. Where an academic anchor co-occurs the file has two plausible domains and the design routes it to the model rather than to either rule. | §3.3: the LLM handles files that 'have multiple plausible domains' |
+| `acad.course-enrollment` | a student's care-plan or SOAP-note assignment is textually indistinguishable from a real note. Where an academic anchor co-occurs the file has two plausible domains and the design routes it to the model rather than to either rule. | §3.3: the LLM handles files that 'have multiple plausible domains' |
 | `med.clinician-patient-chart` | the note lives inside the chart; the chart legitimises record-level fields the note does not claim. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 | `med.medical-teaching-material` | case presentations are notes rewritten for teaching, often from real encounters. | — |
 
@@ -1901,7 +1901,7 @@ Material prepared for or produced by a meeting at which specific cases are discu
 |---|---|---|
 | `med.medical-teaching-material` | case presentations serve teaching and decision-making with the same slides. | — |
 | `med.clinician-clinical-note` | the outcome of the meeting is written into each patient's record as a note. | — |
-| `career.meetings-and-minutes` | structurally this is an ordinary meeting artifact and only its case list makes it clinical. | — |
+| `ops.meeting-record` | structurally this is an ordinary meeting artifact and only its case list makes it clinical. | — |
 
 **Sensitivity:** `potentially_sensitive` — Named patients discussed in a meeting record — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -1957,9 +1957,9 @@ A practitioner's authority to practise and the packets assembled to prove it to 
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `career.credentials-and-certificates` | a professional licence is a career artifact and a credentialing packet is an application packet; both readings are legitimate. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
-| `code.repository-files` | a file named LICENSE in a code project is a licence text and nothing to do with practice authority — the strongest reason a bare licence token can never fire this domain. | — |
-| `identity.official-documents` | credentialing packets bundle identity documents, and §4.9 already treats such files as protected records outside normal grouping. | §4.9: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' |
+| `career.professional-license` | a professional licence is a career artifact and a credentialing packet is an application packet; both readings are legitimate. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `soft.licence-oss-compliance` | a file named LICENSE in a code project is a licence text and nothing to do with practice authority — the strongest reason a bare licence token can never fire this domain. | — |
+| `pers.identity-document` | credentialing packets bundle identity documents, and §4.9 already treats such files as protected records outside normal grouping. | §4.9: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' |
 
 **Sensitivity:** `potentially_sensitive` — Licence identifiers and the identity documents bundled with a credentialing packet — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -2014,9 +2014,9 @@ Accredited learning a practitioner completes to maintain licensure or certificat
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `edu.coursework` | examination preparation, degree coursework and accredited CME share vocabulary entirely; only the credit designation and accrediting body separate them. | §3.3: the LLM handles files that 'have multiple plausible domains' |
+| `acad.course-enrollment` | examination preparation, degree coursework and accredited CME share vocabulary entirely; only the credit designation and accrediting body separate them. | §3.3: the LLM handles files that 'have multiple plausible domains' |
 | `med.clinician-licensure-credentialing` | credits are evidence submitted for renewal, so the same certificate appears inside a credentialing packet. | — |
-| `career.professional-development` | for a non-clinical reader this is simply training, and belongs to the career slice. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `career.continuing-education` | for a non-clinical reader this is simply training, and belongs to the career slice. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
 
 **Sensitivity:** `potentially_sensitive` — Certificates carrying a named practitioner's licence identifiers — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -2072,8 +2072,8 @@ Professional liability cover and the records of adverse events, complaints, and 
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `code.operations-postmortems` | the phrase 'incident report' and the entire root-cause-analysis document shape belong to software operations, and in a mixed corpus they will outnumber clinical ones. | — |
-| `legal.litigation-matter` | a claim is a legal matter whose subject is clinical; both slices legitimately claim it. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `soft.incident-postmortem` | the phrase 'incident report' and the entire root-cause-analysis document shape belong to software operations, and in a mixed corpus they will outnumber clinical ones. | — |
+| `legal.litigation-dispute` | a claim is a legal matter whose subject is clinical; both slices legitimately claim it. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
 | `med.clinician-patient-chart` | an incident file contains the patient record it concerns. | — |
 
 **Sensitivity:** `potentially_sensitive` — An adverse event naming a patient and a practitioner — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -2187,7 +2187,7 @@ Institutional or published instructions for how a class of patients should be ma
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `research.lab-protocols` | a bench protocol and a clinical protocol share the word, the document shape and the version block; the population scope and the issuing clinical committee are the discriminators. | — |
+| `res.protocol-sop` | a bench protocol and a clinical protocol share the word, the document shape and the version block; the population scope and the issuing clinical committee are the discriminators. | — |
 | `med.clinician-treatment-plan` | a protocol addresses a population and a treatment plan addresses a person; the presence of a patient identity is the separator. | — |
 | `med.medical-teaching-material` | protocols are taught, and the teaching version is a derivative of the controlled one. | — |
 
@@ -2245,7 +2245,7 @@ Material a clinician prepares to teach: lectures, case presentations, rounds dec
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `edu.course-materials` | for a clinician who also holds a faculty appointment this is coursework, and the academic template may be the better fit. | §3.3: the LLM handles files that 'have multiple plausible domains' |
+| `acad.course-instruction` | for a clinician who also holds a faculty appointment this is coursework, and the academic template may be the better fit. | §3.3: the LLM handles files that 'have multiple plausible domains' |
 | `med.clinician-cme` | accredited teaching produces credits for both the presenter and the audience, and the same file evidences both. | — |
 | `med.clinician-case-conference` | case presentations are made once and used for both teaching and decision-making. | — |
 
@@ -2302,8 +2302,8 @@ Running a clinical practice as a business: staffing, rotas, contracts, complianc
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `career.employer-records` | staff contracts and payroll are employment records that happen to be held by a clinical employer. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
-| `finance.business-records` | practice accounting is ordinary business finance and belongs in a finance branch at least as much as here. | — |
+| `biz.payroll-employer` | staff contracts and payroll are employment records that happen to be held by a clinical employer. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `biz.bookkeeping` | practice accounting is ordinary business finance and belongs in a finance branch at least as much as here. | — |
 | `personal.calendar` | a personal on-call calendar export is a calendar file (§2.9's ICS row) whose clinical meaning is not in the format. | §2.9: 'treat the file extension as a routing signal rather than an assumption about meaning' |
 
 **Sensitivity:** `potentially_sensitive` — Staff records and contracts naming individuals — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -2361,8 +2361,8 @@ A specific device: what it is, who holds or received it, and its service or reca
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.surgical-procedure-record` | an implant card is filed with the operation that placed it on the patient's side, and as an asset record on the facility's side. | — |
-| `finance.asset-register` | a practice's device inventory is an asset register and belongs to business records as much as to clinical ones. | — |
-| `code.hardware-inventory` | the entire structure — model, serial, manufacturer, service log — is identical to any IT asset inventory. | — |
+| `mro.asset-record` | a practice's device inventory is an asset register and belongs to business records as much as to clinical ones. | — |
+| `soft.it-asset-inventory` | the entire structure — model, serial, manufacturer, service log — is identical to any IT asset inventory. | — |
 
 **Sensitivity:** `potentially_sensitive` — An implant record identifies a device inside a named person — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -2418,7 +2418,7 @@ Running a pharmacy: dispensing records, inventory, controlled-substance accounta
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `med.prescription-medication` | the same dispensing event appears as one person's prescription and as one line in the pharmacy's ledger; the corpus cardinality is the discriminator. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `finance.inventory-and-purchasing` | pharmacy stock control is ordinary retail inventory management. | — |
+| `retail.stocktake` | pharmacy stock control is ordinary retail inventory management. | — |
 | `med.practice-administration` | a hospital pharmacy department's files are practice administration for a clinical service. | — |
 
 **Sensitivity:** `potentially_sensitive` — Dispensing records that name patients and controlled products — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -2475,9 +2475,9 @@ Reports a clinician or facility is required to make to a health authority or reg
 
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
-| `research.epidemiology-data` | the same counts and the same conditions appear in analysis that is not a submission to anyone. | — |
+| `res.dataset` | the same counts and the same conditions appear in analysis that is not a submission to anyone. | — |
 | `med.clinician-patient-chart` | a case report is derived from the patient's record and names them. | — |
-| `edu.public-health-coursework` | public health teaching material reproduces report forms as exercises. | §3.3: the LLM handles files that 'have multiple plausible domains' |
+| `acad.course-enrollment` | public health teaching material reproduces report forms as exercises. | §3.3: the LLM handles files that 'have multiple plausible domains' |
 
 **Sensitivity:** `potentially_sensitive` — Case reports that name individuals and their conditions — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -2535,7 +2535,7 @@ A veterinary clinician's working files: animal patient records, practice operati
 |---|---|---|
 | `med.clinician-patient-chart` | veterinary records use the whole human clinical vocabulary — patient, chart, diagnosis, prescription, radiograph — and share the DICOM format for imaging. The species field and the owner-and-animal pairing are the only reliable separators, and without them a veterinary corpus will be filed as human medical records. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `med.imaging-radiology` | veterinary imaging is DICOM with a populated patient tag, which satisfies the human imaging rule verbatim. | — |
-| `finance.business-records` | veterinary invoicing is ordinary practice business. | — |
+| `biz.invoice-issued` | veterinary invoicing is ordinary practice business. | — |
 
 **Sensitivity:** `potentially_sensitive` — Records naming clients and their animals — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -2592,7 +2592,7 @@ What a pet or livestock owner keeps: vaccination certificates, treatment records
 |---|---|---|
 | `med.veterinary-practice` | the same records held by the other party; the owner holds one animal's set, the clinic holds many. | — |
 | `med.immunisation-record` | an animal vaccination certificate and a human one are the same document shape, and a household corpus contains both. | — |
-| `travel.trip-documents` | animal travel certificates are assembled for a specific trip and are purpose-coherent with it. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
+| `pers.travel-record` | animal travel certificates are assembled for a specific trip and are purpose-coherent with it. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
 
 **Sensitivity:** `potentially_sensitive` — Records naming an owner, their address, and their animals — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 

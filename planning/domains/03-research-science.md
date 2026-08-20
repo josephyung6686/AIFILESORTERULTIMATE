@@ -127,8 +127,8 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | domain | discriminating signal | design cite |
 |---|---|---|
 | `acad.course-enrollment` | both can carry an institution and a term; only coursework carries a course code with academic context, and only research carries a project identifier | §3.5: ''BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”'' |
-| `code.project` | both carry `project` as a literal field name; §3.11 gives Code its own row, so the same value can legitimately activate both schemas at once | §3.11: “Code files may use project, repository, programming language, and artifact type.” |
-| `app.application-packet` | a research artifact can be a supporting document in an application packet without leaving Research | §4.9: “a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet” |
+| `soft.source-project` | both carry `project` as a literal field name; §3.11 gives Code its own row, so the same value can legitimately activate both schemas at once | §3.11: “Code files may use project, repository, programming language, and artifact type.” |
+| `acad.college-application` | a research artifact can be a supporting document in an application packet without leaving Research | §4.9: “a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet” |
 
 **Sensitivity**: `none` — No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.
 
@@ -180,7 +180,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | `res.preprint` | the same version family continues into the preprint; only the preprint carries a server accession and a public posting date | — |
 | `res.thesis-supervision` | a thesis chapter and a manuscript can be byte-identical; only the thesis carries a degree programme and a committee | — |
 | `acad.course-enrollment` | both are sectioned prose; only the course paper carries a course code with academic context | §3.5: ''BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”'' |
-| `app.application-packet` | a manuscript packet must not absorb a draft belonging to a different study, for the same reason an application packet must not absorb a conflicting institution | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
+| `acad.college-application` | a manuscript packet must not absorb a draft belonging to a different study, for the same reason an application packet must not absorb a conflicting institution | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
 
 **Sensitivity**: `none` — No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.
 
@@ -229,7 +229,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|
 | `res.peer-review-author` | the submission packet is what the user sent; the review corpus is what came back — they share the manuscript id and nothing else | — |
 | `res.published-article` | a proof and a published PDF are near-identical; only the published version carries a DOI in publisher furniture | — |
-| `app.application-packet` | both are purpose-defined packets assembled for an external body; only the application carries a target institution and a cycle | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
+| `acad.college-application` | both are purpose-defined packets assembled for an external body; only the application carries a target institution and a cycle | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
 
 **Sensitivity**: `none` — No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.
 
@@ -465,7 +465,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | `res.manuscript-preparation` | the figure travels inside the manuscript packet; a manuscript packet must not absorb a figure belonging to a different study | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
 | `res.statistical-output` | a diagnostic plot is statistical output; a publication figure is a manuscript component. The formats are identical | — |
 | `res.poster` | the same panel is reused on a poster with a different label | — |
-| `photos.event` | §3.11's Photos row claims images generically; a microscopy panel carries capture metadata and would otherwise route there | §3.11: “Photos may use capture year, event, location, people, camera information, and media type.” |
+| `pers.photo-event` | §3.11's Photos row claims images generically; a microscopy panel carries capture metadata and would otherwise route there | §3.11: “Photos may use capture year, event, location, people, camera information, and media type.” |
 
 **Sensitivity**: `none` — No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.
 
@@ -614,7 +614,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | `res.software-release` | a research script is not a released package; only the release carries a version tag and a citation file | §3.11: “Code files may use project, repository, programming language, and artifact type.” |
 | `res.computational-notebook` | a notebook is code plus narrative plus output in one file, and its schema needs an execution date that a script does not | §2.9: “notebook cell types, package manifests, schema keys, repository markers, and project-root signals” |
 | `res.reproducibility-package` | the package contains the code; the code is not the package | — |
-| `code.project` | §3.11 gives Code its own row, so the same repository legitimately activates both schemas at once | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
+| `soft.source-project` | §3.11 gives Code its own row, so the same repository legitimately activates both schemas at once | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
 
 **Sensitivity**: `none` — No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.
 
@@ -856,7 +856,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | `res.dataset` | raw output is not yet a dataset; only the dataset carries a data level and a release version | — |
 | `res.sample-specimen` | the run measured the sample; the sample record is not the run | — |
 | `res.facility-booking` | the booking scheduled the run; the booking is not the run | §2.9: “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” |
-| `photos.event` | §3.11's Photos row claims images with capture metadata generically, and microscopy output would route there on capture date alone | §3.11: “Photos may use capture year, event, location, people, camera information, and media type.” |
+| `pers.photo-event` | §3.11's Photos row claims images with capture metadata generically, and microscopy output would route there on capture date alone | §3.11: “Photos may use capture year, event, location, people, camera information, and media type.” |
 | `res.field-work` | field instrument output carries a site instead of a facility | — |
 
 **Sensitivity**: `potentially_sensitive` — §2.9's phrase `potentially sensitive`. Clinical imaging output carries patient identifiers inside the file's own headers, which travel with the file whether or not anything reads them. A handling class is P7's (§8.4) and is not set here.
@@ -953,9 +953,9 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | domain | discriminating signal | design cite |
 |---|---|---|
-| `app.application-packet` | a grant proposal and a graduate-admissions packet are both purpose-defined application packets; only the grant carries a funder and an opportunity number, and neither packet may absorb the other's documents | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
+| `acad.grad-school-application` | a grant proposal and a graduate-admissions packet are both purpose-defined application packets; only the grant carries a funder and an opportunity number, and neither packet may absorb the other's documents | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
 | `res.grant-reporting` | the proposal asks; the report accounts. They share an award number only after success | — |
-| `fin.records` | §3.11 gives Finance its own row and a budget is honestly financial; the narrative is not | §3.11: “Finance files may use institution, account type, tax year, and record type.” |
+| `fin.financial-records` | §3.11 gives Finance its own row and a budget is honestly financial; the narrative is not | §3.11: “Finance files may use institution, account type, tax year, and record type.” |
 | `res.data-management-plan` | the DMP is a proposal component and a standalone compliance artifact at once | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
 | `res.research-agreement` | subaward paperwork sits in both | — |
 
@@ -1005,7 +1005,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | domain | discriminating signal | design cite |
 |---|---|---|
 | `res.grant-proposal` | proposal narratives are reused verbatim in progress reports; only the report carries an award number and a reporting period | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
-| `fin.records` | financial reports are financial records with a research purpose | §3.11: “Finance files may use institution, account type, tax year, and record type.” |
+| `fin.financial-records` | financial reports are financial records with a research purpose | §3.11: “Finance files may use institution, account type, tax year, and record type.” |
 | `res.repository-deposit` | public-access compliance is discharged by a deposit, so one deposit receipt serves both domains | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
 | `res.published-article` | publication reporting lists the outputs but is not one | — |
 
@@ -1054,7 +1054,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | `res.clinical-trial` | a trial has both an ethics file and a regulatory file, and the protocol documents overlap almost completely | — |
 | `res.human-subjects-consent` | consent forms are approved *by* the IRB and live in both files | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
 | `res.protocol-sop` | the approved protocol and the bench SOP describe the same procedure to different readers | — |
-| `legal.records` | §3.15 makes legal material a safety domain; an approval letter is a compliance record | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
+| `corp.compliance-audit` | §3.15 makes legal material a safety domain; an approval letter is a compliance record | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
 
 **Sensitivity**: `potentially_sensitive` — §2.9's phrase `potentially sensitive`. An ethics file carries the participant-facing protocol, investigator personal data and adverse-event narratives. A handling class is P7's (§8.4) and is not set here.
 
@@ -1103,7 +1103,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | domain | discriminating signal | design cite |
 |---|---|---|
 | `res.irb-ethics` | the form is an attachment to the approval and lives in both files | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
-| `identity.records` | §3.15 makes identity a safety domain; an executed form carries a real person's name and signature | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
+| `pers.identity-document` | §3.15 makes identity a safety domain; an executed form carries a real person's name and signature | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
 | `res.sample-specimen` | a specimen-to-consent linkage record joins the two and is the re-identification key | §4.9: “Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.” |
 | `res.survey-instrument` | an online survey's consent page is part of the instrument file | — |
 
@@ -1155,7 +1155,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|
 | `res.irb-ethics` | a trial's ethics file and its regulatory file duplicate the protocol and the consent set | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
 | `res.protocol-sop` | 'protocol' means two different documents in the two domains | — |
-| `medical.records` | §3.15 makes medical material a safety domain | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
+| `med.personal-health-record` | §3.15 makes medical material a safety domain | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
 | `res.dataset` | trial data is a dataset with a regulated custody chain | — |
 | `res.human-subjects-consent` | the consent set is part of the trial master file | — |
 
@@ -1201,7 +1201,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | domain | discriminating signal | design cite |
 |---|---|---|
-| `legal.records` | §3.15 makes legal material a safety domain and an executed contract is legal material | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
+| `legal.contracts` | §3.15 makes legal material a safety domain and an executed contract is legal material | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
 | `res.grant-proposal` | subaward paperwork is a proposal component and an executed instrument at once | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
 | `res.patent-disclosure` | IP terms in a collaboration agreement govern a later filing | — |
 | `res.dataset` | a DUA governs a dataset without being one, and the two must not merge | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
@@ -1251,7 +1251,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | `res.poster` | the abstract is accepted, then the poster is made; they share the abstract id | — |
 | `res.talk` | the same abstract can become an oral presentation | — |
 | `res.manuscript-preparation` | a manuscript abstract and a meeting abstract are near-identical text with different owners | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
-| `app.application-packet` | the design's own multi-membership case is exactly this artifact | §4.9: “a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet” |
+| `acad.college-application` | the design's own multi-membership case is exactly this artifact | §4.9: “a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet” |
 
 **Sensitivity**: `none` — No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.
 
@@ -1534,7 +1534,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|
 | `res.manuscript-preparation` | a thesis chapter and a manuscript can be byte-identical | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
 | `acad.course-enrollment` | the same file is coursework in the student's corpus and supervision in the supervisor's | §3.11: “Academic files may use school, term, course, instructor, and work type.” |
-| `career.recruiting` | recommendation letters written for a student are recruiting documents | §3.3: “The LLM may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain” |
+| `career.reference-and-recommendation` | recommendation letters written for a student are recruiting documents | §3.3: “The LLM may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain” |
 | `res.peer-review-author` | examiner reports read exactly like referee reports | — |
 
 **Sensitivity**: `potentially_sensitive` — §2.9's phrase `potentially sensitive`. Supervision files carry identified assessment of a named student, examiner reports and stipend records. A handling class is P7's (§8.4) and is not set here.
@@ -1584,7 +1584,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | domain | discriminating signal | design cite |
 |---|---|---|
-| `legal.records` | §3.15 makes legal material a safety domain | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
+| `legal.ip-registration` | §3.15 makes legal material a safety domain | §3.15: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” |
 | `res.research-agreement` | collaboration IP terms govern a filing | — |
 | `res.manuscript-preparation` | a disclosure filed before publication describes the same content as the paper and has the opposite confidentiality; a manuscript packet must not absorb it | §4.8: “an application packet does not silently absorb a document with a conflicting target institution” |
 | `res.lab-notebook` | a countersigned notebook page is evidence for a priority date | — |
@@ -1634,7 +1634,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|
 | `res.analysis-code` | project scripts are not a release; only the release carries a tag and a citation file | §3.11: “Code files may use project, repository, programming language, and artifact type.” |
 | `res.repository-deposit` | the archive deposit gives the release its DOI and is a deposit record, not the software | — |
-| `code.project` | §3.11 gives Code its own row and the same repository activates both | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
+| `soft.source-project` | §3.11 gives Code its own row and the same repository activates both | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
 | `res.reproducibility-package` | a paper's package may embed a released version without being one | — |
 
 **Sensitivity**: `none` — No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.
@@ -1823,7 +1823,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|
 | `res.instrument-output` | the booking scheduled the run; the raw file is the run | — |
 | `res.grant-reporting` | recharges land in award accounting | §3.11: “An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.” |
-| `fin.records` | §3.11 gives Finance its own row and an invoice is a financial record | §3.11: “Finance files may use institution, account type, tax year, and record type.” |
+| `fin.financial-records` | §3.11 gives Finance its own row and an invoice is a financial record | §3.11: “Finance files may use institution, account type, tax year, and record type.” |
 | `calendar.events` | §2.9 makes ICS a first-class format; most ICS files are not research | §2.9: “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” |
 
 **Sensitivity**: `none` — No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.
@@ -1869,10 +1869,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | domain | discriminating signal | design cite |
 |---|---|---|
-| `photos.event` | §3.11's Photos row claims images by capture year, event and location; field photographs satisfy all three and would route there | §3.11: “Photos may use capture year, event, location, people, camera information, and media type.” |
+| `pers.photo-event` | §3.11's Photos row claims images by capture year, event and location; field photographs satisfy all three and would route there | §3.11: “Photos may use capture year, event, location, people, camera information, and media type.” |
 | `res.lab-notebook` | a field notebook is the same artifact with a site instead of a lab | — |
 | `res.sample-specimen` | collected material becomes a specimen record | — |
-| `travel.records` | §3.3 names 'travel record' as a separate LLM determination, and a field trip generates both | §3.3: “The LLM may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain” |
+| `pers.travel-record` | §3.3 names 'travel record' as a separate LLM determination, and a field trip generates both | §3.3: “The LLM may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain” |
 | `res.dataset` | datasheets become datasets | — |
 
 **Sensitivity**: `potentially_sensitive` — §2.9's phrase `potentially sensitive`. Field records carry precise coordinates for protected species and sites, plus named local collaborators and participants. A handling class is P7's (§8.4) and is not set here.

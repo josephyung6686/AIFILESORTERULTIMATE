@@ -44,7 +44,7 @@ from evidence_shape.store import (
 
 from extractors.authorship import COMPONENT_VERSION, SUBSYSTEM
 from extractors.dispatch import current_versions, extract
-from extractors.failure import failed_result
+from extractors.failure import ContractViolation, failed_result
 from extractors.filesystem import dataless_result, extract_filesystem
 from extractors.long_tail import record_sensitivity_signals
 from extractors.router import record_routing_decision, route
@@ -148,7 +148,11 @@ def _extract_one(*, file_row, path, decision, policy, readers, now, context_wind
             no_usable_facts=no_usable_facts,
             transcription_authorized=transcription_authorized)
         return dispatched.results, dispatched.sensitivity
-    except (ProtectedContainerRefused, DatalessRefused):
+    except (ProtectedContainerRefused, DatalessRefused, ContractViolation):
+        # The refusals are the caller's to handle per 11 §4b/§5. A ContractViolation
+        # is not about this file at all, so recording it as the file's failure would
+        # be a false statement about the corpus AND would hide the defect it exists
+        # to surface.
         raise
     except Exception as error:                       # noqa: BLE001 -- see docstring
         return (failed_result(

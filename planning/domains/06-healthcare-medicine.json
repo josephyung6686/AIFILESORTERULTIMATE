@@ -97,7 +97,7 @@
           "design_cite": null
         },
         {
-          "domain": "identity.personal-documents",
+          "domain": "pers.identity-document",
           "signal": "both carry a labeled person identity; only the health record carries a facility and a clinical document type.",
           "design_cite": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         }
@@ -213,12 +213,12 @@
       },
       "collides_with": [
         {
-          "domain": "acad.lab-report",
+          "domain": "acad.lab-course",
           "signal": "a chemistry or biology lab report carries analytes and units and the word 'lab'; it carries no reference range, no specimen collection date, and no performing laboratory. Where an academic anchor co-occurs the file has two plausible domains and belongs to the model, not to either rule.",
           "design_cite": "§3.3: the LLM handles files that 'have multiple plausible domains'"
         },
         {
-          "domain": "research.assay-data",
+          "domain": "res.dataset",
           "signal": "research assay output carries analytes, units and often reference values, but names a protocol and a study rather than an ordering provider and a subject person.",
           "design_cite": null
         },
@@ -345,7 +345,7 @@
       },
       "collides_with": [
         {
-          "domain": "research.imaging-dataset",
+          "domain": "res.dataset",
           "signal": "identical file format and often identical modality tags; the discriminator is a populated clinical patient identity and a named referring clinician versus a study protocol and a subject code.",
           "design_cite": null
         },
@@ -477,7 +477,7 @@
           "design_cite": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "domain": "finance.receipts",
+          "domain": "fin.receipts-expenses",
           "signal": "a pharmacy receipt is simultaneously a purchase record. Only the sig-and-refills structure makes it a prescription fact; without it, it is a receipt.",
           "design_cite": null
         },
@@ -587,12 +587,12 @@
       },
       "collides_with": [
         {
-          "domain": "edu.enrolment-packet",
+          "domain": "acad.k12-schooling",
           "signal": "a school immunisation form is required by an institution and is often filed with enrolment paperwork; it carries both an educational purpose and a clinical administration record.",
           "design_cite": "§3.9: 'The documents are content-incoherent but purpose-coherent.'"
         },
         {
-          "domain": "travel.trip-documents",
+          "domain": "pers.travel-record",
           "signal": "travel vaccination records are assembled for a trip and are purpose-coherent with it rather than with the rest of the medical corpus.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         },
@@ -837,7 +837,7 @@
           "design_cite": "§4.8: 'an application packet does not silently absorb a document with a conflicting target institution'"
         },
         {
-          "domain": "edu.admissions-application",
+          "domain": "acad.college-application",
           "signal": "'admission' is the shared token and means something entirely different on each side; only the paired admission/discharge date labels and a facility make it a clinical episode.",
           "design_cite": null
         },
@@ -975,7 +975,7 @@
           "design_cite": null
         },
         {
-          "domain": "legal.personal-injury-matter",
+          "domain": "legal.litigation-dispute",
           "signal": "an operative report is routinely a legal exhibit; the same file then carries both a clinical and a litigation purpose.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         }
@@ -1087,7 +1087,7 @@
           "design_cite": null
         },
         {
-          "domain": "personal.fitness-training",
+          "domain": "pers.fitness-activity",
           "signal": "a coached training plan and a therapy home programme share their entire structure; the credentialed therapist and the referring diagnosis are the only reliable discriminators.",
           "design_cite": null
         },
@@ -1192,12 +1192,12 @@
       },
       "collides_with": [
         {
-          "domain": "personal.journal-and-notes",
+          "domain": "pers.journal",
           "signal": "a private journal may be therapeutic material or may be an ordinary diary; nothing in the file distinguishes them, and reading further to decide is itself a privacy decision.",
           "design_cite": null
         },
         {
-          "domain": "research.psychology-data",
+          "domain": "res.survey-instrument",
           "signal": "instrument names and score sheets appear identically in coursework and research datasets.",
           "design_cite": null
         },
@@ -1320,7 +1320,7 @@
           "design_cite": null
         },
         {
-          "domain": "finance.instalment-agreement",
+          "domain": "fin.loan-mortgage",
           "signal": "an orthodontic contract is a credit agreement whose subject happens to be dental treatment.",
           "design_cite": null
         }
@@ -1431,7 +1431,7 @@
           "design_cite": null
         },
         {
-          "domain": "finance.receipts",
+          "domain": "fin.receipts-expenses",
           "signal": "the optical purchase and the clinical prescription usually arrive in the same envelope.",
           "design_cite": null
         }
@@ -1533,12 +1533,12 @@
           "design_cite": null
         },
         {
-          "domain": "edu.school-forms",
+          "domain": "acad.k12-schooling",
           "signal": "a child's allergy action plan is filed with school paperwork and is required by the school.",
           "design_cite": null
         },
         {
-          "domain": "personal.dietary-and-recipes",
+          "domain": "pers.recipe-meal",
           "signal": "the same substance names appear with no clinical meaning at all.",
           "design_cite": null
         }
@@ -1643,7 +1643,7 @@
           "design_cite": null
         },
         {
-          "domain": "personal.habit-tracking",
+          "domain": "pers.fitness-activity",
           "signal": "weight, sleep and activity logs are kept by people with no clinical involvement whatsoever.",
           "design_cite": null
         },
@@ -1757,7 +1757,7 @@
           "design_cite": null
         },
         {
-          "domain": "personal.photos",
+          "domain": "pers.photo-occasion",
           "signal": "scan images are kept as photographs as often as they are kept as records.",
           "design_cite": null
         }
@@ -1857,7 +1857,7 @@
       },
       "collides_with": [
         {
-          "domain": "edu.school-forms",
+          "domain": "acad.k12-schooling",
           "signal": "a school health form is required by a school and filed with enrolment paperwork; it is simultaneously an educational and a clinical artifact.",
           "design_cite": "§3.9: 'The documents are content-incoherent but purpose-coherent.'"
         },
@@ -1970,7 +1970,7 @@
           "design_cite": null
         },
         {
-          "domain": "legal.estate-and-authority",
+          "domain": "legal.power-of-attorney",
           "signal": "powers of attorney, guardianship and deputyship are legal instruments whose subject matter is health.",
           "design_cite": null
         },
@@ -2082,7 +2082,7 @@
       },
       "collides_with": [
         {
-          "domain": "legal.estate-planning",
+          "domain": "legal.wills-trusts-estates",
           "signal": "a living will and a last will are executed together, look alike, and are filed together; only the health-specific instrument name separates them.",
           "design_cite": null
         },
@@ -2092,7 +2092,7 @@
           "design_cite": null
         },
         {
-          "domain": "identity.vital-documents",
+          "domain": "pers.identity-document",
           "signal": "both are rare, high-consequence documents; §4.9 already says such files may be surfaced as protected records even outside normal grouping.",
           "design_cite": "§4.9: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.'"
         }
@@ -2206,7 +2206,7 @@
       },
       "collides_with": [
         {
-          "domain": "research.sequencing-data",
+          "domain": "res.dataset",
           "signal": "the file formats are the same and the vocabulary is the same; a reporting laboratory and a clinical interpretation column are the only reliable clinical markers.",
           "design_cite": null
         },
@@ -2216,7 +2216,7 @@
           "design_cite": "§4.8: 'each fact or label belongs to an allowed domain schema'"
         },
         {
-          "domain": "personal.genealogy",
+          "domain": "pers.genealogy",
           "signal": "consumer genomics exports are kept for ancestry as often as for health, and the same file serves both purposes.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         }
@@ -2338,7 +2338,7 @@
       },
       "collides_with": [
         {
-          "domain": "research.study-conduct",
+          "domain": "res.clinical-trial",
           "signal": "the same study produces investigator-side files; the discriminator is whether the holder is the subject or the researcher, and a signed participant consent is the clearest marker.",
           "design_cite": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
@@ -2348,7 +2348,7 @@
           "design_cite": null
         },
         {
-          "domain": "finance.reimbursements",
+          "domain": "biz.expense-report",
           "signal": "participation stipends arrive as ordinary payment records.",
           "design_cite": null
         }
@@ -2453,7 +2453,7 @@
       },
       "collides_with": [
         {
-          "domain": "travel.trip",
+          "domain": "pers.travel-record",
           "signal": "the travel half of the packet belongs equally to the travel domain, and the user may reasonably want it filed there instead.",
           "design_cite": "§5.6: 'The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.'"
         },
@@ -2565,12 +2565,12 @@
           "design_cite": null
         },
         {
-          "domain": "personal.habit-tracking",
+          "domain": "pers.fitness-activity",
           "signal": "the majority of these exports have no clinical involvement at all and belong to personal material, not to a medical branch.",
           "design_cite": null
         },
         {
-          "domain": "code.data-exports",
+          "domain": "soft.dataset-artifact",
           "signal": "large structured exports are also ordinary data files, and their format alone says nothing about their subject.",
           "design_cite": "§2.9: 'treat the file extension as a routing signal rather than an assumption about meaning'"
         }
@@ -2677,12 +2677,12 @@
       },
       "collides_with": [
         {
-          "domain": "edu.accommodation-and-support",
+          "domain": "acad.accommodations",
           "signal": "a disability accommodation letter is filed by the student with their education records and by the clinician as a letter sent; the same file has two homes and two purposes.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         },
         {
-          "domain": "career.leave-and-benefits",
+          "domain": "career.sabbatical-and-leave",
           "signal": "employer leave certification lives in the employment file as much as in the medical one.",
           "design_cite": null
         },
@@ -2794,7 +2794,7 @@
       },
       "collides_with": [
         {
-          "domain": "career.employment-file",
+          "domain": "hr.health-safety",
           "signal": "the employer holds a copy and files it with employment records; the same document is a career artifact and a medical one.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         },
@@ -2920,12 +2920,12 @@
       },
       "collides_with": [
         {
-          "domain": "finance.insurance-policies",
+          "domain": "fin.insurance",
           "signal": "motor, home, life and health policies are structurally identical documents from structurally identical senders; the member-and-dependant structure and the covered-service schedule are the health markers.",
           "design_cite": null
         },
         {
-          "domain": "career.benefits-enrolment",
+          "domain": "career.benefits-enrollment",
           "signal": "employer-sponsored coverage arrives inside HR onboarding material and is filed there as often as here.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         },
@@ -3052,7 +3052,7 @@
           "design_cite": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "domain": "finance.insurance-claims",
+          "domain": "fin.insurance",
           "signal": "non-health claims share every structural feature; the member-and-patient pairing and the service-date label are what make a claim medical.",
           "design_cite": null
         },
@@ -3165,7 +3165,7 @@
       },
       "collides_with": [
         {
-          "domain": "finance.bills-and-statements",
+          "domain": "fin.financial-records",
           "signal": "a medical bill is a bill; whether it lives in a finance branch or a medical branch is a genuine user choice and both are defensible.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         },
@@ -3284,7 +3284,7 @@
           "design_cite": "§4.8: 'each fact or label belongs to an allowed domain schema'"
         },
         {
-          "domain": "research.study-data",
+          "domain": "res.dataset",
           "signal": "de-identified chart extracts are research data, and the same export is both.",
           "design_cite": null
         }
@@ -3392,7 +3392,7 @@
       },
       "collides_with": [
         {
-          "domain": "edu.coursework",
+          "domain": "acad.course-enrollment",
           "signal": "a student's care-plan or SOAP-note assignment is textually indistinguishable from a real note. Where an academic anchor co-occurs the file has two plausible domains and the design routes it to the model rather than to either rule.",
           "design_cite": "§3.3: the LLM handles files that 'have multiple plausible domains'"
         },
@@ -3626,7 +3626,7 @@
           "design_cite": null
         },
         {
-          "domain": "career.meetings-and-minutes",
+          "domain": "ops.meeting-record",
           "signal": "structurally this is an ordinary meeting artifact and only its case list makes it clinical.",
           "design_cite": null
         }
@@ -3741,17 +3741,17 @@
       },
       "collides_with": [
         {
-          "domain": "career.credentials-and-certificates",
+          "domain": "career.professional-license",
           "signal": "a professional licence is a career artifact and a credentialing packet is an application packet; both readings are legitimate.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         },
         {
-          "domain": "code.repository-files",
+          "domain": "soft.licence-oss-compliance",
           "signal": "a file named LICENSE in a code project is a licence text and nothing to do with practice authority — the strongest reason a bare licence token can never fire this domain.",
           "design_cite": null
         },
         {
-          "domain": "identity.official-documents",
+          "domain": "pers.identity-document",
           "signal": "credentialing packets bundle identity documents, and §4.9 already treats such files as protected records outside normal grouping.",
           "design_cite": "§4.9: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.'"
         }
@@ -3858,7 +3858,7 @@
       },
       "collides_with": [
         {
-          "domain": "edu.coursework",
+          "domain": "acad.course-enrollment",
           "signal": "examination preparation, degree coursework and accredited CME share vocabulary entirely; only the credit designation and accrediting body separate them.",
           "design_cite": "§3.3: the LLM handles files that 'have multiple plausible domains'"
         },
@@ -3868,7 +3868,7 @@
           "design_cite": null
         },
         {
-          "domain": "career.professional-development",
+          "domain": "career.continuing-education",
           "signal": "for a non-clinical reader this is simply training, and belongs to the career slice.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         }
@@ -3983,12 +3983,12 @@
       },
       "collides_with": [
         {
-          "domain": "code.operations-postmortems",
+          "domain": "soft.incident-postmortem",
           "signal": "the phrase 'incident report' and the entire root-cause-analysis document shape belong to software operations, and in a mixed corpus they will outnumber clinical ones.",
           "design_cite": null
         },
         {
-          "domain": "legal.litigation-matter",
+          "domain": "legal.litigation-dispute",
           "signal": "a claim is a legal matter whose subject is clinical; both slices legitimately claim it.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         },
@@ -4225,7 +4225,7 @@
       },
       "collides_with": [
         {
-          "domain": "research.lab-protocols",
+          "domain": "res.protocol-sop",
           "signal": "a bench protocol and a clinical protocol share the word, the document shape and the version block; the population scope and the issuing clinical committee are the discriminators.",
           "design_cite": null
         },
@@ -4349,7 +4349,7 @@
       },
       "collides_with": [
         {
-          "domain": "edu.course-materials",
+          "domain": "acad.course-instruction",
           "signal": "for a clinician who also holds a faculty appointment this is coursework, and the academic template may be the better fit.",
           "design_cite": "§3.3: the LLM handles files that 'have multiple plausible domains'"
         },
@@ -4470,12 +4470,12 @@
       },
       "collides_with": [
         {
-          "domain": "career.employer-records",
+          "domain": "biz.payroll-employer",
           "signal": "staff contracts and payroll are employment records that happen to be held by a clinical employer.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         },
         {
-          "domain": "finance.business-records",
+          "domain": "biz.bookkeeping",
           "signal": "practice accounting is ordinary business finance and belongs in a finance branch at least as much as here.",
           "design_cite": null
         },
@@ -4600,12 +4600,12 @@
           "design_cite": null
         },
         {
-          "domain": "finance.asset-register",
+          "domain": "mro.asset-record",
           "signal": "a practice's device inventory is an asset register and belongs to business records as much as to clinical ones.",
           "design_cite": null
         },
         {
-          "domain": "code.hardware-inventory",
+          "domain": "soft.it-asset-inventory",
           "signal": "the entire structure — model, serial, manufacturer, service log — is identical to any IT asset inventory.",
           "design_cite": null
         }
@@ -4718,7 +4718,7 @@
           "design_cite": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "domain": "finance.inventory-and-purchasing",
+          "domain": "retail.stocktake",
           "signal": "pharmacy stock control is ordinary retail inventory management.",
           "design_cite": null
         },
@@ -4837,7 +4837,7 @@
       },
       "collides_with": [
         {
-          "domain": "research.epidemiology-data",
+          "domain": "res.dataset",
           "signal": "the same counts and the same conditions appear in analysis that is not a submission to anyone.",
           "design_cite": null
         },
@@ -4847,7 +4847,7 @@
           "design_cite": null
         },
         {
-          "domain": "edu.public-health-coursework",
+          "domain": "acad.course-enrollment",
           "signal": "public health teaching material reproduces report forms as exercises.",
           "design_cite": "§3.3: the LLM handles files that 'have multiple plausible domains'"
         }
@@ -4973,7 +4973,7 @@
           "design_cite": null
         },
         {
-          "domain": "finance.business-records",
+          "domain": "biz.invoice-issued",
           "signal": "veterinary invoicing is ordinary practice business.",
           "design_cite": null
         }
@@ -5091,7 +5091,7 @@
           "design_cite": null
         },
         {
-          "domain": "travel.trip-documents",
+          "domain": "pers.travel-record",
           "signal": "animal travel certificates are assembled for a specific trip and are purpose-coherent with it.",
           "design_cite": "§3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         }

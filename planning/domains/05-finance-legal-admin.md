@@ -343,7 +343,7 @@ Time first: **no**
 | domain | signal that separates them | cite |
 |---|---|---|
 | fin.investment-brokerage | same valuation shape, same provider in many cases; only a retirement-scheme term separates them | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
-| career slice — employment and benefits | an employer-sponsored scheme document is also an employment benefit record. The career slice owns the employment relationship; this entry owns the scheme record | §3.8 "The system must separate roles that happen to contain the same entity type" |
+| career.retirement-records | an employer-sponsored scheme document is also an employment benefit record. The career slice owns the employment relationship; this entry owns the scheme record | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | legal.wills-trusts-estates | a nomination of beneficiaries is both a scheme form and an estate-planning instrument | §3.11 "One file may hold facts from more than one domain without losing information" |
 
 ### Sensitivity
@@ -567,7 +567,7 @@ the exception to §5.5's usual order. §5.5 prefers subject before time for reco
 | tax.supporting-documents | a receipt claimed as a deduction. The claim is the user's, not the receipt's | §3.9 "Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal" |
 | biz.expense-report | receipts attached to a claim are content-incoherent with the claim form and purpose-coherent with it | §3.9 "The documents are content-incoherent but purpose-coherent." |
 | admin.warranties | the receipt is the proof of purchase a warranty depends on; the same file is both | §3.11 "One file may hold facts from more than one domain without losing information" |
-| travel slice | §7.3's own list puts booking records, boarding passes and event tickets in this material, and all three also read as travel records | §7.3: "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents." |
+| pers.travel-record | §7.3's own list puts booking records, boarding passes and event tickets in this material, and all three also read as travel records | §7.3: "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents." |
 
 ### Sensitivity
 
@@ -636,7 +636,7 @@ Time first: **no**
 | domain | signal that separates them | cite |
 |---|---|---|
 | fin.receipts-expenses | the receipts are members of both; the claim's purpose does not erase their standing as purchase records | §3.9 "The documents are content-incoherent but purpose-coherent." |
-| career slice — employment records | a claim is an artefact of an employment relationship. The career slice owns the relationship; this entry owns the claim | §3.8 "The system must separate roles that happen to contain the same entity type" |
+| career.employment-contract | a claim is an artefact of an employment relationship. The career slice owns the relationship; this entry owns the claim | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | biz.bookkeeping | on the employer's side the same claim is a ledger entry with a cost centre | §3.8 "The system must separate roles that happen to contain the same entity type" |
 
 ### Sensitivity
@@ -856,7 +856,8 @@ Time first: **no**
 | tax.filing | the accounts feed the return, and the accounting period and the tax year frequently differ. Treating them as one dimension silently misfiles a year of work | §4.9 "members carry irreconcilable course, institution, project, term, or purpose facts" |
 | corp.regulatory-filings | statutory accounts are simultaneously a bookkeeping product and a document filed with a registry | §3.11 "One file may hold facts from more than one domain without losing information" |
 | fin.bank-account | for a sole trader the personal account IS the business account; the split is a user decision with no document-level evidence | §4.9 "members carry irreconcilable course, institution, project, term, or purpose facts" |
-| biz.invoice-issued and biz.invoice-received | every invoice on either side is also a ledger entry here | §3.11 "One file may hold facts from more than one domain without losing information" |
+| biz.invoice-issued | every invoice on either side is also a ledger entry here | §3.11 "One file may hold facts from more than one domain without losing information" |
+| biz.invoice-received | every invoice on either side is also a ledger entry here | §3.11 "One file may hold facts from more than one domain without losing information" |
 
 ### Sensitivity
 
@@ -924,7 +925,7 @@ Time first: **no**
 
 | domain | signal that separates them | cite |
 |---|---|---|
-| career slice — the employee's own payslips | the career slice owns the employee side. A payslip is an employment record about one person; this entry is the employer's run covering everyone. They look alike, they are not the same domain, and the register carries a document-level signal the payslip does not: multiple employees | §3.8 "The system must separate roles that happen to contain the same entity type" |
+| career.payroll | the career slice owns the employee side. A payslip is an employment record about one person; this entry is the employer's run covering everyone. They look alike, they are not the same domain, and the register carries a document-level signal the payslip does not: multiple employees | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | biz.bookkeeping | the payroll journal is a ledger posting as well as a payroll artefact | §3.11 "One file may hold facts from more than one domain without losing information" |
 | tax.filing | employer returns are filings; the distinguishing signal is a pay period rather than a tax year | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 
@@ -1071,7 +1072,7 @@ Time first: **no**
 | domain | signal that separates them | cite |
 |---|---|---|
 | corp.fundraising-investor | a financing round produces both a subscription agreement and the instruments it issues; the round is the purpose-coherent packet and the instruments are the constitutional consequence | §3.9 "The documents are content-incoherent but purpose-coherent." |
-| career slice — employee equity | an employee option grant is compensation as much as it is a cap-table instrument. The career slice owns the employee's own copy; this entry owns the issuer's record | §3.8 "The system must separate roles that happen to contain the same entity type" |
+| career.equity-compensation | an employee option grant is compensation as much as it is a cap-table instrument. The career slice owns the employee's own copy; this entry owns the issuer's record | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | corp.business-formation | the register of members sits in both | §3.11 "One file may hold facts from more than one domain without losing information" |
 | fin.investment-brokerage | privately held shares are cap-table material; publicly held ones are brokerage material. Same word, different domain | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 
@@ -1357,8 +1358,8 @@ cover type leads rather than insurer because users change insurer and keep the c
 
 | domain | signal that separates them | cite |
 |---|---|---|
-| medical safety domain (§3.15) | a health claim carries clinical content. §3.15 names medical as its own safety domain; the clinical material is not this entry's to hold and must not be pulled into a finance branch | §3.15: "Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed." |
-| travel slice | travel insurance is a travel record and an insurance record at once | §3.11 "One file may hold facts from more than one domain without losing information" |
+| med.insurance-claim-eob | a health claim carries clinical content. §3.15 names medical as its own safety domain; the clinical material is not this entry's to hold and must not be pulled into a finance branch | §3.15: "Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed." |
+| pers.travel-record | travel insurance is a travel record and an insurance record at once | §3.11 "One file may hold facts from more than one domain without losing information" |
 | legal.litigation-dispute | a contested claim becomes a dispute and acquires a matter and a forum | §3.11 "One file may hold facts from more than one domain without losing information" |
 | admin.warranties | an extended warranty is sold as a product and behaves like a policy; the distinguishing signal is an insurer and a policy number rather than a manufacturer and a serial number | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 
@@ -1431,7 +1432,7 @@ the counterparty is not authorship. §3.8 forbids the collector pattern — "A f
 
 | domain | signal that separates them | cite |
 |---|---|---|
-| career slice — employment contracts | an employment contract is a contract by form and an employment record by function. The career slice owns it; this entry must not absorb it, and the distinguishing signal is an employee role rather than a counterparty role | §3.8 "The system must separate roles that happen to contain the same entity type" |
+| career.employment-contract | an employment contract is a contract by form and an employment record by function. The career slice owns it; this entry must not absorb it, and the distinguishing signal is an employee role rather than a counterparty role | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | legal.lease | a lease is a contract. The specialisation rule is that the more specific domain wins where its own fields populate — a property address and a landlord/tenant role pair | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 | fin.loan-mortgage | a loan agreement is a contract with a lender role | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 | biz.vendor-management | the master services agreement is the anchor document of a vendor relationship and sits in both | §3.11 "One file may hold facts from more than one domain without losing information" |
@@ -1506,7 +1507,7 @@ Time first: **no**
 |---|---|---|
 | legal.contracts | a lease is a contract; this entry claims it only when a property address and a landlord/tenant role pair both populate | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 | fin.receipts-expenses | rent receipts and deposit returns are transactional records as well as tenancy records | §3.11 "One file may hold facts from more than one domain without losing information" |
-| personal slice — home and property records | utilities, insurance and maintenance for the same property gather around the address rather than the lease; the personal slice owns the property as a life area | §3.8 "The system must separate roles that happen to contain the same entity type" |
+| pers.home-tenure | utilities, insurance and maintenance for the same property gather around the address rather than the lease; the personal slice owns the property as a life area | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | fin.loan-mortgage | for an owner-landlord the same address carries a mortgage and a lease at once, in opposite roles | §3.8 "The system must separate roles that happen to contain the same entity type" |
 
 ### Sensitivity
@@ -1652,7 +1653,7 @@ Time first: **no**
 | legal.power-of-attorney | both are personal instruments about the same person, executed together and stored together, but a power of attorney operates during life and a will after death — an important distinction to lose | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | legal.notarised-documents | these instruments are routinely witnessed or notarised; notarisation is a property of the document, not a competing domain | §3.14 keeps facts separate from the tree, so an attestation is a fact and not a folder |
 | tax.filing | an estate is a filing entity in its own right and produces returns under its own reference | §3.11 "One file may hold facts from more than one domain without losing information" |
-| personal slice — identity and family records | a death certificate is an identity document and an estate document at once | §7.3: "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials" |
+| pers.identity-document | a death certificate is an identity document and an estate document at once | §7.3: "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials" |
 
 ### Sensitivity
 
@@ -1726,7 +1727,7 @@ the donor leads because the instrument is about them, not because they authored 
 | domain | signal that separates them | cite |
 |---|---|---|
 | legal.wills-trusts-estates | executed in the same appointment, stored in the same envelope, and operating at opposite ends of a life | §3.8 "The system must separate roles that happen to contain the same entity type" |
-| medical safety domain (§3.15) | a health-and-welfare authority or advance directive touches clinical decision-making; §3.15 gives medical its own safety domain and this entry does not claim that content | §3.15: "Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed." |
+| med.advance-directive | a health-and-welfare authority or advance directive touches clinical decision-making; §3.15 gives medical its own safety domain and this entry does not claim that content | §3.15: "Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed." |
 | legal.notarised-documents | notarisation and certificate-provider steps are attestations on this instrument, not a separate filing | §3.14 keeps facts separate from the tree |
 | corp.business-formation | a corporate authority to act — a delegation of signing power — reads identically but concerns an entity rather than a person | §3.8 "The system must separate roles that happen to contain the same entity type" |
 
@@ -1871,7 +1872,7 @@ Time first: **no**
 |---|---|---|
 | corp.regulatory-filings | an audit performed because a regulator requires it produces documents that are both | §3.11 "One file may hold facts from more than one domain without losing information" |
 | biz.bookkeeping | a statutory financial audit is an accounts artefact and an audit artefact; the distinguishing signal is an auditor role | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
-| career slice — training and certification records | individual compliance training certificates are career records about a person, not entity-level compliance evidence. The career slice owns them | §3.8 "The system must separate roles that happen to contain the same entity type" |
+| career.continuing-education | individual compliance training certificates are career records about a person, not entity-level compliance evidence. The career slice owns them | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | biz.vendor-management | supplier due-diligence questionnaires are compliance evidence and vendor-lifecycle records at once | §3.11 "One file may hold facts from more than one domain without losing information" |
 
 ### Sensitivity
@@ -1942,7 +1943,7 @@ Time first: **no**
 
 | domain | signal that separates them | cite |
 |---|---|---|
-| personal slice — identity documents | a driving licence is an identity document before it is a permission, and §7.3's Protected Records template names that material: "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials". This entry does not claim identity documents | §4.9: "Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records" |
+| pers.identity-document | a driving licence is an identity document before it is a permission, and §7.3's Protected Records template names that material: "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials". This entry does not claim identity documents | §4.9: "Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records" |
 | corp.regulatory-filings | the application is a filing and the licence is its outcome; they are different documents with different fields | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | legal.ip-registration | a trademark registration is a registration but not a permission; the distinguishing signal is a rights registry rather than a licensing authority | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 | legal.contracts | a software or content licence is a contract and shares the word; nothing else about it matches this domain | §3.7 "It should use word-boundary matching rather than substring matching." |
@@ -2016,7 +2017,7 @@ Time first: **no**
 
 | domain | signal that separates them | cite |
 |---|---|---|
-| research slice | an invention disclosure, a draft specification and the paper describing the same work are research artefacts; §3.11 gives Research its own fields and that slice owns the project-linked material | §3.11 "One file may hold facts from more than one domain without losing information" |
+| res.patent-disclosure | an invention disclosure, a draft specification and the paper describing the same work are research artefacts; §3.11 gives Research its own fields and that slice owns the project-linked material | §3.11 "One file may hold facts from more than one domain without losing information" |
 | legal.contracts | assignments and licences of a registered right are contracts and chain-of-title documents at once | §3.11 "One file may hold facts from more than one domain without losing information" |
 | legal.litigation-dispute | an opposition or infringement action is a dispute with a forum, not a prosecution step | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 | admin.licences-permits | both are registrations from an office, and neither is the other | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
@@ -2089,10 +2090,10 @@ Time first: **no**
 
 | domain | signal that separates them | cite |
 |---|---|---|
-| applications slice — university application packets | a study visa attaches to a university application and the two packets share evidence. §4.8's rule against absorbing a document with a conflicting target institution is the direct analogue: an immigration packet must not absorb a document naming a different destination or institution | §4.8: "an application packet does not silently absorb a document with a conflicting target institution" |
-| personal slice — identity documents | passports and biometric cards are identity documents that immigration paperwork depends on; §4.9 already treats them as protected records in their own right | §4.9: "Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records" |
-| travel slice | visas and entry records read as travel history | §3.11 "One file may hold facts from more than one domain without losing information" |
-| career slice — employment records | a sponsorship certificate is an employment artefact and an immigration artefact | §3.11 "One file may hold facts from more than one domain without losing information" |
+| acad.college-application | a study visa attaches to a university application and the two packets share evidence. §4.8's rule against absorbing a document with a conflicting target institution is the direct analogue: an immigration packet must not absorb a document naming a different destination or institution | §4.8: "an application packet does not silently absorb a document with a conflicting target institution" |
+| pers.identity-document | passports and biometric cards are identity documents that immigration paperwork depends on; §4.9 already treats them as protected records in their own right | §4.9: "Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records" |
+| pers.travel-visa-entry | visas and entry records read as travel history | §3.11 "One file may hold facts from more than one domain without losing information" |
+| career.work-authorization | a sponsorship certificate is an employment artefact and an immigration artefact | §3.11 "One file may hold facts from more than one domain without losing information" |
 
 ### Sensitivity
 
@@ -2236,7 +2237,11 @@ this domain deliberately does not lead with itself. Notarisation is a property O
 
 | domain | signal that separates them | cite |
 |---|---|---|
-| every other entry in this slice | this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner | §3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder |
+| legal.lease | this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner | §3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder |
+| legal.power-of-attorney | this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner | §3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder |
+| legal.wills-trusts-estates | this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner | §3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder |
+| corp.business-formation | this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner | §3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder |
+| write.translation | this is the one cross-cutting entry here. An attestation attaches to leases, powers of attorney, wills, corporate documents, immigration evidence and translations alike, and in each case the underlying domain is the real owner | §3.14 keeps facts separate from the destination tree, which is exactly what makes attestation a fact and not a folder |
 | legal.court-records | affidavits are sworn documents and court filings; the distinguishing signal is a case number | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 | admin.immigration | certified translations and legalised civil documents are immigration evidence carrying an attestation | §3.11 "One file may hold facts from more than one domain without losing information" |
 
@@ -2307,7 +2312,8 @@ Time first: **no**
 
 | domain | signal that separates them | cite |
 |---|---|---|
-| fin.credit and fin.loan-mortgage | the same account reference appears in both, and a collection file must not absorb the account's ordinary statement history | §4.8: "an application packet does not silently absorb a document with a conflicting target institution" — the same rule against silent absorption |
+| fin.credit | the same account reference appears in both, and a collection file must not absorb the account's ordinary statement history | §4.8: "an application packet does not silently absorb a document with a conflicting target institution" — the same rule against silent absorption |
+| fin.loan-mortgage | the same account reference appears in both, and a collection file must not absorb the account's ordinary statement history | §4.8: "an application packet does not silently absorb a document with a conflicting target institution" — the same rule against silent absorption |
 | biz.invoice-issued | chasing an unpaid receivable is collection from the other side; the user is the creditor rather than the debtor and the roles invert | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | legal.litigation-dispute | collection escalating to proceedings crosses the boundary; the distinguishing signal is a forum and a case number | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
 | legal.bankruptcy-insolvency | a debt proved in an insolvency belongs to both | §3.11 "One file may hold facts from more than one domain without losing information" |
@@ -2525,8 +2531,8 @@ Time first: **no**
 
 | domain | signal that separates them | cite |
 |---|---|---|
-| research slice | a research grant is a Research-domain object first; §3.11 gives Research the fields project, stage, artifact type, lab and venue, and that slice owns the project-linked material. This entry claims the funding relationship, not the science | §3.11 "One file may hold facts from more than one domain without losing information" |
-| education slice — scholarships and financial aid | a scholarship is an award to a student and belongs with the education record as much as here | §3.11 "One file may hold facts from more than one domain without losing information" |
+| res.research-project | a research grant is a Research-domain object first; §3.11 gives Research the fields project, stage, artifact type, lab and venue, and that slice owns the project-linked material. This entry claims the funding relationship, not the science | §3.11 "One file may hold facts from more than one domain without losing information" |
+| acad.scholarship-fellowship | a scholarship is an award to a student and belongs with the education record as much as here | §3.11 "One file may hold facts from more than one domain without losing information" |
 | fin.charitable-giving | giving and receiving are the same transaction from opposite roles | §3.8 "The system must separate roles that happen to contain the same entity type" |
 | corp.fundraising-investor | non-dilutive funding and investment both fund an entity and a user may file them together | §4.9 "members carry irreconcilable course, institution, project, term, or purpose facts" |
 
@@ -2669,7 +2675,7 @@ Time first: **no**
 |---|---|---|
 | fin.receipts-expenses | the receipt is the proof of purchase the warranty depends on. The same file is a purchase record and a warranty document, and §3.9's purpose reading is what binds it to the item | §3.9: "The documents are content-incoherent but purpose-coherent." |
 | fin.insurance | an extended warranty sold as a product behaves like a policy; the distinguishing signal is an insurer and a policy number rather than a manufacturer and a serial number | §3.7 "it should require both a minimum score and a minimum margin over the second-best candidate before it fills a facet" |
-| personal slice — home inventory and possessions | the item itself is a possession record; this entry claims only the promise attached to it | §3.8 "The system must separate roles that happen to contain the same entity type" |
+| pers.household-inventory | the item itself is a possession record; this entry claims only the promise attached to it | §3.8 "The system must separate roles that happen to contain the same entity type" |
 
 ### Sensitivity
 

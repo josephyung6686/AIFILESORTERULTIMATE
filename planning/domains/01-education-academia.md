@@ -150,7 +150,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `acad.course-instruction` | the same syllabus PDF appears on both sides; the teaching corpus additionally holds rosters, grade files and unreleased exam keys that a student's corpus never contains | §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' |
 | `acad.lab-course` | a lab report is coursework and lab-course output at once; only the lab course carries an experiment or session identifier | — |
 | `acad.self-study` | both carry a course name; only enrolment carries an institution-issued course code together with a term | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."' |
-| `research.project` | a term paper and a manuscript both cite literature; the Research template keys on project, not on school and course | §5.4 'a Research template may define project → stage → artifact type' |
+| `res.research-project` | a term paper and a manuscript both cite literature; the Research template keys on project, not on school and course | §5.4 'a Research template may define project → stage → artifact type' |
 
 **Sensitivity** — `none`. Ordinary coursework carries nothing the design names as potentially sensitive. A graded artifact bearing a student identifier is a separate question and no handling class is assigned here.
 
@@ -291,7 +291,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `acad.course-enrollment` | both carry a school and a period; K-12 records carry a grade level and no institution-issued course code | — |
 | `acad.k12-school-admission` | an acceptance letter and an enrolment form arrive together; only the admission carries a decision and an applied-to school that may differ from the attended one | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
 | `acad.accommodations` | a plan document is both a schooling record and an accommodations record; the accommodations reading is the one that carries medical support | §7.3 'passport scans, medical documents, account statements, visas, legal forms, or credentials' |
-| `photos.event` | a scanned child's drawing or school photo is an image with school context; the photo domain keys on capture metadata, this one on the school year | §5.4 'a Photos template may define year → event' |
+| `pers.photo-event` | a scanned child's drawing or school photo is an image with school context; the photo domain keys on capture metadata, this one on the school year | §5.4 'a Photos template may define year → event' |
 
 **Sensitivity** — `potentially_sensitive`. Proposal, not design. These are records about a minor and frequently name other children; that is the kind of third-party identifying content §2.9 'treating addresses and message content as potentially sensitive' applies the phrase to. No handling class is assigned here.
 
@@ -426,7 +426,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|
 | `acad.thesis-dissertation` | a prospectus is a milestone artifact and the first chapter of the dissertation; the dissertation domain owns the manuscript, this one owns the gate | — |
 | `acad.course-enrollment` | a graduate course paper and a qualifying exam are both written work; only the course paper carries a course code | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."' |
-| `research.project` | a graduate corpus contains both; the milestone is institutional, the project is intellectual, and one advisor covers both | §5.4 'a Research template may define project → stage → artifact type' |
+| `res.research-project` | a graduate corpus contains both; the milestone is institutional, the project is intellectual, and one advisor covers both | §5.4 'a Research template may define project → stage → artifact type' |
 | `acad.undergraduate-program` | identical record types at a different degree level; merging them is the conflicting-fact case the design refuses | §4.9 'members carry irreconcilable course, institution, project, term, or purpose facts' |
 
 **Sensitivity** — `none`. Milestone records concern the corpus holder. Committee correspondence naming other people is the ordinary third-party case and no handling class is assigned here.
@@ -498,7 +498,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `acad.clinical-rotation` | a medical or dental programme produces both; the rotation carries a site and a block, the programme record does not | — |
 | `acad.graduate-program` | both are post-baccalaureate; only this one carries an external licensing body | — |
 | `acad.standardized-testing` | an admissions test and a licensure board exam are both score reports; the admissions test precedes the programme and belongs to an application | — |
-| `career.recruiting` | professional-school recruiting is heavy and produces employer material inside a school corpus; the Career template keys on company | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
+| `career.job-application` | professional-school recruiting is heavy and produces employer material inside a school corpus; the Career template keys on company | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
 
 **Sensitivity** — `none`. Programme records concern the corpus holder. A board score report is personal but is not material the design names as potentially sensitive, and no handling class is assigned here.
 
@@ -564,8 +564,8 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|
 | `acad.self-study` | the same online course appears in both; only continuing education carries a credentialing body and a reporting period | — |
 | `acad.credential-certificate` | a completion certificate and a credential certificate look alike; the credential is the thing maintained, the completion certificate is an input to maintaining it | — |
-| `career.recruiting` | professional development is often career material; this domain is bounded by a licence requirement, career material is not | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
-| `financial.records` | renewal fees and provider invoices are financial records with continuing-education context; finance is a domain the design protects first | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `career.continuing-education` | professional development is often career material; this domain is bounded by a licence requirement, career material is not | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
+| `fin.financial-records` | renewal fees and provider invoices are financial records with continuing-education context; finance is a domain the design protects first | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 
 **Sensitivity** — `none`. Completion records concern the corpus holder and name no third parties. A licence number is an identifier but is not material the design names as potentially sensitive; no handling class is assigned here.
 
@@ -633,8 +633,8 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
 | `acad.course-enrollment` | both produce assignments; a bootcamp has no institution-issued course code and no academic term, which is precisely what the course rule requires | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."' |
-| `code.project` | a capstone is simultaneously a repository and coursework; the code domain keys on repository markers, this one on the provider and module | — |
-| `career.recruiting` | bootcamps bundle career services, so employer material appears inside the programme corpus | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
+| `soft.source-project` | a capstone is simultaneously a repository and coursework; the code domain keys on repository markers, this one on the provider and module | — |
+| `career.job-search-campaign` | bootcamps bundle career services, so employer material appears inside the programme corpus | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
 | `acad.self-study` | both are non-degree learning; only the bootcamp has a cohort and a provider relationship | — |
 
 **Sensitivity** — `none`. Programme material concerns the corpus holder. An enrolment agreement is a contract but is not material the design names as potentially sensitive; no handling class is assigned here.
@@ -769,7 +769,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
 | `acad.course-enrollment` | a lab course is a course; the lab reading is established by an experiment identifier or a lab artifact term, never by the course code alone | — |
-| `research.project` | a lab report and a research artifact are the same document shape; the research reading carries a project identifier and a lab, this one carries a course code | §3.11 'Research files may use project, stage, artifact type, lab, and venue.' |
+| `res.research-project` | a lab report and a research artifact are the same document shape; the research reading carries a project identifier and a lab, this one carries a course code | §3.11 'Research files may use project, stage, artifact type, lab, and venue.' |
 | `acad.undergrad-research` | both produce protocols and data under a named lab; the course version carries a course code and a term, the placement version carries a supervisor and no code | — |
 | `acad.thesis-dissertation` | lab data feeds a thesis; the data file belongs to whichever group its own evidence supports, not to both by inheritance | — |
 
@@ -1047,7 +1047,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `acad.recommendation-letter` | a letter belongs to the application it supports and to the course or relationship that produced it; the target institution on the letter must match the packet's | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
 | `acad.scholarship-fellowship` | both carry an application cycle and a target organisation; a scholarship's target is a funder, not an admitting institution | — |
 | `acad.grad-school-application` | identical document types at a different level; two applications to the same university in different cycles must not merge | §4.9 'members carry irreconcilable course, institution, project, term, or purpose facts' |
-| `research.project` | an abstract written for research and submitted with an application carries both readings at once, which is the design's own worked multi-domain case | §3.11 'An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.' |
+| `res.research-project` | an abstract written for research and submitted with an application carries both readings at once, which is the design's own worked multi-domain case | §3.11 'An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.' |
 
 **Sensitivity** — `potentially_sensitive`. The packet the design describes contains an identification document — §3.9 'A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract.' — and §7.3 'passport scans, medical documents, account statements, visas, legal forms, or credentials' names passport scans among protected material. The phrase is the design's; no handling class is assigned here.
 
@@ -1183,7 +1183,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|
 | `acad.college-application` | identical document types at a different level; the target programme is the discriminator and undergraduate applications carry none | §4.9 'members carry irreconcilable course, institution, project, term, or purpose facts' |
 | `acad.scholarship-fellowship` | a graduate application and a fellowship application share a cycle and a research proposal; the fellowship's target is a funder | — |
-| `research.project` | a research proposal written for an application is also a research artifact, which is the design's own worked multi-domain case | §3.11 'An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.' |
+| `res.research-project` | a research proposal written for an application is also a research artifact, which is the design's own worked multi-domain case | §3.11 'An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.' |
 | `acad.recommendation-letter` | letters are requested per programme; a letter with a conflicting target programme must not be absorbed | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
 
 **Sensitivity** — `none`. A graduate application packet does not by default contain the identification document the design names in an undergraduate packet. Where it does, the collision with an identity record is the route to protection, not a class assigned here.
@@ -1391,7 +1391,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `acad.undergraduate-program` | a degree audit and a transcript both list completed courses; only the transcript is registrar-issued and carries an issue date | — |
 | `acad.transfer-credit` | a credential evaluation is built from a transcript and is not one; the evaluation carries a receiving school | — |
 | `acad.credential-certificate` | a diploma and a transcript are both proof of study; the diploma asserts the award, the transcript asserts the record | — |
-| `identity.personal-identity` | a transcript carries a student identifier and a date of birth, which pulls it toward material the design protects first | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `pers.identity-document` | a transcript carries a student identifier and a date of birth, which pulls it toward material the design protects first | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 
 **Sensitivity** — `potentially_sensitive`. Inference, not design. A transcript carries a student identifier and often a date of birth, and §7.3 'passport scans, medical documents, account statements, visas, legal forms, or credentials' puts comparable identity material behind protection. The phrase is the design's; no handling class is assigned here.
 
@@ -1526,7 +1526,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
-| `financial.records` | aid documents are financial records with an academic subject; the design puts finance behind protection before placement, so the finance reading governs handling | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `fin.financial-records` | aid documents are financial records with an academic subject; the design puts finance behind protection before placement, so the finance reading governs handling | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 | `acad.tuition-billing` | an award letter and a tuition bill both net charges against aid; the bill is issued per term by the bursar, the award per aid year by the aid office | — |
 | `acad.scholarship-fellowship` | a scholarship is an aid type and a separate application; only the scholarship carries a funder and a competitive cycle | — |
 | `acad.college-application` | aid forms are submitted with an application and carry household finances into an application packet | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
@@ -1600,7 +1600,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|
 | `acad.college-application` | both carry a cycle and reuse the same essays; a scholarship's target is a funder, not an admitting institution, and the two must not merge | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
 | `acad.financial-aid` | a scholarship is an aid type on the award letter and a separate competitive application in its own right | — |
-| `research.project` | a fellowship proposal is a research artifact; the design's own multi-domain case covers the shape | §3.11 'An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.' |
+| `res.research-project` | a fellowship proposal is a research artifact; the design's own multi-domain case covers the shape | §3.11 'An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.' |
 | `acad.recommendation-letter` | the same letter is reused for a funder and for an admissions target; the target is what separates the copies | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
 
 **Sensitivity** — `none`. An application concerns the corpus holder. A budget or an aid-linked scholarship carries financial detail and reaches protection through the financial collision, not through a class assigned here.
@@ -1665,7 +1665,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
-| `financial.records` | a tuition statement is a financial record with a school on it; the design protects finance before placement, so the finance reading governs handling | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `fin.financial-records` | a tuition statement is a financial record with a school on it; the design protects finance before placement, so the finance reading governs handling | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 | `acad.financial-aid` | aid appears as a credit line on the bill; the award is the aid office's record, the credit line is the bursar's | — |
 | `acad.course-enrollment` | both carry school and term; a bill carries no course code and no work type | — |
 | `acad.campus-employment` | a student wage and a tuition charge can offset each other on one statement | — |
@@ -1732,9 +1732,9 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
 | `acad.teaching-assistantship` | an assistantship is campus employment; its distinguishing evidence is a course code, which no other campus job carries | — |
-| `career.recruiting` | an offer letter and a pay statement are career artifacts; the campus reading is established by the school being the employer | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
+| `career.offer-and-negotiation` | an offer letter and a pay statement are career artifacts; the campus reading is established by the school being the employer | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
 | `acad.financial-aid` | work-study wages are an aid type, so the authorisation belongs to both | — |
-| `financial.records` | pay statements are financial records the design protects before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `fin.financial-records` | pay statements are financial records the design protects before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 
 **Sensitivity** — `potentially_sensitive`. Proposal, not design. Onboarding forms and pay statements carry identity and account detail of the kind §7.3 'passport scans, medical documents, account statements, visas, legal forms, or credentials' names. The phrase is the design's; no handling class is assigned here.
 
@@ -1799,7 +1799,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
-| `research.project` | a thesis chapter and a manuscript are often the same text; the research reading carries a project identifier and a venue, the thesis reading carries a degree and a committee | §3.11 'Research files may use project, stage, artifact type, lab, and venue.' |
+| `res.research-project` | a thesis chapter and a manuscript are often the same text; the research reading carries a project identifier and a venue, the thesis reading carries a degree and a committee | §3.11 'Research files may use project, stage, artifact type, lab, and venue.' |
 | `acad.graduate-program` | a prospectus is a milestone artifact and the thesis's first chapter at once | — |
 | `acad.lab-course` | lab data feeds a thesis; the data file belongs to whichever group its own evidence supports, not to both by inheritance | — |
 | `acad.course-enrollment` | a thesis is often registered as a course with a code, which pulls the whole corpus toward the coursework template | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."' |
@@ -1870,7 +1870,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
-| `research.project` | the placement is the container, the project is the intellectual content; a poster carries both and the project may outlive the placement | §3.11 'Research files may use project, stage, artifact type, lab, and venue.' |
+| `res.research-project` | the placement is the container, the project is the intellectual content; a poster carries both and the project may outlive the placement | §3.11 'Research files may use project, stage, artifact type, lab, and venue.' |
 | `acad.lab-course` | both produce protocols and data under a named lab; the course version carries a course code and a term, the placement carries a supervisor and no code | — |
 | `acad.internship-for-credit` | a placement taken for credit is both; the credit reading carries a course code and a faculty sponsor | — |
 | `acad.scholarship-fellowship` | the funded programme is often a fellowship, so the application belongs to both | — |
@@ -1936,9 +1936,9 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
-| `travel.trip` | the itinerary, boarding pass and hotel booking are ordinary travel records that happen to serve a conference; the design lists travel as its own template area | §5.1 'Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material' |
-| `research.project` | the abstract and poster are research artifacts with a venue; the conference reading owns the trip, the project reading owns the science | §3.11 'Research files may use project, stage, artifact type, lab, and venue.' |
-| `financial.records` | reimbursement claims and receipts are financial records the design protects before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `pers.travel-record` | the itinerary, boarding pass and hotel booking are ordinary travel records that happen to serve a conference; the design lists travel as its own template area | §5.1 'Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material' |
+| `res.research-project` | the abstract and poster are research artifacts with a venue; the conference reading owns the trip, the project reading owns the science | §3.11 'Research files may use project, stage, artifact type, lab, and venue.' |
+| `fin.financial-records` | reimbursement claims and receipts are financial records the design protects before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 | `acad.undergrad-research` | a placement's symposium is a conference for the placement's purposes and produces the same artifacts | — |
 
 **Sensitivity** — `none`. Conference material is professional. Reimbursement receipts carry payment detail and reach protection through the financial collision, not through a class assigned here.
@@ -2008,8 +2008,8 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
 | `acad.transfer-credit` | study-abroad credit is transfer credit; the study-abroad reading additionally carries a host institution and a term away | — |
-| `travel.trip` | visas, flights and housing are travel records; a term abroad is not a trip and should not be absorbed into one | §5.1 'Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material' |
-| `identity.personal-identity` | a visa and a residence permit are among the protected records the design names | §4.9 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records' |
+| `pers.travel-record` | visas, flights and housing are travel records; a term abroad is not a trip and should not be absorbed into one | §5.1 'Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material' |
+| `pers.identity-document` | a visa and a residence permit are among the protected records the design names | §4.9 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records' |
 | `acad.course-enrollment` | coursework from abroad carries a host course code that will not match the home school's codes | §4.9 'members carry irreconcilable course, institution, project, term, or purpose facts' |
 
 **Sensitivity** — `potentially_sensitive`. §4.9 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records' names visas explicitly, and §7.3 'passport scans, medical documents, account statements, visas, legal forms, or credentials' names visas among protected material. The phrase is the design's; no handling class is assigned here.
@@ -2074,7 +2074,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
-| `medical.record` | case logs and clinical notes concern patients; the design names medical material a safety domain to be protected before any automated placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `med.clinician-clinical-note` | case logs and clinical notes concern patients; the design names medical material a safety domain to be protected before any automated placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 | `acad.professional-school` | the rotation is part of the programme; only the rotation carries a site and a block | — |
 | `acad.internship-for-credit` | both are supervised placements for credit; a rotation is required and scheduled by the programme, an internship is arranged by the student | — |
 | `acad.campus-employment` | a paid rotation produces employment records alongside the academic ones | — |
@@ -2144,7 +2144,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
-| `career.recruiting` | the offer letter and position description are career artifacts; the credit reading is established by a course code and a learning agreement | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
+| `career.internship-application` | the offer letter and position description are career artifacts; the credit reading is established by a course code and a learning agreement | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
 | `acad.course-enrollment` | the placement is registered as a course, so the coursework template will claim it; only the placement carries a host organisation | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."' |
 | `acad.clinical-rotation` | both are supervised placements for credit; a rotation is scheduled by the programme, an internship is arranged by the student | — |
 | `acad.campus-employment` | an on-campus internship for credit is both, and produces payroll and academic records together | — |
@@ -2278,7 +2278,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
 | `acad.course-enrollment` | lessons and studio classes carry course codes and terms; the jury reading is established by an assessment event | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."' |
-| `photos.event` | performance photographs and recordings carry capture metadata and will be claimed by the media template, whose order the design puts time first | §5.4 'a Photos template may define year → event' |
+| `pers.photo-event` | performance photographs and recordings carry capture metadata and will be claimed by the media template, whose order the design puts time first | §5.4 'a Photos template may define year → event' |
 | `acad.college-application` | an audition portfolio is an application component with a target institution | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
 | `acad.credential-certificate` | graded examination certificates from an external board are credentials as well as assessment records | — |
 
@@ -2348,7 +2348,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
 | `acad.transcript-record` | academic eligibility is certified from a transcript, so the same transcript serves both | — |
-| `medical.record` | physical clearances and medical-hardship waivers carry clinical detail the design protects first | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `med.medical-certification-letter` | physical clearances and medical-hardship waivers carry clinical detail the design protects first | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 | `acad.college-application` | athletic recruiting runs alongside admissions and produces institution-targeted material in the same cycle | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
 | `acad.transfer-credit` | a transfer affects both eligibility and credit, and the two records arrive together | — |
 
@@ -2480,7 +2480,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
-| `medical.record` | supporting documentation is a medical or psychological report; the design names medical material a safety domain to be protected before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `med.medical-certification-letter` | supporting documentation is a medical or psychological report; the design names medical material a safety domain to be protected before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 | `acad.course-enrollment` | an accommodation letter names a course and a term and will be claimed by the coursework template, which would place protected material in an open branch | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
 | `acad.standardized-testing` | testing accommodations are granted by the testing body, not the school, and travel with the sitting | — |
 | `acad.integrity-case` | accommodation disputes and conduct processes generate similar correspondence with the same offices | — |
@@ -2553,7 +2553,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | other domain | the confusion, and what separates them | design cite |
 |---|---|---|
 | `acad.course-enrollment` | case material names a course and a term and will be claimed by the coursework template, placing an allegation inside an open course folder | §4.8 'an application packet does not silently absorb a document with a conflicting target institution' |
-| `legal.matter` | a contested case involves counsel and legal correspondence; the design names legal material a safety domain protected before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `legal.litigation-dispute` | a contested case involves counsel and legal correspondence; the design names legal material a safety domain protected before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 | `acad.accommodations` | disputes and conduct processes generate similar correspondence with overlapping offices | — |
 | `acad.course-instruction` | on the reporting side the file sits in the teaching corpus and is about a student, not about the holder | §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' |
 
@@ -2626,8 +2626,8 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|
 | `acad.campus-employment` | a paid organisation role produces employment records alongside the club ones | — |
 | `acad.course-enrollment` | a project team for a course looks like a club and is scoped to a term and a course code | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."' |
-| `financial.records` | budgets, sponsorships and reimbursements are financial records the design protects before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
-| `photos.event` | event photographs carry capture metadata and will be claimed by the media template | §5.4 'a Photos template may define year → event' |
+| `fin.financial-records` | budgets, sponsorships and reimbursements are financial records the design protects before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `pers.photo-event` | event photographs carry capture metadata and will be claimed by the media template | §5.4 'a Photos template may define year → event' |
 
 **Sensitivity** — `potentially_sensitive`. Proposal, not design. Membership rosters and contact lists are address-book material, which §2.9 'should normally be privacy-protected rather than used to create folder proposals' says should be privacy-protected rather than used to create folder proposals. The phrase is the design's; no handling class is assigned here.
 
@@ -2761,8 +2761,8 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|
 | `acad.transcript-record` | an alumnus requesting a transcript produces a registrar record; the alumni reading adds nothing the transcript domain does not already carry | — |
 | `acad.credential-certificate` | a diploma is both proof of the award and the founding alumni document | — |
-| `financial.records` | gift receipts are financial and tax-relevant records the design protects before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
-| `career.recruiting` | alumni mentoring and networking material is career material with a school attached | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
+| `fin.financial-records` | gift receipts are financial and tax-relevant records the design protects before placement | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `career.networking-and-referrals` | alumni mentoring and networking material is career material with a school attached | §5.4 'a Career template may define company → role or recruiting cycle → document type' |
 
 **Sensitivity** — `none`. Alumni correspondence concerns the corpus holder. Gift receipts carry payment detail and reach protection through the financial collision, not through a class assigned here.
 
@@ -2830,7 +2830,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `acad.transcript-record` | a diploma and a transcript are both proof of study; the diploma asserts the award, the transcript asserts the record | — |
 | `acad.continuing-education` | a completion certificate is an input to maintaining a credential and is not itself the credential | — |
 | `acad.college-application` | a certificate is a named member of the design's own application packet and must not be moved out of one silently | §3.9 'A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract.' |
-| `identity.personal-identity` | a licence with a photograph and an identifier adjoins the identity material the design protects first | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
+| `pers.identity-document` | a licence with a photograph and an identifier adjoins the identity material the design protects first | §3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains' |
 | `residual.independent-records` | the design's residual library already holds §7.3 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group', which would absorb an unrecognised certificate | §7.3 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group' |
 
 **Sensitivity** — `potentially_sensitive`. §7.3 'passport scans, medical documents, account statements, visas, legal forms, or credentials' names credentials explicitly among protected material. The phrase is the design's; no handling class is assigned here.

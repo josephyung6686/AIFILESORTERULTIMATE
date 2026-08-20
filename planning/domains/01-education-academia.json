@@ -122,7 +122,7 @@
           "design_cite": "§3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as \"syllabus,\" \"lecture,\" \"credits,\" \"instructor,\" or \"semester.\"'"
         },
         {
-          "domain": "research.project",
+          "domain": "res.research-project",
           "signal": "a term paper and a manuscript both cite literature; the Research template keys on project, not on school and course",
           "design_cite": "§5.4 'a Research template may define project → stage → artifact type'"
         }
@@ -367,7 +367,7 @@
           "design_cite": "§7.3 'passport scans, medical documents, account statements, visas, legal forms, or credentials'"
         },
         {
-          "domain": "photos.event",
+          "domain": "pers.photo-event",
           "signal": "a scanned child's drawing or school photo is an image with school context; the photo domain keys on capture metadata, this one on the school year",
           "design_cite": "§5.4 'a Photos template may define year → event'"
         }
@@ -602,7 +602,7 @@
           "design_cite": "§3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as \"syllabus,\" \"lecture,\" \"credits,\" \"instructor,\" or \"semester.\"'"
         },
         {
-          "domain": "research.project",
+          "domain": "res.research-project",
           "signal": "a graduate corpus contains both; the milestone is institutional, the project is intellectual, and one advisor covers both",
           "design_cite": "§5.4 'a Research template may define project → stage → artifact type'"
         },
@@ -728,7 +728,7 @@
           "design_cite": null
         },
         {
-          "domain": "career.recruiting",
+          "domain": "career.job-application",
           "signal": "professional-school recruiting is heavy and produces employer material inside a school corpus; the Career template keys on company",
           "design_cite": "§5.4 'a Career template may define company → role or recruiting cycle → document type'"
         }
@@ -843,12 +843,12 @@
           "design_cite": null
         },
         {
-          "domain": "career.recruiting",
+          "domain": "career.continuing-education",
           "signal": "professional development is often career material; this domain is bounded by a licence requirement, career material is not",
           "design_cite": "§5.4 'a Career template may define company → role or recruiting cycle → document type'"
         },
         {
-          "domain": "financial.records",
+          "domain": "fin.financial-records",
           "signal": "renewal fees and provider invoices are financial records with continuing-education context; finance is a domain the design protects first",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         }
@@ -951,12 +951,12 @@
           "design_cite": "§3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as \"syllabus,\" \"lecture,\" \"credits,\" \"instructor,\" or \"semester.\"'"
         },
         {
-          "domain": "code.project",
+          "domain": "soft.source-project",
           "signal": "a capstone is simultaneously a repository and coursework; the code domain keys on repository markers, this one on the provider and module",
           "design_cite": null
         },
         {
-          "domain": "career.recruiting",
+          "domain": "career.job-search-campaign",
           "signal": "bootcamps bundle career services, so employer material appears inside the programme corpus",
           "design_cite": "§5.4 'a Career template may define company → role or recruiting cycle → document type'"
         },
@@ -1184,7 +1184,7 @@
           "design_cite": null
         },
         {
-          "domain": "research.project",
+          "domain": "res.research-project",
           "signal": "a lab report and a research artifact are the same document shape; the research reading carries a project identifier and a lab, this one carries a course code",
           "design_cite": "§3.11 'Research files may use project, stage, artifact type, lab, and venue.'"
         },
@@ -1670,7 +1670,7 @@
           "design_cite": "§4.9 'members carry irreconcilable course, institution, project, term, or purpose facts'"
         },
         {
-          "domain": "research.project",
+          "domain": "res.research-project",
           "signal": "an abstract written for research and submitted with an application carries both readings at once, which is the design's own worked multi-domain case",
           "design_cite": "§3.11 'An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.'"
         }
@@ -1911,7 +1911,7 @@
           "design_cite": null
         },
         {
-          "domain": "research.project",
+          "domain": "res.research-project",
           "signal": "a research proposal written for an application is also a research artifact, which is the design's own worked multi-domain case",
           "design_cite": "§3.11 'An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.'"
         },
@@ -2271,7 +2271,7 @@
           "design_cite": null
         },
         {
-          "domain": "identity.personal-identity",
+          "domain": "pers.identity-document",
           "signal": "a transcript carries a student identifier and a date of birth, which pulls it toward material the design protects first",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         }
@@ -2499,7 +2499,7 @@
       },
       "collides_with": [
         {
-          "domain": "financial.records",
+          "domain": "fin.financial-records",
           "signal": "aid documents are financial records with an academic subject; the design puts finance behind protection before placement, so the finance reading governs handling",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
@@ -2633,7 +2633,7 @@
           "design_cite": null
         },
         {
-          "domain": "research.project",
+          "domain": "res.research-project",
           "signal": "a fellowship proposal is a research artifact; the design's own multi-domain case covers the shape",
           "design_cite": "§3.11 'An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.'"
         },
@@ -2744,7 +2744,7 @@
       },
       "collides_with": [
         {
-          "domain": "financial.records",
+          "domain": "fin.financial-records",
           "signal": "a tuition statement is a financial record with a school on it; the design protects finance before placement, so the finance reading governs handling",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
@@ -2869,7 +2869,7 @@
           "design_cite": null
         },
         {
-          "domain": "career.recruiting",
+          "domain": "career.offer-and-negotiation",
           "signal": "an offer letter and a pay statement are career artifacts; the campus reading is established by the school being the employer",
           "design_cite": "§5.4 'a Career template may define company → role or recruiting cycle → document type'"
         },
@@ -2879,7 +2879,7 @@
           "design_cite": null
         },
         {
-          "domain": "financial.records",
+          "domain": "fin.financial-records",
           "signal": "pay statements are financial records the design protects before placement",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         }
@@ -2989,7 +2989,7 @@
       },
       "collides_with": [
         {
-          "domain": "research.project",
+          "domain": "res.research-project",
           "signal": "a thesis chapter and a manuscript are often the same text; the research reading carries a project identifier and a venue, the thesis reading carries a degree and a committee",
           "design_cite": "§3.11 'Research files may use project, stage, artifact type, lab, and venue.'"
         },
@@ -3113,7 +3113,7 @@
       },
       "collides_with": [
         {
-          "domain": "research.project",
+          "domain": "res.research-project",
           "signal": "the placement is the container, the project is the intellectual content; a poster carries both and the project may outlive the placement",
           "design_cite": "§3.11 'Research files may use project, stage, artifact type, lab, and venue.'"
         },
@@ -3235,17 +3235,17 @@
       },
       "collides_with": [
         {
-          "domain": "travel.trip",
+          "domain": "pers.travel-record",
           "signal": "the itinerary, boarding pass and hotel booking are ordinary travel records that happen to serve a conference; the design lists travel as its own template area",
           "design_cite": "§5.1 'Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material'"
         },
         {
-          "domain": "research.project",
+          "domain": "res.research-project",
           "signal": "the abstract and poster are research artifacts with a venue; the conference reading owns the trip, the project reading owns the science",
           "design_cite": "§3.11 'Research files may use project, stage, artifact type, lab, and venue.'"
         },
         {
-          "domain": "financial.records",
+          "domain": "fin.financial-records",
           "signal": "reimbursement claims and receipts are financial records the design protects before placement",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
@@ -3363,12 +3363,12 @@
           "design_cite": null
         },
         {
-          "domain": "travel.trip",
+          "domain": "pers.travel-record",
           "signal": "visas, flights and housing are travel records; a term abroad is not a trip and should not be absorbed into one",
           "design_cite": "§5.1 'Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material'"
         },
         {
-          "domain": "identity.personal-identity",
+          "domain": "pers.identity-document",
           "signal": "a visa and a residence permit are among the protected records the design names",
           "design_cite": "§4.9 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records'"
         },
@@ -3481,7 +3481,7 @@
       },
       "collides_with": [
         {
-          "domain": "medical.record",
+          "domain": "med.clinician-clinical-note",
           "signal": "case logs and clinical notes concern patients; the design names medical material a safety domain to be protected before any automated placement",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
@@ -3602,7 +3602,7 @@
       },
       "collides_with": [
         {
-          "domain": "career.recruiting",
+          "domain": "career.internship-application",
           "signal": "the offer letter and position description are career artifacts; the credit reading is established by a course code and a learning agreement",
           "design_cite": "§5.4 'a Career template may define company → role or recruiting cycle → document type'"
         },
@@ -3850,7 +3850,7 @@
           "design_cite": "§3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as \"syllabus,\" \"lecture,\" \"credits,\" \"instructor,\" or \"semester.\"'"
         },
         {
-          "domain": "photos.event",
+          "domain": "pers.photo-event",
           "signal": "performance photographs and recordings carry capture metadata and will be claimed by the media template, whose order the design puts time first",
           "design_cite": "§5.4 'a Photos template may define year → event'"
         },
@@ -3971,7 +3971,7 @@
           "design_cite": null
         },
         {
-          "domain": "medical.record",
+          "domain": "med.medical-certification-letter",
           "signal": "physical clearances and medical-hardship waivers carry clinical detail the design protects first",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
@@ -4207,7 +4207,7 @@
       },
       "collides_with": [
         {
-          "domain": "medical.record",
+          "domain": "med.medical-certification-letter",
           "signal": "supporting documentation is a medical or psychological report; the design names medical material a safety domain to be protected before placement",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
@@ -4336,7 +4336,7 @@
           "design_cite": "§4.8 'an application packet does not silently absorb a document with a conflicting target institution'"
         },
         {
-          "domain": "legal.matter",
+          "domain": "legal.litigation-dispute",
           "signal": "a contested case involves counsel and legal correspondence; the design names legal material a safety domain protected before placement",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
@@ -4465,12 +4465,12 @@
           "design_cite": "§3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as \"syllabus,\" \"lecture,\" \"credits,\" \"instructor,\" or \"semester.\"'"
         },
         {
-          "domain": "financial.records",
+          "domain": "fin.financial-records",
           "signal": "budgets, sponsorships and reimbursements are financial records the design protects before placement",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
         {
-          "domain": "photos.event",
+          "domain": "pers.photo-event",
           "signal": "event photographs carry capture metadata and will be claimed by the media template",
           "design_cite": "§5.4 'a Photos template may define year → event'"
         }
@@ -4701,12 +4701,12 @@
           "design_cite": null
         },
         {
-          "domain": "financial.records",
+          "domain": "fin.financial-records",
           "signal": "gift receipts are financial and tax-relevant records the design protects before placement",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
         {
-          "domain": "career.recruiting",
+          "domain": "career.networking-and-referrals",
           "signal": "alumni mentoring and networking material is career material with a school attached",
           "design_cite": "§5.4 'a Career template may define company → role or recruiting cycle → document type'"
         }
@@ -4828,7 +4828,7 @@
           "design_cite": "§3.9 'A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract.'"
         },
         {
-          "domain": "identity.personal-identity",
+          "domain": "pers.identity-document",
           "signal": "a licence with a photograph and an identifier adjoins the identity material the design protects first",
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
