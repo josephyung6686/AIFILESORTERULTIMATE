@@ -50,9 +50,25 @@ live at once; under §3.11's own mechanism roughly five are active for any given
 reading the catalogue is aligned with the design and **P6's Done-means 2 is the thing that is
 wrong** — a SPEC over-constraining a design it was meant to implement.
 
-**What you need to decide:** does the field catalogue stay closed at ~37 (and the 500-domain
-catalogue becomes something else — a routing aid rather than a fact schema), or does it become
-open-ended with §3.11's six rows as its seed? Everything about P6's shape follows from this.
+**Review round 1 turned my reading into a proof.** §3.8 — a section P6's own slice table says it
+owns — names four role fields outright:
+
+> "The agent should model these as distinct facets, such as `authored_by` and `target_school`, or
+> `our_firm` and `client`."
+
+**None of the four appears in any §3.11 row.** And P6's own Done-means 13 and Done-means 22 both
+require `authored_by` to exist. So Done-means 2 forbids a field two other Done-means items require,
+and Task 2 as written forbids the field Tasks 9 and 24 must test.
+
+That settles the direction: the closed reading is not merely restrictive, it is **internally
+impossible**. §3.11's table cannot be a closed list, because §3.8 states fields outside it as
+plain design text. What remains yours is only *how far* it opens.
+
+**What you need to decide:** does the field catalogue open fully — §3.11's six rows as a seed, the
+500-domain catalogue as its growth — or open narrowly to §3.8's four plus §3.11's, with the domain
+catalogue becoming a routing aid rather than a fact schema? Everything about P6's shape follows.
+**Cost to change: low now, very high after P6 is built.** This is the decision I would most want
+made before Task 1.
 
 **Cost to change:** low now, very high after P6 is built. This is the decision I would most want
 made before Task 1.
@@ -77,6 +93,20 @@ The catalogues carry both `record type` / `artifact type` (spaced, matching §3.
 design's convention — but nobody said so, so authors split. Mechanical to fix once you confirm
 spaced wins; I have not applied it, because renaming 1,287 fields on my own reading is exactly the
 kind of silent decision this document exists to prevent.
+
+**Found twice independently.** Review round 1 hit the same split inside the plans: §3.11's table
+writes `work type`, `target university`, `media type`; the P6 SPEC's own `fields` example writes
+`work_type`, `target_university`. So the inconsistency is in the SPEC as well as the catalogues.
+**One rule closes both.**
+
+### B5 · Four more from review round 1
+
+| # | Question | Why it is yours |
+|---|---|---|
+| B5a | **What row does P6 write while OQ10 is open?** Two `validated` facts asserting conflicting course codes on one file. None of the thirteen `unresolved` reasons can name that situation, and B7 forbids writing nothing. | The answer to OQ10 can wait; the *row* cannot. |
+| B5b | **Which of P4's nine `completeness` values imply `unreadable_unclassified`?** §8.4 names five handling classes and never mentions extraction completeness. The SPEC states one mapping; the other eight decide whether a real file is releasable. | P7's first constraint is that it owns no detection rule, so it cannot invent the other eight. |
+| B5c | **Was W1 ratified?** `07-fidelity-audit.md` heads it *"Nearest faithful fix (not applied)"*, and P7's SPEC adopted it verbatim and now tests it as contract — including "where the design is silent on a redaction default, the more redacting option is the default." §8.4's `must` is real; that derivation is the audit's, not the design's. | It constrains what ships. |
+| B5d | **`filename` as a releasable kind** — the one P7 open question its own plan left off its list. §8.4's releasable list is five and does not name it. | See C9a. |
 
 ### B4 · Jurisdiction
 
