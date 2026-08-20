@@ -98,3 +98,64 @@ def test_the_extra_predicate_also_protects_a_whole_subtree(tmp_path):
     deep.parent.mkdir(parents=True)
     extra = lambda p: p.name == "PrivateFrameworks"
     assert is_protected_container(deep, extra=extra) is True
+
+
+# ------------------ the label Joseph asked for must reach the database
+#
+# Joseph's constraint has two halves. The first — never read, never moved — is
+# implemented and defended: `is_protected_container` walks the whole ancestor chain
+# and `exclusion_for` checks it before every other rule, with no override keyword.
+#
+# The second half is his too, in his own words: "we have a label for it as unread or
+# untouched because of this ... and there will be a place where the user can find this
+# later in the UI." Found by a council review: `LABEL_UNTOUCHED_PROTECTED` was defined
+# in this module, documented as "§8.6's category name for the progress line and P13's
+# inspectable list", and its ONLY use anywhere was a test asserting the constant
+# equals its own literal. It never reached `ExclusionVerdict`, never reached the
+# table, and never reached the summary — so P13, when built, would have found the
+# label absent and re-derived it from `rule`, which is a second computation of one
+# value and the defect class this project pays for most.
+#
+# A promise that stops at a module constant is not a promise the product keeps.
+
+def test_the_verdict_carries_the_label_not_just_the_rule(tmp_path):
+    from scan_agent.exclusion import LABEL_UNTOUCHED_PROTECTED, exclusion_for
+    verdict = exclusion_for(tmp_path / "Numbers.app", is_dir=True,
+                            applies_to="scanned_source",
+                            is_protected=lambda p: str(p).endswith(".app"))
+    assert verdict is not None
+    assert verdict.label == LABEL_UNTOUCHED_PROTECTED
+
+
+def test_the_label_survives_into_storage(conn, tmp_path):
+    """§8.6's progress line and P13's inspectable list both read the stored row."""
+    from database_agent.db import create_schema
+    from scan_agent.exclusion import (
+        LABEL_UNTOUCHED_PROTECTED, exclusion_for, record_exclusion,
+    )
+    from scan_agent.run import start_scan_run
+    from scan_agent.schema import create_scan_schema
+    from scan_agent.selection import record_selection
+
+    create_schema(conn)
+    create_scan_schema(conn)
+    selection = record_selection(conn, sources=[tmp_path], candidate_roots=[],
+                                 cross_folder_moves=False, selected_by=None)
+    scan_run = start_scan_run(conn, selection)
+    verdict = exclusion_for(tmp_path / "Numbers.app", is_dir=True,
+                            applies_to="scanned_source",
+                            is_protected=lambda p: str(p).endswith(".app"))
+    record_exclusion(conn, scan_run, verdict)
+
+    row = conn.execute("SELECT label FROM exclusion_verdicts").fetchone()
+    assert row["label"] == LABEL_UNTOUCHED_PROTECTED
+
+
+def test_an_ordinary_exclusion_carries_its_own_label_and_not_the_protected_one(tmp_path):
+    """§1.1's other rules are not protected containers, and must not borrow the word
+    — five strings share the stem `protected` and no two mean the same thing."""
+    from scan_agent.exclusion import LABEL_UNTOUCHED_PROTECTED, exclusion_for
+    verdict = exclusion_for(tmp_path / "node_modules", is_dir=True,
+                            applies_to="scanned_source")
+    assert verdict is not None
+    assert verdict.label != LABEL_UNTOUCHED_PROTECTED

@@ -137,9 +137,11 @@ def boundary_fingerprint(conn: sqlite3.Connection, scan_run_id: str) -> dict:
     """The three things Done-means 14 requires to be identical, comparably shaped."""
     return {
         "exclusions": [
-            (row["path"], row["rule"], row["rule_subject"], row["applies_to"])
+            (row["path"], row["rule"], row["rule_subject"], row["applies_to"],
+             row["label"])
             for row in conn.execute(
-                "SELECT path, rule, rule_subject, applies_to FROM exclusion_verdicts "
+                "SELECT path, rule, rule_subject, applies_to, label "
+                "FROM exclusion_verdicts "
                 "WHERE scan_run_id = ? ORDER BY path, applies_to", (scan_run_id,))
         ],
         "cache": [

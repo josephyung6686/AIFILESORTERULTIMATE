@@ -100,6 +100,18 @@ class ExclusionVerdict:
     rule: str
     rule_subject: str
     applies_to: str
+    #: §8.6's category name for the progress line, and P13's inspectable list.
+    #: `None` for every rule the design gives no label to — only the protected
+    #: container has one, ratified 2026-08-20, and inventing labels for the other
+    #: three §1.1 rules would be P3 authoring a vocabulary nobody asked for.
+    #:
+    #: It is a FIELD rather than a constant because a constant is not a promise.
+    #: `LABEL_UNTOUCHED_PROTECTED` existed, was documented as the progress line's
+    #: category name, and its only use anywhere was a test asserting it equalled its
+    #: own literal: it reached no verdict, no row and no summary. P13 would have
+    #: found it missing and re-derived it from `rule`, which is one value computed
+    #: twice — this project's most expensive defect.
+    label: str | None = None
 
 
 def exclusion_for(path, *, is_dir: bool, applies_to: str,
@@ -117,7 +129,8 @@ def exclusion_for(path, *, is_dir: bool, applies_to: str,
     # under the weaker rule, and the label would then understate why it was skipped.
     if is_protected_container(path, extra=is_protected):
         return ExclusionVerdict(str(path), RULE_PROTECTED_CONTAINER,
-                                REASON_PROTECTED_CONTAINER, applies_to)
+                                REASON_PROTECTED_CONTAINER, applies_to,
+                                LABEL_UNTOUCHED_PROTECTED)
     if project_root_markers:
         return ExclusionVerdict(str(path), RULE_PROJECT_ROOT_DESCENDANT,
                                 project_root_markers[0], applies_to)
@@ -152,6 +165,7 @@ CREATE TABLE IF NOT EXISTS exclusion_verdicts (
     rule         TEXT NOT NULL,
     rule_subject TEXT NOT NULL,
     applies_to   TEXT NOT NULL,
+    label        TEXT,
     observed_at  TEXT NOT NULL
 );
 CREATE TRIGGER IF NOT EXISTS exclusion_verdicts_no_delete
@@ -166,10 +180,11 @@ def record_exclusion(conn: sqlite3.Connection, scan_run_id: str,
                      verdict: ExclusionVerdict) -> int:
     conn.execute(
         "INSERT INTO exclusion_verdicts "
-        "(scan_run_id, path, rule, rule_subject, applies_to, observed_at) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "(scan_run_id, path, rule, rule_subject, applies_to, label, observed_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         (scan_run_id, verdict.path, verdict.rule, verdict.rule_subject,
-         verdict.applies_to, datetime.now(timezone.utc).isoformat()),
+         verdict.applies_to, verdict.label,
+         datetime.now(timezone.utc).isoformat()),
     )
     return conn.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
 

@@ -211,3 +211,54 @@ changes: one loop becomes native extraction → P6 pass → targeted OCR → a s
 | E2 | `.pages`, `.key`, `.swift`, `.ts`, `.go` route as `unsupported`. §2.4 and §2.9 do not name them. | Those files get a filename and nothing else. | Spec-faithful: left unrouted rather than invented. |
 | E3 | `.numbers` routes as a spreadsheet, but a real Numbers file is often a **package**. P3 Q7 (packages) is open. | A silent empty extraction on a common Mac format. | Left as the SPEC's routing says. |
 | E4 | Filename normalization NFC vs NFD (P3 Q1) is open; macOS stores NFD. | `normalized_filename` is P3's raw `path.name`, so it is not actually normalized. | Passed through unchanged, and P5 labels it `direct` metadata. |
+
+---
+
+## B6 · Slice 11 — business operations, HR, strategy and management
+
+Source: `planning/domains/11-business-operations.json` (45 entries, 11 open questions). Appended by the slice-11 author; nothing below was decided.
+
+**B6.1 · `ops.business-records` — Organisational records (branch root)**
+
+> TWO questions, both of which every entry in this slice inherits. FIRST — whose organisation is it? One person's Documents folder holds their employer's strategy deck, a client's brief, a supplier's quotation and their own household budget, and §3.8's our_firm/client discipline names the problem without deciding it. For most of this slice the discriminator is not in the document: an operating budget and a household budget are the same spreadsheet, and a performance review the user received and one they wrote are the same form. Does the product ask the user once for their own organisation and role — making it a user fact the way §4's user-approved folder is — or does it try to read the role per file and accept that it will often return unknown? SECOND — does §2.9's 'potentially sensitive' reach COMMERCIAL confidentiality, or only personal data? §8.4's corpus list is entirely personal: “identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. A pre-announcement board pack, an unsigned term sheet and a customer list are not personal data but are exactly the material a user would not want in a cloud prompt. This catalogue marks sensitivity on personal-data grounds only and leaves the commercial question to Joseph, because widening §2.9's phrase would silently widen P7's scope.
+
+**B6.2 · `ops.okr-goals` — Goals, OKRs and scorecards**
+
+> Whether an individual's goal sheet is an operations artifact or an HR record is not a property of the document — the same template is used for both, and organisations differ on whether goal attainment feeds pay. This catalogue routes it to `hr.performance-cycle` whenever a named individual is the owner, which is a conservative default rather than a decision. Joseph decides whether that default is right, because it determines whether the file is treated as sensitive.
+
+**B6.3 · `ops.operating-plan-budget` — Operational budgeting and forecasting**
+
+> A sole trader's, freelancer's or founder's budget is simultaneously a household budget and a business one, and no field in the document separates them — the finance slice raises the same problem for bank accounts and reaches the same wall. Whether the product asks the user to declare a business entity once, or accepts that this material is genuinely dual-homed under §4.9's “A file may validly belong to more than one accepted group”, is Joseph's call and it decides whether an operations branch and a personal branch both surface the same file.
+
+**B6.4 · `ops.meeting-record` — Meeting agendas, minutes and notes**
+
+> Meeting records are the clearest case in the slice where the personal and professional shapes are identical: a residents' association AGM minute, a school governor's minute and a departmental minute differ in no readable respect. This entry assumes an employer or client organisation is required and therefore silently declines volunteer and community meetings, pushing them to the personal slice. Joseph decides whether that is right, or whether one meeting domain should span both — which would make the meeting series, not the organisation, the top folder level.
+
+**B6.5 · `ops.project` — Project delivery artifacts**
+
+> Should there be ONE `project` domain across the whole catalogue rather than one per slice? §3.11 already gives `project` to Research and to Code, this entry adds a business instance, and the personal slice has its own. §3.12 says “The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically” — so the field is shared and only the SCHEMA around it differs. Either the product has one project domain whose neighbouring fields vary, or it has four domains that will compete for every file containing the word. This catalogue cannot resolve it alone because the answer changes four slices; it is Joseph's.
+
+**B6.6 · `ops.business-travel` — Business travel administration**
+
+> Travel is a design-named domain owned by the personal slice, and this entry deliberately carves the employer's side out of it. The mixed trip — flights booked by the employer, a weekend added at the traveller's own cost, photographs from both — has no defensible split, and §4.9's “A file may validly belong to more than one accepted group” suggests it should simply be two memberships. Whether the product surfaces one trip in two branches, or whether business travel should not be a separate domain at all and should instead be a purpose facet on the personal travel domain, is Joseph's call. It matters because it decides whether a personal holiday can end up in a work folder.
+
+**B6.7 · `ops.sourcing-rfp` — Sourcing events, tenders and bid evaluation**
+
+> This entry is written from the BUYER's side. The same corpus, for a supplier-side user, contains the mirror image — the RFPs they respond to and the bids they submit — and every field inverts: their bidder becomes our organisation, their tender reference is someone else's. §3.8's “such as authored_by and target_school, or our_firm and client” names the role discipline that makes this expressible but does not say whether one domain with a role field or two domains is right. This catalogue routes supplier-side bidding to `ops.partnerships-bd`, which is a compromise rather than a decision, and it is Joseph's call because it determines whether a consultancy's proposal library and a buyer's tender file are one branch or two.
+
+**B6.8 · `ops.client-engagement` — Client engagements and professional-services delivery**
+
+> Client data received during an engagement is the sharpest privacy problem in this slice: it is a THIRD PARTY's personal and financial material sitting in the user's corpus, and none of the protections are about the user at all. §8.4 requires privacy be enforced before content reaches a model, and “Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local”. Whether client-received data should be a distinct domain with its own treatment — rather than a work type inside this one — is Joseph's call, and it is the decision most likely to be regretted if made implicitly. SECOND: this domain is authored THREE times across the catalogue — here, as `career.consulting-engagement` and as `studio.client-engagement` — with near-identical templates. §5.7 names client engagements once; three entries answer it. Which one owns non-creative, non-freelance professional services is a merge decision, not a recognition problem.
+
+**B6.9 · `hr.job-requisition` — Job requisitions and role definitions**
+
+> FOUR entries in this catalogue duplicate four in the career slice rather than bordering them. `hr.job-requisition` / `career.employer-job-requisition`, `hr.recruiting-pipeline` / `career.employer-candidate-packet`, `hr.interview-panel` / `career.employer-interview-scorecard` and `hr.offer-package` / `career.employer-offer-approval` describe the same artifacts, key on the same requisition id, and differ only in whether the organisation or the requisition leads the template. This is not a boundary that better recognition would sharpen — it is one domain authored twice, and §3.6 “that each fact or label belongs to an allowed domain schema” cannot arbitrate it, because a fact belonging to two allowed schemas passes validation in both. Either the career slice keeps employer-side recruiting and this catalogue drops these four, or the reverse; the split cannot stand. This slice does not resolve it unilaterally because the two were authored in parallel and neither author has standing over the other. It is Joseph's, and it should be settled at merge.
+
+**B6.10 · `hr.dei-program` — Diversity, equity and inclusion programmes**
+
+> This entry names `characteristic_category` as a field but deliberately does not enumerate its values. The list of protected or monitored characteristics is jurisdiction-defined and the categories are not translations of one another. More importantly, a catalogue that enumerated them would be instructing the extractor to look for them, and §3.7's conservative-facet-extraction discipline argues against building a gazetteer of characteristics at all. Whether this product should DETECT such material in order to protect it, or should decline to model it and let it fall to §7.3's Protected Records template — “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials” — is Joseph's call, and it is the single most consequential question in this slice.
+
+**B6.11 · `hr.employee-relations` — Employee relations cases**
+
+> There is no `hr.personnel-file` entry in this catalogue, and there probably should be one somewhere: the employer's per-employee file is the natural home for contracts, pay letters, training records, reviews and case outcomes about one person. This slice deliberately declines to create it, because a per-person folder is exactly what §3.8's “It should avoid using authorship or creator identity as a destination dimension” warns against and because it collides head-on with the career slice, which holds the same documents from the individual's own side. Whether the product should model an employer-held personnel file at all — and if so, which slice owns it — is Joseph's call and it is left open rather than resolved by omission.
+
