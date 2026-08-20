@@ -67,6 +67,38 @@ tonight — P2's `handling_class` was being fed P1's `sensitivity_state`; it is 
 | C9b | The SPEC calls its three protected consequences "verbatim from §8.4"; they are faithful in substance, lightly normalized in grammar. | The plan stores §8.4's sentence, not the SPEC's rendering. |
 | C9c | Mode identifiers (`offline`, `local_model`, `hybrid`, `cloud_assisted`) are the SPEC's; §8.4's names are "Fully offline mode", "Local-model mode", "Hybrid mode", "Cloud-assisted mode". | Both pinned, identifier-to-display-name. |
 
+### C11–C14 · P6, facts and facets
+
+From `planning/parts/P6-facts-facets/PLAN-SKELETON.md`. The planner refused all four.
+
+| # | Question | Blocks | Recommendation it gave |
+|---|---|---|---|
+| C11 | **The `no_usable_facts` cycle.** §2.2 permits targeted OCR "only when its stored evidence yields no usable facts" — but P6's pass needs P5's observations and P5's OCR decision needs P6's verdict. | Targeted OCR never fires today; a stub always says "fine". | **Four passes**: P6 resolves on native observations → P5 runs targeted OCR for the unresolved → P6 re-resolves. §3.4's cache key already makes the second pass a different key, so nothing is overwritten. |
+| C12 | **Three event types P6 needs that P1 does not have** — value creation, value merge/alias, user fact correction. | P6's Provenance section promises three types that would raise at run time. | Ride them on `fact creation` / `fact rejection` for v1 (no P1 change; I4's read keys on `proposal_class` + `basis_key`, not event type) — **and say so in the SPEC**. |
+| C13 | **Five naming questions, four of them the same underlying issue** (see C15). | Five Done-means items. | Settle OQ4 first, then apply the same rule to the rest. "An afternoon of naming that removes five blocked tests." |
+| C14 | **Which fields are `destination_eligible`** beyond §3.8's rule that no authorship or creator-identity field ever is. | P10 cannot build a folder template against a column nobody filled. Not blocking P6. | — |
+
+### C15 · The P6 SPEC contradicts the design on field names — **this one is important**
+
+The planner verified these word by word. In each case the SPEC and the design disagree, and
+**the design wins**:
+
+- **`subject` vs `course`.** §3.1, §3.2 and §3.12 all say **`subject`** — "A fact is a statement such
+  as `subject = BUSIB 4300`". §3.11's Academic row says `course`. The SPEC's Done-means 4 requires
+  "exactly the three facts §3.2 names (**course**, term, work type)" and the field catalogue carries
+  `course` with **no `subject` row at all** — while the SPEC's own OQ4 leaves the question open. So
+  Done-means 4 answers OQ4 by fiat, and answers it against §3.2.
+- **`capture date` vs `creation date` vs `capture year`.** Done-means 5 requires an EXIF
+  `DateTimeOriginal` to produce **`capture date`**; Done-means 2 restricts the catalogue to a field
+  list that contains **neither** — the universal set has `creation date`, the Photos row has
+  `capture year`. §3.1 and §3.2 both use `capture date = 2026-07-17`. **Done-means 5 requires a field
+  Done-means 2 forbids from existing.**
+- Plus `document type` vs `application document type`, and two more.
+
+Four of the five are one underlying issue: **the design states its field names once in prose and once
+in a table, and the two do not match.** You need to rule once — table wins, or prose wins — and then
+apply it. I did not pick.
+
 ### C10 · An ordering defect I introduced, and the shape of its fix
 
 P6's SPEC: `no_usable_facts` is *"defined only after P6's deterministic pass on that content hash has
