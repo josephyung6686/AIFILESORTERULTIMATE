@@ -47,6 +47,47 @@ RULE_LITERAL_DIRECTORY_NAME = "literal directory name"
 RULE_CATEGORY = "category"
 RULE_PROJECT_ROOT_DESCENDANT = "software project root descendant"
 
+#: Joseph's ratified rule, 2026-08-20 (P3 SPEC; `11-ops-runtime.md` §4b). Applications
+#: and system items are never read and never moved, and **no policy, approval, or user
+#: gesture makes them movable** — which is what separates this from every other refusal
+#: in the design. `exclusion_for` therefore checks it FIRST and takes no keyword that
+#: could switch it off.
+RULE_PROTECTED_CONTAINER = "protected container"
+REASON_PROTECTED_CONTAINER = "protected_container"
+
+#: §8.6's category name for the progress line and P13's inspectable list. It is a
+#: statement about the product's restraint, not a property of the file.
+LABEL_UNTOUCHED_PROTECTED = "untouched_protected"
+
+#: The design spells exactly one literal — `.app` (P3 SPEC Q7). The SPEC also names the
+#: CATEGORY "system location" and enumerates no member, so P3 authors none: inventing
+#: `/System`, `/Library` or `/usr` here would be the gazetteer this project refuses to
+#: write. A deployment supplies the rest through `extra`.
+PROTECTED_BUNDLE_SUFFIXES: tuple[str, ...] = (".app",)
+
+
+def is_protected_container(path, *, extra=None) -> bool:
+    """Is this an application or system item whose contents must never be examined?
+
+    **The unit of protection is the SUBTREE, not the entry.** §4b: P3 "does not create
+    a `files` row for anything inside it." An earlier version of this function tested
+    only the path's own suffix, which protected `Numbers.app` and admitted
+    `Numbers.app/Contents/sheet.numbers` — the exact read the rule forbids. It passed
+    every test, because every test asked about the bundle. Found by injecting this
+    predicate into P5's gate and watching the gate admit the file.
+
+    `extra` is a caller-supplied predicate for the members the design does not name.
+    It can only ADD: a caller cannot un-protect a `.app`, because the rule has no
+    override and a predicate that could return False for one would be that override.
+    """
+    candidate = PurePath(path)
+    for ancestor in (candidate, *candidate.parents):
+        if ancestor.suffix in PROTECTED_BUNDLE_SUFFIXES:
+            return True
+        if extra is not None and extra(ancestor):
+            return True
+    return False
+
 #: R3's `applies_to` — the SPEC's two words, and no third.
 APPLIES_TO_SCANNED_SOURCE = "scanned source"
 APPLIES_TO_CANDIDATE_ROOT = "candidate root"
@@ -62,7 +103,8 @@ class ExclusionVerdict:
 
 
 def exclusion_for(path, *, is_dir: bool, applies_to: str,
-                  project_root_markers: tuple[str, ...] = ()) -> ExclusionVerdict | None:
+                  project_root_markers: tuple[str, ...] = (),
+                  is_protected=None) -> ExclusionVerdict | None:
     """The §1.1 verdict for one entry, or None when no rule fires.
 
     `project_root_markers` are the markers observed in the entry's PARENT directory:
@@ -70,6 +112,12 @@ def exclusion_for(path, *, is_dir: bool, applies_to: str,
     which §1.1 rejects whether it is a file or a directory.
     """
     name = PurePath(path).name
+    # FIRST, and before every other rule: this is the one refusal nothing overrides.
+    # Ordering it after the others would let a `.app` inside node_modules be recorded
+    # under the weaker rule, and the label would then understate why it was skipped.
+    if is_protected_container(path, extra=is_protected):
+        return ExclusionVerdict(str(path), RULE_PROTECTED_CONTAINER,
+                                REASON_PROTECTED_CONTAINER, applies_to)
     if project_root_markers:
         return ExclusionVerdict(str(path), RULE_PROJECT_ROOT_DESCENDANT,
                                 project_root_markers[0], applies_to)
