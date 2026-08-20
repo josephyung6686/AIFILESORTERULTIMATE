@@ -38,9 +38,7 @@ from eval_harness.bundle import (
     add_extraction_run, add_file_entry, add_text_unit, open_bundle, seal_bundle,
 )
 
-from evidence_shape.store import (
-    observations_for_run, runs_for_content, text_units_for_run,
-)
+from evidence_shape.store import runs_for_content, text_units_for_run
 
 from extractors.authorship import COMPONENT_VERSION, SUBSYSTEM
 from extractors.dispatch import current_versions, extract
