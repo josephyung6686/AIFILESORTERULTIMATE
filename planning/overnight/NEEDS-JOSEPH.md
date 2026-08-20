@@ -23,7 +23,67 @@ assumption I made is stated so you can overturn it cheaply.
 
 ## B. Domains — the schema and template calls
 
-*(filled by the domain agents)*
+### B1 · **The most important one.** A 500-domain catalogue and P6's Done-means 2 cannot both stand
+
+§3.11 states the mechanism the whole domain catalogue implements:
+
+> "The fields used to describe files should not be one enormous universal list. The product should
+> have a small shared set of universal file facts, such as file type, creation date, language,
+> duplicate family, version family, and sensitivity status. It should then **activate
+> domain-specific schemas only when the evidence indicates that a domain is plausible**."
+
+It then gives a table of **six** domains — Academic, College applications, Research, Finance,
+Photos, Code — with about five fields each.
+
+**P6's SPEC turned that table into a closed list.** Done-means 2 restricts the field catalogue to
+the six universal fields, `download_session` and the six §3.11 domain sets, *"and no field outside
+them"* — roughly 37 fields total.
+
+The catalogues you asked for currently define **1,287 distinct field names across 324 domains**, and
+five more catalogues are still landing.
+
+**My reading, and I want you to check it.** The design's six rows are *examples of a mechanism*, not
+the mechanism's whole output — the sentence that carries the rule is "activate domain-specific
+schemas", and "should not be one enormous universal list" is an argument **for** many small schemas,
+not against having many of them. 1,287 fields is only "one enormous universal list" if they are all
+live at once; under §3.11's own mechanism roughly five are active for any given file. On that
+reading the catalogue is aligned with the design and **P6's Done-means 2 is the thing that is
+wrong** — a SPEC over-constraining a design it was meant to implement.
+
+**What you need to decide:** does the field catalogue stay closed at ~37 (and the 500-domain
+catalogue becomes something else — a routing aid rather than a fact schema), or does it become
+open-ended with §3.11's six rows as its seed? Everything about P6's shape follows from this.
+
+**Cost to change:** low now, very high after P6 is built. This is the decision I would most want
+made before Task 1.
+
+### B2 · The field-name conflict reaches further than P6
+
+C15 below records that §3.1, §3.2 and §3.12 say **`subject`** while §3.11's Academic row says
+**`course`**. The domain catalogues have now picked `course` (5 entries) *and* `subject` (5 entries)
+— because both are defensible and nobody has ruled.
+
+Same for capture: §3.1 and §3.2 use `capture date = 2026-07-17` as a worked example; §3.11's
+universal set has **`creation date`** and its Photos row has **`capture year`**. `capture date` is in
+neither. Four catalogue entries use `capture date`, none use `creation date`.
+
+So this is not a P6 detail — it is a naming rule that 324 entries and counting are already applying
+inconsistently.
+
+### B3 · Two naming conventions in one namespace
+
+The catalogues carry both `record type` / `artifact type` (spaced, matching §3.11's own style) and
+`case_identifier` / `matter_reference` (snake_case). §3.11's table is spaced, so spaced is the
+design's convention — but nobody said so, so authors split. Mechanical to fix once you confirm
+spaced wins; I have not applied it, because renaming 1,287 fields on my own reading is exactly the
+kind of silent decision this document exists to prevent.
+
+### B4 · Jurisdiction
+
+Three catalogues (tax, legal practice, government) independently raised the same question: this
+product states no jurisdiction, and tax forms, court structures, permit regimes and certificate
+names differ completely by country. Each wrote functionally where it could and flagged where it
+could not. **Which jurisdictions ship at launch?**
 
 ## C. P6 / P7 plan questions
 
