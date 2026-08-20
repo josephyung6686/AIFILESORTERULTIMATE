@@ -133,11 +133,22 @@ into catalogue 06; `submission.zip` yields five document-name markers. Catalogue
 MOD 11-2 checksum validators are implemented in the checker and self-verified against known-good and
 known-bad values, so the "checksum required" claims are exercised rather than asserted.
 
-Four checks found real defects during authoring, all now fixed and recorded: naive `prefix` matching
+**`example_false` does not mean the same thing in every file.** In catalogue 01 it must match *no
+row at all*. In catalogue 04 the rows are sibling conventions sharing prefixes, so it means *this row
+must not claim a string another row rightly claims* — those rows name the winner in
+`discriminates_from`, and the checker asserts the collision lands on exactly that row, so a new or
+misdirected collision still fails. Catalogues 03, 04 and 07 also carry `cross_match_expected` on a
+few `refused`/`uncertain` rows, stating an intended interaction with a live entry. Leaving that
+intent implicit is how a wrong diagnosis hid once already — see catalogue 04's `provenance_note`.
+
+Five checks found real defects during authoring, all now fixed and recorded: naive `prefix` matching
 made `Microsoft Word` match `Microsoft Word skills certificate` (68 rows); catalogue 06's author-year
 citation pattern required a name *after* `et al.`; catalogue 07's `__init__.py` row referenced an id
 catalogue 05 never generated; and catalogue 06's PMID row capped at 8 digits, which silently missed
-every PubMed ID issued since NLM moved to 9-digit UIs in 2002.
+every PubMed ID issued since NLM moved to 9-digit UIs in 2002. A fifth defect was in a *diagnosis*
+rather than in data: catalogue 04's `provenance_note` first recorded a pattern bug that did not
+exist, when the real cause was an example written without a file extension being truncated by the
+checker's `stem()`. Both the correction and the guard that now prevents it are in that file.
 
 ## Sourcing — read the `verification` tag before trusting a citation
 

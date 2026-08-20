@@ -46,6 +46,29 @@ for e in doc["refused"] + doc["uncertain"]:
     else:
         fails.append(f"{e['id']}: {e['example_false']!r} matched by {hit['id']}")
 
+# GUARD 1 -- the catalogues-finish agent's finding, generalised.
+# macOS puts dots in the time, so a bare-stem example is truncated by stem() and
+# then fails or passes for the wrong reason. Every example must carry an extension.
+for e in doc["entries"] + doc["refused"] + doc["uncertain"]:
+    for key in ("example_true", "example_false"):
+        v = e.get(key)
+        if not v or v in ("\u2014", "-"):
+            continue
+        if stem(v) != v:                      # something was stripped
+            ext = v.rsplit(".", 1)[1]
+            if not (ext.isalnum() and " " not in ext and 1 <= len(ext) <= 5):
+                fails.append(f"{e['id']}.{key}: {v!r} has dots but no file extension -- "
+                             f"stem() truncates it to {stem(v)!r}")
+
+# GUARD 2 -- discriminator collisions must land on exactly the named row.
+for e in doc["entries"]:
+    hit = first(e["example_false"])
+    want = e.get("discriminates_from")
+    got = hit["id"] if hit else None
+    if got != want:
+        fails.append(f"{e['id']}.example_false {e['example_false']!r}: "
+                     f"discriminates_from={want!r} but matched {got!r}")
+
 ACCEPT = [
     # the brief's acceptance case: IMG_4821 is CAMERA, not screenshot
     ("IMG_4821.png", "fnp-apple-dcf-img", "camera_file_system"),

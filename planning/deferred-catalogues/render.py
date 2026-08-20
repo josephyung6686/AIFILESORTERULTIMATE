@@ -50,6 +50,7 @@ COLUMNS: tuple[tuple[str, str], ...] = (
     ("example_true", "example true"),
     ("example_true_2", "example true (rotated)"),
     ("example_false", "example false (must NOT match)"),
+    ("discriminates_from", "discriminates from"),
     ("cross_match_expected", "expected cross-match"),
     ("source", "source"),
 )
@@ -117,6 +118,7 @@ def render(doc: dict) -> str:
              ("evaluation_order", "evaluation order"),
              ("return_value_contract", "return value"),
              ("kind_vocabulary", "kind vocabulary"),
+             ("example_semantics", "example semantics"),
              ("sourcing_note", "sourcing"),
              ("boundary_rule", "boundary rule"))
     for key, label in front:
