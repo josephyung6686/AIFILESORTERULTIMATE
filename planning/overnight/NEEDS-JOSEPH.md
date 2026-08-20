@@ -199,11 +199,42 @@ run. Harmless today only because every test injects a false constant.
 Not a question for you — my defect, and I will fix it — but you should know the caller's shape
 changes: one loop becomes native extraction → P6 pass → targeted OCR → a second P6 pass.
 
-## D. P1–P5 audit questions
+## D. The connection questions — from review round 4
+
+### D1 · **Who writes the sensitivity classification?** Nobody, in thirteen parts.
+
+This is the sharpest structural finding of the night and it is not a P6 or P7 defect — it is a hole
+between all thirteen SPECs.
+
+P7's Deferred section says the detector rule set is *"hand-authored"* and that *"P7 publishes the
+vocabulary the detectors write into."* **No part's SPEC claims the detector.** So:
+
+- `basis = detector` is a vocabulary member with no producer.
+- `files.sensitivity_state` stays NULL after P7 ships.
+- Every file is `unreadable_unclassified`, and §8.4's gate returns `Denied(unclassified)` for
+  **everything**.
+
+The privacy gate would work perfectly and deny the entire corpus, because nothing ever classifies a
+file. **Who owns the detectors — a fourteenth part, P7 itself, or hand-authored configuration you
+supply?**
+
+### D2 · Four cross-part surfaces named by a consumer and produced by no task
+
+| Surface | Named by | Produced by |
+|---|---|---|
+| `SensitivityFacts` protocol | P7 | **nothing** — zero mentions in 1,621 lines of P6's plan |
+| `contradicts(claim, existing_fact)` | P8's Contract-in, as P6's | **nothing** — P6 Task 17 says "P6 owns none of the checking" |
+| `normalize(field, raw_value)` | P8's Contract-in, as P6's | **nothing**, same reason |
+| `StageAdapter` | P2, the connector between a stage and the replay machinery | **no SPEC at all** |
+
+Both plans are careful about *columns* with no writer. Neither checks the converse — a **consumer
+with no producer** — and that is where the wave breaks.
+
+## E. P1–P5 audit questions
 
 *(filled by the audit agents)*
 
-## E. Carried forward from earlier sessions
+## F. Carried forward from earlier sessions
 
 | # | Question | Blocks | My assumption |
 |---|---|---|---|
