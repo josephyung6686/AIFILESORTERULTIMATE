@@ -32,8 +32,21 @@ assumption I made is stated so you can overturn it cheaply.
 > duplicate family, version family, and sensitivity status. It should then **activate
 > domain-specific schemas only when the evidence indicates that a domain is plausible**."
 
-It then gives a table of **six** domains — Academic, College applications, Research, Finance,
-Photos, Code — with about five fields each.
+It then names six domains — Academic, College applications, Research, Finance, Photos, Code — in
+six sentences, **each hedged**:
+
+> "Academic files **may use** school, term, course, instructor, and work type."
+
+**Correction, and it matters.** I first described that as a *table*, and it is not. Verified this
+pass: `00-database-agent-product-design.md` — your words, the source of truth — contains **zero
+pipe characters and zero section numbers**. The `| Domain | Fields |` table everything cites, and
+the § numbers this whole project is written in, exist only in `01-product-design-structured.md`, a
+rendering whose own header says it is *"derived from the source of truth, not a substitute for it"*.
+That rendering turned six sentences saying **"may use"** into a column headed **"Fields"**, and the
+modal disappeared. Four downstream artifacts then cited the rendering as the design.
+
+So the closed reading has even less behind it than the proof below suggests: **you never closed the
+list — you wrote "may use."**
 
 **P6's SPEC turned that table into a closed list.** Done-means 2 restricts the field catalogue to
 the six universal fields, `download_session` and the six §3.11 domain sets, *"and no field outside

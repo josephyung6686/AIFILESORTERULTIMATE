@@ -241,9 +241,9 @@ argument for two records. It is the best argument on that side and it does not d
 **And answer two more things in the same breath**, or the record you pick stays empty:
 
 - **The fifth-class question** above, or round 1's F-9 stays open.
-- **Which part runs the detector.** Round 4's recommended form of an answer is that it be *stated* —
-  it be *stated* — a fourteenth part, or P7's caller deferred to Wave 3, but *"stated in
-  `02-segmentation-map.md`, not left implicit in a Deferred cell"*. Verified live after a real
+- **Which part runs the detector.** Round 4 asks only that the answer be *stated* — a fourteenth
+  part, or P7's caller deferred to Wave 3, but *"stated in `02-segmentation-map.md`, not left
+  implicit in a Deferred cell"*. Verified live after a real
   `run_wave2`: `bundle_file_entry.handling_class None, None` · `files.sensitivity_state None, None`.
 
 ### Reversibility
@@ -680,7 +680,7 @@ Not council business, listed so this is the only document you have to open.
 | **C7** | Retention periods | The design states none, for anything. |
 | **B5c** | Was W1 ratified? | P7 now tests as contract a derivation the fidelity audit headed *"Nearest faithful fix (not applied)"*. |
 | **§4b** | `LABEL_UNTOUCHED_PROTECTED` has no writer and no reader | The carrier of your protected-container promise never reaches the database; its only use anywhere asserts a constant equals its own literal. Three lines to fix in P3, and the risk seat is right that leaving it *"reads as done and is not."* |
-| **R4-3** | Who owns the `contradicts` oracle and `normalize`? | P8's SPEC lists both under *From P6*; P6 Task 17 says *"P6 supplies the four inputs and owns none of the checking."* Two of P6's thirteen `unresolved` reasons are written from a check nobody wrote. |
+| **R4-3** | Who owns the `contradicts` oracle and `normalize`? | P8's SPEC lists both under *From P6*; P6 Task 17 says *"P6 supplies the four inputs and owns none of the checking"*. Two of P6's thirteen `unresolved` reasons are written from a check nobody wrote. |
 | **R4-4** | Who authors a `StageAdapter`? | Named in **no SPEC**, and it is the only connector between a stage and P2's replay machinery. A live scan writes **zero** `stage_output` rows today, and after P6 and P7 it still will. §8.5's per-stage measurement is currently true of the harness and not of the product. |
 
 Two housekeeping items that need no decision at all: **restore the dropped hedges to `01`'s tables**
