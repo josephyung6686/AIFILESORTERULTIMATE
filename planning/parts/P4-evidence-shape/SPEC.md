@@ -795,7 +795,15 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    `analysis_tier ∈ filesystem | native | ocr | llm`. P5 owns the vocabulary and writes the first three;
    P8 writes `llm`. A value outside the four is rejected. `source_type` remains a different field.
 
-2. **Is an observation owned by the content hash or by the file record?** §2.8's field list contains
+2. ~~**Is an observation owned by the content hash or by the file record?**~~ **Settled — ratified
+   2026-08-20: the CONTENT HASH owns the observation.** Two file records with the same content hash
+   share one observation set, and a fact derived on one applies to the other. The file identifier stays
+   on the observation as §2.8 requires, but it is a way in, not the owner — which is why P4's contract
+   was buildable either way. This follows §2.1's *"read each file once per content version"* and §8.2's
+   same-content-new-path rule, and it means a duplicate is never re-extracted. Consequences to carry:
+   P5 re-extracts per content version, not per path; P6 attaches facts to the hash; P11's §6.9
+   multi-home file has one evidence set with several homes. The original wording follows.
+   §2.8's field list contains
    both. §2.1 says the engine should *"read each file once per content version"*; §8.2 says *"If the
    same content appears at a new path, the system recognizes it as the same file version."* Together
    those imply one observation set per content hash, shared by every duplicate file — but §2.8 still

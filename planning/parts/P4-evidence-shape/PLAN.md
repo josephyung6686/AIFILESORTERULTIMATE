@@ -442,7 +442,7 @@ git commit -m "feat(P4): the two §8.2 run events; the caller names itself, P4 a
 
 **`ZERO_OBSERVATION_COMPLETENESS` is three values, not five** (**M3**). `unreadable` and `partial` runs may and normally do carry observations: §2.9 requires an unsupported proprietary format be *"recorded as indexed-but-unreadable rather than silently treated as empty"*, and its metadata-level rows are what "indexed" means. A rule forbidding them would make an indexed PSD indistinguishable from a file nobody opened.
 
-**`OPEN_QUESTIONS` is data, and the tests read it.** Five of P4's six SPEC open questions are still open; the sixth (the extractor-tier vocabulary) closed as I4 and its four values are `ANALYSIS_TIERS`. Publishing the open ones as a mapping means Task 18's guards can name the question they protect, and a later agent that answers one in code has to delete an entry — a visible act — rather than let an assumption drift in.
+**`OPEN_QUESTIONS` is data, and the tests read it.** Four of P4's six SPEC open questions are still open. Two are closed: the extractor-tier vocabulary closed as I4 (its four values are `ANALYSIS_TIERS`), and OQ2 closed on 2026-08-20 — **the content hash owns the observation**, so two file records sharing a hash share one observation set. Publishing the open ones as a mapping means Task 18's guards can name the question they protect, and a later agent that answers one in code has to delete an entry — a visible act — rather than let an assumption drift in.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -562,11 +562,12 @@ def test_a_shape_version_exists_because_the_contract_says_adding_a_kind_bumps_on
     assert isinstance(SHAPE_VERSION, int)
 
 
-def test_the_five_open_questions_are_published_and_the_settled_one_is_gone():
+def test_the_four_open_questions_are_published_and_the_settled_ones_are_gone():
     # OQ1 (the extractor-tier vocabulary) closed as I4; its four values are
     # ANALYSIS_TIERS. The other five are unsettled by the design and stay open.
-    assert set(OPEN_QUESTIONS) == {"OQ2", "OQ3", "OQ4", "OQ5", "OQ6"}
-    assert "OQ1" not in OPEN_QUESTIONS
+    assert set(OPEN_QUESTIONS) == {"OQ3", "OQ4", "OQ5", "OQ6"}
+    assert "OQ1" not in OPEN_QUESTIONS   # closed as I4
+    assert "OQ2" not in OPEN_QUESTIONS   # closed 2026-08-20: the content hash owns
     for question in OPEN_QUESTIONS.values():
         assert question.strip().endswith("?")
 
@@ -669,13 +670,10 @@ REGION_UNITS: tuple[str, ...] = ("px", "norm")
 #: The questions the design leaves unsettled in P4's area. Each blocks or endangers a
 #: named neighbouring part, and each is guarded by a test that fails if it is answered
 #: in code instead of in a SPEC. OQ1 closed as I4 and is deliberately absent.
+#: OQ1 closed as I4; OQ2 closed 2026-08-20 (the content hash owns the observation).
+#: A closed question is DELETED from this mapping, never left with an answer beside
+#: it — an entry here means "still unanswered", and that is what Task 18 reads.
 OPEN_QUESTIONS: Mapping[str, str] = MappingProxyType({
-    "OQ2": (
-        "Is an observation owned by the content hash or by the file record? §2.8's "
-        "field list contains both; §2.1 says read each file once per content version "
-        "and §8.2 says the same content at a new path is the same file version. Do "
-        "two file records with the same content hash share one observation set?"
-    ),
     "OQ3": (
         "Do observations and facts share one reliability vocabulary? §2.8 puts a "
         "reliability state on the observation and §3.13 defines six states for file "
@@ -6517,18 +6515,23 @@ def test_minor_8_the_citation_handle_excludes_the_extractor_version_on_purpose()
 
 # ── Every open question, held open ───────────────────────────────────────────
 
-def test_the_five_open_questions_are_published_and_none_is_answered():
-    # OQ1 closed as I4 (analysis_tier's four values) and is deliberately absent.
-    assert sorted(OPEN_QUESTIONS) == ["OQ2", "OQ3", "OQ4", "OQ5", "OQ6"]
-    assert "OQ1" not in OPEN_QUESTIONS
+def test_the_four_open_questions_are_published_and_none_is_answered():
+    # OQ1 closed as I4 (analysis_tier's four values); OQ2 closed 2026-08-20.
+    # Both are deliberately absent.
+    assert sorted(OPEN_QUESTIONS) == ["OQ3", "OQ4", "OQ5", "OQ6"]
+    assert "OQ1" not in OPEN_QUESTIONS   # closed as I4
+    assert "OQ2" not in OPEN_QUESTIONS   # closed 2026-08-20
     for key, text in OPEN_QUESTIONS.items():
         assert text.strip().endswith("?"), key
 
 
-def test_oq2_stays_open_the_observation_carries_both_identifiers(p4_conn):
-    # "Is an observation owned by the content hash or by the file record?" §2.8's
-    # field list contains both, so P4 carries both and answers neither. A foreign key
-    # to `files` would answer it in DDL, and P4's foreign keys run one way.
+def test_oq2_ratified_the_content_hash_owns_the_observation(p4_conn):
+    # OQ2 CLOSED, ratified 2026-08-20: the content hash owns the observation, and two
+    # file records sharing a hash share one observation set. §2.8 still requires a file
+    # identifier, so both fields stay — but `file_id` is a way in, not the owner.
+    # These are the same assertions this test made while the question was open, and
+    # they are now REQUIRED rather than merely permitted: a foreign key to `files`
+    # would make the file record the owner in DDL, which is the answer we did not take.
     assert "file_id" in OBSERVATION_FIELDS
     assert "content_hash" in OBSERVATION_FIELDS
     referenced = {row[2] for row in p4_conn.execute(
@@ -6928,13 +6931,13 @@ Each item below needs a human decision. None is invented past in the tasks: ever
 *Recommendation:* **(a)**, and it is what the plan implements — but it is worth an explicit sentence in the SPEC, because rule 9 currently says nothing either way and a reader could take the silence as a prohibition.
 *What this plan does meanwhile:* **(a)**. `check_run` constrains units only by run and address, never by count.
 
-### B. The SPEC's five open questions, restated
+### B. The SPEC's open questions, restated  ·  **OQ2 ANSWERED 2026-08-20**
 
 Each is already in [`SPEC.md`](SPEC.md) *Open questions* and each is held open by a named guard in Task 18. Listed here so Joseph's decisions are one list. P4 is buildable under either answer to all five; that is why they did not block this plan.
 
 | # | Question | Blocks | My reading |
 |---|---|---|---|
-| OQ2 | Is an observation owned by the content hash or by the file record? §2.8's field list contains both. | P1, P3 (identity), P5 (re-extraction), P6 (does a fact attach to a hash or a file?), P11 (§6.9 multi-home) | The most consequential of the five, and the one most likely to become expensive later. §2.1's *"read each file once per content version"* and §8.2's same-content-new-path rule both point at the **content hash**; the file record then becomes a way in, not the owner. Worth deciding before P5 writes its first extractor. |
+| ~~OQ2~~ | ~~Is an observation owned by the content hash or by the file record?~~ **ANSWERED 2026-08-20: the CONTENT HASH owns it.** | — | Two file records sharing a hash share one observation set; a fact derived on one applies to the other. `file_id` stays on the observation (§2.8 requires it) as a way in, not the owner — which is why P4 needed no structural change. **Carry into P5** (re-extract per content version, never per path), **P6** (facts attach to the hash), **P11** (a §6.9 multi-home file has one evidence set with several homes). Closed in [`SPEC.md`](SPEC.md) and dropped from `OPEN_QUESTIONS`. |
 | OQ3 | Do observations and facts share one reliability vocabulary? | P5, P6 | Reusing §3.13's six and restricting extractors to two (D11) is the smaller contract and the one that needs no new vocabulary. Needs P6's confirmation; if P6 disagrees, D11 and conformance rule 3 change together. |
 | OQ4 | Is the §8.4 handling class per observation or per file? | P7 (where the class is stored), P8 (what unit it redacts) | §8.4's own *"selected excerpts, redacted identifiers"* is observation-granular, which suggests per observation with a file-level roll-up. P4 needs no answer: both granularities are addressable today. |
 | OQ5 | May a user author or correct an observation directly? | P6 (§3.13 semantics), P7 | §8.7 enumerates user actions and none is *"correct an extracted value"*; a user-confirmed **fact** at P6 looks like the intended route, and it keeps RAW-2 intact. If the answer is yes, P4 needs a new `extractor_name` convention and possibly a seventh reliability state — a real contract revision. |

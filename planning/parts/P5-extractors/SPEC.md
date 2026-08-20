@@ -407,6 +407,16 @@ Appropriate language support, including CJK where required
 A practical rendering resolution such as 200 DPI
 ```
 
+**Languages — ratified 2026-08-20: English, CJK (Chinese, Japanese, Korean), and Western European
+(French, German, Spanish, Italian, Portuguese).** This settles *"where required"* for this corpus.
+
+It is a **configuration value, not a P5 constant.** P5's `config` stays a required keyword with no
+default and `extractors` holds no language tag anywhere — the no-invention guard that asserts this
+must keep passing. The list above is the ratified default a deployment supplies, and it lands in
+`extraction_runs.config` where §2.7 requires it, so it is fingerprinted and replayable per run: two
+runs at different language sets are correctly distinguishable rather than silently merged by §3.4's
+cache key.
+
 **Limits (§2.7, §8.6):** page cap, total run-time limit, progress state, partial-read state. Long
 scanned books otherwise create unexpectedly expensive workloads (§2.7). A capped run keeps the text
 it recognized and is marked capped — it is never presented as complete.
@@ -609,6 +619,14 @@ one P5 output conditional on such a policy: the speech-to-text transcript. The t
 and therefore shared; the authorization that produced it is plan-versioned. Whether a transcript
 survives revocation of the policy that authorized it is Open question #6.
 
+**Speech-to-text is OUT OF SCOPE for v1 — ratified 2026-08-20.** Audio and video stop at container
+metadata: duration, container and codec metadata, creation time, embedded tags, and subtitles or
+captions already present in the file. No transcript is produced, so v1 needs no speech model, no
+consent flow for one, and no answer to whether a transcript survives revocation. §2.9 makes
+transcription conditional precisely so it can be deferred this way. P5's `transcription_authorized`
+predicate stays in the contract with no default and refuses any transcript that arrives without it —
+so turning this on later is a policy decision plus a reader, and changes no record shape.
+
 ---
 
 ## Open questions
@@ -648,7 +666,15 @@ and P5's perceptual hashes. *Non-macOS OCR* — settled by **S1**: there is none
 5. **Do spreadsheets and presentations ship at launch or ship as `unsupported`?** §2.4 explicitly
    permits either; §2.9 specifies full field lists for both. Which is a release-scope decision the
    design leaves open.
-6. **Does reclassifying a file as private delete P5's stored observations or only gate them?** §8.4
+6. ~~**Does reclassifying a file as private delete P5's stored observations or only gate them?**~~
+   **Settled — ratified 2026-08-20: GATE by default, with an explicit user-initiated delete.**
+   Marking a file private hides its observations and `text_units` behind P7's handling class; the rows
+   are retained so §8.2's *"a user inspecting a placement must still be able to reach the origin of the
+   conclusion"* still holds. §8.4's *review and delete local derived data* is then a separate, explicit
+   user action — never an automatic consequence of reclassification. **P5 publishes no deletion**; the
+   gate is P7's and the delete surface is P13's, so both parts inherit this as a requirement rather
+   than a choice. Transcription is out of scope for v1 (see the §8.8 boundary above), so the
+   revocation half of this question does not arise in v1. The original wording follows. §8.4
    says the user should be able to review and delete local derived data; §8.7 lists marking a file
    private as a correction. The same question now applies to the `text_units` a run produced, which
    are the bulk of the derived text (G1), and to a speech-to-text transcript after the authorizing

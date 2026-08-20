@@ -8845,10 +8845,13 @@ def test_oq5_spreadsheets_and_presentations_are_the_callers_release_decision(sin
         assert "launch" not in text.lower(), f"{module_name}.{name}"
 
 
-def test_oq6_p5_holds_no_privacy_or_gating_vocabulary():
-    # OQ6: "Does reclassifying a file as private delete P5's stored observations or
-    # only gate them?" §8.4's question, P7's to own. P5 neither deletes (guarded in
-    # test_p5_reextraction.py) nor gates.
+def test_oq6_ratified_p5_holds_no_privacy_or_gating_vocabulary():
+    # OQ6 CLOSED, ratified 2026-08-20: GATE by default, with an explicit
+    # user-initiated delete. Both halves belong elsewhere — the gate is P7's handling
+    # class, the delete surface is P13's — and "P5 publishes no deletion" is now a
+    # ratified requirement rather than a question being held open. Same assertions,
+    # stronger standing: P5 neither deletes (guarded in test_p5_reextraction.py)
+    # nor gates.
     for module in p5_modules():
         for name in constants(module):
             for token in ("private", "gated", "gate_", "quarantine", "consent"):
@@ -9298,7 +9301,8 @@ fallback (Tesseract / PaddleOCR) — but §2.7 names none and adding one is P5 a
 **Recommendation: (a).** It is what the design says, and the plan's injected engine means (b) costs one
 new reader and zero changes to any record if you later decide otherwise.
 
-**2. Which OCR languages, and how is "where required" determined?**
+**2. ~~Which OCR languages?~~ ANSWERED 2026-08-20 — English, CJK (Chinese, Japanese, Korean), and Western European (French, German, Spanish, Italian, Portuguese).**
+Ratified in [`SPEC.md`](SPEC.md) as the deployment's **configuration**, not as a P5 constant: `config` stays a required keyword with no default, `extractors` still holds no language tag, and `test_no_screen_resolution_no_language_tag_and_no_producer_string` still passes. The list lands in `extraction_runs.config` where §2.7 wants it, so it is fingerprinted and two runs at different language sets stay distinguishable to §3.4's cache key. The original question follows.
 §2.7, SPEC *Deferred*. The design says *"appropriate language support including CJK where required"* and
 settles neither the list nor how "required" is decided. The plan holds `config` as a required keyword
 with no default and holds no language tag anywhere.
@@ -9339,8 +9343,8 @@ later — legitimate under §2.4 and visible to the user in §8.6's count line. 
 **Recommendation: (b) for v1, then (a).** The plan makes the upgrade a reader injection with no schema
 change, and §2.4 was written to permit exactly this.
 
-**7. Is speech-to-text in scope at all, and does a transcript survive revocation of the policy that
-authorized it?**
+**7. ~~Is speech-to-text in scope?~~ ANSWERED 2026-08-20 — OUT OF SCOPE for v1.**
+Audio and video stop at container metadata. No transcript is produced, so v1 needs no speech model, no consent flow for one, and no answer to the revocation half. `transcription_authorized` stays in the contract with no default and refuses any transcript arriving without it, so enabling this later is a policy decision plus a reader — no record shape changes. The original question follows.
 §2.9 and **SPEC OQ6**. §2.9 authorizes transcripts *only* under an explicit privacy and compute policy;
 §8.8 makes the *authorization* plan-versioned while the *evidence* is shared; the design never says what
 happens when the policy is revoked. The plan requires an injected `transcription_authorized` predicate
@@ -9351,7 +9355,8 @@ text units.
 **Recommendation: (a) for v1.** It needs a model, a consent flow and an answer to (b)/(c), and §2.9 makes
 it conditional precisely so it can be deferred. **This needs your decision.**
 
-**8. Does reclassifying a file as private delete P5's stored observations, or only gate them?**
+**8. ~~Delete or gate on private reclassification?~~ ANSWERED 2026-08-20 — GATE by default, with an explicit user-initiated delete.**
+Rows are retained and hidden behind P7's handling class, so §8.2's *"reach the origin of the conclusion"* still holds; §8.4's delete is a separate explicit action, never an automatic consequence. **P5 publishes no deletion** — now a ratified requirement, not an open question. The gate is P7's and the delete surface is P13's, and both inherit this. The original question follows.
 **SPEC OQ6**, §8.4, §8.7. §8.4 says the user should be able to review and **delete** local derived data;
 §8.7 lists marking a file private as a correction. The same question applies to the `text_units` a run
 produced, which are the bulk of the derived text (G1). The plan publishes **no deletion of any kind** and
