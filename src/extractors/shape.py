@@ -31,6 +31,7 @@ from typing import Any, Mapping, Sequence
 # below already delegated its DIGEST to P4; one edit to P4's canonical form and the
 # fingerprint would have diverged again, silently, with no test failing.
 from evidence_shape.canonical import canonical_json
+from evidence_shape.observation import NON_EMPTY_FIELDS, check_non_empty
 from evidence_shape.runs import config_fingerprint
 
 #: Section 2.8's field list, in section 2.8's order, plus the additions P4 marks with
@@ -73,6 +74,15 @@ P5_ANALYSIS_TIERS: tuple[str, ...] = ("filesystem", "native", "ocr")
 
 #: P4 segment-kind rule 2: a label-addressed kind has no index.
 LABEL_ADDRESSED_KINDS: tuple[str, ...] = ("field", "entry", "key")
+
+#: P4's `observation.NON_EMPTY_FIELDS`, minus the one member P5 never receives.
+#: `run_id` is P4-assigned (see this module's docstring), so it is the only field on
+#: P4's list the builder cannot check. DERIVED by subtraction and not retyped: a
+#: seventh field added to P4's tuple is gated here the same day, and P5 keeps no
+#: second list of which fields may not be empty. The rule itself is P4's
+#: `check_non_empty`, called -- not restated, the way the vocabularies above are not.
+BUILDER_NON_EMPTY_FIELDS: tuple[str, ...] = tuple(
+    name for name in NON_EMPTY_FIELDS if name != "run_id")
 
 _SOFT_HYPHEN = "­"
 _LINE_BREAK_HYPHEN = re.compile(r"-\n\s*")
@@ -163,6 +173,10 @@ def observation(*, file_id: str, content_hash: str, extractor_name: str,
     `raw_value` is exactly the source substring (RAW-1): no case folding, no Unicode
     normalization, no whitespace collapse and no trimming happens here or anywhere
     else in P5.
+
+    An empty `raw_value` is refused HERE, by P4's own `check_non_empty`, and not left
+    to the store: a span of empty text used to leave the extractor and die at write
+    time, deep in a scan, on a file the extractor had already finished with.
     """
     if reliability not in EXTRACTOR_RELIABILITY:
         raise ForbiddenReliability(
@@ -176,7 +190,7 @@ def observation(*, file_id: str, content_hash: str, extractor_name: str,
             "signal_tier is section 2.6's three-level image hierarchy: 1, 2, 3 or "
             "null (P4 conformance rule 11)"
         )
-    return {
+    row = {
         "file_id": file_id,
         "content_hash": content_hash,
         "extractor_name": extractor_name,
@@ -194,6 +208,9 @@ def observation(*, file_id: str, content_hash: str, extractor_name: str,
         "confidence": confidence,
         "signal_tier": signal_tier,
     }
+    for name in BUILDER_NON_EMPTY_FIELDS:
+        check_non_empty(row[name], name=name)
+    return row
 
 
 def text_unit(*, text: str, container_path: Sequence[Mapping[str, Any]] = (),
