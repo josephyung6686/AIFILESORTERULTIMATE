@@ -160,6 +160,14 @@ def cross_file(files):
             continue
         for e in doc.get("entries", []):
             for c in e.get("collides_with") or []:
+                # A collision may name a DOMAIN or a §7 residual template, and they
+                # are different kinds of thing: a residual template is P10/P11's
+                # (§7.2–7.4), not a fact schema, so it has no id in this namespace
+                # and must not be checked against one. The contract originally had
+                # only `domain`, so two authors put a template description there and
+                # the gate read it as a broken id — my gap, not theirs.
+                if isinstance(c, dict) and "residual_template" in c:
+                    continue
                 other = c.get("domain") if isinstance(c, dict) else c
                 if isinstance(other, str) and other and other not in owner:
                     problems.append(f"{path.name} {e.get('id')}: collides_with names "

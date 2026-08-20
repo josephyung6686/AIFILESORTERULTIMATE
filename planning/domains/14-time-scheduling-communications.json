@@ -1,0 +1,1822 @@
+{
+  "supercategory": "time-scheduling-communications",
+  "authored": "2026-08-21",
+  "entries": [
+    {
+      "id": "calendar.events",
+      "name": "Calendar entries and events",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "A dated commitment as the calendar itself records it — a titled entry with a start, an end, a place, an organiser and invited attendees.",
+      "provenance": "design",
+      "design_cite": "§2.9 names this domain's field list outright: “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata”. That sentence is the whole schema below, and it is the only one in the design that describes calendar material. §3.15 is why the domain did not exist until now: “Other domains remain placeholders until user demand and corpus evidence justify detailed templates”. The corpus evidence is in this repository — `src/extractors/router.py` maps `ics` to source type `calendar`, `src/extractors/long_tail.py` carries `calendar` as one of the six long-tail families, and two catalogues already cite a calendar domain that no file defined.",
+      "schema": [
+        {
+          "field": "event title",
+          "type": "string",
+          "example": "Design review — autumn roadmap",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names it first: “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata”. A VEVENT SUMMARY property is a labelled slot in a self-describing container, which is §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”."
+        },
+        {
+          "field": "event start",
+          "type": "datetime",
+          "example": "2026-09-03T09:00",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “start and end time”. DTSTART is a labelled slot, so the ceiling is §3.13's direct. Note what this does NOT license: §3.10 “Date extraction should be deliberately narrow” still governs every date read from prose, and a start time is direct only when it comes from the container's own property."
+        },
+        {
+          "field": "event end",
+          "type": "datetime",
+          "example": "2026-09-03T10:30",
+          "reliability_ceiling": "direct",
+          "why": "The other half of §2.9's “start and end time”. DTEND and DURATION are both labelled slots; where neither is present the field is absent rather than inferred, because §3.6 requires that “A model that cannot cite sufficient evidence must return unknown”."
+        },
+        {
+          "field": "time zone",
+          "type": "string",
+          "example": "Europe/London",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 does not name a time-zone field. It names “start and end time”, and a wall-clock time without its zone is not a time — the TZID parameter and the trailing Z of a UTC stamp are labelled slots the format supplies, so where the container carries one the ceiling is §3.13's direct, and where it does not the field is absent. This is an extension of §2.9's named field rather than a new claim, and it is recorded as its own field because §3.8 requires the product to “separate roles that happen to contain the same entity type” and a local time and an absolute instant are exactly that."
+        },
+        {
+          "field": "location",
+          "type": "string",
+          "example": "Room 4.02, Kings Place",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “location”. LOCATION is a labelled slot. It is metadata here and never a folder level: §5.7 requires that a template not “use an author or organization merely as a collector”, and a room or building name is a collector of exactly that kind."
+        },
+        {
+          "field": "organiser role",
+          "type": "string",
+          "example": "self as organiser",
+          "reliability_ceiling": "validated",
+          "why": "§2.9 names “organizer”. The raw ORGANIZER value is an address, and §3.8 requires the modelling step this field performs: “The system must separate roles that happen to contain the same entity type” — whether the user convened the meeting or was summoned to it is the fact worth holding, not who the person is. Resolving the address against the user's own identities is a deterministic context check, which is §3.13's “A validated fact was found by a deterministic rule and passed contextual checks”. §3.8 also forbids the obvious misuse: “It should avoid using authorship or creator identity as a destination dimension”."
+        },
+        {
+          "field": "attendee role",
+          "type": "string",
+          "example": "required attendee",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “attendees”. ROLE and PARTSTAT are the format's own labelled parameters on each ATTENDEE line, so the ROLE is direct even though the identity behind it is address-book material §2.9 says should “normally be privacy-protected rather than used to create folder proposals”. The role is kept; the address is held as sensitive and never becomes a dimension."
+        },
+        {
+          "field": "recurrence",
+          "type": "string",
+          "example": "weekly on Tuesday until 2026-12-15",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “recurrence metadata”. RRULE, RDATE and EXDATE are labelled slots. The rule is meaningless without the entry it hangs from, which is why it appears here and is the seed for `calendar.recurring-commitment` rather than a domain of its own."
+        },
+        {
+          "field": "calendar",
+          "type": "string",
+          "example": "Work",
+          "reliability_ceiling": "direct",
+          "why": "The named calendar a set of entries belongs to. §2.9 does not name it; the container does, as X-WR-CALNAME or as the export's own filename. Recorded because it is the only NON-time dimension a bare `.ics` reliably supplies, which makes it the alternative top level the open question below hands to Joseph."
+        },
+        {
+          "field": "event kind",
+          "type": "string",
+          "example": "meeting",
+          "reliability_ceiling": "llm_supported",
+          "why": "Whether a titled block is a meeting, a personal appointment, a travel segment, a birthday marker or a held slot. Nothing in the container says so — the same VEVENT shape carries all of them — so this is §3.5's case: “The LLM creates LLM-supported facts only when a file requires language interpretation that rules cannot resolve safely”, bounded by §3.5's limit that “It can only propose facts that belong to the active domain schema, and it must cite exact supporting evidence already extracted from the file”."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a `BEGIN:VCALENDAR` line together with at least one `BEGIN:VEVENT` block carrying a `DTSTART` property — the container declares itself and the block corroborates it, which is the pattern-plus-context shape §3.5 requires when it says a candidate becomes a fact only “when the engine finds a course-code pattern together with academic context”",
+          "a `DTSTART` property co-occurring with a `SUMMARY` property inside one `VEVENT` block — the start alone is a bare date and §3.10 refuses those; the titled pair is the event",
+          "an `RRULE`, `RDATE` or `EXDATE` property inside a `VEVENT` that already carries `DTSTART` and `SUMMARY` — recurrence is readable only once the series' first instance is established",
+          "a `.ics` extension whose content sniff confirms a `VCALENDAR` container — `src/extractors/router.py` already maps `ics` to source type `calendar`, and the sniff is the context check that keeps a mislabelled file out of the domain",
+          "a mail header block carrying a calendar part with `METHOD:REQUEST` together with an `ATTENDEE` property — an emailed meeting invitation, one file that is simultaneously an email and an event",
+          "a `VEVENT` whose `DTSTART` and `DTEND` are both date-valued rather than date-time-valued, together with a `SUMMARY` — the format's own whole-day marker, distinguished by the value type and not by the absence of a time"
+        ],
+        "needs_llm": [
+          "deciding whether a titled block is a working meeting, a personal appointment, a travel segment or a held slot, where the title is a bare noun such as 'Review', 'Dentist' or 'Block'",
+          "an exported day plan or agenda written as prose or a table in a document, with no calendar container anywhere in the file",
+          "reading whether a recurring series is a live commitment or the residue of a job or a class the user has left, which the container cannot say and the last-modified date does not settle",
+          "separating one person's calendar from a shared or subscribed one where the export carries no ownership marker"
+        ],
+        "never_alone": [
+          "a bare date or date-time anywhere in a file — §3.10 “Date extraction should be deliberately narrow”, and every file in the corpus carries timestamps as a universal file fact",
+          "a bare person name in a `From`, `To`, `ORGANIZER` or `ATTENDEE` position — §3.8 “It should avoid using authorship or creator identity as a destination dimension”",
+          "a bare weekday or month name in a filename",
+          "a bare room, building, city or address string — a location appears in letterheads, invoices, itineraries and photographs alike",
+          "the words 'meeting', 'event', 'invite', 'schedule' or 'calendar' in a filename",
+          "a `.ics` extension on its own, with no `VCALENDAR` container confirmed by content",
+          "a time-shaped token such as '09:00' — it appears in logs, transcripts, rotas, timesheets and run sheets across at least six other slices"
+        ]
+      },
+      "work_types": [
+        "calendar export (.ics)",
+        "single event file",
+        "meeting invitation carried by mail",
+        "recurring series definition",
+        "whole-day entry",
+        "subscribed calendar feed snapshot",
+        "exported or printed day plan",
+        "shared or team calendar export"
+      ],
+      "grouping_reasons": [
+        "one named calendar across the file or files one export produced",
+        "one recurring series across its instances, exceptions and cancellations, joined by the container's own `UID`",
+        "one event across the invitation, the replies and the attachments that cite the same `UID`",
+        "one working period across the entries whose start times fall inside it"
+      ],
+      "template": {
+        "dimension_order": [
+          "year",
+          "calendar",
+          "event"
+        ],
+        "why": "§5.5 offers two cases and this domain is neither of them, so the order is argued from the reasons rather than assumed from the labels. §5.5's ordinary rule is “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — and the named harm does not bite, because a calendar IS calendar folders and the scattering is the material's native shape rather than damage done to it. §5.5's exception is “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material” — and its REASON fits exactly, since a start time is what makes a calendar entry the entry it is, while its STATED CONDITION does not, because nothing is captured when someone books a meeting. `time_first` is recorded true on the strength of the reason, with the mismatch stated rather than hidden, and the open question below hands the call to Joseph. `calendar` sits second rather than first because §5.7 warns against a template that would “create meaningless one-child levels”, and most corpora hold exactly one calendar.",
+        "time_first": true
+      },
+      "collides_with": [
+        {
+          "domain": "ops.meeting-record",
+          "signal": "a meeting RECORD is what a meeting produced — an agenda, a minute, an action log; a calendar entry is the reservation of the time before anything was produced. `ops.meeting-record` already lists a calendar invitation among its work types, so one invitation file satisfies both schemas at once. The separator is what the file contains, not what it is about: an entry with a `DTSTART` and no body is scheduling; a document carrying attendance, decisions and assigned actions is the record",
+          "design_cite": "§4.8 requires the validator to confirm “that each fact or label belongs to an allowed domain schema” — which it cannot arbitrate when the facts belong to two allowed schemas, so the pair is written down here rather than left latent"
+        },
+        {
+          "domain": "res.facility-booking",
+          "signal": "a facility booking is a calendar entry with a facility, an instrument and a charge code attached. Where those are present the research slice is the more specific home and this domain defers. `res.facility-booking` already lists a calendar invite among its work types and already cited this domain by name before it existed",
+          "design_cite": "§3.11 “It should then activate domain-specific schemas only when the evidence indicates that a domain is plausible” — the facility and charge-code facts are what make the more specific schema plausible"
+        },
+        {
+          "domain": "hosp.bookings",
+          "signal": "the venue's reservation record, held on the provider's side with a party size, a channel and a booking reference; a calendar entry is the guest's own dated block with none of those. `hosp.bookings` also lists a calendar invitation among its work types, so the discriminating facts are the provider-side ones and their absence is what keeps a file here",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type” — the venue and the guest hold the same booking from opposite sides"
+        },
+        {
+          "domain": "pers.travel-record",
+          "signal": "a flight or hotel confirmation is a trip record even when it arrives as an `.ics` attachment, because the trip is the organising reason and `pers.travel-record` already models it that way. Where a booking reference resolves to a known trip, that domain wins",
+          "design_cite": "§3.9 “Topic answers what a file is about, while purpose answers what the file was for” — the entry's topic is a time; its purpose is the trip"
+        },
+        {
+          "domain": "calendar.appointment",
+          "signal": "an appointment is a time reserved with a named counterparty and is usually delivered as a letter, a confirmation or a portal page rather than as a container; a calendar entry is the container. A file that is both — an `.ics` attached to a confirmation — carries both schemas and neither absorbs the other",
+          "design_cite": "§3.12 “The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically”"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "§2.9 attaches its sensitivity phrase to Email and to Contacts, not to Calendar, so this marking is an inference and is written as one. The inference is short: a VEVENT's ATTENDEE lines hold email addresses, and §2.9 says of exactly those values that the engine should be “treating addresses and message content as potentially sensitive”; §8.4 names “private correspondence” among what the corpus can include, and an attendee list read across a year is a social graph. §2.9's phrase is the whole claim made here. No handling class is assigned — that is P7's (§8.4).",
+      "open_question": "§5.5 offers two cases and a calendar entry is neither, so `time_first` above is a reasoned guess and not a reading. Its ordinary rule names a harm — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — that does not bite here, because a calendar is calendar folders by nature. Its exception gives the right reason — “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material” — but grants it only to capture-based media, and nothing is captured when someone books a meeting. Three things follow that only Joseph can settle: whether calendar-defined material is a third case the design does not cover; whether the top level should be the year or the named calendar ('Work', 'Personal', 'Family'); and whether a calendar belongs in the destination tree at all, given that most people keep an `.ics` only as a backup. §5.3 hands the equivalent photograph question to the user — “then decide whether photographs should branch by year, event, location, or remain mostly flat” — and this one is not more decidable than that one."
+    },
+    {
+      "id": "calendar.appointment",
+      "name": "Appointments with a counterparty",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "A time reserved with a named other party — the confirmation, the reminder and the letter that fix it.",
+      "provenance": "proposal",
+      "design_cite": "No design sentence names appointments. §7.3's residual library is the nearest thing the design has, and it is a residual destination rather than a domain: “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents”. That sentence is the design saying where a confirmation goes when NO domain claims it, which is an argument for authoring one. §5.7 is what permits the addition: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "counterparty",
+          "type": "string",
+          "example": "Whitfield Dental Practice",
+          "reliability_ceiling": "validated",
+          "why": "The organisation the time is reserved with. §3.8 is what makes this legitimate where an author field would not be: “Authorship is usually metadata”, and the counterparty is the document's target rather than its writer. Reading a letterhead or a `From` organisation and confirming it against an appointment phrase in the same document is a context check, which is §3.13's “A validated fact was found by a deterministic rule and passed contextual checks”."
+        },
+        {
+          "field": "appointment purpose",
+          "type": "string",
+          "example": "six-month check-up",
+          "reliability_ceiling": "llm_supported",
+          "why": "§3.9 “Purpose must be a first-class facet” and “Topic answers what a file is about, while purpose answers what the file was for”. A confirmation rarely labels its own purpose in a parseable slot, so the ceiling is the model route under §3.6's validation, and the field stays unset where the model cannot cite."
+        },
+        {
+          "field": "appointment date",
+          "type": "datetime",
+          "example": "2026-09-17T14:20",
+          "reliability_ceiling": "validated",
+          "why": "§3.10 governs this field completely: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values”, and “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching”. The date is `validated` and not `direct` because a letter has no labelled date slot — it earns the ceiling only from the appointment phrase governing it, which is exactly what the first deterministic rule below requires."
+        },
+        {
+          "field": "appointment reference",
+          "type": "string",
+          "example": "APT-4471-C",
+          "reliability_ceiling": "direct",
+          "why": "An explicit reference label followed by its identifier is §3.13's “labeled form field”. It is the strongest evidence this domain has and the only fact that reliably joins a confirmation to its reminder and its outcome."
+        },
+        {
+          "field": "appointment status",
+          "type": "string",
+          "example": "confirmed",
+          "reliability_ceiling": "validated",
+          "why": "Confirmed, rescheduled, attended, missed or cancelled. A status vocabulary appearing beside an appointment reference passes a context check; a status word on its own does not, which is why 'cancelled' sits in `never_alone` on `calendar.schedule-change` rather than here."
+        },
+        {
+          "field": "attendee role",
+          "type": "string",
+          "example": "patient",
+          "reliability_ceiling": "llm_supported",
+          "why": "Whose appointment it is — the user's own, a dependant's, a client's. §3.8 requires it: “The system must separate roles that happen to contain the same entity type”, and a parent's corpus holds their own and their child's appointment letters in identical shapes. Nothing deterministic separates them, so the ceiling is the model route."
+        },
+        {
+          "field": "location",
+          "type": "string",
+          "example": "Level 2, Whitfield House",
+          "reliability_ceiling": "direct",
+          "why": "Where to turn up. Metadata only, never a folder level — §5.7 requires that a template not “use an author or organization merely as a collector”."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a low-frequency appointment phrase — 'your appointment', 'appointment confirmation', 'appointment reminder', 'we look forward to seeing you on' — governing an explicit date-time pattern in the same sentence. §3.10's narrow-date rule supplies the date half and the phrase supplies the context half",
+          "an explicit reference label — 'appointment ref', 'booking reference', 'confirmation number' — immediately followed by an identifier token, in a document that also carries a date-time pattern",
+          "a confirmation phrase co-occurring with a named organisation in a letterhead or `From` position and a date-time in the body — §3.7 “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference”",
+          "a `VEVENT` whose `SUMMARY` carries an appointment phrase and whose `ORGANIZER` resolves to an organisation rather than to the user's own identities",
+          "an arrival instruction ('please arrive', 'bring the following', 'check in at') co-occurring with a date-time and a named organisation"
+        ],
+        "needs_llm": [
+          "what the appointment is for, where the confirmation names only a service code or a practitioner",
+          "whose appointment it is in a household corpus that holds several people's letters in the same template",
+          "separating a first appointment from a follow-up in a run of near-identical letters from one provider",
+          "deciding whether a booked slot is an appointment or a hospitality reservation where the counterparty is a business that does both"
+        ],
+        "never_alone": [
+          "a bare date — §3.10 “Date extraction should be deliberately narrow”",
+          "the word 'appointment' — it names a job appointment, a board appointment, a consular appointment and an appointment of trustees in four other slices",
+          "a clinic, salon, garage or surgery name on its own — §4.9 “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization”, and the same reading problem holds for any organisation name",
+          "a bare reference-shaped token",
+          "a time of day",
+          "the phrase 'we look forward to' with no date beside it"
+        ]
+      },
+      "work_types": [
+        "appointment confirmation",
+        "appointment letter",
+        "appointment reminder",
+        "check-in or arrival instruction",
+        "pre-appointment form or preparation instruction",
+        "calendar attachment issued with the appointment",
+        "outcome or discharge summary naming the appointment",
+        "missed-appointment notice"
+      ],
+      "grouping_reasons": [
+        "one appointment across its confirmation, its reminder and its outcome, joined by an appointment reference",
+        "one counterparty across a run of appointments held with them",
+        "one referral or course of treatment across every appointment it generated",
+        "one dependant across the appointments held on their behalf"
+      ],
+      "template": {
+        "dimension_order": [
+          "counterparty",
+          "appointment purpose",
+          "year"
+        ],
+        "why": "§5.5's ordinary record rule applies without strain here, unlike on `calendar.events`: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A dentist's reminder filed under the month it arrived is separated from the dentist, and the counterparty is what makes the date legible at all — §5.5 “a parent dimension should provide the context required to understand the child”. The year is last and optional; where a counterparty is seen once, §5.7's warning against templates that “create meaningless one-child levels” collapses it.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "med.referral-received",
+          "signal": "a hospital or clinic appointment letter is the visible half of a referral, and the medicine slice already models the referral as the organising reason. Where a referral reference, a specialty or a clinician is named, that domain is the more specific home and this one defers; what stays here is the appointment with a non-clinical counterparty",
+          "design_cite": "§3.15 “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed” — routing clinical appointments into a general scheduling branch would defeat that ordering"
+        },
+        {
+          "domain": "hosp.bookings",
+          "signal": "the same reserved slot seen from the business's side, with a party size and a channel. A restaurant's own reservation record is `hosp.bookings`; the diner's confirmation email is an appointment-shaped file with none of the provider-side facts",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type”"
+        },
+        {
+          "domain": "pers.household-admin",
+          "signal": "a boiler service visit, a meter reading appointment or a delivery slot is household administration with a time attached, and `pers.household-admin` is the older and broader home. The separator is whether the file's subject is the reserved time or the household matter it serves",
+          "design_cite": "§3.9 “Topic answers what a file is about, while purpose answers what the file was for”"
+        },
+        {
+          "domain": "calendar.events",
+          "signal": "an appointment delivered as an `.ics` attachment is both. The container's facts belong to `calendar.events`; the letter's counterparty, reference and purpose belong here. Neither absorbs the other and the file carries both",
+          "design_cite": "§4.9 “A file may validly belong to more than one accepted group”"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "An appointment discloses who someone is dealing with and when, which is often more revealing than the appointment's own content. §8.4 names “identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” among what the corpus can include, and a clinic, solicitor, lender or clinic-adjacent counterparty is the schedule-shaped face of four of those. §2.9's phrase is the whole claim; the handling class is P7's (§8.4).",
+      "open_question": "Two things are unresolved. First, whether clinical appointments belong here at all or route wholesale to the medicine slice — `med.practice-administration` already cites a domain it calls `personal.calendar`, which no catalogue defines and which this slice has NOT authored under that id, so that dangling reference needs repointing to `calendar.events` or to this entry by whoever owns file 06. Second, whether an appointment with a counterparty is a scheduling record at all, or whether every appointment should simply live inside whatever domain owns the relationship — the dentist under health, the solicitor under legal, the viewing under property — leaving this domain to hold only the residue. §5.3's branch-by-branch process is where that gets decided: “This branch-by-branch design reflects the real way people organize files”."
+    },
+    {
+      "id": "calendar.recurring-commitment",
+      "name": "Recurring commitments, rotas and timetables",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "A commitment that repeats — the rota, timetable or standing series that says who is on, and when, week after week.",
+      "provenance": "inference",
+      "design_cite": "Extends a field the design names rather than a domain it names. §2.9's calendar bullet ends with “recurrence metadata”, and a rota, a timetable and a standing series are what that metadata describes once it is published as a document instead of carried as an RRULE. §5.7 permits the extension: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "commitment",
+          "type": "string",
+          "example": "Tuesday orchestra rehearsal",
+          "reliability_ceiling": "llm_supported",
+          "why": "What repeats. A `SUMMARY` supplies it directly where the material is a container, but a published rota names shifts and people and never names the commitment itself, so the honest ceiling across the domain is the model route under §3.6's validation. §3.6 also bounds what happens when the model cannot cite: “A model output that is useful but too weak to establish a fact may remain a possible clue for review; it must not quietly become a folder proposal or an asserted file property”."
+        },
+        {
+          "field": "recurrence",
+          "type": "string",
+          "example": "weekly, term-time only",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “recurrence metadata” as a field calendar formats should yield, and RRULE is a labelled slot — §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”. Where the material is a spreadsheet rota rather than a container the field falls to `validated` on the weekday-sequence rule below, and where neither holds it is absent."
+        },
+        {
+          "field": "effective period",
+          "type": "string",
+          "example": "autumn term 2026",
+          "reliability_ceiling": "validated",
+          "why": "The stretch a published rota covers. §3.10 is the constraint and the warning: “Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing” — a term, a quarter, a roster cycle and a school half-term each need their own pattern, and a bare year token is refused below."
+        },
+        {
+          "field": "participant role",
+          "type": "string",
+          "example": "on-call second",
+          "reliability_ceiling": "validated",
+          "why": "The slot a person occupies, not the person. §3.8 is the whole reason the field is shaped this way: “The system must separate roles that happen to contain the same entity type” and “It should avoid using authorship or creator identity as a destination dimension”. A role vocabulary appearing as a column header beside a weekday sequence passes a context check; a name in a cell does not."
+        },
+        {
+          "field": "slot",
+          "type": "string",
+          "example": "Tuesday 19:00-21:00",
+          "reliability_ceiling": "validated",
+          "why": "The repeating position within the cycle. Earned from the weekday-plus-time pairing below, never from a time token on its own — §3.10 “Date extraction should be deliberately narrow”."
+        },
+        {
+          "field": "issuing body",
+          "type": "string",
+          "example": "Whitfield Sinfonia",
+          "reliability_ceiling": "validated",
+          "why": "Who publishes the rota. Held as a joining fact rather than a folder level; §3.8 “A folder should not become a collection point for everything produced by the same person or organization”."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "an `RRULE` property inside a `VEVENT` that already carries `DTSTART` and `SUMMARY` — §2.9 names “recurrence metadata” and RRULE is its explicit slot; the entry is the corroborating context the rule alone lacks",
+          "a spreadsheet whose column headers form a weekday sequence together with a name-, role- or shift-bearing column — §2.9 says spreadsheets should yield “sheet names, column headers, visible cell values, table-like regions”, and it is the pairing of the two header kinds, not either alone, that identifies a rota",
+          "a low-frequency rota word — 'rota', 'roster', 'shift pattern', 'on-call schedule', 'duty schedule', 'timetable' — co-occurring with a weekday sequence in the same document",
+          "a repeating time-of-day value appearing against every row of a weekday-headed table, together with an effective-period label in a title position — §3.7 “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference”",
+          "a cover or swap phrase ('covering for', 'swap request', 'shift exchange') co-occurring with a named slot and a date"
+        ],
+        "needs_llm": [
+          "reading whether a repeating block is a live commitment, a placeholder or an abandoned series",
+          "a timetable published as an image or a scanned wall chart, where OCR yields a grid with no headers the rules can key on",
+          "separating one person's own commitments from a whole team's rota published in the same grid",
+          "deciding whether an academic timetable belongs to the course or to the person's week, which is the collision recorded below and is a judgement about the corpus rather than about the file"
+        ],
+        "never_alone": [
+          "a weekday name",
+          "a bare time of day",
+          "the word 'schedule' — a project schedule, a payment schedule, a schedule to a contract, a depreciation schedule and a maintenance schedule are five other domains' material",
+          "a grid or table shape on its own — §2.9 says every spreadsheet should yield “table-like regions”, so the shape is universal and carries no domain information",
+          "a bare person name in a cell — §3.8 “It should avoid using authorship or creator identity as a destination dimension”",
+          "a bare year token — §3.10 warns that documents “frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values”"
+        ]
+      },
+      "work_types": [
+        "rota or roster",
+        "shift pattern",
+        "class or lecture timetable",
+        "on-call or duty schedule",
+        "recurring series definition",
+        "cover request or shift swap",
+        "training, rehearsal or fixture schedule",
+        "standing-order or recurring-payment schedule"
+      ],
+      "grouping_reasons": [
+        "one commitment across the successive periods it was published for",
+        "one issuing body across its run of rotas",
+        "one recurring series across its exceptions, cancellations and covers",
+        "one effective period across every rota published for it"
+      ],
+      "template": {
+        "dimension_order": [
+          "commitment",
+          "effective period"
+        ],
+        "why": "§5.5's ordinary rule states this case almost literally: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A rota's whole value is the run — this term's beside last term's — and a period-first order guarantees the run is broken. The commitment is also what makes a given week's grid readable at all, which is §5.5's other half: “a parent dimension should provide the context required to understand the child”. This entry is deliberately the mirror of `calendar.events`: the same slice reaches opposite conclusions because the material differs, not because the rule does.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "med.practice-administration",
+          "signal": "an on-call schedule and a rota are already the first two work types of `med.practice-administration`, so a clinical rota belongs there and this domain defers wherever a practice, a service line or a clinician is named. What stays here is the rota with no clinical counterparty — the volunteer rota, the rehearsal schedule, the parish roster",
+          "design_cite": "§3.11 “It should then activate domain-specific schemas only when the evidence indicates that a domain is plausible”"
+        },
+        {
+          "domain": "trade.timesheet",
+          "signal": "a timesheet records hours WORKED and a rota assigns hours to be worked; the two look identical as grids and are opposite in tense. The separator is whether the cells are commitments or claims — a signature, a total, or a pay reference makes it a timesheet",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type”"
+        },
+        {
+          "domain": "acad.course-enrollment",
+          "signal": "a lecture timetable is course material by every fact it carries — school, term, course code — and the education slice already owns those. Where a course-code pattern validates under §3.5's context test the academic domain wins outright",
+          "design_cite": "§3.5 a candidate becomes “a course fact only when the engine finds a course-code pattern together with academic context”"
+        },
+        {
+          "domain": "calendar.events",
+          "signal": "a recurring series held inside an `.ics` is a `calendar.events` entry carrying an `RRULE`; this domain begins where the series has been PUBLISHED as a document that no longer carries the container. A file that is both is both",
+          "design_cite": "§4.9 “A file may validly belong to more than one accepted group”"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "A rota names individuals against times and, read across a run, discloses a person's working pattern, their absences and their seniority. §8.4 names “employment materials” among what the corpus can include, and a published rota is employment material about several people at once rather than about the corpus owner alone. §2.9's phrase is the whole claim; the handling class is P7's (§8.4).",
+      "open_question": "Is a rota scheduling material or employment material? The facts point both ways — it is time-shaped like this slice and people-shaped like `hr.workforce-analytics` — and the answer decides whether it appears in a Calendar branch, a Work branch, or under whichever organisation issued it. The sharper version of the question is one this catalogue cannot answer at all: a rota the user RECEIVES and a rota the user PUBLISHES are the same document seen from opposite sides, and §3.8's role separation makes that expressible without making it readable. §5.1 leaves the branch itself open — the labels should be drawn “rather than a universal corporate taxonomy”."
+    },
+    {
+      "id": "calendar.invitation-rsvp",
+      "name": "Invitations and responses",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "The asking and the answering — an invitation issued for a dated occasion, and the acceptances, declines and tentatives it collected.",
+      "provenance": "inference",
+      "design_cite": "Extends the two slots §2.9 names rather than a domain the design names. §2.9's calendar bullet yields “event title, start and end time, location, organizer, attendees, and recurrence metadata”, and an invitation with its replies is the transaction BETWEEN the organiser and the attendees those two slots hold. §5.7 permits the extension: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "occasion",
+          "type": "string",
+          "example": "Rowan and Priya's wedding",
+          "reliability_ceiling": "validated",
+          "why": "What is being invited to. Earned from an invitation phrase governing a titled occasion in a title position — §3.7 “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference”. Where the occasion is unnamed the field is absent and the file falls to `needs_llm`."
+        },
+        {
+          "field": "occasion date",
+          "type": "datetime",
+          "example": "2026-06-20T13:00",
+          "reliability_ceiling": "validated",
+          "why": "§3.10 governs it: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching”. Kept distinct from the response date below because §3.8 requires it: “The system must separate roles that happen to contain the same entity type” — an invitation carries two dates that mean opposite things."
+        },
+        {
+          "field": "record type",
+          "type": "string",
+          "example": "reply",
+          "reliability_ceiling": "validated",
+          "why": "Invitation, reply, response list or reminder. `METHOD:REQUEST` and `METHOD:REPLY` are labelled slots where a container exists; a document earns the field from the invitation or RSVP vocabulary below. This is the field the template branches on, because it is the only one that distinguishes files that otherwise share every fact."
+        },
+        {
+          "field": "response",
+          "type": "string",
+          "example": "accepted",
+          "reliability_ceiling": "direct",
+          "why": "A `PARTSTAT` parameter on an `ATTENDEE` line is the format's own labelled answer — §3.13's “labeled form field”. In a response list it falls to `validated`, earned from an accept/decline vocabulary filling a column whose header is a name column."
+        },
+        {
+          "field": "response deadline",
+          "type": "date",
+          "example": "2026-05-01",
+          "reliability_ceiling": "validated",
+          "why": "The by-when of an RSVP, earned only from an explicit respond-by phrase governing a date. §3.10 “Date extraction should be deliberately narrow” refuses it otherwise, and a bare second date on an invitation is exactly the over-firing case."
+        },
+        {
+          "field": "invitation role",
+          "type": "string",
+          "example": "invited guest",
+          "reliability_ceiling": "llm_supported",
+          "why": "Whether the corpus owner is the host or the invited. §3.8 makes the distinction mandatory — “The system must separate roles that happen to contain the same entity type” — and nothing in an invitation states it, because both sides keep the identical file. The model route is the honest ceiling and the field stays unset where it cannot cite."
+        },
+        {
+          "field": "host",
+          "type": "string",
+          "example": "Whitfield Sinfonia",
+          "reliability_ceiling": "validated",
+          "why": "Who is inviting. Metadata only. §3.8 “A folder should not become a collection point for everything produced by the same person or organization”, so this never becomes a level."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a `METHOD:REQUEST` or `METHOD:REPLY` property inside a `VCALENDAR` container together with an `ATTENDEE` property carrying a `PARTSTAT` value — the format's own invitation and reply verbs, corroborated by the slot that answers them",
+          "an explicit RSVP token — 'RSVP', 'please respond by', 'regrets only', 'let us know by' — co-occurring with an explicit date pattern in the same document",
+          "an invitation phrase — 'you are invited', 'invitation to', 'save the date', 'requests the pleasure' — co-occurring with a date-time and a venue string",
+          "an accept/decline vocabulary ('accepted', 'declined', 'tentative', 'attending', 'not attending') filling the values of a column whose header column holds names or addresses, in a table that also carries an occasion title — §2.9 says spreadsheets should yield “sheet names, column headers, visible cell values, table-like regions”",
+          "an `RSVP=TRUE` parameter on an `ATTENDEE` line inside a `VEVENT` that already carries `DTSTART` and `SUMMARY`"
+        ],
+        "needs_llm": [
+          "whether the corpus owner hosted the occasion or was invited to it, which both sides' files state identically",
+          "an invitation designed as an image or a card, where OCR yields ornamental text with no parseable slots",
+          "separating a social invitation from a commercial one addressed in social language",
+          "reading a reply written as prose — 'we would love to, but we are away that weekend' — into an accept or a decline"
+        ],
+        "never_alone": [
+          "the word 'invitation' — an invitation to tender, an invitation to interview and an invitation to a party belong to three different slices, and `ops.sourcing-rfp` and `career.interview-cycle` own two of them",
+          "a bare guest or invitee name — §3.8 “It should avoid using authorship or creator identity as a destination dimension”",
+          "a bare 'yes' or 'no' cell",
+          "a bare date — §3.10 “Date extraction should be deliberately narrow”",
+          "a venue name on its own",
+          "an ornamental or card-shaped layout"
+        ]
+      },
+      "work_types": [
+        "invitation",
+        "save-the-date",
+        "meeting request",
+        "RSVP reply",
+        "guest or attendance response list",
+        "seating or table plan",
+        "declination or regrets note",
+        "reminder to respond"
+      ],
+      "grouping_reasons": [
+        "one occasion across the invitation and every reply to it, joined by the container's `UID` where one exists",
+        "one invitee across the occasions they were invited to",
+        "one invitation across its issue, its reminder and its final response list",
+        "one host across the occasions they convened"
+      ],
+      "template": {
+        "dimension_order": [
+          "occasion",
+          "record type"
+        ],
+        "why": "§5.5 “a parent dimension should provide the context required to understand the child” is the whole argument: a reply says 'accepted' and nothing else, and it is meaningless anywhere except beneath what it answers. Filing a reply by its own send date is the arrangement that guarantees it lands nowhere near the invitation, which is §5.5's ordinary harm — “putting year first scatters related work across calendar folders” — at the scale of a single occasion. `record type` is second because it is the only fact that separates files sharing every other one.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "event.production",
+          "signal": "a guest list is already a work type of `event.production`, and where a brief, a budget, a run sheet or a supplier appears the file is production material rather than an invitation record. The separator is which side of the occasion the corpus sits on — the producer holds the plan, the invitee holds the card",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type”"
+        },
+        {
+          "domain": "pers.gift-occasion",
+          "signal": "a wedding, a christening or a milestone birthday is a personal occasion the household slice already owns, and its invitation is one artifact of it. Where the occasion is a named personal event this domain holds only the RSVP mechanics and defers the occasion itself",
+          "design_cite": "§3.9 “Purpose must be a first-class facet”"
+        },
+        {
+          "domain": "ops.meeting-record",
+          "signal": "a meeting request and its accept/decline replies are invitation-shaped, and `ops.meeting-record` already lists a calendar invitation among its work types. Where the file also carries an agenda, attendance and decisions it is the meeting's record and belongs there",
+          "design_cite": "§4.8 the validator must confirm “that each fact or label belongs to an allowed domain schema”, which cannot arbitrate a file whose facts belong to two"
+        },
+        {
+          "domain": "calendar.events",
+          "signal": "an invitation IS a `VEVENT` plus a `METHOD`. The container's facts belong to `calendar.events`; the transaction — who was asked, who answered, by when — belongs here, and a single `.ics` invitation carries both",
+          "design_cite": "§4.9 “A file may validly belong to more than one accepted group”"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "A guest list is a list of named people with addresses, and §2.9 says of exactly that material that it should “normally be privacy-protected rather than used to create folder proposals”. A reply additionally discloses one person's whereabouts on one date, and the reasons given in declines are frequently medical or financial. §2.9's phrase is the whole claim; the handling class is P7's (§8.4).",
+      "open_question": "Should an invitation live in a scheduling branch at all, or beneath whatever domain owns the occasion — the wedding under the household slice, the conference under research, the interview under career? The design's own instinct is the second: §5.3 has the user “decide whether application files should branch first by target institution, admissions cycle, document type, or a purpose-defined packet”, and a purpose-defined packet is exactly what an occasion is. This catalogue has authored the domain because the RSVP mechanics are real and recur, and records that the placement question is Joseph's."
+    },
+    {
+      "id": "calendar.availability",
+      "name": "Availability, free/busy and scheduling coordination",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "The negotiation before the entry exists — published free/busy, scheduling-link pages, poll results, and the exchange that converged on a time.",
+      "provenance": "proposal",
+      "design_cite": "No design sentence names availability sharing. §2.9's calendar bullet names the settled entry's slots — “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata” — and free/busy is what precedes those, not one of them. §5.7 is what permits the addition: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "scheduling subject",
+          "type": "string",
+          "example": "kick-off with Aldermore",
+          "reliability_ceiling": "llm_supported",
+          "why": "What is being scheduled. Almost never stated in a slot — a free/busy publication carries no subject at all by design — so the model route is the honest ceiling, bounded by §3.6: “A model that cannot cite sufficient evidence must return unknown”."
+        },
+        {
+          "field": "counterparty",
+          "type": "string",
+          "example": "Aldermore Bank",
+          "reliability_ceiling": "validated",
+          "why": "Who the time is being found with. §3.8 permits it where an author field would not be permitted: “Authorship is usually metadata”, and the counterparty is the target of the coordination. Earned from an address domain or a named organisation corroborated by a scheduling phrase in the same document."
+        },
+        {
+          "field": "proposed slots",
+          "type": "string",
+          "example": "Tue 10:00, Wed 14:00, Thu 09:30",
+          "reliability_ceiling": "validated",
+          "why": "The candidate times. Earned only from a run of date-time candidates governed by a scheduling phrase — a single date-time is refused, because §3.10 “Date extraction should be deliberately narrow” and one date in a document is the corpus's most common observation."
+        },
+        {
+          "field": "availability window",
+          "type": "string",
+          "example": "week of 2026-09-07",
+          "reliability_ceiling": "validated",
+          "why": "The stretch the publication covers. A `VFREEBUSY` component carries `DTSTART` and `DTEND` as labelled slots; a document earns the field from an explicit window phrase. §3.10 governs the parsing."
+        },
+        {
+          "field": "time zone",
+          "type": "string",
+          "example": "America/New_York",
+          "reliability_ceiling": "direct",
+          "why": "The zone the proposal is stated in. A TZID parameter is a labelled slot — §3.13's “labeled form field”. It is recorded here rather than left implicit because a zone appearing beside every proposed time is the tell that the coordination crossed zones, which is the deterministic rule below, and because a proposal read in the wrong zone is a wrong fact rather than a missing one."
+        },
+        {
+          "field": "coordination outcome",
+          "type": "string",
+          "example": "agreed",
+          "reliability_ceiling": "llm_supported",
+          "why": "Whether the negotiation settled, lapsed or was abandoned. Nothing states it; the settled case is usually visible only as a later `calendar.events` entry, which is a corpus-level inference and not a file-level fact. §3.6's “possible clue for review” is the right destination for a weak reading here."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a `FREEBUSY` property inside a `VFREEBUSY` component in a `VCALENDAR` container — the format's own availability object, which is not a `VEVENT` and must not be read as one",
+          "a `METHOD:REQUEST` calendar part whose component is `VFREEBUSY` rather than `VEVENT` — a request for availability rather than for attendance",
+          "a scheduling-service phrase — 'book a time with', 'schedule a meeting', 'pick a time that works', 'here is my availability' — co-occurring with a run of distinct date-time candidates in one document",
+          "a poll export whose column headers are date-time values and whose cells carry an availability vocabulary ('yes', 'no', 'if need be') — §2.9 says spreadsheets should yield “sheet names, column headers, visible cell values, table-like regions”, and it is date-valued HEADERS that make this a poll rather than a table",
+          "a time-zone identifier appearing beside each member of a run of proposed times — the repetition is the context check a single zone token cannot supply",
+          "an absence phrase ('out of office', 'on annual leave', 'away from', 'back on') governing a date range in the same sentence"
+        ],
+        "needs_llm": [
+          "reading a proposal buried in a message thread whose subject is something else entirely",
+          "deciding whether a run of times is a proposal, an itinerary, a rota or a set of opening hours",
+          "whether a coordination succeeded, where the only evidence is the absence of further messages",
+          "separating the user's own availability from a colleague's forwarded into the same corpus"
+        ],
+        "never_alone": [
+          "a bare list of dates — §3.10 “Date extraction should be deliberately narrow”, and a list of dates is a rota, an itinerary, a fixture list and a payment schedule as readily as a proposal",
+          "a bare time-zone identifier — every calendar container carries one",
+          "the word 'available' or 'availability' — a stock availability report, a rental availability calendar and a system availability metric belong to three other slices",
+          "a scheduling-service URL on its own",
+          "a bare counterparty name",
+          "an out-of-office string with no date range governed by it"
+        ]
+      },
+      "work_types": [
+        "free/busy publication",
+        "scheduling-link page capture",
+        "availability poll or its result export",
+        "proposed-times message",
+        "coordination exchange",
+        "out-of-office or absence notice",
+        "opening-hours or bookable-window statement",
+        "time-zone comparison sheet"
+      ],
+      "grouping_reasons": [
+        "one scheduling attempt across its proposal, its poll and the confirmation that ended it",
+        "one counterparty across repeated coordination with them",
+        "one absence period across every notice that announces it",
+        "one poll across its invitation and its result export"
+      ],
+      "template": {
+        "dimension_order": [
+          "counterparty",
+          "scheduling subject"
+        ],
+        "why": "§5.5 “a parent dimension should provide the context required to understand the child” decides this: a bare run of times means nothing until you know what was being scheduled and with whom, and the counterparty is the fact this domain can actually validate while the subject usually needs the model. Time is not offered as a level at all — a negotiation that straddles a month boundary would be split by §5.5's named harm, “putting year first scatters related work across calendar folders”, and the material is short-lived enough that a year level would be §5.7's “meaningless one-child levels” in most corpora.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "calendar.events",
+          "signal": "a successful coordination ENDS in a calendar entry, and the confirmation message carries both the proposal it settles and the entry it creates. The separator is tense: candidate times that were never fixed belong here, a fixed `DTSTART` belongs there",
+          "design_cite": "§3.9 “Topic answers what a file is about, while purpose answers what the file was for”"
+        },
+        {
+          "domain": "comms.email-thread",
+          "signal": "most coordination lives inside a thread and has no artifact of its own. The separator is whether the file's SUBJECT is the time — a thread whose reply chain happens to contain three proposed slots is a thread, not an availability record",
+          "design_cite": "§3.6 “A model output that is useful but too weak to establish a fact may remain a possible clue for review; it must not quietly become a folder proposal or an asserted file property”"
+        },
+        {
+          "domain": "calendar.schedule-change",
+          "signal": "a reschedule negotiation is coordination about a commitment that already exists. Where a prior fixed time is named, the change domain is the more specific home; where no commitment exists yet, this one is",
+          "design_cite": "§4.8 the validator must confirm “that the model has not invented a date, project, purpose, or membership that the dossier does not support”"
+        },
+        {
+          "domain": "hr.interview-panel",
+          "signal": "finding a slot for an interview panel is the commonest scheduling coordination in a working corpus, and it carries a requisition or candidate reference that the HR slice already owns. Where such a reference resolves, that domain wins and this one holds nothing; the candidate's own side of the same exchange belongs to `career.interview-cycle`",
+          "design_cite": "§3.11 “It should then activate domain-specific schemas only when the evidence indicates that a domain is plausible”"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "A free/busy publication discloses a person's entire working pattern without disclosing a single event title, and an absence notice states that a home is empty between two dates. The files themselves arrive by mail carrying addresses, which §2.9 says to treat as “potentially sensitive”, and §8.4 names “private correspondence” among what the corpus can include. §2.9's phrase is the whole claim; the handling class is P7's (§8.4).",
+      "open_question": "Is this material worth keeping at all? A settled negotiation is superseded by the entry it produced, and an unsettled one is noise — which makes the honest destination §7.3's residual library rather than a domain: “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision”. This catalogue has authored the domain because the schema is needed to RECOGNISE the material (an availability poll misread as a rota or an itinerary is a real misfiling), while taking no position on whether the tree should ever show it. §7.3's lifecycle rule is the relevant constraint on whatever Joseph decides, and it is a constraint against deletion rather than for retention."
+    },
+    {
+      "id": "calendar.deadline-reminder",
+      "name": "Deadlines, due dates and reminders",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "A date something must happen by, and the notice that says so — due dates, renewal warnings, key-date schedules and reminder exports.",
+      "provenance": "proposal",
+      "design_cite": "The design's only sentence about reminders puts them in the RESIDUAL library, which is the design saying that a reminder with no home is residue: §7.3 “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship”. That is an argument for a domain rather than against one — the residual template exists precisely because the material recurs and nothing claims it. §5.7 permits the addition: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "obligation",
+          "type": "string",
+          "example": "passport renewal",
+          "reliability_ceiling": "llm_supported",
+          "why": "What must be done. A notice states the consequence and the date and very often leaves the obligation implicit, so the model route is the honest ceiling; §3.6 bounds it — “A model that cannot cite sufficient evidence must return unknown”. Where the notice names a policy, an account or a matter reference the obligation is carried by that reference instead, and the more specific domain named in the collisions below owns it."
+        },
+        {
+          "field": "due date",
+          "type": "date",
+          "example": "2026-11-30",
+          "reliability_ceiling": "validated",
+          "why": "The defining field, and the one §3.10 constrains hardest: “Date extraction should be deliberately narrow”, and “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values”. It is `validated` and never `direct` outside a `VTODO` container, because a due date in prose earns its meaning only from the deadline phrase governing it."
+        },
+        {
+          "field": "notice type",
+          "type": "string",
+          "example": "final reminder",
+          "reliability_ceiling": "validated",
+          "why": "First notice, reminder, final notice, expiry warning. A notice vocabulary in a title position passes a context check — §3.7 “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference”. This is the field that orders a run of otherwise identical letters."
+        },
+        {
+          "field": "issuing party",
+          "type": "string",
+          "example": "HM Passport Office",
+          "reliability_ceiling": "validated",
+          "why": "Who is imposing the date. Earned from a letterhead or `From` organisation corroborated by the deadline phrase. Held as a joining fact and offered as a template level only beneath the obligation, because §3.8 warns that “A folder should not become a collection point for everything produced by the same person or organization”."
+        },
+        {
+          "field": "consequence",
+          "type": "string",
+          "example": "cover lapses",
+          "reliability_ceiling": "llm_supported",
+          "why": "What happens if the date passes. This is the fact that makes a deadline worth surfacing at all, and it is always prose. §3.9's distinction is the reason it is a field rather than a note: “Topic answers what a file is about, while purpose answers what the file was for”."
+        },
+        {
+          "field": "obligation status",
+          "type": "string",
+          "example": "outstanding",
+          "reliability_ceiling": "user_confirmed",
+          "why": "Whether the thing was done. No file states it — the discharging document is a different file, often in a different domain, and matching them is a corpus-level inference. §3.13's “A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user” is the only honest ceiling, and the field is recorded so the validator legitimises a user-entered value and refuses a model-proposed one."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a deadline phrase — 'due by', 'must be received by', 'expires on', 'last day to', 'no later than' — immediately governing an explicit date pattern in the same sentence. §3.10 supplies the date half and the governing phrase supplies the context half; neither fires alone",
+          "a renewal phrase — 'renewal notice', 'your policy expires', 'time to renew', 'your subscription ends' — co-occurring with a named issuing organisation and an explicit date",
+          "a `VTODO` component inside a `VCALENDAR` container carrying a `DUE` property — the calendar format's own task object, which is not a `VEVENT` and must not be read as one",
+          "a `VALARM` component inside a `VCALENDAR` container — the format's own reminder slot, readable only against the entry it hangs from",
+          "a task-list export whose column headers include a due-date column together with a status column — §2.9 says spreadsheets should yield “sheet names, column headers, visible cell values, table-like regions”, and the pairing of the two headers is the check either alone lacks",
+          "a key-dates phrase ('key dates', 'important dates', 'milestone schedule') in a title position over a table whose rows pair a label with a date"
+        ],
+        "needs_llm": [
+          "what the obligation actually is, where the notice names only a scheme, a reference or a product code",
+          "whether a stated date is a deadline, a start date, an effective date or an expiry — four readings of one date pattern that the surrounding prose distinguishes and no rule can",
+          "deciding whether a deadline is live or long discharged, where the corpus holds the notice but not the receipt",
+          "a reminder captured as a screenshot or a photographed letter, which §7.3 already contemplates as residual material"
+        ],
+        "never_alone": [
+          "a bare future date — §3.10 “Date extraction should be deliberately narrow”, and a future date appears in every contract, warranty, rota, insurance schedule and passport in the corpus",
+          "the words 'deadline', 'due' or 'reminder' in a filename",
+          "a bare issuing-organisation name — §4.9 “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization”",
+          "typographic emphasis — bold, red text, a warning glyph",
+          "the word 'urgent' or 'action required', which is the most common subject line in an unfiltered mailbox",
+          "a date range with no phrase governing either end"
+        ]
+      },
+      "work_types": [
+        "reminder notice",
+        "renewal notice",
+        "expiry or lapse warning",
+        "final notice",
+        "key-dates or milestone schedule",
+        "task export carrying due dates",
+        "diarised alarm entry",
+        "countdown or checklist with dates"
+      ],
+      "grouping_reasons": [
+        "one obligation across its first notice, its reminder and its final notice",
+        "one issuing party across the obligations it tracks",
+        "one renewal cycle across the notice and the payment or submission that discharged it",
+        "one key-dates schedule across its successive republications"
+      ],
+      "template": {
+        "dimension_order": [
+          "obligation",
+          "issuing party",
+          "year"
+        ],
+        "why": "§5.5's ordinary rule bites here harder than anywhere else in this slice: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. The due date is the CONTENT of a reminder, not its address — a renewal notice belongs beside the policy it renews, and filing by the notice's own year is the one arrangement that guarantees this year's reminder sits nowhere near last year's. `time_first` is false, and this entry is the clearest case in the slice for it, which is why it is stated rather than assumed. The year is last and collapsible under §5.7's warning against templates that “create meaningless one-child levels”.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "law.limitation-and-diary",
+          "signal": "the legal-practice version of this domain already exists and already models a matter reference beside a due date and a deadline type. Where a matter reference resolves, that domain is the more specific home and this one defers entirely; what stays here is the deadline with no matter — a passport, a warranty, a tax filing, a school form",
+          "design_cite": "§3.11 “It should then activate domain-specific schemas only when the evidence indicates that a domain is plausible”"
+        },
+        {
+          "domain": "admin.subscriptions-recurring",
+          "signal": "a renewal notice is already the first work type of `admin.subscriptions-recurring`, which models a vendor, a billing period and a renewal date. Where a subscription identifier or a payment method appears the administration slice wins; a renewal notice with neither is a bare deadline and stays here",
+          "design_cite": "§4.8 the validator must confirm “that each fact or label belongs to an allowed domain schema” — and here it belongs to two, so the pair is recorded rather than left latent"
+        },
+        {
+          "domain": "fin.insurance",
+          "signal": "a policy renewal notice carries a policy number and a premium, and the finance slice owns both. §3.15 additionally makes finance a safety domain, so the deferral is not merely a tidiness preference",
+          "design_cite": "§3.15 “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed”"
+        },
+        {
+          "domain": "calendar.events",
+          "signal": "a `VTODO` and a `VEVENT` arrive in the same container and are different objects. A deadline occupies no span and has no attendees; an event does. The container states which, and a rule that reads a `DUE` property as a `DTSTART` produces a fact of the wrong kind rather than a missing one",
+          "design_cite": "§3.2 “Raw evidence is not yet a fact”"
+        }
+      ],
+      "sensitivity": "none",
+      "sensitivity_why": "Neither §2.9 nor §8.4 attaches a sensitivity phrase to a due date, and this catalogue declines to invent one. What a specific notice carries alongside the date — a policy number, an account, a national identifier, a matter reference — is genuinely sensitive, and it belongs to the finance, identity, medical and legal domains named in the collisions above, which §3.15 already makes safety domains: “Finance, identity, medical, and legal material should be implemented first as safety domains”. Marking the bare deadline sensitive would spread the phrase across the corpus's single most common observation and dilute it where it matters. The open question below records the case against this call rather than hiding it. No handling class is assigned — that is P7's (§8.4).",
+      "open_question": "Two calls here are Joseph's. First, the sensitivity marking above is `none`, and the argument against it is real: a run of reminders read together discloses what someone owes, to whom, and whether they are keeping up — an inference no single notice supports. If Joseph wants domains marked on what a COLLECTION discloses rather than on what one file contains, this entry flips and so do several others across the corpus. Second, whether a discharged reminder should be kept at all. §7.3's residual lifecycle is the only guidance the design offers and it constrains deletion rather than retention: “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision”."
+    },
+    {
+      "id": "calendar.schedule-change",
+      "name": "Reschedules, cancellations and disruption notices",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "The notice that a fixed time moved — a reschedule, a cancellation, a delay or a travel disruption, and the commitment it amends.",
+      "provenance": "proposal",
+      "design_cite": "No design sentence names schedule changes. §2.9's calendar field list — “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata” — describes the entry, not its amendment. The design's provenance rule is why the amendment must be its own record rather than an overwrite: “The product must never overwrite the evidence record merely because a later extractor or model produces a different answer. A newer result should supersede an earlier result while retaining the old observation and the reason it was superseded”. §4.8 depends on the same thing — the validator must be able to see “that the model has not invented a date, project, purpose, or membership that the dossier does not support”, which it cannot do once the new time has silently replaced the old.",
+      "schema": [
+        {
+          "field": "changed commitment",
+          "type": "string",
+          "example": "BA1476 LHR-EDI, 12 Sept",
+          "reliability_ceiling": "validated",
+          "why": "What moved. Earned from a change phrase governing a named commitment, or directly from a `UID` that matches a stored entry. Without it there is no domain — a change notice that cannot name what changed is §3.6's “possible clue for review” and nothing more."
+        },
+        {
+          "field": "original time",
+          "type": "datetime",
+          "example": "2026-09-12T07:35",
+          "reliability_ceiling": "validated",
+          "why": "The time being replaced. §3.8 is why it is a separate field rather than a superseded value of one time field: “The system must separate roles that happen to contain the same entity type” — a change notice carries two date-times that mean opposite things, and collapsing them destroys the only fact the domain exists to hold."
+        },
+        {
+          "field": "new time",
+          "type": "datetime",
+          "example": "2026-09-12T11:10",
+          "reliability_ceiling": "validated",
+          "why": "The replacement. Both times are `validated` rather than `direct` because in prose neither is labelled — they are told apart by the change phrase between them, which is exactly the context check §3.5 describes when a candidate becomes a fact only “when the engine finds a course-code pattern together with academic context”. Where the container supplies them as `RECURRENCE-ID` and `DTSTART` the pairing is labelled and the ceiling would be direct."
+        },
+        {
+          "field": "change type",
+          "type": "string",
+          "example": "rescheduled",
+          "reliability_ceiling": "validated",
+          "why": "Rescheduled, cancelled, delayed, postponed, diverted. `METHOD:CANCEL` is a labelled slot; prose earns the field from the disruption vocabulary below. This is the field the template branches on because it is what a person searches for."
+        },
+        {
+          "field": "change reason",
+          "type": "string",
+          "example": "crew shortage",
+          "reliability_ceiling": "llm_supported",
+          "why": "Always prose, often euphemistic, and worth holding because it is what a compensation claim later cites. §3.6 bounds it: “A model that cannot cite sufficient evidence must return unknown”."
+        },
+        {
+          "field": "notifying party",
+          "type": "string",
+          "example": "British Airways",
+          "reliability_ceiling": "validated",
+          "why": "Who moved it. Metadata and a joining fact, never a level — §3.8 “A folder should not become a collection point for everything produced by the same person or organization”."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a change phrase — 'has been rescheduled', 'this event has been cancelled', 'your appointment has moved', 'is delayed by', 'has been postponed' — co-occurring with two distinct date-time patterns in one document, which is the pairing no single date can supply",
+          "a `METHOD:CANCEL` property inside a `VCALENDAR` container — the format's own cancellation verb",
+          "a `VEVENT` sharing one `UID` with an entry already stored but carrying a later `SEQUENCE` value — the format's own amendment marker, readable only against the earlier version and therefore a corpus-level rule rather than a file-level one",
+          "a `RECURRENCE-ID` property on a `VEVENT` — the format's marker for one altered instance of a series, meaningless without the series it belongs to",
+          "a disruption vocabulary ('cancelled', 'delayed', 'diverted', 'postponed') co-occurring with a named carrier, venue or provider AND a service or booking identifier in the same document",
+          "a `STATUS:CANCELLED` property inside a `VEVENT` that already carries `DTSTART` and `SUMMARY`"
+        ],
+        "needs_llm": [
+          "reading which of two dates in a notice is the original and which the replacement, where no phrase governs either",
+          "deciding whether a cancellation ended the commitment or preceded a rebooking held elsewhere in the corpus",
+          "an apology letter that describes a disruption without naming a booking, a service or a date",
+          "separating a change to the user's own commitment from a general service advisory sent to everybody"
+        ],
+        "never_alone": [
+          "the word 'cancelled' — a cancelled cheque, a cancelled order, a cancelled subscription and a cancelled contract belong to four other slices",
+          "a bare pair of dates — §3.10 “Date extraction should be deliberately narrow”, and two dates in a document is the ordinary case, not the exceptional one",
+          "a strikethrough or a struck-out time",
+          "a bare flight, train or service number — §3.10 warns that documents “frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values”, and a service number is exactly such a token",
+          "the word 'update' or 'change' in a subject line",
+          "an apology phrase on its own"
+        ]
+      },
+      "work_types": [
+        "reschedule notice",
+        "cancellation notice",
+        "delay or disruption alert",
+        "amended itinerary or revised confirmation",
+        "updated calendar entry carrying a later sequence or a cancel method",
+        "recurring-series exception",
+        "apology and rebooking offer",
+        "service advisory naming a specific booking"
+      ],
+      "grouping_reasons": [
+        "one commitment across its original entry and every amendment to it, joined by the container's `UID` or by a booking reference",
+        "one disruption across every notice it generated",
+        "one recurring series across its exceptions",
+        "one rebooking across the cancellation and the replacement confirmation"
+      ],
+      "template": {
+        "dimension_order": [
+          "changed commitment",
+          "change type"
+        ],
+        "why": "§5.5 “a parent dimension should provide the context required to understand the child” is decisive: a reschedule notice says only that something moved, and it is legible nowhere except beneath the thing that moved. A date-first order is the single arrangement that guarantees the amendment lands nowhere near the original — §5.5's “putting year first scatters related work across calendar folders” describes it exactly, and here the scattered pair is the pair that has to be read together. A per-notice date level would additionally be §5.7's “meaningless one-child levels”, since notices arrive one at a time.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "calendar.events",
+          "signal": "an amended `.ics` IS a calendar entry — same `UID`, later `SEQUENCE`. The two domains describe one file from opposite ends, and the question of whether the amendment is a new file or a new version of the old one is raised as an open question rather than settled here",
+          "design_cite": "§3.11 names “version family” among the universal file facts, which is the mechanism the question turns on"
+        },
+        {
+          "domain": "pers.travel-record",
+          "signal": "a flight cancellation belongs to the trip, and `pers.travel-record` already models the trip as the organising reason with a booking reference to join on. Where the reference resolves to a known trip that domain is the more specific home and this one defers",
+          "design_cite": "§3.9 “Topic answers what a file is about, while purpose answers what the file was for”"
+        },
+        {
+          "domain": "calendar.appointment",
+          "signal": "a rescheduled appointment letter carries an appointment reference and a counterparty, which are the appointment domain's fields. The separator is what the file is FOR: a letter that confirms a new time is an appointment record, a letter whose subject is the disruption itself is a change record",
+          "design_cite": "§3.9 “Purpose must be a first-class facet”"
+        },
+        {
+          "domain": "comms.notification-alert",
+          "signal": "most disruption alerts are machine-sent and carry every marker of an automated notification. The separator is whether the notice names a SPECIFIC commitment of the user's — a general service advisory is a notification, an advisory quoting the user's own booking reference is a change record",
+          "design_cite": "§4.9 “It should not form a supported group when there is no valid anchor” — the booking reference is the anchor, and without it the file is not this domain's"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "A disruption notice states where someone was going, when, and that they were not at home. It arrives by mail carrying addresses, which §2.9 says to treat as “potentially sensitive”, and §8.4 names “private correspondence” and “GPS metadata” among what the corpus can include — a travel change notice is the itinerary-shaped form of the second. §2.9's phrase is the whole claim; the handling class is P7's (§8.4).",
+      "open_question": "Is an amendment a file of its own or a new version of the file it amends? §3.11 makes “version family” a universal file fact, and an updated `.ics` carrying the same `UID` and a later `SEQUENCE` is a version family by every structural test — which would put the amendment inside `calendar.events` and delete this domain. The argument against is that a version family is normally one document redrafted, whereas a reschedule notice is a NEW communication about an old commitment, frequently from a different sender in a different format. This catalogue has authored the domain and flagged the collision rather than resolving it, because the answer changes how the tree looks for anyone whose corpus is mostly travel and appointments. It is Joseph's."
+    },
+    {
+      "id": "comms.email-thread",
+      "name": "Working email threads",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "One conversation carried by email — the messages, their reply chain, and what was attached to them.",
+      "provenance": "design",
+      "design_cite": "§2.9 names the formats, every field and the handling: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context, while treating addresses and message content as potentially sensitive”. That single sentence is this entry's schema, its grouping reason (“thread identifiers” and “reply-chain context”) and its sensitivity marking. `src/extractors/router.py` already maps `eml`, `mbox` and `msg` to source type `email`, and `src/extractors/long_tail.py` already marks addresses and body zones sensitive at emission — the fact layer had no schema for any of it to resolve into.",
+      "schema": [
+        {
+          "field": "thread",
+          "type": "string",
+          "example": "Aldermore kick-off",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “thread identifiers” as a field email should yield. `Message-ID`, `In-Reply-To` and `References` are labelled header slots, which is §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”. The thread is the identifier's family, not the subject line — the subject changes mid-thread and the `References` chain does not."
+        },
+        {
+          "field": "subject",
+          "type": "string",
+          "example": "Re: Aldermore kick-off",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “subject”. A `Subject` header is a labelled slot. It is held as a display fact and is explicitly NOT the joining fact — 'Re: Update' is the most common string in a real mailbox, and §4.9's warning applies to it exactly: a group must not form “when one high-frequency entity acts as the only bridge”."
+        },
+        {
+          "field": "first message date",
+          "type": "datetime",
+          "example": "2026-04-14T08:52",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “sent date”. The `Date` header is a labelled slot, and the earliest such date across a resolved thread is a projection of direct facts rather than a second observation, so it inherits the ceiling and never outlives it. Held separately from the last message date because §3.8 requires it: “The system must separate roles that happen to contain the same entity type”."
+        },
+        {
+          "field": "last message date",
+          "type": "datetime",
+          "example": "2026-06-02T17:20",
+          "reliability_ceiling": "direct",
+          "why": "The other end of the span. The pair is what makes a thread a duration rather than an instant, and it is the only fact that distinguishes a live exchange from a dead one without reading the body."
+        },
+        {
+          "field": "participant role",
+          "type": "string",
+          "example": "external counterparty",
+          "reliability_ceiling": "validated",
+          "why": "§2.9 names “sender” and “recipients”; §3.8 requires the modelling this field performs: “The system must separate roles that happen to contain the same entity type”, since the same address appears as sender, recipient, copied party and quoted signature within one thread. Resolving an address against the user's own identities and against a known-counterparty list is a deterministic context check — §3.13's “A validated fact was found by a deterministic rule and passed contextual checks”. §3.8 also forbids the obvious misuse: “It should avoid using authorship or creator identity as a destination dimension”."
+        },
+        {
+          "field": "correspondent organisation",
+          "type": "string",
+          "example": "Aldermore Bank",
+          "reliability_ceiling": "validated",
+          "why": "The organisation on the other side, taken from the address domain and confirmed against a gazetteer. §3.7 constrains the match: “It should use word-boundary matching rather than substring matching” and “It should rank candidate matches instead of accepting the first match”. This is the only field in the entry offered as a folder level, and the open question below records that §3.8 has a real objection to even that."
+        },
+        {
+          "field": "attachment name",
+          "type": "string",
+          "example": "kickoff-agenda.pdf",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “attachment names” explicitly. The name is a labelled slot in the MIME part. It matters beyond search: an attachment extracted from a thread is a file whose parent-folder context is a mailbox, and §2.9 lists “parent-folder context” among what every file receives, so the thread is the only context that attachment will ever have."
+        },
+        {
+          "field": "thread subject matter",
+          "type": "string",
+          "example": "supplier onboarding",
+          "reliability_ceiling": "llm_supported",
+          "why": "What the conversation is actually about, which the subject line frequently misstates and often contradicts by the tenth reply. §3.5 is the licence and the limit: the model may act “only when a file requires language interpretation that rules cannot resolve safely”, and “It can only propose facts that belong to the active domain schema, and it must cite exact supporting evidence already extracted from the file”."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "an RFC-5322 header block carrying `Message-ID` together with `In-Reply-To` or `References` — §2.9 names “thread identifiers” as a field email should yield, and the pairing of an identity header with a chain header is what makes it a thread rather than a message",
+          "a `From`, `To` and `Subject` header triple present in one header block, in a file the router already sent to source type `email` — `src/extractors/router.py` maps `eml`, `mbox` and `msg`, and the header triple is the content check that confirms the extension",
+          "a `Subject` value whose reply and forward prefixes have been stripped matching the stripped subject of another message in the corpus WHERE both also share a participant address — the subject alone is refused below and only the pairing fires",
+          "an `mbox` `From ` separator line at the start of a message block together with a `Date` header inside that block",
+          "a quoted-reply structure — a run of lines prefixed with a quote marker beneath an attribution line naming a sender and a date — appearing inside a body §2.9 already treats as sensitive"
+        ],
+        "needs_llm": [
+          "an email saved as a PDF or a print, where the headers survive as body text and the reply chain survives as indentation",
+          "what the thread is actually about, once the subject line has stopped describing it",
+          "whether an exchange is working correspondence or personal correspondence, where the address is a personal one used for work",
+          "separating a genuine conversation from a one-to-one marketing message written in conversational voice"
+        ],
+        "never_alone": [
+          "a bare email address — §2.9 requires the engine be “treating addresses and message content as potentially sensitive” before it treats them as evidence, and an address appears in signatures, letterheads, footers, invoices and CVs in every slice of this corpus",
+          "a `Subject` value alone — §4.9 refuses a group formed “when one high-frequency entity acts as the only bridge”",
+          "a bare person name — §3.8 “It should avoid using authorship or creator identity as a destination dimension”",
+          "a `.eml` or `.msg` extension with no header block confirmed by content",
+          "the presence of an `@` character",
+          "a signature block — it is a contact card in prose, and `comms.contact-record` does not claim it either"
+        ]
+      },
+      "work_types": [
+        "single message (.eml/.msg)",
+        "thread export",
+        "forwarded chain",
+        "message saved as PDF or print",
+        "attachment carried by the thread",
+        "auto-reply or bounce within the thread",
+        "message with an embedded calendar part"
+      ],
+      "grouping_reasons": [
+        "one thread across its messages, replies and forwards, joined by `References` rather than by subject",
+        "one correspondent organisation across the threads it appears in",
+        "one message and the attachments it carried",
+        "one exchange that changed its subject line but kept its reply chain"
+      ],
+      "template": {
+        "dimension_order": [
+          "correspondent organisation",
+          "thread"
+        ],
+        "why": "§5.5's ordinary record rule — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — rules time out immediately, since a thread spanning a year-end would be split down the middle. The first level is the harder call. §3.8 says “Authorship is usually metadata” and warns that “A folder should not become a collection point for everything produced by the same person or organization”, which is an objection to a per-correspondent level; the answer taken here is that an organisation on the other side of an exchange is the target rather than the author, which is the reading §3.8 itself endorses when it names “our_firm and client” as distinct facets. The objection is real enough to be raised in the open question below rather than argued away.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "pers.correspondence",
+          "signal": "an email thread and a message archive export are already work types of `pers.correspondence`, so the two domains overlap by construction. The separator is the correspondent's role, not the format: a person writing as a person belongs there, an organisation or a working counterparty belongs here, and a personal address used for work satisfies both",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type”"
+        },
+        {
+          "domain": "law.matter-correspondence",
+          "signal": "correspondence on a legal matter is already modelled with a client and a matter reference. Where a matter reference resolves, the law slice is the more specific home and this domain defers; §3.15 makes that deferral a safety property rather than a preference",
+          "design_cite": "§3.15 “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed”"
+        },
+        {
+          "domain": "ops.internal-comms",
+          "signal": "a broadcast to an organisation's own people is not a thread — it has no reply chain and no counterparty, which is exactly the structural absence that separates them. `ops.internal-comms` owns the producing side",
+          "design_cite": "§2.9 names “reply-chain context” as a field email should yield, and its absence is what disqualifies a broadcast here"
+        },
+        {
+          "domain": "soft.helpdesk-ticket",
+          "signal": "a support thread with a queue and a ticket identifier belongs to the software slice, which already models both. This is a deliberate resolution: `soft.helpdesk-ticket` currently cites a domain called `career.correspondence` that no catalogue defines, and this entry is the working-communication domain that citation was reaching for",
+          "design_cite": "§4.9 “It should not form a supported group when there is no valid anchor” — the ticket identifier is the anchor, and its presence sends the file there rather than here"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "§2.9 states it directly of this material and no inference is needed: email should be handled “while treating addresses and message content as potentially sensitive”. §8.4 independently names “private correspondence” among what the corpus can include. `src/extractors/long_tail.py` already emits the signal on address-kind header values and on body and link zones. §2.9's phrase is the whole claim made here — the handling class is P7's (§8.4).",
+      "open_question": "Should a mailbox branch by correspondent at all? §3.8's warning is aimed at exactly this shape — “A folder should not become a collection point for everything produced by the same person or organization” — and a `Correspondence/Aldermore Bank/` tree is a collector by any reading, however the counterparty/author distinction is drawn. The alternative is to branch by the MATTER a thread concerns, which is what `law.matter-correspondence` does and what §3.8 recommends when it says the “purpose, project, subject, or target is more informative for placement”; the cost is that the matter is `llm_supported` here and a validated reference there. Joseph's call, and it decides whether working email is a branch of its own or is dispersed into the projects it discusses."
+    },
+    {
+      "id": "comms.chat-export",
+      "name": "Chat and messaging archives",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "A conversation carried by a messaging platform and exported as a file — channel logs, direct-message histories, and the attachments inside them.",
+      "provenance": "proposal",
+      "design_cite": "No design sentence names chat or messaging. §2.9's long-tail list runs from email through calendar and contacts to code, media and archives and never reaches messaging platforms; the nearest sentence routes a chat export by its container rather than by its meaning — “Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure”. §2.6 is the only place the design mentions these platforms at all, and it mentions them as a source of damage: “Messaging platforms and downloaded web images often strip metadata from real photographs”. §5.7 permits the addition: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "workspace or service",
+          "type": "string",
+          "example": "Slack - Aldermore",
+          "reliability_ceiling": "validated",
+          "why": "Which platform and which tenant. Earned from an export manifest at the archive root, or from the container's own schema keys — §2.9 says structured data should yield “readable text plus format-specific structure”, and the schema keys ARE the format-specific structure. `direct` is refused because no labelled slot names the workspace in most exports; it is read from the file layout."
+        },
+        {
+          "field": "channel or conversation",
+          "type": "string",
+          "example": "#kickoff",
+          "reliability_ceiling": "direct",
+          "why": "The addressable conversation. Where an export carries a channel name as a manifest key or a directory name it is a labelled slot — §3.13's “labeled form field”. This is the domain's joining fact and the level the template branches on."
+        },
+        {
+          "field": "participant role",
+          "type": "string",
+          "example": "external guest",
+          "reliability_ceiling": "validated",
+          "why": "§3.8 “The system must separate roles that happen to contain the same entity type” — a workspace holds the user, colleagues, guests and bots behind one author key. Resolving the key against a users manifest is a context check; naming the person is neither necessary nor permitted as a dimension under §3.8's “It should avoid using authorship or creator identity as a destination dimension”."
+        },
+        {
+          "field": "conversation period",
+          "type": "string",
+          "example": "2026-04 to 2026-09",
+          "reliability_ceiling": "validated",
+          "why": "The span the export covers, taken from the earliest and latest message timestamps rather than from the export's own filename. §3.10 “Date extraction should be deliberately narrow” refuses a period read from a filename token."
+        },
+        {
+          "field": "export format",
+          "type": "string",
+          "example": "platform JSON export",
+          "reliability_ceiling": "direct",
+          "why": "Which shape the archive is in, which decides what can be read from it at all. §2.9's closing requirement is why the field is worth holding: “Every extractor must emit the same evidence shape”, and a chat export that is an archive is read through its manifest rather than its contents."
+        },
+        {
+          "field": "attachment name",
+          "type": "string",
+          "example": "floorplan-v3.png",
+          "reliability_ceiling": "direct",
+          "why": "Files carried inside the conversation. Held for the same reason as on `comms.email-thread`: an image pulled out of a chat export has no parent-folder context of its own, and §2.6 warns what has already happened to it — “Messaging platforms and downloaded web images often strip metadata from real photographs”, so the conversation is the only provenance it retains."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a JSON array of objects each carrying a message-shaped key triple — an author key, a text key and a timestamp key — repeating through the file, in a container that also names a channel or conversation. §2.9 says structured data should yield “readable text plus format-specific structure”, and it is the repeated triple, not any one key, that identifies the structure",
+          "a platform export manifest at an archive root (a channels list beside a users list) read from the manifest alone — §2.5 “Archives should be inspected without being unpacked to disk”",
+          "a chat transcript line shape — a bracketed or trailing timestamp followed by a name and a colon — repeating line after line through a text file, which is the repetition no single line supplies",
+          "an export header phrase — 'chat history with', 'messages exported', 'conversation export' — co-occurring with a participant name and a date range in the same file",
+          "a directory of media files sitting beside a message container that names them, inside one archive manifest"
+        ],
+        "needs_llm": [
+          "whether an exchange is working or personal, which the platform does not record and the channel name rarely settles",
+          "a conversation pasted into a document, where the line shape survives but the container does not",
+          "reading what a channel was for once its name has stopped describing it",
+          "separating a real conversation from a bot or integration feed posting into the same channel"
+        ],
+        "never_alone": [
+          "a bare timestamp column",
+          "a bare participant name — §3.8 “It should avoid using authorship or creator identity as a destination dimension”",
+          "a name followed by a colon — every screenplay, interview transcript, deposition and qualitative-coding file has the identical shape, and `write.screenplay`, `law.depositions` and `res.qualitative-coding` own those",
+          "the word 'chat', 'messages' or 'export' in a filename",
+          "a JSON container on its own — §2.9 routes JSON to structured data and `src/extractors/router.py` maps `json` to source type `code_structured`, so the container is evidence of a format and not of a domain",
+          "an emoji or reaction token"
+        ]
+      },
+      "work_types": [
+        "channel export",
+        "direct-message export",
+        "group-chat export",
+        "message archive in platform JSON or HTML",
+        "exported attachment set",
+        "chat transcript pasted into a document",
+        "screenshot of a conversation"
+      ],
+      "grouping_reasons": [
+        "one channel or conversation across the period exported",
+        "one export run across every file it produced, joined by the archive manifest",
+        "one conversation and the attachments carried inside it",
+        "one workspace across its channels"
+      ],
+      "template": {
+        "dimension_order": [
+          "workspace or service",
+          "channel or conversation",
+          "conversation period"
+        ],
+        "why": "§5.5's ordinary rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — a channel exported twice must not split across two year folders, and the channel is the function. The period is last and only appears where a channel has been exported more than once; where it has not, §5.7's warning against templates that “create meaningless one-child levels” collapses it. The workspace leads because §5.5 also requires that “a parent dimension should provide the context required to understand the child”, and `#general` means nothing until you know whose `#general`.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "pers.correspondence",
+          "signal": "a message archive export is already a work type of `pers.correspondence`, so personal messaging defers there. The separator is the correspondent's role rather than the platform — the same application carries both, often in adjacent conversations of one export",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type”"
+        },
+        {
+          "domain": "comms.email-thread",
+          "signal": "both are threaded working conversation and the same exchange frequently crosses between them. The separator is the container: an RFC-5322 header block is email, a platform export is chat, and a chat notification delivered BY email is email carrying a chat",
+          "design_cite": "§2.9 “The engine should treat the file extension as a routing signal rather than an assumption about meaning”"
+        },
+        {
+          "domain": "pers.screenshot",
+          "signal": "a screenshotted conversation is a capture by every §2.6 test and a conversation by its content, and the two readings do not resolve from metadata. §7.3 already anticipates where such a file goes when nothing claims it",
+          "design_cite": "§7.3 “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship”"
+        },
+        {
+          "domain": "law.ediscovery-production",
+          "signal": "a chat export collected for a matter carries a custodian and a production reference, and the law slice owns both. Where those resolve, that domain wins outright and the export must not be re-filed by workspace",
+          "design_cite": "§3.15 “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed”"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "§2.9 attaches its phrase to email rather than to chat, so this marking is an inference and is written as one: a chat export is message content and participant addresses in a different container, and §8.4 names “private correspondence” among what the corpus can include without naming a transport. The volume is what sharpens it — one export holds years of unguarded conversation about people who never consented to being in the user's corpus. §2.9's phrase is the whole claim; the handling class is P7's (§8.4).",
+      "open_question": "Is a chat export one file or a corpus? A platform export is an archive containing hundreds of conversations and thousands of messages, and the design's only rule for that shape is §2.5's “Archives should be inspected without being unpacked to disk” — which means the engine sees the manifest and not the conversation, so every schema field above is read from structure rather than from content. Whether such a file should be placed as a single opaque object, unpacked into per-channel groups, or held back entirely under §7.3's Protected Records is Joseph's; the same question is raised in a different form on `comms.mailbox-archive`, and the two should be answered together."
+    },
+    {
+      "id": "comms.call-and-voicemail",
+      "name": "Calls, voicemail and recordings",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "Spoken communication as a file — a call log, a voicemail, a recorded call or meeting, and the transcript or captions made from it.",
+      "provenance": "inference",
+      "design_cite": "Extends a family §2.9 names rather than a domain it names. §2.9's audio bullet gives the field list: “Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present”, and the transcript half of that sentence is conditional in the design's own words — it is available “only under an explicit privacy and compute policy”, which `src/extractors/long_tail.py` already implements as an injected predicate with no default. This entry therefore treats a speech-derived transcript as unavailable unless P7 has authorised it, and captions as unconditionally available. §5.7 permits the domain: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "counterparty role",
+          "type": "string",
+          "example": "external caller",
+          "reliability_ceiling": "validated",
+          "why": "Who was on the other end, as a role rather than as a person. §3.8 requires the shape: “The system must separate roles that happen to contain the same entity type”, and forbids the alternative — “It should avoid using authorship or creator identity as a destination dimension”. Earned from a caller-id slot or a log column resolved against known identities, which is a context check."
+        },
+        {
+          "field": "call direction",
+          "type": "string",
+          "example": "inbound",
+          "reliability_ceiling": "direct",
+          "why": "Inbound, outbound or missed. A direction column in a call-detail export and a caller-id tag on a voicemail are both labelled slots — §3.13's “labeled form field”. It is the cheapest fact in the domain and the one that separates a voicemail left FOR the user from a recording made BY them."
+        },
+        {
+          "field": "call date",
+          "type": "datetime",
+          "example": "2026-05-08T16:41",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “creation time” among what audio should yield, and a container's creation timestamp is a labelled metadata slot. This is the field that makes the template decision below, because for the recording half of this domain it is the material's defining aspect rather than an incidental stamp."
+        },
+        {
+          "field": "duration",
+          "type": "string",
+          "example": "00:03:41",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “duration” first in its audio field list. Held for search and for triage rather than for placement — a two-second file and a ninety-minute file are different kinds of thing, and neither is a folder level."
+        },
+        {
+          "field": "recording type",
+          "type": "string",
+          "example": "voicemail",
+          "reliability_ceiling": "validated",
+          "why": "Voicemail, call recording, meeting recording, voice memo. §2.9 names “embedded tags” as a field audio should yield, and a recorder application's tag corroborated by a filename convention is a context check — §3.13's “A validated fact was found by a deterministic rule and passed contextual checks”. Without a tag the file falls to `needs_llm`, because the container is identical across all four."
+        },
+        {
+          "field": "transcript availability",
+          "type": "string",
+          "example": "captions present",
+          "reliability_ceiling": "direct",
+          "why": "Whether text exists for this audio and where it came from. The distinction is a privacy boundary rather than a convenience: §2.9 makes captions unconditional — “subtitles or captions where present” — and speech-to-text available “only under an explicit privacy and compute policy”. Recording which one a file has is what lets the validator refuse a transcript that arrived without authorisation."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "an audio container whose embedded tags carry a voicemail vocabulary or a caller-id slot together with a creation time — §2.9 names “embedded tags” and “creation time” as fields audio should yield, and it is the pairing that fires",
+          "a call-log export whose column headers include a direction column, a number-shaped column and a duration column together — §2.9 says spreadsheets should yield “sheet names, column headers, visible cell values, table-like regions”, and it is the header triple, not any one column, that identifies a call log",
+          "a sidecar caption or subtitle file sharing a basename with an audio or video file in the same directory — §2.9's “subtitles or captions where present” is the unconditional half of the transcript sentence and needs no policy",
+          "an audio filename matching a telephony or recorder capture convention together with an embedded tag naming the recording application",
+          "a conferencing platform's recording filename convention together with a container whose duration and codec metadata match a long-form capture rather than a media file"
+        ],
+        "needs_llm": [
+          "separating a voicemail from a voice memo, a lecture capture, a field recording and a music take, which share one container and frequently one tag set",
+          "reading what a call was about, where a transcript exists under P7's policy and the audio is otherwise opaque",
+          "deciding whether a meeting recording belongs to the meeting's own record or stands alone",
+          "an audio file whose tags were stripped in transit, which §2.6 already establishes as the ordinary outcome of passing through a platform"
+        ],
+        "never_alone": [
+          "a bare audio file — a voice memo, a music track, a podcast episode, a lecture recording and a field recording share one container, and `audio.music-session`, `audio.podcast-episode` and `res.field-work` own three of those",
+          "a bare phone-number-shaped token — §3.10 warns that documents “frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values”, and §2.9 additionally treats phone numbers as address-book material that “should normally be privacy-protected rather than used to create folder proposals”",
+          "a bare duration",
+          "the word 'recording', 'call' or 'audio' in a filename",
+          "a speech-to-text transcript produced without P7's policy — §2.9 permits it “only under an explicit privacy and compute policy”, so absent that authorisation the transcript is not weak evidence, it does not exist",
+          "the ABSENCE of embedded tags, in either direction — §2.6 establishes that stripping is routine, and P5 already refuses to read an absence as an observation"
+        ]
+      },
+      "work_types": [
+        "voicemail message",
+        "call recording",
+        "meeting or conference recording",
+        "call log or call-detail export",
+        "caption or subtitle sidecar",
+        "authorised speech-to-text transcript",
+        "voice memo",
+        "missed-call notice"
+      ],
+      "grouping_reasons": [
+        "one call across its recording, its transcript or captions, and its row in a log",
+        "one counterparty across the calls exchanged with them",
+        "one meeting across its recording and the minute that cites it",
+        "one export run across the log rows and media files it produced together"
+      ],
+      "template": {
+        "dimension_order": [
+          "year",
+          "recording type"
+        ],
+        "why": "This is the one entry in the slice that meets §5.5's exception on its stated terms rather than by argument: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material”. A voicemail and a call recording ARE capture-based media — §2.9 files them in the same audio-and-video bullet as any other capture, and their creation time is what identifies them, since nothing else about the container differs. The strain is the log half: a call-detail export is a record and not a capture, and §5.5's ordinary rule would put the counterparty first. `time_first` is recorded true for the capture majority with the tension stated in the open question, and `recording type` is second because it is the only fact that separates files sharing a container.",
+        "time_first": true
+      },
+      "collides_with": [
+        {
+          "domain": "audio.podcast-episode",
+          "signal": "a produced episode is published work with an edit, a run order and a release; a recorded call is communication with none of those. The separator is the presence of production artifacts beside the audio, not anything inside it",
+          "design_cite": "§3.9 “Topic answers what a file is about, while purpose answers what the file was for”"
+        },
+        {
+          "domain": "ops.meeting-record",
+          "signal": "a meeting recording and the minute made from it describe one meeting from two directions — the minute is the record, the audio is the capture. `ops.meeting-record` already models the meeting series and date, and where a minute exists it is the more legible home for the pair",
+          "design_cite": "§4.9 “A file may validly belong to more than one accepted group”"
+        },
+        {
+          "domain": "res.qualitative-coding",
+          "signal": "a research interview recording belongs to the study, and the research slice already models the participant identifier and the protocol. Where those resolve, that domain wins; §3.15's safety ordering makes the deferral matter, since a consented recording is governed material",
+          "design_cite": "§3.15 “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed”"
+        },
+        {
+          "domain": "pers.correspondence",
+          "signal": "a voicemail from a family member is personal correspondence in an audio container, and the household slice already claims letters, cards and message archives. The separator is the counterparty's role, exactly as it is between `comms.email-thread` and the same domain",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type”"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "§8.4 names “private correspondence” among what the corpus can include, and spoken correspondence is the least guarded form of it. §2.9 marks phone numbers as address-book material that “should normally be privacy-protected rather than used to create folder proposals”, and a call log is nothing but phone numbers. The transcript route is itself a privacy gate in the design's own words — speech-to-text runs “only under an explicit privacy and compute policy” — which is the design saying this material is sensitive without using the phrase. §2.9's phrase is the whole claim; the handling class is P7's (§8.4).",
+      "open_question": "Does §5.5's capture exception cover a voicemail? The entry claims it does, on the ground that §2.9 files voicemail in the same audio-and-video family as any other capture and that creation time is what identifies it. Two things make that less than settled and both are Joseph's. First, this domain mixes captures with records — a call-detail export is a spreadsheet, and §5.5's ordinary rule would put the counterparty above the year for it, so a single template serves the two halves badly whichever way it points. Second, whether an authorised transcript is a file fact of the audio or a derived document of its own: §3.11 makes “version family” a universal file fact and a transcript is not a version, yet §3.2 requires that “the product must preserve both the original evidence and the conclusion built from it”, which is the relationship a transcript has to its audio."
+    },
+    {
+      "id": "comms.notification-alert",
+      "name": "Automated notifications and alerts",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "Machine-sent messages that report a state change — service, security, delivery and account notices nobody wrote by hand.",
+      "provenance": "proposal",
+      "design_cite": "No design sentence names notifications. §7.3 is where they land by default, in two of its residual templates: “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents” covers the confirmation half, and “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision” covers the rest. A domain exists here because the material is recognisable even when it is not worth keeping, and misrecognising it is expensive: a security alert misread as correspondence carries a verification code into a model prompt. §5.7 permits the addition: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "service",
+          "type": "string",
+          "example": "Aldermore Bank",
+          "reliability_ceiling": "validated",
+          "why": "Which system sent it. Earned from a sender domain or a letterhead corroborated by an automated-message marker in the same file. §3.7 constrains the match: “It should use word-boundary matching rather than substring matching”, which matters here because service names are short and generic."
+        },
+        {
+          "field": "notification class",
+          "type": "string",
+          "example": "security alert",
+          "reliability_ceiling": "validated",
+          "why": "Security, delivery, payment, terms change, service status. This is the field the domain exists for, because the classes differ in how they must be HANDLED and not merely in what they say. Earned from the class vocabularies in the deterministic rules below, each of which requires a corroborating fact."
+        },
+        {
+          "field": "event reported",
+          "type": "string",
+          "example": "new sign-in from a new device",
+          "reliability_ceiling": "llm_supported",
+          "why": "What actually happened. Always prose and frequently deliberately vague. §3.6 bounds it: “A model that cannot cite sufficient evidence must return unknown”, and a notification whose event cannot be read is still a notification."
+        },
+        {
+          "field": "notification date",
+          "type": "datetime",
+          "example": "2026-07-02T03:14",
+          "reliability_ceiling": "direct",
+          "why": "The `Date` header is a labelled slot — §2.9 names “sent date” for email and this material arrives as email. Note what it is NOT: the time of the event reported, which is a different fact carried in the body, and §3.8 requires them kept apart — “The system must separate roles that happen to contain the same entity type”."
+        },
+        {
+          "field": "actionability",
+          "type": "string",
+          "example": "no action required",
+          "reliability_ceiling": "llm_supported",
+          "why": "Whether the recipient must do something. It is the only fact that decides whether a notification is worth surfacing, and it is stated in prose or not at all. §3.9's distinction is why it is a field: “Topic answers what a file is about, while purpose answers what the file was for”."
+        },
+        {
+          "field": "reference",
+          "type": "string",
+          "example": "TRK-88213",
+          "reliability_ceiling": "direct",
+          "why": "A tracking, transaction or case identifier where the notice carries one, taken from its explicit label — §3.13's “labeled form field”. It is what joins a notification to the order, payment or ticket it reports on, and its absence is what keeps a general advisory out of `calendar.schedule-change`."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a no-reply sender pattern in a `From` header ('no-reply@', 'donotreply@', 'notifications@') together with an automated-message phrase in the body ('this is an automated message', 'do not reply to this email') — the sender alone is refused below",
+          "an `Auto-Submitted` header whose value is not 'no' — RFC 3834's own automatic-message marker — present in a header block that also carries a `From` address in a no-reply position",
+          "a security vocabulary ('new sign-in', 'your password was changed', 'verification code', 'unusual activity') co-occurring with a named service and a timestamp in the same document",
+          "a delivery vocabulary ('your parcel', 'out for delivery', 'has been delivered') together with a labelled tracking reference and a named carrier",
+          "a payment or transaction vocabulary co-occurring with a labelled transaction reference and a named institution — which is also the point at which the file stops being this domain's and becomes the finance slice's",
+          "a terms-change phrase ('we are updating our terms', 'changes to your agreement') together with an effective date governed by an explicit phrase, per §3.10"
+        ],
+        "needs_llm": [
+          "whether a notification still matters, which depends on whether the state it reported has since changed",
+          "separating a genuine service alert from a phishing message written to imitate one, which is a judgement about tone and inconsistency rather than about any parseable slot",
+          "reading a notification rendered entirely as an image, where OCR yields the body and none of the headers",
+          "deciding whether an alert is the user's own or was forwarded to them about somebody else"
+        ],
+        "never_alone": [
+          "a no-reply address alone — a real person's message is frequently sent from a shared or system mailbox",
+          "the word 'notification' or 'alert' in a filename — `soft.monitoring-log-export` and `hse.incident-record` own the operational senses and both are more specific",
+          "a bare timestamp — §3.10 “Date extraction should be deliberately narrow”",
+          "a tracking-shaped or reference-shaped token on its own",
+          "the words 'urgent' or 'action required'",
+          "an unsubscribe link — it appears on transactional mail, on newsletters and on one-to-one marketing alike, and it is `comms.mailing-list-newsletter` that needs a list header rather than a link"
+        ]
+      },
+      "work_types": [
+        "service or account notification",
+        "security or sign-in alert",
+        "delivery or shipping notification",
+        "payment or transaction alert",
+        "terms-change or policy-update notice",
+        "system or platform status notice",
+        "digest of alerts",
+        "verification or one-time-code message"
+      ],
+      "grouping_reasons": [
+        "one service across the notifications it sent",
+        "one reported event across the alert, the follow-up and the resolution, joined by a reference",
+        "one order, payment or ticket across every notification about it",
+        "one export or capture run across a batch saved together"
+      ],
+      "template": {
+        "dimension_order": [
+          "service",
+          "notification class"
+        ],
+        "why": "§5.5 “a parent dimension should provide the context required to understand the child”: a notification is legible only once you know which system sent it, and the class is what makes a run of them navigable. Time is offered as no level at all — §5.7 forbids a template that would “create meaningless one-child levels”, and a per-notification date level is a one-child level by construction, since notifications arrive one at a time and each carries its own instant. This is also the entry where a template is least likely to be wanted; the open question below is about whether the branch should exist rather than about how to order it.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "soft.monitoring-log-export",
+          "signal": "an operational alert from a monitoring system is software material and the software slice already owns it. The separator is the recipient's role — an operator acting on an alert is doing engineering work, a person receiving one about their own account is not",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type”"
+        },
+        {
+          "domain": "fin.receipts-expenses",
+          "signal": "a payment alert carrying an amount and a merchant is a transaction record, and the finance slice owns it. §3.15 additionally makes finance a safety domain, so the deferral protects rather than merely tidies",
+          "design_cite": "§3.15 “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed”"
+        },
+        {
+          "domain": "admin.subscriptions-recurring",
+          "signal": "a terms-update notice is already a work type of `admin.subscriptions-recurring`, which models the vendor, the plan and the billing period. Where a subscription identifier resolves that domain is the more specific home",
+          "design_cite": "§3.11 “It should then activate domain-specific schemas only when the evidence indicates that a domain is plausible”"
+        },
+        {
+          "domain": "comms.mailing-list-newsletter",
+          "signal": "both are machine-sent and neither is a conversation. The separator is structural rather than semantic: a list header marks material the recipient subscribed to, an auto-submitted header marks material a system sent about the recipient's own state",
+          "design_cite": "§2.9 “Every extractor must emit the same evidence shape”, which is what makes a header-level separator usable at all"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "A verification code and a sign-in alert are credential-bearing, and §8.4 names “credentials” among what the corpus can include; §8.4 also states the consequence for this product specifically — “Privacy policy must be enforced before content reaches any model or external connector”. The marking here is therefore about what the class can carry rather than about what a typical file contains: a delivery notice is anodyne and a one-time code in the same shape is not, and the recogniser cannot tell which it holds before it reads it. §2.9's phrase is the whole claim; the handling class is P7's (§8.4).",
+      "open_question": "Should this material reach the tree at all? Every argument for a domain here is a recognition argument, not a placement one — the schema exists so that a security alert is not misread as correspondence and carried into a model prompt, which §8.4 forbids: “Privacy policy must be enforced before content reaches any model or external connector”. Whether the tree should then show a Notifications branch, hold the material in §7.3's Review Later, or surface it only for deletion review under the residual lifecycle is Joseph's, and this catalogue takes no position. §7.3's own instinct is that this is residue: “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision”."
+    },
+    {
+      "id": "comms.mailing-list-newsletter",
+      "name": "Subscribed mail: newsletters, lists and digests",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "Mail a person receives because they subscribed rather than because someone wrote to them — newsletters, list traffic and digests.",
+      "provenance": "proposal",
+      "design_cite": "No design sentence names mailing lists. §2.9's email field list — “sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context” — fits a newsletter exactly without describing what makes it different, which is that the recipient never entered the conversation. §7.3's nearest destination is a residual one: “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association”. §5.7 permits the addition: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "publication",
+          "type": "string",
+          "example": "The Long View",
+          "reliability_ceiling": "validated",
+          "why": "The masthead. Earned from a title-position name corroborated by a list header or an unsubscribe phrase — §3.7 “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference”. This is the domain's joining fact and its only folder level."
+        },
+        {
+          "field": "issue",
+          "type": "string",
+          "example": "No. 214",
+          "reliability_ceiling": "validated",
+          "why": "Which instalment. Earned from an issue label governing an identifier, never from a bare number — §3.10 warns that documents “frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values”, and an issue number is exactly such a token when it stands alone."
+        },
+        {
+          "field": "list identifier",
+          "type": "string",
+          "example": "longview.example.com",
+          "reliability_ceiling": "direct",
+          "why": "A `List-Id` or `List-Unsubscribe` header is a labelled slot — §3.13's “labeled form field” — and it is the strongest evidence this domain has, because it is the format stating the recipient's non-participation rather than the content implying it."
+        },
+        {
+          "field": "publication cadence",
+          "type": "string",
+          "example": "weekday",
+          "reliability_ceiling": "llm_supported",
+          "why": "Daily, weekly, occasional. Read across a run of issues rather than from any one file, which makes it a corpus-level inference and not a file fact; §3.6's “A model output that is useful but too weak to establish a fact may remain a possible clue for review” is where a weak reading belongs."
+        },
+        {
+          "field": "subscription status",
+          "type": "string",
+          "example": "subscribed",
+          "reliability_ceiling": "validated",
+          "why": "Subscribed, lapsed or unsubscribed. Earned from a confirmation or cancellation message rather than from an issue, which is why those are separate work types below."
+        },
+        {
+          "field": "topic",
+          "type": "string",
+          "example": "monetary policy",
+          "reliability_ceiling": "llm_supported",
+          "why": "What the publication is about, held for search rather than for placement. §3.9 “Topic answers what a file is about, while purpose answers what the file was for” — and the purpose of a subscribed issue is reading, which is what makes §7.3's Reading Inbox its natural rival."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a `List-Unsubscribe` or `List-Id` header present in a message header block — RFC 2369's own list markers, and their presence is the recipient's non-participation stated by the format rather than inferred from the prose",
+          "an unsubscribe phrase ('unsubscribe', 'manage your preferences', 'you are receiving this because') co-occurring with a publication name in a masthead or title position, which is §3.7's positional weighting supplying the context the footer phrase alone cannot",
+          "an issue label ('Issue', 'No.', 'Vol.') governing an identifier, together with a publication name in a title position and a `Date` header",
+          "a digest phrase ('daily digest', 'weekly roundup', 'this week in') together with a list header in the same message",
+          "a subscription-confirmation phrase ('you are now subscribed', 'confirm your subscription') co-occurring with a named publication"
+        ],
+        "needs_llm": [
+          "separating a newsletter from a one-to-one marketing message written in a personal voice, where both carry an unsubscribe link and neither carries a list header",
+          "an issue saved as a PDF or a web capture, where the headers are gone and only the masthead survives",
+          "deciding whether an internal all-hands newsletter is this domain's or `ops.internal-comms`'s, which depends on whose organisation it is",
+          "reading what a publication is about, where the masthead is a made-up word"
+        ],
+        "never_alone": [
+          "an unsubscribe link alone — transactional mail and one-to-one marketing carry one too, and this is the single most over-firing signal in the domain",
+          "a publication name — it appears in citations, reading lists, bibliographies and `res.reference-library` entries",
+          "the word 'newsletter' — `ops.internal-comms` publishes one, `media.content-marketing` writes one, and `npo.fundraising-donor` sends one",
+          "a bare send date — §3.10 “Date extraction should be deliberately narrow”",
+          "a bare issue number",
+          "an HTML email template shape, which is shared by every commercial sender in the corpus"
+        ]
+      },
+      "work_types": [
+        "newsletter issue",
+        "mailing-list message",
+        "list digest",
+        "subscription confirmation",
+        "unsubscribe confirmation",
+        "archived issue saved as PDF or HTML",
+        "welcome or onboarding sequence message",
+        "list announcement or moderator notice"
+      ],
+      "grouping_reasons": [
+        "one publication across its issues",
+        "one list across the traffic captured from it, joined by a `List-Id`",
+        "one subscription across its confirmation, its issues and its cancellation",
+        "one saved-for-reading batch across the issues captured together"
+      ],
+      "template": {
+        "dimension_order": [
+          "publication",
+          "year"
+        ],
+        "why": "§5.5's ordinary rule states this case literally: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A publication's run IS the related work, and a year-first order breaks it every December. The year is second and collapsible — most subscriptions produce a handful of kept issues, and §5.7 warns against templates that “create meaningless one-child levels”. No issue level is offered, because an issue is a file and not a folder.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "ops.internal-comms",
+          "signal": "a newsletter issue is already a work type of `ops.internal-comms`, which owns the producing side — an organisation telling its own people something. The separator is whose organisation it is, which §3.8 makes expressible and does not make readable",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type”"
+        },
+        {
+          "domain": "media.content-marketing",
+          "signal": "a newsletter written to market something belongs to the creative slice on the authoring side. The same file exists in the writer's corpus as a deliverable and in the reader's as received mail, and only the corpus tells them apart",
+          "design_cite": "§3.9 “Topic answers what a file is about, while purpose answers what the file was for”"
+        },
+        {
+          "domain": "pub.periodical-issue",
+          "signal": "a published periodical issue is publishing work with a production process behind it; a subscribed issue is the same artifact after delivery. Where production artifacts sit beside it — proofs, a schedule, contributor material — the publishing slice wins",
+          "design_cite": "§3.11 “It should then activate domain-specific schemas only when the evidence indicates that a domain is plausible”"
+        },
+        {
+          "domain": "comms.notification-alert",
+          "signal": "both are machine-sent. The separator is structural: a list header marks material the recipient subscribed to, an auto-submitted header marks material a system sent about the recipient's own state, and a message carrying both is a service digest",
+          "design_cite": "§2.9 “The engine should treat the file extension as a routing signal rather than an assumption about meaning” — and a header is the same kind of routing signal, read from content rather than from the name"
+        }
+      ],
+      "sensitivity": "none",
+      "sensitivity_why": "A subscribed issue is published material: its body was written for an audience, and §2.9's phrase attaches to “addresses and message content” in correspondence rather than to a broadcast. The recipient's own address sits in the header, but every email in the corpus carries one, so it is not this domain's distinguishing fact and marking the domain on it would say nothing. The open question below records the serious argument against this call rather than burying it. No handling class is assigned — that is P7's (§8.4).",
+      "open_question": "The sensitivity marking above is `none` and it may well be wrong. What a subscription discloses is not its content but its MEMBERSHIP — a list about a diagnosis, a faith, a political campaign or a job search says something about the subscriber that no issue says about anyone, and §8.4's list of what the corpus can include names “medical information” and “employment materials” among the things such a membership implies. This catalogue has marked the domain on what a file contains, consistent with the rest of the corpus, and flags that a membership-based reading would flip this entry and would also flip `calendar.deadline-reminder`. Whether sensitivity is a property of a file or of a collection is Joseph's, and it is the same question raised there."
+    },
+    {
+      "id": "comms.contact-record",
+      "name": "Contact records and address books",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "The address book itself — cards holding names, organisations, numbers and addresses, which the design says must not become folders.",
+      "provenance": "design",
+      "design_cite": "§2.9 names the format, the fields AND the handling in one sentence: “Contact formats such as VCF should yield names, organizations, email addresses, phone numbers, and address-book metadata, but should normally be privacy-protected rather than used to create folder proposals”. The clause after the comma is unusual in the design — it is the only place a long-tail family is given a field list and then told not to act on it — and it is why this entry's template offers one dimension where every other entry in the slice offers two or three. `src/extractors/router.py` maps `vcf` to source type `contacts` and `src/extractors/long_tail.py` already emits every value of a VCF as potentially sensitive with no exception to enumerate.",
+      "schema": [
+        {
+          "field": "address book",
+          "type": "string",
+          "example": "iCloud - Personal",
+          "reliability_ceiling": "validated",
+          "why": "Which book the cards came from. This is the ONLY field the entry offers as a folder level, because it is a fact about the container rather than about any person, and §2.9 forbids folder proposals built from the rest. Earned from an export filename or a directory corroborated by a confirmed `VCARD` container."
+        },
+        {
+          "field": "contact name",
+          "type": "string",
+          "example": "",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “names” first. An `FN` property is a labelled slot, so the ceiling is §3.13's direct — but the field is metadata-only and never a dimension, on two independent grounds: §2.9's own “rather than used to create folder proposals”, and §3.8's “It should avoid using authorship or creator identity as a destination dimension”. The example is left blank deliberately; a catalogue that ships a specimen person's name has already done the thing this entry exists to prevent."
+        },
+        {
+          "field": "organisation",
+          "type": "string",
+          "example": "",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “organizations”. An `ORG` property is a labelled slot. Metadata only — §3.8 “A folder should not become a collection point for everything produced by the same person or organization”, and §4.9 adds the reading problem: an organisation name in a card is an employer, a client, a supplier and a former employer at once."
+        },
+        {
+          "field": "email address",
+          "type": "string",
+          "example": "",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “email addresses”. Labelled `EMAIL` slot, metadata only, and marked sensitive at emission by `src/extractors/long_tail.py` before it reaches the fact layer. Held so that a thread's participants can be resolved to a role, never so that a folder can be named after someone."
+        },
+        {
+          "field": "phone number",
+          "type": "string",
+          "example": "",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “phone numbers”. Labelled `TEL` slot. §3.10's warning applies to any number-shaped token found OUTSIDE such a slot: documents “frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values”, so a phone-shaped run in prose is not this field."
+        },
+        {
+          "field": "postal address",
+          "type": "string",
+          "example": "",
+          "reliability_ceiling": "direct",
+          "why": "An `ADR` property is a labelled slot. §8.4 is why it is worth naming separately from the rest: it names “GPS metadata” among what the corpus can include, and a home address is the same disclosure arrived at by a different route."
+        },
+        {
+          "field": "address-book metadata",
+          "type": "string",
+          "example": "card revision, group membership, photograph present",
+          "reliability_ceiling": "direct",
+          "why": "§2.9 names “address-book metadata” as its own field. `REV`, `CATEGORIES` and the presence of a `PHOTO` are labelled slots, and they are what let the engine describe a card without reading who it is about — which is the only way this domain can be surfaced in a review interface at all."
+        },
+        {
+          "field": "export scope",
+          "type": "string",
+          "example": "full export",
+          "reliability_ceiling": "validated",
+          "why": "Whether the file is one shared card or a whole book. It is the difference between a person forwarding a business card and a person's entire social graph sitting in Downloads, and §4.9 makes the second case a protected one: such files “may be surfaced as protected records even when they do not meet a normal group-size threshold”."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "a `BEGIN:VCARD` line together with a `VERSION` property and an `FN` property inside the same card — the container declares itself and the two required properties corroborate it",
+          "a repeated `BEGIN:VCARD` / `END:VCARD` pairing through one file — a multi-card export rather than a single shared card, which is the `export scope` field's whole evidence",
+          "a CSV whose column headers match an address-book export header set (a given-name column beside a family-name column beside an email or telephone column) — §2.9 says spreadsheets should yield “sheet names, column headers, visible cell values, table-like regions”, and it is the header SET, not any one header, that identifies the export",
+          "a `.vcf` extension whose content sniff confirms a `VCARD` container — `src/extractors/router.py` maps `vcf` to source type `contacts`, and the sniff is the check that keeps a mislabelled file out of a domain the design wants protected",
+          "a `CATEGORIES` or group property repeated across a run of cards in one file — the format's own distribution-list marker"
+        ],
+        "needs_llm": [
+          "whether an address book is the user's own, a shared team directory, or somebody else's forwarded to them",
+          "a contact list rendered as a document or a scanned page, where OCR yields names and numbers with no container",
+          "deciding whether a card attached to a message is a signature, an introduction or a deliberate transfer of a directory",
+          "reading a bare export with no filename convention and no manifest to say which book produced it"
+        ],
+        "never_alone": [
+          "a bare person name — §3.8 “It should avoid using authorship or creator identity as a destination dimension”, and this is the single field the domain must never act on",
+          "a bare email address or phone number",
+          "a `.vcf` extension alone, with no `VCARD` container confirmed by content",
+          "a column header called 'Name' or 'Email' — every export, form response, roster and mailing list in the corpus has one",
+          "an organisation name — §4.9 “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization”",
+          "a signature block in a message body, which is a contact card in prose and belongs to no domain"
+        ]
+      },
+      "work_types": [
+        "single contact card (.vcf)",
+        "multi-card address-book export",
+        "address-book CSV export",
+        "contact group or distribution list",
+        "shared or forwarded card",
+        "address-book backup",
+        "directory or roster document"
+      ],
+      "grouping_reasons": [
+        "one address book across the files one export produced",
+        "one export run across the cards it wrote",
+        "one card across its successive revisions, joined by `UID` or `REV`",
+        "one distribution list across the cards that carry its category"
+      ],
+      "template": {
+        "dimension_order": [
+          "address book"
+        ],
+        "why": "§2.9 forbids the obvious template outright — contacts “should normally be privacy-protected rather than used to create folder proposals” — so the only dimension offered is the book the cards came from, which is a fact about a container and not about a person. No per-contact, per-organisation or per-address-domain level appears anywhere in this entry, and §3.8 independently forbids the first two: “A folder should not become a collection point for everything produced by the same person or organization”. §5.5's ordering rule is never reached, because with one level there is nothing to order; `time_first` is false because there is no time dimension to place, not because time lost an argument.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "pers.identity-document",
+          "signal": "a card carrying a passport number, a national identifier or a date of birth has stopped being an address book and become an identity record, and the household slice already treats those as protected. The presence of an identifier-shaped labelled property is the separator",
+          "design_cite": "§4.9 “Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold”"
+        },
+        {
+          "domain": "career.networking-and-referrals",
+          "signal": "a networking contact list is a working list ABOUT a job search, with notes, dates and next steps beside the names; an address book is a container with none of those. The separator is whether the file carries state about the relationship or only the means of reaching someone",
+          "design_cite": "§3.9 “Purpose must be a first-class facet”"
+        },
+        {
+          "domain": "comms.email-thread",
+          "signal": "a signature block is a contact card in prose and this domain does not claim it — it has no container, no labelled slots and no export scope. It is listed here so that the absence is deliberate rather than an oversight",
+          "design_cite": "§3.2 “Raw evidence is not yet a fact”"
+        },
+        {
+          "domain": "calendar.events",
+          "signal": "an `ATTENDEE` line carries the same values a card carries, and resolving one against the other is exactly the folder proposal §2.9 forbids. The attendee ROLE may be used; the identity behind it may not, in either direction",
+          "design_cite": "§2.9 contacts “should normally be privacy-protected rather than used to create folder proposals”"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "§2.9 states the handling itself rather than merely the phrase: contacts “should normally be privacy-protected rather than used to create folder proposals”. `src/extractors/long_tail.py` already implements the whole-file reading — every value of a VCF carries the signal, with no exception to enumerate. §8.4 names “identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” among what the corpus can include, and a complete address book is the index to most of that list. §2.9's phrase is the whole claim made here — the handling class is P7's (§8.4).",
+      "open_question": "§2.9 says contacts should “normally be privacy-protected rather than used to create folder proposals”, and the word doing the work is `normally`. A user who deliberately keeps a `Contacts/` folder has made the proposal themselves; a user with a stray export in Downloads has not, and the file is identical. Two things follow for Joseph. Whether the exception to `normally` is user-initiated only — the tree may hold contacts if the user puts them there, and may never propose it. And whether an address book should be surfaced in the tree canvas at all or held back the way §7.3's Protected Records are: “it should normally remain local-only and must not cause filenames or content to be exposed in model prompts”. This entry has been written so that either answer works, by offering exactly one dimension that names no person."
+    },
+    {
+      "id": "comms.mailbox-archive",
+      "name": "Exported mailboxes and message stores",
+      "supercategory": "time-scheduling-communications",
+      "one_line": "A whole message store as one file — an mbox, a PST or a platform takeout, which is a corpus wearing a filename.",
+      "provenance": "inference",
+      "design_cite": "Extends a format §2.9 names. Its email bullet covers “EML, MBOX, MSG, and exported mail archives”, and this entry exists because the last of those four is not the same kind of thing as the first three: a store is not a message, and reading one as a message produces a single file fact where there should be thousands. §2.5's rule for the analogous case is the model this entry follows — “Archives should be inspected without being unpacked to disk”. §5.7 permits the addition: “expand the library as recurring user needs and corpus evidence justify additional coverage”.",
+      "schema": [
+        {
+          "field": "mailbox",
+          "type": "string",
+          "example": "work - archive",
+          "reliability_ceiling": "validated",
+          "why": "Which store this is. Earned from an export filename or manifest corroborated by a confirmed store container; `direct` is refused because most stores carry no labelled name for themselves."
+        },
+        {
+          "field": "account",
+          "type": "string",
+          "example": "",
+          "reliability_ceiling": "validated",
+          "why": "Whose mailbox it is, resolved against the user's own identities rather than named from a header — §3.8 “The system must separate roles that happen to contain the same entity type”, because a store may be the user's, a shared team box, or somebody else's handed over. The example is blank for the same reason it is blank on `comms.contact-record`."
+        },
+        {
+          "field": "export date",
+          "type": "date",
+          "example": "2026-06-30",
+          "reliability_ceiling": "direct",
+          "why": "When the export was taken, from the manifest or the container's own creation stamp. It is emphatically NOT the date of the material, which is the trap the template note below turns on."
+        },
+        {
+          "field": "coverage period",
+          "type": "string",
+          "example": "2019-01 to 2024-06",
+          "reliability_ceiling": "possible",
+          "why": "The span the store actually holds. It cannot be read without unpacking, which §2.5 forbids — “Archives should be inspected without being unpacked to disk” — so where a manifest does not state it the value is §3.13's “A possible fact is a useful but insufficient clue, such as membership in a short download session or a low-confidence semantic match”, and it must not become a folder level."
+        },
+        {
+          "field": "export scope",
+          "type": "string",
+          "example": "all mail including archive",
+          "reliability_ceiling": "validated",
+          "why": "What was included — one folder, all mail, mail plus attachments. Earned from an export report or manifest. It is the fact that decides whether this store duplicates material already loose in the corpus, which is a §3.11 duplicate-family question rather than a placement one."
+        },
+        {
+          "field": "store format",
+          "type": "string",
+          "example": "mbox",
+          "reliability_ceiling": "direct",
+          "why": "Which container. §2.9's closing requirement is why it is worth a field of its own: “Every extractor must emit the same evidence shape”, and a store's shape decides whether anything beyond its manifest can be emitted at all."
+        }
+      ],
+      "recognition": {
+        "deterministic": [
+          "an `mbox` `From ` separator line occurring repeatedly through one file — a single separator is one message, a repeating one is a store, and the repetition is the context check the separator alone cannot supply",
+          "a PST or OST file signature confirmed by content sniff rather than by extension — §2.9 “The engine should treat the file extension as a routing signal rather than an assumption about meaning”",
+          "a takeout or export manifest at an archive root naming a mail directory, read from the manifest alone — §2.5 “Archives should be inspected without being unpacked to disk”",
+          "an export-report file ('archive summary', 'export complete', a manifest listing message counts) sharing a directory with a store-shaped file",
+          "a directory tree whose folder names reproduce a mail hierarchy (an inbox folder beside a sent folder beside an archive folder) inside one archive manifest"
+        ],
+        "needs_llm": [
+          "whose mailbox a store holds, where the export carries no account name",
+          "whether a store duplicates loose messages already in the corpus, which needs the contents and is therefore blocked by §2.5's own rule",
+          "deciding whether an old store is a working archive or an abandoned backup",
+          "reading an export report written as prose"
+        ],
+        "never_alone": [
+          "a large file size — size is a universal file fact under §3.11 and says nothing about a domain",
+          "an `.mbox` or `.pst` extension alone, with no container confirmed by content",
+          "the word 'archive' — `res.repository-deposit`, `gov.archives-recordkeeping` and an ordinary compressed archive are three other readings, and §2.9 gives compressed archives their own handling",
+          "a mail-shaped filename",
+          "a single `From ` line — it is one message, which is `comms.email-thread`'s",
+          "an old modification date"
+        ]
+      },
+      "work_types": [
+        "mbox export",
+        "PST or OST store",
+        "platform takeout archive",
+        "mailbox backup",
+        "export manifest or report",
+        "extracted message set from a store",
+        "per-folder store fragment"
+      ],
+      "grouping_reasons": [
+        "one mailbox across the files one export produced",
+        "one export run across its store, its manifest and its report",
+        "one account across successive exports of it",
+        "one store and the loose messages later extracted from it"
+      ],
+      "template": {
+        "dimension_order": [
+          "account",
+          "export date"
+        ],
+        "why": "§5.5's ordinary rule puts function above time — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — and the account is the function. The export date is second and carries a warning that no other entry in this slice needs: it is not the material's date. A store exported in 2026 holds mail from 2019, so a year level built from the export stamp would file a decade of correspondence under a year in which none of it was written, which is worse than scattering. `coverage period` would be the honest time dimension and it is `possible` at best under §2.5's no-unpacking rule, so no time level is offered from it.",
+        "time_first": false
+      },
+      "collides_with": [
+        {
+          "domain": "comms.email-thread",
+          "signal": "the store CONTAINS threads, so every fact of that domain is inside every file of this one. The separator is the container: a file the engine can only read through a manifest is a store, a file whose headers it can read is a message. Extracting the store turns one file into thousands and is a decision, not an extraction step",
+          "design_cite": "§2.5 “Archives should be inspected without being unpacked to disk”"
+        },
+        {
+          "domain": "law.ediscovery-production",
+          "signal": "a mailbox collected for a matter carries a custodian and a production reference, and the law slice owns both. Where those resolve, that domain wins outright and the store must not be re-filed by account",
+          "design_cite": "§3.15 “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed”"
+        },
+        {
+          "domain": "pers.correspondence",
+          "signal": "a personal mailbox export is a store of personal letters, and the household slice already lists a message archive export among its work types. The separator is the account's role rather than the container, exactly as it is between `comms.email-thread` and that domain",
+          "design_cite": "§3.8 “The system must separate roles that happen to contain the same entity type”"
+        },
+        {
+          "domain": "comms.chat-export",
+          "signal": "structurally the same problem in a different transport — a container whose contents the engine may not unpack, whose schema fields are therefore read from layout rather than from content. The two entries raise the same open question and should be answered together",
+          "design_cite": "§2.9 “Every extractor must emit the same evidence shape”"
+        }
+      ],
+      "sensitivity": "potentially_sensitive",
+      "sensitivity_why": "§2.9 states it of the material this file contains: email is to be handled “while treating addresses and message content as potentially sensitive”, and a store is that material in bulk. §8.4 names “private correspondence” among what the corpus can include. The bulk is what sharpens it — a single message exposes one exchange, a store exposes every exchange the account ever had, including material about people who are not the corpus owner. §2.9's phrase is the whole claim; the handling class is P7's (§8.4).",
+      "open_question": "Is a store one file or a corpus? The design has no sentence for a file that contains a corpus. §2.5's “Archives should be inspected without being unpacked to disk” is the nearest analogue and it does not fit cleanly, because an archive has a manifest and an mbox does not — so for the commonest store format the engine can either read nothing or read everything, with no middle setting. Three consequences are Joseph's: whether a store is placed as one opaque object or unpacked into per-thread groups; whether unpacking is a user action rather than an engine one; and whether the loose messages that result are duplicates of the store under §3.11's “duplicate family”, which decides whether both can safely exist in the tree at once."
+    }
+  ]
+}

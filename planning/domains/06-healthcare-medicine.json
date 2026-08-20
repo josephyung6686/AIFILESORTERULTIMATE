@@ -4480,7 +4480,7 @@
           "design_cite": null
         },
         {
-          "domain": "personal.calendar",
+          "domain": "calendar.appointment",
           "signal": "a personal on-call calendar export is a calendar file (§2.9's ICS row) whose clinical meaning is not in the format.",
           "design_cite": "§2.9: 'treat the file extension as a routing signal rather than an assumption about meaning'"
         }

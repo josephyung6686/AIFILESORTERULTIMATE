@@ -95,6 +95,13 @@ on what may be asserted; the rest is a proposal for Joseph.
    `recognition.deterministic` entry must actually support that.
 5. **`sensitivity` is §2.9's phrase and nothing more.** Handling classes are P7's (§8.4).
    A catalogue that assigns one is inventing P7's vocabulary.
-6. **Anything genuinely undecidable goes in `open_question`** and gets copied into
+6. **A collision names a domain OR a residual template, never both in one field.**
+   `{"domain": "<a real id from any catalogue>"}` for a fact-schema collision;
+   `{"residual_template": "<§7's own name for it>"}` when the thing a file might be confused with
+   is one of §7.2–7.4's residual templates, which are P10/P11's and have no id in this namespace.
+   The first version of this contract had only `domain`, so two authors put a template description
+   there and the gate read it as a broken id. **A `domain` value that is not a real id is an error;
+   the gate enforces it.**
+7. **Anything genuinely undecidable goes in `open_question`** and gets copied into
    `NEEDS-JOSEPH.md`. Do not resolve a question that is Joseph's — especially where a domain
    implies a default folder structure for someone's real life.

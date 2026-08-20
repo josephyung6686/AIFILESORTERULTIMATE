@@ -804,9 +804,9 @@
       },
       "collides_with": [
         {
-          "domain": "§7.3 residual template 'Receipts and Confirmations'",
           "signal": "this domain and that residual template hold the same documents. The difference is not content: §7.2's residual templates are safe broad destinations for files with no reliable deeper association, so a receipt that belongs to an expense report, a warranty or a tax claim leaves the residual template and joins its packet",
-          "design_cite": "§7.3: \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\""
+          "design_cite": "§7.3: \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+          "residual_template": "§7.3 residual template 'Receipts and Confirmations'"
         },
         {
           "domain": "tax.supporting-documents",

@@ -3847,7 +3847,7 @@
           "design_cite": "§3.3 \"have multiple plausible domains\""
         },
         {
-          "domain": "career.correspondence",
+          "domain": "comms.email-thread",
           "signal": "support threads at work are also work correspondence. Cross-slice",
           "design_cite": "§3.11 \"One file may hold facts from more than one domain without losing information.\""
         }

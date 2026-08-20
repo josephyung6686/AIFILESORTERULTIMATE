@@ -4833,9 +4833,9 @@
           "design_cite": "§3.15 'Finance, identity, medical, and legal material should be implemented first as safety domains'"
         },
         {
-          "domain": "residual.independent-records",
           "signal": "the design's residual library already holds §7.3 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group', which would absorb an unrecognised certificate",
-          "design_cite": "§7.3 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group'"
+          "design_cite": "§7.3 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group'",
+          "residual_template": "residual.independent-records"
         }
       ],
       "sensitivity": "potentially_sensitive",
