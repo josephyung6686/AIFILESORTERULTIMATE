@@ -2880,7 +2880,7 @@ def scan(conn: sqlite3.Connection, selection_id: str, *,
          mime_type_for: Callable[[Path], str | None],
          scan_state: str,
          budget_exhausted: Callable[[], bool]) -> str:
-    """Run one scan against one R1 selection. Returns P3's local run handle.
+    """Run one scan against one R1 selection. Returns the `scan_run_id` P3 publishes.
 
     Full Disk Access is checked BEFORE the run row exists: 11-ops-runtime.md §1 says
     "Until it is granted, P3 does not traverse", and a refused scan should leave no
