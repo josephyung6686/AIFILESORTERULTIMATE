@@ -20,6 +20,8 @@ P5 emits the structured location; P4 serializes it.
 from __future__ import annotations
 
 import hashlib
+
+from evidence_shape.canonical import sha256_of
 import json
 import re
 import unicodedata
@@ -90,9 +92,17 @@ def fingerprint(config: Mapping[str, Any]) -> str:
 
     This is the ONLY hash P5 computes, and it is a hash of configuration, never of
     file bytes: the content hash is P1's and P5 never recomputes it (O5).
+
+    **It delegates to P4 and computes nothing itself.** P5 previously called
+    `hashlib.sha256` on the same canonical JSON, while P4's `sha256_of`
+    length-prefixes the part before hashing. The canonical bytes were identical and
+    the digests never were, so P4 rejected EVERY run record P5 emitted -- and because
+    `config_fingerprint` is in §3.4's cache key and rule 8's four-field replay key,
+    two runs of one process would never have matched and replay would have reported
+    divergence that did not happen. P4 owns the field, so P4 computes it; a second
+    computation of one value is the same defect as a second name for one concept.
     """
-    digest = hashlib.sha256(canonical_json(dict(config)).encode("utf-8")).hexdigest()
-    return f"sha256:{digest}"
+    return sha256_of(canonical_json(dict(config)))
 
 
 def segment(kind: str, *, index: int | None = None, label: str | None = None) -> dict:

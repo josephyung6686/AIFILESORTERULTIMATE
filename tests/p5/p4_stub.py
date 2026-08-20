@@ -1,260 +1,287 @@
 # tests/p5/p4_stub.py
-"""P4's SPEC, stubbed - a TEST-HARNESS file, not a production module.
+"""P4's surface, re-exported. P4 shipped 2026-08-20; this file no longer reimplements it.
 
-Reconstructed from ../../P4-evidence-shape/SPEC.md: the five closed vocabularies, the
-locator serialization with its escaping rules, and the twelve conformance rules.
-Every extractor test in tests/p5/ validates its output through this file, so a P5
-extractor cannot ship a record P4 would reject.
+It kept its name and its module path so the ten importing test files in tests/p5/ did
+not have to change, but nothing below is a second copy of P4's locator, vocabularies
+or conformance rules any more: the vocabularies ARE `evidence_shape.vocabulary`'s
+tuples, the locator IS `evidence_shape.locator`, and the validators delegate to
+`evidence_shape.conformance`. Section 2.8 exists to stop exactly the drift a second
+implementation creates, and while P4 was unbuilt this file was that second
+implementation.
 
-WHEN P4 LANDS: delete this file and change the imports in tests/p5/ to
-    # When P4 ships, this stub is deleted and these are the real imports:
-    #   from evidence_shape.locator import parse_locator, serialize_locator
-    #   from evidence_shape.vocabulary import SOURCE_TYPES, ZONES
-    #   from evidence_shape.conformance import validate_observation
-    # P4 publishes `serialize_locator`, not `locator_for`, and keeps the vocabularies
-    # in their own module. There is no `evidence` package -- it is `evidence_shape`.
-Nothing under src/extractors/ imports this file, so nothing under src/extractors/
-changes.
+What remains local is only the adaptation, and each piece says why:
 
-Two rules are checked structurally rather than semantically, and this file says so
-rather than pretending otherwise: rule 8 (determinism) is a property of two runs and
-is asserted in tests/p5/test_p5_one_shape.py; rule 12 (no absence, no conflict) is
-checked here as "no absence or conflict field, and a non-empty raw_value", with the
-substantive check living in tests/p5/test_p5_image.py where section 2.6's three traps
-are.
+  * P5 emits plain dicts (`extractors.shape.observation`, `.location`, `.run`); P4's
+    records are frozen dataclasses. The `_segment` / `_location` / `_text_unit`
+    converters below are the bridge, not a reimplementation.
+  * The stub's function names and signatures are what tests/p5/ calls. Where P4's
+    equivalent is spelled differently (`serialize_locator`, `check_run`) or shaped
+    differently, the wrapper is one line over P4's.
+  * `pytest.raises(AssertionError)` in tests/p5/test_p5_shape.py means the validators
+    must fail with `AssertionError`; P4 raises `NonConforming`. The wrappers assert on
+    P4's own violation list, so the DECISION is always P4's and only the exception
+    type is this harness's.
+
+TWO places where real P4 and shipped P5 still disagree, each isolated to one line
+with a comment, each reported rather than papered over: `_location` (region) and
+`validate_observation` (run_id).
+
+The third — `config_fingerprint` — is FIXED, not worked around. P4's `sha256_of`
+length-prefixes the part before hashing and P5 called `hashlib.sha256` directly, so
+the canonical bytes matched and the digests never did: P4 rejected every run record
+P5 emitted. `extractors.shape.fingerprint` now delegates to P4, this mapping drops
+nothing, and P4 validates the field for real.
 """
 from __future__ import annotations
 
-import hashlib
 from typing import Any, Iterable, Mapping
 
-#: P4 "Zone vocabulary (closed)". Fifteen rows.
-ZONES: tuple[str, ...] = (
-    "filename", "path", "metadata", "title", "heading", "body", "table",
-    "header_footer", "notes", "link", "annotation", "reference_list", "manifest",
-    "ocr", "transcript",
+from evidence_shape.conformance import check_observation, check_run
+from evidence_shape.location import Location, Segment, TextSpan, TimeSpan
+from evidence_shape.locator import (
+    escape_label as _escape,
+    parse_locator as _p4_parse_locator,
+    serialize_container_path,
+    serialize_locator,
+    unescape_label as _unescape,
+)
+from evidence_shape.observation import (
+    NULLABLE_FIELDS as _P4_NULLABLE_FIELDS,
+    OBSERVATION_FIELDS as _P4_OBSERVATION_FIELDS,
+    OBSERVATION_ROW_FIELDS,
+    observation_from_mapping,
+    observation_key as _p4_observation_key,
+)
+from evidence_shape.text_units import SpanAnchorError, TextUnit, check_span_anchor
+from evidence_shape.vocabulary import (
+    ANALYSIS_TIERS,
+    COMPLETENESS,
+    EXTRACTOR_RELIABILITY_STATES as EXTRACTOR_RELIABILITY,
+    LABEL_SEGMENT_KINDS as LABEL_ADDRESSED,
+    RELIABILITY_STATES,
+    SEGMENT_KINDS,
+    SOURCE_TYPES,
+    ZERO_OBSERVATION_COMPLETENESS,
+    ZONES,
 )
 
-#: P4 "Segment kinds (closed)". Fifteen rows.
-SEGMENT_KINDS: tuple[str, ...] = (
-    "page", "slide", "sheet", "heading", "paragraph", "table", "row", "column",
-    "cell", "region", "layer", "artboard", "field", "entry", "key",
-)
+__all__ = [
+    "ANALYSIS_TIERS", "COMPLETENESS", "EXTRACTOR_RELIABILITY",
+    "FORBIDDEN_OBSERVATION_FIELDS", "LABEL_ADDRESSED",
+    "NULLABLE_OBSERVATION_FIELDS", "OBSERVATION_FIELDS", "RELIABILITY_STATES",
+    "SEGMENT_KINDS", "SOURCE_TYPES", "ZERO_OBSERVATION_COMPLETENESS", "ZONES",
+    "locator_for", "observation_key", "parse_locator", "unit_locator_for",
+    "validate_observation", "validate_run",
+]
 
-#: P4 segment-kind rule 2 - addressed by label, never by index.
-LABEL_ADDRESSED: tuple[str, ...] = ("field", "entry", "key")
+#: What an extractor emits: P4's eighteen minus the two P4's writer assigns.
+#: `observation_key` is derived by P4 from the other four (MINOR 8) and `run_id` is
+#: added by the sink at write time, so neither is in what P5 hands over. Derived
+#: rather than restated, and it reproduces P5's `extractors.shape.OBSERVATION_FIELDS`
+#: exactly -- name for name, in order.
+OBSERVATION_FIELDS: tuple[str, ...] = tuple(
+    name for name in _P4_OBSERVATION_FIELDS
+    if name not in ("observation_key", "run_id"))
 
-#: P4 "`source_type` vocabulary (section 2.9's families, closed)". Fourteen.
-SOURCE_TYPES: tuple[str, ...] = (
-    "filesystem", "text_document", "spreadsheet", "presentation", "image", "ocr",
-    "email", "calendar", "contacts", "code_structured", "audio_video",
-    "design_creative", "archive", "opaque_binary",
-)
+#: P4's `observation.NULLABLE_FIELDS`, narrowed to the emitted set. NOTE: P4 also
+#: makes `context_before` and `context_after` nullable, which the old hand-written
+#: stub did not; every P5 extractor emits strings there, so nothing depended on the
+#: stricter reading.
+NULLABLE_OBSERVATION_FIELDS: tuple[str, ...] = tuple(
+    name for name in OBSERVATION_FIELDS if name in _P4_NULLABLE_FIELDS)
 
-#: Section 3.13's six. An extractor may write the first two only (P4 D11).
-RELIABILITY_STATES: tuple[str, ...] = (
-    "direct", "possible", "validated", "llm_supported", "user_confirmed", "rejected",
-)
-EXTRACTOR_RELIABILITY: tuple[str, ...] = ("direct", "possible")
-
-#: P4 `completeness` (closed), after B1 added `metadata_only` and C4 added `dataless`.
-COMPLETENESS: tuple[str, ...] = (
-    "complete", "capped", "partial", "metadata_only", "deferred", "unsupported",
-    "unreadable", "failed", "dataless",
-)
-
-#: P4 conformance rule 9, as M3 relaxed it: `unreadable` and `partial` runs MAY and
-#: normally DO carry observations (section 2.9's "indexed-but-unreadable").
-#: P4 conformance rule 9. MUST equal P4's tuple: `metadata_only` joined it when
-#: fixture 19 was frozen (the stopping extractor emits nothing; the file stays
-#: indexed through its `filesystem` run), and `dataless` joined it with C4 (nothing
-#: was opened, so nothing was seen). This is not documentation -- the rule-9 check
-#: below reads it, so a three-value copy here would let P5 emit observations on a
-#: `metadata_only` run that P4 forbids: one rule, two parts, opposite behaviour.
-ZERO_OBSERVATION_COMPLETENESS: tuple[str, ...] = (
-    "unsupported", "deferred", "failed", "metadata_only", "dataless")
-
-#: I4, closed.
-ANALYSIS_TIERS: tuple[str, ...] = ("filesystem", "native", "ocr", "llm")
-
-OBSERVATION_FIELDS: tuple[str, ...] = (
-    "file_id", "content_hash", "extractor_name", "extractor_version",
-    "source_type", "raw_value", "normalized_value", "location",
-    "context_before", "context_after", "context_truncated",
-    "occurrence_count", "observed_at", "reliability",
-    "confidence", "signal_tier",
-)
-NULLABLE_OBSERVATION_FIELDS: tuple[str, ...] = ("normalized_value", "confidence",
-                                                "signal_tier")
-
-#: P4's prohibitions, as schema-level rejections (conformance rule 6).
+#: LOCAL, and P4 publishes no equivalent: P4 closes the field set POSITIVELY, with
+#: `observation.OBSERVATION_ROW_FIELDS`, and rejects anything outside it under rule 6
+#: rather than enumerating forbidden names. This tuple is kept because tests/p5/ names
+#: it, and it is now documentation only -- `validate_observation` enforces rule 6
+#: through P4's closed set, not through this list. The assert below keeps the two
+#: honest: every name here really is one P4's rule 6 rejects.
 FORBIDDEN_OBSERVATION_FIELDS: tuple[str, ...] = (
     "locator", "path_proposal", "destination", "destination_node", "domain",
     "category", "field_name", "fact", "group_id", "node_id", "template_id",
     "plan_id", "plan_version", "handling_class", "sensitivity_state", "preferred",
     "absent", "conflict", "resolution", "screenshot", "media_type",
 )
+assert not set(FORBIDDEN_OBSERVATION_FIELDS) & set(OBSERVATION_ROW_FIELDS), (
+    "a name P4 stores cannot also be one P4 forbids")
 
-_ESCAPE = set("%/=#@:")
-
-
-def _escape(label: str) -> str:
-    """P4: percent-encode % / = # @ : and control characters, uppercase hex, UTF-8."""
-    out = []
-    for ch in label:
-        if ch in _ESCAPE or ord(ch) < 0x20 or ord(ch) == 0x7F:
-            out.extend(f"%{byte:02X}" for byte in ch.encode("utf-8"))
-        else:
-            out.append(ch)
-    return "".join(out)
+#: `validate_observation` receives an observation with its `run_id` already stripped
+#: (tests/p5/conftest.py's `RecordingSink.conforms`), and P4's record requires one.
+#: The units handed in alongside it are already filtered to that same run, so the
+#: pairing rule 10 states is preserved by construction and this stand-in only satisfies
+#: P4's non-empty-string requirement.
+_HARNESS_RUN_ID = "run-under-validation"
 
 
-def _unescape(text: str) -> str:
-    raw = bytearray()
-    i = 0
-    while i < len(text):
-        if text[i] == "%":
-            raw.append(int(text[i + 1:i + 3], 16))
-            i += 3
-        else:
-            raw.extend(text[i].encode("utf-8"))
-            i += 1
-    return raw.decode("utf-8")
+def _segment(mapping: Mapping[str, Any]) -> Segment:
+    return Segment(mapping["kind"], mapping.get("index"), mapping.get("label"))
+
+
+def _segments(container_path: Iterable[Mapping[str, Any]]) -> tuple[Segment, ...]:
+    return tuple(_segment(segment) for segment in container_path)
+
+
+def _location(mapping: Mapping[str, Any], *, zone: str | None = None) -> Location:
+    """P5's location dict as P4's record.
+
+    `region` is deliberately dropped. P4's `Region` is `(x, y, w, h, unit)`; the OCR
+    extractor emits `{"x", "y", "width", "height"}` (src/extractors/ocr.py:144 passing
+    `recognized.box` straight through), so `locator.location_from_mapping` raises
+    KeyError('w') on it. The hand-written stub never inspected `region` either, so
+    nothing is lost here that was previously checked -- but the shape mismatch between
+    shipped P4 and shipped P5 is real and is reported, not resolved in this file. The
+    locator grammar has no term for a bounding box in any case, so no locator, key or
+    round-trip below depends on it.
+    """
+    text_span, time_span = mapping.get("text_span"), mapping.get("time_span")
+    return Location(
+        mapping["zone"] if zone is None else zone,
+        _segments(mapping["container_path"]),
+        text_span=None if text_span is None
+        else TextSpan(text_span["start"], text_span["end"]),
+        time_span=None if time_span is None
+        else TimeSpan(time_span["start_ms"], time_span["end_ms"]),
+    )
+
+
+def _text_unit(mapping: Mapping[str, Any], run_id: str) -> TextUnit:
+    return TextUnit(run_id, _segments(mapping["container_path"]), mapping["text"],
+                    mapping.get("truncated", False))
 
 
 def unit_locator_for(container_path: Iterable[Mapping[str, Any]]) -> str:
-    parts = []
-    for seg in container_path:
-        kind = seg["kind"]
-        addr = _escape(seg["label"]) if kind in LABEL_ADDRESSED else str(seg["index"])
-        parts.append(f"{kind}={addr}")
-    return "/".join(parts)
+    """P4's `locator.serialize_container_path` -- D12's `text_units.unit_locator`."""
+    return serialize_container_path(_segments(container_path))
 
 
 def locator_for(location: Mapping[str, Any]) -> str:
-    """P4's canonical serialization.
+    """P4's `locator.serialize_locator`, over P5's dict.
 
-    locator := zone [":" segments] ["#" text_span | "@" time_span]
+    The zone token is substituted rather than validated: P4's `Location` checks `zone`
+    against the closed vocabulary at construction, and
+    tests/p5/test_p5_docx.py:112 passes the placeholder `zone="x"` to read a unit's
+    address out of a full locator. The hand-written stub validated no zone either, so
+    this preserves the old contract exactly -- and every character after the zone,
+    which is the part that actually drifts (separators, %-escaping, span grammar),
+    comes from P4. Real zones take the same path and are unaffected.
     """
-    text = location["zone"]
-    segments = unit_locator_for(location["container_path"])
-    if segments:
-        text += ":" + segments
-    span, time_span = location.get("text_span"), location.get("time_span")
-    if span is not None:
-        text += f"#{span['start']}-{span['end']}"
-    elif time_span is not None:
-        text += f"@{time_span['start_ms']}-{time_span['end_ms']}"
-    return text
+    zone = location["zone"]
+    stand_in = zone if zone in ZONES else ZONES[0]
+    serialized = serialize_locator(_location(location, zone=stand_in))
+    return zone + serialized[len(stand_in):]
 
 
 def parse_locator(text: str) -> dict:
-    """Inverse of locator_for. Labels escape # and @, so the first raw one delimits."""
-    head, mark, tail = text, None, ""
-    for i, ch in enumerate(text):
-        if ch in "#@":
-            head, mark, tail = text[:i], ch, text[i + 1:]
-            break
-    zone, _, segment_text = head.partition(":")
-    container_path = []
-    if segment_text:
-        for chunk in segment_text.split("/"):
-            kind, _, addr = chunk.partition("=")
-            if kind in LABEL_ADDRESSED:
-                container_path.append({"kind": kind, "index": None,
-                                       "label": _unescape(addr)})
-            else:
-                container_path.append({"kind": kind, "index": int(addr),
-                                       "label": None})
-    span = time_span = None
-    if mark == "#":
-        start, _, end = tail.partition("-")
-        span = {"start": int(start), "end": int(end)}
-    elif mark == "@":
-        start, _, end = tail.partition("-")
-        time_span = {"start_ms": int(start), "end_ms": int(end)}
-    return {"zone": zone, "container_path": tuple(container_path),
-            "text_span": span, "time_span": time_span, "region": None}
+    """P4's `locator.parse_locator`, returned in the dict shape tests/p5/ reads.
+
+    Verified against the old hand-written parser over every locator the P5 suite
+    produces: zero disagreements, on the structured fields and on the round-trip.
+    """
+    location = _p4_parse_locator(text)
+    return {
+        "zone": location.zone,
+        "container_path": tuple(
+            {"kind": segment.kind, "index": segment.index, "label": segment.label}
+            for segment in location.container_path),
+        "text_span": None if location.text_span is None
+        else {"start": location.text_span.start, "end": location.text_span.end},
+        "time_span": None if location.time_span is None
+        else {"start_ms": location.time_span.start_ms,
+              "end_ms": location.time_span.end_ms},
+        "region": None,
+    }
 
 
 def observation_key(observation: Mapping[str, Any]) -> str:
-    """P4: sha256(content_hash + extractor_name + locator + raw_value), DELIBERATELY
-    excluding extractor_version so section 8.5's replay can diff versions (MINOR 8).
-    P4 assigns it; this stub computes it so tests can assert its stability."""
-    material = "\x1f".join((observation["content_hash"], observation["extractor_name"],
-                            locator_for(observation["location"]),
-                            observation["raw_value"]))
-    return "sha256:" + hashlib.sha256(material.encode("utf-8")).hexdigest()
+    """P4's `observation.observation_key`, over P5's dict.
+
+    P4 takes the four inputs by keyword and derives the locator itself; the old stub
+    took the whole observation. NOTE: the two produce DIFFERENT digests for the same
+    observation -- P4 joins the four parts length-prefixed (`canonical.sha256_of`) and
+    the stub joined them on \\x1f. P4's is the real key; tests/p5/ only ever asserted
+    that the key is STABLE across two runs, never its value, so the change is invisible
+    to them and P4's injective construction is the one that ships.
+    """
+    return _p4_observation_key(
+        content_hash=observation["content_hash"],
+        extractor_name=observation["extractor_name"],
+        locator=serialize_locator(_location(observation["location"])),
+        raw_value=observation["raw_value"],
+    )
+
+
+def _fail(violations) -> None:
+    assert not violations, "; ".join(
+        f"rule {violation.rule}: {violation.message}" for violation in violations)
 
 
 def validate_observation(observation: Mapping[str, Any], *,
                          text_units: Iterable[Mapping[str, Any]] = ()) -> None:
-    """P4's conformance validator, rules 1-7 and 9-12. Fails; never coerces."""
-    # Rule 1 - every section 2.8 field present, three context fields, not one.
-    assert tuple(observation) == OBSERVATION_FIELDS, tuple(observation)
-    for name in OBSERVATION_FIELDS:
-        if name not in NULLABLE_OBSERVATION_FIELDS:
-            assert observation[name] is not None, name
-    # Rule 6 - no destination, domain, field name, group, node, template or plan.
-    for name in FORBIDDEN_OBSERVATION_FIELDS:
-        assert name not in observation, name
-    assert isinstance(observation["file_id"], str)
+    """P4's `conformance.check_observation`, plus rules 5 and 10 over `text_units`.
 
+    Rules 1, 2, 3, 4, 6, 7, 11 and 12 are entirely P4's now. Rules 5 and 10 need a
+    second record, so P4 checks them in `check_run` and not here; the old stub checked
+    them per observation and tests/p5/test_p5_shape.py:231 asserts that, so the lookup
+    stays -- but the RAW-1 comparison itself is P4's `text_units.check_span_anchor`,
+    which is the part that could drift.
+    """
     location = observation["location"]
-    # Rule 2 - closed vocabularies.
-    assert location["zone"] in ZONES, location["zone"]
-    assert observation["source_type"] in SOURCE_TYPES, observation["source_type"]
-    for seg in location["container_path"]:
-        assert seg["kind"] in SEGMENT_KINDS, seg
-        if seg["kind"] in LABEL_ADDRESSED:
-            assert seg["index"] is None and seg["label"] is not None, seg
-        else:
-            assert isinstance(seg["index"], int) and seg["index"] >= 1, seg
-    # Rule 3 - an extractor writes `direct` or `possible`.
-    assert observation["reliability"] in EXTRACTOR_RELIABILITY, observation["reliability"]
-    # Rule 4 - the locator round-trips.
-    text = locator_for(location)
-    back = parse_locator(text)
-    assert back["zone"] == location["zone"], text
-    assert len(back["container_path"]) == len(location["container_path"]), text
-    for parsed, built in zip(back["container_path"], location["container_path"]):
-        assert parsed["kind"] == built["kind"], text
-        if built["kind"] in LABEL_ADDRESSED:
-            assert parsed["label"] == built["label"], text
-        else:
-            assert parsed["index"] == built["index"], text
-    assert back["text_span"] == location["text_span"], text
-    assert back["time_span"] == location["time_span"], text
-    # Rule 7 - occurrence_count >= 1.
-    assert observation["occurrence_count"] >= 1
-    # Rule 11 - signal_tier is section 2.6-scoped.
-    if observation["signal_tier"] is not None:
-        assert observation["signal_tier"] in (1, 2, 3)
-        assert observation["source_type"] == "image", (
-            "signal_tier is section 2.6's image hierarchy")
-    # Rule 12 - an observation is a reading, never an absence or a comparison.
-    assert observation["raw_value"] != "", "an absence has no value to record (2.6)"
-    # Rules 5 and 10 - RAW-1 against the unit the container path names.
-    span = location["text_span"]
-    if span is not None:
-        units = [u for u in text_units
-                 if tuple(u["container_path"]) == tuple(location["container_path"])]
-        assert units, f"no text_units row for {text} (rule 10)"
-        stored = units[0]["text"]
-        assert stored[span["start"]:span["end"]] == observation["raw_value"], (
-            f"RAW-1 fails at {text}")
+    # `_location` is what makes P4's own `location_from_mapping` reachable at all here:
+    # handed P5's raw location dict, it raises an uncaught KeyError('w') on the OCR
+    # region rather than reporting a violation. P4 accepts a built `Location` record
+    # in this field, so the conversion is P4's supported path, not a way around it.
+    candidate = {**dict(observation), "run_id": _HARNESS_RUN_ID,
+                 "location": _location(location)}
+    _fail(check_observation(candidate))
+
+    if location.get("text_span") is None:
+        return
+    record = observation_from_mapping(candidate)
+    address = unit_locator_for(location["container_path"])
+    units = [unit for unit in text_units
+             if unit_locator_for(unit["container_path"]) == address]
+    assert units, f"no text_units row for {locator_for(location)} (rule 10)"
+    try:
+        check_span_anchor(record, _text_unit(units[0], _HARNESS_RUN_ID))
+    except SpanAnchorError as exc:
+        raise AssertionError(f"rule 5: {exc}") from exc
+
+
+def _p4_run_mapping(run: Mapping[str, Any]) -> dict:
+    """P5's run dict as the mapping P4's `runs.run_from_mapping` reads.
+
+    `config_fingerprint` is dropped, and this is the one substantive disagreement
+    between the two shipped packages. P4's `runs.config_fingerprint` is
+    `sha256_of(canonical_json(config))`, which length-prefixes the part before
+    hashing; P5's `extractors.shape.fingerprint` is
+    `sha256(canonical_json(config).encode())`, which does not. The canonical JSON is
+    byte-identical, the digests never are, so P4 rejects EVERY run record P5 emits
+    with "config_fingerprint ... is not the fingerprint of this config". P4 already
+    treats the field as optional in `run_from_mapping` (it is the one name exempted
+    from the missing-fields check), so omitting it lets P4 check the other fourteen
+    fields for real. Reported, not resolved: P4 owns the field, and the fix belongs in
+    src/extractors/shape.py, not in a test harness.
+    """
+    return dict(run)      # nothing dropped: P5 now delegates the fingerprint to P4
 
 
 def validate_run(run: Mapping[str, Any], observation_count: int) -> None:
-    """P4 conformance rule 9 plus the run-level vocabularies."""
-    assert run["completeness"] in COMPLETENESS, run["completeness"]
-    assert run["analysis_tier"] in ANALYSIS_TIERS, run["analysis_tier"]
-    assert run["analysis_tier"] != "llm", "P8 is the only writer of `llm` (I4)"
-    assert run["source_type"] in SOURCE_TYPES, run["source_type"]
-    assert set(run["coverage"]) == {"units", "processed", "total"}, run["coverage"]
+    """P4's `conformance.check_run` for the run record, plus rule 9 against a count.
+
+    P4 derives rule 9 from the observation set it is handed; this harness is handed a
+    count instead (tests/p5/conftest.py), so the rule is applied here against P4's own
+    `ZERO_OBSERVATION_COMPLETENESS`. One vocabulary, one place, no second copy.
+
+    The last two checks are P5-side rules the hand-written stub asserted and P4 does
+    not: I4 reserves `llm` for P8, which P4's vocabulary admits because P8 is a
+    legitimate writer of it, and P4 constrains where `failure_reason` MAY appear
+    without requiring it. Both are kept so no test loses coverage.
+    """
+    _fail(check_run(_p4_run_mapping(run), ()))
     assert run["observation_count"] == observation_count
     if run["completeness"] in ZERO_OBSERVATION_COMPLETENESS:
         assert observation_count == 0, (
             f"an {run['completeness']} run carries zero observations (rule 9)")
+    assert run["analysis_tier"] != "llm", "P8 is the only writer of `llm` (I4)"
     if run["completeness"] in ("unreadable", "failed"):
         assert run["failure_reason"], "failure_reason is required here"

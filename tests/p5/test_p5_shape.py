@@ -232,3 +232,19 @@ def test_the_p4_stub_rejects_a_span_with_no_text_unit():
     # P4 conformance rule 10: "rule 10 fails an observation whose span has no unit".
     with pytest.raises(AssertionError):
         validate_observation(an_observation(), text_units=[])
+
+
+def test_p5_config_fingerprint_is_byte_identical_to_p4s():
+    """P4 owns `config_fingerprint` and validates it; P5 must not compute a second one.
+
+    Both sides canonicalised the same JSON and then hashed it differently — P4's
+    `sha256_of` length-prefixes the part before hashing, P5's called `hashlib.sha256`
+    directly — so the digests were never equal and P4 rejected every run record P5
+    emitted. `config_fingerprint` is in §3.4's cache key and rule 8's four-field
+    replay key, so the failure is not only conformance: two runs of one process would
+    never match, and replay would report divergence that did not happen.
+    """
+    from evidence_shape.canonical import sha256_of, canonical_json as p4_canonical
+    from extractors.shape import fingerprint
+    for config in ({}, {"dpi": 200}, {"lang": ["en", "ja"], "dpi": 200}):
+        assert fingerprint(config) == sha256_of(p4_canonical(dict(config))), config
