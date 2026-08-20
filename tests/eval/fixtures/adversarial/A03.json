@@ -1,0 +1,18 @@
+{"case_id": "A03",
+ "wording": "course-code patterns that are actually ZIP codes or device models",
+ "attacks": "rule-validated facts",
+ "sections": ["§3.5 (pattern plus \"syllabus\", \"lecture\", \"credits\", \"instructor\", \"semester\")", "§3.10"],
+ "assert_against": "stage", "dimension": "fact",
+ "subjects": [
+   {"subject_ref": "A03::zip::course", "expected_outcome_kind": "abstained",
+    "expected_value": null, "forbidden_value": {"field": "course", "value": "MA 02139"},
+    "text": "Ship to Cambridge MA 02139 by Friday."},
+   {"subject_ref": "A03::device::course", "expected_outcome_kind": "abstained",
+    "expected_value": null, "forbidden_value": {"field": "course", "value": "XPS 13"},
+    "text": "Receipt for one XPS 13 laptop."}],
+ "extraction_runs": [{"run_id": "A03-run", "file_id": "A03-file",
+                      "content_hash": "sha256:A03", "extractor_name": "text.plain",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "files", "processed": 2, "total": 2},
+                      "observation_count": 2}]}

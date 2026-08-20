@@ -1,0 +1,12 @@
+{"case_id": "A11", "wording": "shared resumes across applications",
+ "attacks": "multi-home placement", "sections": ["§6.9"],
+ "assert_against": "stage", "dimension": "placement", "subject_ref": "A11::resume",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"outcome": "place", "destination": {"node_role": "shared-material"}},
+ "forbidden_value": {"outcome": "place", "destination": {"node_role": "ordinary"}},
+ "extraction_runs": [{"run_id": "A11-run", "file_id": "A11-file",
+                      "content_hash": "sha256:A11", "extractor_name": "pdf.native",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "pages", "processed": 2, "total": 2},
+                      "observation_count": 3}]}

@@ -1,0 +1,11 @@
+{"case_id": "A07", "wording": "stripped EXIF on messaging-app photographs",
+ "attacks": "screenshot detection", "sections": ["§2.6"],
+ "assert_against": "stage", "dimension": "fact", "subject_ref": "A07::photo::kind",
+ "expected_outcome_kind": "abstained", "expected_value": null,
+ "forbidden_value": {"field": "kind", "value": "screenshot"},
+ "extraction_runs": [{"run_id": "A07-run", "file_id": "A07-file",
+                      "content_hash": "sha256:A07", "extractor_name": "image.native",
+                      "extractor_version": "1.0.0", "source_type": "metadata",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "files", "processed": 1, "total": 1},
+                      "observation_count": 0}]}
