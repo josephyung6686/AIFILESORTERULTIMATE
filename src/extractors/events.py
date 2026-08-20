@@ -39,6 +39,17 @@ For the OCR event, section 8.2's model positions are the OCR positions: the prov
 VERSION is `component_version` and the CONFIGURATION, which is where section 2.7's
 languages live, is `prompt_fingerprint`, computed by the same `fingerprint()` that
 produces P4's `config_fingerprint` so one configuration has one identity in both.
+
+**That last sentence describes an event P4 does not write, and this is the record of
+it.** `record_run_event` leaves `prompt_fingerprint` NULL by design -- P4 SPEC,
+Provenance: "`prompt fingerprint` does not apply (P4 is model-free)" -- so an OCR run
+that goes through the sink, which is every OCR run now, has no configuration on its
+EVENT row. Nothing is lost from the database: the same digest is on
+`extraction_runs.config_fingerprint`, and no consumer reads `events.prompt_fingerprint`
+(P2's `prompt_fingerprint` is an axis of its own `version_tuple` record, not a read of
+this column). What is lost is `ocr_event()`'s claim to describe a shape the database
+will produce, and a docstring that overstates is how the header above went stale in
+the first place.
 """
 from __future__ import annotations
 
