@@ -89,7 +89,31 @@ artifacts, though `.ics` routes to a `calendar` source type and two authors cite
 expecting one. **574 domains, and every cross-reference now resolves — the gate reports zero
 problems, in-file and cross-file.**
 
-## 6. What I did not do
+## 6. Late corrections, after the agents' final reports
+
+Their written files were only part of it; several reports carried findings the files did not.
+
+- **Two fabricated quotations** in the wave, found by matching every quotation across 2,950 lines of
+  plan mechanically against your words. One is in shipped source: `evidence_shape/schema.py` cited §0
+  as saying *"Each part owns its own tables within it"* — the design says no such thing. The
+  convention is sound; the sentence was never yours. **Fixed.** The other, §8.6's *"visible as
+  deferred"*, was flagged in `06-citation-audit.md` long ago, never corrected in the P6 SPEC, and
+  inherited by the P6 plan — an audit finding that reached one document and not the one it was about.
+- **Seven corrections to my own seam contract** (`22-...`), all applied: there are four refusals not
+  three; sensitivity has four homes not three, and none has a producer; `handling_class` was
+  mis-attributed to P7, which never reaches the bundle; and checks 1–6 all ran in one direction —
+  looking for a published thing with no consumer, when every seam that actually broke was a
+  **consumer with no producer**. That is now check 7.
+- **P7's plan said fifteen ceiling keys; there are sixteen** — B4's ratified `evidence.context_window`.
+  P6's plan has it right, so a ratification reached one plan and not its neighbour. **Fixed.**
+- **My `ContractViolation` fix is correct and not sufficient.** Round 4 executed both base classes:
+  with it, a too-early verdict now ends the scan loudly, which is right — but loop 1 cannot avoid
+  arming the verdict while `dispatch` publishes one entry point. The base class is necessary; the
+  `dispatch` split is what makes it usable. That is a plan item, not a code defect.
+- **Round 5 ran before round 4 was written**, so its scope filter never judged round 4's additions.
+  It says so itself at the top of its file.
+
+## 7. What I did not do
 
 - **Answer anything in `NEEDS-JOSEPH.md`.** Where I had to proceed, the assumption is stated.
 - **Build P6 or P7.** They are planned and reviewed five times; the first task is not written.
