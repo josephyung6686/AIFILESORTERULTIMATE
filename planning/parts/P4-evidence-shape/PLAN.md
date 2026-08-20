@@ -84,9 +84,9 @@ database_agent.files_table observe_path(conn, path, *, author, component_version
                            get_file(conn, file_id) -> sqlite3.Row
 ```
 
-`files_table` is consumed in **Task 19 only** — the walking-skeleton step, where a P3-shaped fixture creates the one `files` row the skeleton observation hangs off. No other task in this plan touches it, because P4's records are testable without a file row: the FK story is deliberately one-way (see Task 8).
+`files_table` is consumed in **Task 19 only** — the walking-skeleton step, where a P3-shaped fixture creates the one `files` row the skeleton observation hangs off. No other task in this plan touches it, because P4's records are testable without a file row: the FK story is deliberately one-way (see Task 9).
 
-**`mark_superseded` keys on a column literally named `record_id`.** P1's function is `UPDATE {table} … WHERE record_id = ?`, and P4's published primary key is `observation_id` (SPEC *Contract out*, Record 1). Renaming either would break a published contract, and writing a second supersede implementation would put one concept under two names — the most expensive recurring defect on this project. Task 8 resolves it with a SQLite **generated column**:
+**`mark_superseded` keys on a column literally named `record_id`.** P1's function is `UPDATE {table} … WHERE record_id = ?`, and P4's published primary key is `observation_id` (SPEC *Contract out*, Record 1). Renaming either would break a published contract, and writing a second supersede implementation would put one concept under two names — the most expensive recurring defect on this project. Task 9 resolves it with a SQLite **generated column**:
 
 ```sql
 record_id TEXT GENERATED ALWAYS AS (observation_id) VIRTUAL
@@ -111,6 +111,7 @@ record_id TEXT GENERATED ALWAYS AS (observation_id) VIRTUAL
 | `ExtractionRun`, `COMPLETENESS`, `Coverage` | P5 (writes), P2 (bundles, MINOR 9), P13 (§8.6's progress line, G14) | B1's single outcome record |
 | `TextUnit`, `unit_locator` | P5 (writes), P7 (§8.4 redaction unit), P8 (§4.4 excerpts), P2 (§8.5 "did the text appear?") | G1/D12 |
 | `conformance.validate_observation` / `validate_run` | six extractor authors, as their gate | SPEC *Conformance* |
+| `determinism.observation_set_digest` / `assert_identical_observation_sets` / `replay_key` | P2 (§8.5 replay), §3.4's cache | conformance rule 8 |
 | `ZONES`, `SEGMENT_KINDS`, `SOURCE_TYPES`, `RELIABILITY_STATES`, `ANALYSIS_TIERS` | P5, P6 | the closed vocabularies |
 | `fixtures.FIXTURES` | P5 (write extractors against them), P6 (resolve with no extractor), P2 (bundle them) | SPEC *Done means* 5, 9 |
 
@@ -146,8 +147,8 @@ tests/p4/test_p4_text_units.py        G1/D12 — the unit record
 tests/p4/test_p4_schema.py            three tables, inside P1's database, P1 untouched
 tests/p4/test_p4_store.py             the writers; the one §8.2 event per run
 tests/p4/test_p4_raw1.py              Done-means 4 — RAW-1 on CJK and emoji
-tests/p4/test_p4_conformance.py       rules 1-6
-tests/p4/test_p4_conformance_runs.py  rules 7-12
+tests/p4/test_p4_conformance.py       the observation rules — 1, 2, 3, 4, 6, 7, 11, 12
+tests/p4/test_p4_conformance_runs.py  the cross-record rules — 5, 9, 10
 tests/p4/test_p4_supersession.py      Done-means 7
 tests/p4/test_p4_determinism.py       Done-means 8
 tests/p4/test_p4_fixtures.py          Done-means 5, and the coverage shortfall, named
@@ -744,7 +745,7 @@ git commit -m "feat(P4): the six closed vocabularies, and the five questions hel
 
 **Indices are 1-based; text offsets are 0-based half-open** (D3). §2.8's own examples are 1-based (*"page 1, heading 2"*; *"table 3, row 2, column 1"*) and appear in user-visible explanations (§8.2). Offsets are machine-only, and 0-based half-open makes `raw_value == text[start:end]` hold in every mainstream language.
 
-**Offsets count Unicode scalar values** (D4). §2.2 says "text offset" without a unit; §2.7 requires CJK, so the unit must be language-stable. Python strings are already sequences of code points, so `text[start:end]` *is* the D4 unit and no conversion exists anywhere in this package — which is the point of choosing it. Task 11 proves it on CJK and on an astral-plane emoji, where a UTF-16 unit count would differ.
+**Offsets count Unicode scalar values** (D4). §2.2 says "text offset" without a unit; §2.7 requires CJK, so the unit must be language-stable. Python strings are already sequences of code points, so `text[start:end]` *is* the D4 unit and no conversion exists anywhere in this package — which is the point of choosing it. Task 8 proves it on CJK and on an astral-plane emoji, where a UTF-16 unit count would differ.
 
 **A label is optional on an indexed kind and required on a label-addressed one.** The SPEC's table says what each label typically carries, and rule 3 then puts a format's own native address there (`sheet=2/row=7/column=3` with `label: "C7"` on the column segment). So the label is not restricted per kind — restricting it would be inventing a rule the contract does not state. What *is* enforced is rule 2: an indexed kind has an index, a label-addressed kind has a label and no index.
 
@@ -1561,7 +1562,7 @@ def location_from_mapping(mapping: Mapping[str, object]) -> Location:
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/p4/test_p4_locator.py -v`
-Expected: PASS — 64 passed (25 + 25 parametrized, plus 14 others)
+Expected: PASS — 66 passed (25 + 25 parametrized, plus 16 others)
 
 - [ ] **Step 5: Commit**
 
@@ -1582,7 +1583,7 @@ git commit -m "feat(P4): the canonical locator — one short stable handle, roun
 - Consumes: nothing.
 - Produces: `canonical_json(value) -> str`, `sha256_of(*parts: str) -> str`.
 
-**Why this is its own module.** Three published values are digests or byte-comparisons of the same kind: `observation_key` (Task 6), `config_fingerprint` (Task 7) and the determinism digest (Task 16). Conformance rule 8 requires *"byte-identical observation set"*, §3.4 requires a cache key, and §8.5 requires a diff — all three fail if two equal records can serialize two ways. One module, two functions, three consumers; a second implementation of "canonical" is exactly how a replay diff starts reporting phantom changes.
+**Why this is its own module.** Three published values are digests or byte-comparisons of the same kind: `observation_key` (Task 6), `config_fingerprint` (Task 7) and the determinism digest (Task 15). Conformance rule 8 requires *"byte-identical observation set"*, §3.4 requires a cache key, and §8.5 requires a diff — all three fail if two equal records can serialize two ways. One module, two functions, three consumers; a second implementation of "canonical" is exactly how a replay diff starts reporting phantom changes.
 
 **Why the digest is length-prefixed.** The SPEC writes `observation_key = sha256(content_hash ‖ extractor_name ‖ locator ‖ raw_value)`. Plain concatenation is not injective — `("ab", "c")` and `("a", "bc")` produce the same bytes — so two different observations could collide on the one handle §8.7 requires to stay permanently resolvable. Prefixing each part with its UTF-8 byte length makes the concatenation injective while keeping the SPEC's four inputs and their order exactly.
 
@@ -2587,7 +2588,7 @@ def run_from_mapping(mapping: Mapping[str, object]) -> ExtractionRun:
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/p4/test_p4_runs.py -v`
-Expected: PASS — 18 passed
+Expected: PASS — 19 passed
 
 - [ ] **Step 5: Commit**
 
@@ -2615,6 +2616,8 @@ git commit -m "feat(P4): Record 2 — extraction_runs, the one extraction-outcom
 **Not P1's file record, either.** Text is per (content version × extractor × configuration), not per file: a text-layer pass and an OCR pass over the same PDF produce two different texts, and §8.2 requires both remain available.
 
 **RAW-1 is the anchor for every citation check in the system** (§3.6, §4.8, §6.10, §7.9): *"For any observation with a `text_span`, `raw_value` is byte-for-byte the substring of the stored text unit at that span."* It is machine-checkable, and this module is where it is checked.
+
+**Rule 10 compares the address, not the record.** Segment-kind rule 2: *"A kind with an index is addressed by its index; its label is descriptive only and never appears in the locator."* So a unit at `slide=6` satisfies an observation whose innermost segment is `Segment("slide", 6, label="Deadlines")` — the two are one address, and `(run_id, unit_locator)` is the key `text_units` is stored under and the key `store.text_unit_at` looks up. Comparing the `Segment` records instead would reject every conforming observation that carries a heading's text, a sheet's name or a slide's title, which is most of them. *(Caught by Task 16's fixture 13, which is exactly that case.)*
 
 **Why the check needs no unit conversion.** D4 counts Unicode scalar values, and a Python `str` is already a sequence of code points — so `text[start:end]` *is* the D4 unit and there is no conversion anywhere in this package. That is exactly why D4 chose code points: the same offsets hold for CJK (§2.7's requirement) and for an astral-plane emoji, where a UTF-16 count would differ by one per character and a byte count by two or three.
 
@@ -2976,12 +2979,15 @@ def check_span_anchor(observation: Observation, unit: TextUnit) -> None:
         raise SpanAnchorError(
             f"the unit belongs to run {unit.run_id!r} and the observation to "
             f"{observation.run_id!r}; text is per run, not per file (rule 4)")
-    if unit.container_path != observation.location.container_path:
+    address = serialize_container_path(observation.location.container_path)
+    if unit.unit_locator != address:
         raise SpanAnchorError(
             f"the unit is addressed {unit.unit_locator!r} and the observation's span "
-            f"is into "
-            f"{serialize_container_path(observation.location.container_path)!r}; "
-            "rule 10 requires they be equal")
+            f"is into {address!r}; rule 10 requires they be equal. The comparison is "
+            "on the ADDRESS and not on the record: segment-kind rule 2 makes a label "
+            "descriptive only, so a labelled `slide=6` and a bare `slide=6` are one "
+            "address -- and `(run_id, unit_locator)` is the key `text_units` is "
+            "stored under")
     if text_span.end > unit.length:
         raise SpanAnchorError(
             f"the span ends at {text_span.end} and the stored unit is "
@@ -3410,7 +3416,7 @@ def p4_conn(conn):
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `pytest tests/p4/test_p4_schema.py -v`
-Expected: PASS — 16 passed
+Expected: PASS — 17 passed
 
 - [ ] **Step 6: Commit**
 
@@ -3724,7 +3730,7 @@ def record_run_event(conn: sqlite3.Connection, run_id: str, *, author: str) -> i
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/p4/test_p4_store.py -v`
-Expected: PASS — 13 passed
+Expected: PASS — 14 passed
 
 - [ ] **Step 5: Commit**
 
@@ -4059,7 +4065,7 @@ def unit_for_observation(conn: sqlite3.Connection,
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/p4/test_p4_store.py -v`
-Expected: PASS — 28 passed
+Expected: PASS — 29 passed
 
 - [ ] **Step 5: Commit**
 
@@ -4315,6 +4321,8 @@ The fourth tooth is **not** P4's and this plan says so rather than faking it: an
 
 **Rule 4 is checked against the addressing, not the whole record.** Segment-kind rule 2 keeps a descriptive label out of the locator and the grammar has no term for a bounding box, so a round-trip reproduces `addressing(location)` — Task 4's published projection — and not the original. Checking against the original would fail every observation that carries a heading's text or an OCR region's box, which is most of them.
 
+**The test helper derives the key it hands over.** `_mapping` builds through `Observation`, so a mapping that overrides `raw_value` comes back carrying *that row's* `observation_key` and not the fixture's. Rule 1 requires the handle be derivable from the row it names — §8.7's negative examples resolve through it years later — so a helper that left a stale key behind would report rule 1 on every override and hide the rule actually under test. Where an override is one the record rejects, the helper drops the key rather than inventing one: an emitted observation carries no key either, and rule 1 exempts an absent one.
+
 **Rule 5 (RAW-1) and rules 9 and 10 need a second record and are Task 14. Rule 8 needs a second run and is Task 15.** Their entries exist in `CONFORMANCE_RULES` from this task, so the numbering is stable and no rule can be quietly dropped.
 
 - [ ] **Step 1: Write the failing test**
@@ -4328,7 +4336,8 @@ from evidence_shape.conformance import (
     validate_observation,
 )
 from evidence_shape.location import Location, Segment, TextSpan
-from evidence_shape.observation import Observation
+from evidence_shape.observation import MalformedObservation, Observation
+from evidence_shape.vocabulary import NotInVocabulary
 
 FIXTURE_1 = dict(
     file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
@@ -4342,9 +4351,23 @@ FIXTURE_1 = dict(
 
 
 def _mapping(**overrides):
-    mapping = Observation(**FIXTURE_1).to_mapping()
-    mapping.update(overrides)
-    return mapping
+    """Overrides go through the record, so `observation_key` is the key of the row
+    that comes back. Rule 1 requires the handle be derivable from the row it names,
+    and a helper that changed `raw_value` and left the fixture's key behind would be
+    testing itself rather than the rule under test.
+
+    Overrides the record rejects are the deliberately malformed ones. Those are
+    applied to the mapping afterwards and the stale key is dropped with them: a
+    malformed row has no derivable key, an emitted observation carries none either,
+    and rule 1 exempts an absent one.
+    """
+    try:
+        return Observation(**{**FIXTURE_1, **overrides}).to_mapping()
+    except (TypeError, MalformedObservation, NotInVocabulary):
+        mapping = Observation(**FIXTURE_1).to_mapping()
+        mapping.update(overrides)
+        mapping.pop("observation_key", None)
+        return mapping
 
 
 def _rules(violations):
@@ -4758,7 +4781,7 @@ def validate_observation(candidate) -> Observation:
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/p4/test_p4_conformance.py -v`
-Expected: PASS — 22 passed
+Expected: PASS — 24 passed
 
 - [ ] **Step 5: Commit**
 
@@ -4768,3 +4791,2153 @@ git commit -m "feat(P4): the conformance validator — the observation rules, fa
 ```
 
 ---
+### Task 14: The conformance validator — the cross-record rules (5, 9, 10)
+
+**Files:**
+- Modify: `src/evidence_shape/conformance.py` — add `check_run` and `validate_run`
+- Test: `tests/p4/test_p4_conformance_runs.py`
+- Test: `tests/p4/test_p4_raw1.py`
+
+**Interfaces:**
+- Consumes: `evidence_shape.locator` — `serialize_container_path`; `evidence_shape.observation` — `Observation`, `observation_from_mapping`; `evidence_shape.runs` — `ExtractionRun`, `MalformedRun`, `run_from_mapping`; `evidence_shape.text_units` — `SpanAnchorError`, `TextUnit`, `check_span_anchor`; `evidence_shape.vocabulary` — `NotInVocabulary`, `ZERO_OBSERVATION_COMPLETENESS`.
+- Produces (`conformance.py`): `check_run(run, observations=(), text_units=()) -> tuple[Violation, ...]`, `validate_run(run, observations=(), text_units=()) -> ExtractionRun`.
+
+**Three rules need a second record, which is why they are here and not in Task 13.** Rule 9 is a statement about a run and its observation *set*; rules 10 and 5 are statements about an observation and the text unit its span points into. None of the three can be decided from an observation alone, and a validator that pretended otherwise would pass an extractor that emitted a span into a unit it never wrote.
+
+**Rule 9, with M3's relaxation intact.** The SPEC: *"`run.completeness` present; **`unsupported`, `deferred` and `failed` runs carry zero observations.**"* Those three, and no others — `vocabulary.ZERO_OBSERVATION_COMPLETENESS` is that exact tuple and this task adds no second list. `unreadable`, `partial` and `metadata_only` runs **may and normally do** carry observations: §2.9 requires an unsupported proprietary format be *"recorded as indexed-but-unreadable rather than silently treated as empty"*, and its metadata-level rows are what "indexed" means. A rule forbidding them would make an indexed PSD indistinguishable from a file nobody opened.
+
+**Rule 10 is the existence-and-address half; RAW-1 is checked once, and reported as rule 5.** Rule 10's own text ends *"and RAW-1 holds against that row's text"*, so the two rules overlap on one condition. This task checks that condition once and reports it under **rule 5**, the rule that names it — reporting one defect under two numbers would make an extractor author fix it twice and is the same one-concept-two-names defect the vocabularies exist to prevent. Rule 10 keeps the half that is its own: *a unit exists, on this run, at this address*.
+
+**And it is Task 8's check, not a second one.** `text_units.check_span_anchor` already holds RAW-1, the run match, the address match and the truncated-prefix rule, and it is tested there. `check_run` looks the unit up and calls it. The difference between the two surfaces is what they do with a failure, not how they decide it: `check_span_anchor` raises on the first problem because it is a writer's assertion, `check_run` collects because it is an author's gate.
+
+**No thirteenth rule about `observation_count`.** A run row whose count disagrees with its rows is a real defect, but the SPEC lists twelve rules and none of them is this one, and P4 does not legislate a thirteenth into a published contract. `store.record_observation` derives the count from the rows on every insert (Task 11), so the disagreement cannot arise through P4's own writer; a caller that inserts by hand is outside the shape P4 publishes.
+
+**One call is the whole gate.** `check_run` runs Task 13's per-observation rules over each member of the set as well, tagged by position, so an extractor author who calls `validate_run` at the end of a run cannot get a false pass on a set whose members are individually non-conforming.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p4/test_p4_conformance_runs.py
+import pytest
+
+from evidence_shape.conformance import (
+    NonConforming, check_run, validate_run,
+)
+from evidence_shape.location import Location, Segment, TextSpan
+from evidence_shape.observation import Observation
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.text_units import TextUnit
+
+PAGE_TEXT = "Syllabus — BUSIB 4300 — Spring 2026"
+SPAN = TextSpan(PAGE_TEXT.index("BUSIB"), PAGE_TEXT.index("BUSIB") + len("BUSIB 4300"))
+
+
+def _run(completeness="complete", run_id="r1", **overrides):
+    fields = dict(
+        run_id=run_id, file_id="f1", content_hash="sha256:abc",
+        extractor_name="pdf.text", extractor_version="3.1.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness=completeness, started_at="2026-08-19T14:00:00+00:00",
+        finished_at="2026-08-19T14:03:22+00:00")
+    fields.update(overrides)
+    return ExtractionRun(**fields)
+
+
+def _observation(run_id="r1", *, text_span=None, container_path=(Segment("page", 1),),
+                 raw_value="BUSIB 4300", **overrides):
+    fields = dict(
+        file_id="f1", content_hash="sha256:abc", extractor_name="pdf.text",
+        extractor_version="3.1.0", source_type="text_document", raw_value=raw_value,
+        location=Location("body", container_path, text_span=text_span),
+        occurrence_count=1, observed_at="2026-08-19T14:03:22+00:00",
+        reliability="possible", run_id=run_id)
+    fields.update(overrides)
+    return Observation(**fields)
+
+
+def _unit(run_id="r1", *, text=PAGE_TEXT, container_path=(Segment("page", 1),),
+          truncated=False):
+    return TextUnit(run_id=run_id, container_path=container_path, text=text,
+                    truncated=truncated)
+
+
+def _rules(violations):
+    return sorted({violation.rule for violation in violations})
+
+
+def test_a_run_with_no_observations_and_no_units_passes():
+    assert check_run(_run()) == ()
+
+
+def test_a_run_whose_observations_carry_no_span_needs_no_units():
+    # Rule 10 applies to a span. A metadata observation has none.
+    observation = _observation(
+        location=Location("metadata", (Segment("field", label="Producer"),)),
+        raw_value="python-docx", reliability="direct")
+    assert check_run(_run(), [observation]) == ()
+
+
+def test_rule_9_the_three_zero_observation_states_reject_an_observation():
+    # The SPEC's three, and only these three.
+    for completeness in ("unsupported", "deferred", "failed"):
+        violations = check_run(_run(completeness), [_observation()])
+        assert 9 in _rules(violations), completeness
+        assert completeness in violations[0].message
+
+
+def test_rule_9_the_three_zero_observation_states_pass_with_zero_observations():
+    for completeness in ("unsupported", "deferred", "failed"):
+        assert check_run(_run(completeness)) == (), completeness
+
+
+def test_rule_9_an_unreadable_run_still_carries_its_metadata_rows():
+    # M3, and §2.9's "indexed-but-unreadable rather than silently treated as empty".
+    # A rule forbidding these rows would make an indexed PSD indistinguishable from a
+    # file nobody opened.
+    layer = _observation(
+        source_type="design_creative", reliability="direct", raw_value="Background",
+        location=Location("metadata", (Segment("layer", 3),)))
+    assert check_run(_run("unreadable"), [layer]) == ()
+
+
+def test_rule_9_partial_metadata_only_and_capped_runs_may_carry_observations():
+    for completeness in ("partial", "metadata_only", "capped"):
+        assert check_run(_run(completeness), [_observation()]) == (), completeness
+
+
+def test_rule_9_a_run_with_no_completeness_is_reported():
+    mapping = _run().to_mapping()
+    del mapping["completeness"]
+    assert 9 in _rules(check_run(mapping))
+
+
+def test_rule_9_a_completeness_outside_the_closed_vocabulary_is_reported():
+    mapping = _run().to_mapping()
+    mapping["completeness"] = "empty"
+    assert 9 in _rules(check_run(mapping))
+
+
+def test_rule_9_an_observation_from_another_run_is_reported():
+    # Rules 9 and 10 are both statements about THIS run's set.
+    assert 9 in _rules(check_run(_run(), [_observation(run_id="r2")]))
+
+
+def test_rule_10_a_span_with_no_unit_is_reported():
+    violations = check_run(_run(), [_observation(text_span=SPAN)])
+    assert _rules(violations) == [10]
+    assert "page=1" in violations[0].message
+
+
+def test_rule_10_a_unit_at_another_address_does_not_satisfy_the_span():
+    violations = check_run(_run(), [_observation(text_span=SPAN)],
+                           [_unit(container_path=(Segment("page", 2),))])
+    assert _rules(violations) == [10]
+
+
+def test_rule_10_a_unit_on_another_run_does_not_satisfy_the_span():
+    # Text is per run, not per file: a text-layer pass and an OCR pass over one PDF
+    # produce two texts under two run_ids (§8.2).
+    violations = check_run(_run(), [_observation(text_span=SPAN)], [_unit(run_id="r2")])
+    assert 10 in _rules(violations)
+
+
+def test_rule_10_and_rule_5_are_satisfied_by_the_unit_the_span_points_into():
+    assert check_run(_run(), [_observation(text_span=SPAN)], [_unit()]) == ()
+
+
+def test_rule_10_matches_on_the_address_and_not_on_the_descriptive_label():
+    # Segment-kind rule 2: a label is descriptive only and never appears in the
+    # locator, and `(run_id, unit_locator)` is what text_units is keyed on. A unit at
+    # `page=1` satisfies an observation whose segment carries a heading's text.
+    labelled = _observation(text_span=SPAN,
+                            container_path=(Segment("page", 1, label="Course Information"),))
+    assert check_run(_run(), [labelled], [_unit()]) == ()
+
+
+def test_rule_5_a_raw_value_that_is_not_the_substring_is_reported():
+    # RAW-1 is checked ONCE and reported under rule 5, the rule that names it.
+    violations = check_run(_run(), [_observation(text_span=SPAN, raw_value="Columbia")],
+                           [_unit()])
+    assert _rules(violations) == [5]
+    assert "RAW-1" in violations[0].message
+
+
+def test_rule_5_a_span_beyond_a_truncated_unit_is_reported():
+    # §8.6: never truncate silently. An observation whose span lies beyond the stored
+    # prefix is not written.
+    violations = check_run(
+        _run(), [_observation(text_span=TextSpan(0, 40))],
+        [_unit(text=PAGE_TEXT[:20], truncated=True)])
+    assert _rules(violations) == [5]
+    assert "truncated" in violations[0].message
+
+
+def test_the_per_observation_rules_are_checked_through_the_run_gate_too():
+    # One call is the whole gate: a set whose members are individually non-conforming
+    # does not pass because the run-level rules happen to hold.
+    mapping = _observation().to_mapping()
+    mapping["occurrence_count"] = 0
+    violations = check_run(_run(), [mapping])
+    assert 7 in _rules(violations)
+
+
+def test_a_violation_from_the_set_names_which_member_it_came_from():
+    mapping = _observation().to_mapping()
+    mapping["occurrence_count"] = 0
+    violations = check_run(_run(), [_observation(), mapping])
+    assert violations[0].message.startswith("observation 1: ")
+
+
+def test_validate_run_returns_the_constructed_run():
+    run = _run()
+    assert validate_run(run) is run
+    assert validate_run(run.to_mapping()) == run
+
+
+def test_validate_run_reports_every_violation_before_raising():
+    with pytest.raises(NonConforming) as raised:
+        validate_run(_run("failed"), [_observation(text_span=SPAN)])
+    assert _rules(raised.value.violations) == [9, 10]
+
+
+def test_validate_run_fails_rather_than_coercing():
+    # Done-means 2. Nothing comes back repaired, and no observation is dropped to
+    # make a `failed` run conform.
+    with pytest.raises(NonConforming):
+        validate_run(_run("unsupported"), [_observation()])
+```
+
+```python
+# tests/p4/test_p4_raw1.py
+"""Done-means 4, at the layer that ships: RAW-1 through the validator six extractor
+authors run as their gate, on a CJK fixture and an emoji fixture (D4's code-point
+unit).
+
+Task 8 proves the same property on `check_span_anchor`, the primitive. This file
+proves that `check_run` — the call an extractor author actually makes — enforces it as
+rule 5, on the two scripts D4 was chosen for.
+"""
+from evidence_shape.conformance import check_run
+from evidence_shape.location import Location, Segment, TextSpan
+from evidence_shape.observation import Observation
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.text_units import TextUnit
+
+#: §2.7 requires CJK. Every character here is one code point and three UTF-8 bytes.
+CJK_PAGE = "提出書類は慶應義塾大学の入学課に送付してください。締切は二〇二六年三月三十一日です。"
+CJK_VALUE = "慶應義塾大学"
+
+#: One astral-plane emoji is ONE code point and TWO UTF-16 units, so an offset
+#: counted in UTF-16 lands in the middle of the character and RAW-1 fails.
+EMOJI_PAGE = "Submitted 🎓 to Columbia University"
+EMOJI_VALUE = "Columbia"
+
+
+def _run(run_id="r1"):
+    return ExtractionRun(
+        run_id=run_id, file_id="f1", content_hash="sha256:abc",
+        extractor_name="ocr.apple_vision", extractor_version="2.4.1",
+        source_type="ocr", analysis_tier="ocr",
+        config={"languages": ["ja", "en"]}, completeness="complete",
+        started_at="2026-08-19T14:00:00+00:00")
+
+
+def _pair(page, value, *, start=None, end=None):
+    start = page.index(value) if start is None else start
+    end = start + len(value) if end is None else end
+    observation = Observation(
+        file_id="f1", content_hash="sha256:abc", extractor_name="ocr.apple_vision",
+        extractor_version="2.4.1", source_type="ocr", raw_value=value,
+        location=Location("ocr", (Segment("page", 1),),
+                          text_span=TextSpan(start, end)),
+        occurrence_count=1, observed_at="2026-08-19T14:03:22+00:00",
+        reliability="possible", run_id="r1")
+    return [observation], [TextUnit(run_id="r1", container_path=(Segment("page", 1),),
+                                    text=page)]
+
+
+def test_raw_1_holds_through_the_gate_on_a_cjk_fixture():
+    observations, units = _pair(CJK_PAGE, CJK_VALUE)
+    assert check_run(_run(), observations, units) == ()
+
+
+def test_a_byte_offset_into_the_cjk_fixture_fails_the_gate():
+    # The same value addressed in UTF-8 bytes, which is what a naive extractor would
+    # emit. D4 counts code points precisely so this is a failure and not a silent
+    # mis-citation.
+    byte_start = len(CJK_PAGE[:CJK_PAGE.index(CJK_VALUE)].encode("utf-8"))
+    observations, units = _pair(CJK_PAGE, CJK_VALUE, start=byte_start,
+                                end=byte_start + len(CJK_VALUE.encode("utf-8")))
+    violations = check_run(_run(), observations, units)
+    assert [violation.rule for violation in violations] == [5]
+    assert "RAW-1" in violations[0].message
+
+
+def test_raw_1_holds_through_the_gate_across_an_astral_emoji():
+    observations, units = _pair(EMOJI_PAGE, EMOJI_VALUE)
+    assert check_run(_run(), observations, units) == ()
+
+
+def test_a_utf_16_offset_across_an_astral_emoji_fails_the_gate():
+    # In UTF-16 the emoji occupies two units, so every offset after it is one too
+    # large. Nothing in this package converts, which is why the failure is visible.
+    utf_16_start = EMOJI_PAGE.index(EMOJI_VALUE) + 1
+    observations, units = _pair(EMOJI_PAGE, EMOJI_VALUE, start=utf_16_start,
+                                end=utf_16_start + len(EMOJI_VALUE))
+    violations = check_run(_run(), observations, units)
+    assert [violation.rule for violation in violations] == [5]
+    assert "RAW-1" in violations[0].message
+
+
+def test_the_stored_length_is_counted_in_code_points_not_bytes():
+    _, units = _pair(CJK_PAGE, CJK_VALUE)
+    assert units[0].length == len(CJK_PAGE)
+    assert units[0].length != len(CJK_PAGE.encode("utf-8"))
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p4/test_p4_conformance_runs.py tests/p4/test_p4_raw1.py -v`
+Expected: FAIL with `ImportError: cannot import name 'check_run' from 'evidence_shape.conformance'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/evidence_shape/conformance.py
+from evidence_shape.locator import serialize_container_path
+from evidence_shape.runs import ExtractionRun, MalformedRun, run_from_mapping
+from evidence_shape.text_units import SpanAnchorError, TextUnit, check_span_anchor
+from evidence_shape.vocabulary import (
+    NotInVocabulary, ZERO_OBSERVATION_COMPLETENESS,
+)
+
+
+def check_run(run, observations=(), text_units=()) -> tuple[Violation, ...]:
+    """Rules 9, 10 and 5 -- the three that need a second record -- plus Task 13's
+    per-observation rules over every member of the set.
+
+    RAW-1 is decided by `text_units.check_span_anchor` and reported under rule 5, the
+    rule that names it. Rule 10 keeps the half that is its own: a unit exists, on this
+    run, at this address. One defect is reported once.
+    """
+    violations: list[Violation] = []
+    if isinstance(run, ExtractionRun):
+        record = run
+    elif isinstance(run, Mapping):
+        try:
+            record = run_from_mapping(run)
+        except (MalformedRun, NotInVocabulary) as exc:
+            return (Violation(9, str(exc)),)
+    else:
+        return (Violation(9, f"a run is a record or a mapping, not "
+                             f"{type(run).__name__}"),)
+
+    members = tuple(observations)
+    # Rule 9. The SPEC's three, and no others: M3 keeps `unreadable`, `partial` and
+    # `metadata_only` carrying the metadata-level rows §2.9's "indexed" means.
+    if record.completeness in ZERO_OBSERVATION_COMPLETENESS and members:
+        violations.append(Violation(9, (
+            f"a {record.completeness!r} run carries zero observations and this one "
+            f"carries {len(members)}; what such a run knows is on the run record")))
+
+    index: dict[str, TextUnit] = {}
+    for unit in text_units:
+        if not isinstance(unit, TextUnit):
+            violations.append(Violation(10, f"a text unit is a TextUnit record, not "
+                                            f"{type(unit).__name__}"))
+            continue
+        if unit.run_id != record.run_id:
+            violations.append(Violation(10, (
+                f"unit {unit.unit_locator!r} belongs to run {unit.run_id!r}, not to "
+                f"{record.run_id!r}; text is per run, not per file (§8.2)")))
+            continue
+        index[unit.unit_locator] = unit
+
+    for position, candidate in enumerate(members):
+        own = check_observation(candidate)
+        if own:
+            violations.extend(
+                Violation(violation.rule, f"observation {position}: {violation.message}")
+                for violation in own)
+            continue
+        observation = (candidate if isinstance(candidate, Observation)
+                       else observation_from_mapping(candidate))
+        if observation.run_id != record.run_id:
+            violations.append(Violation(9, (
+                f"observation {position} belongs to run {observation.run_id!r}, not "
+                f"to {record.run_id!r}; rules 9 and 10 are statements about this "
+                "run's own set")))
+            continue
+        if observation.location.text_span is None:
+            continue
+        address = serialize_container_path(observation.location.container_path)
+        unit = index.get(address)
+        if unit is None:
+            violations.append(Violation(10, (
+                f"observation {position} has a text_span and no text_units row at "
+                f"{address!r} on run {record.run_id!r}; a span is an offset into a "
+                "stored unit, and without one no citation check can resolve it")))
+            continue
+        try:
+            check_span_anchor(observation, unit)
+        except SpanAnchorError as exc:
+            violations.append(Violation(5, f"observation {position}: {exc}"))
+    return tuple(violations)
+
+
+def validate_run(run, observations=(), text_units=()) -> ExtractionRun:
+    """The extractor's gate for a whole run. Returns the constructed record, or
+    raises with every violation. It never drops an observation to make a run
+    conform (Done-means 2)."""
+    violations = check_run(run, observations, text_units)
+    if violations:
+        raise NonConforming(violations)
+    if isinstance(run, ExtractionRun):
+        return run
+    return run_from_mapping(run)
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p4/test_p4_conformance_runs.py tests/p4/test_p4_raw1.py -v`
+Expected: PASS — 26 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/evidence_shape/conformance.py tests/p4/test_p4_conformance_runs.py tests/p4/test_p4_raw1.py
+git commit -m "feat(P4): the conformance validator — the cross-record rules, RAW-1 reported once"
+```
+
+---
+### Task 15: Determinism — conformance rule 8 and the compared observation set (Done-means 8)
+
+**Files:**
+- Create: `src/evidence_shape/determinism.py`
+- Test: `tests/p4/test_p4_determinism.py`
+
+**Interfaces:**
+- Consumes: `evidence_shape.canonical` — `canonical_json`, `sha256_of`; `evidence_shape.observation` — `OBSERVATION_FIELDS`, `Observation`; `evidence_shape.runs` — `ExtractionRun`.
+- Produces: `REPLAY_KEY_FIELDS`, `EXCLUDED_FROM_COMPARISON`, `COMPARED_FIELDS`, `NotDeterministic`, `replay_key(run) -> tuple[str, ...]`, `compared_form(observation) -> dict`, `observation_set_bytes(observations) -> str`, `observation_set_digest(observations) -> str`, `assert_identical_observation_sets(first_run, first_observations, second_run, second_observations) -> None`.
+
+**Rule 8, verbatim:** *"Same content hash + same extractor version + same config fingerprint ⇒ byte-identical observation set (§3.4 caching, §8.5 replay)."* Done-means 8: *"two runs at the same content hash, extractor version and config fingerprint produce byte-identical observation sets."*
+
+**Two fields are outside the comparison, and rule 8's own premise is what puts them there.** The premise is *two runs*. A `run_id` is minted per run and an `observed_at` is the wall-clock instant a reading was taken, so a comparison that included either would report every row as changed on every re-run and rule 8 would be unsatisfiable by construction — including for the cache §3.4 wants and the diff §8.5 wants. `EXCLUDED_FROM_COMPARISON` is exactly those two, each carrying its reason in the source, and it is the only exclusion list in this package.
+
+**`file_id` stays in.** Excluding it would be P4 taking a position on **open question 2** — whether an observation is owned by the content hash or by the file record — from inside an implementation. Two runs over one file in one database carry one `file_id`, which is Done-means 8's case, so nothing forces the question and P4 does not touch it.
+
+**The compared set is a multiset, sorted.** A set has no order, so the digest sorts; but D10's collapse key is `(run_id, raw_value, zone)` and Task 6 deliberately enforces no uniqueness on it, so two identical readings may legitimately both exist. Collapsing them here would make a validator quietly disagree with the table it validates.
+
+**`REPLAY_KEY_FIELDS` carries four names where rule 8 lists three, and this is a SPEC-vs-design conflict this plan reports rather than hides.** Rule 8 names `content_hash`, `extractor_version` and `config_fingerprint`. §3.4 asks for a cache key on *"the content hash and the exact process that produced it"*, and Task 9's `extraction_runs_cache_key` index — already written — carries `extractor_name` as a fourth. Read literally, rule 8's three would require `pdf.text 3.1.0` and `ocr.apple_vision 3.1.0` over one file to produce one identical observation set; `observation_key` includes `extractor_name` (Task 6), so those two sets can never be equal and the literal rule can never hold. P4 therefore keys on the four §3.4 names, states the discrepancy in the module docstring, and records it under *SPEC vs design — conflicts found* at the end of this plan. **P4 does not rewrite rule 8's text** — that is a contract revision, and it is Joseph's.
+
+**This module is not a diff.** §8.5's cross-version comparison is a different question — *what did the new extractor version change?* — and it is answered on `observation_key`, which excludes `extractor_version` precisely so the two versions' rows line up (MINOR 8, Task 6). Rule 8 asks the narrower question: *did the same process, twice, produce the same thing?* Building a diff here would be P4 writing P2's replay harness a second time.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p4/test_p4_determinism.py
+"""Done-means 8, and conformance rule 8's compared observation set."""
+import pytest
+
+from evidence_shape.determinism import (
+    COMPARED_FIELDS, EXCLUDED_FROM_COMPARISON, NotDeterministic, REPLAY_KEY_FIELDS,
+    assert_identical_observation_sets, compared_form, observation_set_digest,
+    replay_key,
+)
+from evidence_shape.location import Location, Segment, TextSpan
+from evidence_shape.observation import OBSERVATION_FIELDS, Observation
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.store import observations_for_run, record_observation, record_run
+
+CONFIG = {"languages": ["en", "zh-Hans"], "recognition": "accurate"}
+
+
+def _run(run_id, *, version="3.1.0", config=CONFIG, name="pdf.text"):
+    return ExtractionRun(
+        run_id=run_id, file_id="f1", content_hash="sha256:abc", extractor_name=name,
+        extractor_version=version, source_type="text_document",
+        analysis_tier="native", config=config, completeness="complete",
+        started_at="2026-08-19T14:00:00+00:00")
+
+
+def _observation(run_id, *, version="3.1.0", name="pdf.text",
+                 raw_value="BUSIB 4300", heading=2, observed_at="2026-08-19T14:03:22+00:00"):
+    return Observation(
+        file_id="f1", content_hash="sha256:abc", extractor_name=name,
+        extractor_version=version, source_type="text_document", raw_value=raw_value,
+        location=Location("heading", (Segment("page", 1), Segment("heading", heading))),
+        occurrence_count=3, observed_at=observed_at, reliability="possible",
+        run_id=run_id, normalized_value=raw_value, context_before="Syllabus — ",
+        context_after=" — Spring 2026", context_truncated=False)
+
+
+def test_the_compared_set_is_every_emitted_field_but_two():
+    assert EXCLUDED_FROM_COMPARISON == ("run_id", "observed_at")
+    assert COMPARED_FIELDS == tuple(
+        name for name in OBSERVATION_FIELDS if name not in EXCLUDED_FROM_COMPARISON)
+
+
+def test_two_runs_of_the_same_process_produce_one_digest(p4_conn):
+    # Done-means 8, through the store, which is where a real extractor would land.
+    first, second = _run("r1"), _run("r2")
+    record_run(p4_conn, first)
+    record_run(p4_conn, second)
+    record_observation(p4_conn, _observation("r1"))
+    record_observation(p4_conn, _observation("r2", observed_at="2026-08-20T09:15:00+00:00"))
+
+    assert (observation_set_digest(observations_for_run(p4_conn, "r1"))
+            == observation_set_digest(observations_for_run(p4_conn, "r2")))
+    assert_identical_observation_sets(
+        first, observations_for_run(p4_conn, "r1"),
+        second, observations_for_run(p4_conn, "r2"))
+
+
+def test_the_run_id_and_the_observation_time_are_the_two_fields_outside_it():
+    # Rule 8's premise is TWO RUNS. A comparison that carried either of these would
+    # report every row as changed on every re-run.
+    base = _observation("r1")
+    assert (observation_set_digest([base])
+            == observation_set_digest([_observation("r9", observed_at="2027-01-01T00:00:00+00:00")]))
+
+
+def test_a_different_reading_changes_the_digest():
+    assert (observation_set_digest([_observation("r1")])
+            != observation_set_digest([_observation("r1", raw_value="BUSIB 4301")]))
+
+
+def test_a_different_location_changes_the_digest():
+    assert (observation_set_digest([_observation("r1")])
+            != observation_set_digest([_observation("r1", heading=3)]))
+
+
+def test_the_digest_does_not_depend_on_emission_order():
+    one, two = _observation("r1"), _observation("r1", heading=3)
+    assert observation_set_digest([one, two]) == observation_set_digest([two, one])
+
+
+def test_two_identical_readings_are_not_collapsed():
+    # D10's collapse key is (run_id, raw_value, zone) and Task 6 enforces no
+    # uniqueness on it. A digest that collapsed them would disagree with the table.
+    one = _observation("r1")
+    assert observation_set_digest([one]) != observation_set_digest([one, one])
+
+
+def test_a_missing_observation_is_reported_with_the_row_that_went_missing():
+    first, second = _run("r1"), _run("r2")
+    with pytest.raises(NotDeterministic) as raised:
+        assert_identical_observation_sets(
+            first, [_observation("r1"), _observation("r1", heading=3)],
+            second, [_observation("r2")])
+    assert "heading=3" in str(raised.value)
+
+
+def test_two_configurations_are_not_one_replay_key():
+    with pytest.raises(NotDeterministic) as raised:
+        assert_identical_observation_sets(
+            _run("r1"), [], _run("r2", config={"recognition": "fast"}), [])
+    assert "replay key" in str(raised.value)
+
+
+def test_two_extractor_versions_are_not_one_replay_key_but_share_one_citation_handle():
+    # MINOR 8: `observation_key` excludes `extractor_version` so §8.5's cross-version
+    # diff has something to diff against. Rule 8 asks the narrower question.
+    old = _observation("r1", version="3.1.0")
+    new = _observation("r2", version="4.0.0")
+    assert old.observation_key == new.observation_key
+    with pytest.raises(NotDeterministic):
+        assert_identical_observation_sets(
+            _run("r1", version="3.1.0"), [old], _run("r2", version="4.0.0"), [new])
+
+
+def test_the_replay_key_carries_the_extractor_name_rule_8_omits():
+    # SPEC vs design, reported not hidden: rule 8 lists three fields; §3.4 asks for
+    # "the content hash and the exact process that produced it" and Task 9's cache
+    # index carries four. Two different extractors at one version can never produce
+    # one set, because `observation_key` includes `extractor_name`.
+    assert REPLAY_KEY_FIELDS == ("content_hash", "extractor_name", "extractor_version",
+                                 "config_fingerprint")
+    assert (replay_key(_run("r1", name="pdf.text"))
+            != replay_key(_run("r2", name="ocr.apple_vision")))
+
+
+def test_the_compared_form_accepts_a_stored_row_and_a_record_alike():
+    observation = _observation("r1")
+    assert compared_form(observation) == compared_form(observation.to_mapping())
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p4/test_p4_determinism.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'evidence_shape.determinism'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/evidence_shape/determinism.py
+"""Conformance rule 8 -- the compared observation set.
+
+Rule 8: "Same content hash + same extractor version + same config fingerprint =>
+byte-identical observation set (§3.4 caching, §8.5 replay)."
+
+Two fields are outside the comparison and rule 8's own premise is what puts them
+there. The premise is TWO RUNS: a `run_id` is minted per run and `observed_at` is the
+instant a reading was taken, so a comparison carrying either would report every row as
+changed on every re-run and the rule could never hold. `file_id` stays in -- dropping
+it would take a position on open question 2 (is an observation owned by the content
+hash or by the file record?) from inside an implementation.
+
+SPEC vs design, reported and not resolved here: rule 8 lists THREE key fields and
+§3.4 asks for a cache key on "the content hash and the exact process that produced
+it", which the `extraction_runs_cache_key` index spells with FOUR -- `extractor_name`
+included. Read literally, rule 8's three would require two different extractors at one
+version over one file to produce one identical set, and `observation_key` includes
+`extractor_name`, so those sets can never be equal. This module keys on the four §3.4
+names. Rewriting rule 8's text is a contract revision and is not P4's to make.
+
+This is not a diff. §8.5's cross-version comparison is a different question, answered
+on `observation_key`, which excludes `extractor_version` precisely so the two versions'
+rows line up (MINOR 8). Rule 8 asks only whether the same process, run twice, produced
+the same thing.
+"""
+from __future__ import annotations
+
+from collections import Counter
+from collections.abc import Mapping
+
+from evidence_shape.canonical import canonical_json, sha256_of
+from evidence_shape.observation import OBSERVATION_FIELDS, Observation
+from evidence_shape.runs import ExtractionRun
+
+#: §3.4's "the content hash and the exact process that produced it". See the docstring
+#: for why this is four names where rule 8's sentence lists three.
+REPLAY_KEY_FIELDS: tuple[str, ...] = (
+    "content_hash", "extractor_name", "extractor_version", "config_fingerprint",
+)
+
+#: The only exclusion list in this package, and each member is forced by rule 8's own
+#: premise -- not chosen. `run_id`: minted per run, and rule 8 compares two runs.
+#: `observed_at`: the wall clock at the reading, which no re-run reproduces.
+EXCLUDED_FROM_COMPARISON: tuple[str, str] = ("run_id", "observed_at")
+
+#: What "byte-identical observation set" is computed over.
+COMPARED_FIELDS: tuple[str, ...] = tuple(
+    name for name in OBSERVATION_FIELDS if name not in EXCLUDED_FROM_COMPARISON)
+
+
+class NotDeterministic(ValueError):
+    """Rule 8 does not hold between two runs, or the two are not one replay key."""
+
+
+def replay_key(run: ExtractionRun) -> tuple[str, ...]:
+    """The identity rule 8's premise fixes. `config_fingerprint` is derived (Task 7)."""
+    return tuple(str(getattr(run, name)) for name in REPLAY_KEY_FIELDS)
+
+
+def compared_form(observation) -> dict[str, object]:
+    """One observation, reduced to what rule 8 compares. Record or stored row."""
+    mapping = (observation.to_mapping() if isinstance(observation, Observation)
+               else observation)
+    if not isinstance(mapping, Mapping):
+        raise NotDeterministic(
+            f"an observation is a record or a mapping, not {type(observation).__name__}")
+    return {name: mapping[name] for name in COMPARED_FIELDS if name in mapping}
+
+
+def _lines(observations) -> list[str]:
+    """The canonical line per observation, sorted: a set has no order.
+
+    Sorted and NOT deduplicated. D10's collapse key is `(run_id, raw_value, zone)` and
+    P4 enforces no uniqueness on it, so two identical readings may both exist and a
+    digest that collapsed them would disagree with the table it validates.
+    """
+    return sorted(canonical_json(compared_form(one)) for one in observations)
+
+
+def observation_set_bytes(observations) -> str:
+    """The bytes rule 8 calls identical. One form per set, from `canonical_json`."""
+    return canonical_json(_lines(observations))
+
+
+def observation_set_digest(observations) -> str:
+    """`observation_set_bytes`, addressed. What §3.4's cache compares cheaply."""
+    return sha256_of(observation_set_bytes(observations))
+
+
+def assert_identical_observation_sets(first_run, first_observations,
+                                      second_run, second_observations) -> None:
+    """Rule 8. Returns None when the two sets are identical; raises otherwise.
+
+    A replay-key mismatch is raised as its own message: rule 8 says nothing at all
+    about two different processes, and asserting it between them would be inventing a
+    rule the SPEC does not state.
+    """
+    first_key, second_key = replay_key(first_run), replay_key(second_run)
+    if first_key != second_key:
+        raise NotDeterministic(
+            f"these two runs are not one replay key -- {first_key} and {second_key}. "
+            "Rule 8 compares the same process run twice; a comparison across "
+            "processes is §8.5's diff, and it is made on observation_key")
+    first_lines = Counter(_lines(first_observations))
+    second_lines = Counter(_lines(second_observations))
+    if first_lines == second_lines:
+        return
+    only_first = sorted((first_lines - second_lines).elements())
+    only_second = sorted((second_lines - first_lines).elements())
+    raise NotDeterministic(
+        f"rule 8: two runs at replay key {first_key} produced different observation "
+        f"sets.\nonly in the first run ({len(only_first)}):\n"
+        + "\n".join(only_first)
+        + f"\nonly in the second run ({len(only_second)}):\n"
+        + "\n".join(only_second))
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p4/test_p4_determinism.py -v`
+Expected: PASS — 12 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/evidence_shape/determinism.py tests/p4/test_p4_determinism.py
+git commit -m "feat(P4): conformance rule 8 — the compared observation set, and the replay key"
+```
+
+---
+### Task 16: The nineteen worked examples, and the coverage shortfall named (Done-means 5)
+
+**Files:**
+- Create: `src/evidence_shape/fixtures.py`
+- Test: `tests/p4/test_p4_fixtures.py`
+
+**Interfaces:**
+- Consumes: every record module above, plus `evidence_shape.canonical` — `sha256_of`.
+- Produces: `Fixture`, `FIXTURES: tuple[Fixture, ...]` (nineteen), `FIXTURE_OBSERVED_AT`, `by_number(number) -> Fixture`, `ZONES_WITH_A_WORKED_EXAMPLE`, `ZONES_WITHOUT_A_WORKED_EXAMPLE`, `SOURCE_TYPES_WITHOUT_A_WORKED_EXAMPLE`.
+
+**Why this task exists at all.** *Done means* 9: *"a P5 author can write a conforming extractor from this document plus the fixtures without asking P4 a question"*, and *"P6 resolves `course = BUSIB 4300` from fixture 1 with no extractor present"*. P6, P7, P8 and P2 are all scheduled to be built before any extractor exists; what they build against is this module. It is the deliverable that makes *"the shape precedes the extractors"* mean something operational rather than aspirational.
+
+**Golden records, not golden files.** Done-means 5 says *"golden files"*. This plan publishes them as a module of records instead, for one reason: every consumer named above imports them, and a JSON file would need a loader that reconstructs exactly the records this package already constructs — a second construction path for the same data, which is the duplication this project has paid for most. `canonical_json(observation.to_mapping())` produces the golden bytes from a record whenever a file is wanted. Recorded as a deviation in *SPEC vs design — conflicts found*.
+
+**The coverage shortfall is named, not filled.** Done-means 5 asks for coverage of *"all 14 zones and all 14 source types"*. The SPEC's own worked-example table has nineteen rows and they reach **10 of the 15 zones** (the SPEC's zone table lists fifteen, not fourteen) and **13 of the 14 source types**. Missing zones: `path`, `header_footer`, `link`, `annotation`, `reference_list`. Missing source type: `contacts`. Authoring five more examples to close the gap would be P4 inventing worked examples the design does not give — and a fabricated `link` or `annotation` example is precisely the kind of thing six extractor authors would then implement against. So the module **computes** the shortfall from `FIXTURES` and publishes it, the test pins the exact list so it changes only when the SPEC gains examples, and the question goes to Joseph under *NEEDS JOSEPH*.
+
+Note the shape of the gap: fixture 3's design case is *"§2.2's page-eighteen reference list"* and its golden zone is `body`, not `reference_list` — the SPEC's own reference-list example is filed under a different zone than the one it names. That is a fact about the table, reported here, not something this plan repairs.
+
+**Two fixtures force a `text_units` row that is not bulk text.** Rule 10 requires a unit for *every* non-null `text_span`, and fixture 11's golden locator is `filename#0-6` — a span into a filename. The unit that satisfies it holds the filename as its text. §2.2, §2.4 and §2.7 describe `text_units` as the home for *bulk* text, so this is a real edge the contract does not discuss. The plan does what rule 10 says and reports the tension rather than narrowing rule 10, which would be a contract revision.
+
+**No fixture carries a `signal_tier`, including the EXIF one.** §2.6's tier 1 is *"camera EXIF"* and tier 2 is *"capture time … reinforce it"*; `DateTimeOriginal` is camera EXIF **and** a capture time, so the design does not settle which tier it is. Task 13 already fixed P4's position: **which field belongs to which tier is P5's catalogue**, and P4 names no EXIF field. Assigning a tier here would author one entry of that catalogue inside a fixture, which is the quietest way possible to break the rule. Rule 11's three tiers already have their worked example in Task 13's test.
+
+**Extractor names are illustrative.** `extractor_name` is free text, not a vocabulary; the SPEC supplies two (`pdf.text`, `ocr.apple_vision`) and a fixture must carry something. P5 owns the routing table and the real names (SPEC *Deferred*). Task 18's string-catalogue guards therefore exclude this module by name and say why: fixtures are data, and a guard that read them as code would have to forbid the SPEC's own examples.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p4/test_p4_fixtures.py
+"""Done-means 5, and the coverage shortfall the SPEC's own examples leave."""
+import pytest
+
+from evidence_shape.canonical import canonical_json
+from evidence_shape.conformance import validate_run
+from evidence_shape.determinism import observation_set_digest
+from evidence_shape.fixtures import (
+    FIXTURES, SOURCE_TYPES_WITHOUT_A_WORKED_EXAMPLE, ZONES_WITHOUT_A_WORKED_EXAMPLE,
+    ZONES_WITH_A_WORKED_EXAMPLE, by_number,
+)
+from evidence_shape.store import (
+    observations_for_run, record_observation, record_run, record_text_unit,
+    text_units_for_run,
+)
+from evidence_shape.vocabulary import SOURCE_TYPES, ZONES
+
+#: The SPEC's worked-example table, column "locator", verbatim. Fixture 16's
+#: locator is written there as `metadata:field=name` with "(in `key=dependencies`)"
+#: beside it; the two segments serialize outermost-first.
+GOLDEN_LOCATORS = {
+    1: "heading:page=1/heading=2",
+    2: "title:page=1",
+    3: "body:page=18#12043-12051",
+    4: "table:table=3/row=2/column=1",
+    5: "heading:page=1/heading=1",
+    6: "metadata:field=Producer",
+    7: "metadata:field=DateTimeOriginal",
+    8: "ocr:page=4/region=2#0-24",
+    9: "manifest:entry=docs%2Ftranscript.pdf",
+    10: "manifest:field=file_count",
+    11: "filename#0-6",
+    12: "table:sheet=2/row=7/column=3",
+    13: "notes:slide=6#0-42",
+    14: "metadata:field=Subject",
+    15: "metadata:field=DTSTART",
+    16: "metadata:key=dependencies/field=name",
+    17: "transcript@252500-255200",
+    18: "metadata:layer=3",
+}
+
+
+def test_there_are_nineteen_fixtures_numbered_as_the_spec_numbers_them():
+    assert [fixture.number for fixture in FIXTURES] == list(range(1, 20))
+
+
+def test_every_fixture_carries_its_golden_locator():
+    for number, locator in GOLDEN_LOCATORS.items():
+        observation, = by_number(number).observations
+        assert observation.locator == locator, number
+
+
+def test_fixture_19_emits_no_observation_and_says_so_on_the_run():
+    # §2.9's safe default. The file is still indexed through its filesystem
+    # observations (fixture 11's pattern), which this extractor does not write.
+    nineteen = by_number(19)
+    assert nineteen.observations == ()
+    assert nineteen.run.completeness == "metadata_only"
+
+
+def test_fixture_18_is_unreadable_and_still_carries_its_metadata_row(       ):
+    # M3, and §2.9's "indexed-but-unreadable rather than silently treated as empty".
+    eighteen = by_number(18)
+    assert eighteen.run.completeness == "unreadable"
+    assert len(eighteen.observations) == 1
+
+
+def test_every_fixture_passes_the_conformance_gate():
+    # The strongest form of Done-means 5: the golden records are not merely present,
+    # they satisfy all twelve rules through the call an extractor author makes.
+    for fixture in FIXTURES:
+        assert validate_run(fixture.run, fixture.observations,
+                            fixture.text_units) is fixture.run
+
+
+def test_the_worked_examples_reach_ten_of_the_fifteen_zones():
+    # Done-means 5 asks for all of them. The SPEC's own table does not supply them,
+    # and P4 does not invent the missing five: a fabricated `link` or `annotation`
+    # example is what six extractor authors would then implement against.
+    assert ZONES_WITHOUT_A_WORKED_EXAMPLE == (
+        "path", "header_footer", "link", "annotation", "reference_list")
+    assert len(ZONES_WITH_A_WORKED_EXAMPLE) == 10
+    assert set(ZONES_WITH_A_WORKED_EXAMPLE) | set(ZONES_WITHOUT_A_WORKED_EXAMPLE) == set(ZONES)
+
+
+def test_the_worked_examples_reach_thirteen_of_the_fourteen_source_types():
+    assert SOURCE_TYPES_WITHOUT_A_WORKED_EXAMPLE == ("contacts",)
+    covered = {fixture.run.source_type for fixture in FIXTURES}
+    assert covered == set(SOURCE_TYPES) - {"contacts"}
+
+
+def test_the_page_eighteen_reference_list_is_filed_under_body():
+    # Reported, not repaired: the SPEC's own reference-list example carries the
+    # `body` zone, so `reference_list` has no worked example at all.
+    observation, = by_number(3).observations
+    assert observation.zone == "body"
+    assert "reference list" in by_number(3).design_case
+
+
+def test_the_filename_span_is_anchored_in_a_text_unit_holding_the_filename():
+    # Rule 10 requires a unit for EVERY non-null text_span, and fixture 11's golden
+    # locator is a span into a filename. §2.2/§2.4/§2.7 describe text_units as the
+    # home for bulk text; this is the edge the contract does not discuss.
+    fixture = by_number(11)
+    unit, = fixture.text_units
+    observation, = fixture.observations
+    assert unit.container_path == ()
+    assert unit.text.startswith(observation.raw_value)
+
+
+def test_no_fixture_carries_a_signal_tier():
+    # P4 names no EXIF field and authors no field-to-tier mapping; that catalogue is
+    # P5's (SPEC Deferred). Rule 11's three tiers are exercised in Task 13.
+    assert all(observation.signal_tier is None
+               for fixture in FIXTURES for observation in fixture.observations)
+
+
+def test_fixture_1_carries_the_context_the_walking_skeleton_depends_on():
+    # B8a: the context term is what lets P6 resolve the skeleton fixture rather than
+    # refuse it. P4 asserts the SPEC's literal string and holds no term list of its
+    # own -- §3.5's five terms are P6's.
+    observation, = by_number(1).observations
+    assert observation.context_before == "Syllabus — "
+    assert observation.context_after == " — Spring 2026"
+    assert observation.raw_value == "BUSIB 4300"
+
+
+def test_every_fixture_round_trips_through_canonical_bytes():
+    for fixture in FIXTURES:
+        for observation in fixture.observations:
+            assert canonical_json(observation.to_mapping())
+
+
+def test_the_fixtures_store_and_read_back_unchanged(p4_conn):
+    # What P6, P7, P8 and P2 do with this module: load it into P1's database and
+    # build against it with no extractor in existence.
+    for fixture in FIXTURES:
+        record_run(p4_conn, fixture.run)
+        for unit in fixture.text_units:
+            record_text_unit(p4_conn, unit)
+        for observation in fixture.observations:
+            record_observation(p4_conn, observation)
+
+    for fixture in FIXTURES:
+        stored = observations_for_run(p4_conn, fixture.run.run_id)
+        assert (observation_set_digest(stored)
+                == observation_set_digest(fixture.observations)), fixture.number
+        assert len(text_units_for_run(p4_conn, fixture.run.run_id)) == len(fixture.text_units)
+
+
+def test_by_number_rejects_a_number_the_spec_does_not_have():
+    with pytest.raises(KeyError):
+        by_number(20)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p4/test_p4_fixtures.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'evidence_shape.fixtures'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/evidence_shape/fixtures.py
+"""The SPEC's nineteen worked examples, as golden records.
+
+Done-means 9: "a P5 author can write a conforming extractor from this document plus
+the fixtures without asking P4 a question", and "P6 resolves `course = BUSIB 4300`
+from fixture 1 with no extractor present". P6, P7, P8 and P2 are all built before any
+extractor exists; this module is what they build against.
+
+Records, not files. Every consumer imports them, and a JSON file would need a loader
+that reconstructs exactly the records this package already constructs -- a second
+construction path for one set of data. `canonical_json(observation.to_mapping())`
+produces the golden bytes whenever a file is wanted.
+
+The coverage shortfall is computed here and published, not filled: the SPEC's own
+table reaches 10 of the 15 zones and 13 of the 14 source types, and inventing the
+missing examples would author the very thing six extractor authors would implement
+against.
+
+No fixture carries a `signal_tier`. §2.6 makes `DateTimeOriginal` both "camera EXIF"
+(tier 1) and a "capture time" (tier 2), so the design does not settle it, and which
+field belongs to which tier is P5's catalogue (SPEC, Deferred). Extractor names here
+are illustrative for the same reason: P5 owns the routing table and the real names.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field as dataclass_field
+
+from evidence_shape.canonical import sha256_of
+from evidence_shape.location import Location, Region, Segment, TextSpan, TimeSpan
+from evidence_shape.observation import Observation
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.text_units import TextUnit
+from evidence_shape.vocabulary import SOURCE_TYPES, ZONES
+
+#: Pinned, so two readings of a fixture are never two readings of the wall clock.
+FIXTURE_OBSERVED_AT = "2026-08-19T14:03:22+00:00"
+FIXTURE_STARTED_AT = "2026-08-19T14:00:00+00:00"
+
+#: Fixture 3's page: a reference list, elided down to the offsets the SPEC's golden
+#: locator names. `body:page=18#12043-12051` is §2.2's page-eighteen reference.
+_PAGE_18 = "…" * 12043 + "Columbia" + " University Press, 2019."
+
+#: Fixture 8's OCR region. §7.8's admissions screenshot; the span is 0-24.
+_OCR_REGION_4_2 = "Your Columbia University application status"
+
+#: Fixture 11's unit. Rule 10 requires a unit for every span, and this span is into a
+#: filename -- see the module tests for the tension that records.
+_FILENAME = "Wash U.docx"
+
+#: Fixture 13's speaker note. The golden span is 0-42, so the note is at least that
+#: long; the words themselves are fixture text and carry no meaning to any rule.
+_SLIDE_6_NOTES = "Application deadlines close on 1 December; mention the fee waiver."
+
+
+@dataclass(frozen=True, slots=True)
+class Fixture:
+    """One row of the SPEC's worked-example table, as records."""
+
+    number: int
+    design_case: str
+    run: ExtractionRun
+    observations: tuple[Observation, ...] = ()
+    text_units: tuple[TextUnit, ...] = ()
+
+
+def _content_hash(number: int) -> str:
+    return sha256_of(f"fixture-{number}")
+
+
+def _run(number: int, *, source_type: str, extractor_name: str, analysis_tier: str,
+         completeness: str = "complete", config: dict | None = None) -> ExtractionRun:
+    return ExtractionRun(
+        run_id=f"run-{number:02d}", file_id=f"file-{number:02d}",
+        content_hash=_content_hash(number), extractor_name=extractor_name,
+        extractor_version="1.0.0", source_type=source_type,
+        analysis_tier=analysis_tier, config=config or {},
+        completeness=completeness, started_at=FIXTURE_STARTED_AT,
+        finished_at=FIXTURE_OBSERVED_AT)
+
+
+def _observation(number: int, run: ExtractionRun, *, location: Location,
+                 raw_value: str, reliability: str, **rest) -> Observation:
+    return Observation(
+        file_id=run.file_id, content_hash=run.content_hash,
+        extractor_name=run.extractor_name, extractor_version=run.extractor_version,
+        source_type=run.source_type, raw_value=raw_value, location=location,
+        occurrence_count=rest.pop("occurrence_count", 1),
+        observed_at=FIXTURE_OBSERVED_AT, reliability=reliability,
+        run_id=run.run_id, **rest)
+
+
+def _one(number: int, design_case: str, *, source_type: str, extractor_name: str,
+         analysis_tier: str = "native", completeness: str = "complete",
+         config: dict | None = None, units: tuple[TextUnit, ...] = (),
+         **observation) -> Fixture:
+    run = _run(number, source_type=source_type, extractor_name=extractor_name,
+               analysis_tier=analysis_tier, completeness=completeness, config=config)
+    return Fixture(number, design_case, run,
+                   (_observation(number, run, **observation),),
+                   tuple(TextUnit(run_id=run.run_id, container_path=path, text=text)
+                         for path, text in units))
+
+
+FIXTURES: tuple[Fixture, ...] = (
+    # 1 -- §2.8 "page 1, heading 2"; §3.2's syllabus. The walking-skeleton fixture:
+    # its context carries §3.5's "syllabus" term, which is what lets P6 resolve it
+    # rather than refuse it (B8a).
+    _one(1, '§2.8 "page 1, heading 2"; §3.2\'s syllabus',
+         source_type="text_document", extractor_name="pdf.text",
+         location=Location("heading", (Segment("page", 1),
+                                       Segment("heading", 2,
+                                               label="Course Information"))),
+         raw_value="BUSIB 4300", normalized_value="BUSIB 4300",
+         reliability="possible", occurrence_count=3,
+         context_before="Syllabus — ", context_after=" — Spring 2026"),
+    # 2 -- §3.2 "the PDF title".
+    _one(2, '§3.2 "the PDF title"', source_type="text_document",
+         extractor_name="pdf.text",
+         location=Location("title", (Segment("page", 1),)),
+         raw_value="BUSIB 4300 Syllabus", reliability="direct"),
+    # 3 -- §2.2's page-eighteen reference list. Its zone is `body`: the SPEC's own
+    # reference-list example is not filed under `reference_list`.
+    _one(3, "§2.2's page-eighteen reference list", source_type="text_document",
+         extractor_name="pdf.text",
+         location=Location("body", (Segment("page", 18),),
+                           text_span=TextSpan(12043, 12051)),
+         raw_value="Columbia", reliability="possible",
+         units=((( Segment("page", 18),), _PAGE_18),)),
+    # 4 -- §2.8's DOCX example; §2.3 tables.
+    _one(4, "§2.8's DOCX example; §2.3 tables", source_type="text_document",
+         extractor_name="docx.text",
+         location=Location("table", (Segment("table", 3), Segment("row", 2),
+                                     Segment("column", 1))),
+         raw_value="Wash U", reliability="possible"),
+    # 5 -- §2.3's `Wash U.docx` heading.
+    _one(5, "§2.3's Wash U heading", source_type="text_document",
+         extractor_name="docx.text",
+         location=Location("heading", (Segment("page", 1), Segment("heading", 1))),
+         raw_value="Please tell us what you are interested in studying at college "
+                   "and why.",
+         reliability="possible"),
+    # 6 -- §2.2: `direct` describes the SLOT, not the value's usefulness. P6
+    # discounts it (§2.2, §2.3); P4 does not pre-discount it.
+    _one(6, "§2.2 — direct describes the slot, not the value's usefulness",
+         source_type="text_document", extractor_name="docx.metadata",
+         location=Location("metadata", (Segment("field", label="Producer"),)),
+         raw_value="python-docx", reliability="direct"),
+    # 7 -- §2.8's EXIF example; §3.2's capture-date derivation. `signal_tier` is
+    # null: §2.6 makes this both camera EXIF and a capture time, and the
+    # field-to-tier catalogue is P5's.
+    _one(7, "§2.8's EXIF example; §3.2's capture-date derivation",
+         source_type="image", extractor_name="image.exif",
+         location=Location("metadata",
+                           (Segment("field", label="DateTimeOriginal"),)),
+         raw_value="2026:07:17 14:03:22", reliability="direct"),
+    # 8 -- §2.8's "OCR region"; §7.8's admissions screenshot. §2.7's bounding box
+    # and confidence both have their worked example here; the geometry is fixture
+    # geometry and the confidence is the SPEC's own 0.92.
+    _one(8, '§2.8\'s "OCR region"; §7.8\'s admissions screenshot',
+         source_type="ocr", extractor_name="ocr.apple_vision", analysis_tier="ocr",
+         config={"dpi": 200, "languages": ["en"], "recognition": "accurate"},
+         location=Location("ocr", (Segment("page", 4), Segment("region", 2)),
+                           text_span=TextSpan(0, 24),
+                           region=Region(0.08, 0.21, 0.55, 0.06, "norm")),
+         raw_value="Your Columbia University", reliability="possible",
+         confidence=0.92,
+         units=(((Segment("page", 4), Segment("region", 2)), _OCR_REGION_4_2),)),
+    # 9 -- §2.8's "manifest path"; §2.5's submission.zip. The label needs escaping.
+    _one(9, "§2.8's manifest path; §2.5's submission.zip", source_type="archive",
+         extractor_name="zip.manifest",
+         location=Location("manifest",
+                           (Segment("entry", label="docs/transcript.pdf"),)),
+         raw_value="docs/transcript.pdf", reliability="direct"),
+    # 10 -- §2.5 "file count" — D7's `field` segment on an archive property.
+    _one(10, '§2.5 "file count"', source_type="archive",
+         extractor_name="zip.manifest",
+         location=Location("manifest", (Segment("field", label="file_count"),)),
+         raw_value="37", reliability="direct"),
+    # 11 -- §2.2, §2.9 filename as evidence. Rule 10 requires a unit for this span,
+    # and the unit that satisfies it holds the filename.
+    _one(11, "§2.2, §2.9 filename as evidence", source_type="filesystem",
+         extractor_name="fs.basic", analysis_tier="filesystem",
+         location=Location("filename", (), text_span=TextSpan(0, 6)),
+         raw_value="Wash U", reliability="possible",
+         units=(((), _FILENAME),)),
+    # 12 -- §2.9 "dates or identifiers from labeled cells". Segment-kind rule 3: the
+    # native address `C7` is the column segment's label, not a separate kind.
+    _one(12, '§2.9 "dates or identifiers from labeled cells"',
+         source_type="spreadsheet", extractor_name="xlsx.cells",
+         location=Location("table", (Segment("sheet", 2, label="Applications"),
+                                     Segment("row", 7),
+                                     Segment("column", 3, label="C7"))),
+         raw_value="2025", reliability="possible"),
+    # 13 -- §2.9 presentations.
+    _one(13, "§2.9 presentations", source_type="presentation",
+         extractor_name="pptx.notes",
+         location=Location("notes", (Segment("slide", 6, label="Deadlines"),),
+                           text_span=TextSpan(0, 42)),
+         raw_value=_SLIDE_6_NOTES[:42], reliability="possible",
+         units=(((Segment("slide", 6),), _SLIDE_6_NOTES),)),
+    # 14 -- §2.9 email.
+    _one(14, "§2.9 email", source_type="email", extractor_name="email.headers",
+         location=Location("metadata", (Segment("field", label="Subject"),)),
+         raw_value="Columbia Application — Next Steps", reliability="direct"),
+    # 15 -- §2.9 calendar.
+    _one(15, "§2.9 calendar", source_type="calendar", extractor_name="ics.fields",
+         location=Location("metadata", (Segment("field", label="DTSTART"),)),
+         raw_value="20260717T140000Z", reliability="direct"),
+    # 16 -- §2.4, §2.9 package manifests. D7: `key` carries the structured-data key
+    # path and `field` the format's own slot name, outermost first.
+    _one(16, "§2.4, §2.9 package manifests", source_type="code_structured",
+         extractor_name="pkg.manifest",
+         location=Location("metadata", (Segment("key", label="dependencies"),
+                                        Segment("field", label="name"))),
+         raw_value="react", reliability="direct"),
+    # 17 -- §2.9 audio/video. A caption at 04:12.5-04:15.2: no page and no
+    # document-text offset, which is what `time_span` exists for.
+    _one(17, "§2.9 audio/video", source_type="audio_video",
+         extractor_name="av.transcript",
+         location=Location("transcript", (), time_span=TimeSpan(252500, 255200)),
+         raw_value="and the Columbia application is due in December",
+         reliability="possible"),
+    # 18 -- §2.9 design/creative. The run is `unreadable` and STILL carries this
+    # metadata-level row: §2.9's "indexed-but-unreadable" (M3).
+    _one(18, "§2.9 design/creative, indexed-but-unreadable (M3)",
+         source_type="design_creative", extractor_name="psd.metadata",
+         completeness="unreadable",
+         location=Location("metadata", (Segment("layer", 3),)),
+         raw_value="Background", reliability="direct"),
+    # 19 -- §2.9's safe default for disk images, executables, databases, encrypted
+    # containers, damaged files and unknown binary. No observation from THIS
+    # extractor; the file is still indexed through fixture 11's pattern.
+    Fixture(19, "§2.9's metadata_only safe default",
+            _run(19, source_type="opaque_binary", extractor_name="binary.none",
+                 analysis_tier="native", completeness="metadata_only")),
+)
+
+_BY_NUMBER = {fixture.number: fixture for fixture in FIXTURES}
+
+#: Computed, never hand-listed, so the shortfall cannot drift from the fixtures.
+_COVERED_ZONES = {observation.zone for fixture in FIXTURES
+                  for observation in fixture.observations}
+
+ZONES_WITH_A_WORKED_EXAMPLE: tuple[str, ...] = tuple(
+    zone for zone in ZONES if zone in _COVERED_ZONES)
+
+#: Done-means 5 asks for all of them; the SPEC's table supplies these none.
+ZONES_WITHOUT_A_WORKED_EXAMPLE: tuple[str, ...] = tuple(
+    zone for zone in ZONES if zone not in _COVERED_ZONES)
+
+SOURCE_TYPES_WITHOUT_A_WORKED_EXAMPLE: tuple[str, ...] = tuple(
+    source_type for source_type in SOURCE_TYPES
+    if source_type not in {fixture.run.source_type for fixture in FIXTURES})
+
+
+def by_number(number: int) -> Fixture:
+    """The SPEC's own numbering, so a reviewer can check one row against one table."""
+    return _BY_NUMBER[number]
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p4/test_p4_fixtures.py -v`
+Expected: PASS — 14 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/evidence_shape/fixtures.py tests/p4/test_p4_fixtures.py
+git commit -m "feat(P4): the nineteen worked examples as golden records, and the named coverage shortfall"
+```
+
+---
+### Task 17: §2.8's four prohibitions and the three derived ones (Done-means 6)
+
+**Files:**
+- Test: `tests/p4/test_p4_prohibitions.py`
+
+**Interfaces:**
+- Consumes: every module above. No new source.
+- Produces: the negative half of the contract, as standing tests.
+
+**Done-means 6, in full:** *"Negative tests pass: an extractor cannot write `validated` / `llm_supported` / `user_confirmed` / `rejected`; an observation cannot reference two files; an observation cannot carry a path, domain, field name, group, node or plan reference; an observation cannot record an absence or a conflict (§2.6); a `complete` zero-observation run, an `unsupported` zero-observation run and a `metadata_only` run are three distinguishable states (§2.4, §2.9)."*
+
+**This is not Task 13 again.** Task 13 tests that the **validator** reports a violation. This task tests that the **shape itself** makes the thing impossible — the record constructor refuses it, the table has no column for it, the trigger aborts it. The difference matters because a validator is a call an author can forget and a schema is not: §2.8's prohibitions have to survive an extractor that never runs the gate.
+
+**§2.8's four, verbatim:** *"Extraction does not create a final folder path, invent domains, merge all files that share one string, or treat model output as proof."* And the three the SPEC derives from outside §2.8 because six extractors need them: **no negative observations** (§2.6 — absence lives on the run record or nowhere), **no conflict observations and no resolution of one** (§2.6 — two rows with two `signal_tier` values, and §3.7's margin rule is P6's), **no plan-version state** (§3.14, §8.8), **no deletion** (§8.2, §8.7 — a rejected proposal must keep the evidence that produced it).
+
+**`zone = "path"` is not a folder path.** It addresses §2.9's parent-folder context — where the file *is* — and the prohibition is on a destination. The two are one word and two concepts, so the test states the distinction rather than leaving a reviewer to infer it.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p4/test_p4_prohibitions.py
+"""Done-means 6. §2.8's four prohibitions and the three the SPEC derives.
+
+Task 13 tests that the validator REPORTS a violation. This file tests that the shape
+makes the thing impossible: the constructor refuses it, the table has no column for
+it, the trigger aborts it. A validator is a call an author can forget; a schema is not.
+"""
+import pytest
+
+from evidence_shape.location import Location, Segment
+from evidence_shape.observation import (
+    MalformedObservation, OBSERVATION_ROW_FIELDS, Observation,
+)
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.store import (
+    observations_for_run, record_observation, record_run, record_text_unit,
+    runs_for_file,
+)
+from evidence_shape.text_units import TextUnit
+from evidence_shape.vocabulary import NotInVocabulary, ZONES
+
+#: Every name a destination, a domain, a product field, a grouping or a plan would
+#: have to be stored under. §2.8, §3.11, §3.12, §3.14, §8.8.
+FORBIDDEN_COLUMNS = (
+    "proposed_path", "destination", "destination_node", "target_path", "folder",
+    "domain", "domain_id", "category", "field_name", "fact", "facet",
+    "group_id", "node_id", "template_id", "plan_id", "plan_version_id",
+    "handling_class", "preferred", "conflict", "resolution", "absent",
+)
+
+P4_TABLES = ("evidence", "extraction_runs", "text_units")
+
+
+def _run(run_id="r1", file_id="f1", *, completeness="complete", number=1):
+    return ExtractionRun(
+        run_id=run_id, file_id=file_id, content_hash=f"sha256:abc{number}",
+        extractor_name="pdf.text", extractor_version="3.1.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness=completeness, started_at="2026-08-19T14:00:00+00:00")
+
+
+def _observation(run, **overrides):
+    fields = dict(
+        file_id=run.file_id, content_hash=run.content_hash,
+        extractor_name=run.extractor_name, extractor_version=run.extractor_version,
+        source_type=run.source_type, raw_value="Columbia",
+        location=Location("body", (Segment("page", 1),)), occurrence_count=1,
+        observed_at="2026-08-19T14:03:22+00:00", reliability="possible",
+        run_id=run.run_id)
+    fields.update(overrides)
+    return Observation(**fields)
+
+
+def _columns(conn, table):
+    return [row[1] for row in conn.execute(f"PRAGMA table_info({table})")]
+
+
+# ── §2.8: "does not treat model output as proof" ──────────────────────────────
+
+def test_an_extractor_cannot_write_a_fact_layer_reliability_state():
+    # D11, and §3.5: rules produce validated facts, the LLM produces LLM-supported
+    # facts, the user produces user-confirmed facts. None of them is an extractor.
+    run = _run()
+    for fact_state in ("validated", "llm_supported", "user_confirmed", "rejected"):
+        with pytest.raises(NotInVocabulary):
+            _observation(run, reliability=fact_state)
+
+
+def test_the_refusal_is_in_the_record_not_only_in_the_validator():
+    # An extractor that never calls validate_observation still cannot write one.
+    with pytest.raises(NotInVocabulary):
+        Observation(
+            file_id="f1", content_hash="sha256:abc", extractor_name="llm.dossier",
+            extractor_version="1.0.0", source_type="text_document",
+            raw_value="Columbia", location=Location("body", (Segment("page", 1),)),
+            occurrence_count=1, observed_at="2026-08-19T14:03:22+00:00",
+            reliability="llm_supported", run_id="r1")
+
+
+# ── §2.8: "does not create a final folder path" / "invent domains" ────────────
+
+def test_no_p4_table_has_a_destination_domain_group_node_or_plan_column(p4_conn):
+    for table in P4_TABLES:
+        columns = set(_columns(p4_conn, table))
+        for forbidden in FORBIDDEN_COLUMNS:
+            assert forbidden not in columns, f"{table}.{forbidden}"
+
+
+def test_the_observation_record_is_a_closed_field_set():
+    # There is nowhere to put one even as an extra key: rule 6 rejects an unknown
+    # field, and the row field list is the whole surface.
+    assert "domain" not in OBSERVATION_ROW_FIELDS
+    assert "proposed_path" not in OBSERVATION_ROW_FIELDS
+    with pytest.raises(TypeError):
+        _observation(_run(), domain="education")
+
+
+def test_the_path_zone_addresses_where_the_file_is_not_where_it_should_go():
+    # One word, two concepts. §2.9's parent-folder context is evidence; a
+    # destination is P11's and does not exist here.
+    assert "path" in ZONES
+    observation = _observation(
+        _run(), location=Location("path", (Segment("field", label="parent"),)),
+        raw_value="Columbia Applications")
+    assert observation.zone == "path"
+    assert not hasattr(observation, "proposed_path")
+
+
+# ── §2.8: "does not merge all files that share one string" ────────────────────
+
+def test_an_observation_references_exactly_one_file():
+    with pytest.raises(MalformedObservation):
+        _observation(_run(), file_id=["f1", "f2"])
+
+
+def test_two_files_sharing_a_raw_value_share_nothing_structurally(p4_conn):
+    first, second = _run("r1", "f1", number=1), _run("r2", "f2", number=2)
+    record_run(p4_conn, first)
+    record_run(p4_conn, second)
+    record_observation(p4_conn, _observation(first))
+    record_observation(p4_conn, _observation(second))
+
+    one, = observations_for_run(p4_conn, "r1")
+    two, = observations_for_run(p4_conn, "r2")
+    assert one.raw_value == two.raw_value == "Columbia"
+    assert one.file_id != two.file_id
+    # Not even the citation handle merges them: the key is content-addressed, and
+    # two files are two contents. Any link between them is P6's or P9's.
+    assert one.observation_key != two.observation_key
+
+
+def test_p4_owns_three_tables_and_no_table_that_links_two_files(p4_conn):
+    names = {row[0] for row in p4_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table'")}
+    assert set(P4_TABLES) <= names
+    for suspicious in ("evidence_links", "value_matches", "duplicates", "groups"):
+        assert suspicious not in names
+
+
+# ── §2.6, derived: no absence, no conflict, no resolution of one ──────────────
+
+def test_an_observation_cannot_record_an_absence():
+    # A count of zero IS an absence, and absence lives on the run record or nowhere.
+    with pytest.raises(MalformedObservation):
+        _observation(_run(), occurrence_count=0)
+
+
+def test_a_complete_run_that_emitted_nothing_is_how_absence_is_recorded(p4_conn):
+    # §2.6's "no EXIF" is exactly this case: no field is added for it and no
+    # observation is written for it.
+    record_run(p4_conn, _run(completeness="complete"))
+    assert observations_for_run(p4_conn, "r1") == []
+    stored, = runs_for_file(p4_conn, "f1")
+    assert stored.completeness == "complete"
+    assert stored.observation_count == 0
+
+
+def test_an_observation_cannot_carry_a_conflict_or_its_resolution():
+    # §2.6's conflicting signals are TWO observations with two signal_tier values.
+    # There is one raw_value slot, one location slot, and no third "conflict" row.
+    with pytest.raises(MalformedObservation):
+        _observation(_run(), raw_value=["Canon EOS R6", "1920x1080"])
+    with pytest.raises(TypeError):
+        _observation(_run(), conflicts_with="obs-2")
+
+
+# ── §8.2 / §8.7, derived: superseded, never deleted ───────────────────────────
+
+def test_an_observation_is_superseded_never_deleted(p4_conn):
+    # §8.7 requires a rejected proposal to be stored WITH the evidence that produced
+    # it; deleting evidence decays every negative example that depends on it.
+    record_run(p4_conn, _run())
+    record_observation(p4_conn, _observation(_run()))
+    with pytest.raises(Exception):
+        p4_conn.execute("DELETE FROM evidence")
+
+
+def test_a_run_and_a_text_unit_are_never_deleted_either(p4_conn):
+    record_run(p4_conn, _run())
+    record_text_unit(p4_conn, TextUnit(run_id="r1",
+                                       container_path=(Segment("page", 1),),
+                                       text="Syllabus — BUSIB 4300"))
+    with pytest.raises(Exception):
+        p4_conn.execute("DELETE FROM text_units")
+    with pytest.raises(Exception):
+        p4_conn.execute("DELETE FROM extraction_runs")
+
+
+# ── §2.4 / §2.9: three states that must stay distinguishable ──────────────────
+
+def test_the_three_zero_observation_states_are_distinguishable(p4_conn):
+    # §2.4: "an empty extraction result is different from an extractor that does not
+    # yet exist." §2.9 adds the third: metadata_only is a deliberate policy stop.
+    for index, (run_id, completeness) in enumerate((
+            ("r-complete", "complete"),
+            ("r-unsupported", "unsupported"),
+            ("r-metadata-only", "metadata_only"))):
+        record_run(p4_conn, _run(run_id, "f1", completeness=completeness,
+                                 number=index))
+
+    stored = {run.run_id: run for run in runs_for_file(p4_conn, "f1")}
+    assert len(stored) == 3
+    assert {run.completeness for run in stored.values()} == {
+        "complete", "unsupported", "metadata_only"}
+    for run in stored.values():
+        assert run.observation_count == 0
+        assert observations_for_run(p4_conn, run.run_id) == []
+    # The three differ in exactly one field, and it is the field §2.4 requires.
+    assert (stored["r-complete"].completeness
+            != stored["r-unsupported"].completeness
+            != stored["r-metadata-only"].completeness)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p4/test_p4_prohibitions.py -v`
+Expected: FAIL if any prohibition is unenforced; otherwise PASS. If every prior task was written as specified, the only expected failures are ones this task exists to surface.
+
+- [ ] **Step 3: Fix whatever the tests catch**
+
+No new module. If one fires, the fix is in the module that let it through — a missing constructor check, a column that should not exist, a trigger that was not created. Never in the test: these seven sentences are the SPEC's negative half.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p4/test_p4_prohibitions.py -v`
+Expected: PASS — 14 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests/p4/test_p4_prohibitions.py
+git commit -m "test(P4): §2.8's four prohibitions and the three derived, enforced by the shape"
+```
+
+---
+### Task 18: The no-invention guard, and every open question held open
+
+**Files:**
+- Test: `tests/p4/test_p4_no_invention.py`
+
+**Interfaces:**
+- Consumes: every module above, plus `database_agent.budget` — `CEILING_KEYS`; `database_agent.events` — `RESERVED_EVENT_TYPES`; `database_agent.supersede` — `SUPERSEDE_COLUMNS`.
+- Produces: the standing guard the rest of the build must keep green.
+
+**Two obligations, both negative.** First: every open question in P4's SPEC gets a test that names it and fails the moment someone answers it in code instead of in a SPEC. Second: P4 invents no threshold, no ceiling, no gazetteer, no positional weight, no routing table, no catalogue of strings and no vocabulary member the design does not spell.
+
+**The guard-token trap, and how this file avoids it.** `assert "gazetteer" not in source` matches a **docstring that says P4 authors no gazetteer** — which is the opposite of a violation. Four tasks on this project have been broken by exactly that, and P4's modules are unusually prose-heavy because they quote the design at every decision. So every token guard below runs against `code_only(path)`: the module re-emitted through `ast.unparse` with its docstrings removed. `ast.unparse` drops comments for free; the walk drops docstrings; what is left is code.
+
+That still leaves string literals that *are* code — `CONFORMANCE_RULES`' published rule text, and every `Violation` message. Those legitimately contain `domain`, `destination`, `template`, `node`, `group` and `EXIF`, because §2.8's prohibitions are quoted where they are enforced. **`plan` is a substring of `explanation`.** The token lists below were checked against the real package before being written, and every one of them is empirically absent from real code; the concepts those unusable words name are guarded structurally instead — by Task 17's column guard, and by the import and constant guards here.
+
+And a published *question* is text too. `OPEN_QUESTIONS["OQ6"]` contains the words *iCloud dataless* because that is the question P4 is **holding open** — a token guard reading it fires on the very thing it exists to protect. That obligation is therefore guarded on `identifiers()`: every name the package binds or reads, and no string literal at all. A question is text; an answer would be a name.
+
+**Where a guard cannot be written, this task says so instead of faking one.** An absence written *inside* `raw_value` as a string is undetectable without a list of forbidden strings, and authoring one would be the invention. Task 13 records that split in `CONFORMANCE_RULES[12]`; nothing here pretends otherwise.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p4/test_p4_no_invention.py
+"""The standing record that P4 answers no open question in code, and invents nothing.
+
+Every token guard runs against `code_only`: the module with its docstrings and
+comments removed. `assert "gazetteer" not in source` otherwise matches the docstring
+that says P4 authors no gazetteer, which is the opposite of a violation.
+"""
+import ast
+import inspect
+from pathlib import Path
+
+import pytest
+
+import evidence_shape
+from database_agent.budget import CEILING_KEYS
+from database_agent.events import RESERVED_EVENT_TYPES
+from database_agent.supersede import SUPERSEDE_COLUMNS
+
+from evidence_shape.authorship import (
+    EXTRACTION_EVENT, OCR_EVENT, RUN_EVENT_TYPES, UnauthoredEvent, check_author,
+    event_defaults,
+)
+from evidence_shape.observation import (
+    OBSERVATION_FIELDS, OBSERVATION_ROW_FIELDS, observation_key,
+)
+from evidence_shape.text_units import TEXT_UNIT_FIELDS
+from evidence_shape.vocabulary import (
+    ANALYSIS_TIERS, COMPLETENESS, EXTRACTOR_RELIABILITY_STATES, OPEN_QUESTIONS,
+    RELIABILITY_STATES, SIGNAL_TIERS, SOURCE_TYPES,
+)
+
+SOURCE_DIR = Path(evidence_shape.__file__).parent
+
+#: Data, not code. The nineteen worked examples are the SPEC's own table, and a
+#: format-catalogue guard that read them as code would have to forbid the SPEC's own
+#: examples. Every structural guard below still covers this module.
+FIXTURE_DATA = "fixtures.py"
+
+
+def modules():
+    return sorted(path for path in SOURCE_DIR.glob("*.py")
+                  if path.name != "__init__.py")
+
+
+def code_only(path: Path) -> str:
+    """The module's source with docstrings and comments removed."""
+    tree = ast.parse(path.read_text())
+    for node in ast.walk(tree):
+        body = getattr(node, "body", None)
+        if (isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef,
+                              ast.AsyncFunctionDef))
+                and body and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)):
+            node.body = body[1:] or [ast.Pass()]
+    return ast.unparse(tree)
+
+
+def all_code(*, skip=()) -> str:
+    return "\n".join(code_only(path) for path in modules()
+                     if path.name not in skip)
+
+
+def identifiers(*, skip=()) -> set[str]:
+    """Every name the package binds or reads -- and no string literal.
+
+    Some obligations cannot be guarded on text at all, because the published contract
+    quotes the very words a violation would use: `OPEN_QUESTIONS["OQ6"]` contains
+    "iCloud dataless" because that is the question being HELD OPEN. A question is
+    text; an answer would be a name.
+    """
+    names: set[str] = set()
+    for path in modules():
+        if path.name in skip:
+            continue
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                names.add(node.name)
+            elif isinstance(node, ast.Name):
+                names.add(node.id)
+            elif isinstance(node, ast.Attribute):
+                names.add(node.attr)
+            elif isinstance(node, ast.arg):
+                names.add(node.arg)
+            elif isinstance(node, ast.keyword) and node.arg:
+                names.add(node.arg)
+    return names
+
+
+def module_constants(path: Path):
+    """Top-level `NAME = <literal>` bindings, as (name, value-node) pairs."""
+    for node in ast.parse(path.read_text()).body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+        elif isinstance(node, ast.AnnAssign):
+            target = node.target
+        else:
+            continue
+        if isinstance(target, ast.Name) and node.value is not None:
+            yield target.id, node.value
+
+
+# ── P4 runs no extractor, opens no file, and reaches no network ───────────────
+
+def test_p4_imports_nothing_outside_the_stdlib_and_p1():
+    # "P4 runs no extractor. §2.8 is a shape, not a reader." The import graph is the
+    # exact form of that claim: no format library can be reached from here.
+    allowed = {"__future__", "collections", "dataclasses", "datetime", "hashlib",
+               "json", "sqlite3", "types", "unicodedata", "uuid",
+               "database_agent", "evidence_shape"}
+    for path in modules():
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                names = [node.module or ""]
+            else:
+                continue
+            for name in names:
+                assert name.split(".")[0] in allowed, f"{path.name}: {name}"
+
+
+def test_p4_opens_no_file():
+    # Every test in this part builds its records in memory or from a fixture string.
+    # That is what makes the whole part testable before P5 exists.
+    source = all_code()
+    for token in ("pathlib", "Path(", "open(", "os.", "io."):
+        assert token not in source, token
+
+
+def test_p4_sniffs_no_format_and_holds_no_routing_table():
+    # SPEC Deferred: the MIME/signature -> extractor routing table is P5's, and
+    # "which structured strings each extractor should recognize" is P5's per format.
+    source = all_code(skip=(FIXTURE_DATA,))
+    for token in ("mimetypes", "magic", "%PDF", "zipfile", "tarfile", "openpyxl",
+                  "PyPDF", "PIL", "pytesseract", "csv", "docx", "pdf", "exif"):
+        assert token not in source, token
+
+
+def test_p4_reaches_no_network_and_prompts_no_model():
+    # §2.8: extraction "does not treat model output as proof". P8 owns the model.
+    source = all_code()
+    for token in ("urllib", "requests", "socket", "prompt", "openai", "anthropic"):
+        assert token not in source, token
+
+
+# ── P4 invents no value ──────────────────────────────────────────────────────
+
+def test_the_package_publishes_no_numeric_constant_outside_its_one_allowlist():
+    # SHAPE_VERSION is D2's (a vocabulary change is a contract revision plus a bump);
+    # SIGNAL_TIERS is §2.6's three levels. There is no third, and in particular no
+    # §8.6 ceiling: those numbers are configuration and P1 owns the keys.
+    allowed = {"SHAPE_VERSION", "SIGNAL_TIERS"}
+    found = set()
+    for path in modules():
+        for name, value in module_constants(path):
+            numbers = ([value] if isinstance(value, ast.Constant)
+                       else list(value.elts) if isinstance(value, ast.Tuple) else [])
+            if numbers and all(isinstance(node, ast.Constant)
+                               and isinstance(node.value, (int, float))
+                               and not isinstance(node.value, bool)
+                               for node in numbers):
+                found.add(name)
+    assert found == allowed
+
+
+def test_p4_authors_no_threshold_weight_gazetteer_or_template_library():
+    # SPEC Deferred, every row of it: gazetteer contents (§3.7), positional weights
+    # per zone (§3.7), the 200-300 domain template library (§5.7), the residual
+    # library (§7.2-§7.4), date-candidate patterns (§3.10).
+    source = all_code()
+    for token in ("GAZETTEER", "gazetteer", "THRESHOLD", "threshold", "CEILING",
+                  "MAX_", "_LIMIT", "WEIGHT", "weight", "TEMPLATE_LIBRARY",
+                  "RESIDUAL", "re.compile", "import re"):
+        assert token not in source, token
+
+
+def test_the_context_budget_is_caller_supplied_and_p4_holds_no_length():
+    # §8.6 lists twelve configurable ceilings and none of them is a context length;
+    # P1's fifteen keys hold none either. P4 stores what the caller supplies and
+    # records that the caller cut it. Holding no number is the only position that
+    # cannot be wrong until the question closes.
+    assert "context_truncated" in OBSERVATION_FIELDS
+    assert not [key for key in CEILING_KEYS if "context" in key]
+    source = all_code()
+    for token in ("truncate(", "MAX_CONTEXT", "CONTEXT_LENGTH", "context_length"):
+        assert token not in source, token
+
+
+def test_p4_normalizes_nothing():
+    # RAW-1 and §2.8: raw_value is "exactly that wording" -- no case folding, no
+    # Unicode normalization, no whitespace collapse, no trimming. `unicodedata` is
+    # imported for one call, `category(...) == "Cc"`, which is control-character
+    # detection inside locator escaping and rewrites nothing.
+    source = all_code()
+    for token in ("unicodedata.normalize", "NFC", "NFD", "casefold", ".lower()",
+                  ".upper()"):
+        assert token not in source, token
+
+
+def test_there_is_no_seventh_vocabulary():
+    # Six closed vocabularies, published as ten names because three are derived
+    # subsets. A seventh appearing here is a contract revision, not an edit.
+    published = set()
+    for name, value in module_constants(SOURCE_DIR / "vocabulary.py"):
+        if (isinstance(value, ast.Tuple) and value.elts
+                and all(isinstance(node, ast.Constant) and isinstance(node.value, str)
+                        for node in value.elts)):
+            published.add(name)
+    assert published == {
+        "ZONES", "INDEXED_SEGMENT_KINDS", "LABEL_SEGMENT_KINDS", "SOURCE_TYPES",
+        "RELIABILITY_STATES", "EXTRACTOR_RELIABILITY_STATES", "COMPLETENESS",
+        "ZERO_OBSERVATION_COMPLETENESS", "ANALYSIS_TIERS", "REGION_UNITS"}
+
+
+# ── P4 authors no event ──────────────────────────────────────────────────────
+
+def test_p4_supplies_no_default_author_and_refuses_p1():
+    # M8: "The acting part authors; P1 writes. P1 appends no event on its own
+    # initiative." §8.2 requires the responsible subsystem on every event.
+    with pytest.raises(UnauthoredEvent):
+        check_author("")
+    with pytest.raises(UnauthoredEvent):
+        check_author("P1")
+    with pytest.raises(TypeError):
+        event_defaults(component_version="1.0.0", event_type=EXTRACTION_EVENT)
+
+
+def test_the_subsystem_field_is_set_in_exactly_one_module():
+    for path in modules():
+        if path.name == "authorship.py":
+            continue
+        assert "subsystem" not in code_only(path), path.name
+
+
+def test_p4_registers_no_event_type_and_adds_no_event_field():
+    # P1 Contract out §3, rule 4: registration is a spec-level act. Both names are
+    # already among §8.2's nineteen. MINOR 1: §8.2 lists eleven fields and P4 adds none.
+    assert "register" not in all_code()
+    assert set(RUN_EVENT_TYPES) <= set(RESERVED_EVENT_TYPES)
+
+
+def test_minor_2_the_ocr_event_and_the_ocr_vocabulary_member_are_two_things():
+    # §8.2 spells the event `OCR`; `source_type` and `analysis_tier` spell their own
+    # member `ocr`. Neither is a case variant of the other and nothing folds one into
+    # the other -- P1's writer validates against §8.2's spelling and would reject it.
+    assert OCR_EVENT == "OCR"
+    assert OCR_EVENT not in SOURCE_TYPES
+    assert OCR_EVENT not in ANALYSIS_TIERS
+    assert "ocr" in SOURCE_TYPES and "ocr" in ANALYSIS_TIERS
+    assert "ocr" not in RESERVED_EVENT_TYPES
+
+
+def test_minor_3_the_third_supersede_column_is_supersede_reason():
+    assert SUPERSEDE_COLUMNS == ("supersedes", "superseded_by", "supersede_reason")
+    assert set(SUPERSEDE_COLUMNS) <= set(OBSERVATION_ROW_FIELDS)
+    assert "supersession_reason" not in all_code()
+    # M1: `preferred` is P1's fourth column and is NOT adopted. §8.2 gives preference
+    # to the resolver and §3.2 places the resolver after extraction.
+    assert "preferred" not in OBSERVATION_ROW_FIELDS
+
+
+def test_minor_8_the_citation_handle_excludes_the_extractor_version_on_purpose():
+    # NOT a bug to be fixed. §8.5's replay diff compares a new extractor version
+    # against a prior result for the same content; a key carrying the version would
+    # make every row a false diff and leave nothing to diff against.
+    parameters = inspect.signature(observation_key).parameters
+    assert set(parameters) == {"content_hash", "extractor_name", "locator", "raw_value"}
+    assert "extractor_version" not in parameters
+
+
+# ── Every open question, held open ───────────────────────────────────────────
+
+def test_the_five_open_questions_are_published_and_none_is_answered():
+    # OQ1 closed as I4 (analysis_tier's four values) and is deliberately absent.
+    assert sorted(OPEN_QUESTIONS) == ["OQ2", "OQ3", "OQ4", "OQ5", "OQ6"]
+    assert "OQ1" not in OPEN_QUESTIONS
+    for key, text in OPEN_QUESTIONS.items():
+        assert text.strip().endswith("?"), key
+
+
+def test_oq2_stays_open_the_observation_carries_both_identifiers(p4_conn):
+    # "Is an observation owned by the content hash or by the file record?" §2.8's
+    # field list contains both, so P4 carries both and answers neither. A foreign key
+    # to `files` would answer it in DDL, and P4's foreign keys run one way.
+    assert "file_id" in OBSERVATION_FIELDS
+    assert "content_hash" in OBSERVATION_FIELDS
+    referenced = {row[2] for row in p4_conn.execute(
+        "PRAGMA foreign_key_list(evidence)")}
+    assert referenced == {"extraction_runs"}
+
+
+def test_oq3_stays_open_p4_defines_no_second_reliability_vocabulary():
+    # "Do observations and facts share one reliability vocabulary?" P4 reuses §3.13's
+    # six and restricts extractors to two of them (D11). If P6 defines a separate
+    # observation-level vocabulary, D11 and conformance rule 3 change -- and this
+    # test is what makes that a visible contract revision.
+    assert len(RELIABILITY_STATES) == 6
+    assert set(EXTRACTOR_RELIABILITY_STATES) < set(RELIABILITY_STATES)
+
+
+def test_oq4_stays_open_p4_stores_no_handling_class(p4_conn):
+    # "Is the §8.4 handling class stored per observation or only per file?" P4 adds no
+    # privacy field (P7 owns handling classes) and instead guarantees BOTH
+    # granularities are addressable, so either answer stays implementable.
+    for table in ("evidence", "extraction_runs", "text_units"):
+        columns = {row[1] for row in p4_conn.execute(f"PRAGMA table_info({table})")}
+        assert not columns & {"handling_class", "sensitivity", "sensitivity_state",
+                              "privacy_class", "redaction"}
+    assert "observation_key" in OBSERVATION_FIELDS      # addressable per observation
+    assert "file_id" in OBSERVATION_FIELDS              # joinable per file
+    assert TEXT_UNIT_FIELDS[:2] == ("run_id", "container_path")   # D12's key
+
+
+def test_oq5_stays_open_p4_publishes_no_user_authored_route():
+    # "May a user author or correct an observation directly?" §8.7 enumerates user
+    # actions and none is "correct an extracted value". P4 supplies no writer for one
+    # and no reliability state an extractor could reach that would mean it.
+    import evidence_shape.store as store
+    writers = sorted(name for name in dir(store)
+                     if name.startswith(("record_", "supersede_", "correct_",
+                                         "amend_", "edit_")))
+    assert writers == ["record_observation", "record_run", "record_run_event",
+                       "record_text_unit", "supersede_chain", "supersede_observation"]
+    assert "user_confirmed" not in EXTRACTOR_RELIABILITY_STATES
+
+
+def test_oq6_stays_open_there_is_no_ninth_completeness():
+    # "What completeness does a source that is not on this machine carry?" None of the
+    # eight fits: deferred is budget exhaustion, unreadable is encrypted-or-damaged,
+    # metadata_only is a format decision. P4 invents no ninth; until it closes, P3
+    # records the detection and no extraction_runs row is written for such a file.
+    assert len(COMPLETENESS) == 8
+    for invented in ("dataless", "not_downloaded", "offline", "remote", "evicted",
+                     "unavailable"):
+        assert invented not in COMPLETENESS
+    # Guarded on NAMES, not on text: OPEN_QUESTIONS["OQ6"] quotes "iCloud dataless"
+    # because that is the question being held open. A detection would be a name.
+    lowered = {name.lower() for name in identifiers()}
+    for token in ("dataless", "icloud", "downloaded", "evicted"):
+        assert not any(token in name for name in lowered), token
+
+
+def test_the_signal_tier_hierarchy_is_carried_but_not_catalogued():
+    # M2 puts §2.6's three levels on the record. WHICH field belongs to which tier is
+    # P5's catalogue (SPEC Deferred), and P4 names no EXIF field: enumerating one
+    # would be the gazetteer the hard rules forbid. Task 16's fixture 7 is the case
+    # that proves it -- DateTimeOriginal is both "camera EXIF" and a "capture time".
+    assert SIGNAL_TIERS == (1, 2, 3)
+    source = all_code(skip=(FIXTURE_DATA,))
+    for field_name in ("DateTimeOriginal", "GPSLatitude", "Make", "Model",
+                       "PixelXDimension", "Software"):
+        assert field_name not in source, field_name
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p4/test_p4_no_invention.py -v`
+Expected: FAIL — collection succeeds and any guard whose forbidden token is present fails. If every prior task was written as specified, the only expected failures are ones this task exists to surface.
+
+- [ ] **Step 3: Fix whatever the guard catches**
+
+No new module. If a guard fires, the fix is in the module that tripped it, never in the guard: the guard is the SPEC's negative half. The one legitimate change is to a **token**, when it turns out to be a false positive against real code — `plan` inside `explanation` is the worked example. In that case narrow the token or move the obligation to a structural guard; never delete the test.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p4/test_p4_no_invention.py -v`
+Expected: PASS — 22 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests/p4/test_p4_no_invention.py
+git commit -m "test(P4): no-invention guard, and every open question held open"
+```
+
+---
+### Task 19: The walking-skeleton P4 step
+
+**Files:**
+- Test: `tests/p4/test_p4_skeleton_step.py`
+
+**Interfaces:**
+- Consumes: everything above, plus `database_agent.files_table` — `get_file`, `observe_path` (its only use in this plan).
+- Produces: the integration test every later part must keep green.
+
+**[`../../02-segmentation-map.md`](../../02-segmentation-map.md)'s slice, verbatim:** *"P4/P5 extract page-one text; emit ONE observation in the frozen shape."* P5 does the extracting; **P4's half is the frozen shape** — that the one observation, the run that scoped it, and the page-one text it was read out of all exist, conform, store, and read back as what was emitted. This test proves P4's half with no extractor in existence, which is the whole claim P4 is making.
+
+**The SPEC names the fixture:** *"the segmentation map's skeleton … → example 1 above, with a `complete` run and the one `text_units` row its span indexes into."* Fixture 1 is Task 16's, and this test rebuilds it against a real `file_id` and the content hash P1 computed — not against the fixture's own — so the seam with P1 is exercised rather than asserted.
+
+**Fixture 1's golden locator carries no span, so nothing indexes into the unit.** `heading:page=1/heading=2` has no `#start-end`, so conformance rule 10 is vacuous for this observation and the `text_units` row exists because §2.2 requires *"complete text by page"* and the skeleton's own words are *"extract page-one text"* — not because a span forced it. The SPEC's phrase *"the one `text_units` row its span indexes into"* does not fit its own fixture 1; that is recorded under *SPEC vs design — conflicts found* rather than repaired by giving fixture 1 a span the golden table does not have.
+
+**The seam this test defends is authorship.** P3 authors the file row's events; **P5** authors the `extraction` event, because P5 is the acting part for a native run (I4, M8); **P1 authors nothing**; and **P4 authors nothing either** — it ships the writer and names no subsystem. A log whose `subsystem` said `P4` would record that the schema library read the document.
+
+**P6's half is P6's.** Done-means 9 asks that P6 resolve `course = BUSIB 4300` from this fixture with no extractor present. That test belongs to P6. What P4 owes it is the fixture with its context intact — `context_before: "Syllabus — "`, which carries one of §3.5's five academic terms (B8a) — and P4 holds no list of those five terms, because that list is P6's.
+
+Deterministic: no model, no cloud, no embeddings, no network.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p4/test_p4_skeleton_step.py
+"""The walking skeleton's P4 step (02-segmentation-map.md):
+"P4/P5 extract page-one text; emit ONE observation in the frozen shape."
+
+P5 does the extracting. P4's half is the frozen shape: one observation, the run that
+scoped it, and the page-one text it was read out of, all conforming, stored, and read
+back as what was emitted -- with no extractor in existence.
+
+This test stays in the repository as the integration test every later part must keep
+green. It is deterministic: no model, no cloud, no embeddings, no network.
+"""
+import json
+from dataclasses import replace
+from pathlib import Path
+
+import pytest
+
+from database_agent.files_table import get_file, observe_path
+
+from evidence_shape.authorship import UnauthoredEvent
+from evidence_shape.canonical import canonical_json
+from evidence_shape.conformance import validate_run
+from evidence_shape.determinism import observation_set_digest
+from evidence_shape.fixtures import by_number
+from evidence_shape.location import Segment
+from evidence_shape.store import (
+    get_run, observations_by_key, observations_for_run, record_observation,
+    record_run, record_run_event, record_text_unit, text_unit_at,
+)
+from evidence_shape.text_units import TextUnit
+
+#: The page the skeleton extracts. It carries the value three times, which is what
+#: fixture 1's occurrence_count says, and the context §3.5's term lives in.
+PAGE_ONE = (
+    "BUSIB 4300 Syllabus\n"
+    "Course Information\n"
+    "Syllabus — BUSIB 4300 — Spring 2026\n"
+    "Instructor office hours are by appointment.\n"
+    "Questions about BUSIB 4300 go to the teaching assistant.\n"
+)
+
+SKELETON_RUN = "skeleton-run"
+PAGE_ONE_PATH = (Segment("page", 1),)
+
+
+def _file_row(conn, tmp_path: Path) -> tuple[str, str]:
+    """P3's half of the seam, as a fixture: one `files` row, authored by P3.
+
+    P4 touches `observe_path` here and nowhere else in this plan -- its records are
+    testable without a file row, which is what lets P6 be built against the fixtures.
+    """
+    document = tmp_path / "corpus" / "syllabus-fixture.pdf"
+    document.parent.mkdir(parents=True, exist_ok=True)
+    document.write_text(PAGE_ONE, encoding="utf-8")
+    stat = document.stat()
+    file_id = observe_path(
+        conn, document, author="P3", component_version="p3-skeleton-fixture",
+        filename=document.name, normalized_filename=document.name,
+        extension=document.suffix, observed_size=stat.st_size,
+        observed_timestamps=json.dumps({"modified": stat.st_mtime}),
+        parent_folder_context=str(document.parent), mime_type="application/pdf",
+        detected_format="pdf", scan_state="fixture-scan-state", materialized=True)
+    return file_id, get_file(conn, file_id)["content_hash"]
+
+
+def test_skeleton_p4_step(p4_conn, tmp_path: Path):
+    file_id, content_hash = _file_row(p4_conn, tmp_path)
+
+    # ── the frozen shape, rebuilt on the real identity P1 resolved ────────────
+    template = by_number(1)
+    run = replace(template.run, run_id=SKELETON_RUN, file_id=file_id,
+                  content_hash=content_hash)
+    observation = replace(template.observations[0], file_id=file_id,
+                          content_hash=content_hash, run_id=SKELETON_RUN)
+    unit = TextUnit(run_id=SKELETON_RUN, container_path=PAGE_ONE_PATH, text=PAGE_ONE)
+
+    # ── the gate six extractor authors run, before anything is written ────────
+    assert validate_run(run, [observation], [unit]) is run
+
+    record_run(p4_conn, run)
+    record_text_unit(p4_conn, unit)
+    record_observation(p4_conn, observation)
+    record_run_event(p4_conn, SKELETON_RUN, author="P5")
+
+    # ── ONE observation, in the frozen shape ──────────────────────────────────
+    assert p4_conn.execute("SELECT count(*) FROM evidence").fetchone()[0] == 1
+    stored, = observations_for_run(p4_conn, SKELETON_RUN)
+    assert stored == observation
+    assert stored.locator == "heading:page=1/heading=2"
+    assert stored.zone == "heading"
+    assert stored.raw_value == "BUSIB 4300"
+    assert stored.source_type == "text_document"
+    assert stored.reliability == "possible"
+    assert stored.occurrence_count == PAGE_ONE.count("BUSIB 4300") == 3
+    assert stored.context_before == "Syllabus — "
+    assert stored.context_after == " — Spring 2026"
+    assert stored.context_truncated is False
+    assert stored.signal_tier is None
+
+    # Fixture 1's golden locator carries no span, so rule 10 is vacuous here: the
+    # page-one unit exists because §2.2 requires complete text by page, not because a
+    # span forced it.
+    assert stored.location.text_span is None
+
+    # ── the citation handle resolves, and it is the KEY, never the row id ─────
+    assert observations_by_key(p4_conn, stored.observation_key) == [stored]
+    assert stored.observation_key.startswith("sha256:")
+
+    # ── the page-one text is stored and readable, and the value is in it ──────
+    page = text_unit_at(p4_conn, SKELETON_RUN, PAGE_ONE_PATH)
+    assert page.text == PAGE_ONE
+    assert page.length == len(PAGE_ONE)
+    assert page.truncated is False
+    assert stored.raw_value in page.text
+
+    # ── the run says what happened, including the count ───────────────────────
+    recorded = get_run(p4_conn, SKELETON_RUN)
+    assert recorded.completeness == "complete"
+    assert recorded.analysis_tier == "native"
+    assert recorded.observation_count == 1
+    assert recorded.config_fingerprint == run.config_fingerprint
+
+    # ── rule 8: what was stored is byte-identical to what was emitted ─────────
+    assert (observation_set_digest([stored])
+            == observation_set_digest([observation]))
+
+    # ── the one §8.2 event, authored by the acting part (M8) ──────────────────
+    events = p4_conn.execute(
+        "SELECT * FROM events WHERE event_type = 'extraction'").fetchall()
+    assert len(events) == 1
+    event = events[0]
+    assert event["subsystem"] == "P5"
+    assert event["component_version"] == run.extractor_version
+    assert event["file_id"] == file_id
+    assert event["content_hash"] == content_hash
+    # §8.2's "structured explanation or evidence reference": run_id plus the KEYS.
+    assert event["explanation"] == canonical_json(
+        {"run_id": SKELETON_RUN, "observation_keys": [stored.observation_key]})
+    assert "observation_id" not in event["explanation"]
+
+    # ── nobody named P4, and nobody named P1 ──────────────────────────────────
+    authors = {row["subsystem"] for row in p4_conn.execute(
+        "SELECT DISTINCT subsystem FROM events")}
+    assert authors == {"P3", "P5"}
+    assert "P4" not in authors
+    assert "P1" not in authors
+
+
+def test_the_skeleton_run_event_refuses_p1_as_its_author(p4_conn, tmp_path: Path):
+    # M8: "P1 appends no event on its own initiative." A log whose subsystem names
+    # the storage substrate cannot reconstruct what happened, which is §8.2's point.
+    file_id, content_hash = _file_row(p4_conn, tmp_path)
+    template = by_number(1)
+    record_run(p4_conn, replace(template.run, run_id=SKELETON_RUN, file_id=file_id,
+                                content_hash=content_hash))
+    with pytest.raises(UnauthoredEvent):
+        record_run_event(p4_conn, SKELETON_RUN, author="P1")
+    with pytest.raises(UnauthoredEvent):
+        record_run_event(p4_conn, SKELETON_RUN, author="")
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p4/test_p4_skeleton_step.py -v`
+Expected: FAIL if any prior task is incomplete; otherwise PASS.
+
+- [ ] **Step 3: Run the full suite one final time**
+
+Run: `pytest -q`
+Expected: PASS — every P4 test from Tasks 1–19 green, and every P1, P2 and P3 test still green (P4 modified no file belonging to any of them).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add tests/p4/test_p4_skeleton_step.py
+git commit -m "test(P4): walking-skeleton P4 step, ONE observation in the frozen shape"
+```
+
+---
+## Self-Review
+
+**Executed, not merely written.** Every task in this plan was assembled into a runnable tree and run. **349 tests pass** across nineteen test files, against the real `src/database_agent/` — P1 as shipped, not as its PLAN.md describes it. Assembled alongside the live repository (P1's 152, P2's and P3's, 462 in total), the combined suite is **811 passed, 0 failed, no collection errors**.
+
+**Test filenames do not collide.** The repository has already paid for this once: two test files with the same basename in different directories break collection for the entire suite under pytest's prepend import mode, which is why `tests/eval/__init__.py` exists. Every file here is `test_p4_*.py`, and no such basename exists in `tests/`, `tests/eval/` or `tests/p3/`. The only duplicated basenames in the combined tree are `conftest.py` — which pytest imports under a path-derived name and which already coexists across four directories — and the pre-existing `test_adversarial.py` pair that `tests/eval/__init__.py` already resolves. **`tests/p4/__init__.py` is not needed and is not created**; verified by running the combined tree.
+
+**Spec coverage.** Every *Contract out* surface has a task. Record 1 → Tasks 6, 9, 11. Record 2 → Tasks 7, 9, 10. Record 3 → Tasks 8, 9, 11. The location addressing scheme → Task 3; the locator grammar and its escaping → Task 4; the six closed vocabularies → Task 2; canonical bytes and the injective digest → Task 5; §2.7's OCR field mapping → Tasks 7, 8, 16 (fixture 8 carries the bounding box and the confidence); the prohibitions → Task 17; the worked examples → Task 16; conformance → Tasks 13, 14, 15.
+
+The twelve conformance rules map as: **1, 2, 3, 4, 6, 7, 11, 12 → Task 13**; **5, 9, 10 → Task 14**; **8 → Task 15**. All twelve are published in `CONFORMANCE_RULES` from Task 13 onward, so none can be quietly dropped, and Task 13 asserts the numbering is `range(1, 13)`.
+
+*Done means* 1–10 map as: 1 → T2/T6/T7/T9 · 2 → T13/T14/T15 · 3 → T4 · 4 → T8 (the primitive) and T14 (`tests/p4/test_p4_raw1.py`, the same property through the gate an extractor author calls) · 5 → T16, with the shortfall named rather than filled · 6 → T17, with T13 covering the validator's half · 7 → T12 · 8 → T15 · 9 → T16 and T19 for P4's half; **P6's half is P6's to run**, and what P4 owes it is fixture 1 with its context intact · 10 → T8/T11/T14/T16.
+
+**Every open question held open.** OQ1 is closed (I4) and is deliberately absent from `OPEN_QUESTIONS`. The five that remain each have a named guard in Task 18. **OQ2** (content hash or file record) — the observation carries both identifiers, `evidence` has no foreign key to `files`, and Task 15's compared set keeps `file_id` in precisely so the digest takes no position. **OQ3** (one reliability vocabulary or two) — §3.13's six are reused verbatim and extractors are restricted to two of them (D11); P4 defines no observation-level vocabulary, and Task 18's "no seventh vocabulary" guard fails if one appears. **OQ4** (handling-class granularity) — P4 adds no privacy field and guarantees both granularities are addressable, so P7 can answer either way. **OQ5** (may a user author an observation) — P4 publishes no writer for one; the store's six write/read names are pinned. **OQ6** (a source that is not on this machine) — `COMPLETENESS` is the SPEC's eight and there is no ninth; the guard runs on identifiers rather than on text, because the published question itself contains the words a violation would use.
+
+**The SPEC's *Deferred* table is untouched.** No domain template library, no fact-schema field, no gazetteer, no residual library, no structured-string catalogue, no MIME routing table, no date pattern, no §8.6 numeric ceiling and no positional weight appears anywhere in `evidence_shape`. Task 18 guards each by token or by structure, and the import allowlist is the exact form of *"P4 runs no extractor"*: nothing outside the standard library and `database_agent` can be reached from this package.
+
+**Placeholder scan.** No "TBD", no "TODO", no "similar to Task N", no bare `...` standing in for code, no angle-bracket placeholder. Every implementation step carries complete runnable code; every test step names the exact `pytest` command and the exact expected count, and **all eighteen stated counts were verified against a real run** — six of them were wrong when this plan was resumed (Tasks 4, 7, 9, 10, 11, 13) and are now corrected.
+
+**Type consistency.** `observation_key`, `observation_id`, `supersede_reason`, `context_before` / `context_after` / `context_truncated`, `analysis_tier`, `config_fingerprint`, `container_path`, `unit_locator`, `text_span`, `time_span`, `signal_tier`, `create_evidence_schema`, `record_run` / `record_run_event` / `record_observation` / `record_text_unit`, `check_observation` / `validate_observation`, `check_run` / `validate_run`, `observation_set_digest` and `replay_key` are spelled identically in every task that names them. The three near-miss spellings that appear at all — `supersession_reason`, `surrounding_context`, and a second reliability vocabulary — appear **only** as values asserted absent, which is the point of them being there.
+
+**One defect was found and fixed while writing Task 16.** `text_units.check_span_anchor` compared `container_path` as a tuple of `Segment` records, so a segment carrying a descriptive label (`Segment("slide", 6, label="Deadlines")`) failed rule 10 against a unit stored at the same address. Segment-kind rule 2 makes a label descriptive only, and `(run_id, unit_locator)` is the key `text_units` is actually stored under, so the comparison belongs on the address. Fixed in Task 8, with a named regression test in Task 14. It would have rejected most conforming observations — every one carrying a heading's text, a sheet's name or a slide's title.
+
+**Four stale cross-references were corrected** in prose written before the task numbering settled: the generated-column and one-way-FK notes pointed at Task 8 rather than Task 9, the CJK/emoji note pointed at Task 11 rather than Task 8, and the determinism-digest note pointed at Task 16 rather than Task 15.
+
+### Known gaps, carried deliberately
+
+- **Five zones and one source type have no worked example** — `path`, `header_footer`, `link`, `annotation`, `reference_list`, and `contacts`. The SPEC's own nineteen-row table does not supply them and P4 does not invent them. Named in `ZONES_WITHOUT_A_WORKED_EXAMPLE` and `SOURCE_TYPES_WITHOUT_A_WORKED_EXAMPLE`, pinned by a test, and raised under *NEEDS JOSEPH*.
+- **Conformance rule 12's fourth tooth is not checkable here.** An absence written *inside* `raw_value` as a string — `"EXIF absent"`, `"no text layer"` — cannot be detected without a list of forbidden strings, and authoring one would be the invention. `CONFORMANCE_RULES[12]` states the split, and P5's SPEC already carries the obligation.
+- **No thirteenth conformance rule about `observation_count`.** A stored count that disagrees with the rows is a real defect, but the SPEC lists twelve and P4 does not legislate a thirteenth into a published contract. `store.record_observation` derives the count from the rows on every insert, so it cannot drift through P4's own writer.
+- **The `analysis_tier` of a `metadata_only` run is a judgement, not a design statement.** Fixture 19 carries `native` — the tier of the extractor that was routed and stopped. I4 names four tiers and says nothing about a run that deliberately produced nothing. Raised under *NEEDS JOSEPH*.
+- **`create_evidence_schema` is not called by `open_database`.** P1's handle creates P1's tables on open and knows nothing about P4's, so a caller that forgets it gets a database with `files` and `events` and none of P4's three. Deliberate: P4 modifies no P1 file.
+- **Schema migration.** P4 adds three tables to P1's database and stamps no version of its own beyond `SHAPE_VERSION`, which versions the *shape*, not the tables. The first change to a P4 table needs a migration; the first creation does not.
+
+---
+
+## SPEC vs design — conflicts found
+
+Reported, not unilaterally rewritten. Each is a place [`SPEC.md`](SPEC.md) disagrees with §-text, with its own other half, or with what the code can actually do. Where the plan had to act, what it did is stated; the contract itself is Joseph's to change.
+
+| # | Where | The conflict | What this plan did |
+|---|---|---|---|
+| 1 | *Conformance* rule 8 vs §3.4 | Rule 8's key is *"content hash + extractor version + config fingerprint"* — three fields. §3.4 asks for a cache key on *"the content hash and the exact process that produced it"*, and Task 9's `extraction_runs_cache_key` index spells it with four, `extractor_name` included. Read literally, rule 8 would require `pdf.text 3.1.0` and `ocr.apple_vision 3.1.0` over one file to produce **one identical observation set** — impossible, because `observation_key` includes `extractor_name`. | `REPLAY_KEY_FIELDS` carries the four §3.4 names. Stated in `determinism.py`'s docstring and pinned by a test that names the conflict. |
+| 2 | *Done means* 5 vs the *Zone vocabulary* table | Done-means 5 says *"all 14 zones"*. The zone table has **fifteen** rows. | Used fifteen everywhere. The plan's Global Constraints already said `zone` (15). |
+| 3 | *Done means* 5 vs *Worked examples* | Done-means 5 asks the nineteen fixtures to cover *"all 14 zones and all 14 source types"*. They reach **10 of 15 zones** and **13 of 14 source types**. Missing zones: `path`, `header_footer`, `link`, `annotation`, `reference_list`. Missing source type: `contacts`. | Computed the shortfall from `FIXTURES`, published it, pinned it by test. Invented no example. *NEEDS JOSEPH #2.* |
+| 4 | *Worked examples* row 3 vs the *Zone vocabulary* | Fixture 3's design case is *"§2.2's page-eighteen reference list"* and its golden zone is `body`. So the `reference_list` zone — which exists because §2.2 names it — has no worked example, and the SPEC's own reference-list example is filed elsewhere. | Kept the golden zone as the table gives it; asserted the fact in a test so it is visible rather than surprising. |
+| 5 | *Done means* 5, wording | *"golden files"*. Every named consumer (P5, P6, P2) imports them, so a file would need a loader that reconstructs exactly the records this package already constructs. | Shipped `fixtures.py` as golden **records**; `canonical_json(observation.to_mapping())` produces the golden bytes on demand. Recorded as a deviation. |
+| 6 | *Worked examples*, walking-skeleton note vs fixture 1 | The note says the skeleton is *"example 1 above, with a `complete` run and the one `text_units` row **its span** indexes into"*. Fixture 1's golden locator is `heading:page=1/heading=2` — **there is no span**, so conformance rule 10 is vacuous and nothing indexes into the unit. | Kept fixture 1's golden locator. The skeleton stores the page-one unit because §2.2 requires complete text by page and the skeleton's own words are *"extract page-one text"* — not because a span forced it. Asserted `text_span is None` explicitly. |
+| 7 | *Conformance* rule 10 vs *Record 3* | Rule 10 requires a `text_units` row for **every** non-null `text_span`, and fixture 11's golden locator is `filename#0-6` — a span into a filename. Record 3 describes `text_units` as the home for the **bulk text** §2.2, §2.4 and §2.7 require. The unit that satisfies rule 10 here holds a filename. | Did what rule 10 says: fixture 11 carries a whole-file unit whose text is the filename. Narrowing rule 10 would be a contract revision. *NEEDS JOSEPH #4.* |
+| 8 | *Conformance* rule 10 vs rule 5 | Rule 10 ends *"and RAW-1 holds against that row's text"*, which is rule 5's whole sentence. One defect, two numbers. | Checked once and reported under **rule 5**, the rule that names it. Rule 10 keeps the half that is its own: a unit exists, on this run, at this address. Stated in `check_run`'s docstring. |
+| 9 | *Locator serialization* examples vs *Worked examples* row 4 | The grammar's example list writes §2.8's table case as `table:page=4/table=3/row=2/column=1`; the worked-example table writes the same case as `table:table=3/row=2/column=1`. | Followed the worked-example table, since that table is the fixture contract. Both parse and both round-trip. |
+| 10 | *Worked examples* row 16 | Written as `metadata:field=name` with *"(in `key=dependencies`)"* beside it, which is not a serializable locator. | Serialized outermost-first as `metadata:key=dependencies/field=name`, which is what the grammar produces from the two segments the row describes. |
+| 11 | *Conformance* rule 12 | Its fourth clause — an absence written *inside* `raw_value` as a string — is not checkable without a list of forbidden strings, which P4 may not author. | `CONFORMANCE_RULES[12]` states the split and names P5 as the carrier. Not faked. |
+| 12 | *Cross-cutting answers* → *Budgets* vs §8.6 | The `context_before`/`context_after` budget is listed in *Deferred* as *"configuration"*, but §8.6's twelve ceilings do not include it and P1's fifteen `CEILING_KEYS` do not either — so there is no configuration surface for it to live on. | Stored as the caller supplies; `context_truncated` records that the caller cut it; `evidence_shape` holds no length. *NEEDS JOSEPH #1.* |
+
+---
+
+## NEEDS JOSEPH
+
+Each item below needs a human decision. None is invented past in the tasks: every one is held open there by a guard test, and the plan is buildable and green under the position stated in the "what this plan does meanwhile" line. Part A is what building P4 surfaced. Part B is the SPEC's own open-questions list, restated in one place so the decisions Joseph has to make are one list.
+
+### A. Decisions this plan surfaced
+
+**A1 — Where does the §8.6 context budget live?**
+*§-reference:* §8.6 (*"configurable ceilings"*); [`SPEC.md`](SPEC.md) *Deferred* row 8; P1 Contract out §6 (`budget.CEILING_KEYS`).
+*What the design says:* §8.6 enumerates **twelve** configurable ceilings; P1 implements **fifteen** keys (§8.6's twelve, with three namespaced across two owners per O10) and `set_ceiling` raises `KeyError` on a sixteenth. *What it does not say:* none of the twelve or the fifteen is a context length, yet §2.8 requires surrounding context be stored and §8.6 requires nothing be truncated silently. The SPEC files the budget under "configuration" while no configuration surface accepts it.
+*Options:* **(a)** add a sixteenth P1 ceiling key, e.g. `evidence.context_window`, and have P5 read it. **(b)** leave it caller-supplied forever — P5 decides per extractor and P4 stores what arrives. **(c)** make it a `config` entry on `extraction_runs`, so it is fingerprinted and replayable per run.
+*Recommendation:* **(a)**, with **(c)** as a consequence rather than an alternative — a ceiling that is not in the fingerprint makes two runs at different context widths look identical to §3.4's cache and §8.5's replay. **(b)** is the only position that invents nothing, which is why it is what the plan does meanwhile.
+*What this plan does meanwhile:* stores `context_before` / `context_after` exactly as supplied, records `context_truncated`, and holds no number. Guarded by `test_the_context_budget_is_caller_supplied_and_p4_holds_no_length`.
+
+**A2 — Five zones and one source type have no worked example. Who writes them?**
+*§-reference:* [`SPEC.md`](SPEC.md) *Worked examples*, *Done means* 5; zones from §2.2/§2.3/§2.9.
+*What the design says:* Done-means 5 asks the fixtures to cover *"all 14 zones and all 14 source types"*. *What it does not say:* anything about `path`, `header_footer`, `link`, `annotation`, `reference_list` or `contacts` as worked examples — the nineteen-row table simply does not contain one. And its own reference-list case is filed under `body`.
+*Options:* **(a)** author six more worked examples now, at design level, so the fixture set is complete before P5 starts. **(b)** amend Done-means 5 to *"every zone and source type the worked-example table reaches"* and let P5 contribute the rest as its extractors land. **(c)** have P4 invent them — **rejected**: six extractor authors would implement against a fabricated example, which is exactly the failure §2.8 exists to prevent.
+*Recommendation:* **(b)** now, **(a)** when P5's format work begins and the real shapes are known. The five missing zones are all inside formats P5 has not designed yet, so an example written today would be a guess dressed as a contract.
+*What this plan does meanwhile:* publishes the shortfall as data and pins it by test, so closing it is a visible change rather than a silent one.
+
+**A3 — Does conformance rule 8's key include the extractor name?**
+*§-reference:* [`SPEC.md`](SPEC.md) *Conformance* rule 8; §3.4; §8.5.
+*What the design says:* rule 8 lists three fields; §3.4 says *"the content hash and the exact process that produced it"*. *What it does not say:* whether "the exact process" includes which extractor. It plainly must — `observation_key` includes `extractor_name`, so two extractors can never produce one identical set, and the literal three-field rule is unsatisfiable.
+*Options:* **(a)** amend rule 8 to name four fields, matching §3.4 and the `extraction_runs_cache_key` index. **(b)** keep three and read them as shorthand. **(c)** drop `extractor_name` from `observation_key` — **rejected**: it would merge two extractors' readings of one value under one citation handle.
+*Recommendation:* **(a)**. It is a one-word edit to the SPEC and it makes the rule true.
+*What this plan does meanwhile:* keys on the four, states the discrepancy in `determinism.py`, and pins it with `test_the_replay_key_carries_the_extractor_name_rule_8_omits`.
+
+**A4 — Does rule 10 apply to a span into a filename?**
+*§-reference:* [`SPEC.md`](SPEC.md) *Conformance* rule 10, *Record 3*, *Locator serialization* (`filename#0-6`), worked example 11.
+*What the design says:* rule 10 requires a `text_units` row for every non-null `text_span`; Record 3 describes `text_units` as the home for the bulk text §2.2/§2.4/§2.7 require; the grammar's own example list includes `filename#0-6`. *What it does not say:* whether a filename is a "text unit".
+*Options:* **(a)** yes — a `filename` observation with a span carries a whole-file unit whose text is the filename. Rule 10 stays universal and RAW-1 is checkable everywhere. **(b)** narrow rule 10 to text-bearing zones, and let `filename` / `path` spans anchor against the `files` row instead — which reintroduces a second place a citation can resolve. **(c)** forbid spans on `filename` and `path`, dropping `filename#0-6` from the grammar.
+*Recommendation:* **(a)**. It is the only option that leaves exactly one way to check a citation, and the cost is a very small row.
+*What this plan does meanwhile:* **(a)**, asserted by `test_the_filename_span_is_anchored_in_a_text_unit_holding_the_filename`.
+
+**A5 — What `analysis_tier` does a `metadata_only` run carry?**
+*§-reference:* I4 ([`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md)); §2.9; [`SPEC.md`](SPEC.md) Record 2.
+*What the design says:* `analysis_tier ∈ filesystem | native | ocr | llm`, and *"a value outside the four is rejected"*. `metadata_only` is §2.9's deliberate policy stop. *What it does not say:* which tier a run carries when the format-specific extractor was routed and deliberately produced nothing.
+*Options:* **(a)** `native` — the tier of the extractor that was routed. **(b)** `filesystem` — the only work that actually happened. **(c)** make it P5's per-format decision and say so in P5's SPEC.
+*Recommendation:* **(c)**, defaulting to **(a)**: which extractor was routed is the fact §2.4 wants preserved (*"an empty extraction result is different from an extractor that does not yet exist"*), and `filesystem` would make a routed-and-stopped PSD indistinguishable from a file only the basic pass ever touched.
+*What this plan does meanwhile:* fixture 19 carries `native`, with the reason in a comment. Nothing in the code branches on it.
+
+**A6 — Should a `text_units` row exist for a run that emitted no observation?**
+*§-reference:* §2.2 (*"complete text by page"*), §2.4, *Record 3* rule 4, *Conformance* rule 9.
+*What the design says:* §2.2 requires the page text be produced; rule 9 forbids observations on `unsupported`, `deferred` and `failed` runs. *What it does not say:* whether those runs may still carry text units. A `complete` run that read a whole PDF and found nothing worth observing plainly should keep its text — §8.5's *"Did the expected text appear?"* is a query against `text_units` and would otherwise have nothing to query.
+*Options:* **(a)** units are independent of observations; any run that produced text stores it. **(b)** extend rule 9 to forbid units on the three zero-observation states as well.
+*Recommendation:* **(a)**, and it is what the plan implements — but it is worth an explicit sentence in the SPEC, because rule 9 currently says nothing either way and a reader could take the silence as a prohibition.
+*What this plan does meanwhile:* **(a)**. `check_run` constrains units only by run and address, never by count.
+
+### B. The SPEC's five open questions, restated
+
+Each is already in [`SPEC.md`](SPEC.md) *Open questions* and each is held open by a named guard in Task 18. Listed here so Joseph's decisions are one list. P4 is buildable under either answer to all five; that is why they did not block this plan.
+
+| # | Question | Blocks | My reading |
+|---|---|---|---|
+| OQ2 | Is an observation owned by the content hash or by the file record? §2.8's field list contains both. | P1, P3 (identity), P5 (re-extraction), P6 (does a fact attach to a hash or a file?), P11 (§6.9 multi-home) | The most consequential of the five, and the one most likely to become expensive later. §2.1's *"read each file once per content version"* and §8.2's same-content-new-path rule both point at the **content hash**; the file record then becomes a way in, not the owner. Worth deciding before P5 writes its first extractor. |
+| OQ3 | Do observations and facts share one reliability vocabulary? | P5, P6 | Reusing §3.13's six and restricting extractors to two (D11) is the smaller contract and the one that needs no new vocabulary. Needs P6's confirmation; if P6 disagrees, D11 and conformance rule 3 change together. |
+| OQ4 | Is the §8.4 handling class per observation or per file? | P7 (where the class is stored), P8 (what unit it redacts) | §8.4's own *"selected excerpts, redacted identifiers"* is observation-granular, which suggests per observation with a file-level roll-up. P4 needs no answer: both granularities are addressable today. |
+| OQ5 | May a user author or correct an observation directly? | P6 (§3.13 semantics), P7 | §8.7 enumerates user actions and none is *"correct an extracted value"*; a user-confirmed **fact** at P6 looks like the intended route, and it keeps RAW-2 intact. If the answer is yes, P4 needs a new `extractor_name` convention and possibly a seventh reliability state — a real contract revision. |
+| OQ6 | What `completeness` does a source that is not on this machine carry? | P3 (detection), P5 (the writer of runs), §8.6's progress line | None of the eight fits and a ninth value is the honest answer, but it is a vocabulary change and therefore Joseph's. Until then P3 records the detection and no `extraction_runs` row is written — which means §8.6's progress line cannot name the category. |
+
+**Not needed from Joseph for P4.** The SPEC's *Deferred* table — the 200–300 domain template library (§5.7), domain fact-schema fields (§3.11), gazetteer contents (§3.7), the residual library (§7.2–§7.4), per-format structured-string catalogues, the MIME routing table (§2.9), date and academic-term patterns (§3.10), the §8.6 ceiling numbers, and positional weights per zone (§3.7) — is owned by P5, P6 and P10. P4 needs none of it to be complete, uses none of it, and Task 18's guards fail if any of it appears in `evidence_shape`.
