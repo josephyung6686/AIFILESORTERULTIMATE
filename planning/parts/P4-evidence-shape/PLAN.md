@@ -442,7 +442,7 @@ git commit -m "feat(P4): the two §8.2 run events; the caller names itself, P4 a
 
 **`ZERO_OBSERVATION_COMPLETENESS` is three values, not five** (**M3**). `unreadable` and `partial` runs may and normally do carry observations: §2.9 requires an unsupported proprietary format be *"recorded as indexed-but-unreadable rather than silently treated as empty"*, and its metadata-level rows are what "indexed" means. A rule forbidding them would make an indexed PSD indistinguishable from a file nobody opened.
 
-**`OPEN_QUESTIONS` is data, and the tests read it.** Four of P4's six SPEC open questions are still open. Two are closed: the extractor-tier vocabulary closed as I4 (its four values are `ANALYSIS_TIERS`), and OQ2 closed on 2026-08-20 — **the content hash owns the observation**, so two file records sharing a hash share one observation set. Publishing the open ones as a mapping means Task 18's guards can name the question they protect, and a later agent that answers one in code has to delete an entry — a visible act — rather than let an assumption drift in.
+**`OPEN_QUESTIONS` is data, and the tests read it.** **One** of P4's six SPEC open questions is still open: OQ4, the §8.4 handling-class granularity, which C2 leaves to P7. The other five closed — OQ1 as I4, and OQ2, OQ3, OQ5 and OQ6 by Joseph's 2026-08-20 ratifications. A closed question is **deleted** from this mapping rather than left with an answer beside it, because an entry here means "still unanswered" and that is exactly what Task 18 reads. Publishing the open ones as a mapping means Task 18's guards can name the question they protect, and a later agent that answers one in code has to delete an entry — a visible act — rather than let an assumption drift in.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -571,10 +571,10 @@ def test_a_shape_version_exists_because_the_contract_says_adding_a_kind_bumps_on
     assert isinstance(SHAPE_VERSION, int)
 
 
-def test_the_four_open_questions_are_published_and_the_settled_ones_are_gone():
+def test_the_one_open_question_is_published_and_the_settled_ones_are_gone():
     # OQ1 (the extractor-tier vocabulary) closed as I4; its four values are
     # ANALYSIS_TIERS. The other five are unsettled by the design and stay open.
-    assert set(OPEN_QUESTIONS) == {"OQ3", "OQ4", "OQ5", "OQ6"}
+    assert set(OPEN_QUESTIONS) == {"OQ4"}
     assert "OQ1" not in OPEN_QUESTIONS   # closed as I4
     assert "OQ2" not in OPEN_QUESTIONS   # closed 2026-08-20: the content hash owns
     for question in OPEN_QUESTIONS.values():
@@ -683,32 +683,17 @@ REGION_UNITS: tuple[str, ...] = ("px", "norm")
 #: The questions the design leaves unsettled in P4's area. Each blocks or endangers a
 #: named neighbouring part, and each is guarded by a test that fails if it is answered
 #: in code instead of in a SPEC. OQ1 closed as I4 and is deliberately absent.
-#: OQ1 closed as I4; OQ2 closed 2026-08-20 (the content hash owns the observation).
+#: Closed and therefore ABSENT: OQ1 (I4), OQ2 (content hash owns the observation),
+#: OQ3 (C1 — one reliability vocabulary), OQ5 (C3 — users correct facts, never
+#: raw_value), OQ6 (C4 — the ninth completeness value is `dataless`). All ratified
+#: 2026-08-20. OQ4 alone remains: C2 is P7's to settle before its schema.
 #: A closed question is DELETED from this mapping, never left with an answer beside
 #: it — an entry here means "still unanswered", and that is what Task 18 reads.
 OPEN_QUESTIONS: Mapping[str, str] = MappingProxyType({
-    "OQ3": (
-        "Do observations and facts share one reliability vocabulary? §2.8 puts a "
-        "reliability state on the observation and §3.13 defines six states for file "
-        "facts; the design never says they are the same vocabulary. Does P6 confirm "
-        "the reuse, or define a separate observation-level vocabulary?"
-    ),
     "OQ4": (
         "Is the §8.4 handling class stored per observation or only per file? §8.4 "
         "names no granularity; §8.2's file record carries one sensitivity state, yet "
         "only selected excerpts may reach a cloud model. Which unit does P7 classify?"
-    ),
-    "OQ5": (
-        "May a user author or correct an observation directly? §8.7 enumerates user "
-        "actions and none is 'correct an extracted value'; §3.13's user_confirmed is "
-        "a fact state; §2.8 forbids overwriting raw. Is the only route a "
-        "user-confirmed fact at P6?"
-    ),
-    "OQ6": (
-        "What completeness does a source that is not on this machine carry? An "
-        "iCloud dataless file cannot be hashed or opened (11-ops-runtime.md §5) and "
-        "none of the eight values fits: deferred is budget exhaustion, unreadable is "
-        "encrypted-or-damaged, metadata_only is a format decision. Is there a ninth?"
     ),
 })
 
@@ -2308,9 +2293,9 @@ def test_an_empty_configuration_still_fingerprints():
         config_fingerprint({})
 
 
-def test_all_eight_completeness_values_are_constructible():
-    # B1's eight. There is no ninth here and none is invented for an iCloud dataless
-    # file -- that is Open question 6 and Task 19 keeps it open.
+def test_all_nine_completeness_values_are_constructible():
+    # B1 settled eight; C4 added the ninth, `dataless`, on 2026-08-20 for exactly the
+    # iCloud case this test used to say P4 must not name.
     for value in ("complete", "capped", "partial", "metadata_only", "deferred",
                   "unsupported", "unreadable", "failed"):
         payload = {**OCR_RUN, "completeness": value, "observation_count": 0}
@@ -6571,10 +6556,10 @@ def test_minor_8_the_citation_handle_excludes_the_extractor_version_on_purpose()
 
 # ── Every open question, held open ───────────────────────────────────────────
 
-def test_the_four_open_questions_are_published_and_none_is_answered():
+def test_the_one_open_question_is_published_and_is_not_answered():
     # OQ1 closed as I4 (analysis_tier's four values); OQ2 closed 2026-08-20.
     # Both are deliberately absent.
-    assert sorted(OPEN_QUESTIONS) == ["OQ3", "OQ4", "OQ5", "OQ6"]
+    assert sorted(OPEN_QUESTIONS) == ["OQ4"]
     assert "OQ1" not in OPEN_QUESTIONS   # closed as I4
     assert "OQ2" not in OPEN_QUESTIONS   # closed 2026-08-20
     for key, text in OPEN_QUESTIONS.items():
@@ -6595,11 +6580,13 @@ def test_oq2_ratified_the_content_hash_owns_the_observation(p4_conn):
     assert referenced == {"extraction_runs"}
 
 
-def test_oq3_stays_open_p4_defines_no_second_reliability_vocabulary():
-    # "Do observations and facts share one reliability vocabulary?" P4 reuses §3.13's
-    # six and restricts extractors to two of them (D11). If P6 defines a separate
-    # observation-level vocabulary, D11 and conformance rule 3 change -- and this
-    # test is what makes that a visible contract revision.
+def test_oq3_ratified_one_reliability_vocabulary_extractors_stamp_two():
+    # C1 CLOSED, ratified 2026-08-20: ONE vocabulary -- §3.13's six -- and extractors
+    # may stamp only `direct` | `possible` (D11). These are the same assertions this
+    # test made while the question was open, and they are now REQUIRED rather than
+    # merely P4's reading. A seventh state, or a separate observation-level
+    # vocabulary, is now a contract violation and not an open alternative. P6 must
+    # STATE this rather than re-ask it -- see its open question 12.
     assert len(RELIABILITY_STATES) == 6
     assert set(EXTRACTOR_RELIABILITY_STATES) < set(RELIABILITY_STATES)
 
@@ -6617,10 +6604,12 @@ def test_oq4_stays_open_p4_stores_no_handling_class(p4_conn):
     assert TEXT_UNIT_FIELDS[:2] == ("run_id", "container_path")   # D12's key
 
 
-def test_oq5_stays_open_p4_publishes_no_user_authored_route():
-    # "May a user author or correct an observation directly?" §8.7 enumerates user
-    # actions and none is "correct an extracted value". P4 supplies no writer for one
-    # and no reliability state an extractor could reach that would mean it.
+def test_oq5_ratified_a_user_corrects_facts_never_an_observation():
+    # C3 CLOSED, ratified 2026-08-20: a user corrects the FACT at P6 and never
+    # `raw_value`. A better OCR pass supersedes (new row, old still readable, §8.2).
+    # So P4 publishes no user-authored writer and no reliability state an extractor
+    # could reach that would mean one -- the same assertions, now required. RAW-2
+    # survives because there is exactly one way to mint evidence.
     import evidence_shape.store as store
     writers = sorted(name for name in dir(store)
                      if name.startswith(("record_", "supersede_", "correct_",
@@ -6900,7 +6889,7 @@ The twelve conformance rules map as: **1, 2, 3, 4, 6, 7, 11, 12 → Task 13**; *
 
 *Done means* 1–10 map as: 1 → T2/T6/T7/T9 · 2 → T13/T14/T15 · 3 → T4 · 4 → T8 (the primitive) and T14 (`tests/p4/test_p4_raw1.py`, the same property through the gate an extractor author calls) · 5 → T16, with the shortfall named rather than filled · 6 → T17, with T13 covering the validator's half · 7 → T12 · 8 → T15 · 9 → T16 and T19 for P4's half; **P6's half is P6's to run**, and what P4 owes it is fixture 1 with its context intact · 10 → T8/T11/T14/T16.
 
-**Every open question held open.** OQ1 is closed (I4) and is deliberately absent from `OPEN_QUESTIONS`. The five that remain each have a named guard in Task 18. **OQ2** (content hash or file record) — the observation carries both identifiers, `evidence` has no foreign key to `files`, and Task 15's compared set keeps `file_id` in precisely so the digest takes no position. **OQ3** (one reliability vocabulary or two) — §3.13's six are reused verbatim and extractors are restricted to two of them (D11); P4 defines no observation-level vocabulary, and Task 18's "no seventh vocabulary" guard fails if one appears. **OQ4** (handling-class granularity) — P4 adds no privacy field and guarantees both granularities are addressable, so P7 can answer either way. **OQ5** (may a user author an observation) — P4 publishes no writer for one; the store's six write/read names are pinned. **OQ6** (a source that is not on this machine) — `COMPLETENESS` is the SPEC's eight and there is no ninth; the guard runs on identifiers rather than on text, because the published question itself contains the words a violation would use.
+**Every open question held open.** Five of the six are closed and deliberately absent from `OPEN_QUESTIONS` — OQ1 as I4, and OQ2, OQ3, OQ5, OQ6 by Joseph's 2026-08-20 ratifications. **OQ4 alone remains** and has its named guard in Task 18. **OQ2** (content hash or file record) — the observation carries both identifiers, `evidence` has no foreign key to `files`, and Task 15's compared set keeps `file_id` in precisely so the digest takes no position. **OQ3** (one reliability vocabulary or two) — §3.13's six are reused verbatim and extractors are restricted to two of them (D11); P4 defines no observation-level vocabulary, and Task 18's "no seventh vocabulary" guard fails if one appears. **OQ4** (handling-class granularity) — P4 adds no privacy field and guarantees both granularities are addressable, so P7 can answer either way. **OQ5** (may a user author an observation) — P4 publishes no writer for one; the store's six write/read names are pinned. **OQ6** (a source that is not on this machine) — `COMPLETENESS` is the SPEC's eight and there is no ninth; the guard runs on identifiers rather than on text, because the published question itself contains the words a violation would use.
 
 **The SPEC's *Deferred* table is untouched.** No domain template library, no fact-schema field, no gazetteer, no residual library, no structured-string catalogue, no MIME routing table, no date pattern, no §8.6 numeric ceiling and no positional weight appears anywhere in `evidence_shape`. Task 18 guards each by token or by structure, and the import allowlist is the exact form of *"P4 runs no extractor"*: nothing outside the standard library and `database_agent` can be reached from this package.
 

@@ -821,7 +821,7 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    P11 (§6.9 multi-home files).* P4's contract carries both fields, so it is buildable either way — but
    only one answer is correct.
 
-3. **Do observations and facts share one reliability vocabulary?** §2.8 puts a "reliability state" on
+3. ~~**Do observations and facts share one reliability vocabulary?**~~ **Settled — ratified 2026-08-20. See *Ratified decisions* at the end of this file; that table is what is in force. The original wording follows.** **One vocabulary: §3.13's six, with extractors stamping only `direct` | `possible`.** §2.8 puts a "reliability state" on
    the observation; §3.13 defines six reliability states for *file facts*. The design never says they
    are the same vocabulary. P4 reuses §3.13 and restricts extractors to `direct` and `possible` (D11)
    because the field is mandatory and must have a domain — but this needs P6's confirmation, and if P6
@@ -837,13 +837,13 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    `(run_id, container_path)`, so either answer is implementable. *Threatens P7 (where the class is
    stored) and P8 (what unit it redacts).*
 
-5. **May a user author or correct an observation directly?** §8.7 enumerates user actions and none is
+5. ~~**May a user author or correct an observation directly?**~~ **Settled — ratified 2026-08-20. See *Ratified decisions* at the end of this file; that table is what is in force. The original wording follows.** **No — a user corrects the FACT at P6, never `raw_value`; a better pass supersedes.** §8.7 enumerates user actions and none is
    "correct an extracted value"; §3.13's `user_confirmed` is a fact state; §2.8 forbids overwriting raw.
    Unsettled: whether a user who sees an OCR misread can write a corrected observation (with what
    `extractor_name` and what reliability state), or whether the only route is a user-confirmed fact at
    P6. *Threatens P6 (§3.13 semantics) and P7 (§8.4's "reclassify a file as private").*
 
-6. **What `completeness` does a source that is not on this machine carry?** macOS "Optimize Mac
+6. ~~**What `completeness` does a source that is not on this machine carry?**~~ **Settled — ratified 2026-08-20. See *Ratified decisions* at the end of this file; that table is what is in force. The original wording follows.** **A ninth value, `dataless`, carrying zero observations.** macOS "Optimize Mac
    Storage" leaves a Finder entry whose bytes are not local; hashing or opening it triggers a
    download, which [`../../11-ops-runtime.md`](../../11-ops-runtime.md) §5 forbids. None of the eight
    values fits: `deferred` is budget exhaustion (§8.6), `unreadable` is encrypted-or-damaged (§2.5,

@@ -872,10 +872,15 @@ joint review, not later.
 12. **[seam]** §2.8's observation record ends with a "reliability state" field, and §3.13 defines six
     reliability states for *file facts*. Do observations use the same six-value enum, a different
     one, or is the §2.8 field something else? P4 and P6 must agree before either is frozen.
-    *Status:* P4 has since published an answer — §3.13's six-state vocabulary, with extractors able
-    to write only `direct` and `possible` (P4 D11) — and asks P6 to confirm it. `04-resolutions.md`
-    does not adjudicate it, so P6 does not close it unilaterally; it is a one-line confirmation for
-    the joint review. P6's rules are written to be correct under P4's answer.
+    *Status:* **CLOSED — ratified by Joseph 2026-08-20 (C1).** One vocabulary: §3.13's six states,
+    and extractors may stamp only `direct` and `possible` (P4 D11). P6 **states** this rather than
+    re-asking it; a seventh state or a separate observation-level vocabulary is now a contract
+    revision, not an open alternative. P6's rules were already written to be correct under this
+    answer, so nothing in this SPEC changes but the status of the question.
+    Consequence P6 must carry: catalogue 01 (`planning/deferred-catalogues/`) is the suppression
+    list this vocabulary uses — a match yields no fact in any field, `unresolved` with reason
+    `discounted_tool_metadata`, never a demotion to `possible`. It is INJECTED data, never imported
+    into `src/extractors/`.
 
 **Closed by `04-resolutions.md`** — retained here so other specs citing these numbers still resolve.
 The numbering above is left with gaps rather than shifted, because P2, P4 and P5 cite these by

@@ -207,6 +207,38 @@ where the SPEC says *"P5 owns the vocabulary and writes the first three"*).
 `no_usable_facts` and the transcription authorization are **injected predicates** with no default:
 P6 and P7 do not exist yet, and a default would be P5 answering another part's question.
 
+## Catalogue wiring — the production caller loads these, the tests do not
+
+`planning/deferred-catalogues/` holds seven hand-authored catalogues (B9, authored 2026-08-20).
+They are the content behind five of this plan's caller-supplied strategies, and **nothing in this
+plan loads them** — which is correct, and also the way they rot.
+
+| strategy parameter | catalogue | task |
+|---|---|---|
+| `find_structured_strings` | 06 citation & identifier patterns | E1 |
+| `recognize_markers` | 05 `p5_evidence_markers`, 07 archive markers | E3, E4 |
+| `filename_pattern` | 04 camera filename patterns | E5 |
+| `dimension_signal` | 02 screen resolutions, then 03 sensor ratios (in that order) | E5 |
+| — (P6's, not P5's) | 01 tool producer strings | P6's discount rule |
+
+**The production caller loads these seven JSON files and injects them. `src/extractors/` imports
+none of them** — Task 20's no-invention guard fails if a gazetteer, regex table, resolution or
+producer string appears in the package, and copying the JSON into `src/extractors/catalogues.py`
+would satisfy the letter of that guard while destroying its point.
+
+**Tests inject fixtures, not the live JSON.** A test that loads the real catalogue couples this
+plan's green-ness to hand-authored data that changes for reasons unrelated to P5, and a catalogue
+edit would then fail an extractor test. If an integration test over the real files is wanted, it is
+a *named* test that says so.
+
+Two consequences worth stating plainly: an executor can take every task in this plan green with
+`dimension_signal=lambda *_: None` and never discover the catalogues exist; and a v1 deployment that
+forgets to wire them sees no citations, no camera filenames, no screen dimensions and no project
+markers — with nothing failing, because absence is indistinguishable from a corpus that contains
+none of those things.
+
+---
+
 ## Dependencies a real deployment must choose
 
 Named, not chosen. Every one is a **NEEDS JOSEPH** item; nothing here is installed by this plan, and
@@ -1183,7 +1215,14 @@ COMPLETENESS: tuple[str, ...] = (
 
 #: P4 conformance rule 9, as M3 relaxed it: `unreadable` and `partial` runs MAY and
 #: normally DO carry observations (section 2.9's "indexed-but-unreadable").
-ZERO_OBSERVATION_COMPLETENESS: tuple[str, ...] = ("unsupported", "deferred", "failed")
+#: P4 conformance rule 9. MUST equal P4's tuple: `metadata_only` joined it when
+#: fixture 19 was frozen (the stopping extractor emits nothing; the file stays
+#: indexed through its `filesystem` run), and `dataless` joined it with C4 (nothing
+#: was opened, so nothing was seen). This is not documentation -- the rule-9 check
+#: below reads it, so a three-value copy here would let P5 emit observations on a
+#: `metadata_only` run that P4 forbids: one rule, two parts, opposite behaviour.
+ZERO_OBSERVATION_COMPLETENESS: tuple[str, ...] = (
+    "unsupported", "deferred", "failed", "metadata_only", "dataless")
 
 #: I4, closed.
 ANALYSIS_TIERS: tuple[str, ...] = ("filesystem", "native", "ocr", "llm")
@@ -2567,7 +2606,7 @@ later tell apart:
   **Carries metadata-level rows** (M3, P4 fixture 18): filename and format, both taken from P3's row,
   because reading a proprietary format is exactly what there is no library for.
 
-> **P4 SPEC inconsistency, reported not resolved.** P4's fixture 19 says a `metadata_only` run carries
+> **Settled 2026-08-20 — fixture 19 is the frozen reading.** P4's fixture 19 says a `metadata_only` run carries
 > *"no observations from this extractor"* and that the file *"is still indexed through its `filesystem`
 > observations (fixture 11)"*, while P4's conformance-rule-9 note says *"`metadata_only` runs likewise
 > carry the metadata-level rows §2.9's basic filesystem extraction produces."* This plan follows
@@ -4477,9 +4516,11 @@ empty extraction result is different from an extractor that does not yet exist."
 `None` means **this deployment ships no reader for this format** and produces `completeness:
 unsupported` with zero observations; a reader returning `TextDocument(text="")` means **the file was
 empty** and produces `completeness: complete` with zero observations. Two runs, two values, one query
-apart — SPEC Done-means 1. Which of the two spreadsheets and presentations get at launch is **SPEC Open
-question 5** and is the caller's decision, held by whether a reader is supplied; Task 20 asserts P5
-answers it nowhere.
+apart — SPEC Done-means 1. **SPEC Open question 5 is CLOSED (B6, ratified 2026-08-20): spreadsheets and
+presentations SHIP AT LAUNCH.** That does not change this task's shape — the reader is still injected and
+P5 still names no library, so Task 20's guard keeps passing — but it changes what `unsupported` MEANS.
+It now marks a format with genuinely no extractor, never one deferred by choice, and a v1 deployment
+that ships without `openpyxl` / `python-pptx` wired is not conforming.
 
 **No `partial` and no `failed` are written here.** A text file is read whole or not at all; a reader
 that raises is the caller's error to record, and inventing a `failed` path around an injected callable
@@ -4951,8 +4992,9 @@ by `(run_id, container_path)` (G1), and a slide holds a title, text boxes and sp
 assumed.
 
 **`unsupported` is shared with Task 10.** A reader returning `None` for a spreadsheet or presentation
-is §2.4's *"marked clearly as unsupported in the initial release"*; **SPEC Open question 5** — whether
-they ship at launch — is the caller's, expressed by whether a reader exists. P5 answers it nowhere.
+still produces §2.4's *"marked clearly as unsupported"* run — the mechanism is unchanged and P5 still
+names no library. But **SPEC Open question 5 is CLOSED (B6, 2026-08-20): both ship at launch**, so a
+`None` reader in a v1 deployment is now a wiring defect rather than an exercised option.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -7796,8 +7838,9 @@ asserts it.
 
 **The mapping from P4's nine `completeness` values to P2's five outcomes, and why each row is what it
 is.** This mapping is P5's to author — it is the join between two closed vocabularies neither part owns
-alone — so every row states its reason, and the two rows the design does not settle are **NEEDS JOSEPH**
-items rather than quiet choices.
+alone — so every row states its reason. The two rows the design did not settle were answered by Joseph
+on 2026-08-20 (A5, both `abstained`); `dataless` follows them for the same reason, since P5 never opened
+the file. `runs_dataless` is a P2 **count**, not a fifth outcome — visible as unfinished, not as damaged.
 
 | P4 `completeness` | P2 `outcome` | `budget_state` | why |
 |---|---|---|---|
@@ -7806,8 +7849,8 @@ items rather than quiet choices.
 | `capped` | `produced` | **`ceiling_reached`** | a capped run **keeps the text it recognized** (§2.7); it produced, under a ceiling that was reached. P2 permits `produced` + `ceiling_reached` and forbids `abstained` + `ceiling_reached` |
 | `deferred` | **`deferred`** | **`ceiling_reached`** | §8.6's budget deferral. P2's writer *requires* this exact pairing |
 | `unsupported` | `abstained` | `within_ceiling` | no extractor exists; P5 asserted nothing |
-| `metadata_only` | `abstained` | `within_ceiling` | §2.9's deliberate safe stop — **NEEDS JOSEPH**, see below |
-| `unreadable` | `abstained` | `within_ceiling` | format known, content not recoverable; the metadata rows are real but the extraction dimension's question was not answered — **NEEDS JOSEPH** |
+| `metadata_only` | `abstained` | `within_ceiling` | §2.9's deliberate safe stop — **ANSWERED 2026-08-20 (A5): `abstained`.** P5 declined to assert; it did not fail |
+| `unreadable` | `abstained` | `within_ceiling` | format known, content not recoverable; the metadata rows are real but the extraction dimension's question was not answered — **ANSWERED 2026-08-20 (A5): `abstained`.** Calling it `produced` would let a corpus of unreadable files read as a successful run |
 | `failed` | `error` | `within_ceiling` | §2.4: *"an error is not an empty document"* |
 
 **`inputs[]` is the content hash, and that is the point.** §3.4: the cache key holds the content hash and
