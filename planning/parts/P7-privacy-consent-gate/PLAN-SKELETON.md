@@ -240,7 +240,7 @@ database_agent.supersede   SUPERSEDE_COLUMNS: tuple[str, str, str]    (M1's thre
                            supersede_ddl(table) -> str
                            mark_superseded(conn, table, *, old_id, new_id, reason) -> None
                            chain(conn, table, record_id) -> list[sqlite3.Row]
-database_agent.budget      CEILING_KEYS: tuple[str, ...]              (fifteen)
+database_agent.budget      CEILING_KEYS: tuple[str, ...]              (SIXTEEN -- see below)
                            get_ceiling(conn, key) -> int | None
 database_agent.learning    learning_records(conn, scope, subject_id) -> list[sqlite3.Row]
                            SCOPES: tuple[str, ...]                    (§8.7's six)
@@ -278,7 +278,7 @@ Six facts about that surface, each of which changes how a task below is written:
    `basis_key` is one `TEXT` column, so `(file_id, handling_class)` is a canonical-JSON encoding P7
    composes and P1 stores opaquely.
 6. **`budget.CEILING_KEYS` holds `model.max_dossier_tokens_per_call`** and `set_ceiling` raises
-   `KeyError` on a sixteenth key. P7 reads the ceiling and never invents a value; the
+   `KeyError` on a SEVENTEENTH key. **Corrected 2026-08-21:** this plan said fifteen and tested for a `KeyError` on a sixteenth. There are sixteen, and the sixteenth is `evidence.context_window`, added by ratification B4 (2026-08-20). P6's plan has the count right, so B4 reached one plan and not its neighbour -- the same defect class the wave keeps finding, one document over. P7 reads the ceiling and never invents a value; the
    `ModelCallRequest.max_dossier_tokens` field is the caller's echo of it (M9).
 
 ### The audit record's home — decided here, because every task depends on it
