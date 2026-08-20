@@ -36,7 +36,7 @@ Every task's requirements implicitly include these. Values are copied verbatim f
 - **P4 runs no extractor.** §2.8 is a shape, not a reader. `src/evidence_shape/` opens no file for content, imports no format library, and contains no MIME sniffing, no routing table, and no catalogue of strings to look for — all of that is P5's ([`SPEC.md`](SPEC.md) *Not owned here*). Task 18 asserts it.
 - **P4 interprets nothing.** No field name, value, fact, domain, template, gazetteer, positional weight, destination, group or plan appears anywhere in `evidence_shape`. §2.8: *"Extraction does not create a final folder path, invent domains, merge all files that share one string, or treat model output as proof."*
 - **No invented values.** No numeric threshold, no ceiling, no gazetteer, no category membership, no vocabulary the design does not spell. Where the design leaves a value open this plan holds a **key or a caller-supplied argument** — never a number and never a made-up enum. The one place this bites hardest is the §8.6 context budget: see *The context budget is caller-supplied* below.
-- **Six closed vocabularies, and no seventh.** `zone` (15), segment `kind` (15), `source_type` (14), `reliability` (§3.13's six), `completeness` (eight), `analysis_tier` (four). Each is exactly the SPEC's list, in the SPEC's order. Adding a member is a P4 contract revision, not an implementation decision (segment-kind rule 5).
+- **Six closed vocabularies, and no seventh.** `zone` (15), segment `kind` (15), `source_type` (14), `reliability` (§3.13's six), `completeness` (nine, after C4), `analysis_tier` (four). Each is exactly the SPEC's list, in the SPEC's order. Adding a member is a P4 contract revision, not an implementation decision (segment-kind rule 5).
 - **`raw_value` is never updated, ever** (RAW-2). Improvement is insert + supersede through P1's published three columns — `supersedes`, `superseded_by`, `supersede_reason` (**M1**; **MINOR 3** confirms the spelling is `supersede_reason`, never `supersession_reason`). P1's `preferred` is **not** adopted: §8.2 gives preference to the resolver and §3.2 places the resolver after extraction, so it lives on P6's `file_facts`.
 - **`observation_key` excludes `extractor_version`, deliberately.** §8.5 requires the replay harness to compare a new extractor version against a prior result for the same content; identity that included the version would make every row a false diff and leave nothing to diff against. **This is not a bug to be fixed** (**MINOR 8**). Task 5 states the reason in the module docstring and asserts it.
 - **`observation_key` is the citation handle**, never `observation_id` (**M14**). Every consumer that cites evidence — P6's `evidence_refs[]`, P8's dossier citations, P9's group support, P11's placement explanations — cites the key.
@@ -500,20 +500,29 @@ def test_reliability_is_3_13s_six_and_extractors_may_write_two_of_them():
     assert set(EXTRACTOR_RELIABILITY_STATES) < set(RELIABILITY_STATES)
 
 
-def test_completeness_is_the_eight_values_b1_settled():
+def test_completeness_is_the_nine_values():
+    # B1 settled eight; C4 added the ninth on 2026-08-20. None of the eight meant
+    # "the bytes are not on this machine": `deferred` is a budget, `unreadable` is
+    # damage, `unsupported` is a missing extractor. A dataless file is none of those,
+    # so §8.6's progress line could not name the bucket at all.
     assert COMPLETENESS == (
         "complete", "capped", "partial", "metadata_only", "deferred", "unsupported",
-        "unreadable", "failed",
+        "unreadable", "failed", "dataless",
     )
 
 
-def test_only_three_completeness_values_forbid_observations():
-    # M3: `unreadable` and `partial` runs carry the metadata-level rows §2.9
+def test_five_completeness_values_forbid_observations():
+    # M3: `unreadable` and `partial` runs DO carry the metadata-level rows §2.9
     # requires -- "recorded as indexed-but-unreadable rather than silently treated
-    # as empty". `metadata_only` carries them too.
-    assert ZERO_OBSERVATION_COMPLETENESS == ("unsupported", "deferred", "failed")
+    # as empty". `metadata_only` does NOT: settled 2026-08-20, because rule 9's note
+    # and this SPEC's own worked example 19 said opposite things and six extractors
+    # would have run the gate. Example 19 is the frozen reading -- the stopping
+    # extractor emits nothing and the file stays indexed through its `filesystem`
+    # observations. `dataless` joins it (C4): nothing was opened, so nothing was seen.
+    assert ZERO_OBSERVATION_COMPLETENESS == (
+        "unsupported", "deferred", "failed", "metadata_only", "dataless")
     assert set(ZERO_OBSERVATION_COMPLETENESS) < set(COMPLETENESS)
-    for still_allowed in ("unreadable", "partial", "metadata_only", "complete", "capped"):
+    for still_allowed in ("unreadable", "partial", "complete", "capped"):
         assert still_allowed not in ZERO_OBSERVATION_COMPLETENESS
 
 
@@ -651,12 +660,16 @@ EXTRACTOR_RELIABILITY_STATES: tuple[str, ...] = ("direct", "possible")
 #: per-file status vocabulary anywhere in the system.
 COMPLETENESS: tuple[str, ...] = (
     "complete", "capped", "partial", "metadata_only", "deferred", "unsupported",
-    "unreadable", "failed",
+    "unreadable", "failed", "dataless",
 )
 
-#: Conformance rule 9, as M3 relaxed it. `unreadable`, `partial` and `metadata_only`
-#: runs carry the metadata-level rows §2.9's "indexed-but-unreadable" requires.
-ZERO_OBSERVATION_COMPLETENESS: tuple[str, ...] = ("unsupported", "deferred", "failed")
+#: Conformance rule 9, as M3 relaxed it. `unreadable` and `partial` runs carry the
+#: metadata-level rows §2.9's "indexed-but-unreadable" requires. `metadata_only` does
+#: not (settled 2026-08-20, matching worked example 19: the stopping extractor emits
+#: nothing and the file stays indexed through its `filesystem` observations), and
+#: neither does `dataless` (C4) -- nothing was opened, so nothing was seen.
+ZERO_OBSERVATION_COMPLETENESS: tuple[str, ...] = (
+    "unsupported", "deferred", "failed", "metadata_only", "dataless")
 
 #: I4. P5 writes the first three; P8 is the only writer of `llm`. A fifth is rejected.
 ANALYSIS_TIERS: tuple[str, ...] = ("filesystem", "native", "ocr", "llm")
@@ -4915,9 +4928,23 @@ def test_rule_9_an_unreadable_run_still_carries_its_metadata_rows():
     assert check_run(_run("unreadable"), [layer]) == ()
 
 
-def test_rule_9_partial_metadata_only_and_capped_runs_may_carry_observations():
-    for completeness in ("partial", "metadata_only", "capped"):
+def test_rule_9_partial_and_capped_runs_may_carry_observations():
+    for completeness in ("partial", "capped"):
         assert check_run(_run(completeness), [_observation()]) == (), completeness
+
+
+def test_rule_9_a_metadata_only_run_carries_none(): 
+    # Settled 2026-08-20 against worked example 19: the stopping extractor emits
+    # nothing; the file stays indexed through its `filesystem` observations. Rule 9's
+    # note used to say the opposite, and six extractors would have run that gate.
+    assert 9 in _rules(check_run(_run("metadata_only"), [_observation()]))
+    assert check_run(_run("metadata_only"), []) == ()
+
+
+def test_rule_9_a_dataless_run_carries_none():
+    # C4: nothing was opened, so nothing was seen.
+    assert 9 in _rules(check_run(_run("dataless"), [_observation()]))
+    assert check_run(_run("dataless"), []) == ()
 
 
 def test_rule_9_a_run_with_no_completeness_is_reported():
@@ -6447,12 +6474,14 @@ def test_p4_authors_no_threshold_weight_gazetteer_or_template_library():
 
 
 def test_the_context_budget_is_caller_supplied_and_p4_holds_no_length():
-    # §8.6 lists twelve configurable ceilings and none of them is a context length;
-    # P1's fifteen keys hold none either. P4 stores what the caller supplies and
-    # records that the caller cut it. Holding no number is the only position that
-    # cannot be wrong until the question closes.
+    # B4, ratified 2026-08-20: the ceiling now HAS a home -- P1's sixteenth key
+    # `evidence.context_window` -- and it belongs in the run's `config` so it is
+    # fingerprinted (two runs at different context widths must not look identical to
+    # §3.4's cache key). What has not changed is that P4 holds no NUMBER: the value is
+    # read from P1 by the caller and arrives as data. That is the claim this guards.
     assert "context_truncated" in OBSERVATION_FIELDS
-    assert not [key for key in CEILING_KEYS if "context" in key]
+    assert "evidence.context_window" in CEILING_KEYS      # P1 owns the ceiling
+    assert "evidence.context_window" not in all_code()    # P4 does not read it itself
     source = all_code()
     for token in ("truncate(", "MAX_CONTEXT", "CONTEXT_LENGTH", "context_length"):
         assert token not in source, token
@@ -6601,15 +6630,20 @@ def test_oq5_stays_open_p4_publishes_no_user_authored_route():
     assert "user_confirmed" not in EXTRACTOR_RELIABILITY_STATES
 
 
-def test_oq6_stays_open_there_is_no_ninth_completeness():
+def test_oq6_closed_the_ninth_completeness_is_dataless():
     # "What completeness does a source that is not on this machine carry?" None of the
-    # eight fits: deferred is budget exhaustion, unreadable is encrypted-or-damaged,
-    # metadata_only is a format decision. P4 invents no ninth; until it closes, P3
-    # records the detection and no extraction_runs row is written for such a file.
-    assert len(COMPLETENESS) == 8
-    for invented in ("dataless", "not_downloaded", "offline", "remote", "evicted",
-                     "unavailable"):
-        assert invented not in COMPLETENESS
+    # eight fit: deferred is budget exhaustion, unreadable is encrypted-or-damaged,
+    # metadata_only is a format decision. Ratified 2026-08-20: a ninth, and it is
+    # `dataless` -- the word P1 (`DatalessFileRefused`), P3 (`scan_agent.dataless`)
+    # and 11-ops-runtime §5 already use. Coining `not_local` beside them would have
+    # been two vocabularies for one concept, this project's most expensive defect.
+    assert len(COMPLETENESS) == 9
+    assert COMPLETENESS[-1] == "dataless"
+    # that it forbids observations is pinned in test_p4_vocabulary.py, which owns
+    # ZERO_OBSERVATION_COMPLETENESS -- not restated here across files.
+    for not_coined in ("not_downloaded", "offline", "remote", "evicted", "unavailable",
+                       "not_local", "cloud_only"):
+        assert not_coined not in COMPLETENESS
     # Guarded on NAMES, not on text: OPEN_QUESTIONS["OQ6"] quotes "iCloud dataless"
     # because that is the question being held open. A detection would be a name.
     lowered = {name.lower() for name in identifiers()}

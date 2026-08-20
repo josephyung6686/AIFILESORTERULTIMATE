@@ -109,3 +109,23 @@ def test_the_counts_have_no_aggregate_and_no_ratio(eval_conn):
         for part in key.split("_"):
             assert part not in {"accuracy", "score", "aggregate", "overall", "rate",
                                 "percent", "grade"}
+
+
+def test_a_dataless_source_gets_its_own_count_and_is_not_called_unreadable(eval_conn):
+    """C4, ratified 2026-08-20. A file whose bytes are in iCloud is not deferred (the
+    budget did not run out), not unreadable (nothing is damaged), and not unsupported
+    (an extractor exists). Before the ninth value it had no bucket at all, so §8.6's
+    progress line either dropped these files or filed them under a word that lies."""
+    from eval_harness.counts import DATALESS_COMPLETENESS
+    assert DATALESS_COMPLETENESS == frozenset({"dataless"})
+    create_eval_schema(eval_conn)
+    runs = json.loads((FIXTURES / "p4_runs.json").read_text(encoding="utf-8"))
+    cloud = {**runs[0], "run_id": "run-cloud", "file_id": "file-cloud",
+             "content_hash": "sha256:file-cloud", "completeness": "dataless",
+             "observation_count": 0}
+    bundle_id = _bundle_with_runs(eval_conn, [cloud], entries=["file-cloud"])
+    counts = bundle_counts(eval_conn, bundle_id)
+    assert counts["runs_dataless"] == 1
+    assert counts["runs_unreadable"] == 0
+    assert counts["runs_deferred"] == 0
+    assert counts["files_fully_extracted"] == 0

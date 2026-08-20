@@ -4668,7 +4668,12 @@ def test_shadow_adds_no_ceiling_key_of_its_own():
     src = Path(__file__).resolve().parents[2] / "src" / "eval_harness" / "shadow.py"
     text = src.read_text(encoding="utf-8")
     assert "shadow.max" not in text
-    assert len(CEILING_KEYS) == 15
+    # The claim is "P2 owns no ceiling", not "P1 publishes exactly N". Pinning the
+    # total made this fail when P1 legitimately gained `evidence.context_window`
+    # (ratified 2026-08-20) -- a different part's contract change breaking P2's
+    # guard. P1's own test_there_are_exactly_sixteen_keys pins the count; this
+    # pins ownership, which is what the open question is actually about.
+    assert not [k for k in CEILING_KEYS if k.startswith(("shadow.", "eval.", "replay."))]
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -5720,6 +5725,14 @@ DEFERRED_COMPLETENESS: frozenset[str] = frozenset({"deferred", "capped"})
 #: P5's mapping. §8.6's "18 files remain unreadable".
 UNREADABLE_COMPLETENESS: frozenset[str] = frozenset({"unreadable", "failed"})
 
+#: C4, ratified 2026-08-20 — the ninth `completeness` value gets its own bucket.
+#: A source whose bytes are in iCloud is not `deferred` (no budget ran out), not
+#: `unreadable` (nothing is damaged) and not `unsupported` (an extractor exists).
+#: With no bucket these files either vanished from §8.6's progress line or were
+#: counted under a word that lies about why they are missing, which is the exact
+#: failure §8.6 exists to prevent: unfinished work must stay visible AS unfinished.
+DATALESS_COMPLETENESS: frozenset[str] = frozenset({"dataless"})
+
 
 def bundle_counts(conn: sqlite3.Connection, bundle_id: str) -> dict:
     """§8.6's legibility counts, with no live filesystem present.
@@ -5733,7 +5746,7 @@ def bundle_counts(conn: sqlite3.Connection, bundle_id: str) -> dict:
         (bundle_id,)).fetchone()["n"]
 
     by_file: dict[str, list[str]] = {}
-    deferred = unreadable = 0
+    deferred = unreadable = dataless = 0
     for row in conn.execute(
             "SELECT file_id, completeness FROM bundle_extraction_run "
             "WHERE bundle_id = ?", (bundle_id,)):
@@ -5742,6 +5755,8 @@ def bundle_counts(conn: sqlite3.Connection, bundle_id: str) -> dict:
             deferred += 1
         if row["completeness"] in UNREADABLE_COMPLETENESS:
             unreadable += 1
+        if row["completeness"] in DATALESS_COMPLETENESS:
+            dataless += 1
 
     return {
         # P2 Contract out §3's reading.
@@ -5754,6 +5769,7 @@ def bundle_counts(conn: sqlite3.Connection, bundle_id: str) -> dict:
             if states and all(state == "complete" for state in states)),
         "runs_deferred": deferred,
         "runs_unreadable": unreadable,
+        "runs_dataless": dataless,
         # P8's count, not P5's and not P2's.
         "files_requiring_model_review": None,
     }
@@ -6108,7 +6124,7 @@ def test_skeleton_p2_step(eval_conn, tmp_path: Path):
     # §8.6's count line, from the bundle, with the corpus deleted (Done-means 13).
     assert bundle_counts(eval_conn, bundle_id) == {
         "files_indexed": 1, "files_with_any_run": 1, "files_fully_extracted": 1,
-        "runs_deferred": 0, "runs_unreadable": 0,
+        "runs_deferred": 0, "runs_unreadable": 0, "runs_dataless": 0,
         "files_requiring_model_review": None,
     }
 

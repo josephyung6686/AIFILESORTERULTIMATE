@@ -124,7 +124,7 @@ def test_skeleton_p2_step(eval_conn, tmp_path: Path):
     # §8.6's count line, from the bundle, with the corpus deleted (Done-means 13).
     assert bundle_counts(eval_conn, bundle_id) == {
         "files_indexed": 1, "files_with_any_run": 1, "files_fully_extracted": 1,
-        "runs_deferred": 0, "runs_unreadable": 0,
+        "runs_deferred": 0, "runs_unreadable": 0, "runs_dataless": 0,
         "files_requiring_model_review": None,
     }
 

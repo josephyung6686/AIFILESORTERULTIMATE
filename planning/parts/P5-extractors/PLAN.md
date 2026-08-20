@@ -190,7 +190,7 @@ text_units        run_id                                               P4-assign
 
 **Closed vocabularies P5 uses and does not re-publish:** `zone` (fifteen), segment `kind` (fifteen),
 `source_type` (fourteen), `reliability` (six, of which an extractor may write **two** — D11), and
-`completeness` (eight). P5 restates only the two restrictions that are P5's own half of the contract:
+`completeness` (nine, after C4 added `dataless`). P5 restates only the two restrictions that are P5's own half of the contract:
 `EXTRACTOR_RELIABILITY = ("direct", "possible")` (D11) and `ANALYSIS_TIERS` with `llm` refused (I4,
 where the SPEC says *"P5 owns the vocabulary and writes the first three"*).
 
@@ -1175,10 +1175,10 @@ RELIABILITY_STATES: tuple[str, ...] = (
 )
 EXTRACTOR_RELIABILITY: tuple[str, ...] = ("direct", "possible")
 
-#: P4 `completeness` (closed), after B1 added `metadata_only`.
+#: P4 `completeness` (closed), after B1 added `metadata_only` and C4 added `dataless`.
 COMPLETENESS: tuple[str, ...] = (
     "complete", "capped", "partial", "metadata_only", "deferred", "unsupported",
-    "unreadable", "failed",
+    "unreadable", "failed", "dataless",
 )
 
 #: P4 conformance rule 9, as M3 relaxed it: `unreadable` and `partial` runs MAY and
@@ -1594,8 +1594,13 @@ def test_a_refusal_writes_no_extraction_run(sink):
                           is_dataless=lambda path: True)
     with pytest.raises(DatalessRefused):
         admit(Path("/corpus/Thesis.pdf"), policy=policy)
-    # P4 Open question 6 stays open: none of P4's eight completeness values means
-    # "the bytes are not on this machine", and P5 chooses none and adds no ninth.
+    # The GATE writes nothing, and that is still right: it raises, and a gate that
+    # also wrote would be doing two jobs. P4 OQ6 closed on 2026-08-20 with a ninth
+    # `completeness` value, `dataless`, so the refusal is now NAMEABLE -- but the row
+    # is written by whoever CATCHES DatalessRefused (the router, Task 4), not here.
+    # Until that caller exists, a dataless file is still absent from §8.6's count
+    # line; what changed is that the vocabulary can now say why, instead of the file
+    # being filed under a word that lies about it.
     assert sink.runs == []
 ```
 
@@ -2396,7 +2401,7 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'extractors.runs'`
 """What P5 owes about a run, derived - and nothing that names an outcome.
 
 B1: "P4's `extraction_runs` is THE record. P5's parallel status vocabulary is
-deleted." The eight `completeness` values are P4's and are not restated here; what is
+deleted." The nine `completeness` values are P4's and are not restated here; what is
 here is the coverage helper, section 3.4's cache key, and the analysis-tier map I4
 gave P5.
 """
@@ -7789,7 +7794,7 @@ surface and the test drives P5's envelope through P2's real writer rather than a
 plus `stage_id`, and imports no P2 module: P5 depends on P1 and on nothing else at run time, and Task 20
 asserts it.
 
-**The mapping from P4's eight `completeness` values to P2's five outcomes, and why each row is what it
+**The mapping from P4's nine `completeness` values to P2's five outcomes, and why each row is what it
 is.** This mapping is P5's to author — it is the join between two closed vocabularies neither part owns
 alone — so every row states its reason, and the two rows the design does not settle are **NEEDS JOSEPH**
 items rather than quiet choices.
@@ -7839,7 +7844,7 @@ from extractors.stage_output import (
 from conftest import FIXED_CLOCK
 
 P4_COMPLETENESS = ("complete", "capped", "partial", "metadata_only", "deferred",
-                   "unsupported", "unreadable", "failed")
+                   "unsupported", "unreadable", "failed", "dataless")
 
 
 def a_run(completeness="complete", extractor_name="pdf.text", version="0.1.0"):
@@ -8005,7 +8010,7 @@ STAGE_ID = "extraction"
 ENVELOPE_FIELDS: tuple[str, ...] = ("subject_ref", "outcome", "payload", "inputs",
                                     "budget_state")
 
-#: P4's eight `completeness` values to P2's five outcomes.
+#: P4's nine `completeness` values to P2's five outcomes.
 OUTCOME_BY_COMPLETENESS: dict[str, str] = {
     "complete": "produced",       # ran to the end, section 2.4
     "partial": "produced",        # some parts readable, section 2.5
@@ -8015,6 +8020,7 @@ OUTCOME_BY_COMPLETENESS: dict[str, str] = {
     "metadata_only": "abstained",  # section 2.9's deliberate safe stop
     "unreadable": "abstained",    # indexed-but-unreadable, section 2.9 / M3
     "failed": "error",            # "an error is not an empty document", section 2.4
+    "dataless": "abstained",      # C4: the bytes are not on this machine, 11 section 5
 }
 
 #: Section 8.6: a run that met a ceiling says so, and is never `abstained` - P2's
@@ -8033,7 +8039,7 @@ def extraction_stage_output(*, run: Mapping[str, Any]) -> dict:
     completeness = run["completeness"]
     if completeness not in OUTCOME_BY_COMPLETENESS:
         raise ValueError(
-            f"{completeness!r} is not one of P4's eight `completeness` values"
+            f"{completeness!r} is not one of P4's nine `completeness` values"
         )
     return {
         "stage_id": STAGE_ID,
@@ -9444,7 +9450,11 @@ B1's one-row-per-(file × extractor) design already permits.
 turn out to matter.
 
 **11. Which P2 outcome does an `unreadable` or `metadata_only` run report?**
-§8.5 / B7, and Task 17's mapping table. Six of P4's eight `completeness` values map to a P2 outcome
+§8.5 / B7, and Task 17's mapping table. **ANSWERED 2026-08-20 — `abstained`** for both, and
+`dataless` (the ninth value, C4) joins them for the same reason: P5 declined to assert, because it never
+opened the file. Measuring an indexed-but-unreadable PSD as `produced` would let a corpus of unreadable
+files look like a successful extraction run, which is §8.6's exact failure mode. The original question
+follows. Six of P4's eight `completeness` values map to a P2 outcome
 unambiguously. Two do not: both produce **real metadata-level observations** while leaving §8.5's
 extraction question — *"did the expected text, metadata, table values, OCR text, or image facts
 appear?"* — unanswered.

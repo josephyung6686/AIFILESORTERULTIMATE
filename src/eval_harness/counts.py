@@ -19,6 +19,14 @@ DEFERRED_COMPLETENESS: frozenset[str] = frozenset({"deferred", "capped"})
 #: P5's mapping. §8.6's "18 files remain unreadable".
 UNREADABLE_COMPLETENESS: frozenset[str] = frozenset({"unreadable", "failed"})
 
+#: C4, ratified 2026-08-20 — the ninth `completeness` value gets its own bucket.
+#: A source whose bytes are in iCloud is not `deferred` (no budget ran out), not
+#: `unreadable` (nothing is damaged) and not `unsupported` (an extractor exists).
+#: With no bucket these files either vanished from §8.6's progress line or were
+#: counted under a word that lies about why they are missing, which is the exact
+#: failure §8.6 exists to prevent: unfinished work must stay visible AS unfinished.
+DATALESS_COMPLETENESS: frozenset[str] = frozenset({"dataless"})
+
 
 def bundle_counts(conn: sqlite3.Connection, bundle_id: str) -> dict:
     """§8.6's legibility counts, with no live filesystem present.
@@ -32,7 +40,7 @@ def bundle_counts(conn: sqlite3.Connection, bundle_id: str) -> dict:
         (bundle_id,)).fetchone()["n"]
 
     by_file: dict[str, list[str]] = {}
-    deferred = unreadable = 0
+    deferred = unreadable = dataless = 0
     for row in conn.execute(
             "SELECT file_id, completeness FROM bundle_extraction_run "
             "WHERE bundle_id = ?", (bundle_id,)):
@@ -41,6 +49,8 @@ def bundle_counts(conn: sqlite3.Connection, bundle_id: str) -> dict:
             deferred += 1
         if row["completeness"] in UNREADABLE_COMPLETENESS:
             unreadable += 1
+        if row["completeness"] in DATALESS_COMPLETENESS:
+            dataless += 1
 
     return {
         # P2 Contract out §3's reading.
@@ -53,6 +63,7 @@ def bundle_counts(conn: sqlite3.Connection, bundle_id: str) -> dict:
             if states and all(state == "complete" for state in states)),
         "runs_deferred": deferred,
         "runs_unreadable": unreadable,
+        "runs_dataless": dataless,
         # P8's count, not P5's and not P2's.
         "files_requiring_model_review": None,
     }

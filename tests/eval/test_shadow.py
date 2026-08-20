@@ -216,4 +216,9 @@ def test_shadow_adds_no_ceiling_key_of_its_own():
     src = Path(__file__).resolve().parents[2] / "src" / "eval_harness" / "shadow.py"
     text = src.read_text(encoding="utf-8")
     assert "shadow.max" not in text
-    assert len(CEILING_KEYS) == 15
+    # The claim is "P2 owns no ceiling", not "P1 publishes exactly N". Pinning the
+    # total made this fail when P1 legitimately gained `evidence.context_window`
+    # (ratified 2026-08-20) -- a different part's contract change breaking P2's
+    # guard. P1's own test_there_are_exactly_sixteen_keys pins the count; this
+    # pins ownership, which is what the open question is actually about.
+    assert not [k for k in CEILING_KEYS if k.startswith(("shadow.", "eval.", "replay."))]

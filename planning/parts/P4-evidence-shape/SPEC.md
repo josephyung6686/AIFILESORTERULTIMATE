@@ -851,3 +851,27 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    not-downloaded source, so P4 does not invent a ninth value here. Until this closes, P3 records the
    detection and no `extraction_runs` row is written for such a file. *Threatens P3 (detection),
    P5 (the writer of runs), and §8.6's progress line, which cannot name the category without it.*
+
+---
+
+## Ratified decisions — 2026-08-20 (second session)
+
+Joseph's answers to this plan's NEEDS JOSEPH list. Each is binding; the PLAN was made to
+follow, and its guards were updated rather than left asserting a superseded reading.
+
+| ID | Decision | Consequence in the contract |
+|---|---|---|
+| **A1** | Conformance **rule 8 keys on four fields**, not three: `content_hash`, `extractor_name`, `extractor_version`, `config_fingerprint`. | Rule 8's three-field sentence is unsatisfiable as written — `observation_key` includes `extractor_name`, so two extractors could never produce one identical set. `REPLAY_KEY_FIELDS` carries the four §3.4 names. **Rule 8's text should gain the fourth name.** |
+| **A2** | A span into a **filename** does require a `text_units` row. | Keeps exactly one way to resolve a citation. Cost is one small row. |
+| **A3** | A run with **zero observations may still keep its text units**. | Otherwise §8.5's *"did the expected text appear?"* has nothing to query. `check_run` constrains units by run and address, never by count. |
+| **A4** | A routed-but-stopped run carries `analysis_tier: native`. | Which extractor was routed is the fact §2.4 wants preserved: *"an empty extraction result is different from an extractor that does not yet exist."* |
+| **B4** | The §8.6 context budget gets **P1's sixteenth ceiling key**, `evidence.context_window`, **and** goes in the run's `config` so it is fingerprinted. | A ceiling outside the fingerprint makes two runs at different context widths look identical to §3.4's cache key and §8.5's replay — a silent wrong answer. P4 still holds no number: the value arrives as data. |
+| **B8** | **Done-means 5 is amended.** The nineteen worked examples cover the zones and source types the table reaches, not "all 14". | The five missing zones (`path`, `header_footer`, `link`, `annotation`, `reference_list`) and `contacts` are authored **when P5 actually extracts those formats**, from real output. P4 stays the owner of the shape; P5 supplies the first honest instance. Inventing them now would have six extractor authors building against a fabrication. |
+| **C1 (OQ3)** | **One reliability vocabulary.** §3.13's six, and extractors may stamp only `direct` \| `possible`. | Confirms what D11 and conformance rule 3 already implement. **P6's SPEC must state it** so nobody grows a seventh enum. A PDF heading must not be born `validated`. |
+| **C2 (OQ4)** | **Not yet ratified — P7 decides.** Direction of travel: **file class as default, observation-level override.** | §8.4's excerpt redaction needs per-observation granularity; a file-only class cannot send page 1 to a model while holding back page 3. P4 added no privacy field, so both remain addressable. Must be settled **before P7's schema.** |
+| **C3 (OQ5)** | **No — a user corrects a fact, never an observation.** | §8.7 lists no "correct an extracted value"; §3.13's `user_confirmed` is a fact state; §2.8 forbids overwriting `raw_value`. A better OCR pass **supersedes** (new row, old readable) per §8.2. A second way to mint evidence would fight RAW-2. |
+| **C4 (OQ6)** | **Settled — a ninth `completeness` value: `dataless`.** | None of the eight meant "the bytes are not on this machine": `deferred` is budget, `unreadable` is damage, `unsupported` is a missing extractor. The word is `dataless` because P1 (`DatalessFileRefused`), P3 (`scan_agent.dataless`) and `11-ops-runtime.md` §5 already use it — coining `not_local` beside them would be two vocabularies for one concept. It carries **zero observations** and P2's count line gained `runs_dataless`. |
+
+**Also settled here:** `metadata_only` carries **zero** observations from the stopping extractor
+(rule 9's note and worked example 19 disagreed; example 19 is the frozen reading), and the file
+stays indexed through its `filesystem` observations.
