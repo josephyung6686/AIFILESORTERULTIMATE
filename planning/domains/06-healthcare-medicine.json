@@ -160,8 +160,8 @@
           "field": "specimen type",
           "type": "string",
           "example": "the labeled specimen descriptor",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "result status",
@@ -263,8 +263,8 @@
           "field": "body region",
           "type": "string",
           "example": "the labeled examined region",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "study date",
@@ -667,8 +667,8 @@
           "field": "records released",
           "type": "string",
           "example": "the labeled list of records enclosed or authorised",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         }
       ],
       "recognition": {
@@ -870,8 +870,8 @@
           "field": "procedure",
           "type": "string",
           "example": "the labeled procedure-performed field",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "procedure date",
@@ -1127,8 +1127,8 @@
           "field": "service type",
           "type": "string",
           "example": "the labeled service or modality as the document names it",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "session date",
@@ -1244,15 +1244,15 @@
           "field": "tooth or quadrant",
           "type": "string",
           "example": "the labeled tooth or quadrant notation",
-          "reliability_ceiling": "validated",
-          "why": "Confirmed by the charting-grid rule; a tooth number in prose is not a dental fact. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "Read from the labeled notation. The charting-grid rule activates the domain; it does not confirm this value. a tooth number in prose is not a dental fact. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "procedure",
           "type": "string",
           "example": "the labeled procedure as recorded or claimed",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "service date",
@@ -1487,8 +1487,8 @@
           "field": "emergency plan",
           "type": "string",
           "example": "the labeled action-plan document, where one exists",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         }
       ],
       "recognition": {
@@ -1580,8 +1580,8 @@
           "field": "monitoring measure",
           "type": "string",
           "example": "the labeled measure the log records",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "review date",
@@ -2612,8 +2612,8 @@
           "field": "certification purpose",
           "type": "string",
           "example": "the labeled purpose the letter serves",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "certification period",
@@ -2729,8 +2729,8 @@
           "field": "assessment type",
           "type": "string",
           "example": "the labeled assessment as the form names it",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "exposure agent",
@@ -3120,8 +3120,8 @@
           "field": "dispute status",
           "type": "string",
           "example": "the labeled stage of a contested account",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         }
       ],
       "recognition": {
@@ -3137,7 +3137,7 @@
         "never_alone": [
           "an invoice or statement structure of any kind — this is the shape of every bill anyone receives",
           "an amount due",
-          "a hospital or practice name; §4.9's rule that §4.9: 'A university name alone should not create a group' applies to facility names for exactly the same reason",
+          "a hospital or practice name — §4.9: 'A university name alone should not create a group', and a facility name behaves in exactly the same way",
           "the word 'billing' in a filename"
         ]
       },
@@ -3326,8 +3326,8 @@
           "field": "note type",
           "type": "string",
           "example": "the labeled note type as the template names it",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "practice",
@@ -3451,8 +3451,8 @@
           "field": "plan status",
           "type": "string",
           "example": "the labeled status as recorded",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "practice",
@@ -3559,8 +3559,8 @@
           "field": "case list",
           "type": "string",
           "example": "the labeled list of cases scheduled",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "subject person",
@@ -3931,8 +3931,8 @@
           "field": "matter status",
           "type": "string",
           "example": "the labeled stage of a claim or investigation",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "reporting body",
@@ -4387,8 +4387,8 @@
           "field": "administrative function",
           "type": "string",
           "example": "the labeled function the document serves",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "counterparty",
@@ -4543,8 +4543,8 @@
           "field": "service event",
           "type": "string",
           "example": "the labeled maintenance, calibration or recall event",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "regulatory notice",
@@ -4758,8 +4758,8 @@
           "field": "report type",
           "type": "string",
           "example": "the labeled report or submission type",
-          "reliability_ceiling": "validated",
-          "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
+          "reliability_ceiling": "direct",
+          "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
           "field": "reportable condition or event",

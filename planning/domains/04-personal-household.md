@@ -347,7 +347,7 @@ Captures of a screen, whose meaning is the thing captured rather than the moment
 |---|---|---|
 | `pers.photo-event` | a real photograph whose metadata a messaging platform stripped presents as a screenshot to every negative test. The rule must therefore fire on positive tier-three evidence — an exact resolution from planning/deferred-catalogues/02-screen-resolutions.json (list_id `screen_resolutions`) — and never on the absence of camera EXIF | §2.6 “the system must not mistake the absence of EXIF for proof that an image is a screenshot” · §2.6 “Messaging platforms and downloaded web images often strip metadata from real photographs” |
 | `pers.scanned-document` | both are dense-text images with no camera EXIF. §2.6 refuses OCR density as the separator; the usable signal is the exact display resolution a scan will not have | §2.6 “OCR text density is also not a reliable screenshot detector” · §2.6 “receipts, document scans, whiteboards, and photographs of pages can all contain dense text” |
-| `acad.admissions-application` | a screenshot of a portal and the portal's own PDF export carry the same OCR text and the same institution name. The PDF is the record; the screenshot is evidence about it. §4.7 treats the portal capture as a purpose clue that helps assemble the packet, not as a second copy of the record | §4.7 “content-incoherent but purpose-coherent” |
+| `acad.college-application` | a screenshot of a portal and the portal's own PDF export carry the same OCR text and the same institution name. The PDF is the record; the screenshot is evidence about it. §4.7 treats the portal capture as a purpose clue that helps assemble the packet, not as a second copy of the record | §4.7 “content-incoherent but purpose-coherent” |
 | `pers.everyday-finance` | a photographed or captured receipt and a receipt PDF describe one transaction. The image is `captured subject = receipt` with a `referenced record`; only the PDF carries the issuer's own labeled fields | §7.3 “isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents” |
 
 **Open question** — Should the captured subject become a folder level, or stay a search facet with screenshots living flat? §7.3's `Temporary Screenshots` implies flat; §2.7's subject list is exactly the kind of vocabulary that makes good branches. This decides whether a Finder window shows a folder named after what the user screenshots, which is Joseph's call.
@@ -580,7 +580,7 @@ Immigration paperwork — visas, entry and residence permits, sponsorship letter
 |---|---|---|
 | `pers.travel-record` | a visa is obtained for a trip and files naturally beside its bookings, but §7.3 puts visas in `Protected Records` and travel bookings do not carry that constraint | §7.3 “passport scans, medical documents, account statements, visas, legal forms, or credentials” |
 | `pers.identity-document` | a passport scan submitted with a visa application is an identity document appearing inside an immigration packet — §3.11's multi-domain case, where both fact sets are kept | §3.11 “target university is not a fact that every file is expected to have” |
-| `acad.admissions-application` | a student visa packet and a university application packet share transcripts, financial evidence, and the institution name. §4.8 requires that a packet not absorb a document with a conflicting target | §4.8 “the model has not invented a date, project, purpose, or membership that the dossier does not support” |
+| `acad.college-application` | a student visa packet and a university application packet share transcripts, financial evidence, and the institution name. §4.8 requires that a packet not absorb a document with a conflicting target | §4.8 “the model has not invented a date, project, purpose, or membership that the dossier does not support” |
 
 ---
 
@@ -1590,7 +1590,7 @@ The credentials that prove who someone is — passports, national identity cards
 |---|---|---|
 | `pers.travel-visa-entry` | a passport scan is submitted inside a visa packet and belongs to both. §3.11 keeps both fact sets rather than choosing | §3.11 “target university is not a fact that every file is expected to have” |
 | `pers.genealogy` | the same certificate types serve as live credentials and as research sources; the separator is whether the subject is living | §3.15 “Finance, identity, medical, and legal material should be implemented first as safety domains” |
-| `acad.admissions-application` | §3.9's own worked packet contains an identification document alongside a transcript and a resume — the identity document is inside an application packet without ceasing to be an identity document | §3.9 “content-incoherent but purpose-coherent” |
+| `acad.college-application` | §3.9's own worked packet contains an identification document alongside a transcript and a resume — the identity document is inside an application packet without ceasing to be an identity document | §3.9 “content-incoherent but purpose-coherent” |
 | `pers.scanned-document` | every identity document in a corpus is a scan or a photograph and carries scan facts as well | §2.7 “A PDF with no extractable text and evidence of being created from a photographed page can route directly to OCR” |
 
 ---

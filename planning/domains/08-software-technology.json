@@ -14,7 +14,7 @@
     "**No handling classes.** `sensitivity` carries §2.9's phrase `potentially_sensitive` and stops. §8.4 \"The system should classify data into handling classes before LLM escalation\" -- those classes, the escalation gate, and the redaction policy are P7's under §8.4 and are never set here. The entries whose CONTENT is credentials (`soft.configuration-and-secrets`, `soft.security-finding-report`, `soft.monitoring-log-export`) are exactly the cases where that gate matters most, which is a reason to mark and stop, not a reason to decide."
   ],
   "root_signal": "a catalogue-05 `p5_evidence_markers` row matching at a directory root (kind `package manifest` or `repository marker`) TOGETHER WITH a sibling or descendant file whose extension routes to the structured-text extractor",
-  "root_signal_note": "The single deterministic signal this slice is built on, stated once and referenced by name from every entry that uses it. It is pattern PLUS corroborating context in the design's own shape - §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" -- and neither half is decisive alone: a marker without a source sibling is a stray config file, and a source sibling without a marker is exactly what §2.4 \"Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text.\". The marker rows come from `planning/deferred-catalogues/05-repository-markers.json`; none is restated here.",
+  "root_signal_note": "The single deterministic signal this slice is built on, stated once and referenced by name from every entry that uses it. It is pattern PLUS corroborating context in the design's own shape - §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" -- and neither half is decisive alone: a marker without a source sibling is a stray config file, and a source sibling without a marker is exactly what §2.4 \"Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text.\" refuses to reason from. The marker rows come from `planning/deferred-catalogues/05-repository-markers.json`; none is restated here.",
   "never_alone_universal": [
     {
       "signal": "a bare file extension",
@@ -423,7 +423,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies conditionally, not by default: an infrastructure file that inlines an endpoint, account identifier or key is credential-bearing material, and §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names credentials in the corpus this product processes. This catalogue marks and stops. The handling class and the escalation gate are P7's under §8.4 and are NOT set here.",
+      "sensitivity_why": "§2.9's phrase applies conditionally, not by default: an infrastructure file that inlines an endpoint, account identifier or key is credential-bearing material, and §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. names credentials in the corpus this product processes. This catalogue marks and stops. The handling class and the escalation gate are P7's under §8.4 and are NOT set here.",
       "authored_vs_generated": {
         "authored": [
           "the declarations a person wrote",
@@ -445,7 +445,7 @@
       "supercategory": "software-technology",
       "one_line": "Files whose job is to hold settings or credentials for software - recognised by SHAPE only, never by reading the values.",
       "provenance": "inference",
-      "design_cite": "Extends §2.4 \"Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks, and configuration files should be handled through a lighter structured-text extractor.\" which names configuration files as an extractor class, and §2.9 \"Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals.\" which names JSON, YAML, TOML and XML. Neither sentence makes configuration a DOMAIN; the domain is the inference. The sensitivity half is anchored: §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\"",
+      "design_cite": "Extends §2.4 \"Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks, and configuration files should be handled through a lighter structured-text extractor.\" which names configuration files as an extractor class, and §2.9 \"Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals.\" which names JSON, YAML, TOML and XML. Neither sentence makes configuration a DOMAIN; the domain is the inference. The sensitivity half is anchored: §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes.",
       "schema": [
         {
           "field": "project",
@@ -527,7 +527,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies to this domain more directly than to any other in the slice. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names credentials among what this product processes, and §8.4 \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" This catalogue marks and stops. A domain whose CONTENT is secrets is exactly the case where §8.4's escalation gate matters - §8.4 \"Protected material should not be included in cloud-model prompts by default\" -- and that gate, the handling class, and the redaction policy are P7's, not this catalogue's.",
+      "sensitivity_why": "§2.9's phrase applies to this domain more directly than to any other in the slice. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. names credentials among what this product processes, and §8.4 \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" This catalogue marks and stops. A domain whose CONTENT is secrets is exactly the case where §8.4's escalation gate matters - §8.4 \"Protected material should not be included in cloud-model prompts by default\" -- and that gate, the handling class, and the redaction policy are P7's, not this catalogue's.",
       "authored_vs_generated": {
         "authored": [
           "the settings a person chose",
@@ -717,7 +717,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies conditionally: deployment manifests routinely carry registry credentials and secret references. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped; the handling class is P7's.",
+      "sensitivity_why": "§2.9's phrase applies conditionally: deployment manifests routinely carry registry credentials and secret references. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped; the handling class is P7's.",
       "authored_vs_generated": {
         "authored": [
           "the image definition a person wrote",
@@ -1130,7 +1130,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies conditionally: a pipeline's connection settings and sample rows can carry credential and personal material. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped.",
+      "sensitivity_why": "§2.9's phrase applies conditionally: a pipeline's connection settings and sample rows can carry credential and personal material. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped.",
       "authored_vs_generated": {
         "authored": [
           "the transformations a person wrote",
@@ -1152,7 +1152,7 @@
       "supercategory": "software-technology",
       "one_line": "A notebook whose cells are the record of someone working a problem out, not a program someone shipped.",
       "provenance": "design",
-      "design_cite": "§2.4 \"Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks, and configuration files should be handled through a lighter structured-text extractor.\" names notebooks as an extractor class; §2.4 \"structural indicators such as repository markers, package manifests, notebook metadata, and README files\" names notebook metadata as a structural indicator class; §2.9 \"Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals.\" names Jupyter notebooks and notebook cell types literally. Catalogue 05 carries the five notebook-metadata keys as `p5n-nbformat`, `p5n-nbformat-minor`, `p5n-kernelspec`, `p5n-language-info` and `p5n-cells` -- cited, not re-derived.",
+      "design_cite": "§2.4 \"Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks, and configuration files should be handled through a lighter structured-text extractor.\" names notebooks as an extractor class; §2.4 \"structural indicators such as repository markers, package manifests, notebook metadata, and README files\" names notebook metadata as a structural indicator class; §2.9 \"Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals.\" names Jupyter notebooks and notebook cell types literally. Catalogue 05 carries the five notebook-metadata keys as `p5n-nbformat`, `p5n-nbformat-minor`, `p5n-kernelspec`, `p5n-language-info` and `p5n-cells` -- cited, not re-derived. Honest qualification on the `design` mark: the DOMAIN is named by the design; applying §3.11 \"Code files may use project, repository, programming language, and artifact type.\" to a notebook extends a row whose own words are \"Code files\". §2.9 \"Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals.\" supports the extension by treating source code, notebooks, configuration files and structured data as one routed class - but the field reuse is inference sitting inside a design-named domain.",
       "schema": [
         {
           "field": "project",
@@ -1246,7 +1246,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies conditionally and for a reason peculiar to notebooks: STORED OUTPUTS embed whatever the code printed, which can include rows of personal data and connection strings that appear nowhere in the source. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped; the handling class is P7's.",
+      "sensitivity_why": "§2.9's phrase applies conditionally and for a reason peculiar to notebooks: STORED OUTPUTS embed whatever the code printed, which can include rows of personal data and connection strings that appear nowhere in the source. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped; the handling class is P7's.",
       "authored_vs_generated": {
         "authored": [
           "the code cells a person wrote",
@@ -1359,7 +1359,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies conditionally: training data and evaluation dumps can hold personal records. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped.",
+      "sensitivity_why": "§2.9's phrase applies conditionally: training data and evaluation dumps can hold personal records. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped.",
       "authored_vs_generated": {
         "authored": [
           "the training script",
@@ -1461,7 +1461,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies and this entry is the slice's clearest case: a tabular file of rows is the shape personal data arrives in. §2.9 requires contact formats to be 'normally privacy-protected rather than used to create folder proposals', and a CSV of contacts is the same content in a different container. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped; the class and the gate are P7's.",
+      "sensitivity_why": "§2.9's phrase applies and this entry is the slice's clearest case: a tabular file of rows is the shape personal data arrives in. §2.9 requires contact formats to be 'normally privacy-protected rather than used to create folder proposals', and a CSV of contacts is the same content in a different container. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped; the class and the gate are P7's.",
       "authored_vs_generated": {
         "authored": [
           "the dataset a person assembled or collected",
@@ -1666,7 +1666,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies conditionally: an eval fixture built from the user's real corpus contains their real content by construction. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped.",
+      "sensitivity_why": "§2.9's phrase applies conditionally: an eval fixture built from the user's real corpus contains their real content by construction. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped.",
       "authored_vs_generated": {
         "authored": [
           "the prompts a person wrote",
@@ -2444,7 +2444,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies conditionally: runbooks routinely carry access instructions and endpoint details. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped.",
+      "sensitivity_why": "§2.9's phrase applies conditionally: runbooks routinely carry access instructions and endpoint details. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped.",
       "authored_vs_generated": {
         "authored": [
           "the procedures people wrote"
@@ -2529,7 +2529,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies: logs contain user identifiers, addresses, request contents and tokens. §2.9 \"treating addresses and message content as potentially sensitive\" and §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped - and this is one of the cases where §8.4's escalation gate matters most, because a log is exactly the kind of file whose content should not be sent anywhere. That gate is P7's.",
+      "sensitivity_why": "§2.9's phrase applies: logs contain user identifiers, addresses, request contents and tokens. §2.9 \"treating addresses and message content as potentially sensitive\" and §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped - and this is one of the cases where §8.4's escalation gate matters most, because a log is exactly the kind of file whose content should not be sent anywhere. That gate is P7's.",
       "authored_vs_generated": {
         "authored": [
           "the decision to save this export, and any note saying why - usually nothing else"
@@ -2722,7 +2722,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies, and this is among the strongest cases in the slice: a findings report is a description of how to compromise the user's own systems. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names credentials among what the product handles and §8.4 \"Protected material should not be included in cloud-model prompts by default\" -- but the handling class, the redaction policy and the model-escalation gate are P7's under §8.4 and are NOT set here. Marked and stopped.",
+      "sensitivity_why": "§2.9's phrase applies, and this is among the strongest cases in the slice: a findings report is a description of how to compromise the user's own systems. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. names credentials among what the product handles and §8.4 \"Protected material should not be included in cloud-model prompts by default\" -- but the handling class, the redaction policy and the model-escalation gate are P7's under §8.4 and are NOT set here. Marked and stopped.",
       "authored_vs_generated": {
         "authored": [
           "the findings and remediation advice the assessor wrote"
@@ -2913,7 +2913,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies: compliance evidence bundles account records, access lists and personnel data. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped.",
+      "sensitivity_why": "§2.9's phrase applies: compliance evidence bundles account records, access lists and personnel data. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped.",
       "authored_vs_generated": {
         "authored": [
           "the policies and narratives a person wrote",
@@ -3178,7 +3178,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies conditionally: shell history, credential helpers and host aliases live among dotfiles. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped.",
+      "sensitivity_why": "§2.9's phrase applies conditionally: shell history, credential helpers and host aliases live among dotfiles. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped.",
       "authored_vs_generated": {
         "authored": [
           "every configuration choice in them - this is one of the most purely authored domains in the slice, file for file"
@@ -3663,7 +3663,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies conditionally: a network diagram is a map of an organisation's internal topology, including addresses and access paths. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped.",
+      "sensitivity_why": "§2.9's phrase applies conditionally: a network diagram is a map of an organisation's internal topology, including addresses and access paths. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped.",
       "authored_vs_generated": {
         "authored": [
           "the diagram a person drew"
@@ -3762,7 +3762,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies: asset registers name people and their assigned equipment, and licence inventories carry licence keys. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped.",
+      "sensitivity_why": "§2.9's phrase applies: asset registers name people and their assigned equipment, and licence inventories carry licence keys. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped.",
       "authored_vs_generated": {
         "authored": [
           "the inventory a person compiled and maintains"
@@ -3853,7 +3853,7 @@
         }
       ],
       "sensitivity": "potentially_sensitive",
-      "sensitivity_why": "§2.9's phrase applies directly and by the design's own words for this exact material: §2.9 \"treating addresses and message content as potentially sensitive\" A support ticket IS addresses and message content. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" Marked and stopped; the handling class and the gate are P7's.",
+      "sensitivity_why": "§2.9's phrase applies directly and by the design's own words for this exact material: §2.9 \"treating addresses and message content as potentially sensitive\" A support ticket IS addresses and message content. §8.4 \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" names that material among what this product processes. Marked and stopped; the handling class and the gate are P7's.",
       "authored_vs_generated": {
         "authored": [
           "what the requester and the responder wrote"

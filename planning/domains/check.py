@@ -130,8 +130,45 @@ def check_file(path):
     return problems
 
 
+def cross_file(files):
+    """Checks no single file can make. Fifteen authors, one namespace."""
+    problems = []
+    owner, supers = {}, {}
+    for path in files:
+        try:
+            doc = json.loads(path.read_text())
+        except Exception:
+            continue
+        sup = doc.get("supercategory")
+        for e in doc.get("entries", []):
+            eid = e.get("id")
+            if eid in owner:
+                problems.append(f"id {eid!r} is claimed by {owner[eid]} and {path.name}")
+            owner[eid] = path.name
+            if e.get("supercategory") != sup:
+                problems.append(f"{path.name} {eid}: entry supercategory "
+                                f"{e.get('supercategory')!r} != file's {sup!r}")
+            supers.setdefault(sup, 0)
+            supers[sup] += 1
+    # A collision that names a domain nobody authored is a dangling promise: §4.8's
+    # "an application packet does not silently absorb a document with a conflicting
+    # target institution" only works if both sides of the pair exist.
+    for path in files:
+        try:
+            doc = json.loads(path.read_text())
+        except Exception:
+            continue
+        for e in doc.get("entries", []):
+            for c in e.get("collides_with") or []:
+                other = c.get("domain") if isinstance(c, dict) else c
+                if isinstance(other, str) and other and other not in owner:
+                    problems.append(f"{path.name} {e.get('id')}: collides_with names "
+                                    f"{other!r}, which no catalogue defines")
+    return problems, owner, supers
+
+
 def main():
-    files = sorted(p for p in HERE.glob("*.json"))
+    files = sorted(p for p in HERE.glob("*.json") if not p.name.startswith("_"))
     if not files:
         print("no catalogue files yet")
         return 0
@@ -151,8 +188,14 @@ def main():
         if len(problems) > 6:
             print(f"       … and {len(problems) - 6} more")
         fails += len(problems)
-    print(f"\n{len(files)} files, {total} entries, {fails} problems")
-    return 1 if fails else 0
+    problems, owner, supers = cross_file(files)
+    print(f"\n{len(files)} files, {total} entries, {fails} in-file problems")
+    print(f"cross-file: {len(owner)} unique ids, {len(problems)} problems")
+    for pr in problems[:12]:
+        print(f"  - {pr}")
+    if len(problems) > 12:
+        print(f"  … and {len(problems) - 12} more")
+    return 1 if (fails or problems) else 0
 
 
 if __name__ == "__main__":

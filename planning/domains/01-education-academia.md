@@ -186,6 +186,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a validated course code co-occurring with a teaching-side work-type term ('answer key', 'grade sheet', 'roster', 'course proposal', 'office hours')
 - a validated course code co-occurring with a term and with the corpus holder's own name in an instructor-labelled slot — §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field'
 - a section-code pattern co-occurring with a validated course code and an academic-term pattern
+- a gazetteer school name matched at a word boundary co-occurring with a validated course code and a teaching-side work-type term
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -462,6 +463,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a professional-degree pattern ('JD', 'MD', 'MBA', 'DDS', 'PharmD') co-occurring with a gazetteer school name at a word boundary
 - a board-exam name co-occurring with a professional-degree name or a licensing-body name
 - a licensing-body name co-occurring with a registration, eligibility or requirement term
+- a cohort pattern ('Class of', a lettered or numbered section) co-occurring with a professional-degree name and a gazetteer school name
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -528,6 +530,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a unit term ('CEU', 'CPD', 'CME', 'contact hours', 'continuing education') co-occurring with a completion or attendance term
 - a credentialing-body name co-occurring with a renewal, reporting or compliance term
 - a credential-number pattern co-occurring with a credentialing-body name at a word boundary
+- an activity title in the document title zone co-occurring with a unit term and a named provider — §3.7 'a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference'
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -597,6 +600,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a provider name co-occurring with a cohort or module term at a word boundary
 - a bootcamp vocabulary term ('cohort', 'sprint', 'capstone', 'career services') co-occurring with a named track
 - a module or week pattern co-occurring with a provider name
+- a deliverable term ('capstone', 'portfolio piece', 'code review', 'exercise') co-occurring with a named module or track
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -1351,6 +1355,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a registrar term ('official transcript', 'academic record', 'registrar', 'enrolment verification') co-occurring with a gazetteer school name at a word boundary
 - an official-status term ('official', 'unofficial', 'issued to') co-occurring with a registrar term
 - a degree-verification term co-occurring with a school name and an issue-date pattern
+- a send-to term ('issued to', 'sent to', 'delivered to', 'recipient') co-occurring with a registrar term and a second gazetteer institution name distinct from the issuer
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -1422,6 +1427,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a transfer-credit term ('transfer credit', 'credit evaluation', 'course equivalency', 'articulation') co-occurring with a gazetteer school name at a word boundary
 - an equivalence statement pattern (one course code mapped to another) co-occurring with a transfer-credit term
 - a credit-basis term ('advanced placement', 'credit by examination', 'dual enrolment') co-occurring with a school name and a course code
+- a role-assigning term ('transferred from', 'awarded by', 'accepted by', 'evaluated for') co-occurring with a transfer-credit term and the institution name it governs — the pair is what separates the sending role from the receiving one, per §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.'
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -1627,6 +1633,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a bursar term ('student account', 'bursar', 'tuition statement', 'account balance', 'payment plan') co-occurring with a gazetteer school name at a word boundary
 - a billing record-type term co-occurring with a school name and an academic-term pattern
 - a hold term ('registration hold', 'account hold') co-occurring with a school name
+- a charge-category term ('tuition', 'housing', 'student fee', 'health insurance', 'meal plan') co-occurring with a bursar term and an academic-term pattern
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -1968,6 +1975,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a study-abroad term ('study abroad', 'exchange', 'host institution', 'learning agreement') co-occurring with a gazetteer institution name at a word boundary
 - a student-visa term co-occurring with a host-institution name or a country name
 - a learning-agreement or credit-approval term co-occurring with two distinct institution names
+- a programme-provider name co-occurring with a study-abroad term and a host-institution or country name, where the provider name is neither institution
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -2440,6 +2448,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - an accommodations term ('accommodation', 'access services', 'disability services', 'accommodation letter') co-occurring with a gazetteer school name at a word boundary
 - an accommodation-type term ('extended time', 'note-taker', 'alternative format', 'reduced-distraction setting') co-occurring with an access-services term
 - an accommodation-letter term co-occurring with a validated course code
+- an approval-period term ('valid through', 'approved for', 'renewal due') co-occurring with an access-services term and an academic-term or date pattern
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -2510,6 +2519,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a conduct-process term ('academic integrity', 'academic misconduct', 'honour code', 'student conduct', 'hearing panel') co-occurring with a gazetteer school name at a word boundary
 - a case-reference pattern co-occurring with a conduct-process term
 - a stage term ('notice of allegation', 'finding', 'sanction', 'appeal') co-occurring with a conduct-process term
+- a validated course code co-occurring with a conduct-process term and a case-reference pattern — all three, because a course code beside the word 'integrity' is most often a syllabus policy paragraph
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 
@@ -2582,6 +2592,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 - a recognition term ('registered organisation', 'club recognition', 'student activities') co-occurring with a gazetteer school name
 - an officer term ('president', 'treasurer', 'officer transition') co-occurring with a named organisation
 - an event name co-occurring with a named organisation and a planning or budget term
+- an activity-year pattern co-occurring with a named organisation and an officer or membership term
 
 *Needs the LLM — language interpretation a rule cannot do safely:*
 

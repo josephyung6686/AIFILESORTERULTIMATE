@@ -463,7 +463,7 @@
           "design_cite": "§2.6 “OCR text density is also not a reliable screenshot detector” · §2.6 “receipts, document scans, whiteboards, and photographs of pages can all contain dense text”"
         },
         {
-          "domain": "acad.admissions-application",
+          "domain": "acad.college-application",
           "signal": "a screenshot of a portal and the portal's own PDF export carry the same OCR text and the same institution name. The PDF is the record; the screenshot is evidence about it. §4.7 treats the portal capture as a purpose clue that helps assemble the packet, not as a second copy of the record",
           "design_cite": "§4.7 “content-incoherent but purpose-coherent”"
         },
@@ -1055,7 +1055,7 @@
           "design_cite": "§3.11 “target university is not a fact that every file is expected to have”"
         },
         {
-          "domain": "acad.admissions-application",
+          "domain": "acad.college-application",
           "signal": "a student visa packet and a university application packet share transcripts, financial evidence, and the institution name. §4.8 requires that a packet not absorb a document with a conflicting target",
           "design_cite": "§4.8 “the model has not invented a date, project, purpose, or membership that the dossier does not support”"
         }
@@ -3576,7 +3576,7 @@
           "design_cite": "§3.15 “Finance, identity, medical, and legal material should be implemented first as safety domains”"
         },
         {
-          "domain": "acad.admissions-application",
+          "domain": "acad.college-application",
           "signal": "§3.9's own worked packet contains an identification document alongside a transcript and a resume — the identity document is inside an application packet without ceasing to be an identity document",
           "design_cite": "§3.9 “content-incoherent but purpose-coherent”"
         },

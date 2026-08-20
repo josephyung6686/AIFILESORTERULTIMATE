@@ -9,7 +9,7 @@
     "design": "A sentence in the design names this domain, or names its artifact class as a research artifact.",
     "inference": "A subdivision of the design's named Research domain, reached by narrowing an artifact class or a stage the design names.",
     "proposal": "A domain the design names nowhere. It exists because real research corpora contain it.",
-    "note": "Provenance describes the DOMAIN, not its fields. Any field beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) is an addition and says so in its own `why`, prefixed `Beyond §3.11's literal Research row`. Fields marked `§3.11 literal` are quoted from “Research files may use project, stage, artifact type, lab, and venue.”"
+    "note": "Provenance describes the DOMAIN, not its fields. Every field's own `why` opens with its field-level provenance: **§3.11 literal** means the field name is quoted from “Research files may use project, stage, artifact type, lab, and venue.” (or, where said so, from another §3.11 row); **Added field** means it is beyond §3.11's Research row and is authored in this catalogue, not quoted from the design."
   },
   "universal_fields_note": "§3.11's universal set — file type, creation date, language, duplicate family, version family, sensitivity status — applies to every file and is NOT repeated in any entry's `schema`. Only domain-activated fields are listed.",
   "reliability_ceiling_note": "§3.13's states, and the ceiling means the highest state a PRODUCER may write; `user_confirmed` is always reachable by a user gesture and is never listed. `direct` = a labelled metadata slot or labelled form field (§3.13's own definition). `validated` = a deterministic pattern plus a context check, and every `validated` field has a matching rule in its entry's `recognition.deterministic`. `llm_supported` = reachable only by language interpretation. `possible` = a clue that may never become a fact on its own.",
@@ -43,42 +43,44 @@
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. The organising identifier of the whole supercategory. §4.2: “For a research group, it might be a manuscript, abstract, or protocol with a known project identifier.” makes a known project identifier the seed of a research group."
+          "why": "**§3.11 literal.** The organising identifier of the whole supercategory. §4.2: “For a research group, it might be a manuscript, abstract, or protocol with a known project identifier.” makes a known project identifier the seed of a research group."
         },
         {
           "field": "stage",
           "type": "string",
           "example": "in preparation",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. Where the work sits in its own lifecycle. §5.4 puts it second in the Research template, so it is a dimension, not only metadata."
+          "why": "**§3.11 literal.** Where the work sits in its own lifecycle. §5.4 puts it second in the Research template, so it is a dimension, not only metadata."
         },
         {
           "field": "artifact type",
           "type": "string",
           "example": "manuscript",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. What kind of research object the file is. Every sub-domain below is, formally, one authored value of this field plus the extra fields that value legitimises."
+          "why": "**§3.11 literal.** What kind of research object the file is. Every sub-domain below is, formally, one authored value of this field plus the extra fields that value legitimises."
         },
         {
           "field": "lab",
           "type": "string",
           "example": "Chen Lab",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. §3.15 names “research and lab work” as one launch domain; `lab` is the group the work was done in, not its author (§3.8)."
+          "why": "**§3.11 literal.** §3.15 names “research and lab work” as one launch domain; `lab` is the group the work was done in, not its author (§3.8)."
         },
         {
           "field": "venue",
           "type": "string",
           "example": "Nature Communications",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. §4.9 names 'research venue' as one of the roles a single institution name can play, which is exactly why venue is its own field and not a generic organisation."
+          "why": "**§3.11 literal.** §4.9 names 'research venue' as one of the roles a single institution name can play, which is exactly why venue is its own field and not a generic organisation."
         }
       ],
       "recognition": {
         "deterministic": [
           "a project identifier token co-occurring with research context such as 'aim', 'hypothesis', 'methods', 'results', 'principal investigator', or 'supplementary' — the same shape as §3.5: ''BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”''",
           "an existing user-created folder whose name is the project identifier and whose members carry at least two different research artifact types (§3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”)",
-          "a lab name from a validated gazetteer (§3.7, deferred) co-occurring with an affiliation or acknowledgement line"
+          "a lab name from a validated gazetteer (§3.7, deferred) co-occurring with an affiliation or acknowledgement line",
+          "a stage token ('in preparation', 'submitted', 'under review', 'in press', 'published') co-occurring with a project identifier",
+          "`venue` is §3.11's inherited Research field: a venue name from a validated gazetteer (§3.7, deferred) co-occurring with a research artifact type this entry already recognises. §4.9 is why a bare organisation name never suffices"
         ],
         "needs_llm": [
           "a file whose only project signal is prose that reads as project work without naming the project",
@@ -150,56 +152,58 @@
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. §4.5's worked group label pairs the project with the artifact types: 'PVA/RDP — Manuscripts and Figures'."
+          "why": "**§3.11 literal.** §4.5's worked group label pairs the project with the artifact types: 'PVA/RDP — Manuscripts and Figures'."
         },
         {
           "field": "manuscript title",
           "type": "string",
           "example": "Photoactivatable RDP reporters in live cells",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.13 names 'document title' as a direct source. The title is the identity of the version family, not the filename."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13 names 'document title' as a direct source. The title is the identity of the version family, not the filename."
         },
         {
           "field": "stage",
           "type": "string",
           "example": "under revision",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. §5.4 places stage between project and artifact type."
+          "why": "**§3.11 literal.** §5.4 places stage between project and artifact type."
         },
         {
           "field": "venue",
           "type": "string",
           "example": "Nature Communications",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. The journal a draft is aimed at. See the open question: aiming is not publishing."
+          "why": "**§3.11 literal.** The journal a draft is aimed at. See the open question: aiming is not publishing."
         },
         {
           "field": "draft label",
           "type": "string",
           "example": "v3 clean",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The member's position inside the version family §3.1 already makes a universal fact. A filename suffix alone is never enough — the label is only written when a revision token corroborates it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The member's position inside the version family §3.1 already makes a universal fact. A filename suffix alone is never enough — the label is only written when a revision token corroborates it."
         },
         {
           "field": "authorship position",
           "type": "string",
           "example": "first author",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The author list's ordering relative to the user is prose, not a labelled slot. §3.8 makes this an authorship role, so it may describe the file and may never become a folder level."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The author list's ordering relative to the user is prose, not a labelled slot. §3.8 makes this an authorship role, so it may describe the file and may never become a folder level."
         },
         {
           "field": "corresponding author",
           "type": "string",
           "example": "J. Chen",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled 'Corresponding author:' slot only. §3.8 authorship role; never a destination dimension."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled 'Corresponding author:' slot only. §3.8 authorship role; never a destination dimension."
         }
       ],
       "recognition": {
         "deterministic": [
           "a document-title observation co-occurring with manuscript-structure headings — 'Abstract', 'Introduction', 'Methods', 'Results', 'Discussion', 'References' — in one file",
           "a project identifier co-occurring with a revision token ('draft', 'revised', 'clean copy', 'tracked changes', 'response') in the filename or a page-one heading zone (§2.2: “A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen.”)",
-          "two files sharing a document title and differing only in a revision token, which is the version-family signal §3.1 already names"
+          "two files sharing a document title and differing only in a revision token, which is the version-family signal §3.1 already names",
+          "a stage token ('in preparation', 'submitted', 'under revision', 'accepted') co-occurring with the manuscript title",
+          "`venue` is §3.11's inherited Research field: a venue name from a validated gazetteer (§3.7, deferred) co-occurring with a cover letter, a submission portal record, or a journal-formatted template applied to the draft. §4.9 is why a bare organisation name never suffices"
         ],
         "needs_llm": [
           "an untitled .docx whose only manuscript signal is prose that reads as a Discussion section",
@@ -282,49 +286,51 @@
           "type": "string",
           "example": "Nature Communications",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. Here the venue is settled, not aspirational: a submission exists at exactly one journal at a time."
+          "why": "**§3.11 literal.** Here the venue is settled, not aspirational: a submission exists at exactly one journal at a time."
         },
         {
           "field": "manuscript id",
           "type": "string",
           "example": "NCOMMS-25-01234",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The publisher's tracking identifier. It is the only value that ties a decision letter, a revision and a proof together, and it is worthless without submission context — see never_alone."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The publisher's tracking identifier. It is the only value that ties a decision letter, a revision and a proof together, and it is worthless without submission context — see never_alone."
         },
         {
           "field": "submission stage",
           "type": "string",
           "example": "revision 1",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A narrowing of §3.11's `stage` for this domain: initial submission, revision, proof, accepted."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A narrowing of §3.11's `stage` for this domain: initial submission, revision, proof, accepted."
         },
         {
           "field": "submission date",
           "type": "date",
           "example": "2026-03-14",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled date slot only. §3.10 forbids fuzzy parsing."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled date slot only. §3.10 forbids fuzzy parsing."
         },
         {
           "field": "editor",
           "type": "string",
           "example": "Handling editor: R. Okonkwo",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled slot. §3.8 role field; never a destination dimension."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot. §3.8 role field; never a destination dimension."
         },
         {
           "field": "project",
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         }
       ],
       "recognition": {
         "deterministic": [
           "a publisher manuscript-id token co-occurring with submission context ('submitted', 'manuscript number', 'editorial office', 'corresponding author', 'decision')",
           "an EML/MSG file (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) whose subject carries a manuscript-id token and whose sender is an editorial-office address (a `cid-email` hit, planning/deferred-catalogues/06-citation-identifier-patterns.json)",
-          "a cover-letter layout — a salutation to an editor plus a manuscript title already in the corpus"
+          "a cover-letter layout — a salutation to an editor plus a manuscript title already in the corpus",
+          "`project` is §3.11's inherited Research field: it is recognised by res.research-project's rule — a project identifier token co-occurring with research context — and is not re-derived per domain; this entry's own anchors supply the corroboration",
+          "`venue` is §3.11's inherited Research field: a venue name from a validated gazetteer (§3.7, deferred) co-occurring with an editorial-office sender domain or a submission-portal record. §4.9 is why a bare organisation name never suffices"
         ],
         "needs_llm": [
           "reading a cover letter to tell an initial submission from a resubmission when no id is present",
@@ -395,49 +401,51 @@
           "type": "string",
           "example": "Nature Communications",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "manuscript id",
           "type": "string",
           "example": "NCOMMS-25-01234",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Shared with res.manuscript-submission; it is the join key of the whole submission lifecycle."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Shared with res.manuscript-submission; it is the join key of the whole submission lifecycle."
         },
         {
           "field": "review round",
           "type": "string",
           "example": "round 2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A narrowing of §3.11's `stage`. A round is only asserted when a decision or report token corroborates it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A narrowing of §3.11's `stage`. A round is only asserted when a decision or report token corroborates it."
         },
         {
           "field": "decision",
           "type": "string",
           "example": "major revision",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. An editor's decision is prose spread over a letter; there is no labelled slot to read it from."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. An editor's decision is prose spread over a letter; there is no labelled slot to read it from."
         },
         {
           "field": "reviewer designation",
           "type": "string",
           "example": "Reviewer 2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A positional label inside one report, deliberately not a person. §3.8's role rule is why this is not an `authored_by`."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A positional label inside one report, deliberately not a person. §3.8's role rule is why this is not an `authored_by`."
         },
         {
           "field": "project",
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         }
       ],
       "recognition": {
         "deterministic": [
           "a reviewer-designation token ('Reviewer 1', 'Referee 2') co-occurring with report vocabulary ('the authors should', 'my main concern', 'minor comments') in one file",
           "a decision-letter layout — an editorial salutation plus a manuscript id plus a decision term — co-occurring with a manuscript title the corpus already holds",
-          "a point-by-point document whose structure alternates quoted reviewer text with response text, co-occurring with the same manuscript id"
+          "a point-by-point document whose structure alternates quoted reviewer text with response text, co-occurring with the same manuscript id",
+          "`project` is §3.11's inherited Research field: it is recognised by res.research-project's rule — a project identifier token co-occurring with research context — and is not re-derived per domain; this entry's own anchors supply the corroboration",
+          "`venue` is §3.11's inherited Research field: a venue name from a validated gazetteer (§3.7, deferred) co-occurring with a decision-letter letterhead or an editorial-office sender domain. §4.9 is why a bare organisation name never suffices"
         ],
         "needs_llm": [
           "reading a decision letter to tell a reject-and-resubmit from a revision invitation",
@@ -506,35 +514,35 @@
           "type": "string",
           "example": "Journal of Cell Biology",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. The only §3.11 Research field that survives into this domain intact."
+          "why": "**§3.11 literal.** The only §3.11 Research field that survives into this domain intact."
         },
         {
           "field": "review assignment id",
           "type": "string",
           "example": "JCB-2026-00417",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The editorial system's handle for one assignment."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The editorial system's handle for one assignment."
         },
         {
           "field": "review role",
           "type": "string",
           "example": "handling editor",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Reviewer, handling editor, statistical reviewer and board member are distinguished by invitation prose, not by a field."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Reviewer, handling editor, statistical reviewer and board member are distinguished by invitation prose, not by a field."
         },
         {
           "field": "reviewed manuscript title",
           "type": "string",
           "example": "Mitochondrial dynamics under hypoxia",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.13's 'document title'. Deliberately a different field from res.manuscript-preparation's `manuscript title`: §3.8's rule is that the same entity type in a different role is a different field."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'. Deliberately a different field from res.manuscript-preparation's `manuscript title`: §3.8's rule is that the same entity type in a different role is a different field."
         },
         {
           "field": "review due date",
           "type": "date",
           "example": "2026-04-02",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled slot in the invitation only."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot in the invitation only."
         }
       ],
       "recognition": {
@@ -610,49 +618,51 @@
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "preprint server",
           "type": "string",
           "example": "bioRxiv",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A narrowing of §3.11's `venue` for a posting rather than a publication — and deliberately a separate field, because a paper can have both at once."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A narrowing of §3.11's `venue` for a posting rather than a publication — and deliberately a separate field, because a paper can have both at once."
         },
         {
           "field": "preprint accession",
           "type": "string",
           "example": "arXiv:2103.02702",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A `cid-arxiv-new`, `cid-arxiv-old` or `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone. The pattern is that catalogue's; the corroborating context is this one's."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-arxiv-new`, `cid-arxiv-old` or `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone. The pattern is that catalogue's; the corroborating context is this one's."
         },
         {
           "field": "preprint version",
           "type": "string",
           "example": "v2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Servers version postings explicitly. Only asserted when the accession carries the version suffix or a posting notice states it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Servers version postings explicitly. Only asserted when the accession carries the version suffix or a posting notice states it."
         },
         {
           "field": "posting date",
           "type": "date",
           "example": "2026-02-08",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the server's own stamped header line, a labelled slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the server's own stamped header line, a labelled slot."
         },
         {
           "field": "venue",
           "type": "string",
           "example": "Nature Communications",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. Present only once the preprint has a journal home."
+          "why": "**§3.11 literal.** Present only once the preprint has a journal home."
         }
       ],
       "recognition": {
         "deterministic": [
           "a `cid-arxiv-new` or `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one heading zone co-occurring with server language ('preprint', 'not certified by peer review', 'posted', 'this version')",
           "a stamped server header band on page one co-occurring with a document title the corpus already holds as a manuscript draft",
-          "a posting-confirmation email (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) whose sender is a preprint server and whose body carries the accession"
+          "a posting-confirmation email (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) whose sender is a preprint server and whose body carries the accession",
+          "`project` is §3.11's inherited Research field: it is recognised by res.research-project's rule — a project identifier token co-occurring with research context — and is not re-derived per domain; this entry's own anchors supply the corroboration",
+          "`venue` is §3.11's inherited Research field: a venue name from a validated gazetteer (§3.7, deferred) co-occurring with a later publication record naming the same document title. §4.9 is why a bare organisation name never suffices"
         ],
         "needs_llm": [
           "deciding whether an unlabelled PDF is the posted version or the draft it was made from",
@@ -705,7 +715,7 @@
       ],
       "sensitivity": "none",
       "sensitivity_why": "No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.",
-      "open_question": "Is a preprint the same version family as the article it becomes ('member of a version family', §3.1), or a separate artifact? The answer decides whether `Research/<project>/<manuscript>` holds both, or whether preprints get their own branch."
+      "open_question": "Is a preprint the same version family as the article it becomes (“member of a version family”, §3.1), or a separate artifact? The answer decides whether `Research/<project>/<manuscript>` holds both, or whether preprints get their own branch."
     },
     {
       "id": "res.published-article",
@@ -720,56 +730,57 @@
           "type": "string",
           "example": "Nature Communications",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. Settled at publication and never changes again, which is what makes it a safer dimension here than in res.manuscript-preparation."
+          "why": "**§3.11 literal.** Settled at publication and never changes again, which is what makes it a safer dimension here than in res.manuscript-preparation."
         },
         {
           "field": "doi",
           "type": "string",
           "example": "10.1038/s41586-021-03819-2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone, corroborated by publisher furniture. A DOI in a reference list is somebody else's (§2.2: “A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone, corroborated by publisher furniture. A DOI in a reference list is somebody else's (§2.2: “A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen.”)."
         },
         {
           "field": "publication year",
           "type": "date",
           "example": "2026",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled 'Published' slot or PDF metadata only — never inferred from a filename (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled 'Published' slot or PDF metadata only — never inferred from a filename (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
         },
         {
           "field": "article type",
           "type": "string",
           "example": "research article",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Research article, review, comment, editorial and letter are distinguished by publisher labelling that varies by venue."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Research article, review, comment, editorial and letter are distinguished by publisher labelling that varies by venue."
         },
         {
           "field": "citation locator",
           "type": "string",
           "example": "12(3), 45–67",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Volume, issue and pages as one string from the publisher's own citation block. Kept as one field because splitting it invites the fuzzy numeric parsing §3.10 forbids."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Volume, issue and pages as one string from the publisher's own citation block. Kept as one field because splitting it invites the fuzzy numeric parsing §3.10 forbids."
         },
         {
           "field": "authorship position",
           "type": "string",
           "example": "first author",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 authorship role; describes the file, never a folder level."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 authorship role; describes the file, never a folder level."
         },
         {
           "field": "project",
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         }
       ],
       "recognition": {
         "deterministic": [
           "a `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone co-occurring with publisher furniture ('Received', 'Accepted', 'Published online', a licence line, a citation block)",
           "a document title that is already a manuscript version family in the corpus, co-occurring with a venue name and a DOI",
-          "an offprint or reprint whose page furniture carries the venue and a citation locator"
+          "an offprint or reprint whose page furniture carries the venue and a citation locator",
+          "`project` is §3.11's inherited Research field: it is recognised by res.research-project's rule — a project identifier token co-occurring with research context — and is not re-derived per domain; this entry's own anchors supply the corroboration"
         ],
         "needs_llm": [
           "telling a review article from a research article when the venue does not label it",
@@ -844,42 +855,42 @@
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "figure label",
           "type": "string",
           "example": "Figure 3",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The figure's identity inside its parent output. Only asserted with a caption or manuscript context — see never_alone."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The figure's identity inside its parent output. Only asserted with a caption or manuscript context — see never_alone."
         },
         {
           "field": "panel label",
           "type": "string",
           "example": "3b",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Panels are edited and replaced independently of the assembled figure, so they need their own value."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Panels are edited and replaced independently of the assembled figure, so they need their own value."
         },
         {
           "field": "manuscript title",
           "type": "string",
           "example": "Photoactivatable RDP reporters in live cells",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.13's 'document title', read from the parent output. This is the field that stops a figure packet absorbing a figure from a different study."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title', read from the parent output. This is the field that stops a figure packet absorbing a figure from a different study."
         },
         {
           "field": "figure source format",
           "type": "string",
           "example": "Adobe Illustrator (.ai)",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” — the detected format is a direct observation, and it is what separates an editable source from an export."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” — the detected format is a direct observation, and it is what separates an editable source from an export."
         },
         {
           "field": "source dataset",
           "type": "string",
           "example": "cohort2_normalised.csv",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which data a plot renders is stated in a caption or a methods line, not in a slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which data a plot renders is stated in a caption or a methods line, not in a slot."
         }
       ],
       "recognition": {
@@ -968,63 +979,65 @@
           "type": "string",
           "example": "PVA cohort 2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Deliberately not `project`: a project runs several studies and a dataset belongs to exactly one. §3.8's role rule is the precedent for splitting a field rather than overloading it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Deliberately not `project`: a project runs several studies and a dataset belongs to exactly one. §3.8's role rule is the precedent for splitting a field rather than overloading it."
         },
         {
           "field": "data level",
           "type": "string",
           "example": "analysis-ready",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Raw, processed and analysis-ready copies of the same data are different files with the same name, and the level is the only thing that distinguishes them."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Raw, processed and analysis-ready copies of the same data are different files with the same name, and the level is the only thing that distinguishes them."
         },
         {
           "field": "collection date",
           "type": "date",
           "example": "2026-01-22",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled slot or a manifest field only (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot or a manifest field only (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
         },
         {
           "field": "instrument",
           "type": "string",
           "example": "Illumina NovaSeq 6000",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. What produced the data. Shared with res.instrument-output, which is why the two collide below."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. What produced the data. Shared with res.instrument-output, which is why the two collide below."
         },
         {
           "field": "dataset version",
           "type": "string",
           "example": "v2.1",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Datasets are re-released; §3.1's version family is universal, this is the released label."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Datasets are re-released; §3.1's version family is universal, this is the released label."
         },
         {
           "field": "accession",
           "type": "string",
           "example": "GSE123456",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A repository accession, corroborated by deposit context. The identifier patterns live in planning/deferred-catalogues/06-citation-identifier-patterns.json."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A repository accession, corroborated by deposit context. The identifier patterns live in planning/deferred-catalogues/06-citation-identifier-patterns.json."
         },
         {
           "field": "licence",
           "type": "string",
           "example": "CC BY 4.0",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled licence slot in a README or metadata record."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled licence slot in a README or metadata record."
         },
         {
           "field": "project",
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         }
       ],
       "recognition": {
         "deterministic": [
           "a tabular file (§2.9: spreadsheets yield “sheet names, column headers, visible cell values, table-like regions”) whose column headers co-occur with study or protocol vocabulary that a protocol document in the same project also carries",
           "a repository accession token co-occurring with deposit context ('accession', 'deposited', 'available at', 'under embargo')",
-          "a README or manifest naming a data directory together with a study identifier and a data level term"
+          "a README or manifest naming a data directory together with a study identifier and a data level term",
+          "an instrument model name in a labelled manifest or metadata field co-occurring with a study identifier",
+          "a dataset version token co-occurring with release vocabulary ('release', 'version', 'frozen', 'supersedes')"
         ],
         "needs_llm": [
           "deciding whether a table is a dataset, a results table or an extraction sheet",
@@ -1096,7 +1109,7 @@
       ],
       "sensitivity": "potentially_sensitive",
       "sensitivity_why": "§2.9's phrase `potentially sensitive`. A dataset drawn from human subjects carries participant-level rows; a dataset from a telescope carries none. The trigger is the study, not the file format, which is what the open question is about. A handling class is P7's (§8.4) and is not set here.",
-      "open_question": "Does a study's sensitivity travel to everything derived from it — datasets, statistical output, figures — or is every file classified on its own evidence? §3.9 forbids using a session as 'a basis for automatic semantic propagation'; nothing in the design says whether a sensitivity fact propagates along a derivation edge."
+      "open_question": "Does a study's sensitivity travel to everything derived from it — datasets, statistical output, figures — or is every file classified on its own evidence? §3.9 forbids using a session as “a basis for automatic semantic propagation”; nothing in the design says whether a sensitivity fact propagates along a derivation edge."
     },
     {
       "id": "res.data-dictionary",
@@ -1111,49 +1124,50 @@
           "type": "string",
           "example": "PVA cohort 2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Shared with res.dataset; it is the join."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Shared with res.dataset; it is the join."
         },
         {
           "field": "variable name",
           "type": "string",
           "example": "bl_hba1c",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled dictionary column (§2.9: spreadsheets yield “sheet names, column headers, visible cell values, table-like regions”). §3.13's “labeled form field” is the precedent for calling a named column direct."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled dictionary column (§2.9: spreadsheets yield “sheet names, column headers, visible cell values, table-like regions”). §3.13's “labeled form field” is the precedent for calling a named column direct."
         },
         {
           "field": "variable label",
           "type": "string",
           "example": "Baseline HbA1c (mmol/mol)",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The human-readable gloss, from its own labelled column."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The human-readable gloss, from its own labelled column."
         },
         {
           "field": "value coding",
           "type": "string",
           "example": "1 = yes; 2 = no; -9 = missing",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The coding scheme, from its own labelled column. This is the field that makes a dictionary re-usable years later and is the reason the domain exists separately."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The coding scheme, from its own labelled column. This is the field that makes a dictionary re-usable years later and is the reason the domain exists separately."
         },
         {
           "field": "dataset version",
           "type": "string",
           "example": "v2.1",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A dictionary is valid for one dataset version and silently wrong for another."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A dictionary is valid for one dataset version and silently wrong for another."
         },
         {
           "field": "collection instrument",
           "type": "string",
           "example": "PHQ-9",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which instrument produced the variable, where one did. Shared with res.survey-instrument."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which instrument produced the variable, where one did. Shared with res.survey-instrument."
         }
       ],
       "recognition": {
         "deterministic": [
           "a spreadsheet whose header row carries dictionary vocabulary ('variable', 'label', 'type', 'values', 'missing', 'units') co-occurring with a study identifier",
           "a structured-data file (§2.9: “notebook cell types, package manifests, schema keys, repository markers, and project-root signals”) whose schema keys name a dataset the corpus already holds",
-          "a document whose repeated block structure is name / label / coding, co-occurring with a dataset version token"
+          "a document whose repeated block structure is name / label / coding, co-occurring with a dataset version token",
+          "an instrument name in a labelled dictionary column ('source', 'instrument', 'scale') co-occurring with the variable rows it describes"
         ],
         "needs_llm": [
           "telling a codebook from a results table when the header row is unlabelled",
@@ -1250,14 +1264,14 @@
           "type": "string",
           "example": "Figure 3 regression",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. What a script is for is stated in a comment header or a README sentence, not in a slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. What a script is for is stated in a comment header or a README sentence, not in a slot."
         },
         {
           "field": "input dataset",
           "type": "string",
           "example": "cohort2_normalised.csv",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Read from a load call or a documented path; a path string alone is not evidence the file it names is the corpus's."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Read from a load call or a documented path; a path string alone is not evidence the file it names is the corpus's."
         }
       ],
       "recognition": {
@@ -1340,42 +1354,42 @@
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "notebook kernel",
           "type": "string",
           "example": "R 4.4",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §2.9: “notebook cell types, package manifests, schema keys, repository markers, and project-root signals” — the kernel is declared in the notebook's own metadata, a labelled slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “notebook cell types, package manifests, schema keys, repository markers, and project-root signals” — the kernel is declared in the notebook's own metadata, a labelled slot."
         },
         {
           "field": "analysis step",
           "type": "string",
           "example": "cohort 2 normalisation",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Stated in a markdown cell, which is prose."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in a markdown cell, which is prose."
         },
         {
           "field": "execution date",
           "type": "date",
           "example": "2026-03-02",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From execution metadata only. A notebook's saved outputs and its code can be from different days, which is precisely why this field exists here and not in res.analysis-code."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From execution metadata only. A notebook's saved outputs and its code can be from different days, which is precisely why this field exists here and not in res.analysis-code."
         },
         {
           "field": "input dataset",
           "type": "string",
           "example": "cohort2_raw.csv",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Read from a load cell."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Read from a load cell."
         },
         {
           "field": "output figure",
           "type": "string",
           "example": "Figure 3",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which figure a notebook draws is stated in a caption cell; it is the link to res.figure-and-source."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which figure a notebook draws is stated in a caption cell; it is the link to res.figure-and-source."
         }
       ],
       "recognition": {
@@ -1456,42 +1470,42 @@
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "analysis step",
           "type": "string",
           "example": "primary outcome model",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Named in the output's own header line or the script that wrote it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Named in the output's own header line or the script that wrote it."
         },
         {
           "field": "model specification",
           "type": "string",
           "example": "mixed-effects, random intercept by site",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A model is described in prose or in a formula line; it is the fact that makes one estimates table distinguishable from another."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A model is described in prose or in a formula line; it is the fact that makes one estimates table distinguishable from another."
         },
         {
           "field": "software",
           "type": "string",
           "example": "Stata 18",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the package's own banner line, which is a labelled slot — distinct from the producer/creator metadata P6's discount rule suppresses, because the banner is content, not file metadata."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the package's own banner line, which is a labelled slot — distinct from the producer/creator metadata P6's discount rule suppresses, because the banner is content, not file metadata."
         },
         {
           "field": "output type",
           "type": "string",
           "example": "regression table",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Estimates table, log, diagnostic set and power analysis are recognisable from structure."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Estimates table, log, diagnostic set and power analysis are recognisable from structure."
         },
         {
           "field": "input dataset",
           "type": "string",
           "example": "cohort2_analysis.dta",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Named in a use or load line."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Named in a use or load line."
         }
       ],
       "recognition": {
@@ -1574,49 +1588,50 @@
           "type": "string",
           "example": "Chen Lab",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. The notebook belongs to a lab, which is why §3.11's `lab` field is a real dimension here and metadata almost everywhere else."
+          "why": "**§3.11 literal.** The notebook belongs to a lab, which is why §3.11's `lab` field is a real dimension here and metadata almost everywhere else."
         },
         {
           "field": "project",
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "experiment id",
           "type": "string",
           "example": "EXP-2026-014",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The entry's own handle, and the thing that links a page to its instrument runs and samples."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The entry's own handle, and the thing that links a page to its instrument runs and samples."
         },
         {
           "field": "entry date",
           "type": "date",
           "example": "2026-03-04",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the entry's own dated header. A lab notebook is a chronological instrument by construction — see the open question."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the entry's own dated header. A lab notebook is a chronological instrument by construction — see the open question."
         },
         {
           "field": "protocol reference",
           "type": "string",
           "example": "SOP-CELL-07 v3",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which protocol the entry followed. It is the join to res.protocol-sop and the reason a notebook entry is reproducible at all."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which protocol the entry followed. It is the join to res.protocol-sop and the reason a notebook entry is reproducible at all."
         },
         {
           "field": "witness signature",
           "type": "string",
           "example": "Countersigned R.O. 2026-03-05",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled countersignature slot. It exists because a countersigned notebook is the evidentiary artifact in a patent dispute — see the collision with res.patent-disclosure."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled countersignature slot. It exists because a countersigned notebook is the evidentiary artifact in a patent dispute — see the collision with res.patent-disclosure."
         }
       ],
       "recognition": {
         "deterministic": [
           "an experiment-id token co-occurring with bench context such as 'protocol', 'reagent', 'incubated', 'aliquot', 'buffer', or 'observed' — the same shape as §3.5: ''BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”''",
           "a scanned page whose OCR text (§2.7) carries a dated header line together with an experiment-id token and a protocol reference",
-          "an electronic-notebook export whose per-entry structure carries a date, an experiment id and an author in labelled slots"
+          "an electronic-notebook export whose per-entry structure carries a date, an experiment id and an author in labelled slots",
+          "`project` is §3.11's inherited Research field: it is recognised by res.research-project's rule — a project identifier token co-occurring with research context — and is not re-derived per domain; this entry's own anchors supply the corroboration"
         ],
         "needs_llm": [
           "reading a handwritten page to recover which experiment it records",
@@ -1698,56 +1713,58 @@
           "type": "string",
           "example": "Live-cell photoactivation imaging",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.13's 'document title'."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'."
         },
         {
           "field": "protocol version",
           "type": "string",
           "example": "v3",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A protocol is only safe to follow at a stated version; running an old version is a deviation. Only asserted when a version or effective-date line corroborates it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A protocol is only safe to follow at a stated version; running an old version is a deviation. Only asserted when a version or effective-date line corroborates it."
         },
         {
           "field": "lab",
           "type": "string",
           "example": "Chen Lab",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "approving body",
           "type": "string",
           "example": "IACUC 2026-0088",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which committee cleared the procedure, where one did. It is the join to res.irb-ethics and is absent for most bench SOPs."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which committee cleared the procedure, where one did. It is the join to res.irb-ethics and is absent for most bench SOPs."
         },
         {
           "field": "effective date",
           "type": "date",
           "example": "2026-01-15",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled effective-date or revision slot (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled effective-date or revision slot (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
         },
         {
           "field": "equipment and reagents",
           "type": "string",
           "example": "NovaSeq 6000; Hoechst 33342",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Listed in prose or a materials table; extracting it is language work."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Listed in prose or a materials table; extracting it is language work."
         },
         {
           "field": "project",
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. Often absent: a good SOP outlives the project that wrote it."
+          "why": "**§3.11 literal.** Often absent: a good SOP outlives the project that wrote it."
         }
       ],
       "recognition": {
         "deterministic": [
           "a numbered-step structure co-occurring with procedural imperatives ('add', 'incubate', 'centrifuge', 'store at', 'repeat') and a version or effective-date line",
           "a `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title zone co-occurring with the word 'protocol' in the same heading",
-          "a materials-and-methods block co-occurring with a protocol title that a lab-notebook entry in the corpus already references"
+          "a materials-and-methods block co-occurring with a protocol title that a lab-notebook entry in the corpus already references",
+          "an approving-body identifier on the protocol's own cover page co-occurring with an approval or effective-date line",
+          "`project` is §3.11's inherited Research field: it is recognised by res.research-project's rule — a project identifier token co-occurring with research context — and is not re-derived per domain; this entry's own anchors supply the corroboration"
         ],
         "needs_llm": [
           "telling a bench SOP from a methods section extracted out of a manuscript",
@@ -1829,56 +1846,57 @@
           "type": "string",
           "example": "Zeiss LSM 980",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Model identity from a vendor metadata slot or a run manifest. Shared with res.dataset and res.facility-booking."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Model identity from a vendor metadata slot or a run manifest. Shared with res.dataset and res.facility-booking."
         },
         {
           "field": "run id",
           "type": "string",
           "example": "RUN-20260304-002",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the acquisition software's own labelled field."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the acquisition software's own labelled field."
         },
         {
           "field": "acquisition date",
           "type": "date",
           "example": "2026-03-04",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From acquisition metadata. This is the one research domain where the date is intrinsic to the artifact rather than descriptive of it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From acquisition metadata. This is the one research domain where the date is intrinsic to the artifact rather than descriptive of it."
         },
         {
           "field": "sample id",
           "type": "string",
           "example": "PVA-C2-014",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. What was on the stage. The join to res.sample-specimen."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. What was on the stage. The join to res.sample-specimen."
         },
         {
           "field": "acquisition parameters",
           "type": "string",
           "example": "63x/1.4 oil, 405/488 nm",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the vendor metadata block, a labelled slot. It is the field that makes a run re-interpretable years later."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the vendor metadata block, a labelled slot. It is the field that makes a run re-interpretable years later."
         },
         {
           "field": "facility",
           "type": "string",
           "example": "Imaging Core",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Where the run happened; the join to res.facility-booking and to recharge records."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Where the run happened; the join to res.facility-booking and to recharge records."
         },
         {
           "field": "operator",
           "type": "string",
           "example": "J. Chen",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role field, never a destination dimension."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension."
         }
       ],
       "recognition": {
         "deterministic": [
           "a vendor-specific extension or file signature (§2.9: “inspect the real MIME type or file signature where possible”) co-occurring with a run-id token and an acquisition timestamp in the file's own metadata or a sibling manifest",
           "a labelled instrument-model metadata slot co-occurring with a sample id the corpus already holds",
-          "a run directory whose manifest names an instrument together with an acquisition date and a sample list"
+          "a run directory whose manifest names an instrument together with an acquisition date and a sample list",
+          "a facility name in a labelled run-manifest field or on a facility letterhead, co-occurring with an instrument model"
         ],
         "needs_llm": [
           "deciding what an unreadable proprietary blob is when only its neighbours carry evidence",
@@ -1945,7 +1963,7 @@
       ],
       "sensitivity": "potentially_sensitive",
       "sensitivity_why": "§2.9's phrase `potentially sensitive`. Clinical imaging output carries patient identifiers inside the file's own headers, which travel with the file whether or not anything reads them. A handling class is P7's (§8.4) and is not set here.",
-      "open_question": "Raw instrument output is often the largest and least re-readable part of a corpus, and §2.9 already permits 'safe metadata-only indexing' for formats nothing can open. Does it enter the destination tree at all, or stay where the instrument wrote it and get indexed in place?"
+      "open_question": "Raw instrument output is often the largest and least re-readable part of a corpus, and §2.9 already permits “safe metadata-only indexing” for formats nothing can open. Does it enter the destination tree at all, or stay where the instrument wrote it and get indexed in place?"
     },
     {
       "id": "res.sample-specimen",
@@ -1960,49 +1978,49 @@
           "type": "string",
           "example": "PVA-C2-014-A3",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The physical item's handle. Aliquots extend it, which is why lineage is its own field."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The physical item's handle. Aliquots extend it, which is why lineage is its own field."
         },
         {
           "field": "specimen type",
           "type": "string",
           "example": "cryopreserved PBMC",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Stated in prose or a free-text column; there is no standard slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in prose or a free-text column; there is no standard slot."
         },
         {
           "field": "collection date",
           "type": "date",
           "example": "2026-01-22",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled column (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled column (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
         },
         {
           "field": "storage location",
           "type": "string",
           "example": "Freezer B / Rack 3 / Box 12",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled column. It is the field the record exists to hold and the one that goes stale fastest."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled column. It is the field the record exists to hold and the one that goes stale fastest."
         },
         {
           "field": "study",
           "type": "string",
           "example": "PVA cohort 2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which study the material belongs to; shared with res.dataset."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which study the material belongs to; shared with res.dataset."
         },
         {
           "field": "subject code",
           "type": "string",
           "example": "C2-014",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A de-identified participant key from a labelled column. It is still a key to a person, which is why this domain is marked below."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A de-identified participant key from a labelled column. It is still a key to a person, which is why this domain is marked below."
         },
         {
           "field": "aliquot lineage",
           "type": "string",
           "example": "derived from PVA-C2-014",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Parent-child relationships between physical items are described, not encoded."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Parent-child relationships between physical items are described, not encoded."
         }
       ],
       "recognition": {
@@ -2086,63 +2104,65 @@
           "type": "string",
           "example": "NIH / NIGMS",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The body being asked. It is the root of the whole branch and the one value that is stable across a decade of resubmissions."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The body being asked. It is the root of the whole branch and the one value that is stable across a decade of resubmissions."
         },
         {
           "field": "opportunity number",
           "type": "string",
           "example": "PA-24-247",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The funder's call identifier — distinct from the award number, which only exists after success."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The funder's call identifier — distinct from the award number, which only exists after success."
         },
         {
           "field": "programme",
           "type": "string",
           "example": "R01",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The scheme applied to; it determines the entire document set."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The scheme applied to; it determines the entire document set."
         },
         {
           "field": "period",
           "type": "string",
           "example": "2027-2030",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The proposed period of performance, from a labelled slot. Not a date fact: it is a span the funder defines (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The proposed period of performance, from a labelled slot. Not a date fact: it is a span the funder defines (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
         },
         {
           "field": "proposal stage",
           "type": "string",
           "example": "full proposal",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Letter of intent, full proposal, resubmission and just-in-time are different document sets under one identity."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Letter of intent, full proposal, resubmission and just-in-time are different document sets under one identity."
         },
         {
           "field": "host institution",
           "type": "string",
           "example": "Columbia University",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The applicant institution — §3.8's role split: this is not the funder and not the collaborator."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The applicant institution — §3.8's role split: this is not the funder and not the collaborator."
         },
         {
           "field": "principal investigator",
           "type": "string",
           "example": "J. Chen",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role field, never a destination dimension."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension."
         },
         {
           "field": "submission deadline",
           "type": "date",
           "example": "2026-10-05",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled slot in the call."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot in the call."
         }
       ],
       "recognition": {
         "deterministic": [
           "a funder opportunity-number token co-occurring with proposal context ('specific aims', 'budget justification', 'period of performance', 'principal investigator', 'facilities and resources')",
           "an existing user-created folder whose name carries a funder acronym together with a period, whose members include a budget and a narrative (§3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”)",
-          "a funder-template document whose section headings match the call the corpus already holds"
+          "a funder-template document whose section headings match the call the corpus already holds",
+          "a programme or scheme token ('R01', 'Consolidator Grant', 'Standard Grant') co-occurring with the funder's opportunity number",
+          "an applicant-institution name in a labelled applicant-organisation field, distinct from the funder's own name (§3.8: “authored_by and target_school, or our_firm and client”)"
         ],
         "needs_llm": [
           "telling a resubmission from a fresh application when neither states it",
@@ -2225,42 +2245,42 @@
           "type": "string",
           "example": "NIH / NIGMS",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Shared with res.grant-proposal."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Shared with res.grant-proposal."
         },
         {
           "field": "award number",
           "type": "string",
           "example": "R01GM123456",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Exists only after success, which is exactly what separates this domain from the proposal one."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Exists only after success, which is exactly what separates this domain from the proposal one."
         },
         {
           "field": "reporting period",
           "type": "string",
           "example": "2028-04-01 to 2029-03-31",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled budget-period or reporting-period slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled budget-period or reporting-period slot."
         },
         {
           "field": "report type",
           "type": "string",
           "example": "annual progress report",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Progress, financial, final and closeout reports have different recipients and different retention."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Progress, financial, final and closeout reports have different recipients and different retention."
         },
         {
           "field": "compliance requirement",
           "type": "string",
           "example": "public access deposit within twelve months",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Requirements are stated in prose in award terms; extracting one is language work."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Requirements are stated in prose in award terms; extracting one is language work."
         },
         {
           "field": "personnel effort",
           "type": "string",
           "example": "2.4 calendar months, J. Chen",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled effort column. §3.8 role data; never a destination dimension."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled effort column. §3.8 role data; never a destination dimension."
         }
       ],
       "recognition": {
@@ -2343,56 +2363,57 @@
           "type": "string",
           "example": "IRB-2026-0412",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The committee's handle. Every document in the file carries it, which makes it the group's anchor in §4.2's sense."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The committee's handle. Every document in the file carries it, which makes it the group's anchor in §4.2's sense."
         },
         {
           "field": "review body",
           "type": "string",
           "example": "IACUC",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. IRB, IACUC, IBC and external ethics committees have different scopes and different documents."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. IRB, IACUC, IBC and external ethics committees have different scopes and different documents."
         },
         {
           "field": "review type",
           "type": "string",
           "example": "expedited",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Exempt, expedited and full-board determine what else must exist."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Exempt, expedited and full-board determine what else must exist."
         },
         {
           "field": "approval date",
           "type": "date",
           "example": "2026-02-11",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled approval slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled approval slot."
         },
         {
           "field": "expiry date",
           "type": "date",
           "example": "2027-02-10",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled slot. An expired approval is the single most consequential stale fact in a research corpus."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot. An expired approval is the single most consequential stale fact in a research corpus."
         },
         {
           "field": "amendment number",
           "type": "string",
           "example": "Amendment 3",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Approvals accrete amendments; each is a version of the approved protocol."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Approvals accrete amendments; each is a version of the approved protocol."
         },
         {
           "field": "study",
           "type": "string",
           "example": "PVA cohort 2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The join to res.dataset and res.human-subjects-consent."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.dataset and res.human-subjects-consent."
         }
       ],
       "recognition": {
         "deterministic": [
           "a protocol-number token co-occurring with review-body vocabulary ('Institutional Review Board', 'IRB', 'IACUC', 'ethics committee', 'approved', 'continuing review', 'determination')",
           "a letterhead OCR region (§2.7) naming a review body co-occurring with an approval or expiry date line",
-          "an amendment document whose protocol number matches an approval already in the corpus"
+          "an amendment document whose protocol number matches an approval already in the corpus",
+          "a study title or identifier in an approval letter's labelled subject line, matching a study the corpus already holds"
         ],
         "needs_llm": [
           "telling an exemption determination from an approval",
@@ -2454,7 +2475,7 @@
       ],
       "sensitivity": "potentially_sensitive",
       "sensitivity_why": "§2.9's phrase `potentially sensitive`. An ethics file carries the participant-facing protocol, investigator personal data and adverse-event narratives. A handling class is P7's (§8.4) and is not set here.",
-      "open_question": "§3.15 makes “Finance, identity, medical, and legal material” safety domains — 'detected and protected before any cloud or automated placement decision is allowed'. Human-subjects and animal-ethics material is none of those four by name and behaves like all of them. Is it a safety domain, and does §3.15's list need its name?"
+      "open_question": "§3.15 makes “Finance, identity, medical, and legal material” safety domains, “meaning the system detects and protects them before any cloud or automated placement decision is allowed”. Human-subjects and animal-ethics material is none of those four by name and behaves like all of them. Is it a safety domain, and does §3.15's list need its name?"
     },
     {
       "id": "res.human-subjects-consent",
@@ -2469,49 +2490,49 @@
           "type": "string",
           "example": "PVA cohort 2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The join to res.irb-ethics and res.dataset."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.irb-ethics and res.dataset."
         },
         {
           "field": "consent version",
           "type": "string",
           "example": "v4 2026-02-11",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Only the IRB-approved version may be used; the version is the compliance fact."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Only the IRB-approved version may be used; the version is the compliance fact."
         },
         {
           "field": "consent type",
           "type": "string",
           "example": "re-consent",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Consent, assent, broad consent, re-consent and HIPAA authorization are different instruments."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Consent, assent, broad consent, re-consent and HIPAA authorization are different instruments."
         },
         {
           "field": "irb protocol number",
           "type": "string",
           "example": "IRB-2026-0412",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Carried on the approved form's footer; the join to res.irb-ethics."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Carried on the approved form's footer; the join to res.irb-ethics."
         },
         {
           "field": "language version",
           "type": "string",
           "example": "Simplified Chinese",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.11's universal `language` fact says what a file is written in; this field says which approved translation it is, which is a different claim."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.11's universal `language` fact says what a file is written in; this field says which approved translation it is, which is a different claim."
         },
         {
           "field": "participant code",
           "type": "string",
           "example": "C2-014",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Present on executed forms only. It is the field that flips the whole record's character."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Present on executed forms only. It is the field that flips the whole record's character."
         },
         {
           "field": "signature date",
           "type": "date",
           "example": "2026-03-01",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the signature block."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the signature block."
         }
       ],
       "recognition": {
@@ -2595,49 +2616,49 @@
           "type": "string",
           "example": "NCT01234567",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The trial's public identity. It anchors the entire document set."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The trial's public identity. It anchors the entire document set."
         },
         {
           "field": "sponsor",
           "type": "string",
           "example": "Columbia University",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role split: the sponsor is not the site and not the funder, even when one organisation is all three."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role split: the sponsor is not the site and not the funder, even when one organisation is all three."
         },
         {
           "field": "protocol version",
           "type": "string",
           "example": "v6.0 2026-04-18",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A trial protocol amendment changes what may lawfully be done; the version is a regulatory fact."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A trial protocol amendment changes what may lawfully be done; the version is a regulatory fact."
         },
         {
           "field": "site",
           "type": "string",
           "example": "Site 004 — Presbyterian",
-          "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Multi-site trials duplicate every document per site."
+          "reliability_ceiling": "direct",
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Multi-site trials duplicate every document per site."
         },
         {
           "field": "phase",
           "type": "string",
           "example": "Phase II",
-          "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled slot; determines the required document set."
+          "reliability_ceiling": "direct",
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot; determines the required document set."
         },
         {
           "field": "indication",
           "type": "string",
           "example": "type 2 diabetes",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Stated in prose in the protocol synopsis."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in prose in the protocol synopsis."
         },
         {
           "field": "monitoring visit",
           "type": "string",
           "example": "interim monitoring visit 2",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the visit report's own labelled header."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the visit report's own labelled header."
         }
       ],
       "recognition": {
@@ -2727,49 +2748,49 @@
           "type": "string",
           "example": "Broad Institute",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8's rule applied literally: 'authored_by and target_school, or our_firm and client' — an agreement has two institutions in two roles and they must be two fields."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8's rule applied literally: 'authored_by and target_school, or our_firm and client' — an agreement has two institutions in two roles and they must be two fields."
         },
         {
           "field": "our institution",
           "type": "string",
           "example": "Columbia University",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The other half of the §3.8 role split."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The other half of the §3.8 role split."
         },
         {
           "field": "agreement type",
           "type": "string",
           "example": "MTA",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. MTA, DUA, CDA, subaward and authorship agreement carry different obligations."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. MTA, DUA, CDA, subaward and authorship agreement carry different obligations."
         },
         {
           "field": "agreement reference",
           "type": "string",
           "example": "MTA-2026-0119",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The office's handle for the instrument."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The office's handle for the instrument."
         },
         {
           "field": "effective date",
           "type": "date",
           "example": "2026-05-01",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled 'Effective Date' slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled 'Effective Date' slot."
         },
         {
           "field": "expiry date",
           "type": "date",
           "example": "2029-04-30",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled slot. An expired DUA makes continued data use a breach, which is why it is a fact and not a note."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot. An expired DUA makes continued data use a breach, which is why it is a fact and not a note."
         },
         {
           "field": "material or data described",
           "type": "string",
           "example": "de-identified cohort 2 genotypes",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Described in a schedule or exhibit in prose."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Described in a schedule or exhibit in prose."
         }
       ],
       "recognition": {
@@ -2854,56 +2875,58 @@
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "venue",
           "type": "string",
           "example": "ASCB Cell Bio 2026",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. A meeting is a venue in §3.11's sense; §4.9's 'research venue' role is the design's acknowledgement that the same name can be several things."
+          "why": "**§3.11 literal.** A meeting is a venue in §3.11's sense; §4.9's 'research venue' role is the design's acknowledgement that the same name can be several things."
         },
         {
           "field": "abstract id",
           "type": "string",
           "example": "ABS-2026-1184",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The meeting's submission handle."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The meeting's submission handle."
         },
         {
           "field": "presentation type",
           "type": "string",
           "example": "poster",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Oral, poster and late-breaking are decided by the meeting and determine what artifact follows."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Oral, poster and late-breaking are decided by the meeting and determine what artifact follows."
         },
         {
           "field": "session or track",
           "type": "string",
           "example": "Organelle Dynamics II",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Where the work was programmed; often the only topical label a meeting produces."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Where the work was programmed; often the only topical label a meeting produces."
         },
         {
           "field": "submission deadline",
           "type": "date",
           "example": "2026-06-15",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled slot in the call (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot in the call (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
         },
         {
           "field": "presenting author",
           "type": "string",
           "example": "J. Chen",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role field, never a destination dimension."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension."
         }
       ],
       "recognition": {
         "deterministic": [
           "a meeting name co-occurring with abstract-submission vocabulary ('abstract', 'word limit', 'presenting author', 'session', 'accepted for presentation')",
           "an abstract-id token in a labelled slot co-occurring with a meeting name and an explicit date the same file carries (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)",
-          "an acceptance notice (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) whose sender is the meeting organiser and whose body carries the abstract id"
+          "an acceptance notice (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) whose sender is the meeting organiser and whose body carries the abstract id",
+          "`project` is §3.11's inherited Research field: it is recognised by res.research-project's rule — a project identifier token co-occurring with research context — and is not re-derived per domain; this entry's own anchors supply the corroboration",
+          "`venue` is §3.11's inherited Research field: a venue name from a validated gazetteer (§3.7, deferred) co-occurring with abstract-submission vocabulary in the same document — the meeting name is this domain's `venue` value. §4.9 is why a bare organisation name never suffices"
         ],
         "needs_llm": [
           "deciding whether a short prose file is a conference abstract, a manuscript abstract or an application abstract",
@@ -2979,49 +3002,51 @@
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "venue",
           "type": "string",
           "example": "ASCB Cell Bio 2026",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "presentation date",
           "type": "date",
           "example": "2026-12-08",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the meeting programme or the poster's own footer."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the meeting programme or the poster's own footer."
         },
         {
           "field": "board or session",
           "type": "string",
           "example": "Board B-142",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The meeting's physical handle for the poster; the join back to the abstract."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The meeting's physical handle for the poster; the join back to the abstract."
         },
         {
           "field": "poster format",
           "type": "string",
           "example": "A0 portrait",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” — canvas properties are a direct observation and are what identify a poster file among ordinary decks."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” — canvas properties are a direct observation and are what identify a poster file among ordinary decks."
         },
         {
           "field": "co-presenters",
           "type": "string",
           "example": "J. Chen; R. Okonkwo",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Read from the author band. §3.8 role data; never a destination dimension."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Read from the author band. §3.8 role data; never a destination dimension."
         }
       ],
       "recognition": {
         "deterministic": [
           "a design or presentation file (§2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties”) whose canvas properties are poster-shaped and whose text carries a meeting name together with a project identifier",
           "a filename carrying a meeting acronym together with a poster token, co-occurring with an abstract already accepted for that meeting",
-          "a print-ready export whose stem matches a poster source file in the same version family"
+          "a print-ready export whose stem matches a poster source file in the same version family",
+          "`venue` is §3.11's inherited Research field: a venue name from a validated gazetteer (§3.7, deferred) co-occurring with a poster header band or a print-ready export made to the meeting's own template. §4.9 is why a bare organisation name never suffices",
+          "a board or session token in a meeting programme co-occurring with an abstract id the corpus already holds"
         ],
         "needs_llm": [
           "deciding whether a large-canvas PDF is a poster, a printed schematic or a flyer",
@@ -3097,49 +3122,50 @@
           "type": "string",
           "example": "PVA/RDP",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "venue",
           "type": "string",
           "example": "Gordon Research Conference — Photobiology",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. "
+          "why": "**§3.11 literal.** "
         },
         {
           "field": "talk title",
           "type": "string",
           "example": "Watching RDP switch in real time",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.13's 'document title', usually the first slide."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title', usually the first slide."
         },
         {
           "field": "talk type",
           "type": "string",
           "example": "invited seminar",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Invited seminar, contributed talk, job talk and lab meeting have completely different audiences and reuse patterns."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Invited seminar, contributed talk, job talk and lab meeting have completely different audiences and reuse patterns."
         },
         {
           "field": "presentation date",
           "type": "date",
           "example": "2026-07-22",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the title slide or the invitation (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the title slide or the invitation (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
         },
         {
           "field": "host institution",
           "type": "string",
           "example": "EMBL Heidelberg",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role split: the host is not the author's institution and not the venue's owner."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role split: the host is not the author's institution and not the venue's owner."
         }
       ],
       "recognition": {
         "deterministic": [
           "a presentation file (§2.9: “Presentations such as PPTX, PPT, ODP, and PDF slide decks should yield slide titles, text boxes, speaker notes where available”) whose slide titles carry a project identifier and whose first slide carries a meeting or host-institution name together with an explicit date",
           "speaker notes (§2.9: “Presentations such as PPTX, PPT, ODP, and PDF slide decks should yield slide titles, text boxes, speaker notes where available”) carrying talk vocabulary co-occurring with a project identifier",
-          "an invitation email (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) naming a seminar series and a date, co-occurring with a deck of the same stem"
+          "an invitation email (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) naming a seminar series and a date, co-occurring with a deck of the same stem",
+          "`venue` is §3.11's inherited Research field: a venue name from a validated gazetteer (§3.7, deferred) co-occurring with a title slide, a seminar-series announcement, or an invitation naming a date. §4.9 is why a bare organisation name never suffices"
         ],
         "needs_llm": [
           "telling a research seminar deck from a teaching deck when neither names a course or a venue",
@@ -3215,49 +3241,50 @@
           "type": "string",
           "example": "Mitochondrial dynamics under hypoxia",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.13's 'document title'."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'."
         },
         {
           "field": "cited authors",
           "type": "string",
           "example": "Okonkwo, R.; Larsen, M.",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role field. Present because it is how people search a library, and explicitly never a destination dimension (§3.8: “It should avoid using authorship or creator identity as a destination dimension.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field. Present because it is how people search a library, and explicitly never a destination dimension (§3.8: “It should avoid using authorship or creator identity as a destination dimension.”)."
         },
         {
           "field": "publication venue",
           "type": "string",
           "example": "Journal of Cell Biology",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. §3.11's `venue` in the reading role rather than the publishing role."
+          "why": "**§3.11 literal.** §3.11's `venue` in the reading role rather than the publishing role."
         },
         {
           "field": "doi",
           "type": "string",
           "example": "10.1083/jcb.202301045",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A `cid-doi` or `cid-pmid` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone, corroborated by publisher furniture."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` or `cid-pmid` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone, corroborated by publisher furniture."
         },
         {
           "field": "reading topic",
           "type": "string",
           "example": "organelle contact sites",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Why the user keeps it is not stated anywhere in the file; only interpretation reaches it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Why the user keeps it is not stated anywhere in the file; only interpretation reaches it."
         },
         {
           "field": "annotation state",
           "type": "string",
           "example": "annotated",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Whether the PDF carries the user's own highlights is a structural observation, and it is the single best signal that the file was actually read."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Whether the PDF carries the user's own highlights is a structural observation, and it is the single best signal that the file was actually read."
         }
       ],
       "recognition": {
         "deterministic": [
           "a `cid-doi` or `cid-pmid` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one heading zone co-occurring with publisher furniture ('Received', 'Accepted', 'Published online', 'Downloaded from', a licence line) and no project identifier the corpus's own artifacts carry",
           "a PDF carrying reader annotations co-occurring with a bibliographic record in a reference-manager library the corpus already holds",
-          "a file whose stem matches a reference-manager attachment naming convention and whose parent is that manager's attachment store"
+          "a file whose stem matches a reference-manager attachment naming convention and whose parent is that manager's attachment store",
+          "a journal name in page-one publisher furniture, distinct from journal names appearing in a reference list (§2.2: “A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen.”)"
         ],
         "needs_llm": [
           "deciding whether a paper is the user's own output or somebody else's",
@@ -3318,7 +3345,7 @@
       ],
       "sensitivity": "none",
       "sensitivity_why": "No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.",
-      "open_question": "§3.8 forbids authorship as a destination dimension — 'A folder should not become a collection point for everything produced by the same person'. Yet 'papers I wrote' versus 'papers I read' is the most useful split in any research corpus, and self-authorship is the only thing that makes it. Is a self-authorship test a legitimate *domain-activation* signal even though it can never be a folder level?"
+      "open_question": "§3.8 forbids authorship as a destination dimension — “A folder should not become a collection point for everything produced by the same person”. Yet 'papers I wrote' versus 'papers I read' is the most useful split in any research corpus, and self-authorship is the only thing that makes it. Is a self-authorship test a legitimate *domain-activation* signal even though it can never be a folder level?"
     },
     {
       "id": "res.reference-library",
@@ -3333,35 +3360,35 @@
           "type": "string",
           "example": "PVA-RDP library",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the export's own header or the manager's collection metadata."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the export's own header or the manager's collection metadata."
         },
         {
           "field": "reference manager",
           "type": "string",
           "example": "Zotero",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From format markers in the file itself, a structural observation."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From format markers in the file itself, a structural observation."
         },
         {
           "field": "export format",
           "type": "string",
           "example": "BibTeX",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The detected format (§2.9: “inspect the real MIME type or file signature where possible”). It determines what can be recovered and is therefore a fact, not a note."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The detected format (§2.9: “inspect the real MIME type or file signature where possible”). It determines what can be recovered and is therefore a fact, not a note."
         },
         {
           "field": "collection or tag",
           "type": "string",
           "example": "to-read / methods",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From labelled collection fields in the export."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From labelled collection fields in the export."
         },
         {
           "field": "linked manuscript",
           "type": "string",
           "example": "Photoactivatable RDP reporters in live cells",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which manuscript a .bib serves is inferred from co-location and citation overlap, not stated."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which manuscript a .bib serves is inferred from co-location and citation overlap, not stated."
         }
       ],
       "recognition": {
@@ -3437,49 +3464,49 @@
           "type": "string",
           "example": "effect of X on Y in adults",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Stated in a protocol narrative; there is no slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in a protocol narrative; there is no slot."
         },
         {
           "field": "registration id",
           "type": "string",
           "example": "CRD42026000123",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A registered review protocol's public identity, corroborated by registry context."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A registered review protocol's public identity, corroborated by registry context."
         },
         {
           "field": "search database",
           "type": "string",
           "example": "Embase",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which database a strategy was run against. Reproducibility of the whole review depends on it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which database a strategy was run against. Reproducibility of the whole review depends on it."
         },
         {
           "field": "search date",
           "type": "date",
           "example": "2026-05-09",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the strategy's own labelled run-date line. A search is only valid as of a date, which is why this is a fact."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the strategy's own labelled run-date line. A search is only valid as of a date, which is why this is a fact."
         },
         {
           "field": "screening stage",
           "type": "string",
           "example": "full text",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Title/abstract and full-text screening produce different files with the same names."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Title/abstract and full-text screening produce different files with the same names."
         },
         {
           "field": "reviewer designation",
           "type": "string",
           "example": "Reviewer B",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A positional label, deliberately not a person, matching res.peer-review-author's treatment (§3.8: “authored_by and target_school, or our_firm and client”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A positional label, deliberately not a person, matching res.peer-review-author's treatment (§3.8: “authored_by and target_school, or our_firm and client”)."
         },
         {
           "field": "inclusion criteria",
           "type": "string",
           "example": "adults, randomised, English",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Stated in a protocol narrative."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in a protocol narrative."
         }
       ],
       "recognition": {
@@ -3564,56 +3591,57 @@
           "type": "string",
           "example": "M. Larsen",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role field. The person supervised is not the author of the supervisor's corpus and never a destination dimension (§3.8: “It should avoid using authorship or creator identity as a destination dimension.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field. The person supervised is not the author of the supervisor's corpus and never a destination dimension (§3.8: “It should avoid using authorship or creator identity as a destination dimension.”)."
         },
         {
           "field": "degree programme",
           "type": "string",
           "example": "PhD Biological Sciences",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The programme determines the milestone set and the deadlines."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The programme determines the milestone set and the deadlines."
         },
         {
           "field": "thesis title",
           "type": "string",
           "example": "Photoswitchable probes for organelle contact sites",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.13's 'document title'."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'."
         },
         {
           "field": "milestone",
           "type": "string",
           "example": "candidacy exam",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Proposal defense, candidacy, committee meeting and final defense are the skeleton of the whole relationship."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Proposal defense, candidacy, committee meeting and final defense are the skeleton of the whole relationship."
         },
         {
           "field": "committee member",
           "type": "string",
           "example": "R. Okonkwo (external)",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role field."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field."
         },
         {
           "field": "supervision role",
           "type": "string",
           "example": "primary supervisor",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Primary, co-supervisor and committee member produce different documents and different obligations."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Primary, co-supervisor and committee member produce different documents and different obligations."
         },
         {
           "field": "submission deadline",
           "type": "date",
           "example": "2027-05-30",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled programme slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled programme slot."
         }
       ],
       "recognition": {
         "deterministic": [
           "a thesis title page carrying a degree name together with a supervisor line, co-occurring with a milestone term ('defense', 'candidacy', 'viva', 'committee')",
           "a tracked-changes document whose revision metadata names the user as reviewer and whose base document is a thesis draft in the corpus's version families",
-          "a programme form whose labelled fields name a student, a degree and a milestone date"
+          "a programme form whose labelled fields name a student, a degree and a milestone date",
+          "a supervisor-role line on a thesis title page or a programme form, naming the user in that role (§3.8: “authored_by and target_school, or our_firm and client”)"
         ],
         "needs_llm": [
           "telling supervisor feedback from co-author edits on the same draft",
@@ -3690,63 +3718,64 @@
           "type": "string",
           "example": "CU-2026-041",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The technology-transfer office's handle, present from disclosure onward."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The technology-transfer office's handle, present from disclosure onward."
         },
         {
           "field": "application number",
           "type": "string",
           "example": "63/512,904",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled filing receipt slot. Distinct from the docket: one docket can carry several applications."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled filing receipt slot. Distinct from the docket: one docket can carry several applications."
         },
         {
           "field": "filing date",
           "type": "date",
           "example": "2026-06-30",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the filing receipt."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the filing receipt."
         },
         {
           "field": "priority date",
           "type": "date",
           "example": "2026-06-30",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The date that decides validity, and often the only reason a countersigned notebook page matters."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The date that decides validity, and often the only reason a countersigned notebook page matters."
         },
         {
           "field": "jurisdiction",
           "type": "string",
           "example": "US; EP",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Each jurisdiction runs its own prosecution with its own deadlines."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Each jurisdiction runs its own prosecution with its own deadlines."
         },
         {
           "field": "patent status",
           "type": "string",
           "example": "provisional filed",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Disclosed, provisional, national phase, office action, granted, abandoned."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Disclosed, provisional, national phase, office action, granted, abandoned."
         },
         {
           "field": "inventor",
           "type": "string",
           "example": "J. Chen; M. Larsen",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role field, never a destination dimension."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension."
         },
         {
           "field": "assignee institution",
           "type": "string",
           "example": "Columbia University",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Who owns it, which is usually not the inventor."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Who owns it, which is usually not the inventor."
         }
       ],
       "recognition": {
         "deterministic": [
           "patent vocabulary ('Invention Disclosure', 'Provisional Application', 'Office Action', 'claims', 'prior art', 'assignee') co-occurring with a docket or application number in a labelled slot",
           "a technology-transfer letterhead (§2.7 OCR) co-occurring with an inventor line and a docket number",
-          "a filing receipt whose labelled fields carry an application number and a filing date"
+          "a filing receipt whose labelled fields carry an application number and a filing date",
+          "a jurisdiction code in a labelled filing field co-occurring with an application number"
         ],
         "needs_llm": [
           "telling a draft disclosure from a filed application",
@@ -3852,28 +3881,28 @@
           "type": "string",
           "example": "v1.4.0",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A release is defined by its tag; without one there is no release, only code."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A release is defined by its tag; without one there is no release, only code."
         },
         {
           "field": "software doi",
           "type": "string",
           "example": "10.5281/zenodo.1234567",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by archive-deposit context. It is what makes the software citable and is the join to res.repository-deposit."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by archive-deposit context. It is what makes the software citable and is the join to res.repository-deposit."
         },
         {
           "field": "licence",
           "type": "string",
           "example": "MIT",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a licence file, a labelled slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a licence file, a labelled slot."
         },
         {
           "field": "citation file",
           "type": "string",
           "example": "CITATION.cff",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Its presence is a structural observation and is the clearest single signal that code was released rather than merely written."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Its presence is a structural observation and is the clearest single signal that code was released rather than merely written."
         }
       ],
       "recognition": {
@@ -3956,49 +3985,49 @@
           "type": "string",
           "example": "10.1038/s41586-021-03819-2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by package README context. The package exists for exactly one publication."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by package README context. The package exists for exactly one publication."
         },
         {
           "field": "package version",
           "type": "string",
           "example": "v1.0.1",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Packages are corrected after publication, which is why the version is a fact and not a filename."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Packages are corrected after publication, which is why the version is a fact and not a filename."
         },
         {
           "field": "environment specification",
           "type": "string",
           "example": "renv.lock",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The lockfile's presence and name are structural observations, and its absence is the commonest reason a package fails to run."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The lockfile's presence and name are structural observations, and its absence is the commonest reason a package fails to run."
         },
         {
           "field": "execution entry point",
           "type": "string",
           "example": "run_all.R",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Named in the README's own labelled instruction."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Named in the README's own labelled instruction."
         },
         {
           "field": "included dataset",
           "type": "string",
           "example": "cohort2_analysis.dta",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Described in the README; a directory listing alone does not say which files are the data."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Described in the README; a directory listing alone does not say which files are the data."
         },
         {
           "field": "included code",
           "type": "string",
           "example": "analysis/",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Same reasoning."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Same reasoning."
         },
         {
           "field": "verification badge",
           "type": "string",
           "example": "AEA Data Editor — reproduced",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a verification report's labelled verdict, where a journal ran one."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a verification report's labelled verdict, where a journal ran one."
         }
       ],
       "recognition": {
@@ -4081,49 +4110,49 @@
           "type": "string",
           "example": "NIH",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A DMP is written to a funder's template and is unusable against another's."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A DMP is written to a funder's template and is unusable against another's."
         },
         {
           "field": "opportunity or award number",
           "type": "string",
           "example": "PA-24-247",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The join back to res.grant-proposal and res.grant-reporting."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join back to res.grant-proposal and res.grant-reporting."
         },
         {
           "field": "plan version",
           "type": "string",
           "example": "v2 (just-in-time)",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Plans are revised at award and at renewal; the version says which promise is binding."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Plans are revised at award and at renewal; the version says which promise is binding."
         },
         {
           "field": "data types described",
           "type": "string",
           "example": "de-identified genotypes; imaging",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Described in prose."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Described in prose."
         },
         {
           "field": "retention period",
           "type": "string",
           "example": "ten years after study close",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled retention slot. It is the field that eventually authorises deleting something."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled retention slot. It is the field that eventually authorises deleting something."
         },
         {
           "field": "repository named",
           "type": "string",
           "example": "dbGaP",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which repository was promised; the join to res.repository-deposit and the thing compliance is measured against."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which repository was promised; the join to res.repository-deposit and the thing compliance is measured against."
         },
         {
           "field": "sharing condition",
           "type": "string",
           "example": "controlled access via DAC",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Stated in prose and governs whether a DUA is needed."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in prose and governs whether a DUA is needed."
         }
       ],
       "recognition": {
@@ -4205,56 +4234,57 @@
           "type": "string",
           "example": "Zenodo",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which archive holds it. Institutional, disciplinary and general repositories have different terms."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which archive holds it. Institutional, disciplinary and general repositories have different terms."
         },
         {
           "field": "accession or deposit id",
           "type": "string",
           "example": "10.5281/zenodo.1234567",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A `cid-doi`, `cid-handle` or accession hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by deposit context."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi`, `cid-handle` or accession hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by deposit context."
         },
         {
           "field": "deposit date",
           "type": "date",
           "example": "2026-08-04",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the receipt's labelled slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the receipt's labelled slot."
         },
         {
           "field": "embargo end date",
           "type": "date",
           "example": "2027-08-04",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The date the deposit becomes public. Acting on it early is a breach, which is why it is a fact."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The date the deposit becomes public. Acting on it early is a breach, which is why it is a fact."
         },
         {
           "field": "licence",
           "type": "string",
           "example": "CC BY 4.0",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the deposit's labelled licence field."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the deposit's labelled licence field."
         },
         {
           "field": "deposited artifact",
           "type": "string",
           "example": "cohort2 dataset v2.1",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which corpus object was deposited is stated in the receipt's free-text title."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which corpus object was deposited is stated in the receipt's free-text title."
         },
         {
           "field": "linked publication",
           "type": "string",
           "example": "10.1038/s41586-021-03819-2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The related-identifier field, corroborated by publication context."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The related-identifier field, corroborated by publication context."
         }
       ],
       "recognition": {
         "deterministic": [
           "a repository accession token co-occurring with deposit vocabulary ('deposited', 'accession', 'embargo', 'version of record', 'related identifier')",
           "a metadata record (§2.9: “notebook cell types, package manifests, schema keys, repository markers, and project-root signals”) whose schema keys are a deposit standard's and whose values name an artifact the corpus already holds",
-          "a receipt email (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) from a repository whose body carries the accession and the deposited title"
+          "a receipt email (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) from a repository whose body carries the accession and the deposited title",
+          "a related-identifier field carrying a `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) co-occurring with deposit vocabulary"
         ],
         "needs_llm": [
           "deciding which local artifact a deposit record corresponds to",
@@ -4335,49 +4365,49 @@
           "type": "string",
           "example": "Imaging Core",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The shared resource; the join to res.instrument-output."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The shared resource; the join to res.instrument-output."
         },
         {
           "field": "instrument",
           "type": "string",
           "example": "Zeiss LSM 980",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. What was booked."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. What was booked."
         },
         {
           "field": "booking id",
           "type": "string",
           "example": "BK-2026-3391",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the confirmation's labelled slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the confirmation's labelled slot."
         },
         {
           "field": "session start",
           "type": "date",
           "example": "2026-03-04T09:00",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §2.9: “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” — start and end are labelled ICS fields, which is why they are direct here and nowhere else in this catalogue."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” — start and end are labelled ICS fields, which is why they are direct here and nowhere else in this catalogue."
         },
         {
           "field": "session end",
           "type": "date",
           "example": "2026-03-04T13:00",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Same source. The pair is what a recharge invoice is computed from."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Same source. The pair is what a recharge invoice is computed from."
         },
         {
           "field": "charge code",
           "type": "string",
           "example": "R01GM123456-2028",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled account field. It is the join to res.grant-reporting and the reason a booking is a research fact and not a diary entry."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled account field. It is the join to res.grant-reporting and the reason a booking is a research fact and not a diary entry."
         },
         {
           "field": "authorisation status",
           "type": "string",
           "example": "trained, independent user",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the facility's labelled training record."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the facility's labelled training record."
         }
       ],
       "recognition": {
@@ -4461,56 +4491,56 @@
           "type": "string",
           "example": "Tanjung Puting — Plot 4",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Where the work happened. It is the field-work analogue of `lab` and the root of the branch."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Where the work happened. It is the field-work analogue of `lab` and the root of the branch."
         },
         {
           "field": "site coordinates",
           "type": "string",
           "example": "-2.7361, 111.9214",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From GPS metadata or a labelled datasheet column (§2.6). See the open question before treating this like an ordinary value."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From GPS metadata or a labelled datasheet column (§2.6). See the open question before treating this like an ordinary value."
         },
         {
           "field": "campaign",
           "type": "string",
           "example": "2026 wet season",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Field work happens in discrete campaigns, and a campaign is the unit everyone remembers."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Field work happens in discrete campaigns, and a campaign is the unit everyone remembers."
         },
         {
           "field": "collection date",
           "type": "date",
           "example": "2026-02-14",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled datasheet column (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled datasheet column (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”)."
         },
         {
           "field": "permit number",
           "type": "string",
           "example": "SIP-2026-0117",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the permit's labelled slot. Working without one is unlawful, so its presence is a compliance fact."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the permit's labelled slot. Working without one is unlawful, so its presence is a compliance fact."
         },
         {
           "field": "field team",
           "type": "string",
           "example": "J. Chen; local guide M. S.",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. §3.8 role field, never a destination dimension."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension."
         },
         {
           "field": "sample id",
           "type": "string",
           "example": "TP-P4-0093",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The join to res.sample-specimen."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.sample-specimen."
         },
         {
           "field": "conditions",
           "type": "string",
           "example": "overcast, 27 C, post-rain",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Recorded in free-text field notes."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Recorded in free-text field notes."
         }
       ],
       "recognition": {
@@ -4600,49 +4630,49 @@
           "type": "string",
           "example": "PVA cohort 2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The join to res.dataset and res.irb-ethics."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.dataset and res.irb-ethics."
         },
         {
           "field": "instrument name",
           "type": "string",
           "example": "PHQ-9",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Validated scales are reused across studies and licensed by name; the name is the fact, not the filename."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Validated scales are reused across studies and licensed by name; the name is the fact, not the filename."
         },
         {
           "field": "instrument version",
           "type": "string",
           "example": "2026 revision",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A modified scale is not the validated scale, which is why the version is a compliance fact."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A modified scale is not the validated scale, which is why the version is a compliance fact."
         },
         {
           "field": "fielding wave",
           "type": "string",
           "example": "wave 2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Longitudinal studies field the same instrument repeatedly; the wave is what distinguishes otherwise identical exports."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Longitudinal studies field the same instrument repeatedly; the wave is what distinguishes otherwise identical exports."
         },
         {
           "field": "platform",
           "type": "string",
           "example": "Qualtrics",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the export's own format markers."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the export's own format markers."
         },
         {
           "field": "language version",
           "type": "string",
           "example": "Spanish (Mexico)",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which approved translation this is — a different claim from §3.11's universal `language` fact."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which approved translation this is — a different claim from §3.11's universal `language` fact."
         },
         {
           "field": "licence or permission",
           "type": "string",
           "example": "licensed, per-use",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From a labelled permission slot. Some validated scales may not be redistributed at all."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled permission slot. Some validated scales may not be redistributed at all."
         }
       ],
       "recognition": {
@@ -4726,63 +4756,64 @@
           "type": "string",
           "example": "PVA lived-experience study",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. The join to res.irb-ethics and res.human-subjects-consent."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.irb-ethics and res.human-subjects-consent."
         },
         {
           "field": "participant code",
           "type": "string",
           "example": "P-014",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the transcript's labelled header. A de-identified code is still a key to a person."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the transcript's labelled header. A de-identified code is still a key to a person."
         },
         {
           "field": "session date",
           "type": "date",
           "example": "2026-04-11",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the transcript header."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the transcript header."
         },
         {
           "field": "transcript stage",
           "type": "string",
           "example": "de-identified",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Verbatim and de-identified transcripts are the same interview with opposite handling, and they routinely share a filename stem. This is the most consequential field in the domain."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Verbatim and de-identified transcripts are the same interview with opposite handling, and they routinely share a filename stem. This is the most consequential field in the domain."
         },
         {
           "field": "codebook version",
           "type": "string",
           "example": "v3",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Codes are revised mid-analysis and a coded extract is only interpretable against its codebook version."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Codes are revised mid-analysis and a coded extract is only interpretable against its codebook version."
         },
         {
           "field": "code or theme",
           "type": "string",
           "example": "navigating gatekeepers",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Themes are named in analytic memos and are irreducibly interpretive."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Themes are named in analytic memos and are irreducibly interpretive."
         },
         {
           "field": "analysis software",
           "type": "string",
           "example": "NVivo",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the project file's format markers."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the project file's format markers."
         },
         {
           "field": "coder designation",
           "type": "string",
           "example": "Coder B",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A positional label, deliberately not a person (§3.8: “authored_by and target_school, or our_firm and client”)."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A positional label, deliberately not a person (§3.8: “authored_by and target_school, or our_firm and client”)."
         }
       ],
       "recognition": {
         "deterministic": [
           "a transcript layout — speaker labels with turn-taking — co-occurring with a participant code and a study identifier",
           "a qualitative-analysis project file whose format markers name the software, co-occurring with a codebook the corpus already holds",
-          "a memo or extract document citing a code that a codebook in the corpus defines"
+          "a memo or extract document citing a code that a codebook in the corpus defines",
+          "a coder label in a coded-extract or agreement-report header co-occurring with a codebook version token"
         ],
         "needs_llm": [
           "telling a verbatim transcript from a de-identified one when the header is missing",
@@ -4859,49 +4890,50 @@
           "type": "string",
           "example": "10.1038/s41586-021-03819-2",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by notice vocabulary. The notice has no identity of its own without it."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by notice vocabulary. The notice has no identity of its own without it."
         },
         {
           "field": "notice type",
           "type": "string",
           "example": "expression of concern",
           "reliability_ceiling": "validated",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Correction, erratum, corrigendum, expression of concern and retraction are legally and reputationally distinct."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Correction, erratum, corrigendum, expression of concern and retraction are legally and reputationally distinct."
         },
         {
           "field": "notice date",
           "type": "date",
           "example": "2027-01-19",
           "reliability_ceiling": "direct",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. From the notice's labelled publication slot."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the notice's labelled publication slot."
         },
         {
           "field": "venue",
           "type": "string",
           "example": "Nature",
           "reliability_ceiling": "validated",
-          "why": "§3.11 literal. The journal issues the notice, which is why the venue is settled here even when the underlying paper's was contested."
+          "why": "**§3.11 literal.** The journal issues the notice, which is why the venue is settled here even when the underlying paper's was contested."
         },
         {
           "field": "reason stated",
           "type": "string",
           "example": "figure panel duplication",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Notices state reasons in prose, deliberately briefly."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Notices state reasons in prose, deliberately briefly."
         },
         {
           "field": "affected artifact",
           "type": "string",
           "example": "Figure 3b",
           "reliability_ceiling": "llm_supported",
-          "why": "Beyond §3.11's literal Research row (project, stage, artifact type, lab, venue) — authored here, not quoted. Which figure, table or dataset is affected is named in the notice text; it is the join to res.figure-and-source."
+          "why": "**Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which figure, table or dataset is affected is named in the notice text; it is the join to res.figure-and-source."
         }
       ],
       "recognition": {
         "deterministic": [
           "notice vocabulary ('Correction to:', 'Erratum', 'Corrigendum', 'Retraction Note', 'Expression of Concern') co-occurring with a `cid-doi` hit naming the corrected article (planning/deferred-catalogues/06-citation-identifier-patterns.json)",
           "a replacement figure or supplementary file whose version family already contains a published-article member and whose filename carries a correction token",
-          "editorial correspondence (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) whose subject carries a manuscript id already in the corpus together with correction vocabulary"
+          "editorial correspondence (§2.9: “Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”) whose subject carries a manuscript id already in the corpus together with correction vocabulary",
+          "`venue` is §3.11's inherited Research field: a venue name from a validated gazetteer (§3.7, deferred) co-occurring with notice vocabulary in the same document — the journal issues the notice, so its name is settled. §4.9 is why a bare organisation name never suffices"
         ],
         "needs_llm": [
           "telling a correction to the user's own paper from one to a paper in the reading library",
@@ -4962,7 +4994,7 @@
       ],
       "sensitivity": "none",
       "sensitivity_why": "No `potentially sensitive` content is intrinsic to this domain. A handling class is P7's (§8.4) and is not set here.",
-      "open_question": "A retraction is a durable, unflattering fact about a file. §5.2 says 'Sensitive groups should appear differently: a Finance or Identity proposal may be visible as a protected area', and nothing says whether a retraction is that kind of fact. Does the tree name it in a branch label, or record it and stay quiet?"
+      "open_question": "A retraction is a durable, unflattering fact about a file. §5.2 says “Sensitive groups should appear differently: a Finance or Identity proposal may be visible as a protected area”, and nothing says whether a retraction is that kind of fact. Does the tree name it in a branch label, or record it and stay quiet?"
     }
   ]
 }
