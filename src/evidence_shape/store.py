@@ -95,10 +95,14 @@ def record_run_event(conn: sqlite3.Connection, run_id: str, *, author: str) -> i
 
     `author` is the acting part and P4 supplies no default (M8). `component_version`
     is the run's own extractor version -- §8.2's "extractor or model version".
+
+    The keys are read in `rowid` order, which is the batch's own order, so two
+    identical batches produce one explanation rather than two shufflings of it.
+    `observation_id` is a uuid4 and ordering by it was ordering by nothing.
     """
     run = get_run(conn, run_id)
     keys = [row["observation_key"] for row in conn.execute(
-        "SELECT observation_key FROM evidence WHERE run_id = ? ORDER BY observation_id",
+        "SELECT observation_key FROM evidence WHERE run_id = ? ORDER BY rowid",
         (run_id,))]
     return append_event(conn, **event_defaults(
         author=author,
@@ -162,7 +166,7 @@ def get_observation(conn: sqlite3.Connection, observation_id: str) -> Observatio
 
 def observations_for_run(conn: sqlite3.Connection, run_id: str) -> list[Observation]:
     return [_observation_from_row(row) for row in conn.execute(
-        "SELECT * FROM evidence WHERE run_id = ? ORDER BY observation_id", (run_id,))]
+        "SELECT * FROM evidence WHERE run_id = ? ORDER BY rowid", (run_id,))]
 
 
 def observation_keys_for_run(conn: sqlite3.Connection, run_id: str) -> list[str]:
@@ -174,17 +178,27 @@ def observation_keys_for_run(conn: sqlite3.Connection, run_id: str) -> list[str]
     the drift §2.8 exists to prevent. P5's §2.9 sensitivity signal is the first such
     caller, and keyed on batch position until this existed.
 
-    Ordered by `observation_id`, which is insertion order, so position N in the emitted
-    batch is position N here.
+    Ordered by `rowid`, which IS insertion order. It was ordered by `observation_id`,
+    which is not: `record_observation` mints `uuid.uuid4()`, so that was lexicographic
+    order over random ids. Executed 2026-08-21, a batch emitted 00,01,02,…,11 came back
+    07,10,02,04,09,05,06,01,03,08,11,00 -- and `long_tail.record_sensitivity_signals`
+    indexes into this list by the observation's position in its batch, so §2.9's
+    "treating addresses and message content as potentially sensitive" attached the
+    signal to the WRONG value. The row it writes is keyed on `observation_key`, which
+    is what P7 later redacts against.
+
+    A published order has to be a real one. Conformance rule 8 is unaffected and
+    deliberately so -- `determinism._lines` sorts, because a set has no order -- but
+    this is the ordered handle, not the set.
     """
     return [row["observation_key"] for row in conn.execute(
-        "SELECT observation_key FROM evidence WHERE run_id = ? ORDER BY observation_id",
+        "SELECT observation_key FROM evidence WHERE run_id = ? ORDER BY rowid",
         (run_id,))]
 
 
 def observations_for_file(conn: sqlite3.Connection, file_id: str) -> list[Observation]:
     return [_observation_from_row(row) for row in conn.execute(
-        "SELECT * FROM evidence WHERE file_id = ? ORDER BY observation_id", (file_id,))]
+        "SELECT * FROM evidence WHERE file_id = ? ORDER BY rowid", (file_id,))]
 
 
 def observations_by_key(conn: sqlite3.Connection,
@@ -192,7 +206,7 @@ def observations_by_key(conn: sqlite3.Connection,
     """M14's citation resolver. A LIST: two extractor versions carry one key, which
     is what MINOR 8 arranged and what §8.5's cross-version diff reads."""
     return [_observation_from_row(row) for row in conn.execute(
-        "SELECT * FROM evidence WHERE observation_key = ? ORDER BY observation_id",
+        "SELECT * FROM evidence WHERE observation_key = ? ORDER BY rowid",
         (observation_key,))]
 
 
@@ -364,7 +378,11 @@ class RunWriter:
         for observation, new_observation_id in zip(observations, written):
             candidates = [row["observation_id"] for row in conn.execute(
                 "SELECT observation_id FROM evidence WHERE observation_key = ? "
-                "AND run_id != ? AND superseded_by IS NULL ORDER BY observation_id",
+                # `rowid`, chronological. Nothing here depends on it -- more than
+                # one candidate raises rather than picking -- but ordering by a uuid4
+                # is ordering by nothing, and the next reader should not have to work
+                # that out.
+                "AND run_id != ? AND superseded_by IS NULL ORDER BY rowid",
                 (observation.observation_key, run_id))]
             if not candidates:
                 continue
