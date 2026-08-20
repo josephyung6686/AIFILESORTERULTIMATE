@@ -38,13 +38,16 @@ from eval_harness.bundle import (
     add_extraction_run, add_file_entry, add_text_unit, open_bundle, seal_bundle,
 )
 
-from evidence_shape.store import runs_for_content, text_units_for_run
+from evidence_shape.store import (
+    observation_keys_for_run, runs_for_content, text_units_for_run,
+)
 
 from extractors.authorship import COMPONENT_VERSION, SUBSYSTEM
 from extractors.dispatch import current_versions, extract
 from extractors.failure import failed_result
 from extractors.filesystem import dataless_result, extract_filesystem
-from extractors.router import route
+from extractors.long_tail import record_sensitivity_signals
+from extractors.router import record_routing_decision, route
 from extractors.runs import extraction_status_by_tier
 from extractors.safety import DatalessRefused, ProtectedContainerRefused
 
@@ -118,7 +121,7 @@ def _extract_one(*, file_row, path, decision, policy, readers, now, context_wind
             readers=readers, now=now, context_window=context_window,
             no_usable_facts=no_usable_facts,
             transcription_authorized=transcription_authorized)
-        return dispatched.results
+        return dispatched.results, dispatched.sensitivity
     except (ProtectedContainerRefused, DatalessRefused):
         raise
     except Exception as error:                       # noqa: BLE001 -- see docstring
@@ -126,7 +129,7 @@ def _extract_one(*, file_row, path, decision, policy, readers, now, context_wind
             file_row=file_row, error=error,
             extractor_name=decision.extractor_name,
             extractor_version=decision.router_version,
-            source_type=decision.source_type, now=now),)
+            source_type=decision.source_type, now=now),), ()
 
 
 def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
@@ -184,11 +187,12 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
         try:
             results = [extract_filesystem(file_row=file_row, path=path, policy=policy,
                                           now=stamp, context_window=context_window)]
-            results.extend(_extract_one(
+            routed, signals = _extract_one(
                 file_row=file_row, path=path, decision=decision, policy=policy,
                 readers=readers, now=stamp, context_window=context_window,
                 no_usable_facts=no_usable_facts,
-                transcription_authorized=transcription_authorized))
+                transcription_authorized=transcription_authorized)
+            results.extend(routed)
         except ProtectedContainerRefused:
             # 11 §4b, ratified 2026-08-20. NOTHING: no run row, no observation, no
             # status write for anything inside. `continue` the outer loop and never
@@ -206,9 +210,28 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
             # already known, and §8.6 requires it to stay visible AS unfinished.
             results = [dataless_result(file_row=file_row, error=refusal,
                                        source_type=decision.source_type, now=stamp)]
+            signals = ()
+
+        # §2.9: "Every file leaves the router with exactly one routing decision."
+        # The decision existed in memory for one loop iteration and was never stored,
+        # so §8.2's reconstruction requirement could not be met for a routing choice.
+        record_routing_decision(conn, decision)
 
         for result in results:
-            _write(sink, result, written)
+            run_id = _write(sink, result, written)
+            # §2.9's "addresses and message content as potentially sensitive". E3
+            # raises these per located value and they ride beside the batch, because
+            # P4 rule 6 forbids an extractor-private column on an observation. The
+            # caller kept only the runs, so on a real scan the signal never reached
+            # the database and P7 would have had nothing to redact against. Keyed on
+            # P4's handle, in emit order -- which is only trustworthy since
+            # `observation_keys_for_run` stopped ordering by a uuid4.
+            if signals and result.observations:
+                record_sensitivity_signals(
+                    conn, run_id=run_id, signals=signals,
+                    observation_keys=observation_keys_for_run(conn, run_id),
+                    now=stamp)
+                signals = ()
 
         # 3 -- P1. The map is P5's; P1 stores it opaquely and interprets no key.
         set_extraction_status(
@@ -253,10 +276,13 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
         add_file_entry(conn, bundle_id, file_id=file_row["file_id"],
                        content_hash=file_row["content_hash"],
                        hash_algorithm=file_row["hash_algorithm"],
-                       # P7's, and P7 is unbuilt. P1's column is the only source and
-                       # it is NULL until a gate writes it; passing it through keeps
-                       # the unknown visible as unknown rather than as "public".
-                       handling_class=file_row["sensitivity_state"],
+                       # §8.4's, and P7 is unbuilt. This passed P1's
+                       # `sensitivity_state` -- a DIFFERENT field on a different
+                       # record. Both are NULL on a live scan, so nothing failed and
+                       # the name was still wrong: one concept wearing two names one
+                       # column apart. The honest value is None because the class is
+                       # unknown, not because another column happened to be empty.
+                       handling_class=None,
                        **file_entry_body(dict(file_row)))
     for run_id in written:
         row = conn.execute("SELECT * FROM extraction_runs WHERE run_id = ?",
