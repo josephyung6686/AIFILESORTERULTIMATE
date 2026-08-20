@@ -25,15 +25,23 @@ COLUMNS: tuple[tuple[str, str], ...] = (
     ("match", "match"),
     ("pattern", "pattern"),
     ("match_kind", "match_kind"),
+    ("tail_required", "tail"),
     ("case_sensitive", "case sensitive"),
     ("role", "role"),
     ("status", "status"),
+    ("family", "family"),
+    ("also_written", "also written"),
     ("aspect_ratio", "aspect ratio"),
+    ("overlaps_sensor_ratio", "overlaps sensor ratio"),
+    ("overlaps_display_resolutions", "overlaps display resolutions"),
+    ("decimal", "decimal"),
+    ("tolerance", "tolerance"),
     ("orientation", "orientation"),
     ("rationale", "rationale"),
     ("design_cite", "design cite"),
     ("false_positive_risk", "FP risk"),
     ("example_true", "example true"),
+    ("example_true_2", "example true (rotated)"),
     ("example_false", "example false (must NOT match)"),
     ("source", "source"),
 )
@@ -42,6 +50,7 @@ COLUMNS: tuple[tuple[str, str], ...] = (
 #: Any other array key renders as a bullet list.
 ENTRY_ARRAY_ORDER: tuple[str, ...] = (
     "entries",
+    "sensor_output_sizes",
     "p3_exclusion_roots",
     "p5_evidence_markers",
     "refused",
@@ -50,6 +59,7 @@ ENTRY_ARRAY_ORDER: tuple[str, ...] = (
 
 ARRAY_HEADINGS: dict[str, str] = {
     "entries": "Entries",
+    "sensor_output_sizes": "Sensor output sizes — cited anchors demonstrating each ratio (not a match set)",
     "p3_exclusion_roots": "`p3_exclusion_roots` — P3 skips descendants of a directory holding one of these",
     "p5_evidence_markers": "`p5_evidence_markers` — P5 evidence that a file looks like part of a project",
     "refused": "Refused — deliberately NOT matched",
@@ -80,7 +90,8 @@ def render_table(rows: list[dict]) -> list[str]:
             if any(key in row for row in rows)]
     out = ["| " + " | ".join(head for _, head in used) + " |",
            "|" + "|".join("---" for _ in used) + "|"]
-    literal = {"id", "match", "pattern", "example_true", "example_false"}
+    literal = {"id", "match", "pattern", "example_true", "example_true_2",
+               "example_false", "also_written"}
     for row in rows:
         cells = [code_cell(row.get(key)) if key in literal else cell(row.get(key))
                  for key, _ in used]
@@ -109,6 +120,25 @@ def render(doc: dict) -> str:
     if doc.get("rules"):
         out += ["## Rules this list obeys", ""]
         out += [f"{i}. {line}" for i, line in enumerate(doc["rules"], 1)]
+        out.append("")
+
+    if doc.get("arbitration_with_catalogue_03"):
+        out += ["## Arbitration with catalogue 03", "",
+                doc["arbitration_with_catalogue_03"], ""]
+
+    if doc.get("arbitration_with_catalogue_02"):
+        out += ["## Arbitration with catalogue 02", "",
+                doc["arbitration_with_catalogue_02"], ""]
+
+    if doc.get("property_names"):
+        out += ["## Property names this list is evaluated against", ""]
+        pn = doc["property_names"]
+        if pn.get("note"):
+            out += [pn["note"], ""]
+        for key, names in pn.items():
+            if key == "note":
+                continue
+            out.append(f"- **{key}**: " + ", ".join(f"`{n}`" for n in names))
         out.append("")
 
     if doc.get("injection"):
