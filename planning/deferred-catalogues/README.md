@@ -206,6 +206,24 @@ Adjacent deferred rows owned elsewhere, listed so nothing seeds them by accident
 
 ---
 
+### Settled: the archived catalogue-04 row, and a latent trap in stem matching
+
+Two agents disagreed about why `cfp-macos-screencapture` in `checks/04-alternate-version.json`
+could not match its own `example_true`. Settled by running it:
+
+- **Not** a capital-S problem. That row is `case_sensitive: false`, and `^Screen ?Shot` matches
+  `Screenshot` case-insensitively. The capital-S diagnosis was wrong.
+- **It is `splitext`.** Catalogue 04 anchors its patterns against the *stem*. The archived example
+  string carried no file extension, so `splitext` read `.45 AM` as the extension and the stem became
+  `Screenshot 2026-08-20 at 10.30` — the `$` anchor then had nowhere to land.
+
+**The live catalogue is unaffected** and every screenshot row matches its own example against the
+stem. But the trap is real and worth stating once: **macOS screenshot names use dot-separated times**
+(`10.30.45`), so a stem-based contract is only safe while the filename genuinely ends in an
+extension. A caller that hands `filename` a value with the extension already stripped will silently
+lose the seconds. P5's `filename_pattern` receives `file_row["filename"]`, which always carries the
+extension, so the contract holds — that is a property of the caller, not an accident.
+
 ## NEEDS JOSEPH
 
 Written here, on disk, deliberately: three agent final reports have already been lost on this

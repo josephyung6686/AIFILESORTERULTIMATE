@@ -8,7 +8,7 @@
   "match_field": "the filename with its final extension removed (the stem). P5 passes `file_row[\"filename\"]`, which includes the extension; the matcher strips the last `.suffix` before applying any pattern. Patterns are anchored `^…$` against that stem.",
   "normalization_for_matching": "No normalization of the stored value. Matching applies Unicode NFC and compares case-insensitively unless a row says otherwise; the emitted value is taken from the source filename, never rebuilt.",
   "evaluation_order": "Entries are evaluated **in the order listed** and the first match wins. Order matters: `IMG_20240115_103045` must be read as the Android timestamp convention, not as an Apple/DCF sequence. Anchoring alone already separates them, and a check asserts both the anchoring and the order.",
-  "provenance_note": "**v1.1 merges an independently authored version of this list.** A second version of this file (13 entries, `cfp-*` ids) was written and committed over v1.0 during the same session; it is preserved at `checks/04-alternate-version.json` and is not the live file. The two were written without sight of each other and **converged on the two decisions that matter most**: refusing the unrestricted DCF basename shape `^[A-Z0-9_]{4}[0-9]{4}$`, and flagging the `filename_pattern` return-value contract as an open question. That independent agreement is the strongest evidence available that both calls are right. v1.1 is the v1.0 superset (35 entries) plus the two rows the other version had and v1.0 lacked — its `cfp-dcf-mov` → `fnp-dcf-mov`, and its `cfp-dcf-100u` → `fnp-canon-dir-prefixed` — plus two of its refusals and two of its uncertain items. Rows it left in `uncertain` (Pixel `PXL_`, Android and Windows screenshots, Apple `IMG_E`, macOS locale forms) are live entries here, each with its own sourcing. One defect in it is recorded so it is not reintroduced: its `cfp-macos-screencapture` pattern `^Screen ?Shot …` cannot match its own `example_true` of `Screenshot …`, because `Shot` is capitalised in the pattern and lowercase in the example.",
+  "provenance_note": "**v1.1 merges an independently authored version of this list.** A second version of this file (13 entries, `cfp-*` ids) was written and committed over v1.0 during the same session; it is preserved at `checks/04-alternate-version.json` and is not the live file. The two were written without sight of each other and **converged on the two decisions that matter most**: refusing the unrestricted DCF basename shape `^[A-Z0-9_]{4}[0-9]{4}$`, and flagging the `filename_pattern` return-value contract as an open question. That independent agreement is the strongest evidence available that both calls are right. v1.1 is the v1.0 superset (35 entries) plus the two rows the other version had and v1.0 lacked — its `cfp-dcf-mov` → `fnp-dcf-mov`, and its `cfp-dcf-100u` → `fnp-canon-dir-prefixed` — plus two of its refusals and two of its uncertain items. Rows it left in `uncertain` (Pixel `PXL_`, Android and Windows screenshots, Apple `IMG_E`, macOS locale forms) are live entries here, each with its own sourcing. One defect in it is recorded so it is not reintroduced — **and the first diagnosis of it, written here, was wrong.** Its `cfp-macos-screencapture` row failed this file's checker, and I recorded the cause as a capital-`S` mismatch between the pattern `^Screen ?Shot …` and the example `Screenshot …`. That was incorrect: the row sets `case_sensitive: false` and the checker applies `re.IGNORECASE`, so the pattern matches the example fine. The catalogues-finish agent traced the real cause and I reproduced it: the `example_true` was written as a bare stem with **no file extension**, and macOS puts dots in the time, so the checker's `stem()` — `rsplit('.', 1)[0]` — ate `.45 AM` as if it were an extension and matched the truncated string. The pattern was never the problem; the example was. The durable lesson, now enforced by `checks/check04.py`, is that **every example in this file must carry a file extension**, because a dotted-time convention is indistinguishable from a dotted extension without one.",
   "design_cites": [
     "§2.6: the image record stores \"filename pattern\" as one of its fields, alongside format, dimensions, EXIF and software metadata.",
     "§1.2 — the sentence that governs how this file is written: \"A file called `Wash U.docx` may contain an unmistakable university application prompt; `Hw 5.pdf` may be a photographed homework page with no usable text layer; and **`IMG_4821.png` may be a screenshot of a receipt, application portal, conversation, code error, or research figure.**\" The design's own example of this pattern is an example of a filename being *too weak* to conclude from.",
@@ -78,7 +78,8 @@
       "false_positive_risk": "low",
       "example_true": "IMG_20240115_103045.jpg",
       "example_false": "IMG_4821.png",
-      "source": "Fairphone Community; Android Central"
+      "source": "Fairphone Community; Android Central",
+      "discriminates_from": "fnp-apple-dcf-img"
     },
     {
       "id": "fnp-android-mvimg",
@@ -92,7 +93,8 @@
       "design_cite": "§2.6 \"filename pattern\"",
       "false_positive_risk": "low",
       "example_true": "MVIMG_20240115_103045.jpg",
-      "example_false": "IMG_20240115_103045.jpg"
+      "example_false": "IMG_20240115_103045.jpg",
+      "discriminates_from": "fnp-android-img-timestamp"
     },
     {
       "id": "fnp-android-pano",
@@ -163,7 +165,8 @@
       "design_cite": "§2.6 \"filename pattern\"; §2.9 \"duplicate and version-family signals\"",
       "false_positive_risk": "low",
       "example_true": "IMG_E4821.jpg",
-      "example_false": "IMG_4821.png"
+      "example_false": "IMG_4821.png",
+      "discriminates_from": "fnp-apple-dcf-img"
     },
     {
       "id": "fnp-apple-dcf-img",
@@ -178,7 +181,8 @@
       "false_positive_risk": "medium",
       "example_true": "IMG_4821.png",
       "example_false": "IMG_20240115_103045.jpg",
-      "source": "JEITA CP-3461 via Wikipedia; Canon KB ART156893"
+      "source": "JEITA CP-3461 via Wikipedia; Canon KB ART156893",
+      "discriminates_from": "fnp-android-img-timestamp"
     },
     {
       "id": "fnp-dcf-mov",
@@ -223,7 +227,8 @@
       "false_positive_risk": "low",
       "example_true": "_MG_4821.CR2",
       "example_false": "IMG_4821.png",
-      "source": "JEITA CP-3461 via Wikipedia"
+      "source": "JEITA CP-3461 via Wikipedia",
+      "discriminates_from": "fnp-apple-dcf-img"
     },
     {
       "id": "fnp-canon-crw",
@@ -266,7 +271,8 @@
       "design_cite": "§2.6 \"filename pattern\"",
       "false_positive_risk": "low",
       "example_true": "_DSC0142.NEF",
-      "example_false": "DSC_0142.NEF"
+      "example_false": "DSC_0142.NEF",
+      "discriminates_from": "fnp-nikon-dsc"
     },
     {
       "id": "fnp-nikon-coolpix",
@@ -280,7 +286,8 @@
       "design_cite": "§2.6 \"filename pattern\"",
       "false_positive_risk": "low",
       "example_true": "DSCN0142.JPG",
-      "example_false": "DSCF0142.JPG"
+      "example_false": "DSCF0142.JPG",
+      "discriminates_from": "fnp-fuji-dscf"
     },
     {
       "id": "fnp-sony-dsc",
@@ -295,7 +302,8 @@
       "false_positive_risk": "low",
       "example_true": "DSC01234.ARW",
       "example_false": "DSC_0142.NEF",
-      "source": "JEITA CP-3461 via Wikipedia"
+      "source": "JEITA CP-3461 via Wikipedia",
+      "discriminates_from": "fnp-nikon-dsc"
     },
     {
       "id": "fnp-fuji-dscf",
@@ -310,7 +318,8 @@
       "false_positive_risk": "low",
       "example_true": "DSCF0142.RAF",
       "example_false": "DSCN0142.JPG",
-      "source": "JEITA CP-3461 via Wikipedia"
+      "source": "JEITA CP-3461 via Wikipedia",
+      "discriminates_from": "fnp-nikon-coolpix"
     },
     {
       "id": "fnp-pentax-imgp",
@@ -324,7 +333,8 @@
       "design_cite": "§2.6 \"filename pattern\"",
       "false_positive_risk": "low",
       "example_true": "IMGP0142.JPG",
-      "example_false": "IMG_0142.JPG"
+      "example_false": "IMG_0142.JPG",
+      "discriminates_from": "fnp-apple-dcf-img"
     },
     {
       "id": "fnp-panasonic-p",
@@ -424,7 +434,8 @@
       "design_cite": "§2.6 \"filename pattern\"",
       "false_positive_risk": "low",
       "example_true": "DJI_0042.JPG",
-      "example_false": "DJI_20240115103045_0001_D"
+      "example_false": "DJI_20240115103045_0001_D",
+      "discriminates_from": "fnp-dji-timestamp"
     },
     {
       "id": "fnp-dji-timestamp",
@@ -438,7 +449,8 @@
       "design_cite": "§2.6 \"filename pattern\"",
       "false_positive_risk": "low",
       "example_true": "DJI_20240115103045_0001_D.JPG",
-      "example_false": "DJI_0042.JPG"
+      "example_false": "DJI_0042.JPG",
+      "discriminates_from": "fnp-dji"
     },
     {
       "id": "fnp-pict",
@@ -466,7 +478,8 @@
       "design_cite": "§2.6 \"Messaging platforms and downloaded web images often strip metadata from real photographs\"",
       "false_positive_risk": "low",
       "example_true": "IMG-20240115-WA0001.jpg",
-      "example_false": "IMG_20240115_103045.jpg"
+      "example_false": "IMG_20240115_103045.jpg",
+      "discriminates_from": "fnp-android-img-timestamp"
     },
     {
       "id": "fnp-whatsapp-vid",
@@ -480,7 +493,8 @@
       "design_cite": "§2.6; §2.9 audio and video",
       "false_positive_risk": "low",
       "example_true": "VID-20240115-WA0002.mp4",
-      "example_false": "VID_20240115_103045.mp4"
+      "example_false": "VID_20240115_103045.mp4",
+      "discriminates_from": "fnp-android-vid"
     },
     {
       "id": "fnp-signal",
@@ -564,7 +578,8 @@
       "design_cite": "§2.6 \"filename pattern\"",
       "false_positive_risk": "low",
       "example_true": "Screenshot 2024-01-15 103045.png",
-      "example_false": "Screenshot 2024-01-15 at 10.30.45.png"
+      "example_false": "Screenshot 2024-01-15 at 10.30.45.png",
+      "discriminates_from": "fnp-macos-screenshot"
     },
     {
       "id": "fnp-android-screenshot",
@@ -772,5 +787,6 @@
       "example_false": "2024_0001"
     }
   ],
-  "sourcing_note": "**How to read the `verification` column, because it is not decoration.** Only five pages were opened and read directly while authoring these catalogues; three more were opened by the catalogues-finish agent, who supplied verbatim quotes. Everything else is marked `search_summary`: the fact came from a web-search result summary and the page itself was not retrieved. Those rows say `consulted` rather than `retrieved`, because claiming a retrieval date for a page nobody opened is exactly the kind of unearned confidence these catalogues exist to keep out of the product. A `search_summary` source is not worthless — it is how most of the vendor-prefix and manifest-name knowledge here was gathered — but it must not be quoted as if read, and a row that would be harmful if wrong should be upgraded before launch."
+  "sourcing_note": "**How to read the `verification` column, because it is not decoration.** Only five pages were opened and read directly while authoring these catalogues; three more were opened by the catalogues-finish agent, who supplied verbatim quotes. Everything else is marked `search_summary`: the fact came from a web-search result summary and the page itself was not retrieved. Those rows say `consulted` rather than `retrieved`, because claiming a retrieval date for a page nobody opened is exactly the kind of unearned confidence these catalogues exist to keep out of the product. A `search_summary` source is not worthless — it is how most of the vendor-prefix and manifest-name knowledge here was gathered — but it must not be quoted as if read, and a row that would be harmful if wrong should be upgraded before launch.",
+  "example_semantics": "**`example_false` means something different here than in catalogue 01, and the difference is deliberate.** In catalogue 01 an `example_false` must match *no row in the file* — it proves a string is not a tool name at all. In this file the rows are sibling conventions that share prefixes, so an `example_false` proves *this row does not claim a string that a different row rightly claims*: `IMG_20240115_103045.jpg` must not read as an Apple/DCF sequence, and it must read as the Android timestamp convention. Where that is the intent the row names the winner in `discriminates_from`, and `checks/check04.py` asserts the collision lands on exactly that row — so a *new* collision, or one that moves to the wrong row, still fails. Leaving the intent implicit is how a wrong diagnosis hid once already; see `provenance_note`."
 }
