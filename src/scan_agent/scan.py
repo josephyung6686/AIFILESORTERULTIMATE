@@ -52,6 +52,32 @@ def scan(conn: sqlite3.Connection, selection_id: str, *,
                 continue              # §1.1: roots are context, not corpus
             if item.dataless:
                 record_dataless_detection(conn, scan_run_id, item.path)
+                prior = prior_observation(conn, item.path)
+                if prior is None:
+                    # Never hashed. No `files` row exists and none can be made:
+                    # hashing downloads the bytes (11 §5) and P1 refuses to mint a
+                    # row without a hash (R1). The detection IS the record, and
+                    # §8.6 reads it so the file stays visible as unfinished.
+                    continue
+                # Hashed, then evicted -- scanned while local, since moved to
+                # iCloud by "Optimize Mac Storage". The row, the hash and the
+                # history all exist. The unconditional `continue` that used to be
+                # here dropped this file out of the scan silently: no stat
+                # observation, no verdict, nothing recording that its bytes had
+                # gone, and so no way for any later stage to emit C4's ninth
+                # `completeness` value against it. Both dataless counts were
+                # unreachable, not just one.
+                verdict = cache_verdict(item, prior)
+                if verdict.verdict == VERDICT_REUSE:
+                    append_stat_observation(conn, prior["file_id"], item)
+                # A RECOMPUTE verdict is recorded and NOT followed. Following it
+                # means hashing, which 11 §5 forbids, and appending an external
+                # modification event without the recompute would assert a content
+                # change P3 cannot confirm -- it cannot read the new bytes. The
+                # verdict row says work is outstanding; the detection row says why
+                # it did not happen.
+                record_cache_verdict(conn, scan_run_id, item.path,
+                                     prior["file_id"], verdict)
                 continue
             prior = prior_observation(conn, item.path)
             verdict = cache_verdict(item, prior)

@@ -72,10 +72,11 @@ def test_a_detection_is_recorded_and_is_readable(conn, run, tmp_path: Path):
 
 
 def test_a_detection_writes_no_extraction_run_and_no_completeness(conn, run, tmp_path: Path):
-    # 11 §5 / SPEC: that record is P4's and P5 is its writer. Which `completeness`
-    # value a dataless file eventually carries is P4 Open question 6 and is NOT
-    # resolved here — none of P4's eight values means "the bytes are not on this
-    # machine", and P3 does not choose one or add a ninth.
+    # 11 §5 / SPEC: that record is P4's and P5 is its writer. P4 Open question 6 is
+    # now CLOSED (C4, 2026-08-20) and the ninth `completeness` value is `dataless` —
+    # which changes nothing here. The value is P4's vocabulary; P3 records the
+    # detection and names no status, because one vocabulary with two homes is this
+    # project's most expensive defect.
     record_dataless_detection(conn, run, tmp_path / "Thesis.pdf")
     tables = [r["name"] for r in
               conn.execute("SELECT name FROM sqlite_master WHERE type='table'")]
@@ -83,5 +84,24 @@ def test_a_detection_writes_no_extraction_run_and_no_completeness(conn, run, tmp
     columns = [r["name"] for r in conn.execute("PRAGMA table_info(dataless_detections)")]
     assert "completeness" not in columns
 
+    # Parsed, not scanned. Reading the module text and asserting the word is absent
+    # matched the comment above explaining that P3 does not hold the value — the
+    # trap this project has now hit eight times. What must be absent is a name P3
+    # USES or a value it HOLDS, and only the parse tree distinguishes those from
+    # prose about them.
+    import ast
     import scan_agent.dataless as module
-    assert "completeness" not in Path(module.__file__).read_text()
+    tree = ast.parse(Path(module.__file__).read_text())
+    docstrings = {id(node.body[0].value) for node in ast.walk(tree)
+                  if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef))
+                  and node.body and isinstance(node.body[0], ast.Expr)
+                  and isinstance(node.body[0].value, ast.Constant)
+                  and isinstance(node.body[0].value.value, str)}
+    held = {node.value for node in ast.walk(tree)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+            and id(node) not in docstrings}
+    names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+    names |= {node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)}
+    assert "completeness" not in held | names
+    assert not any(value in held for value in
+                   ("unsupported", "deferred", "capped", "unreadable", "failed"))

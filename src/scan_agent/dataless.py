@@ -8,8 +8,20 @@ not materialize, hash, or extract."
 
 This module reads `stat` and nothing else: `os.stat` does not download, `open` does.
 P3 records the detection and writes NO extraction run — that record is P4's and P5 is
-its writer, and which of P4's eight closed status values such a file eventually
-carries is P4 Open question 6, which nothing here resolves. P3 names none of them.
+its writer. P4 Open question 6 — which status such a file carries — is CLOSED (C4,
+2026-08-20): P4 has a NINTH `completeness` value, `dataless`, meaning exactly "the
+bytes are not on this machine". That changes nothing here. The value is P4's
+vocabulary and P5 is its writer; P3 still names none of them, and a second home for
+one vocabulary is this project's most expensive defect.
+
+Which of the two dataless cases a file is in is decided in `scan.py`, not here:
+
+    never hashed          this table is the whole record. No `files` row exists and
+                          none can be made — hashing downloads the bytes and P1
+                          refuses to mint a row without a hash (R1).
+    hashed, then evicted   the `files` row and its hash already exist, so the file
+                          stays live in the scan and P5 can emit one `dataless` run
+                          against it.
 """
 from __future__ import annotations
 
