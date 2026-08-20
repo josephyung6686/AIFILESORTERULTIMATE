@@ -98,8 +98,13 @@ Every task's requirements implicitly include these.
   because P1's writer validates the type against §8.2's vocabulary and the lowercase spelling is
   rejected at run time. P5 registers nothing: both are reserved §8.2 names already in P1's frozen table.
 - **P5 recomputes none of P3's ten fields** (O5). The §1.2 basic filesystem record is P3's; P5
-  surfaces it as `source_type: filesystem` observations referencing P3's row. P5 hashes nothing —
-  `hashlib` does not appear in `src/extractors/` — and determines no MIME type of its own.
+  surfaces it as `source_type: filesystem` observations referencing P3's row. **P5 hashes no file
+  bytes**: `hashlib` is bound in exactly one module, `shape.py`, where `fingerprint()` hashes a
+  *configuration mapping* to produce P4's `config_fingerprint` — never a path and never a byte of a
+  file. P5 also determines no MIME type of its own. Task 20 asserts both by introspection.
+  *(Corrected 2026-08-20: this clause previously read "`hashlib` does not appear in
+  `src/extractors/`", which Task 2's own `shape.fingerprint` contradicts. The rule was always about
+  file bytes; the wording is now what the rule is. See Self-Review.)*
 - **"Parent-folder context", never "directory position"** (MINOR 11). §2.9's name is the published
   one. P1's `files` column is still spelled `directory_position`; P5 reads that column and publishes
   the value under §2.9's name.
@@ -203,6 +208,9 @@ P6 and P7 do not exist yet, and a default would be P5 answering another part's q
 
 Named, not chosen. Every one is a **NEEDS JOSEPH** item; nothing here is installed by this plan, and
 every reader below is a constructor parameter with a deterministic fixture implementation in tests.
+The full per-format table — including which of them the standard library *does* cover — is
+*Dependencies a real deployment needs*, at the end of this plan; this table is the reader-by-reader
+summary.
 
 | Reader | Needed for | Stdlib? | What a real deployment needs |
 |---|---|---|---|
@@ -4396,3 +4404,5012 @@ git commit -m "feat(P5): E2 DOCX - tables mandatory, zones distinct, heading lev
 ```
 
 ---
+
+### Task 10: E3 — structured text and code (§2.4), and §2.4's two outcomes with no third
+
+**Files:**
+- Create: `src/extractors/structured_text.py`
+- Test: `tests/p5/test_p5_structured_text.py`
+
+**Interfaces:**
+- Consumes: `extractors.shape`, `extractors.reading`, `extractors.safety.admit`, `extractors.runs.coverage`; caller-supplied `read_text_document(path) -> TextDocument | None` and `find_structured_strings`.
+- Produces: `VERSION`, `EXTRACTOR_NAME`, `STRUCTURED_TEXT_SOURCE_TYPES`, `STRUCTURAL_MARKER_KINDS`, `WrongFamily`, `UnknownMarkerKind`, `StructuralMarker`, `TextDocument`, `extract_structured_text()`, `unsupported_result()`.
+
+**§2.4, in full, is this task and Task 11.** *"Text-bearing files such as Markdown, plain text, JSON,
+CSV, source code, notebooks, and configuration files should be handled through a lighter
+structured-text extractor. The engine should store their text, filename, extension, language where
+relevant, headings, and structural indicators such as repository markers, package manifests, notebook
+metadata, and README files."* The §2.9 long-tail families that also route to E3 — spreadsheets,
+presentations, email, calendar, contacts, audio/video — are Task 11; this task is E3's §2.4 half and
+the `unsupported` path both halves share.
+
+**Where each §2.4 field lands.**
+
+| §2.4 requires | where it lands | why |
+|---|---|---|
+| text | `text_units`, one whole-file row at `container_path: []` | G1 and the SPEC's E3 line: *"the full text to P4's `text_units` as one whole-file unit, `container_path: []`"* |
+| filename · extension | **the `filesystem` run** (Task 6), not here | O5. The SPEC's Contract out: *"P5 surfaces it as `source_type: filesystem` observations referencing P3's row, which is how a filename … becomes citable evidence."* Emitting it a second time here would be two homes for one value. See *SPEC vs design*. |
+| language, where relevant | observation, zone `metadata`, `field=language`, `direct` | reader-supplied. P5 detects no language and holds no language list — §2.7's *"appropriate language support"* is Deferred and Task 20 guards it |
+| headings | observation zone `heading` **and** a `text_units` row at `[{heading, K}]` | exactly E1's rule: P4 conformance rule 10 requires a unit at the container path an observation's span indexes into |
+| structural indicators | observations, zone `metadata`, `field=<§2.4's own class name>`, `direct` | §2.4 names four classes; **which files are members is Deferred** and the reader supplies them |
+
+**The extractor is `text.structured` — one family, two modules.** The router sends eight
+`source_type`s to `text.structured`; §2.4's two (`text_document`, `code_structured`) are handled here
+and §2.9's six in Task 11. They publish **one** `EXTRACTOR_NAME`, because E3 is one extractor family in
+the SPEC and `runs.ANALYSIS_TIER_BY_EXTRACTOR` keys the tier on the family name. A `source_type` from
+the other half raises `WrongFamily` rather than being extracted in the wrong shape; Task 11 asserts the
+two halves partition the router's set exactly, with no gap and no overlap.
+
+**Code relies on local structural evidence, and E3 reads no code.** §2.4: *"Code-related files should
+rely heavily on local structural evidence, including repository roots and package files, rather than
+forcing semantic analysis to infer a project from arbitrary code text."* So E3 emits the markers the
+reader found and the strings the injected finder found, and nothing else: there is no import parser, no
+symbol table and no project inference in `src/extractors/`. §2.9's *"language, imports, notebook cell
+types, package manifests, schema keys, repository markers, project-root signals"* all arrive as reader
+output — a marker, a `field=` slot or a found string — and never as a P5-side analysis.
+
+**§2.4's two outcomes, and the third one it forbids.** *"Spreadsheet and presentation formats should
+either receive dedicated extraction support … or be marked clearly as unsupported in the initial
+release. The system should never silently treat an unsupported format as an empty document, because an
+empty extraction result is different from an extractor that does not yet exist."* The reader returning
+`None` means **this deployment ships no reader for this format** and produces `completeness:
+unsupported` with zero observations; a reader returning `TextDocument(text="")` means **the file was
+empty** and produces `completeness: complete` with zero observations. Two runs, two values, one query
+apart — SPEC Done-means 1. Which of the two spreadsheets and presentations get at launch is **SPEC Open
+question 5** and is the caller's decision, held by whether a reader is supplied; Task 20 asserts P5
+answers it nowhere.
+
+**No `partial` and no `failed` are written here.** A text file is read whole or not at all; a reader
+that raises is the caller's error to record, and inventing a `failed` path around an injected callable
+would be P5 deciding what a library failure means. Task 12's archives are where `partial` is real.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_structured_text.py
+"""E3's §2.4 half. SPEC Done-means 1: "`unsupported` is distinguishable from
+`complete`-with-zero-observations in a query."
+"""
+from pathlib import Path
+
+import pytest
+
+from extractors.reading import Region, StructuredString
+from extractors.safety import DatalessRefused, ProtectedContainerRefused, SafetyPolicy
+from extractors.structured_text import (
+    EXTRACTOR_NAME, STRUCTURAL_MARKER_KINDS, StructuralMarker, TextDocument,
+    UnknownMarkerKind, WrongFamily, extract_structured_text,
+)
+
+from conftest import FIXED_CLOCK
+from p4_stub import locator_for
+
+OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
+                           is_dataless=lambda path: False)
+FILE_ROW = {"file_id": "f-readme", "content_hash": "sha256:readme",
+            "filename": "README.md"}
+
+BODY = "This project belongs to U Chicago and ships from src.\n"
+HEADING = "Setup"
+
+
+def a_readme() -> TextDocument:
+    text = HEADING + "\n" + BODY
+    return TextDocument(
+        text=text,
+        language="Markdown",
+        headings=(Region(zone="heading", start=0, end=len(HEADING), ordinal=1,
+                         label=HEADING),),
+        markers=(StructuralMarker(kind="README file", value="README.md"),
+                 StructuralMarker(kind="package manifest", value="package.json")),
+    )
+
+
+def find_u_chicago(text: str):
+    at = text.find("U Chicago")
+    return (StructuredString(kind="identifier", start=at, end=at + 9),) if at != -1 else ()
+
+
+def run_it(document="default", source_type="text_document", finder=find_u_chicago):
+    body = a_readme() if document == "default" else document
+    return extract_structured_text(
+        file_row=FILE_ROW, path=Path("/corpus/README.md"), policy=OPEN_POLICY,
+        source_type=source_type, read_text_document=lambda path: body,
+        find_structured_strings=finder, now=FIXED_CLOCK, context_window=20)
+
+
+def test_every_observation_conforms_to_p4s_shape(sink):
+    sink.write(run_it())
+    sink.conforms()
+
+
+def test_the_full_text_is_one_whole_file_unit(sink):
+    # §2.4 + G1: "the full text to P4's `text_units` as one whole-file unit,
+    # `container_path: []`".
+    run_id = sink.write(run_it())
+    whole = [u for u in sink.units_for(run_id) if u["container_path"] == ()]
+    assert len(whole) == 1
+    assert whole[0]["text"] == HEADING + "\n" + BODY
+    assert whole[0]["length"] == len(HEADING + "\n" + BODY)
+
+
+def test_a_heading_is_both_a_zone_and_an_address(sink):
+    run_id = sink.write(run_it())
+    heading = [o for o in sink.observations if o["raw_value"] == HEADING][0]
+    assert locator_for(heading["location"]) == "heading:heading=1#0-5"
+    # P4 conformance rule 10: the span indexes into a unit at exactly that path.
+    paths = [u["container_path"] for u in sink.units_for(run_id)]
+    assert heading["location"]["container_path"] in paths
+
+
+def test_language_is_the_readers_value_and_p5_detected_nothing(sink):
+    sink.write(run_it())
+    language = [o for o in sink.observations
+                if o["location"]["container_path"]
+                and o["location"]["container_path"][0]["label"] == "language"][0]
+    assert language["raw_value"] == "Markdown"
+    assert language["location"]["zone"] == "metadata"
+    assert language["reliability"] == "direct"
+
+
+def test_structural_indicators_land_under_section_2_4s_own_class_names(sink):
+    sink.write(run_it())
+    markers = {o["location"]["container_path"][0]["label"]: o["raw_value"]
+               for o in sink.observations
+               if o["location"]["container_path"]
+               and o["location"]["container_path"][0]["label"] in STRUCTURAL_MARKER_KINDS}
+    assert markers == {"README file": "README.md",
+                       "package manifest": "package.json"}
+
+
+def test_a_marker_kind_section_2_4_does_not_name_is_refused():
+    # The four CLASSES are §2.4's words; their MEMBERS are Deferred. A reader that
+    # coins a fifth class would be authoring vocabulary P5 does not own.
+    document = TextDocument(text="x", markers=(StructuralMarker(kind="project vibe",
+                                                               value="good"),))
+    with pytest.raises(UnknownMarkerKind):
+        run_it(document=document)
+
+
+def test_e3_reads_no_code_and_infers_no_project(sink):
+    # §2.4: structural evidence, "rather than forcing semantic analysis to infer a
+    # project from arbitrary code text". With no finder and no markers, source code
+    # produces its text unit and nothing else.
+    source = TextDocument(text="import os\n\n\ndef main():\n    return os.getcwd()\n")
+    run_id = sink.write(run_it(document=source, source_type="code_structured",
+                               finder=lambda text: ()))
+    assert sink.observations_for(run_id) == []
+    assert sink.units_for(run_id)[0]["text"] == source.text
+    assert sink.run_for(run_id)["completeness"] == "complete"
+
+
+def test_an_unsupported_format_is_not_an_empty_document(sink):
+    # §2.4's whole point, and Done-means 1. Two runs, two values, one query apart.
+    empty = sink.write(run_it(document=TextDocument(text="")))
+    absent = sink.write(run_it(document=None))
+
+    assert sink.run_for(empty)["completeness"] == "complete"
+    assert sink.run_for(absent)["completeness"] == "unsupported"
+    assert sink.observations_for(empty) == sink.observations_for(absent) == []
+    assert sink.run_for(absent)["extractor_name"] == EXTRACTOR_NAME
+    sink.conforms()
+
+
+def test_an_unsupported_run_stores_no_text_unit(sink):
+    run_id = sink.write(run_it(document=None))
+    assert sink.units_for(run_id) == []
+
+
+def test_raw_is_the_source_substring_untouched(sink):
+    # SPEC Done-means 3: "A document saying `U Chicago` keeps that exact wording."
+    sink.write(run_it())
+    found = [o for o in sink.observations if o["raw_value"] == "U Chicago"]
+    assert len(found) == 1
+    assert found[0]["normalized_value"] == "U Chicago"
+
+
+def test_the_same_content_produces_the_same_observations(sink):
+    # P4 conformance rule 8 / §8.5's replay diff.
+    first, second = sink.write(run_it()), sink.write(run_it())
+    strip = lambda rows: [{k: v for k, v in r.items() if k != "run_id"} for r in rows]
+    assert strip(sink.observations_for(first)) == strip(sink.observations_for(second))
+
+
+def test_a_source_type_from_the_other_half_of_e3_is_refused():
+    with pytest.raises(WrongFamily):
+        run_it(source_type="email")
+
+
+def test_no_extractor_is_reachable_inside_a_protected_container():
+    policy = SafetyPolicy(is_protected_container=lambda path: True,
+                          is_dataless=lambda path: False)
+    with pytest.raises(ProtectedContainerRefused):
+        extract_structured_text(
+            file_row=FILE_ROW, path=Path("/Applications/Thing.app/Contents/README.md"),
+            policy=policy, source_type="text_document",
+            read_text_document=lambda path: pytest.fail("the reader was reached"),
+            find_structured_strings=lambda text: (), now=FIXED_CLOCK,
+            context_window=20)
+
+
+def test_a_dataless_file_is_never_read():
+    policy = SafetyPolicy(is_protected_container=lambda path: False,
+                          is_dataless=lambda path: True)
+    with pytest.raises(DatalessRefused):
+        extract_structured_text(
+            file_row=FILE_ROW, path=Path("/corpus/README.md"), policy=policy,
+            source_type="text_document",
+            read_text_document=lambda path: pytest.fail("the reader was reached"),
+            find_structured_strings=lambda text: (), now=FIXED_CLOCK,
+            context_window=20)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_structured_text.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'extractors.structured_text'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/extractors/structured_text.py
+"""E3 - structured text and code (section 2.4).
+
+"Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks,
+and configuration files should be handled through a lighter structured-text
+extractor. The engine should store their text, filename, extension, language where
+relevant, headings, and structural indicators such as repository markers, package
+manifests, notebook metadata, and README files."
+
+Filename and extension are NOT emitted here. They are P3's section 1.2 record and O5
+gives them to the `filesystem` run, which is what makes a filename citable evidence;
+a second emission would be two homes for one value.
+
+Section 2.4's two outcomes, and the third it forbids:
+
+    reader returns a document      -> `complete`, even with zero observations
+    reader returns None            -> `unsupported`; no extractor exists for this
+                                      format in this deployment
+
+"The system should never silently treat an unsupported format as an empty document,
+because an empty extraction result is different from an extractor that does not yet
+exist."
+
+E3 reads no code. Section 2.4 requires code files to "rely heavily on local
+structural evidence ... rather than forcing semantic analysis to infer a project from
+arbitrary code text", so there is no import parser and no project inference here: the
+reader reports markers, the injected finder reports strings, and P5 places them.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Mapping
+
+from extractors.reading import ZONE_BY_STRUCTURED_KIND, Region, StructuredString
+from extractors.runs import coverage
+from extractors.safety import SafetyPolicy, admit
+from extractors.shape import (
+    context_for, location, normalize_mechanical, observation, run, segment, text_unit,
+)
+from extractors.sink import ExtractionResult
+
+VERSION = "0.1.0"
+
+#: One family name for both halves of E3: the router dispatches eight `source_type`s
+#: here and `runs.ANALYSIS_TIER_BY_EXTRACTOR` keys the tier on the family.
+EXTRACTOR_NAME = "text.structured"
+ANALYSIS_TIER = "native"
+
+#: Section 2.4's own families, in P4's `source_type` vocabulary. The remaining six the
+#: router sends to `text.structured` are section 2.9's and live in long_tail.py.
+STRUCTURED_TEXT_SOURCE_TYPES: tuple[str, ...] = ("text_document", "code_structured")
+
+#: Section 2.4's four classes of "structural indicators", in section 2.4's words.
+#: WHICH FILES ARE MEMBERS of each class is Deferred - the SPEC's Deferred table says
+#: section 1.1's four are P3's and "Everything else" is unsettled - so no member name
+#: appears in this module and the reader supplies them.
+STRUCTURAL_MARKER_KINDS: tuple[str, ...] = (
+    "repository marker", "package manifest", "notebook metadata", "README file",
+)
+
+#: The slot section 2.4's "language where relevant" occupies. The VALUE is the
+#: reader's; P5 detects no language and holds no language list.
+LANGUAGE_FIELD = "language"
+
+
+class WrongFamily(Exception):
+    """A `source_type` this half of E3 does not handle."""
+
+
+class UnknownMarkerKind(Exception):
+    """A structural-indicator class section 2.4 does not name."""
+
+
+@dataclass(frozen=True)
+class StructuralMarker:
+    """One of section 2.4's structural indicators, as the reader found it.
+
+    `kind` is one of section 2.4's four classes; `value` is the marker itself - a
+    file name, a manifest name, a notebook metadata key - verbatim.
+    """
+    kind: str
+    value: str
+
+
+@dataclass(frozen=True)
+class TextDocument:
+    """What an injected `read_text_document` returns, or None when this deployment
+    ships no reader for the format (section 2.4's `unsupported` outcome)."""
+    text: str
+    language: str | None = None
+    headings: tuple[Region, ...] = ()
+    markers: tuple[StructuralMarker, ...] = ()
+
+
+def unsupported_result(*, file_row: Mapping[str, Any], source_type: str,
+                       now: str) -> ExtractionResult:
+    """Section 2.4's second outcome: no extractor exists for this format yet.
+
+    Zero observations and zero text units, and a `completeness` a query can tell
+    apart from a `complete` run that found nothing (SPEC Done-means 1).
+    """
+    return ExtractionResult(
+        run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+                extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+                source_type=source_type, analysis_tier=ANALYSIS_TIER, config={},
+                completeness="unsupported", coverage=coverage("files", 0, 1),
+                observation_count=0, started_at=now, finished_at=now))
+
+
+def extract_structured_text(
+        *, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy,
+        source_type: str,
+        read_text_document: Callable[[Path], TextDocument | None],
+        find_structured_strings: Callable[[str], tuple[StructuredString, ...]],
+        now: str, context_window: int) -> ExtractionResult:
+    """Section 2.4's lighter structured-text extractor, as P4 records."""
+    if source_type not in STRUCTURED_TEXT_SOURCE_TYPES:
+        raise WrongFamily(
+            f"{source_type!r} is one of section 2.9's long-tail families; E3 handles "
+            f"it in long_tail.py. This half handles {STRUCTURED_TEXT_SOURCE_TYPES}."
+        )
+    admit(path, policy=policy)
+    document = read_text_document(path)
+    if document is None:
+        return unsupported_result(file_row=file_row, source_type=source_type, now=now)
+
+    observations: list[Mapping[str, Any]] = []
+    units: list[Mapping[str, Any]] = [text_unit(text=document.text)]
+
+    def emit(*, zone, raw, container_path, span, unit_text, reliability):
+        before = after = ""
+        truncated = False
+        if span is not None and unit_text is not None:
+            before, after, truncated = context_for(unit_text, span["start"],
+                                                   span["end"], window=context_window)
+        observations.append(observation(
+            file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+            extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+            source_type=source_type, raw_value=raw,
+            normalized_value=normalize_mechanical(raw),
+            location=location(zone=zone, container_path=container_path,
+                              text_span=span),
+            context_before=before, context_after=after, context_truncated=truncated,
+            observed_at=now, reliability=reliability,
+        ))
+
+    if document.language:
+        emit(zone="metadata", raw=document.language,
+             container_path=(segment("field", label=LANGUAGE_FIELD),), span=None,
+             unit_text=None, reliability="direct")
+
+    for marker in document.markers:
+        if marker.kind not in STRUCTURAL_MARKER_KINDS:
+            raise UnknownMarkerKind(
+                f"{marker.kind!r} is not one of section 2.4's four structural-"
+                f"indicator classes {STRUCTURAL_MARKER_KINDS}"
+            )
+        emit(zone="metadata", raw=marker.value,
+             container_path=(segment("field", label=marker.kind),), span=None,
+             unit_text=None, reliability="direct")
+
+    heading_paths: dict[int, tuple] = {}
+    for region in document.headings:
+        heading_path = (segment("heading", index=region.ordinal, label=region.label),)
+        heading_paths[region.start] = heading_path
+        heading_text = document.text[region.start:region.end]
+        units.append(text_unit(text=heading_text, container_path=heading_path))
+        emit(zone="heading", raw=heading_text, container_path=heading_path,
+             span={"start": 0, "end": len(heading_text)}, unit_text=heading_text,
+             reliability="possible")
+
+    for found in find_structured_strings(document.text):
+        inside = next((r for r in document.headings
+                       if r.start <= found.start < r.end), None)
+        if inside is not None:
+            container = heading_paths[inside.start]
+            unit_text = document.text[inside.start:inside.end]
+            start, end = found.start - inside.start, found.end - inside.start
+            zone = ZONE_BY_STRUCTURED_KIND.get(found.kind, "heading")
+        else:
+            container = ()
+            unit_text = document.text
+            start, end = found.start, found.end
+            zone = ZONE_BY_STRUCTURED_KIND.get(found.kind, "body")
+        emit(zone=zone, raw=unit_text[start:end], container_path=container,
+             span={"start": start, "end": end}, unit_text=unit_text,
+             reliability="possible")
+
+    return ExtractionResult(
+        run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+                extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+                source_type=source_type, analysis_tier=ANALYSIS_TIER,
+                config={"reader": "injected"}, completeness="complete",
+                coverage=coverage("files", 1, 1),
+                observation_count=len(observations), started_at=now, finished_at=now),
+        observations=tuple(observations),
+        text_units=tuple(units),
+    )
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_structured_text.py -v`
+Expected: PASS — 14 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/extractors/structured_text.py tests/p5/test_p5_structured_text.py
+git commit -m "feat(P5): E3 structured text - one whole-file unit, unsupported never an empty document"
+```
+
+---
+
+### Task 11: E3's §2.9 long-tail families, and the sensitivity signal P5 supplies but does not classify
+
+**Files:**
+- Create: `src/extractors/long_tail.py`
+- Modify: `src/extractors/schema.py`
+- Test: `tests/p5/test_p5_long_tail.py`
+
+**Interfaces:**
+- Consumes: `extractors.shape`, `extractors.reading`, `extractors.safety.admit`, `extractors.runs.coverage`, `extractors.structured_text.unsupported_result`; caller-supplied `read_long_tail(path, *, transcribe) -> LongTailFile | None`, `find_structured_strings`, `transcription_authorized()`.
+- Produces: `LONG_TAIL_SOURCE_TYPES`, `POTENTIALLY_SENSITIVE`, `SENSITIVE_EMAIL_ZONES`, `SENSITIVE_EMAIL_VALUE_KINDS`, `LongTailEntry`, `LongTailValue`, `LongTailText`, `LongTailFile`, `SensitivitySignal`, `LongTailResult`, `UnauthorizedTranscription`, `DuplicateUnit`, `extract_long_tail()`, `SENSITIVITY_DDL`, `record_sensitivity_signals()`, `sensitivity_signals_for()`.
+
+**The six families §2.9 routes to E3, and where each field lands.** §2.9's field lists are the
+requirement; P4's records are the homes. Nothing below is a new field.
+
+| §2.9 family | §2.9's fields | home |
+|---|---|---|
+| Spreadsheets | workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, dates or identifiers from labeled cells | metadata → `field=` observations; sheet names → `sheet=N` segments **and** their labels; cell values → `table` zone at `sheet=N/row=R/column=C`, the column header carried as the `column` segment's descriptive label |
+| Presentations | slide titles, text boxes, speaker notes where available, hyperlinks, embedded tables, slide-level page boundaries | `slide=N` is the page boundary; title → zone `heading`; text box → zone `body`; notes → zone `notes`; hyperlinks → zone `link`; embedded tables → zone `table` |
+| Email | sender, recipients, subject, sent date, thread identifiers, message body, attachment names, reply-chain context | every named slot → `field=<slot>` at zone `metadata`; body → zone `body`; **addresses and message content carry the sensitivity signal** |
+| Calendar | event title, start and end time, location, organizer, attendees, recurrence metadata | `entry=<uid>` per event, each field a `field=` slot |
+| Contacts | names, organizations, email addresses, phone numbers, address-book metadata | `entry=<uid>` per card; **all VCF output carries the sensitivity signal** |
+| Audio and video | duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present; speech-to-text transcripts **only under an explicit privacy and compute policy** | metadata → `field=` slots; captions and transcripts → zone `transcript` with a `time_span` |
+
+**One extractor family, two modules.** `EXTRACTOR_NAME` here is `text.structured`, the same value
+Task 10 publishes, because the SPEC has one E3 and `runs.ANALYSIS_TIER_BY_EXTRACTOR` keys the tier on
+the family. The test below asserts the two halves **partition** the router's `text.structured` set
+exactly: no `source_type` reaches both and none reaches neither.
+
+**Transcription is authorized by P7 or it does not happen.** §2.9: speech-to-text transcripts *"only
+under an explicit privacy and compute policy"*, and the SPEC: *"Absent that policy, audio/video
+extraction stops at container metadata."* So `transcription_authorized` is an **injected predicate with
+no default** — P7 does not exist yet and a default would be P5 answering P7's question — and its answer
+is passed to the reader as `transcribe=`, so that **no speech recognition is performed at all** when
+the policy is absent. A reader that returns a speech-derived text anyway raises
+`UnauthorizedTranscription`: a library may not smuggle a transcript past a policy P5 was told to
+enforce. Embedded subtitles and captions are *not* speech-to-text — §2.9 lists them in the
+unconditional half — and are extracted either way.
+
+**The sensitivity signal is a signal, and P5 classifies nothing.** §2.9 requires email addresses,
+message content and VCF output be *treated as potentially sensitive*; §8.4 puts **handling-class
+assignment in P7**, and the boundary between the two is **SPEC Open question 7**. P5's side of that
+line: one value, `POTENTIALLY_SENSITIVE`, and no vocabulary — no class, no level, no policy, no
+redaction. `handling_class` and `sensitivity_state` are names P4's conformance rule 6 already forbids
+on an observation and Task 20 asserts appear nowhere in `src/extractors/`.
+
+**Why the signal is a P5 table and not a field.** P4's rule 6 forbids an extractor-private field on an
+observation, so the signal cannot ride on the record; and it is *per located value*, so it cannot ride
+on the run. It is therefore P5's second table — the one the architecture line names — keyed by
+`(run_id, observation_index)`, the position of the observation within the batch the sink wrote
+atomically. **This is a seam gap, not a preference:** P4's sink returns a `run_id` and nothing else, so
+P5 has no `observation_key` to key on and owns no locator serialization to derive one. It is reported
+in *SPEC vs design* rather than worked around by P5 growing a second locator implementation.
+
+**Text units must be uniquely addressed, and the reader is what makes them so.** `text_units` is keyed
+by `(run_id, container_path)` (G1), and a slide holds a title, text boxes and speaker notes at one
+`slide=N`. The reader supplies a `region` ordinal for anything that is not a spreadsheet cell, and
+`DuplicateUnit` fires if two texts still collide — G1's key is enforced at the boundary rather than
+assumed.
+
+**`unsupported` is shared with Task 10.** A reader returning `None` for a spreadsheet or presentation
+is §2.4's *"marked clearly as unsupported in the initial release"*; **SPEC Open question 5** — whether
+they ship at launch — is the caller's, expressed by whether a reader exists. P5 answers it nowhere.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_long_tail.py
+"""E3's §2.9 half: six families, one shape, and SPEC Open questions 5 and 7 held
+open."""
+from pathlib import Path
+
+import pytest
+
+from database_agent.db import create_schema
+
+from extractors.long_tail import (
+    LONG_TAIL_SOURCE_TYPES, LongTailEntry, LongTailFile, LongTailText, LongTailValue,
+    POTENTIALLY_SENSITIVE, UnauthorizedTranscription, DuplicateUnit,
+    extract_long_tail, record_sensitivity_signals, sensitivity_signals_for,
+)
+from extractors.reading import StructuredString
+from extractors.router import HANDLER_BY_SOURCE_TYPE
+from extractors.safety import ProtectedContainerRefused, SafetyPolicy
+from extractors.schema import create_extraction_schema
+from extractors.structured_text import STRUCTURED_TEXT_SOURCE_TYPES
+
+from conftest import FIXED_CLOCK
+from p4_stub import locator_for, unit_locator_for
+
+OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
+                           is_dataless=lambda path: False)
+FILE_ROW = {"file_id": "f-lt", "content_hash": "sha256:lt", "filename": "thing"}
+
+NEVER = lambda: False
+ALWAYS = lambda: True
+
+
+def run_it(document, source_type, *, authorized=NEVER, finder=lambda text: ()):
+    seen = {}
+
+    def reader(path, *, transcribe):
+        seen["transcribe"] = transcribe
+        return document
+
+    result = extract_long_tail(
+        file_row=FILE_ROW, path=Path("/corpus/thing"), policy=OPEN_POLICY,
+        source_type=source_type, read_long_tail=reader,
+        find_structured_strings=finder, transcription_authorized=authorized,
+        now=FIXED_CLOCK, context_window=20)
+    return result, seen
+
+
+def a_workbook() -> LongTailFile:
+    return LongTailFile(
+        entries=(LongTailEntry(kind="sheet", index=1, label="Applications"),),
+        values=(LongTailValue(name="creator", value="Numbers"),),
+        texts=(LongTailText(zone="table", text="Wash U", entry_ordinal=1, row=2,
+                            column=1, column_header="Institution"),),
+    )
+
+
+def a_deck() -> LongTailFile:
+    return LongTailFile(
+        entries=(LongTailEntry(kind="slide", index=3, label=None),),
+        texts=(LongTailText(zone="heading", text="Results", entry_ordinal=1, region=1),
+               LongTailText(zone="body", text="Two cohorts.", entry_ordinal=1,
+                            region=2),
+               LongTailText(zone="notes", text="Mention the funding.",
+                            entry_ordinal=1, region=3)),
+    )
+
+
+def an_email() -> LongTailFile:
+    return LongTailFile(
+        entries=(LongTailEntry(kind="entry", label="<msg-1@example.edu>"),),
+        values=(LongTailValue(name="From", value="dean@wustl.edu",
+                              entry_ordinal=1, kind="address"),
+                LongTailValue(name="Subject", value="Your application",
+                              entry_ordinal=1)),
+        texts=(LongTailText(zone="body", text="Please send your transcript.",
+                            entry_ordinal=1, region=1),),
+    )
+
+
+def a_video(*, with_speech: bool) -> LongTailFile:
+    texts = [LongTailText(zone="transcript", text="[music]", region=1,
+                          time_span={"start_ms": 0, "end_ms": 2000})]
+    if with_speech:
+        texts.append(LongTailText(zone="transcript", text="Welcome to the lecture.",
+                                  region=2, from_speech=True,
+                                  time_span={"start_ms": 2000, "end_ms": 6000}))
+    return LongTailFile(values=(LongTailValue(name="duration", value="00:41:12"),),
+                        texts=tuple(texts))
+
+
+def find_lecture(text: str):
+    at = text.find("lecture")
+    return (StructuredString(kind="identifier", start=at, end=at + 7),) if at != -1 else ()
+
+
+def test_the_two_halves_of_e3_partition_the_routers_set():
+    routed = {name for name, handler in HANDLER_BY_SOURCE_TYPE.items()
+              if handler == "text.structured"}
+    assert set(STRUCTURED_TEXT_SOURCE_TYPES) | set(LONG_TAIL_SOURCE_TYPES) == routed
+    assert not set(STRUCTURED_TEXT_SOURCE_TYPES) & set(LONG_TAIL_SOURCE_TYPES)
+
+
+def test_every_family_conforms_to_p4s_shape(sink):
+    for document, source_type in ((a_workbook(), "spreadsheet"),
+                                  (a_deck(), "presentation"),
+                                  (an_email(), "email"),
+                                  (a_video(with_speech=False), "audio_video")):
+        result, _ = run_it(document, source_type)
+        sink.write(result.extraction)
+    sink.conforms()
+
+
+def test_a_spreadsheet_cell_locates_by_sheet_row_and_column(sink):
+    result, _ = run_it(a_workbook(), "spreadsheet")
+    run_id = sink.write(result.extraction)
+    cell = [o for o in sink.observations_for(run_id) if o["raw_value"] == "Wash U"][0]
+    assert locator_for(cell["location"]) == "table:sheet=1/row=2/column=1#0-6"
+    header = cell["location"]["container_path"][-1]["label"]
+    assert header == "Institution"
+
+
+def test_a_slide_keeps_its_title_body_and_notes_as_three_zones(sink):
+    result, _ = run_it(a_deck(), "presentation")
+    run_id = sink.write(result.extraction)
+    zones = {o["raw_value"]: o["location"]["zone"]
+             for o in sink.observations_for(run_id)}
+    assert zones["Results"] == "heading"
+    assert zones["Mention the funding."] == "notes"
+    # §2.9's "slide-level page boundaries" are the slide segment itself.
+    assert all(o["location"]["container_path"][0] == {"kind": "slide", "index": 3,
+                                                      "label": None}
+               for o in sink.observations_for(run_id))
+
+
+def test_a_slides_three_texts_are_three_units(sink):
+    result, _ = run_it(a_deck(), "presentation")
+    run_id = sink.write(result.extraction)
+    paths = [unit_locator_for(u["container_path"]) for u in sink.units_for(run_id)]
+    assert len(paths) == len(set(paths)) == 3
+    assert set(paths) == {"slide=3/region=1", "slide=3/region=2", "slide=3/region=3"}
+
+
+def test_two_texts_at_one_container_path_are_refused():
+    # G1's key is (run_id, container_path); a collision would silently lose a unit.
+    collide = LongTailFile(
+        entries=(LongTailEntry(kind="slide", index=1),),
+        texts=(LongTailText(zone="body", text="a", entry_ordinal=1),
+               LongTailText(zone="notes", text="b", entry_ordinal=1)))
+    with pytest.raises(DuplicateUnit):
+        run_it(collide, "presentation")
+
+
+def test_a_message_body_is_a_unit_and_not_an_observation(sink):
+    # G1: "a page of text is not a located value". The same is true of a body.
+    result, _ = run_it(an_email(), "email")
+    run_id = sink.write(result.extraction)
+    body = [u for u in sink.units_for(run_id)
+            if u["text"] == "Please send your transcript."]
+    assert len(body) == 1
+    assert not [o for o in sink.observations_for(run_id)
+                if o["raw_value"] == "Please send your transcript."]
+
+
+def test_email_addresses_and_message_content_carry_the_sensitivity_signal(sink):
+    result, _ = run_it(an_email(), "email",
+                       finder=lambda text: ())
+    run_id = sink.write(result.extraction)
+    flagged = {result.extraction.observations[s.observation_index]["raw_value"]
+               for s in result.sensitivity}
+    assert flagged == {"dean@wustl.edu"}
+    assert {s.signal for s in result.sensitivity} == {POTENTIALLY_SENSITIVE}
+    # The subject is neither an address nor message content, so it carries nothing.
+    assert "Your application" not in flagged
+
+
+def test_every_vcf_value_carries_the_signal():
+    card = LongTailFile(
+        entries=(LongTailEntry(kind="entry", label="uid-1"),),
+        values=(LongTailValue(name="FN", value="A. Dean", entry_ordinal=1),
+                LongTailValue(name="TEL", value="+1-314-555-0100", entry_ordinal=1)))
+    result, _ = run_it(card, "contacts")
+    assert len(result.sensitivity) == len(result.extraction.observations) == 2
+
+
+def test_p5_supplies_the_signal_and_assigns_no_class():
+    # SPEC Open question 7 stays open: §8.4 puts handling-class assignment in P7.
+    result, _ = run_it(an_email(), "email")
+    assert all(s.signal == POTENTIALLY_SENSITIVE for s in result.sensitivity)
+    assert all(not hasattr(s, "handling_class") for s in result.sensitivity)
+
+
+def test_the_signal_is_stored_and_read_back(conn):
+    create_schema(conn)
+    create_extraction_schema(conn)
+    result, _ = run_it(an_email(), "email")
+    record_sensitivity_signals(conn, run_id="run-1", signals=result.sensitivity,
+                               now=FIXED_CLOCK)
+    rows = sensitivity_signals_for(conn, "run-1")
+    assert [r["signal"] for r in rows] == [POTENTIALLY_SENSITIVE]
+    assert rows[0]["basis"]
+
+
+def test_audio_stops_at_container_metadata_without_the_policy(sink):
+    result, seen = run_it(a_video(with_speech=False), "audio_video",
+                          authorized=NEVER)
+    run_id = sink.write(result.extraction)
+    assert seen["transcribe"] is False          # no recognition was even attempted
+    assert [o["raw_value"] for o in sink.observations_for(run_id)] == ["00:41:12"]
+    # Embedded captions are §2.9's unconditional half and are still extracted.
+    assert [u["text"] for u in sink.units_for(run_id)] == ["[music]"]
+
+
+def test_a_transcript_smuggled_past_the_policy_is_refused():
+    with pytest.raises(UnauthorizedTranscription):
+        run_it(a_video(with_speech=True), "audio_video", authorized=NEVER)
+
+
+def test_an_authorized_transcript_locates_by_time_span(sink):
+    result, seen = run_it(a_video(with_speech=True), "audio_video", authorized=ALWAYS,
+                          finder=find_lecture)
+    run_id = sink.write(result.extraction)
+    assert seen["transcribe"] is True
+    spoken = [o for o in sink.observations_for(run_id) if o["raw_value"] == "lecture"]
+    assert spoken[0]["location"]["zone"] == "transcript"
+    assert spoken[0]["location"]["time_span"] == {"start_ms": 2000, "end_ms": 6000}
+    assert spoken[0]["location"]["text_span"] is None
+    assert spoken[0]["context_before"]        # the offset still produced the context
+    sink.conforms()
+
+
+def test_a_spreadsheet_with_no_reader_is_unsupported(sink):
+    # SPEC Open question 5: ship dedicated support, or ship `unsupported`. The
+    # caller decides by supplying a reader or not; P5 decides nothing.
+    result, _ = run_it(None, "spreadsheet")
+    run_id = sink.write(result.extraction)
+    assert sink.run_for(run_id)["completeness"] == "unsupported"
+    assert sink.observations_for(run_id) == []
+    assert result.sensitivity == ()
+
+
+def test_no_extractor_is_reachable_inside_a_protected_container():
+    policy = SafetyPolicy(is_protected_container=lambda path: True,
+                          is_dataless=lambda path: False)
+    with pytest.raises(ProtectedContainerRefused):
+        extract_long_tail(
+            file_row=FILE_ROW, path=Path("/Applications/Mail.app/Contents/a.eml"),
+            policy=policy, source_type="email",
+            read_long_tail=lambda path, *, transcribe: pytest.fail("reader reached"),
+            find_structured_strings=lambda text: (),
+            transcription_authorized=NEVER, now=FIXED_CLOCK, context_window=20)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_long_tail.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'extractors.long_tail'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/extractors/long_tail.py
+"""E3's section 2.9 half - the six long-tail families, and the sensitivity signal.
+
+Section 2.9 gives spreadsheets, presentations, email, calendar, contacts and
+audio/video a field list each and no record of their own; P4's three records are the
+homes and this module is the placement. `EXTRACTOR_NAME` is `text.structured`, the
+same family Task 10 publishes, because the SPEC has one E3.
+
+Two things here are policy, not format:
+
+  Speech-to-text runs only under P7's explicit privacy and compute policy (section
+  2.9). The authorization is an injected predicate with no default and is passed to
+  the reader, so absent the policy no recognition is performed at all. Embedded
+  subtitles and captions are section 2.9's unconditional half and are not
+  speech-to-text.
+
+  Email addresses, message content and every VCF value are marked POTENTIALLY
+  SENSITIVE at emission, for P7 to act on. P5 assigns no handling class: section 8.4
+  gives classification to P7 and SPEC Open question 7 is exactly where the line
+  falls. There is one signal value here and no vocabulary.
+"""
+from __future__ import annotations
+
+import sqlite3
+from dataclasses import dataclass, field as dataclass_field
+from pathlib import Path
+from typing import Any, Callable, Mapping, Sequence
+
+from extractors.reading import ZONE_BY_STRUCTURED_KIND, StructuredString
+from extractors.runs import coverage
+from extractors.safety import SafetyPolicy, admit
+from extractors.shape import (
+    context_for, location, normalize_mechanical, observation, run, segment, text_unit,
+)
+from extractors.sink import ExtractionResult
+from extractors.structured_text import (
+    ANALYSIS_TIER, EXTRACTOR_NAME, VERSION, unsupported_result,
+)
+
+#: Section 2.9's six long-tail families, in P4's `source_type` vocabulary. Together
+#: with structured_text.STRUCTURED_TEXT_SOURCE_TYPES they partition the eight the
+#: router sends to `text.structured`.
+LONG_TAIL_SOURCE_TYPES: tuple[str, ...] = (
+    "spreadsheet", "presentation", "email", "calendar", "contacts", "audio_video",
+)
+
+#: Section 2.9's own phrase, and the WHOLE of P5's sensitivity vocabulary. A class, a
+#: level or a policy would be P7's (section 8.4); SPEC Open question 7 is the line.
+POTENTIALLY_SENSITIVE = "potentially sensitive"
+
+#: Section 2.9, Email: "while treating addresses and message content as potentially
+#: sensitive". Message content is the body; a found address in it is zone `link`.
+SENSITIVE_EMAIL_ZONES: tuple[str, ...] = ("body", "link")
+
+#: The value classes section 2.9 names as sensitive in an email header. WHICH SLOTS
+#: hold an address is format knowledge (RFC 5322 address fields), so the reader says
+#: so and P5 does not pattern-match a header name.
+SENSITIVE_EMAIL_VALUE_KINDS: tuple[str, ...] = ("address",)
+
+#: Section 2.9, Contacts: "normally privacy-protected rather than used to create
+#: folder proposals" - every value of a VCF, with no exception to enumerate.
+FULLY_SENSITIVE_SOURCE_TYPES: tuple[str, ...] = ("contacts",)
+
+
+class UnauthorizedTranscription(Exception):
+    """A speech-derived text arrived without P7's explicit policy (section 2.9)."""
+
+
+class DuplicateUnit(Exception):
+    """Two texts claimed one `(run_id, container_path)` key (G1)."""
+
+
+@dataclass(frozen=True)
+class LongTailEntry:
+    """One addressable place: a sheet, a slide, a message, an event, a card.
+
+    `kind` is a P4 segment kind. `sheet` and `slide` are indexed; `entry` is
+    label-addressed (P4 segment-kind rule 2) and carries the format's own identifier.
+    """
+    kind: str
+    index: int | None = None
+    label: str | None = None
+
+
+@dataclass(frozen=True)
+class LongTailValue:
+    """One named value from a family's section 2.9 field list.
+
+    `name` is the format's own slot name, verbatim (P4 D7). `kind` is set only where
+    section 2.9 names a class P5 must act on - `address` for an email header.
+    """
+    name: str
+    value: str
+    entry_ordinal: int | None = None
+    kind: str | None = None
+
+
+@dataclass(frozen=True)
+class LongTailText:
+    """One stretch of text: a cell, a text box, a body, a note, a caption.
+
+    `region` makes the container path unique where an entry holds several texts; a
+    cell uses `row`/`column` instead. `from_speech` marks section 2.9's speech-to-text
+    transcript, which no reader may return unless P7 authorized it.
+    """
+    zone: str
+    text: str
+    entry_ordinal: int | None = None
+    row: int | None = None
+    column: int | None = None
+    column_header: str | None = None
+    region: int | None = None
+    time_span: Mapping[str, int] | None = None
+    from_speech: bool = False
+
+
+@dataclass(frozen=True)
+class LongTailFile:
+    """What an injected `read_long_tail` returns, or None when this deployment ships
+    no reader for the format (section 2.4's `unsupported`)."""
+    entries: tuple[LongTailEntry, ...] = ()
+    values: tuple[LongTailValue, ...] = ()
+    texts: tuple[LongTailText, ...] = ()
+    iso_dates: Mapping[str, str] = dataclass_field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SensitivitySignal:
+    """One located value section 2.9 says to treat as potentially sensitive.
+
+    Keyed by the observation's POSITION in the batch: P4's sink returns a `run_id`
+    and nothing else, so there is no `observation_key` to key on, and P5 owns no
+    locator serialization to derive one. Reported as a seam gap rather than closed by
+    a second implementation.
+    """
+    observation_index: int
+    signal: str
+    basis: str
+
+
+@dataclass(frozen=True)
+class LongTailResult:
+    """The P4 batch, and the signals raised while building it.
+
+    Two values rather than one because P4 conformance rule 6 forbids an
+    extractor-private field on an observation, and the signal is per located value so
+    it cannot ride on the run either.
+    """
+    extraction: ExtractionResult
+    sensitivity: tuple[SensitivitySignal, ...] = ()
+
+
+def _entry_segment(entry: LongTailEntry) -> dict:
+    return segment(entry.kind, index=entry.index, label=entry.label)
+
+
+def _entry_path(document: LongTailFile, ordinal: int | None) -> tuple:
+    if ordinal is None:
+        return ()
+    return (_entry_segment(document.entries[ordinal - 1]),)
+
+
+def _path_key(container_path: tuple) -> tuple:
+    """A hashable form of a container path. Segments are P4 mappings, so the key is
+    built rather than assumed - G1's uniqueness check needs one and P5 owns no
+    locator serialization to borrow."""
+    return tuple((s["kind"], s["index"], s["label"]) for s in container_path)
+
+
+def _text_path(document: LongTailFile, text: LongTailText) -> tuple:
+    path = _entry_path(document, text.entry_ordinal)
+    if text.row is not None:
+        path = path + (segment("row", index=text.row),
+                       segment("column", index=text.column,
+                               label=text.column_header))
+    if text.region is not None:
+        path = path + (segment("region", index=text.region),)
+    return path
+
+
+#: Zones whose whole text is itself a located value. A heading, a note and a cell are
+#: short labelled positions (sections 2.3 and 2.9); a body and a transcript are bulk
+#: text and G1 gives bulk text to `text_units`.
+WHOLE_TEXT_ZONES: tuple[str, ...] = ("heading", "notes", "table")
+
+
+def extract_long_tail(
+        *, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy,
+        source_type: str,
+        read_long_tail: Callable[..., LongTailFile | None],
+        find_structured_strings: Callable[[str], tuple[StructuredString, ...]],
+        transcription_authorized: Callable[[], bool],
+        now: str, context_window: int) -> LongTailResult:
+    """Section 2.9's long-tail families, as P4 records."""
+    if source_type not in LONG_TAIL_SOURCE_TYPES:
+        raise ValueError(
+            f"{source_type!r} is not one of section 2.9's long-tail families "
+            f"{LONG_TAIL_SOURCE_TYPES}"
+        )
+    admit(path, policy=policy)
+    transcribe = bool(transcription_authorized())
+    document = read_long_tail(path, transcribe=transcribe)
+    if document is None:
+        return LongTailResult(
+            extraction=unsupported_result(file_row=file_row,
+                                          source_type=source_type, now=now))
+
+    iso_dates = document.iso_dates
+    observations: list[Mapping[str, Any]] = []
+    units: list[Mapping[str, Any]] = []
+    signals: list[SensitivitySignal] = []
+
+    def emit(*, zone, raw, container_path, span, unit_text, reliability,
+             normalized=None, sensitive_basis=None, time_span=None):
+        before = after = ""
+        truncated = False
+        if span is not None and unit_text is not None:
+            before, after, truncated = context_for(unit_text, span["start"],
+                                                   span["end"], window=context_window)
+        # A time-addressed medium locates by time: P4's `location` publishes
+        # `text_span` and `time_span` as alternatives, and section 2.8's own
+        # audio/video example is a time. The offset still produced the context.
+        observations.append(observation(
+            file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+            extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+            source_type=source_type, raw_value=raw,
+            normalized_value=normalized if normalized is not None
+            else normalize_mechanical(raw),
+            location=location(zone=zone, container_path=container_path,
+                              text_span=None if time_span is not None else span,
+                              time_span=time_span),
+            context_before=before, context_after=after, context_truncated=truncated,
+            observed_at=now, reliability=reliability,
+        ))
+        basis = sensitive_basis
+        if basis is None and source_type in FULLY_SENSITIVE_SOURCE_TYPES:
+            basis = ("section 2.9, Contacts: address-book output is normally "
+                     "privacy-protected")
+        if basis is not None:
+            signals.append(SensitivitySignal(observation_index=len(observations) - 1,
+                                             signal=POTENTIALLY_SENSITIVE,
+                                             basis=basis))
+
+    for value in document.values:
+        if not value.value:
+            continue                     # presence only; an absence is never a row
+        basis = None
+        if (source_type == "email"
+                and value.kind in SENSITIVE_EMAIL_VALUE_KINDS):
+            basis = "section 2.9, Email: addresses are potentially sensitive"
+        emit(zone="metadata", raw=value.value,
+             container_path=_entry_path(document, value.entry_ordinal)
+             + (segment("field", label=value.name),),
+             span=None, unit_text=None, reliability="direct",
+             normalized=iso_dates.get(value.name), sensitive_basis=basis)
+
+    seen_paths: set[tuple] = set()
+    for text in document.texts:
+        if text.from_speech and not transcribe:
+            raise UnauthorizedTranscription(
+                "a speech-to-text transcript arrived without P7's explicit privacy "
+                "and compute policy; section 2.9 authorizes one only under it"
+            )
+        if not text.text:
+            continue
+        container = _text_path(document, text)
+        if _path_key(container) in seen_paths:
+            raise DuplicateUnit(
+                f"two texts claim the container path {container!r}; `text_units` is "
+                "keyed by (run_id, container_path) (G1) and the second would be lost"
+            )
+        seen_paths.add(_path_key(container))
+        units.append(text_unit(text=text.text, container_path=container))
+        body_basis = (
+            "section 2.9, Email: message content is potentially sensitive"
+            if source_type == "email" and text.zone in SENSITIVE_EMAIL_ZONES
+            else None)
+        if text.zone in WHOLE_TEXT_ZONES:
+            emit(zone=text.zone, raw=text.text, container_path=container,
+                 span={"start": 0, "end": len(text.text)}, unit_text=text.text,
+                 reliability="possible", sensitive_basis=body_basis)
+        for found in find_structured_strings(text.text):
+            zone = ZONE_BY_STRUCTURED_KIND.get(found.kind, text.zone)
+            found_basis = body_basis
+            if (found_basis is None and source_type == "email"
+                    and zone in SENSITIVE_EMAIL_ZONES):
+                found_basis = ("section 2.9, Email: addresses are potentially "
+                               "sensitive")
+            emit(zone=zone, raw=text.text[found.start:found.end],
+                 container_path=container,
+                 span={"start": found.start, "end": found.end},
+                 unit_text=text.text, reliability="possible",
+                 sensitive_basis=found_basis, time_span=text.time_span)
+
+    entries = len(document.entries) or 1
+    return LongTailResult(
+        extraction=ExtractionResult(
+            run=run(file_id=file_row["file_id"],
+                    content_hash=file_row["content_hash"],
+                    extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+                    source_type=source_type, analysis_tier=ANALYSIS_TIER,
+                    config={"reader": "injected", "transcribe": transcribe},
+                    completeness="complete",
+                    coverage=coverage("entries", entries, entries),
+                    observation_count=len(observations), started_at=now,
+                    finished_at=now),
+            observations=tuple(observations),
+            text_units=tuple(units)),
+        sensitivity=tuple(signals),
+    )
+
+
+SENSITIVITY_DDL = """
+CREATE TABLE IF NOT EXISTS extraction_sensitivity_signal (
+    signal_id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id            TEXT NOT NULL,
+    observation_index INTEGER NOT NULL,
+    signal            TEXT NOT NULL,
+    basis             TEXT NOT NULL,
+    observed_at       TEXT NOT NULL,
+    UNIQUE (run_id, observation_index)
+);
+"""
+
+
+def record_sensitivity_signals(conn: sqlite3.Connection, *, run_id: str,
+                               signals: Sequence[SensitivitySignal],
+                               now: str) -> int:
+    """Persist the signals for one written batch. Returns how many were stored."""
+    for signal in signals:
+        conn.execute(
+            "INSERT INTO extraction_sensitivity_signal (run_id, observation_index, "
+            "signal, basis, observed_at) VALUES (?, ?, ?, ?, ?)",
+            (run_id, signal.observation_index, signal.signal, signal.basis, now),
+        )
+    return len(signals)
+
+
+def sensitivity_signals_for(conn: sqlite3.Connection,
+                            run_id: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM extraction_sensitivity_signal WHERE run_id = ? "
+        "ORDER BY observation_index", (run_id,)).fetchall()
+```
+
+**Modify: `src/extractors/schema.py`** — P5's second table joins the first. The architecture line names
+two P5-owned tables and this is the second; `create_extraction_schema` stays the one place either is
+created, and P4's three tables are still created by nothing in `extractors`.
+
+```python
+# src/extractors/schema.py
+from extractors.long_tail import SENSITIVITY_DDL
+from extractors.router import ROUTING_DDL
+
+
+def create_extraction_schema(conn: sqlite3.Connection) -> None:
+    """Create every P5-owned table. Idempotent. P1's `create_schema` runs first.
+
+    Two tables, both P5's own: the routing decision per file (section 2.9) and the
+    sensitivity signal per located value (section 2.9, section 8.4). P4's `evidence`,
+    `extraction_runs` and `text_units` are created here never.
+    """
+    conn.executescript(ROUTING_DDL)
+    conn.executescript(SENSITIVITY_DDL)
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_long_tail.py -v`
+Expected: PASS — 16 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/extractors/long_tail.py src/extractors/schema.py tests/p5/test_p5_long_tail.py
+git commit -m "feat(P5): E3 long-tail families, transcription only under P7 policy, sensitivity signalled not classified"
+```
+
+---
+
+### Task 12: E4 — archives (§2.5), the manifest read with nothing written to disk
+
+**Files:**
+- Create: `src/extractors/archive.py`
+- Test: `tests/p5/test_p5_archive.py`
+
+**Interfaces:**
+- Consumes: `extractors.shape`, `extractors.safety.admit`, `extractors.runs.coverage`; caller-supplied `read_manifest(path) -> ArchiveManifest` and `recognize_markers(member_paths) -> tuple[ArchiveMarker, ...]`.
+- Produces: `VERSION`, `EXTRACTOR_NAME`, `ARCHIVE_TYPE_FIELD`, `UNCOMPRESSED_SIZE_FIELD`, `MARKER_KINDS`, `UnknownMarkerKind`, `ArchiveMember`, `ArchiveManifest`, `ArchiveMarker`, `extract_archive()`.
+
+**§2.5, in full, is this task.** *"Archives should be inspected without being unpacked to disk. The
+engine should read and store the archive type, contained paths, filenames, folder names, extensions,
+file count, uncompressed size where available, and recognizable markers such as source-code manifests or
+document names."*
+
+| §2.5 requires | where it lands |
+|---|---|
+| archive type | observation, zone `metadata`, `field=archive type`, `direct` |
+| contained paths · filenames · folder names · extensions | observations at zone `manifest`, container `entry=<member path>`, each a **span of the member path** |
+| file count | `run.coverage {units: "entries", processed, total}` — the same rule E1 applies to page count; a second home for one number is the drift this project keeps paying for |
+| uncompressed size, where available | observation, zone `metadata`, `field=uncompressed size`, `direct` |
+| recognizable markers | observations, zone `metadata`, `field=<§2.5's own class>`, `direct`, value = the member path that carries the marker |
+
+**Four values, one unit, four spans.** §2.5 asks for the path, the filename, the folder names and the
+extension, which are one string and four readings of it. Each member's path is stored once as a
+`text_units` row at `manifest`/`entry=<path>` and each of the four is an observation with a span into
+it, so P4 conformance rules 5 and 10 hold and no character is stored twice. §2.8's *"a path inside an
+archive manifest"* is the location, exactly as P4's fixture 6 gives it.
+
+**§2.5's own example is the headline test.** *"A ZIP file named `submission.zip` may contain a
+transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a
+purpose-defined application packet even when the outer archive name is vague."* Five member names become
+five located values; **P5 concludes nothing** from them — "application packet" is a fact and belongs to
+P6 (§3.2).
+
+**The absolute prohibition, and how it is tested.** §2.5: *"the normal scan should never extract archive
+contents to the filesystem, because doing so creates security, storage, and side-effect risks."* The
+test builds a real ZIP under `tmp_path` with the standard library, snapshots the whole tree, runs E4,
+and asserts the tree is byte-for-byte unchanged. `src/extractors/archive.py` imports no archive library
+at all — the manifest reader is injected — so there is no code path that could unpack one; Task 20
+asserts that by introspection.
+
+**A decompression bomb is refused by never decompressing.** §2.5: password-protected, malformed, nested
+and oversized archives are *"marked as unreadable or partially inspected rather than forced open or
+allowed to become decompression-bomb risks."* In P4's words that is `unreadable` and `partial`.
+Uncompressed size is **read from the manifest where the format declares it** and is itself the bomb
+signal; it is never established by decompressing, and **P5 holds no size ceiling** — the ceiling is
+§8.6 configuration the reader was given (G4), and the reader reports that it stopped.
+
+**`unreadable` still carries rows.** §2.9's *"indexed-but-unreadable rather than silently treated as
+empty"* (M3): a password-protected archive still yields its type, and P4's conformance rule 9 lists
+`unsupported`, `deferred` and `failed` as the zero-observation states — not `unreadable`.
+
+**SPEC Open question 8 stays open.** *"May a nested archive's manifest be read one level down, in
+memory?"* `ArchiveManifest` has no nested-manifest field and `extract_archive` calls `read_manifest`
+**exactly once**; an inner archive is one ordinary manifest entry whose path ends in an archive
+extension, and nothing recurses. The test asserts the single call.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_archive.py
+"""E4 - §2.5. Done-means 7: "No archive fixture writes a byte outside the process,
+and the bomb/protected/nested fixtures all terminate in a marked state."
+"""
+import zipfile
+from pathlib import Path
+
+import pytest
+
+from extractors.archive import (
+    ARCHIVE_TYPE_FIELD, ArchiveManifest, ArchiveMarker, ArchiveMember,
+    EXTRACTOR_NAME, MARKER_KINDS, UNCOMPRESSED_SIZE_FIELD, UnknownMarkerKind,
+    extract_archive,
+)
+from extractors.safety import DatalessRefused, ProtectedContainerRefused, SafetyPolicy
+
+from conftest import FIXED_CLOCK
+from p4_stub import locator_for
+
+OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
+                           is_dataless=lambda path: False)
+FILE_ROW = {"file_id": "f-zip", "content_hash": "sha256:zip",
+            "filename": "submission.zip"}
+
+PACKET = ("transcript.pdf", "personal-statement.docx", "resume.pdf",
+          "certificate.pdf", "form.pdf")
+
+
+def a_submission_zip() -> ArchiveManifest:
+    members = tuple(ArchiveMember(path=name, uncompressed_size=100)
+                    for name in PACKET)
+    return ArchiveManifest(archive_type="ZIP", members=members,
+                           uncompressed_size=500, inspected=len(members),
+                           total=len(members))
+
+
+def no_markers(member_paths):
+    return ()
+
+
+def run_it(manifest=None, markers=no_markers, path=Path("/corpus/submission.zip")):
+    calls = []
+
+    def reader(target):
+        calls.append(target)
+        return manifest if manifest is not None else a_submission_zip()
+
+    result = extract_archive(file_row=FILE_ROW, path=path, policy=OPEN_POLICY,
+                             read_manifest=reader, recognize_markers=markers,
+                             now=FIXED_CLOCK, context_window=20)
+    return result, calls
+
+
+def test_every_observation_conforms_to_p4s_shape(sink):
+    result, _ = run_it()
+    sink.write(result)
+    sink.conforms()
+
+
+def test_the_five_member_names_are_five_located_values(sink):
+    # §2.5's own example: transcript, personal statement, resume, certificate, form.
+    result, _ = run_it()
+    run_id = sink.write(result)
+    located = {o["raw_value"]: locator_for(o["location"])
+               for o in sink.observations_for(run_id)
+               if o["location"]["zone"] == "manifest"}
+    for name in PACKET:
+        assert located[name] == f"manifest:entry={name}#0-{len(name)}"
+
+
+def test_p5_concludes_nothing_about_the_packet(sink):
+    # "Application packet" is a fact (§3.2) and belongs to P6.
+    result, _ = run_it()
+    run_id = sink.write(result)
+    values = " ".join(o["raw_value"] for o in sink.observations_for(run_id))
+    assert "packet" not in values and "application" not in values.lower()
+
+
+def test_the_archive_type_and_uncompressed_size_are_metadata(sink):
+    result, _ = run_it()
+    run_id = sink.write(result)
+    slots = {o["location"]["container_path"][0]["label"]: o["raw_value"]
+             for o in sink.observations_for(run_id)
+             if o["location"]["zone"] == "metadata"}
+    assert slots[ARCHIVE_TYPE_FIELD] == "ZIP"
+    assert slots[UNCOMPRESSED_SIZE_FIELD] == "500"
+
+
+def test_the_file_count_lives_on_coverage_and_nowhere_else(sink):
+    result, _ = run_it()
+    run_id = sink.write(result)
+    assert sink.run_for(run_id)["coverage"] == {"units": "entries", "processed": 5,
+                                                "total": 5}
+    assert not [o for o in sink.observations_for(run_id)
+                if o["raw_value"] == "5"]
+
+
+def test_folder_names_and_extensions_are_spans_of_the_member_path(sink):
+    manifest = ArchiveManifest(
+        archive_type="ZIP",
+        members=(ArchiveMember(path="project/src/main.py"),
+                 ArchiveMember(path="project/src/util.py"),
+                 ArchiveMember(path="project/", is_directory=True)),
+        inspected=3, total=3)
+    result, _ = run_it(manifest=manifest)
+    run_id = sink.write(result)
+    manifest_rows = {o["raw_value"]: o for o in sink.observations_for(run_id)
+                     if o["location"]["zone"] == "manifest"}
+    assert set(manifest_rows) == {"project/src/main.py", "project/src/util.py",
+                                  "project/", "main.py", "util.py", ".py",
+                                  "project", "src"}
+    # D10: one row per (zone, raw); `src` appears in two members and counts twice.
+    assert manifest_rows["src"]["occurrence_count"] == 2
+    assert manifest_rows[".py"]["occurrence_count"] == 2
+    # And the span really indexes the member path it names (P4 rule 5).
+    sink.conforms()
+
+
+def test_recognizable_markers_come_from_the_caller_not_from_p5(sink):
+    seen = {}
+
+    def recognizer(member_paths):
+        seen["paths"] = tuple(member_paths)
+        return (ArchiveMarker(member_path="project/package.json",
+                              kind="source-code manifest"),)
+
+    manifest = ArchiveManifest(
+        archive_type="ZIP",
+        members=(ArchiveMember(path="project/package.json"),),
+        inspected=1, total=1)
+    result, _ = run_it(manifest=manifest, markers=recognizer)
+    run_id = sink.write(result)
+    assert seen["paths"] == ("project/package.json",)
+    marker = [o for o in sink.observations_for(run_id)
+              if o["location"]["container_path"]
+              and o["location"]["container_path"][0]["label"] in MARKER_KINDS][0]
+    assert marker["raw_value"] == "project/package.json"
+    assert marker["reliability"] == "direct"
+
+
+def test_a_marker_class_section_2_5_does_not_name_is_refused():
+    manifest = ArchiveManifest(archive_type="ZIP",
+                               members=(ArchiveMember(path="a"),),
+                               inspected=1, total=1)
+    with pytest.raises(UnknownMarkerKind):
+        run_it(manifest=manifest,
+               markers=lambda paths: (ArchiveMarker(member_path="a",
+                                                    kind="vibe"),))
+
+
+def test_a_real_zip_is_read_and_not_one_byte_is_written(tmp_path, sink):
+    # Done-means 7, and §2.5's absolute prohibition. The one test in this file that
+    # touches a disk, and it builds its own tree under tmp_path.
+    archive_path = tmp_path / "submission.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        for name in PACKET:
+            archive.writestr(name, b"fixture bytes")
+
+    def real_reader(target: Path) -> ArchiveManifest:
+        with zipfile.ZipFile(target) as opened:
+            infos = opened.infolist()
+        return ArchiveManifest(
+            archive_type="ZIP",
+            members=tuple(ArchiveMember(path=i.filename, is_directory=i.is_dir(),
+                                        uncompressed_size=i.file_size)
+                          for i in infos),
+            uncompressed_size=sum(i.file_size for i in infos),
+            inspected=len(infos), total=len(infos))
+
+    before = {p: p.stat().st_size for p in sorted(tmp_path.rglob("*"))}
+    result = extract_archive(file_row=FILE_ROW, path=archive_path,
+                             policy=OPEN_POLICY, read_manifest=real_reader,
+                             recognize_markers=no_markers, now=FIXED_CLOCK,
+                             context_window=20)
+    after = {p: p.stat().st_size for p in sorted(tmp_path.rglob("*"))}
+
+    assert after == before, "E4 wrote to the filesystem"
+    run_id = sink.write(result)
+    names = {o["raw_value"] for o in sink.observations_for(run_id)}
+    assert set(PACKET) <= names
+    assert sink.run_for(run_id)["completeness"] == "complete"
+
+
+def test_a_password_protected_archive_is_unreadable_and_still_indexed(sink):
+    # §2.5 + M3: "indexed-but-unreadable, never zero rows".
+    manifest = ArchiveManifest(archive_type="ZIP", members=(), inspected=0, total=0,
+                               unreadable_reason="password-protected")
+    result, _ = run_it(manifest=manifest)
+    run_id = sink.write(result)
+    row = sink.run_for(run_id)
+    assert row["completeness"] == "unreadable"
+    assert "password-protected" in row["failure_reason"]
+    assert [o["raw_value"] for o in sink.observations_for(run_id)] == ["ZIP"]
+    sink.conforms()
+
+
+def test_a_malformed_archive_is_unreadable_with_its_reason(sink):
+    manifest = ArchiveManifest(archive_type="ZIP", members=(), inspected=0, total=0,
+                               unreadable_reason="malformed central directory")
+    result, _ = run_it(manifest=manifest)
+    row = sink.run_for(sink.write(result))
+    assert row["completeness"] == "unreadable"
+
+
+def test_an_oversized_archive_is_partial_and_declares_its_size(sink):
+    # The bomb signal is the DECLARED uncompressed size, read from the manifest.
+    # P5 holds no ceiling: the reader was given §8.6's and reports that it stopped.
+    manifest = ArchiveManifest(
+        archive_type="ZIP",
+        members=(ArchiveMember(path="huge.bin", uncompressed_size=10 ** 12),),
+        uncompressed_size=10 ** 12, inspected=1, total=90000,
+        partial_reason="stopped at the configured entry ceiling")
+    result, _ = run_it(manifest=manifest)
+    run_id = sink.write(result)
+    row = sink.run_for(run_id)
+    assert row["completeness"] == "partial"
+    assert row["coverage"] == {"units": "entries", "processed": 1, "total": 90000}
+    sizes = [o["raw_value"] for o in sink.observations_for(run_id)
+             if o["location"]["container_path"]
+             and o["location"]["container_path"][0]["label"] == UNCOMPRESSED_SIZE_FIELD]
+    assert sizes == [str(10 ** 12)]
+    sink.conforms()
+
+
+def test_a_nested_archive_is_one_entry_and_the_manifest_is_read_once(sink):
+    # SPEC Open question 8 is OPEN: whether an inner manifest may be read one level
+    # down, in memory, is unsettled. E4 reads one manifest and recurses never.
+    manifest = ArchiveManifest(
+        archive_type="ZIP",
+        members=(ArchiveMember(path="inner.zip", uncompressed_size=42),),
+        inspected=1, total=2, partial_reason="contains a nested archive")
+    result, calls = run_it(manifest=manifest)
+    run_id = sink.write(result)
+    assert len(calls) == 1
+    assert sink.run_for(run_id)["completeness"] == "partial"
+    inner = [o for o in sink.observations_for(run_id)
+             if o["raw_value"] == "inner.zip"]
+    assert inner[0]["location"]["zone"] == "manifest"
+
+
+def test_the_same_manifest_produces_the_same_observations(sink):
+    first = sink.write(run_it()[0])
+    second = sink.write(run_it()[0])
+    strip = lambda rows: [{k: v for k, v in r.items() if k != "run_id"} for r in rows]
+    assert strip(sink.observations_for(first)) == strip(sink.observations_for(second))
+
+
+def test_no_extractor_is_reachable_inside_a_protected_container():
+    policy = SafetyPolicy(is_protected_container=lambda path: True,
+                          is_dataless=lambda path: False)
+    with pytest.raises(ProtectedContainerRefused):
+        extract_archive(file_row=FILE_ROW,
+                        path=Path("/Applications/Thing.app/Contents/a.zip"),
+                        policy=policy,
+                        read_manifest=lambda target: pytest.fail("reader reached"),
+                        recognize_markers=no_markers, now=FIXED_CLOCK,
+                        context_window=20)
+
+
+def test_a_dataless_archive_is_never_materialized():
+    policy = SafetyPolicy(is_protected_container=lambda path: False,
+                          is_dataless=lambda path: True)
+    with pytest.raises(DatalessRefused):
+        extract_archive(file_row=FILE_ROW, path=Path("/corpus/submission.zip"),
+                        policy=policy,
+                        read_manifest=lambda target: pytest.fail("reader reached"),
+                        recognize_markers=no_markers, now=FIXED_CLOCK,
+                        context_window=20)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_archive.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'extractors.archive'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/extractors/archive.py
+"""E4 - archives (section 2.5).
+
+"Archives should be inspected without being unpacked to disk. The engine should read
+and store the archive type, contained paths, filenames, folder names, extensions,
+file count, uncompressed size where available, and recognizable markers such as
+source-code manifests or document names."
+
+This module imports no archive library, opens no file and writes nothing: the
+manifest reader is injected, so there is no code path here that could unpack an
+archive. That is how "the normal scan should never extract archive contents to the
+filesystem" is kept - by absence, not by a flag.
+
+Uncompressed size is read from the manifest where the format declares it, and IS the
+decompression-bomb signal. P5 holds no size ceiling: section 8.6's ceilings are
+configuration the reader was given (G4), and the reader reports that it stopped.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Mapping, Sequence
+
+from extractors.runs import coverage
+from extractors.safety import SafetyPolicy, admit
+from extractors.shape import (
+    context_for, location, normalize_mechanical, observation, run, segment, text_unit,
+)
+from extractors.sink import ExtractionResult
+
+VERSION = "0.1.0"
+EXTRACTOR_NAME = "archive.manifest"
+SOURCE_TYPE = "archive"
+ANALYSIS_TIER = "native"
+
+#: Section 2.5's own names for the two values that describe the archive itself.
+ARCHIVE_TYPE_FIELD = "archive type"
+UNCOMPRESSED_SIZE_FIELD = "uncompressed size"
+
+#: Section 2.5's "recognizable markers such as source-code manifests or document
+#: names" - the two classes section 2.5 names. WHICH files are markers is Deferred
+#: ("Archive recognizable markers beyond the above | The marker set"), so no member
+#: name appears here and the recognizer is caller-supplied.
+MARKER_KINDS: tuple[str, ...] = ("source-code manifest", "document name")
+
+
+class UnknownMarkerKind(Exception):
+    """A marker class section 2.5 does not name."""
+
+
+@dataclass(frozen=True)
+class ArchiveMember:
+    """One manifest entry. `uncompressed_size` is what the manifest DECLARES."""
+    path: str
+    is_directory: bool = False
+    uncompressed_size: int | None = None
+
+
+@dataclass(frozen=True)
+class ArchiveManifest:
+    """What an injected `read_manifest` returns.
+
+    `unreadable_reason` is section 2.5's password-protected and malformed cases;
+    `partial_reason` is its nested and oversized ones. The reader names the reason
+    because the reason is format knowledge; P5 places it.
+    """
+    archive_type: str
+    members: tuple[ArchiveMember, ...] = ()
+    uncompressed_size: int | None = None
+    inspected: int = 0
+    total: int = 0
+    unreadable_reason: str | None = None
+    partial_reason: str | None = None
+
+
+@dataclass(frozen=True)
+class ArchiveMarker:
+    """One of section 2.5's recognizable markers, as the caller recognized it."""
+    member_path: str
+    kind: str
+
+
+def _name_spans(path_text: str, *, is_directory: bool) -> list[tuple[int, int]]:
+    """Section 2.5's "contained paths, filenames, folder names, extensions" as spans
+    of one member path - four readings of one string, so each is a located value and
+    no character is stored twice."""
+    spans = [(0, len(path_text))]
+    parts = path_text.rstrip("/").split("/")
+    offset = 0
+    for position, part in enumerate(parts):
+        start, end = offset, offset + len(part)
+        offset = end + 1
+        if not part:
+            continue
+        spans.append((start, end))
+        if position == len(parts) - 1 and not is_directory:
+            dot = part.rfind(".")
+            if dot > 0:
+                spans.append((start + dot, end))
+    seen, unique = set(), []
+    for span in spans:
+        if span not in seen:
+            seen.add(span)
+            unique.append(span)
+    return unique
+
+
+def extract_archive(*, file_row: Mapping[str, Any], path: Path,
+                    policy: SafetyPolicy,
+                    read_manifest: Callable[[Path], ArchiveManifest],
+                    recognize_markers: Callable[[Sequence[str]],
+                                                Sequence[ArchiveMarker]],
+                    now: str, context_window: int) -> ExtractionResult:
+    """Section 2.5's manifest, as P4 records. Reads one manifest and recurses never.
+
+    SPEC Open question 8 - whether a nested archive's manifest may be read one level
+    down, in memory - is left open by that: an inner archive is one ordinary entry
+    whose path ends in an archive extension, and nothing here looks inside it.
+    """
+    admit(path, policy=policy)
+    manifest = read_manifest(path)
+
+    candidates: list[tuple[str, str, tuple, dict | None, str | None, str]] = []
+    units: list[Mapping[str, Any]] = []
+
+    candidates.append(("metadata", manifest.archive_type,
+                       (segment("field", label=ARCHIVE_TYPE_FIELD),), None, None,
+                       "direct"))
+    if manifest.uncompressed_size is not None:
+        candidates.append(("metadata", str(manifest.uncompressed_size),
+                           (segment("field", label=UNCOMPRESSED_SIZE_FIELD),), None,
+                           None, "direct"))
+
+    for member in manifest.members:
+        container = (segment("entry", label=member.path),)
+        units.append(text_unit(text=member.path, container_path=container))
+        for start, end in _name_spans(member.path,
+                                      is_directory=member.is_directory):
+            candidates.append(("manifest", member.path[start:end], container,
+                               {"start": start, "end": end}, member.path,
+                               "possible"))
+
+    for marker in recognize_markers([m.path for m in manifest.members]):
+        if marker.kind not in MARKER_KINDS:
+            raise UnknownMarkerKind(
+                f"{marker.kind!r} is not one of section 2.5's marker classes "
+                f"{MARKER_KINDS}"
+            )
+        candidates.append(("metadata", marker.member_path,
+                           (segment("field", label=marker.kind),), None, None,
+                           "direct"))
+
+    observations = _collapse(candidates, file_row=file_row, now=now,
+                             context_window=context_window)
+
+    completeness = "complete"
+    failure_reason = None
+    if manifest.unreadable_reason:
+        # Section 2.9 / M3: indexed-but-unreadable, never zero rows. The archive type
+        # is still evidence and P4's rule 9 does not list `unreadable` as a
+        # zero-observation state.
+        completeness = "unreadable"
+        failure_reason = (
+            f"{manifest.unreadable_reason}; section 2.5 marks it rather than forcing "
+            "it open"
+        )
+    elif manifest.partial_reason:
+        completeness = "partial"
+
+    return ExtractionResult(
+        run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+                extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+                source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
+                config={"reader": "injected"}, completeness=completeness,
+                coverage=coverage("entries", manifest.inspected, manifest.total),
+                observation_count=len(observations), started_at=now, finished_at=now,
+                failure_reason=failure_reason),
+        observations=observations,
+        text_units=tuple(units),
+    )
+
+
+def _collapse(candidates, *, file_row: Mapping[str, Any], now: str,
+              context_window: int) -> tuple[Mapping[str, Any], ...]:
+    """P4 D10: one observation per (run, exact raw value, zone); `location` addresses
+    the first occurrence in manifest order. `src` in two member paths is one row with
+    an occurrence count of two."""
+    first: dict[tuple[str, str], tuple] = {}
+    counts: dict[tuple[str, str], int] = {}
+    order: list[tuple[str, str]] = []
+    for candidate in candidates:
+        key = (candidate[0], candidate[1])
+        if key not in first:
+            first[key] = candidate
+            counts[key] = 0
+            order.append(key)
+        counts[key] += 1
+
+    observations = []
+    for key in order:
+        zone, raw, container, span, unit_text, reliability = first[key]
+        before = after = ""
+        truncated = False
+        if span is not None and unit_text is not None:
+            before, after, truncated = context_for(unit_text, span["start"],
+                                                   span["end"], window=context_window)
+        observations.append(observation(
+            file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+            extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+            source_type=SOURCE_TYPE, raw_value=raw,
+            normalized_value=normalize_mechanical(raw),
+            location=location(zone=zone, container_path=container, text_span=span),
+            context_before=before, context_after=after, context_truncated=truncated,
+            occurrence_count=counts[key], observed_at=now, reliability=reliability,
+        ))
+    return tuple(observations)
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_archive.py -v`
+Expected: PASS — 16 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/extractors/archive.py tests/p5/test_p5_archive.py
+git commit -m "feat(P5): E4 archives - manifest only, nothing unpacked, bomb signal read never decompressed"
+```
+
+---
+
+### Task 13: E5 — images (§2.6), the signal hierarchy exposed and no conclusion drawn
+
+**Files:**
+- Create: `src/extractors/image.py`
+- Test: `tests/p5/test_p5_image.py`
+
+**Interfaces:**
+- Consumes: `extractors.shape`, `extractors.safety.admit`, `extractors.runs.coverage`; caller-supplied `read_image(path) -> ImageRecord`, `dimension_signal(width, height) -> str | None`, `filename_pattern(filename) -> str | None`.
+- Produces: `VERSION`, `EXTRACTOR_NAME`, `SIGNAL_TIER`, `DIMENSION_SIGNALS`, `PNG_FORMAT`, `FORMAT_FIELD`, `DIMENSIONS_FIELD`, `PERCEPTUAL_HASH_FIELD`, `FILENAME_PATTERN_FIELD`, `UnknownSignal`, `ExifValue`, `ImageRecord`, `extract_image()`.
+
+**§2.6, in full, is this task.** *"For every supported image, the engine should store its format, pixel
+dimensions, file size, color information where useful, content hash, perceptual hash, EXIF camera make
+and model, lens data, ISO, focal length, capture time, GPS, orientation, software metadata, filename
+pattern, and OCR output where needed."*
+
+| §2.6 requires | where it lands |
+|---|---|
+| format | observation, zone `metadata`, `field=format`, `direct`; `signal_tier: 3` when it is PNG, because §2.6 names *"PNG format"* as a tier-3 signal |
+| pixel dimensions | observation, `field=pixel dimensions`, `direct`; tier from the caller's `dimension_signal` |
+| **file size · content hash** | **the `filesystem` run** and P1's `files` row — **not here** (O5) |
+| color information, where useful | observations at the reader's own slot names, `direct`, no tier |
+| perceptual hash | observation, `field=perceptual hash`, `direct` — the P5 half of **G5**, which gives duplicate and version families to P6 *"from P1's content hashes and P5's perceptual hashes"* |
+| EXIF: camera make · model · lens · ISO · focal length · capture time · GPS · orientation | one observation per tag at the **format's own tag name** (P4 D7), `direct`, tier from the reader's classification |
+| software metadata | observations at the reader's own slot names, `direct`, `signal_tier: 3` |
+| filename pattern | observation, zone `filename`, no span, `possible` — the pattern set is **Deferred** and the matcher is the caller's |
+| OCR output, where needed | **E6, as its own run** (Task 14). An opaque image produces two `extraction_runs` rows, which is exactly what B1 says a per-file status could not express |
+
+**The hierarchy is exposed, and never resolved.** §2.6: *"camera EXIF is strong photo evidence; capture
+time, GPS, and sensor-shaped dimensions reinforce it; exact display resolutions, PNG format, and
+software metadata may support a screenshot hypothesis; conflicting signals should lead to abstention
+rather than an invented classification."* `SIGNAL_TIER` is that sentence as a table, and P4's
+`signal_tier` is where it lands (M2). **E5 emits no photo/screenshot conclusion at all** — `media type`
+is a Photos-domain fact (§3.11) and belongs to P6 — and it writes no conflict row and no resolution:
+§3.7's minimum-score-and-margin rule is what produces §2.6's abstention, and that is P6's.
+
+**Three Deferred values, three caller-supplied strategies, no list in `src/extractors/`.** §2.6's
+Deferred rows are *"which resolutions"*, *"which aspect ratios qualify"*, and *"the pattern set"*. So
+`dimension_signal` and `filename_pattern` are **required keywords with no default**; `dimension_signal`
+returns at most one of §2.6's two dimension readings and a third name is refused. No resolution, no
+ratio and no filename regex appears anywhere in P5, and Task 20 asserts it by introspection.
+
+**Trap 1 — absence of EXIF is not proof of a screenshot.** §2.6: *"Messaging platforms and downloaded
+web images often strip metadata from real photographs."* P4 forbids writing an absence, so E5 writes
+**nothing at all** about it: a JPEG with stripped EXIF produces a `complete` run whose observations
+carry **no `signal_tier` of any kind**, and that run *is* the record. The checkable form of the SPEC's
+sentence is "no EXIF-addressed observation and no `signal_tier`", because §2.6 also requires format and
+dimensions at zone `metadata` — see *SPEC vs design*.
+
+**Trap 2 — OCR text density is not a screenshot detector.** §2.6: *"receipts, document scans,
+whiteboards, and photographs of pages can all contain dense text."* E5 is given **no text at all**:
+`extract_image` takes no OCR parameter and no text parameter, so there is no value in scope from which a
+text-volume signal could be derived. The test asserts that on the signature, which is stronger than
+asserting the absence of an expression.
+
+**Trap 3 — conflicting signals.** The SPEC's `conflicting-signals.png` carries camera EXIF **and** an
+exact display resolution. Those are two different raw values, so P4 D10 makes them two observations —
+one at `signal_tier: 1`, one at `signal_tier: 3` — and E5 stops there. **HEIC is mandatory** (§2.6:
+failing to configure for it *"can silently exclude a meaningful portion of an Apple-centric corpus"*),
+so a HEIC fixture is a required test, not an optional one.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_image.py
+"""E5 - §2.6. Done-means 8: "HEIC extracts. The three §2.6 traps — stripped EXIF,
+dense OCR text, conflicting signals — each produce abstention, and E5 emits no
+photo/screenshot conclusion at all."
+"""
+import inspect
+from pathlib import Path
+
+import pytest
+
+from extractors.image import (
+    DIMENSIONS_FIELD, DIMENSION_SIGNALS, EXTRACTOR_NAME, ExifValue,
+    FILENAME_PATTERN_FIELD, FORMAT_FIELD, ImageRecord, PERCEPTUAL_HASH_FIELD,
+    SIGNAL_TIER, UnknownSignal, extract_image,
+)
+from extractors.safety import DatalessRefused, ProtectedContainerRefused, SafetyPolicy
+
+from conftest import FIXED_CLOCK
+
+OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
+                           is_dataless=lambda path: False)
+FILE_ROW = {"file_id": "f-img", "content_hash": "sha256:img",
+            "filename": "IMG_4821.heic"}
+
+NO_DIMENSION_SIGNAL = lambda width, height: None
+NO_PATTERN = lambda filename: None
+
+
+def a_photo_heic() -> ImageRecord:
+    """The SPEC's `photo.heic`."""
+    return ImageRecord(
+        image_format="HEIC", dimensions="4032x3024", width=4032, height=3024,
+        perceptual_hash="phash:8f3a",
+        exif=(ExifValue(name="Make", value="Apple", kind="camera EXIF"),
+              ExifValue(name="Model", value="iPhone 15 Pro", kind="camera EXIF"),
+              ExifValue(name="DateTimeOriginal", value="2026:07:17 14:03:22",
+                        kind="capture time"),
+              ExifValue(name="GPSLatitude", value="38.6488N", kind="GPS")),
+        color={"ColorSpace": "sRGB"},
+        software={"Software": "iOS 19.1"})
+
+
+def run_it(record=None, *, dimension_signal=NO_DIMENSION_SIGNAL,
+           filename_pattern=NO_PATTERN, file_row=None):
+    return extract_image(
+        file_row=file_row or FILE_ROW, path=Path("/corpus/IMG_4821.heic"),
+        policy=OPEN_POLICY,
+        read_image=lambda target: record if record is not None else a_photo_heic(),
+        dimension_signal=dimension_signal, filename_pattern=filename_pattern,
+        now=FIXED_CLOCK, context_window=20)
+
+
+def slots(rows):
+    return {r["location"]["container_path"][0]["label"]: r
+            for r in rows if r["location"]["container_path"]}
+
+
+def test_every_observation_conforms_to_p4s_shape(sink):
+    sink.write(run_it())
+    sink.conforms()
+
+
+def test_heic_extracts_and_its_camera_exif_is_tier_one(sink):
+    # §2.6: "HEIC support must be included explicitly." A required test.
+    run_id = sink.write(run_it())
+    rows = slots(sink.observations_for(run_id))
+    assert rows[FORMAT_FIELD]["raw_value"] == "HEIC"
+    assert rows[DIMENSIONS_FIELD]["raw_value"] == "4032x3024"
+    assert rows["Make"]["signal_tier"] == 1
+    assert rows["Model"]["signal_tier"] == 1
+
+
+def test_every_section_2_6_signal_carries_its_own_tier(sink):
+    run_id = sink.write(run_it())
+    rows = slots(sink.observations_for(run_id))
+    assert rows["DateTimeOriginal"]["signal_tier"] == SIGNAL_TIER["capture time"] == 2
+    assert rows["GPSLatitude"]["signal_tier"] == 2
+    assert rows["Software"]["signal_tier"] == SIGNAL_TIER["software metadata"] == 3
+    assert rows["ColorSpace"]["signal_tier"] is None
+
+
+def test_the_perceptual_hash_is_emitted_and_the_content_hash_is_not(sink):
+    # G5 gives duplicate and version families to P6, "from P1's content hashes and
+    # P5's perceptual hashes". P5 supplies the second and recomputes the first never.
+    run_id = sink.write(run_it())
+    rows = slots(sink.observations_for(run_id))
+    assert rows[PERCEPTUAL_HASH_FIELD]["raw_value"] == "phash:8f3a"
+    assert not [o for o in sink.observations_for(run_id)
+                if o["raw_value"] == FILE_ROW["content_hash"]]
+
+
+def test_file_size_and_filename_are_not_re_emitted(sink):
+    # O5: they are P3's §1.2 record, surfaced by the `filesystem` run (Task 6).
+    run_id = sink.write(run_it())
+    labels = set(slots(sink.observations_for(run_id)))
+    assert "file size" not in labels
+    assert not [o for o in sink.observations_for(run_id)
+                if o["raw_value"] == FILE_ROW["filename"]]
+
+
+def test_png_format_is_section_2_6s_tier_three_signal(sink):
+    record = ImageRecord(image_format="PNG", dimensions="2880x1800", width=2880,
+                         height=1800)
+    run_id = sink.write(run_it(record=record))
+    assert slots(sink.observations_for(run_id))[FORMAT_FIELD]["signal_tier"] == 3
+
+
+def test_stripped_exif_writes_nothing_at_all_about_the_absence(sink):
+    # The SPEC's `whatsapp-stripped-exif.jpg`: a real photograph, EXIF removed.
+    record = ImageRecord(image_format="JPEG", dimensions="1080x1440", width=1080,
+                         height=1440)
+    run_id = sink.write(run_it(record=record))
+    rows = sink.observations_for(run_id)
+    assert sink.run_for(run_id)["completeness"] == "complete"
+    assert all(o["signal_tier"] is None for o in rows), "a screenshot signal exists"
+    joined = " ".join(o["raw_value"] for o in rows).lower()
+    for word in ("absent", "missing", "stripped", "none", "no exif"):
+        assert word not in joined
+    sink.conforms()
+
+
+def test_e5_is_given_no_text_so_text_density_cannot_become_a_signal():
+    # §2.6: "OCR text density is also not a reliable screenshot detector." The
+    # strongest available statement of that is that no text is in scope at all.
+    parameters = set(inspect.signature(extract_image).parameters)
+    assert not {"text", "ocr", "ocr_text", "recognized_text"} & parameters
+    fields = set(inspect.signature(ImageRecord).parameters)
+    assert not {"text", "ocr", "ocr_text", "text_density"} & fields
+
+
+def test_conflicting_signals_are_two_observations_and_no_resolution(sink):
+    # The SPEC's `conflicting-signals.png`: camera EXIF AND an exact display
+    # resolution. Two raw values, so P4 D10 makes them two rows.
+    record = ImageRecord(
+        image_format="PNG", dimensions="1170x2532", width=1170, height=2532,
+        exif=(ExifValue(name="Make", value="Canon", kind="camera EXIF"),))
+    run_id = sink.write(run_it(
+        record=record,
+        dimension_signal=lambda width, height: "exact display resolution"))
+    rows = slots(sink.observations_for(run_id))
+    assert rows["Make"]["signal_tier"] == 1
+    assert rows[DIMENSIONS_FIELD]["signal_tier"] == 3
+    # No conflict row, no resolution, no classification.
+    joined = " ".join(o["raw_value"] for o in sink.observations_for(run_id)).lower()
+    for word in ("conflict", "screenshot", "photo", "resolved", "abstain"):
+        assert word not in joined
+    sink.conforms()
+
+
+def test_e5_emits_no_photo_or_screenshot_conclusion(sink):
+    # §3.11's `media type` is a Photos-domain FACT and belongs to P6.
+    run_id = sink.write(run_it())
+    for o in sink.observations_for(run_id):
+        assert "media_type" not in o and "screenshot" not in o
+        assert o["location"]["zone"] in ("metadata", "filename")
+
+
+def test_the_resolution_list_and_the_aspect_ratios_are_the_callers():
+    # §2.6 Deferred: "which resolutions" and "which aspect ratios qualify".
+    for name in ("dimension_signal", "filename_pattern", "read_image"):
+        parameter = inspect.signature(extract_image).parameters[name]
+        assert parameter.default is inspect.Parameter.empty, name
+
+
+def test_a_dimension_signal_section_2_6_does_not_name_is_refused():
+    assert DIMENSION_SIGNALS == ("sensor-shaped dimensions",
+                                 "exact display resolution")
+    with pytest.raises(UnknownSignal):
+        run_it(dimension_signal=lambda width, height: "retina-ish")
+
+
+def test_an_exif_kind_section_2_6_does_not_name_is_refused():
+    record = ImageRecord(image_format="JPEG", dimensions="1x1", width=1, height=1,
+                         exif=(ExifValue(name="X", value="y", kind="vibes"),))
+    with pytest.raises(UnknownSignal):
+        run_it(record=record)
+
+
+def test_the_filename_pattern_is_the_callers_match(sink):
+    # §2.6's own example is `IMG_4821.png`; the pattern SET is Deferred.
+    run_id = sink.write(run_it(filename_pattern=lambda name: "IMG_4821"))
+    pattern = [o for o in sink.observations_for(run_id)
+               if o["location"]["zone"] == "filename"][0]
+    assert pattern["raw_value"] == "IMG_4821"
+    assert pattern["signal_tier"] is None
+    assert pattern["location"]["text_span"] is None
+
+
+def test_the_same_image_produces_the_same_observations(sink):
+    first, second = sink.write(run_it()), sink.write(run_it())
+    strip = lambda rows: [{k: v for k, v in r.items() if k != "run_id"} for r in rows]
+    assert strip(sink.observations_for(first)) == strip(sink.observations_for(second))
+
+
+def test_no_extractor_is_reachable_inside_a_protected_container():
+    policy = SafetyPolicy(is_protected_container=lambda path: True,
+                          is_dataless=lambda path: False)
+    with pytest.raises(ProtectedContainerRefused):
+        extract_image(file_row=FILE_ROW,
+                      path=Path("/Applications/Photos.app/Contents/a.heic"),
+                      policy=policy,
+                      read_image=lambda target: pytest.fail("reader reached"),
+                      dimension_signal=NO_DIMENSION_SIGNAL,
+                      filename_pattern=NO_PATTERN, now=FIXED_CLOCK,
+                      context_window=20)
+
+
+def test_a_dataless_image_is_never_materialized():
+    policy = SafetyPolicy(is_protected_container=lambda path: False,
+                          is_dataless=lambda path: True)
+    with pytest.raises(DatalessRefused):
+        extract_image(file_row=FILE_ROW, path=Path("/corpus/IMG_4821.heic"),
+                      policy=policy,
+                      read_image=lambda target: pytest.fail("reader reached"),
+                      dimension_signal=NO_DIMENSION_SIGNAL,
+                      filename_pattern=NO_PATTERN, now=FIXED_CLOCK,
+                      context_window=20)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_image.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'extractors.image'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/extractors/image.py
+"""E5 - images (section 2.6).
+
+"Images require their own extraction pipeline because filenames often carry little
+semantic meaning."
+
+E5 exposes section 2.6's hierarchy of signals and resolves nothing. It emits no
+photo/screenshot conclusion - `media type` is a Photos-domain fact (section 3.11) and
+belongs to P6 - it writes no row about an absence, and it writes no conflict row:
+"conflicting signals should lead to abstention rather than an invented
+classification", and the abstention is section 3.7's margin rule, which is P6's.
+
+Three of section 2.6's inputs are Deferred - which display resolutions are "exact",
+which aspect ratios are "sensor-shaped", and the camera-filename pattern set - so
+`dimension_signal` and `filename_pattern` are required keywords with no default and
+no list of any of the three exists in this package.
+
+File size and content hash are section 1.2's and P1's. O5 gives them to the
+`filesystem` run and P5 recomputes neither, so neither appears here even though
+section 2.6 lists both.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field as dataclass_field
+from pathlib import Path
+from typing import Any, Callable, Mapping
+
+from extractors.runs import coverage
+from extractors.safety import SafetyPolicy, admit
+from extractors.shape import (
+    location, normalize_mechanical, observation, run, segment,
+)
+from extractors.sink import ExtractionResult
+
+VERSION = "0.1.0"
+EXTRACTOR_NAME = "image.metadata"
+SOURCE_TYPE = "image"
+ANALYSIS_TIER = "native"
+
+#: Section 2.6's hierarchy, as section 2.6 states it: "camera EXIF is strong photo
+#: evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact
+#: display resolutions, PNG format, and software metadata may support a screenshot
+#: hypothesis". P4's `signal_tier` is where each lands (M2), so the hierarchy is
+#: carried on the record and never re-derived downstream.
+SIGNAL_TIER: dict[str, int] = {
+    "camera EXIF": 1,
+    "capture time": 2,
+    "GPS": 2,
+    "sensor-shaped dimensions": 2,
+    "exact display resolution": 3,
+    "PNG format": 3,
+    "software metadata": 3,
+}
+
+#: The two section 2.6 signals that are readings of the pixel dimensions. A caller
+#: returns at most one: the design gives no tiebreak for dimensions that are both,
+#: and P5 invents none. See NEEDS JOSEPH.
+DIMENSION_SIGNALS: tuple[str, str] = ("sensor-shaped dimensions",
+                                      "exact display resolution")
+
+#: Section 2.6 names "PNG format" as a tier-3 signal, so this token is the design's
+#: and not a format list of P5's. The comparison folds case on one word.
+PNG_FORMAT = "PNG"
+
+#: Section 2.6's own names for the slots that are not EXIF tags.
+FORMAT_FIELD = "format"
+DIMENSIONS_FIELD = "pixel dimensions"
+PERCEPTUAL_HASH_FIELD = "perceptual hash"
+FILENAME_PATTERN_FIELD = "filename pattern"
+
+
+class UnknownSignal(Exception):
+    """A signal name section 2.6's hierarchy does not contain."""
+
+
+@dataclass(frozen=True)
+class ExifValue:
+    """One EXIF tag, at the format's own tag name (P4 D7).
+
+    `kind` is which of section 2.6's signals this tag is. WHICH TAG IS WHICH is
+    library knowledge - EXIF tag names are an external, versioned vocabulary - so the
+    reader classifies and P5 places. An `orientation` tag that section 2.6 lists but
+    does not rank carries `kind=None` and no tier.
+    """
+    name: str
+    value: str
+    kind: str | None = None
+
+
+@dataclass(frozen=True)
+class ImageRecord:
+    """What an injected `read_image` returns.
+
+    `dimensions` is the format's own rendering of the pair, verbatim, because a raw
+    value is never constructed by P5 (RAW-1); `width` and `height` are ints supplied
+    for the caller's dimension signal and are emitted nowhere.
+    """
+    image_format: str
+    dimensions: str
+    width: int
+    height: int
+    perceptual_hash: str | None = None
+    exif: tuple[ExifValue, ...] = ()
+    color: Mapping[str, str] = dataclass_field(default_factory=dict)
+    software: Mapping[str, str] = dataclass_field(default_factory=dict)
+
+
+def _tier(signal: str | None) -> int | None:
+    if signal is None:
+        return None
+    if signal not in SIGNAL_TIER:
+        raise UnknownSignal(
+            f"{signal!r} is not one of section 2.6's signals {tuple(SIGNAL_TIER)}"
+        )
+    return SIGNAL_TIER[signal]
+
+
+def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy,
+                  read_image: Callable[[Path], ImageRecord],
+                  dimension_signal: Callable[[int, int], str | None],
+                  filename_pattern: Callable[[str], str | None],
+                  now: str, context_window: int) -> ExtractionResult:
+    """Section 2.6's fields, as P4 records, with the hierarchy on the record.
+
+    `context_window` is accepted and unused: every value here is a whole metadata
+    slot with no surrounding text, so P4's three context fields are empty. The
+    parameter stays so the six extractors have one calling shape.
+    """
+    admit(path, policy=policy)
+    record = read_image(path)
+
+    observations: list[Mapping[str, Any]] = []
+
+    def emit(*, zone, raw, label, reliability, signal=None):
+        observations.append(observation(
+            file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+            extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+            source_type=SOURCE_TYPE, raw_value=raw,
+            normalized_value=normalize_mechanical(raw),
+            location=location(zone=zone,
+                              container_path=(segment("field", label=label),)
+                              if label is not None else ()),
+            observed_at=now, reliability=reliability, signal_tier=_tier(signal),
+        ))
+
+    emit(zone="metadata", raw=record.image_format, label=FORMAT_FIELD,
+         reliability="direct",
+         signal="PNG format"
+         if record.image_format.strip().upper() == PNG_FORMAT else None)
+
+    chosen = dimension_signal(record.width, record.height)
+    if chosen is not None and chosen not in DIMENSION_SIGNALS:
+        raise UnknownSignal(
+            f"{chosen!r} is not one of section 2.6's two readings of the pixel "
+            f"dimensions {DIMENSION_SIGNALS}"
+        )
+    emit(zone="metadata", raw=record.dimensions, label=DIMENSIONS_FIELD,
+         reliability="direct", signal=chosen)
+
+    if record.perceptual_hash:
+        emit(zone="metadata", raw=record.perceptual_hash,
+             label=PERCEPTUAL_HASH_FIELD, reliability="direct")
+
+    for tag in record.exif:
+        if not tag.value:
+            continue                    # presence only; an absence is never a row
+        emit(zone="metadata", raw=tag.value, label=tag.name, reliability="direct",
+             signal=tag.kind)
+
+    for slot in sorted(record.color):
+        if record.color[slot]:
+            emit(zone="metadata", raw=record.color[slot], label=slot,
+                 reliability="direct")
+
+    for slot in sorted(record.software):
+        if record.software[slot]:
+            emit(zone="metadata", raw=record.software[slot], label=slot,
+                 reliability="direct", signal="software metadata")
+
+    matched = filename_pattern(file_row["filename"])
+    if matched:
+        # Zone `filename`, and no span: the filename's text unit belongs to the
+        # `filesystem` run and P4 conformance rule 10 keys units on the SAME run, so
+        # this degrades to the coarser address (P4 segment-kind rule 4).
+        emit(zone="filename", raw=matched, label=None, reliability="possible")
+
+    return ExtractionResult(
+        run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+                extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
+                source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
+                config={"reader": "injected"}, completeness="complete",
+                coverage=coverage("images", 1, 1),
+                observation_count=len(observations), started_at=now, finished_at=now),
+        observations=tuple(observations),
+    )
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_image.py -v`
+Expected: PASS — 17 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/extractors/image.py tests/p5/test_p5_image.py
+git commit -m "feat(P5): E5 images - HEIC, the signal hierarchy on the record, no conclusion and no absence"
+```
+
+---
+
+### Task 14: E6 — OCR (§2.7), all nine persisted fields and no OCR-specific shape
+
+**Files:**
+- Create: `src/extractors/ocr.py`
+- Test: `tests/p5/test_p5_ocr.py`
+
+**Interfaces:**
+- Consumes: `extractors.shape`, `extractors.safety.admit`, `extractors.runs.coverage`; caller-supplied `ocr_engine(path, *, config) -> OcrOutput`, `find_structured_strings`, and a caller-supplied `config` mapping.
+- Produces: `VERSION`, `EXTRACTOR_NAME_PREFIX`, `SOURCE_TYPE`, `ANALYSIS_TIER`, `PERSISTED_FIELDS`, `FIELD_HOMES`, `OcrRegion`, `OcrOutput`, `extractor_name_for()`, `extract_ocr()`.
+
+**§2.7 is this task and Task 8.** Task 8 decided *when* OCR may run — §2.2's three text-layer states and
+§2.7's *"no usable text and no usable metadata"* trigger. This task is the run itself.
+
+**All nine §2.7 fields, and the home each has (B1).** *"The database should preserve the OCR provider
+and version, languages, configuration, page or image reference, raw recognized text, locations or
+bounding boxes where available, confidence information, and whether extraction was complete or
+capped."* This is the seam the SPEC calls *"the one P5 and P4 were most likely to fail to meet"*, and it
+is what closed **P5 Open question 2**. `FIELD_HOMES` is that mapping in code, and the headline test walks
+it.
+
+| §2.7 field | home |
+|---|---|
+| OCR provider | `extraction_runs.extractor_name` (`ocr.<provider>`) |
+| version | `extraction_runs.extractor_version` |
+| languages | `extraction_runs.config` |
+| configuration | `extraction_runs.config` + `config_fingerprint` |
+| page or image reference | `location.container_path` — `page=N` / `region=K` |
+| raw recognized text | `text_units`, one row per page or region (G1) |
+| locations or bounding boxes | `location.region` |
+| confidence information | the observation's `confidence` |
+| complete or capped | `extraction_runs.completeness` + `coverage` |
+
+**Nothing on this list needs a field P4 does not already publish**, and P5 adds none. OCR provider,
+config, languages, confidence and the capped flag are **not** on the observation — that is P5 OQ2,
+closed, and re-opening it is the specific mistake this task exists to prevent.
+
+**P5 spells no provider name.** §2.7 names Apple Vision, and **S1** makes it the whole of v1's OCR scope
+— *"v1 therefore ships OCR on macOS only; there is no cross-platform OCR requirement in this contract,
+and no other provider is implied, deferred, or stubbed."* But the provider **reports its own name and
+version** (§2.7's first persisted field), so `extractor_name` is built from what the engine returns and
+`ocr.py` contains no provider string. That is also why `runs.analysis_tier_for` keys the `ocr` tier on
+the `ocr.` prefix rather than on a name.
+
+**Configuration is the caller's, with no default.** §2.7: *"accurate recognition (not fast), appropriate
+language support including CJK where required, and a practical rendering resolution such as 200 DPI."*
+The language list is **Deferred**, and 200 DPI is *"such as"* — an example, not a value. So `config` is a
+required keyword P5 never fills in, the values arrive from P1's namespaced configuration object (G4),
+and `src/extractors/ocr.py` holds **no number at all**. Which languages, which DPI and what confidence
+policy are **NEEDS JOSEPH** items.
+
+**Capped is never complete.** §2.7 and §8.6: *"OCR also needs a page cap, total run-time limit, progress
+state, and partial-read state, because long scanned books can otherwise create unexpectedly expensive
+workloads,"* and *"A capped run keeps the text it recognized and is marked capped — it is never
+presented as complete."* The SPEC's `scanned-book-400pp.pdf` is the test: `completeness: capped`,
+`coverage {pages, 50, 400}`, and the fifty pages of recognized text retained. **P5 holds no cap**: the
+engine was given §8.6's ceilings and reports that it stopped.
+
+**Recognized text is text, and text is a unit.** The observations E6 emits are the structured strings
+found *in* the recognized text, at zone `ocr`, with spans into the region unit their container names. An
+OCR run over a screenshot with no such strings is `complete` with **zero observations** and a full text
+unit — §2.4's `complete`-with-zero, and the honest outcome: OCR's product is text.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_ocr.py
+"""E6 - §2.7. Done-means 9: "OCR persists all nine §2.7 fields across
+`extraction_runs`, the observation and `text_units`, and the 400-page fixture is
+marked `capped` rather than `complete`."
+"""
+import inspect
+from pathlib import Path
+
+import pytest
+
+import extractors.ocr as ocr_module
+from extractors.ocr import (
+    ANALYSIS_TIER, EXTRACTOR_NAME_PREFIX, FIELD_HOMES, OcrOutput, OcrRegion,
+    PERSISTED_FIELDS, extract_ocr, extractor_name_for,
+)
+from extractors.reading import StructuredString
+from extractors.runs import analysis_tier_for, cache_key
+from extractors.safety import DatalessRefused, ProtectedContainerRefused, SafetyPolicy
+from extractors.shape import fingerprint
+
+from conftest import FIXED_CLOCK
+
+OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
+                           is_dataless=lambda path: False)
+FILE_ROW = {"file_id": "f-scan", "content_hash": "sha256:scan",
+            "filename": "hw5-photographed.pdf"}
+
+#: Every value here is the CALLER's. §2.7's language list is Deferred and its DPI is
+#: named as "such as", so no number and no language code lives in `extractors`.
+FIXTURE_CONFIG = {"recognition": "accurate", "languages": ["en-US"], "dpi": 200}
+
+RECOGNIZED = "Homework 5 for BUSIB 4300, due 2026-07-17."
+
+
+def a_page(number=1, text=RECOGNIZED, confidence=0.94):
+    return OcrRegion(page=number, region=1, text=text,
+                     box={"x": 0.1, "y": 0.2, "width": 0.8, "height": 0.05},
+                     confidence=confidence)
+
+
+def an_output(**overrides) -> OcrOutput:
+    base = dict(provider="apple-vision", provider_version="19.1",
+                regions=(a_page(),), pages_processed=1, pages_total=1, capped=False)
+    base.update(overrides)
+    return OcrOutput(**base)
+
+
+def find_course_code(text: str):
+    at = text.find("BUSIB 4300")
+    return (StructuredString(kind="identifier", start=at, end=at + 10),) if at != -1 else ()
+
+
+def run_it(output=None, *, config=None, finder=find_course_code):
+    seen = {}
+
+    def engine(target, *, config):
+        seen["config"] = config
+        return output if output is not None else an_output()
+
+    result = extract_ocr(
+        file_row=FILE_ROW, path=Path("/corpus/hw5-photographed.pdf"),
+        policy=OPEN_POLICY, ocr_engine=engine,
+        config=FIXTURE_CONFIG if config is None else config,
+        find_structured_strings=finder, now=FIXED_CLOCK, context_window=20)
+    return result, seen
+
+
+def test_every_observation_conforms_to_p4s_shape(sink):
+    result, _ = run_it()
+    sink.write(result)
+    sink.conforms()
+
+
+def test_all_nine_section_2_7_fields_have_a_home_and_are_populated(sink):
+    # Done-means 9, and the closing of P5 Open question 2.
+    assert len(PERSISTED_FIELDS) == 9
+    assert set(FIELD_HOMES) == set(PERSISTED_FIELDS)
+
+    result, _ = run_it()
+    run_id = sink.write(result)
+    row = sink.run_for(run_id)
+    unit = sink.units_for(run_id)[0]
+    found = sink.observations_for(run_id)[0]
+
+    assert row["extractor_name"] == "ocr.apple-vision"          # provider
+    assert row["extractor_version"] == "19.1"                   # version
+    assert row["config"]["languages"] == ["en-US"]              # languages
+    assert row["config_fingerprint"] == fingerprint(FIXTURE_CONFIG)  # configuration
+    assert unit["container_path"][0] == {"kind": "page", "index": 1,
+                                         "label": None}         # page reference
+    assert unit["text"] == RECOGNIZED                            # raw recognized text
+    assert found["location"]["region"] == {"x": 0.1, "y": 0.2, "width": 0.8,
+                                           "height": 0.05}       # bounding box
+    assert found["confidence"] == 0.94                           # confidence
+    assert row["completeness"] == "complete"                     # complete or capped
+    assert row["coverage"] == {"units": "pages", "processed": 1, "total": 1}
+
+
+def test_the_ocr_specific_fields_are_never_on_the_observation():
+    # P5 Open question 2 is CLOSED. Re-opening it is the mistake this test prevents.
+    result, _ = run_it()
+    for observation in result.observations:
+        for name in ("provider", "languages", "config", "capped", "dpi",
+                     "ocr_provider", "recognition"):
+            assert name not in observation, name
+
+
+def test_raw_recognized_text_is_a_unit_and_lives_nowhere_else(sink):
+    # G1: one home for bulk text.
+    result, _ = run_it()
+    run_id = sink.write(result)
+    assert [u["text"] for u in sink.units_for(run_id)] == [RECOGNIZED]
+    assert all(o["raw_value"] != RECOGNIZED for o in sink.observations_for(run_id))
+
+
+def test_the_span_indexes_into_the_unit_its_container_names(sink):
+    result, _ = run_it()
+    run_id = sink.write(result)
+    found = sink.observations_for(run_id)[0]
+    assert found["raw_value"] == "BUSIB 4300"
+    assert found["location"]["zone"] == "ocr"
+    unit = sink.units_for(run_id)[0]
+    span = found["location"]["text_span"]
+    assert unit["text"][span["start"]:span["end"]] == "BUSIB 4300"
+
+
+def test_an_image_region_addresses_by_region_when_there_is_no_page(sink):
+    output = an_output(regions=(OcrRegion(page=None, region=2, text="Receipt",
+                                          confidence=0.7),),
+                       pages_processed=1, pages_total=1)
+    result, _ = run_it(output=output, finder=lambda text: ())
+    run_id = sink.write(result)
+    assert sink.units_for(run_id)[0]["container_path"] == (
+        {"kind": "region", "index": 2, "label": None},)
+
+
+def test_a_screenshot_with_no_structured_strings_is_complete_with_zero_rows(sink):
+    result, _ = run_it(finder=lambda text: ())
+    run_id = sink.write(result)
+    assert sink.observations_for(run_id) == []
+    assert sink.run_for(run_id)["completeness"] == "complete"
+    assert sink.units_for(run_id)[0]["text"] == RECOGNIZED
+    sink.conforms()
+
+
+def test_the_provider_is_the_engines_and_p5_spells_none():
+    # S1: Apple Vision is the one engine §2.7 names and the whole of v1's scope, and
+    # §2.7's first persisted field is that the PROVIDER reports its own name.
+    assert extractor_name_for("apple-vision") == "ocr.apple-vision"
+    assert analysis_tier_for("ocr.apple-vision") == ANALYSIS_TIER == "ocr"
+    # Scoped to real module-level constants, NOT to `__doc__`: the docstring quotes
+    # §2.7 and names the engine, and a guard that matched prose would fail on the
+    # very sentence it exists to enforce.
+    values = [value for name, value in vars(ocr_module).items()
+              if not name.startswith("__") and isinstance(value, str)]
+    for value in values:
+        assert "vision" not in value.lower(), value
+        assert "tesseract" not in value.lower(), value
+
+
+def test_p5_holds_no_dpi_no_language_and_no_confidence_threshold():
+    # §2.7 Deferred: the language list, and "a practical rendering resolution such
+    # as 200 DPI" is an example. Every value is the caller's.
+    for name, value in vars(ocr_module).items():
+        if name.startswith("__"):
+            continue
+        assert not isinstance(value, (int, float)) or isinstance(value, bool), name
+    parameter = inspect.signature(extract_ocr).parameters["config"]
+    assert parameter.default is inspect.Parameter.empty
+
+
+def test_the_configuration_reaches_the_engine_and_changes_the_cache_key():
+    # §3.4: "Content hash + extractor version + `analysis_tier`, plus provider,
+    # version and configuration for OCR."
+    _, seen = run_it()
+    assert seen["config"] == FIXTURE_CONFIG
+
+    other = dict(FIXTURE_CONFIG, languages=["ja-JP"])
+    keys = set()
+    for config in (FIXTURE_CONFIG, other):
+        result, _ = run_it(config=config)
+        keys.add(cache_key(content_hash=result.run["content_hash"],
+                           extractor_name=result.run["extractor_name"],
+                           extractor_version=result.run["extractor_version"],
+                           analysis_tier=result.run["analysis_tier"],
+                           config_fingerprint=result.run["config_fingerprint"]))
+    assert len(keys) == 2
+
+
+def test_the_four_hundred_page_book_is_capped_and_keeps_its_text(sink):
+    # The SPEC's `scanned-book-400pp.pdf`. §8.6: "A capped OCR run keeps its partial
+    # text and is flagged capped — partial evidence is allowed, misrepresented
+    # evidence is not."
+    regions = tuple(a_page(number=n, text=f"page {n} text") for n in range(1, 51))
+    output = an_output(regions=regions, pages_processed=50, pages_total=400,
+                       capped=True)
+    result, _ = run_it(output=output, finder=lambda text: ())
+    run_id = sink.write(result)
+    row = sink.run_for(run_id)
+    assert row["completeness"] == "capped"
+    assert row["completeness"] != "complete"
+    assert row["coverage"] == {"units": "pages", "processed": 50, "total": 400}
+    assert len(sink.units_for(run_id)) == 50
+    sink.conforms()
+
+
+def test_p5_holds_no_page_cap_of_its_own():
+    # §8.6's ceilings are configuration (G4); the engine was given them and reports
+    # that it stopped. Nothing in E6 decides to stop.
+    source_names = [name for name in vars(ocr_module) if not name.startswith("__")]
+    for token in ("MAX_", "_LIMIT", "CEILING", "THRESHOLD", "PAGE_CAP"):
+        assert not [n for n in source_names if token in n], token
+
+
+def test_the_same_content_and_config_produce_the_same_observations(sink):
+    first = sink.write(run_it()[0])
+    second = sink.write(run_it()[0])
+    strip = lambda rows: [{k: v for k, v in r.items() if k != "run_id"} for r in rows]
+    assert strip(sink.observations_for(first)) == strip(sink.observations_for(second))
+
+
+def test_no_extractor_is_reachable_inside_a_protected_container():
+    policy = SafetyPolicy(is_protected_container=lambda path: True,
+                          is_dataless=lambda path: False)
+    with pytest.raises(ProtectedContainerRefused):
+        extract_ocr(file_row=FILE_ROW,
+                    path=Path("/System/Library/Thing/scan.pdf"), policy=policy,
+                    ocr_engine=lambda target, *, config: pytest.fail("engine ran"),
+                    config=FIXTURE_CONFIG, find_structured_strings=lambda text: (),
+                    now=FIXED_CLOCK, context_window=20)
+
+
+def test_a_dataless_file_is_never_ocred():
+    policy = SafetyPolicy(is_protected_container=lambda path: False,
+                          is_dataless=lambda path: True)
+    with pytest.raises(DatalessRefused):
+        extract_ocr(file_row=FILE_ROW, path=Path("/corpus/hw5-photographed.pdf"),
+                    policy=policy,
+                    ocr_engine=lambda target, *, config: pytest.fail("engine ran"),
+                    config=FIXTURE_CONFIG, find_structured_strings=lambda text: (),
+                    now=FIXED_CLOCK, context_window=20)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_ocr.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'extractors.ocr'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/extractors/ocr.py
+"""E6 - OCR (section 2.7).
+
+"OCR is not merely a rescue tool for scanned PDFs. It is the main way screenshots and
+opaque loose images become understandable to the pre-sorting engine."
+
+WHEN it runs is ocr_policy.py's (section 2.2's three text-layer states and section
+2.7's no-usable-text-and-no-usable-metadata trigger). This module is the run.
+
+Section 2.7's nine persisted fields all land on records P4 already publishes, which
+is what closed P5 Open question 2. FIELD_HOMES is that mapping; there is no
+OCR-specific record and nothing OCR-specific on an observation.
+
+P5 spells no provider name. Section 2.7 names Apple Vision and S1 makes it the whole
+of v1's scope, but section 2.7's first persisted field is that the provider reports
+its own name and version, so `extractor_name` is built from what the engine returns.
+
+P5 holds no number. Section 2.7's language list is Deferred and its "practical
+rendering resolution such as 200 DPI" is an example; section 8.6's page cap and
+run-time limits are configuration P1 owns (G4). The engine is given them and reports
+that it stopped; nothing here decides to stop.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field as dataclass_field
+from pathlib import Path
+from typing import Any, Callable, Mapping
+
+from extractors.reading import StructuredString
+from extractors.runs import coverage
+from extractors.safety import SafetyPolicy, admit
+from extractors.shape import (
+    context_for, location, normalize_mechanical, observation, run, segment, text_unit,
+)
+from extractors.sink import ExtractionResult
+
+VERSION = "0.1.0"
+
+#: `runs.analysis_tier_for` keys the `ocr` tier on this prefix rather than on a name,
+#: so a second provider needs no edit there and P5 spells no provider.
+EXTRACTOR_NAME_PREFIX = "ocr."
+SOURCE_TYPE = "ocr"
+ANALYSIS_TIER = "ocr"
+
+#: Section 2.7's own list: "the OCR provider and version, languages, configuration,
+#: page or image reference, raw recognized text, locations or bounding boxes where
+#: available, confidence information, and whether extraction was complete or capped."
+PERSISTED_FIELDS: tuple[str, ...] = (
+    "OCR provider", "version", "languages", "configuration",
+    "page or image reference", "raw recognized text",
+    "locations or bounding boxes", "confidence information",
+    "complete or capped",
+)
+
+#: Where each of the nine lives (B1). Every one of them is a field P4 already
+#: publishes: this is the mapping that closed P5 Open question 2, and it is here so a
+#: test can walk it rather than a reviewer having to trust prose.
+FIELD_HOMES: dict[str, str] = {
+    "OCR provider": "extraction_runs.extractor_name",
+    "version": "extraction_runs.extractor_version",
+    "languages": "extraction_runs.config",
+    "configuration": "extraction_runs.config_fingerprint",
+    "page or image reference": "location.container_path",
+    "raw recognized text": "text_units.text",
+    "locations or bounding boxes": "location.region",
+    "confidence information": "evidence.confidence",
+    "complete or capped": "extraction_runs.completeness",
+}
+
+
+@dataclass(frozen=True)
+class OcrRegion:
+    """One recognized page or image region.
+
+    `page` is section 2.7's "page or image reference" for a paged document and is
+    None for a loose image, which has a region and no page. `box` is section 2.7's
+    "locations or bounding boxes, where available" and lands on P4's
+    `location.region`.
+    """
+    page: int | None
+    region: int
+    text: str
+    box: Mapping[str, float] | None = None
+    confidence: float | None = None
+
+
+@dataclass(frozen=True)
+class OcrOutput:
+    """What an injected `ocr_engine` returns.
+
+    `capped` is section 2.7's partial-read state: the engine was given section 8.6's
+    page cap and run-time limits and reports that it reached one.
+    """
+    provider: str
+    provider_version: str
+    regions: tuple[OcrRegion, ...] = ()
+    pages_processed: int = 0
+    pages_total: int = 0
+    capped: bool = False
+
+
+def extractor_name_for(provider: str) -> str:
+    """Section 2.7's first persisted field, as P4's `extractor_name`."""
+    return f"{EXTRACTOR_NAME_PREFIX}{provider}"
+
+
+def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy,
+                ocr_engine: Callable[..., OcrOutput],
+                config: Mapping[str, Any],
+                find_structured_strings: Callable[[str],
+                                                  tuple[StructuredString, ...]],
+                now: str, context_window: int) -> ExtractionResult:
+    """Section 2.7's run, as P4 records.
+
+    The recognized text is a `text_units` row per page or region (G1); the
+    observations are the structured strings found in it, with spans that index into
+    the unit their container path names.
+    """
+    admit(path, policy=policy)
+    output = ocr_engine(path, config=config)
+    name = extractor_name_for(output.provider)
+
+    observations: list[Mapping[str, Any]] = []
+    units: list[Mapping[str, Any]] = []
+
+    for recognized in output.regions:
+        container = ((segment("page", index=recognized.page),)
+                     if recognized.page is not None
+                     else (segment("region", index=recognized.region),))
+        units.append(text_unit(text=recognized.text, container_path=container))
+        for found in find_structured_strings(recognized.text):
+            raw = recognized.text[found.start:found.end]
+            before, after, truncated = context_for(recognized.text, found.start,
+                                                   found.end, window=context_window)
+            observations.append(observation(
+                file_id=file_row["file_id"],
+                content_hash=file_row["content_hash"],
+                extractor_name=name, extractor_version=output.provider_version,
+                source_type=SOURCE_TYPE, raw_value=raw,
+                normalized_value=normalize_mechanical(raw),
+                location=location(zone="ocr", container_path=container,
+                                  text_span={"start": found.start,
+                                             "end": found.end},
+                                  region=recognized.box),
+                context_before=before, context_after=after,
+                context_truncated=truncated, observed_at=now,
+                reliability="possible", confidence=recognized.confidence,
+            ))
+
+    return ExtractionResult(
+        run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+                extractor_name=name, extractor_version=output.provider_version,
+                source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
+                config=config,
+                completeness="capped" if output.capped else "complete",
+                coverage=coverage("pages", output.pages_processed,
+                                  output.pages_total),
+                observation_count=len(observations), started_at=now,
+                finished_at=now),
+        observations=tuple(observations),
+        text_units=tuple(units),
+    )
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_ocr.py -v`
+Expected: PASS — 15 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/extractors/ocr.py tests/p5/test_p5_ocr.py
+git commit -m "feat(P5): E6 OCR - nine persisted fields on P4's records, capped is never complete"
+```
+
+---
+
+### Task 15: §8.6 — the four ceilings P5 consumes, deferral, and the user-facing count line
+
+**Files:**
+- Create: `src/extractors/budgets.py`
+- Test: `tests/p5/test_p5_budgets.py`
+
+**Interfaces:**
+- Consumes: `database_agent.budget.CEILING_KEYS` and `get_ceiling` (G4 — P1 owns the configuration object), `extractors.shape.run`, `extractors.runs.coverage`.
+- Produces: `P5_CEILING_KEYS`, `DEFERRED_COMPLETENESS`, `UNREADABLE_COMPLETENESS`, `p5_ceilings()`, `deferred_result()`, `extraction_counts()`.
+
+**Four of §8.6's twelve, and P5 defines none of them.** §8.6's configurable ceilings that P5 consumes are
+*maximum pages OCRed per file, maximum OCR time per file, maximum OCR time per scan, maximum
+image-analysis operations per scan.* **G4 gives the configuration object to P1, namespaced**, and P1
+publishes it *as implemented on 2026-08-20* as `database_agent.budget.CEILING_KEYS` — fifteen keys, of
+which P5's four are `ocr.max_pages_per_file`, `ocr.max_time_per_file`, `ocr.max_time_per_scan` and
+`image.max_analysis_ops_per_scan`. `budgets.py` names those four **and checks at import that every one
+is a member of P1's tuple**, so a rename in P1 is an import error here rather than a silent drift. P5
+stores no value: Task 20 asserts no module-level number exists anywhere in `extractors`.
+
+**A deferral is not a failure, and P5 keeps the two apart.** §8.6: *"If the budget is exhausted, the
+product should retain extracted evidence, mark the deferred stage, and leave the file or group in review
+rather than guessing."* P4's `completeness: deferred` **is** the mark, so `deferred_result` writes no
+`failure_reason` — a deferral with a failure reason reads as a failure, and §8.6's whole legibility
+argument is that *"a file that was never processed must never look like a file that was understood and
+found unimportant."* The reason a run was deferred is §8.2's *"structured explanation"* on the
+`extraction` event (Task 16), which is where a reason belongs.
+
+**Cost exhaustion never becomes a cheaper answer.** §8.6, emphasized in the design itself: ***"Cost
+exhaustion must never turn into lower-quality automatic classification."*** So `deferred_result`
+produces **zero observations and zero text units**, and `budgets.py` publishes no fallback, no
+substitute extractor and no filename guess. There is nothing here to downgrade *to*, which is the only
+durable form of that rule.
+
+**§8.6's count line is four queries, not four readings of one word (B1).** The SPEC fixes the mapping:
+**indexed** = files with any run, against P3's scanned count as the denominator; **fully extracted** =
+files whose *every* run is `complete`; **deferred** = runs at `deferred` **or** `capped`; **unreadable**
+= runs at `unreadable` **or** `failed`. The asymmetry — two file counts and two run counts — is the
+SPEC's own and is preserved rather than smoothed: a capped OCR run on a file whose EXIF read fine is a
+deferred *run*, and the file is not fully extracted. **"34 files require model review" is P8's count**
+and `extraction_counts` does not produce it; a guard asserts P5 counts no model anything.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_budgets.py
+"""§8.6 — the four ceilings, deferral, and the count line P4's `completeness` feeds."""
+import pytest
+
+import extractors.budgets as budgets_module
+from database_agent.budget import BUDGET_DDL, CEILING_KEYS, set_ceiling
+from database_agent.db import create_schema
+
+from extractors.budgets import (
+    DEFERRED_COMPLETENESS, P5_CEILING_KEYS, UNREADABLE_COMPLETENESS, deferred_result,
+    extraction_counts, p5_ceilings,
+)
+
+from conftest import FIXED_CLOCK
+
+FILE_ROW = {"file_id": "f-book", "content_hash": "sha256:book",
+            "filename": "scanned-book-400pp.pdf"}
+
+
+def a_run(file_id, completeness, tier="native"):
+    return {"file_id": file_id, "completeness": completeness, "analysis_tier": tier}
+
+
+def test_p5s_four_ceilings_are_p1s_keys():
+    # G4: P1 owns the §8.6 configuration object, namespaced. P5 defines no key.
+    assert len(P5_CEILING_KEYS) == 4
+    assert set(P5_CEILING_KEYS) <= set(CEILING_KEYS)
+    assert P5_CEILING_KEYS == ("ocr.max_pages_per_file", "ocr.max_time_per_file",
+                               "ocr.max_time_per_scan",
+                               "image.max_analysis_ops_per_scan")
+
+
+def test_p5_stores_no_ceiling_value():
+    for name, value in vars(budgets_module).items():
+        if name.startswith("__"):
+            continue
+        assert not isinstance(value, (int, float)) or isinstance(value, bool), name
+
+
+def test_a_ceiling_is_read_through_p1_and_is_none_until_p1_holds_one(conn):
+    create_schema(conn)
+    conn.executescript(BUDGET_DDL)
+    assert p5_ceilings(conn) == {key: None for key in P5_CEILING_KEYS}
+    set_ceiling(conn, "ocr.max_pages_per_file", 50)
+    assert p5_ceilings(conn)["ocr.max_pages_per_file"] == 50
+
+
+def test_a_deferred_run_carries_no_evidence_at_all(sink):
+    result = deferred_result(file_row=FILE_ROW, source_type="text_document",
+                             extractor_name="ocr.apple-vision",
+                             extractor_version="19.1", analysis_tier="ocr",
+                             units="pages", total=400, now=FIXED_CLOCK)
+    run_id = sink.write(result)
+    assert sink.observations_for(run_id) == []
+    assert sink.units_for(run_id) == []
+    assert sink.run_for(run_id)["coverage"] == {"units": "pages", "processed": 0,
+                                               "total": 400}
+    sink.conforms()
+
+
+def test_a_deferral_is_not_a_failure(sink):
+    # §8.6's legibility rule: a file that was never processed must never look like a
+    # file that was understood and found unimportant.
+    run_id = sink.write(deferred_result(
+        file_row=FILE_ROW, source_type="text_document",
+        extractor_name="ocr.apple-vision", extractor_version="19.1",
+        analysis_tier="ocr", units="pages", total=400, now=FIXED_CLOCK))
+    row = sink.run_for(run_id)
+    assert row["completeness"] == "deferred"
+    assert row["failure_reason"] is None
+
+
+def test_p5_publishes_no_cheaper_substitute():
+    # §8.6: "Cost exhaustion must never turn into lower-quality automatic
+    # classification." There is nothing here to downgrade to.
+    names = [n for n in vars(budgets_module) if not n.startswith("__")]
+    for token in ("fallback", "substitute", "guess", "downgrade", "cheaper"):
+        assert not [n for n in names if token in n.lower()], token
+
+
+def test_the_section_8_6_count_line():
+    # "1,842 files indexed; 1,611 fully extracted; 89 … deferred after the OCR limit;
+    # … 18 files remain unreadable."
+    runs = [
+        a_run("a", "complete", "filesystem"), a_run("a", "complete"),
+        a_run("b", "complete", "filesystem"), a_run("b", "capped", "ocr"),
+        a_run("c", "complete", "filesystem"), a_run("c", "deferred", "ocr"),
+        a_run("d", "unreadable"),
+        a_run("e", "failed"),
+    ]
+    counts = extraction_counts(runs, files_scanned=10)
+    assert counts == {"files_scanned": 10, "indexed": 5, "fully_extracted": 1,
+                      "deferred": 2, "unreadable": 2}
+
+
+def test_capped_and_deferred_are_one_query_and_unreadable_and_failed_another():
+    # B1: two different values, two different queries — never two readings of one
+    # word.
+    assert DEFERRED_COMPLETENESS == ("deferred", "capped")
+    assert UNREADABLE_COMPLETENESS == ("unreadable", "failed")
+    assert not set(DEFERRED_COMPLETENESS) & set(UNREADABLE_COMPLETENESS)
+
+
+def test_a_complete_run_with_zero_observations_is_still_fully_extracted():
+    # §2.4's `complete`-with-zero: the file genuinely contained nothing, and that is
+    # a processed file.
+    counts = extraction_counts([a_run("a", "complete")], files_scanned=1)
+    assert counts["fully_extracted"] == 1
+
+
+def test_an_unsupported_run_is_neither_extracted_nor_unreadable():
+    # §2.4's four distinguishable states stay four.
+    counts = extraction_counts([a_run("a", "unsupported")], files_scanned=1)
+    assert counts["indexed"] == 1
+    assert counts["fully_extracted"] == 0
+    assert counts["deferred"] == 0
+    assert counts["unreadable"] == 0
+
+
+def test_metadata_only_is_indexed_and_not_fully_extracted():
+    counts = extraction_counts([a_run("a", "metadata_only")], files_scanned=1)
+    assert counts == {"files_scanned": 1, "indexed": 1, "fully_extracted": 0,
+                      "deferred": 0, "unreadable": 0}
+
+
+def test_files_requiring_model_review_are_p8s_count_and_not_here():
+    counts = extraction_counts([a_run("a", "complete")], files_scanned=1)
+    assert "model" not in " ".join(counts)
+    assert "review" not in " ".join(counts)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_budgets.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'extractors.budgets'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/extractors/budgets.py
+"""Section 8.6 - the four ceilings P5 consumes, deferral, and the count line.
+
+G4 gives the section 8.6 configuration object to P1, namespaced. P5 names four of
+P1's fifteen keys and stores no value; the membership check below runs at import, so
+a rename in P1 is an ImportError here rather than a silent drift.
+
+Section 8.6's degradation order puts P5 in the cheap tier with one expensive tail:
+"Direct facts and high-precision rules run first ... Full local extraction and OCR run
+within the configured budget." Every P5 budget lives on that tail.
+
+"Cost exhaustion must never turn into lower-quality automatic classification." So a
+deferred run carries no evidence, and this module publishes no fallback extractor, no
+filename guess and no downgraded mode. There is nothing to downgrade to.
+"""
+from __future__ import annotations
+
+import sqlite3
+from typing import Any, Iterable, Mapping
+
+from database_agent.budget import CEILING_KEYS, get_ceiling
+
+from extractors.runs import coverage
+from extractors.shape import run
+from extractors.sink import ExtractionResult
+
+#: Section 8.6's "Maximum pages OCRed per file / Maximum OCR time per file / Maximum
+#: OCR time per scan / Maximum image-analysis operations per scan", in P1's spelling.
+P5_CEILING_KEYS: tuple[str, ...] = (
+    "ocr.max_pages_per_file",
+    "ocr.max_time_per_file",
+    "ocr.max_time_per_scan",
+    "image.max_analysis_ops_per_scan",
+)
+
+_unknown = set(P5_CEILING_KEYS) - set(CEILING_KEYS)
+if _unknown:
+    raise ImportError(
+        f"P5 names ceiling keys P1 does not publish: {sorted(_unknown)}. P1 owns the "
+        "section 8.6 configuration object (G4) and P5 defines no key of its own."
+    )
+
+#: Section 8.6's "89 scanned PDFs deferred after the OCR limit" - one query.
+DEFERRED_COMPLETENESS: tuple[str, ...] = ("deferred", "capped")
+
+#: Section 8.6's "18 files remain unreadable" - a different query against different
+#: values (B1). The two sets are disjoint and stay that way.
+UNREADABLE_COMPLETENESS: tuple[str, ...] = ("unreadable", "failed")
+
+
+def p5_ceilings(conn: sqlite3.Connection) -> dict[str, int | None]:
+    """The four values P1 holds for P5. `None` means P1 holds none yet.
+
+    Reading a ceiling is not enforcing it, and P5 enforces none here: the OCR engine
+    and the image reader are given their ceilings and report that they stopped.
+    """
+    return {key: get_ceiling(conn, key) for key in P5_CEILING_KEYS}
+
+
+def deferred_result(*, file_row: Mapping[str, Any], source_type: str,
+                    extractor_name: str, extractor_version: str,
+                    analysis_tier: str, units: str, total: int,
+                    now: str) -> ExtractionResult:
+    """The run for an extractor the budget stopped before it started.
+
+    No `failure_reason`: P4's `completeness: deferred` IS section 8.6's mark, and a
+    deferral carrying a failure reason reads as a failure - which is exactly the
+    confusion section 8.6 exists to prevent. The reason lives in section 8.2's
+    structured explanation on the `extraction` event.
+    """
+    return ExtractionResult(
+        run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+                extractor_name=extractor_name, extractor_version=extractor_version,
+                source_type=source_type, analysis_tier=analysis_tier, config={},
+                completeness="deferred", coverage=coverage(units, 0, total),
+                observation_count=0, started_at=now, finished_at=now))
+
+
+def extraction_counts(runs: Iterable[Mapping[str, Any]], *,
+                      files_scanned: int) -> dict[str, int]:
+    """Section 8.6's user-facing sentence, as four queries over P4's `completeness`.
+
+    Two file counts and two run counts, which is the SPEC's own asymmetry: a capped
+    OCR run on a file whose EXIF read fine is a deferred RUN, and the file is not
+    fully extracted. "Files require model review" is P8's count and is absent.
+    """
+    by_file: dict[str, list[str]] = {}
+    deferred = unreadable = 0
+    for record in runs:
+        by_file.setdefault(record["file_id"], []).append(record["completeness"])
+        if record["completeness"] in DEFERRED_COMPLETENESS:
+            deferred += 1
+        if record["completeness"] in UNREADABLE_COMPLETENESS:
+            unreadable += 1
+    fully = sum(1 for states in by_file.values()
+                if all(state == "complete" for state in states))
+    return {
+        "files_scanned": files_scanned,
+        "indexed": len(by_file),
+        "fully_extracted": fully,
+        "deferred": deferred,
+        "unreadable": unreadable,
+    }
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_budgets.py -v`
+Expected: PASS — 12 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/extractors/budgets.py tests/p5/test_p5_budgets.py
+git commit -m "feat(P5): §8.6 budgets - P1's ceiling keys, deferral is not failure, the count line"
+```
+
+---
+
+### Task 16: §8.2 — the two events P5 authors, and the structured explanation each carries
+
+**Files:**
+- Create: `src/extractors/events.py`
+- Test: `tests/p5/test_p5_events.py`
+
+**Interfaces:**
+- Consumes: `extractors.authorship.event_defaults`, `extractors.shape.canonical_json` and `fingerprint`; P1's `database_agent.events.append_event`.
+- Produces: `EXTRACTION`, `OCR`, `extraction_event()`, `ocr_event()`, `append()`.
+
+**Two of §8.2's nineteen, and P5 registers neither.** Task 1 established the authorship constants; this
+task is the events themselves. §8.2 requires each to carry *"the event type, file ID, content hash,
+responsible subsystem, extractor version, time of observation, and a structured explanation or evidence
+reference"*, and P1's writer requires `event_type`, `subsystem`, `component_version`, `observed_at` and
+`explanation` to be present and non-empty.
+
+**§8.2's "extractor version" is P1's `component_version`.** P1's `events` table has **eleven fields,
+forever** (MINOR 1) and no `extractor_version` column, so §8.2's extractor version occupies
+`component_version` on an `extraction` event. `authorship.COMPONENT_VERSION` remains the version of P5's
+own event authorship and is the value only where no extractor version applies.
+
+**For an OCR event, §8.2's model positions are the OCR positions.** The SPEC: *"For E6 the OCR provider,
+version, languages and configuration occupy the position §8.2 gives to model version and prompt
+fingerprint."* Read against P1's eleven fields that is exact: the provider **version** is
+`component_version`, and the **configuration** — which is where §2.7's languages live — is
+`prompt_fingerprint`, as the same `fingerprint()` P4's `config_fingerprint` uses, so one configuration
+has one identity in both places. The provider name is in the structured explanation and in the run's
+`extractor_name`.
+
+**MINOR 2 is a run-time fact, not a style note.** §8.2 spells it **`OCR`**, and P1's writer validates the
+type against §8.2's frozen vocabulary — `database_agent.events.RESERVED_EVENT_TYPES` — so the lowercase
+spelling earlier drafts used raises `UnregisteredEventType` at the INSERT. The test asserts both halves:
+`OCR` is accepted, `ocr` is refused by P1.
+
+**The explanation is canonical JSON naming the `run_id`.** §8.2 asks for *"a structured explanation or
+evidence reference"*, and the `run_id` **is** the evidence reference: it is the handle for the run's
+observations, its text units and its outcome. Canonical JSON so that §8.5's replay diff compares two
+explanations rather than two renderings of one.
+
+**P5 appends nothing on P1's behalf and nothing of P3's.** `discovery`, `stat observation` and `hashing`
+are P3's; the move events are P12's (M8). `event_defaults` already refuses them, and Task 20 asserts
+`subsystem` is set in exactly one module.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_events.py
+"""§8.2 — the two events P5 authors, written by P1. MINOR 2: `OCR`, not `ocr`."""
+import json
+
+import pytest
+
+from database_agent.db import create_schema
+from database_agent.events import (
+    RESERVED_EVENT_TYPES, UnregisteredEventType, append_event,
+)
+
+from extractors.authorship import AUTHORED_EVENT_TYPES, SUBSYSTEM
+from extractors.events import EXTRACTION, OCR, append, extraction_event, ocr_event
+from extractors.shape import fingerprint
+
+from conftest import FIXED_CLOCK
+
+CONFIG = {"recognition": "accurate", "languages": ["en-US"], "dpi": 200}
+
+
+def an_extraction_event():
+    return extraction_event(run_id="run-7", file_id="f-1",
+                            content_hash="sha256:abc", extractor_name="pdf.text",
+                            extractor_version="0.1.0", completeness="complete",
+                            observed_at=FIXED_CLOCK)
+
+
+def an_ocr_event():
+    return ocr_event(run_id="run-8", file_id="f-1", content_hash="sha256:abc",
+                     provider="apple-vision", provider_version="19.1",
+                     config=CONFIG, completeness="capped",
+                     observed_at=FIXED_CLOCK)
+
+
+def test_both_types_are_reserved_section_8_2_names_and_p5_registers_nothing():
+    assert EXTRACTION in RESERVED_EVENT_TYPES
+    assert OCR in RESERVED_EVENT_TYPES
+    assert AUTHORED_EVENT_TYPES == (EXTRACTION, OCR)
+
+
+def test_minor_2_p1_accepts_OCR_and_rejects_ocr(conn):
+    create_schema(conn)
+    assert OCR == "OCR"
+    append_event(conn, event_type=OCR, subsystem=SUBSYSTEM,
+                 component_version="19.1", observed_at=FIXED_CLOCK,
+                 explanation="{}")
+    with pytest.raises(UnregisteredEventType):
+        append_event(conn, event_type="ocr", subsystem=SUBSYSTEM,
+                     component_version="19.1", observed_at=FIXED_CLOCK,
+                     explanation="{}")
+
+
+def test_an_extraction_event_round_trips_through_p1(conn):
+    create_schema(conn)
+    append(conn, an_extraction_event())
+    row = conn.execute("SELECT * FROM events").fetchone()
+    assert row["event_type"] == "extraction"
+    assert row["subsystem"] == "P5"
+    assert row["file_id"] == "f-1"
+    assert row["content_hash"] == "sha256:abc"
+    assert row["observed_at"] == FIXED_CLOCK
+
+
+def test_section_8_2s_extractor_version_is_p1s_component_version(conn):
+    create_schema(conn)
+    append(conn, an_extraction_event())
+    row = conn.execute("SELECT * FROM events").fetchone()
+    assert row["component_version"] == "0.1.0"
+
+
+def test_the_explanation_is_structured_and_names_the_run(conn):
+    create_schema(conn)
+    append(conn, an_extraction_event())
+    row = conn.execute("SELECT * FROM events").fetchone()
+    explanation = json.loads(row["explanation"])
+    assert explanation["run_id"] == "run-7"
+    assert explanation["extractor_name"] == "pdf.text"
+    assert explanation["completeness"] == "complete"
+
+
+def test_an_ocr_event_puts_version_and_configuration_in_section_8_2s_model_slots(conn):
+    create_schema(conn)
+    append(conn, an_ocr_event())
+    row = conn.execute("SELECT * FROM events WHERE event_type = ?", (OCR,)).fetchone()
+    assert row["component_version"] == "19.1"
+    assert row["prompt_fingerprint"] == fingerprint(CONFIG)
+    explanation = json.loads(row["explanation"])
+    assert explanation["provider"] == "apple-vision"
+    assert explanation["run_id"] == "run-8"
+    assert explanation["completeness"] == "capped"
+
+
+def test_one_configuration_has_one_identity_in_both_places():
+    # The event's `prompt_fingerprint` and P4's `config_fingerprint` are the same
+    # function of the same mapping, so an audit can join them.
+    assert an_ocr_event()["prompt_fingerprint"] == fingerprint(CONFIG)
+
+
+def test_every_event_names_p5(conn):
+    create_schema(conn)
+    append(conn, an_extraction_event())
+    append(conn, an_ocr_event())
+    authors = conn.execute("SELECT DISTINCT subsystem FROM events").fetchall()
+    assert [r["subsystem"] for r in authors] == ["P5"]
+
+
+def test_p5_authors_none_of_p3s_events():
+    # M8: `discovery`, `stat observation` and `hashing` are P3's.
+    for event_type in ("discovery", "stat observation", "hashing", "planned move"):
+        with pytest.raises(ValueError):
+            extraction_event(run_id="r", file_id="f", content_hash="h",
+                             extractor_name="pdf.text", extractor_version="0.1.0",
+                             completeness="complete", observed_at=FIXED_CLOCK,
+                             event_type=event_type)
+
+
+def test_a_second_run_appends_a_second_event_and_the_first_remains(conn):
+    # §8.2: P5 overwrites nothing. Supersession leaves both records readable.
+    create_schema(conn)
+    append(conn, an_extraction_event())
+    append(conn, extraction_event(
+        run_id="run-9", file_id="f-1", content_hash="sha256:abc",
+        extractor_name="pdf.text", extractor_version="0.2.0",
+        completeness="complete", observed_at=FIXED_CLOCK))
+    rows = conn.execute("SELECT * FROM events ORDER BY event_id").fetchall()
+    assert [json.loads(r["explanation"])["run_id"] for r in rows] == ["run-7", "run-9"]
+    assert [r["component_version"] for r in rows] == ["0.1.0", "0.2.0"]
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_events.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'extractors.events'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/extractors/events.py
+"""Section 8.2 - the two events P5 authors. P1 writes them (M8).
+
+Each carries "the event type, file ID, content hash, responsible subsystem, extractor
+version, time of observation, and a structured explanation or evidence reference".
+P1's `events` has eleven fields forever (MINOR 1), so section 8.2's extractor version
+occupies `component_version`, and the run_id - the handle for a run's observations,
+text units and outcome - is section 8.2's evidence reference.
+
+For the OCR event, section 8.2's model positions are the OCR positions: the provider
+VERSION is `component_version` and the CONFIGURATION, which is where section 2.7's
+languages live, is `prompt_fingerprint`, computed by the same `fingerprint()` that
+produces P4's `config_fingerprint` so one configuration has one identity in both.
+"""
+from __future__ import annotations
+
+import sqlite3
+from typing import Any, Mapping
+
+from database_agent.events import append_event
+
+from extractors.authorship import event_defaults
+from extractors.shape import canonical_json, fingerprint
+
+#: Section 8.2's own spellings. `OCR`, not `ocr` (MINOR 2): P1's writer validates the
+#: type against section 8.2's frozen vocabulary and the lowercase form is rejected at
+#: the INSERT.
+EXTRACTION = "extraction"
+OCR = "OCR"
+
+
+def extraction_event(*, run_id: str, file_id: str, content_hash: str,
+                     extractor_name: str, extractor_version: str,
+                     completeness: str, observed_at: str,
+                     event_type: str = EXTRACTION, **extra: Any) -> dict:
+    """One `extraction` event - once per file per extractor family per content
+    version."""
+    return event_defaults(
+        event_type=event_type, file_id=file_id, content_hash=content_hash,
+        component_version=extractor_version, observed_at=observed_at,
+        explanation=canonical_json({
+            "run_id": run_id,
+            "extractor_name": extractor_name,
+            "extractor_version": extractor_version,
+            "completeness": completeness,
+            **extra,
+        }),
+    )
+
+
+def ocr_event(*, run_id: str, file_id: str, content_hash: str, provider: str,
+              provider_version: str, config: Mapping[str, Any],
+              completeness: str, observed_at: str, **extra: Any) -> dict:
+    """One `OCR` event - once per OCR run."""
+    return event_defaults(
+        event_type=OCR, file_id=file_id, content_hash=content_hash,
+        component_version=provider_version,
+        prompt_fingerprint=fingerprint(config), observed_at=observed_at,
+        explanation=canonical_json({
+            "run_id": run_id,
+            "provider": provider,
+            "provider_version": provider_version,
+            "completeness": completeness,
+            **extra,
+        }),
+    )
+
+
+def append(conn: sqlite3.Connection, event: Mapping[str, Any]) -> int:
+    """Hand one authored event to P1's writer. P5 stores no event of its own."""
+    return append_event(conn, **event)
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_events.py -v`
+Expected: PASS — 10 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/extractors/events.py tests/p5/test_p5_events.py
+git commit -m "feat(P5): §8.2 events - extraction and OCR, extractor version and config in §8.2's slots"
+```
+
+---
+
+### Task 17: §8.5 / B7 — P2's envelope, produced by P5 and stored by P2
+
+**Files:**
+- Create: `src/extractors/stage_output.py`
+- Test: `tests/p5/test_p5_stage_output.py`
+
+**Interfaces:**
+- Consumes: `extractors.shape.canonical_json`. **Imports nothing from `eval_harness`** — P5 produces the envelope; P2 stores it.
+- Produces: `STAGE_ID`, `ENVELOPE_FIELDS`, `OUTCOME_BY_COMPLETENESS`, `CEILING_REACHED_COMPLETENESS`, `extraction_stage_output()`, `extractor_versions()`.
+
+**B7, verbatim:** *"P5, P6, P8, P9, P10 and P11 each add to Contract out: 'Emits P2 `stage_output` with
+`stage_id = <id>`, carrying `inputs[]`, an explicit abstention value, a distinct budget-deferral value,
+and the version tuple.'"* P2 is **built** (`src/eval_harness/`), so this task is written against its live
+surface and the test drives P5's envelope through P2's real writer rather than a stub.
+
+**Produced, not stored.** `eval_harness.replay.StageResult` is the shape a stage adapter returns —
+`subject_ref`, `outcome`, `payload`, `inputs`, `budget_state` — and `record_stage_output` adds `run_id`,
+`stage_id` and `version_tuple_ref` from the run it is replaying. So P5 builds exactly those five fields
+plus `stage_id`, and imports no P2 module: P5 depends on P1 and on nothing else at run time, and Task 20
+asserts it.
+
+**The mapping from P4's eight `completeness` values to P2's five outcomes, and why each row is what it
+is.** This mapping is P5's to author — it is the join between two closed vocabularies neither part owns
+alone — so every row states its reason, and the two rows the design does not settle are **NEEDS JOSEPH**
+items rather than quiet choices.
+
+| P4 `completeness` | P2 `outcome` | `budget_state` | why |
+|---|---|---|---|
+| `complete` | `produced` | `within_ceiling` | the extractor ran to the end |
+| `partial` | `produced` | `within_ceiling` | some parts were readable; evidence exists |
+| `capped` | `produced` | **`ceiling_reached`** | a capped run **keeps the text it recognized** (§2.7); it produced, under a ceiling that was reached. P2 permits `produced` + `ceiling_reached` and forbids `abstained` + `ceiling_reached` |
+| `deferred` | **`deferred`** | **`ceiling_reached`** | §8.6's budget deferral. P2's writer *requires* this exact pairing |
+| `unsupported` | `abstained` | `within_ceiling` | no extractor exists; P5 asserted nothing |
+| `metadata_only` | `abstained` | `within_ceiling` | §2.9's deliberate safe stop — **NEEDS JOSEPH**, see below |
+| `unreadable` | `abstained` | `within_ceiling` | format known, content not recoverable; the metadata rows are real but the extraction dimension's question was not answered — **NEEDS JOSEPH** |
+| `failed` | `error` | `within_ceiling` | §2.4: *"an error is not an empty document"* |
+
+**`inputs[]` is the content hash, and that is the point.** §3.4: the cache key holds the content hash and
+no path, *"which is what makes a rename free and a content rewrite expensive."* An extraction run's input
+is the **file version**, so `inputs = (content_hash,)`; `subject_ref` is the `file_id`, which is what P2's
+`bundle_file_entry` keys a file by.
+
+**P5's half of the version tuple is one axis.** `eval_harness.run.VERSION_AXES[0]` is
+`extractor_versions` — *"{} — one version per extractor (§3.4)"* — so `extractor_versions()` folds a set
+of runs into that map and P2 assembles the tuple and stores its reference. P5 does not build a version
+tuple: five of its six axes belong to parts P5 knows nothing about.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_stage_output.py
+"""§8.5 / B7 — P5's envelope, through P2's live writer."""
+import json
+
+import pytest
+
+import extractors.stage_output as stage_output_module
+from eval_harness.replay import StageResult
+from eval_harness.run import VERSION_AXES, record_version_tuple, start_run
+from eval_harness.stage_output import record_stage_output, stage_outputs
+from eval_harness.store import create_eval_schema
+from eval_harness.vocabulary import BUDGET_STATES, OUTCOMES, STAGE_IDS
+
+from extractors.stage_output import (
+    CEILING_REACHED_COMPLETENESS, ENVELOPE_FIELDS, OUTCOME_BY_COMPLETENESS, STAGE_ID,
+    extraction_stage_output, extractor_versions,
+)
+
+from conftest import FIXED_CLOCK
+
+P4_COMPLETENESS = ("complete", "capped", "partial", "metadata_only", "deferred",
+                   "unsupported", "unreadable", "failed")
+
+
+def a_run(completeness="complete", extractor_name="pdf.text", version="0.1.0"):
+    return {"file_id": "f-1", "content_hash": "sha256:abc",
+            "extractor_name": extractor_name, "extractor_version": version,
+            "source_type": "text_document", "analysis_tier": "native",
+            "completeness": completeness, "observation_count": 3,
+            "coverage": {"units": "pages", "processed": 18, "total": 18}}
+
+
+@pytest.fixture()
+def p2_run(conn):
+    create_eval_schema(conn)
+    ref = record_version_tuple(
+        conn, extractor_versions={"pdf.text": "0.1.0"}, graph_algorithm_version=None,
+        prompt_fingerprint=None, model_identifier=None,
+        template_library_version=None, placement_scorer_version=None,
+        analysis_tiers_enabled=["filesystem", "native"])
+    run_id = start_run(conn, bundle_id="b-p5", run_kind="replay",
+                       version_tuple_ref=ref, budget_ceilings={},
+                       run_settings={"model_enabled": False,
+                                     "embeddings_enabled": False},
+                       pinned_plan_id=None, pinned_plan_version=None)
+    return run_id, ref
+
+
+def test_the_stage_id_is_one_of_section_8_5s_ten():
+    assert STAGE_ID == "extraction"
+    assert STAGE_ID in STAGE_IDS
+
+
+def test_the_envelope_is_exactly_p2s_stage_result_shape():
+    envelope = extraction_stage_output(run=a_run())
+    assert set(ENVELOPE_FIELDS) == set(envelope) - {"stage_id"}
+    StageResult(**{k: v for k, v in envelope.items() if k != "stage_id"})
+
+
+def test_every_completeness_maps_to_one_of_p2s_five_outcomes():
+    assert set(OUTCOME_BY_COMPLETENESS) == set(P4_COMPLETENESS)
+    assert set(OUTCOME_BY_COMPLETENESS.values()) <= set(OUTCOMES)
+
+
+def test_abstention_and_budget_deferral_are_different_values():
+    # B7: "an explicit abstention value, a distinct budget-deferral value".
+    assert OUTCOME_BY_COMPLETENESS["unsupported"] == "abstained"
+    assert OUTCOME_BY_COMPLETENESS["deferred"] == "deferred"
+    assert OUTCOME_BY_COMPLETENESS["unsupported"] != OUTCOME_BY_COMPLETENESS["deferred"]
+
+
+def test_inputs_is_the_content_hash_so_a_rename_is_free():
+    envelope = extraction_stage_output(run=a_run())
+    assert envelope["inputs"] == ("sha256:abc",)
+    assert envelope["subject_ref"] == "f-1"
+
+
+def test_the_payload_is_p5s_own_and_p2_never_parses_it():
+    envelope = extraction_stage_output(run=a_run())
+    payload = json.loads(envelope["payload"])
+    assert payload["extractor_name"] == "pdf.text"
+    assert payload["completeness"] == "complete"
+    assert payload["coverage"] == {"units": "pages", "processed": 18, "total": 18}
+
+
+def test_a_capped_run_produced_under_a_reached_ceiling(conn, p2_run):
+    # §2.7: a capped run keeps the text it recognized. It produced.
+    run_id, ref = p2_run
+    envelope = extraction_stage_output(run=a_run(completeness="capped"))
+    assert envelope["outcome"] == "produced"
+    assert envelope["budget_state"] == "ceiling_reached"
+    record_stage_output(conn, run_id=run_id, version_tuple_ref=ref,
+                        **{k: v for k, v in envelope.items()
+                           if k != "stage_id"}, stage_id=STAGE_ID)
+    assert stage_outputs(conn, run_id)[0]["budget_state"] == "ceiling_reached"
+
+
+def test_a_deferred_run_is_the_pairing_p2s_writer_requires(conn, p2_run):
+    run_id, ref = p2_run
+    envelope = extraction_stage_output(run=a_run(completeness="deferred"))
+    assert (envelope["outcome"], envelope["budget_state"]) == ("deferred",
+                                                               "ceiling_reached")
+    record_stage_output(conn, run_id=run_id, version_tuple_ref=ref,
+                        **{k: v for k, v in envelope.items()
+                           if k != "stage_id"}, stage_id=STAGE_ID)
+    assert stage_outputs(conn, run_id)[0]["outcome"] == "deferred"
+
+
+def test_p5_never_produces_the_pairing_p2_refuses():
+    # §8.6: a ceiling-reached stage is `deferred`, never `abstained`.
+    assert set(CEILING_REACHED_COMPLETENESS) == {"deferred", "capped"}
+    for completeness in CEILING_REACHED_COMPLETENESS:
+        envelope = extraction_stage_output(run=a_run(completeness=completeness))
+        assert envelope["outcome"] != "abstained"
+
+
+def test_every_envelope_is_accepted_by_p2s_writer(conn, p2_run):
+    run_id, ref = p2_run
+    for completeness in P4_COMPLETENESS:
+        envelope = extraction_stage_output(run=a_run(completeness=completeness))
+        assert envelope["budget_state"] in BUDGET_STATES
+        record_stage_output(conn, run_id=run_id, version_tuple_ref=ref,
+                            **{k: v for k, v in envelope.items()
+                               if k != "stage_id"}, stage_id=STAGE_ID)
+    assert len(stage_outputs(conn, run_id)) == len(P4_COMPLETENESS)
+
+
+def test_p5_supplies_one_axis_of_the_version_tuple(conn, p2_run):
+    assert VERSION_AXES[0] == "extractor_versions"
+    versions = extractor_versions([a_run(), a_run(extractor_name="ocr.apple-vision",
+                                                  version="19.1")])
+    assert versions == {"pdf.text": "0.1.0", "ocr.apple-vision": "19.1"}
+
+
+def test_two_versions_of_one_extractor_are_refused():
+    # §3.4's cache key is per (extractor, version); one map cannot hold two.
+    with pytest.raises(ValueError):
+        extractor_versions([a_run(version="0.1.0"), a_run(version="0.2.0")])
+
+
+def test_p5_imports_no_part_of_p2():
+    # P5 produces the envelope; P2 stores it. P5's only run-time dependency is P1.
+    imported = {name for name, value in vars(stage_output_module).items()
+                if getattr(value, "__module__", "").startswith("eval_harness")}
+    assert imported == set()
+    assert "eval_harness" not in [getattr(v, "__name__", "")
+                                  for v in vars(stage_output_module).values()]
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_stage_output.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'extractors.stage_output'`
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/extractors/stage_output.py
+"""Section 8.5 / B7 - P2's envelope, produced by P5 and stored by P2.
+
+"Emits P2 `stage_output` with `stage_id = extraction`, carrying `inputs[]`, an
+explicit abstention value, a distinct budget-deferral value, and the version tuple."
+
+Produced, not stored: `eval_harness.replay.StageResult` is the shape a stage adapter
+returns and P2 adds `run_id`, `stage_id` and `version_tuple_ref` from the run it is
+replaying. This module imports no part of P2 - P5's only run-time dependency is P1.
+
+The mapping below is the join between two closed vocabularies neither part owns
+alone, so every row carries its reason. Two rows are genuinely unsettled by the
+design and are NEEDS JOSEPH items rather than quiet choices: `metadata_only` and
+`unreadable`, both of which produce real metadata rows while leaving section 8.5's
+extraction question ("did the expected text, metadata, table values, OCR text, or
+image facts appear?") unanswered.
+"""
+from __future__ import annotations
+
+from typing import Any, Iterable, Mapping
+
+from extractors.shape import canonical_json
+
+#: One of section 8.5's ten attribution stages. P5 is the first.
+STAGE_ID = "extraction"
+
+#: `eval_harness.replay.StageResult`'s fields, as P5 fills them.
+ENVELOPE_FIELDS: tuple[str, ...] = ("subject_ref", "outcome", "payload", "inputs",
+                                    "budget_state")
+
+#: P4's eight `completeness` values to P2's five outcomes.
+OUTCOME_BY_COMPLETENESS: dict[str, str] = {
+    "complete": "produced",       # ran to the end, section 2.4
+    "partial": "produced",        # some parts readable, section 2.5
+    "capped": "produced",         # kept the text it recognized, section 2.7
+    "deferred": "deferred",       # section 8.6's budget deferral
+    "unsupported": "abstained",   # no extractor exists, section 2.4
+    "metadata_only": "abstained",  # section 2.9's deliberate safe stop
+    "unreadable": "abstained",    # indexed-but-unreadable, section 2.9 / M3
+    "failed": "error",            # "an error is not an empty document", section 2.4
+}
+
+#: Section 8.6: a run that met a ceiling says so, and is never `abstained` - P2's
+#: writer refuses that pairing outright, because a budget event must not become a
+#: judgement about evidence.
+CEILING_REACHED_COMPLETENESS: tuple[str, ...] = ("deferred", "capped")
+
+
+def extraction_stage_output(*, run: Mapping[str, Any]) -> dict:
+    """One envelope for one `extraction_runs` row.
+
+    `subject_ref` is the file id, which is what P2's `bundle_file_entry` keys a file
+    by; `inputs` is the CONTENT HASH, because an extraction run's input is the file
+    VERSION - section 3.4's "a rename is free and a content rewrite is expensive".
+    """
+    completeness = run["completeness"]
+    if completeness not in OUTCOME_BY_COMPLETENESS:
+        raise ValueError(
+            f"{completeness!r} is not one of P4's eight `completeness` values"
+        )
+    return {
+        "stage_id": STAGE_ID,
+        "subject_ref": run["file_id"],
+        "outcome": OUTCOME_BY_COMPLETENESS[completeness],
+        "payload": canonical_json({
+            "extractor_name": run["extractor_name"],
+            "extractor_version": run["extractor_version"],
+            "source_type": run["source_type"],
+            "analysis_tier": run["analysis_tier"],
+            "completeness": completeness,
+            "coverage": dict(run["coverage"]),
+            "observation_count": run["observation_count"],
+        }),
+        "inputs": (run["content_hash"],),
+        "budget_state": ("ceiling_reached"
+                         if completeness in CEILING_REACHED_COMPLETENESS
+                         else "within_ceiling"),
+    }
+
+
+def extractor_versions(runs: Iterable[Mapping[str, Any]]) -> dict[str, str]:
+    """P5's half of section 8.5's version tuple: its first axis, "one version per
+    extractor".
+
+    Two versions of one extractor in one tuple is refused rather than resolved:
+    section 3.4's cache key is per (extractor, version) and a map cannot hold both,
+    so a caller comparing two extractor versions is comparing two runs.
+    """
+    versions: dict[str, str] = {}
+    for record in runs:
+        name, version = record["extractor_name"], record["extractor_version"]
+        if versions.get(name, version) != version:
+            raise ValueError(
+                f"{name!r} appears at two versions, {versions[name]!r} and "
+                f"{version!r}; section 8.5's tuple holds one version per extractor"
+            )
+        versions[name] = version
+    return versions
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_stage_output.py -v`
+Expected: PASS — 13 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/extractors/stage_output.py tests/p5/test_p5_stage_output.py
+git commit -m "feat(P5): §8.5 envelope - abstention and budget deferral distinct, inputs is the content hash"
+```
+
+---
+
+### Task 18: Re-extraction is additive — §8.2's supersession, §8.7's re-run, §8.8's plan independence
+
+**Files:**
+- Test: `tests/p5/test_p5_reextraction.py`
+
+**Interfaces:**
+- Consumes: every extractor above, `extractors.runs.cache_key`.
+- Produces: the standing guarantee that a better extractor never destroys a worse one's record.
+
+**Done-means 12, verbatim.** *"Re-extraction is additive. Running an improved extractor over
+already-extracted content leaves both records readable, including both runs' `text_units`."*
+
+**§8.2's own example is P5's.** *"A first OCR pass produces unreadable text, a later improved engine
+recovers a university name, and both extraction records remain available. The resolver may mark the
+newer value preferred, but a user inspecting a placement must still be able to reach the origin of the
+conclusion."* That is the test below, run through E6 twice.
+
+**P5 overwrites nothing — and owns no supersede column.** `supersedes`, `superseded_by` and
+`supersede_reason` are **P4-assigned**; P5 supplies the *reason* through the sink's
+`supersede_reason=` keyword and nothing else. P1's guarantee is what makes it work: *"Supersede-never-
+overwrite is P1's guarantee and P5 relies on it: a second OCR pass must be able to land beside the
+first."*
+
+**§3.4's cache key is what makes the re-run warranted or free.** *"Content hash + extractor version +
+`analysis_tier`, plus provider/version/configuration for OCR. This is what makes a rename free and a
+content rewrite expensive, and what makes an extractor upgrade auditable."* There is **no path
+parameter**, and that absence is the test: renaming a file changes no key, so nothing re-runs.
+
+**§8.8 needs nothing from P5, and that is the point.** *"The evidence database remains shared across plan
+versions."* No P5 record carries a plan id, a plan version or a template, so renaming Applications to
+Admissions or restoring an earlier draft changes nothing P5 wrote. The guard is structural: no P5
+function takes a plan argument and no P5 record has a plan field.
+
+**§8.7's second obligation stays open.** *"Whether reclassification deletes or only gates P5's stored
+observations — and the `text_units` they point into — is Open question 6."* P5 therefore publishes **no
+deletion of any kind**: not a delete, not a purge, not a redaction. Answering OQ6 in code would be P5
+settling a privacy question §8.4 gives to P7.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_reextraction.py
+"""Done-means 12 — §8.2 supersession, §8.7's re-run on demand, §8.8's plan
+independence, and SPEC Open question 6 held open."""
+import importlib
+import inspect
+from pathlib import Path
+
+import pytest
+
+import extractors
+from extractors.ocr import OcrOutput, OcrRegion, extract_ocr
+from extractors.reading import StructuredString
+from extractors.runs import cache_key
+from extractors.safety import SafetyPolicy
+from extractors.shape import fingerprint
+
+from conftest import FIXED_CLOCK
+
+OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
+                           is_dataless=lambda path: False)
+FILE_ROW = {"file_id": "f-scan", "content_hash": "sha256:scan",
+            "filename": "transcript-scan.pdf"}
+CONFIG = {"recognition": "accurate", "languages": ["en-US"]}
+
+GARBLED = "Ui1iversity 0f Cl1icago"
+RECOVERED = "University of Chicago"
+
+SOURCE_DIR = Path(extractors.__file__).parent
+
+
+def p5_modules():
+    return [importlib.import_module(f"extractors.{path.stem}")
+            for path in sorted(SOURCE_DIR.glob("*.py")) if path.stem != "__init__"]
+
+
+def find_university(text: str):
+    at = text.find("University of Chicago")
+    return (StructuredString(kind="identifier", start=at, end=at + 21),) if at != -1 else ()
+
+
+def an_ocr_pass(*, text, provider_version, path="/corpus/transcript-scan.pdf"):
+    output = OcrOutput(provider="apple-vision", provider_version=provider_version,
+                       regions=(OcrRegion(page=1, region=1, text=text,
+                                          confidence=0.5),),
+                       pages_processed=1, pages_total=1)
+    return extract_ocr(file_row=FILE_ROW, path=Path(path), policy=OPEN_POLICY,
+                       ocr_engine=lambda target, *, config: output, config=CONFIG,
+                       find_structured_strings=find_university, now=FIXED_CLOCK,
+                       context_window=20)
+
+
+def test_section_8_2s_own_example_both_records_remain_available(sink):
+    first = sink.write(an_ocr_pass(text=GARBLED, provider_version="18.0"))
+    second = sink.write(an_ocr_pass(text=RECOVERED, provider_version="19.1"),
+                        supersede_reason="a later engine recovered readable text")
+
+    assert first != second
+    assert [r["run_id"] for r in sink.runs] == [first, second]
+    assert sink.run_for(first)["extractor_version"] == "18.0"
+    assert sink.run_for(second)["extractor_version"] == "19.1"
+    # The first pass's unreadable text is still reachable.
+    assert sink.units_for(first)[0]["text"] == GARBLED
+    assert sink.units_for(second)[0]["text"] == RECOVERED
+    # And the recovered university name exists only on the second.
+    assert [o["raw_value"] for o in sink.observations_for(first)] == []
+    assert [o["raw_value"] for o in sink.observations_for(second)] == [RECOVERED]
+    sink.conforms()
+
+
+def test_both_runs_text_units_survive(sink):
+    # Done-means 12, in G1's terms: bulk text has one home PER RUN, not one home
+    # per file that a re-run overwrites.
+    first = sink.write(an_ocr_pass(text=GARBLED, provider_version="18.0"))
+    second = sink.write(an_ocr_pass(text=RECOVERED, provider_version="19.1"))
+    assert len(sink.text_units) == 2
+    assert {u["run_id"] for u in sink.text_units} == {first, second}
+
+
+def test_p5_supplies_the_reason_and_sets_no_supersede_column(sink):
+    reason = "a later engine recovered readable text"
+    run_id = sink.write(an_ocr_pass(text=RECOVERED, provider_version="19.1"),
+                        supersede_reason=reason)
+    assert sink.supersessions == [(run_id, reason)]
+    for observation in sink.observations:
+        for column in ("supersedes", "superseded_by", "supersede_reason",
+                       "preferred"):
+            assert column not in observation, column
+
+
+def test_an_extractor_upgrade_changes_the_cache_key():
+    keys = {cache_key(content_hash="sha256:scan", extractor_name="ocr.apple-vision",
+                      extractor_version=version, analysis_tier="ocr",
+                      config_fingerprint=fingerprint(CONFIG))
+            for version in ("18.0", "19.1")}
+    assert len(keys) == 2
+
+
+def test_a_rename_is_free():
+    # §3.4: there is no path in the key, and that absence IS the guarantee.
+    assert "path" not in inspect.signature(cache_key).parameters
+    moved = an_ocr_pass(text=RECOVERED, provider_version="19.1",
+                        path="/corpus/renamed/somewhere-else.pdf")
+    stayed = an_ocr_pass(text=RECOVERED, provider_version="19.1")
+    key = lambda result: cache_key(
+        content_hash=result.run["content_hash"],
+        extractor_name=result.run["extractor_name"],
+        extractor_version=result.run["extractor_version"],
+        analysis_tier=result.run["analysis_tier"],
+        config_fingerprint=result.run["config_fingerprint"])
+    assert key(moved) == key(stayed)
+
+
+def test_a_configuration_change_makes_the_re_run_auditable():
+    keys = set()
+    for languages in (["en-US"], ["en-US", "ja-JP"]):
+        config = dict(CONFIG, languages=languages)
+        keys.add(cache_key(content_hash="sha256:scan",
+                           extractor_name="ocr.apple-vision",
+                           extractor_version="19.1", analysis_tier="ocr",
+                           config_fingerprint=fingerprint(config)))
+    assert len(keys) == 2
+
+
+def test_no_p5_record_and_no_p5_function_knows_about_a_plan():
+    # §8.8: "The evidence database remains shared across plan versions."
+    for module in p5_modules():
+        for name, value in vars(module).items():
+            if name.startswith("__"):
+                continue
+            assert "plan" not in name.lower(), f"{module.__name__}.{name}"
+            if inspect.isfunction(value) and value.__module__ == module.__name__:
+                parameters = inspect.signature(value).parameters
+                assert not [p for p in parameters if "plan" in p.lower()], name
+
+
+def test_p5_publishes_no_deletion_of_any_kind():
+    # SPEC Open question 6 is OPEN: whether reclassifying a file as private deletes
+    # P5's stored observations and their text units, or only gates them, is §8.4's
+    # to settle and P7's to own. P5 answers it nowhere.
+    for module in p5_modules():
+        for name, value in vars(module).items():
+            if name.startswith("__") or not callable(value):
+                continue
+            for token in ("delete", "purge", "redact", "erase", "overwrite",
+                          "scrub"):
+                assert token not in name.lower(), f"{module.__name__}.{name}"
+
+
+def test_re_extraction_needs_nothing_but_the_call():
+    # §8.7's first obligation: P5 can be re-run over already-extracted content at any
+    # time. Every extractor is a pure function of its arguments — no run registry, no
+    # "already extracted" check, nothing to reset.
+    parameters = inspect.signature(extract_ocr).parameters
+    assert not {"force", "overwrite", "reextract", "if_changed"} & set(parameters)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_reextraction.py -v`
+Expected: FAIL if any prior task is incomplete; otherwise PASS. This task adds no module — it is the standing guarantee the earlier tasks must keep true.
+
+- [ ] **Step 3: Fix whatever the guard catches**
+
+No new module. If a guard fires, the fix is in the module that tripped it. The one legitimate change to the guard is narrowing a token that proves to be a false positive against a design quotation — never deleting the test.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_reextraction.py -v`
+Expected: PASS — 9 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests/p5/test_p5_reextraction.py
+git commit -m "test(P5): re-extraction is additive, both records readable, no deletion anywhere"
+```
+
+---
+
+### Task 19: The one-shape guard — no consumer can tell which extractor produced an observation
+
+**Files:**
+- Test: `tests/p5/test_p5_one_shape.py`
+
+**Interfaces:**
+- Consumes: all eight producers — O5's `filesystem`, E1–E6.
+- Produces: §2.8's whole claim, as a test that fails the moment any extractor grows a field of its own.
+
+**§2.8 is one sentence and this task is its proof.** *"Every extractor must emit the same evidence shape
+— file identity, content hash, extractor and version, source type, raw value, normalized candidate,
+location, context, occurrence count, and reliability state — so downstream logic can work consistently
+across formats."* SPEC Done-means 2 turns it into something checkable: *"A consumer written against P4's
+shape reads PDF, DOCX, image, archive and OCR observations through one code path with no per-format
+branch."*
+
+**The claim this task proves, exactly.** Blind an observation's `extractor_name`, `extractor_version` and
+`source_type`, and **nothing left in the record identifies which extractor produced it**. That is
+stronger than "the fields match": it forbids a private field, a zone only one extractor uses as a
+marker, and a nullable field one extractor quietly repurposes as a flag.
+
+**Two fields are legitimately scoped, and both are scoped by the *declared source type*.** P4's
+conformance rule 11 scopes `signal_tier` to §2.6's images, and §2.7 puts OCR confidence on the
+observation. A consumer reading either is reading **by source type**, which §2.8 publishes for exactly
+that purpose — not by extractor. The test states that as a closed exemption list of two and fails if a
+third appears.
+
+**Done-means 3 and 11 ride along.** *"Raw is retained separately from normalized. A document saying `U
+Chicago` keeps that exact wording as the raw value regardless of what any resolver later does with
+it."* And *"Same content hash + same extractor version → identical observation set, so a P2 replay
+bundle produces a comparable diff."* P4's conformance rule 8 is a property of **two runs**, which is why
+it lives here and not in `p4_stub.py`.
+
+**Why this test is the one that would catch the defect this part is most likely to ship.** Each of the
+six extractors was written on its own and reviewed on its own. The failure mode is not a bad extractor
+— it is six good extractors that agree on nine fields and disagree on the tenth, discovered by P6 six
+weeks later. Every producer runs here, in one file, against one assertion.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_one_shape.py
+"""§2.8's whole claim. Done-means 2, 3 and 11.
+
+"Every extractor must emit the same evidence shape ... so downstream logic can work
+consistently across formats."
+"""
+from pathlib import Path
+
+import pytest
+
+from extractors.archive import ArchiveManifest, ArchiveMember, extract_archive
+from extractors.docx import DocxCell, DocxDocument, DocxParagraph, extract_docx
+from extractors.filesystem import extract_filesystem
+from extractors.image import ExifValue, ImageRecord, extract_image
+from extractors.long_tail import (
+    LongTailEntry, LongTailFile, LongTailText, LongTailValue, extract_long_tail,
+)
+from extractors.ocr import OcrOutput, OcrRegion, extract_ocr
+from extractors.pdf import PdfDocument, PdfPage, extract_pdf
+from extractors.reading import Region, StructuredString
+from extractors.safety import SafetyPolicy
+from extractors.shape import LOCATION_FIELDS, OBSERVATION_FIELDS
+from extractors.structured_text import TextDocument, extract_structured_text
+
+from conftest import FIXED_CLOCK
+from p4_stub import locator_for, observation_key
+
+OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
+                           is_dataless=lambda path: False)
+FILE_ROW = {"file_id": "f-1", "content_hash": "sha256:one",
+            "filename": "U Chicago admission.pdf",
+            "normalized_filename": "u chicago admission.pdf", "extension": ".pdf",
+            "mime_type": "application/pdf", "directory_position": "/corpus/apps"}
+PATH = Path("/corpus/apps/U Chicago admission.pdf")
+
+#: §2.8's own example of a value that must survive verbatim.
+RAW = "U Chicago"
+
+#: P4 scopes exactly two observation fields to a source type: conformance rule 11
+#: scopes `signal_tier` to §2.6's images, and §2.7 puts OCR confidence on the
+#: observation. Both are read through the DECLARED source type, which is what §2.8
+#: publishes it for. A third entry here would be a new per-format branch.
+SOURCE_TYPE_SCOPED = {"signal_tier": {"image"}, "confidence": {"ocr"}}
+
+NULLABLE = ("normalized_value", "confidence", "signal_tier")
+
+
+def find_raw(text: str):
+    at = text.find(RAW)
+    return (StructuredString(kind="identifier", start=at, end=at + len(RAW)),) if at != -1 else ()
+
+
+def producers():
+    """One call per producer, each over a fixture containing the same raw value."""
+    common = dict(file_row=FILE_ROW, path=PATH, policy=OPEN_POLICY,
+                  now=FIXED_CLOCK, context_window=16)
+
+    yield "filesystem", lambda: extract_filesystem(**common)
+
+    yield "pdf", lambda: extract_pdf(
+        read_pdf=lambda target: PdfDocument(
+            metadata={"Title": f"{RAW} supplement"},
+            pages=(PdfPage(number=1, text=f"Applying to {RAW} this year.",
+                           regions=(Region(zone="heading", start=0, end=11,
+                                           ordinal=1, label="Applying to"),)),)),
+        find_structured_strings=find_raw, **common)
+
+    yield "docx", lambda: extract_docx(
+        read_docx=lambda target: DocxDocument(
+            core_properties={"creator": "python-docx"},
+            paragraphs=(DocxParagraph(index=1, text=f"Why {RAW}?", zone="heading",
+                                      heading_path=((1, "Why"),)),),
+            cells=(DocxCell(table=1, row=1, column=1, text=RAW),)),
+        find_structured_strings=find_raw, **common)
+
+    yield "structured_text", lambda: extract_structured_text(
+        source_type="text_document",
+        read_text_document=lambda target: TextDocument(
+            text=f"Notes on {RAW}.", language="Markdown"),
+        find_structured_strings=find_raw, **common)
+
+    yield "long_tail", lambda: extract_long_tail(
+        source_type="email",
+        read_long_tail=lambda target, *, transcribe: LongTailFile(
+            entries=(LongTailEntry(kind="entry", label="<m-1@x>"),),
+            values=(LongTailValue(name="Subject", value=RAW, entry_ordinal=1),),
+            texts=(LongTailText(zone="body", text=f"About {RAW}.", entry_ordinal=1,
+                                region=1),)),
+        find_structured_strings=find_raw, transcription_authorized=lambda: False,
+        **common).extraction
+
+    yield "archive", lambda: extract_archive(
+        read_manifest=lambda target: ArchiveManifest(
+            archive_type="ZIP", members=(ArchiveMember(path=f"{RAW}/essay.docx"),),
+            inspected=1, total=1),
+        recognize_markers=lambda paths: (), **common)
+
+    yield "image", lambda: extract_image(
+        read_image=lambda target: ImageRecord(
+            image_format="HEIC", dimensions="4032x3024", width=4032, height=3024,
+            perceptual_hash="phash:1",
+            exif=(ExifValue(name="Make", value="Apple", kind="camera EXIF"),)),
+        dimension_signal=lambda width, height: None,
+        filename_pattern=lambda name: None, **common)
+
+    yield "ocr", lambda: extract_ocr(
+        ocr_engine=lambda target, *, config: OcrOutput(
+            provider="apple-vision", provider_version="19.1",
+            regions=(OcrRegion(page=1, region=1, text=f"Admitted to {RAW}.",
+                               confidence=0.9),),
+            pages_processed=1, pages_total=1),
+        config={"recognition": "accurate"}, find_structured_strings=find_raw,
+        **common)
+
+
+def every_observation():
+    for name, call in producers():
+        for observation in call().observations:
+            yield name, observation
+
+
+def test_every_producer_emits_at_least_one_observation():
+    produced = {name for name, _ in every_observation()}
+    assert produced == {"filesystem", "pdf", "docx", "structured_text", "long_tail",
+                        "archive", "image", "ocr"}
+
+
+def test_there_is_exactly_one_observation_shape():
+    shapes = {tuple(observation) for _, observation in every_observation()}
+    assert shapes == {OBSERVATION_FIELDS}
+
+
+def test_no_extractor_has_a_field_of_its_own():
+    keys = set()
+    for _, observation in every_observation():
+        keys |= set(observation)
+    assert keys == set(OBSERVATION_FIELDS)
+
+
+def test_there_is_exactly_one_location_shape():
+    shapes = {tuple(observation["location"])
+              for _, observation in every_observation()}
+    assert shapes == {LOCATION_FIELDS}
+
+
+def test_one_consumer_reads_every_observation_with_no_per_format_branch():
+    # Done-means 2. This function is the consumer: it names no extractor, no format
+    # and no source type, and it works on all eight.
+    def cite(observation):
+        return (f"{observation['raw_value']} at "
+                f"{locator_for(observation['location'])} "
+                f"({observation['reliability']}, x{observation['occurrence_count']})")
+
+    citations = [cite(observation) for _, observation in every_observation()]
+    assert len(citations) == len(list(every_observation()))
+    assert all(citation.strip() for citation in citations)
+    assert len(set(citations)) > 20      # they are distinct, not a constant
+
+
+def test_blinding_the_three_declared_fields_hides_the_producer():
+    # The claim: with `extractor_name`, `extractor_version` and `source_type`
+    # removed, no remaining field identifies which extractor wrote the row.
+    by_field: dict[str, set[str]] = {}
+    for name, observation in every_observation():
+        for field in NULLABLE:
+            if observation[field] is not None:
+                by_field.setdefault(field, set()).add(name)
+
+    for field, producers_setting in by_field.items():
+        if len(producers_setting) > 1:
+            continue
+        assert field in SOURCE_TYPE_SCOPED, (
+            f"{field} is set by {producers_setting} alone and P4 does not scope it "
+            "to a source type — that is a per-format branch"
+        )
+
+
+def test_the_two_scoped_fields_are_read_through_the_declared_source_type():
+    for _, observation in every_observation():
+        for field, allowed in SOURCE_TYPE_SCOPED.items():
+            if observation[field] is not None:
+                assert observation["source_type"] in allowed, field
+
+
+def test_raw_survives_verbatim_in_every_producer_that_saw_it():
+    # Done-means 3: "`U Chicago` keeps that exact wording as the raw value".
+    carriers = {name for name, observation in every_observation()
+                if observation["raw_value"] == RAW}
+    assert {"pdf", "docx", "structured_text", "long_tail", "ocr"} <= carriers
+    for name, observation in every_observation():
+        if observation["raw_value"] == RAW:
+            assert observation["normalized_value"] in (None, RAW), name
+
+
+def test_every_producer_is_deterministic():
+    # Done-means 11 / P4 conformance rule 8: a property of TWO runs, which is why it
+    # is here and not in the per-observation validator.
+    for name, call in producers():
+        first, second = call(), call()
+        assert first.observations == second.observations, name
+        assert first.text_units == second.text_units, name
+        assert first.run == second.run, name
+
+
+def test_the_observation_key_is_stable_across_runs():
+    for name, call in producers():
+        keys = [tuple(observation_key(o) for o in call().observations)
+                for _ in range(2)]
+        assert keys[0] == keys[1], name
+
+
+def test_every_producer_conforms_to_p4s_shape(sink):
+    for _, call in producers():
+        sink.write(call())
+    sink.conforms()
+
+
+def test_the_shared_fields_carry_the_per_format_difference():
+    # The other half of §2.8: one shape does not mean one kind of content. The
+    # difference lives in `zone` and `container_path`, which every consumer reads.
+    zones = {observation["location"]["zone"]
+             for _, observation in every_observation()}
+    assert {"filename", "path", "metadata", "title", "heading", "table", "body",
+            "manifest", "ocr"} <= zones
+    kinds = {segment["kind"] for _, observation in every_observation()
+             for segment in observation["location"]["container_path"]}
+    assert {"field", "page", "heading", "table", "row", "column", "entry"} <= kinds
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_one_shape.py -v`
+Expected: FAIL if any extractor emits a field of its own, a second location shape, or a non-deterministic value. If Tasks 1–18 were written as specified, it passes on the first run — and that is what it is for.
+
+- [ ] **Step 3: Fix whatever the guard catches**
+
+No new module. A failure here is fixed in the extractor that broke the shape, never by widening
+`SOURCE_TYPE_SCOPED`: that dictionary has exactly two entries because P4 scopes exactly two fields, and
+adding a third is the per-format branch §2.8 forbids.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_one_shape.py -v`
+Expected: PASS — 12 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests/p5/test_p5_one_shape.py
+git commit -m "test(P5): one shape - blinding name, version and source type hides the producer"
+```
+
+---
+
+### Task 20: The no-invention guard — every open question held open, by introspection
+
+**Files:**
+- Test: `tests/p5/test_p5_no_invention.py`
+
+**Interfaces:**
+- Consumes: every module in `src/extractors/`.
+- Produces: the standing guard the rest of the build must keep green.
+
+**Two obligations, both negative.**
+
+**Where the design leaves a value open, P5 holds a key or a caller-supplied strategy — never a number
+and never a list.** The SPEC's *Deferred* table names nine such values: the tool-generated
+producer/creator string list, the known screen resolutions, the sensor-shaped aspect ratios, the
+camera-filename pattern library, repository markers and package manifests beyond §1.1's four, the
+archive marker set, the OCR language configuration, the citation and identifier pattern sets, and every
+numeric budget ceiling. **Not one of them exists in `src/extractors/`.**
+
+**Every open question stays open.** Eight remain open in P5's SPEC (OQ3 closed as I4). Each gets a guard
+below that names it and fails the moment someone answers it in an implementation instead of in a SPEC.
+
+**Every guard here is runtime introspection of a module's namespace, never a search of source text.**
+A source-text guard matches its own comments and the design quotations in its docstrings — `assert
+"python-docx" not in source` fails against the very paragraph of §2.2 that E1's docstring quotes — and
+that trap has broken four tasks on this project already. So these guards walk `vars(module)`, skip
+dunder names (which is where `__doc__` lives), and inspect signatures.
+
+**The strongest single guard is that P5 holds no number.** A threshold, a ceiling, a DPI, an aspect
+ratio, a confidence cutoff and a page cap are all numbers, and there is no module-level number anywhere
+in `extractors`. One assertion covers six Deferred rows and cannot be satisfied by a rename.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_no_invention.py
+"""The standing record that P5 answers no open question in code.
+
+Every guard is RUNTIME INTROSPECTION. A source-text guard matches its own docstrings
+— this file's own prose names `python-docx`, Apple Vision and 200 DPI, all of which
+are design quotations — so nothing here reads a `.py` file.
+"""
+import importlib
+import inspect
+import re
+import sqlite3
+from pathlib import Path
+
+import pytest
+
+import extractors
+from database_agent.db import create_schema
+from database_agent.events import RESERVED_EVENT_TYPES
+
+from extractors.archive import ArchiveManifest, extract_archive
+from extractors.authorship import AUTHORED_EVENT_TYPES, SUBSYSTEM
+from extractors.image import extract_image
+from extractors.long_tail import POTENTIALLY_SENSITIVE, extract_long_tail
+from extractors.ocr import extract_ocr
+from extractors.ocr_policy import document_ocr_decision, text_layer_state
+from extractors.pdf import extract_pdf
+from extractors.router import SOURCE_TYPE_BY_FORMAT, route
+from extractors.schema import create_extraction_schema
+from extractors.shape import (
+    ANALYSIS_TIERS, ForbiddenAnalysisTier, P5_ANALYSIS_TIERS, run,
+)
+from extractors.structured_text import extract_structured_text
+
+SOURCE_DIR = Path(extractors.__file__).parent
+
+#: The one module-level pattern P5 owns: P4 D8's "soft-hyphen/line-break repair",
+#: which the design names as one of exactly four mechanical transforms.
+MECHANICAL_REPAIR = ("extractors.shape", "_LINE_BREAK_HYPHEN")
+
+RESOLUTION = re.compile(r"^\d+\s*[x×]\s*\d+$")
+LANGUAGE_TAG = re.compile(r"^[a-z]{2}-[A-Z]{2}$")
+
+
+def p5_modules():
+    return [importlib.import_module(f"extractors.{path.stem}")
+            for path in sorted(SOURCE_DIR.glob("*.py")) if path.stem != "__init__"]
+
+
+def constants(module):
+    """Module-level names and values, minus dunders — which is where `__doc__` is."""
+    return {name: value for name, value in vars(module).items()
+            if not name.startswith("__")}
+
+
+def strings(value):
+    """Every string reachable inside a module-level constant."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, (tuple, list, set, frozenset)):
+        for item in value:
+            yield from strings(item)
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            yield from strings(key)
+            yield from strings(item)
+
+
+def module_strings():
+    for module in p5_modules():
+        for name, value in constants(module).items():
+            if (inspect.isclass(value) or inspect.isfunction(value)
+                    or inspect.ismodule(value)):
+                continue
+            for text in strings(value):
+                yield module.__name__, name, text
+
+
+# --- the value guards -------------------------------------------------------
+
+def test_p5_holds_no_number_anywhere():
+    # One assertion for six Deferred rows: threshold, ceiling, DPI, aspect ratio,
+    # confidence cutoff and page cap are all numbers, and P5 holds none.
+    for module in p5_modules():
+        for name, value in constants(module).items():
+            assert not isinstance(value, (int, float)) or isinstance(value, bool), (
+                f"{module.__name__}.{name} = {value!r}")
+
+
+def test_the_only_pattern_p5_owns_is_p4_d8s_mechanical_repair():
+    found = [(module.__name__, name) for module in p5_modules()
+             for name, value in constants(module).items()
+             if isinstance(value, re.Pattern)]
+    assert found == [MECHANICAL_REPAIR]
+
+
+def test_no_screen_resolution_no_language_tag_and_no_producer_string():
+    # SPEC Deferred: "Known screen resolutions", "OCR language configuration", and
+    # the "Tool-generated producer/creator string list".
+    for module_name, name, text in module_strings():
+        assert not RESOLUTION.match(text), f"{module_name}.{name} = {text!r}"
+        assert not LANGUAGE_TAG.match(text), f"{module_name}.{name} = {text!r}"
+        assert "python-docx" not in text, f"{module_name}.{name}"
+        assert "Mozilla" not in text, f"{module_name}.{name}"
+
+
+def test_the_marker_classes_hold_no_members():
+    # SPEC Deferred: §1.1's four repository markers are P3's and "Everything else"
+    # is unsettled; the archive marker set likewise. P5 holds the CLASS names §2.4
+    # and §2.5 spell, and no file name.
+    from extractors.archive import MARKER_KINDS
+    from extractors.structured_text import STRUCTURAL_MARKER_KINDS
+    for value in (*MARKER_KINDS, *STRUCTURAL_MARKER_KINDS):
+        assert "." not in value, value
+        assert "/" not in value, value
+
+
+def test_p5_hashes_no_file_bytes():
+    # O5. `hashlib` is bound in exactly one module and hashes a CONFIGURATION
+    # mapping to produce P4's `config_fingerprint` — never a path, never a byte.
+    binding = [module.__name__ for module in p5_modules()
+               if getattr(constants(module).get("hashlib"), "__name__", "")
+               == "hashlib"]
+    assert binding == ["extractors.shape"]
+    from extractors.shape import fingerprint
+    parameters = inspect.signature(fingerprint).parameters
+    assert list(parameters) == ["config"]
+    with pytest.raises((TypeError, AttributeError)):
+        fingerprint(Path("/corpus/anything.pdf"))
+
+
+def test_p5_determines_no_mime_type():
+    # SPEC OQ4 and §2.9: the real MIME type or signature comes from an injected
+    # reader; P5 owns the routing TABLE and not the detection.
+    for module in p5_modules():
+        for name, value in constants(module).items():
+            assert getattr(value, "__name__", "") not in ("mimetypes", "magic"), name
+    assert (inspect.signature(route).parameters["detect_format"].default
+            is inspect.Parameter.empty)
+
+
+def test_there_is_no_global_language_quality_check():
+    # §2.2: "The system should not use unreliable global language-quality checks that
+    # incorrectly punish multilingual or mathematics-heavy documents." §2.7 repeats
+    # it. The only input about a non-empty text layer is P6's verdict.
+    for module in p5_modules():
+        for name, value in constants(module).items():
+            if not callable(value):
+                continue
+            for token in ("quality", "legible", "gibberish", "garbled",
+                          "language_check", "readable_text"):
+                assert token not in name.lower(), f"{module.__name__}.{name}"
+    parameters = set(inspect.signature(text_layer_state).parameters)
+    assert parameters == {"result", "file_id", "content_hash", "no_usable_facts"}
+
+
+def test_p5_makes_no_model_call_and_writes_no_llm_tier():
+    # I4 and §3.3. "P5 contains no model call of any kind."
+    assert ANALYSIS_TIERS == ("filesystem", "native", "ocr", "llm")
+    assert P5_ANALYSIS_TIERS == ("filesystem", "native", "ocr")
+    with pytest.raises(ForbiddenAnalysisTier):
+        run(file_id="f", content_hash="h", extractor_name="x", extractor_version="1",
+            source_type="image", analysis_tier="llm", config={},
+            completeness="complete", coverage={"units": "files", "processed": 1,
+                                               "total": 1},
+            observation_count=0, started_at="t", finished_at="t")
+    for module in p5_modules():
+        for name, value in constants(module).items():
+            if not callable(value):
+                continue
+            for token in ("llm", "model_", "_model", "embedding", "dossier"):
+                assert token not in name.lower(), f"{module.__name__}.{name}"
+
+
+def test_subsystem_is_set_in_exactly_one_module():
+    # M8: the acting part authors and P1 writes. There is one place that value lives.
+    holders = [module.__name__ for module in p5_modules()
+               if constants(module).get("SUBSYSTEM") == SUBSYSTEM]
+    assert holders == ["extractors.authorship"]
+
+
+def test_p5_registers_no_event_type():
+    # B5 rule 4: registration is a spec-level act, and both P5 types are already
+    # reserved §8.2 names in P1's frozen table.
+    assert set(AUTHORED_EVENT_TYPES) <= RESERVED_EVENT_TYPES
+
+
+def test_p5_creates_none_of_p4s_three_tables(conn):
+    create_schema(conn)
+    create_extraction_schema(conn)
+    tables = {row["name"] for row in
+              conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    assert {"extraction_routing", "extraction_sensitivity_signal"} <= tables
+    assert not {"evidence", "extraction_runs", "text_units"} & tables
+
+
+# --- one guard per open question --------------------------------------------
+
+def test_oq1_the_no_usable_facts_threshold_is_not_answered_here():
+    # OQ1: "§2.2 and §2.7 define the trigger in terms of facts and the design never
+    # says how few facts is 'no usable facts'. It is a deferred configuration value."
+    parameter = inspect.signature(document_ocr_decision).parameters["no_usable_facts"]
+    assert parameter.default is inspect.Parameter.empty
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    import extractors.ocr_policy as policy
+    assert not [n for n, v in constants(policy).items()
+                if isinstance(v, (int, float)) and not isinstance(v, bool)]
+
+
+def test_oq2_the_formats_section_2_9_lists_twice_still_have_two_candidates():
+    # OQ2: "CSV appears under both Spreadsheets and Code/structured data; PDF appears
+    # under both Text documents and Presentations. The design specifies different
+    # field lists for each and no tiebreak."
+    assert len(SOURCE_TYPE_BY_FORMAT["csv"]) == 2
+    assert len(SOURCE_TYPE_BY_FORMAT["pdf"]) == 2
+    decision = route(file_id="f", content_hash="h", path=Path("/corpus/a.csv"),
+                     extension=".csv", detect_format=lambda target: "csv")
+    # The candidates are recorded rather than discarded, and the operative one is
+    # §2.9's own document order — not a preference of P5's.
+    assert decision.source_type_candidates == SOURCE_TYPE_BY_FORMAT["csv"]
+    assert decision.source_type == SOURCE_TYPE_BY_FORMAT["csv"][0]
+
+
+def test_oq3_is_closed_and_stays_closed():
+    # I4, ratified 2026-08-19: the four tiers are closed and P5 writes the first
+    # three. This guard exists so a later edit cannot quietly re-open it.
+    assert ANALYSIS_TIERS == ("filesystem", "native", "ocr", "llm")
+    assert "llm" not in P5_ANALYSIS_TIERS
+
+
+def test_oq4_every_library_and_engine_choice_is_a_required_keyword():
+    # OQ4: "The design names Apple Vision for macOS OCR and names no library for PDF,
+    # DOCX, HEIC, archives, spreadsheets, presentations, email, calendar, contacts,
+    # audio/video, or design formats."
+    required = {
+        extract_pdf: ("read_pdf", "find_structured_strings"),
+        extract_structured_text: ("read_text_document", "find_structured_strings"),
+        extract_long_tail: ("read_long_tail", "find_structured_strings",
+                            "transcription_authorized"),
+        extract_archive: ("read_manifest", "recognize_markers"),
+        extract_image: ("read_image", "dimension_signal", "filename_pattern"),
+        extract_ocr: ("ocr_engine", "config", "find_structured_strings"),
+    }
+    for function, names in required.items():
+        parameters = inspect.signature(function).parameters
+        for name in names:
+            assert parameters[name].default is inspect.Parameter.empty, name
+            assert parameters[name].kind is inspect.Parameter.KEYWORD_ONLY, name
+
+
+def test_oq5_spreadsheets_and_presentations_are_the_callers_release_decision(sink):
+    # OQ5: "§2.4 explicitly permits either; §2.9 specifies full field lists for both.
+    # Which is a release-scope decision the design leaves open."
+    result = extract_long_tail(
+        file_row={"file_id": "f", "content_hash": "h", "filename": "x.xlsx"},
+        path=Path("/corpus/x.xlsx"),
+        policy=__import__("extractors.safety", fromlist=["SafetyPolicy"]).SafetyPolicy(
+            is_protected_container=lambda p: False, is_dataless=lambda p: False),
+        source_type="spreadsheet", read_long_tail=lambda p, *, transcribe: None,
+        find_structured_strings=lambda text: (),
+        transcription_authorized=lambda: False, now="t", context_window=1)
+    assert result.extraction.run["completeness"] == "unsupported"
+    for module_name, name, text in module_strings():
+        assert "launch" not in text.lower(), f"{module_name}.{name}"
+
+
+def test_oq6_p5_holds_no_privacy_or_gating_vocabulary():
+    # OQ6: "Does reclassifying a file as private delete P5's stored observations or
+    # only gate them?" §8.4's question, P7's to own. P5 neither deletes (guarded in
+    # test_p5_reextraction.py) nor gates.
+    for module in p5_modules():
+        for name in constants(module):
+            for token in ("private", "gated", "gate_", "quarantine", "consent"):
+                assert token not in name.lower(), f"{module.__name__}.{name}"
+
+
+def test_oq7_there_is_one_sensitivity_value_and_no_handling_class():
+    # OQ7: "§2.9 requires email addresses, message content and VCF output be treated
+    # as potentially sensitive; §8.4 puts handling-class assignment in P7. The
+    # boundary between 'P5 flags' and 'P7 classifies' is unstated."
+    assert isinstance(POTENTIALLY_SENSITIVE, str)
+    for module in p5_modules():
+        for name in constants(module):
+            for token in ("handling_class", "sensitivity_state", "classify",
+                          "HANDLING"):
+                assert token not in name, f"{module.__name__}.{name}"
+
+
+def test_oq8_no_nested_manifest_is_read():
+    # OQ8: "May a nested archive's manifest be read one level down, in memory? §2.5
+    # lists nested archives among those marked unreadable or partially inspected, but
+    # reading an inner manifest without unpacking is not the same act as extraction,
+    # and the design does not distinguish them."
+    fields = set(inspect.signature(ArchiveManifest).parameters)
+    assert not {"nested", "inner", "nested_manifests", "children"} & fields
+    readers = [name for name in inspect.signature(extract_archive).parameters
+               if name.startswith("read_")]
+    assert readers == ["read_manifest"]
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_no_invention.py -v`
+Expected: FAIL — collection succeeds and any guard whose forbidden value is present fails. If every prior task was written as specified, the only expected failures are ones this task exists to surface.
+
+- [ ] **Step 3: Fix whatever the guard catches**
+
+No new module. If a guard fires, the fix is in the module that tripped it, never in the guard: the guard is the SPEC's negative half. The one legitimate change is **narrowing** a token that proves to be a false positive against a design-named value — for instance `budgets.P5_CEILING_KEYS` legitimately *names* §8.6's ceilings, which is why the ceiling guard here is about **values** (`test_p5_holds_no_number_anywhere`) and never about names. Narrow; do not delete.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/p5/test_p5_no_invention.py -v`
+Expected: PASS — 19 passed
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests/p5/test_p5_no_invention.py
+git commit -m "test(P5): no-invention guard, every open question held open by introspection"
+```
+
+---
+
+### Task 21: The walking-skeleton P5 step
+
+**Files:**
+- Test: `tests/p5/test_p5_skeleton_step.py`
+
+**Interfaces:**
+- Consumes: everything above, plus P1's real `files` row, real event log and real database handle.
+- Produces: the integration test every later part must keep green.
+
+**[`../../02-segmentation-map.md`](../../02-segmentation-map.md)'s P5 slice, verbatim:** *"P4/P5 —
+extract page-one text; emit ONE observation in the frozen shape."*
+
+The same document states the order this test sits in: *"Wave 2 understanding — P4 → P5 → P6
+(deterministic only, no model)"*, and *"P4 before P5. §2.8, as above."* So this test is deterministic by
+construction: no model, no cloud, no embeddings, no network. It is P5's counterpart to P1's
+`test_skeleton_p1_step` and P3's `test_p3_skeleton_step`.
+
+**It runs against P1 as built.** A real fixture file under `tmp_path`, a real `files` row through P1's
+`record_file` — which takes **`parent_folder_context`** as its keyword and stores it in the
+`directory_position` column, MINOR 11 exactly as the Global Constraints describe it — a real
+`extraction` event through P1's writer, and P5's routing decision in P1's database. The only stand-in is
+the sink, because `evidence`, `extraction_runs` and `text_units` are P4's tables and P4 has not landed;
+when it does, `RecordingSink` becomes P4's writer and this test does not change.
+
+**ONE observation is the assertion, and the fixture is built to make it exact.** A one-page PDF with no
+metadata slots, one heading region and no structured strings produces exactly one observation — the
+heading — plus two text units (the page, and the heading the span indexes into) and one run. If a later
+change makes E1 emit a second row for that fixture, this test says so.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p5/test_p5_skeleton_step.py
+"""The walking skeleton's P5 step (02-segmentation-map.md):
+P4/P5 extract page-one text; emit ONE observation in the frozen shape.
+
+This test stays in the repository as the integration test every later part must keep
+green. It is deterministic: no model, no cloud, no embeddings, no network.
+"""
+import json
+from pathlib import Path
+
+import pytest
+
+from database_agent.db import create_schema
+from database_agent.files_table import get_file, record_file
+
+from extractors.events import EXTRACTION, append, extraction_event
+from extractors.pdf import EXTRACTOR_NAME, PdfDocument, PdfPage, extract_pdf
+from extractors.reading import Region
+from extractors.router import record_routing_decision, route, routing_decisions
+from extractors.safety import SafetyPolicy
+from extractors.schema import create_extraction_schema
+from extractors.shape import EXTRACTOR_RELIABILITY
+from extractors.stage_output import STAGE_ID, extraction_stage_output
+
+from conftest import FIXED_CLOCK
+from p4_stub import locator_for, validate_observation, validate_run
+
+PAGE_ONE = "BUSIB 4300 Syllabus\nSpring 2026. Meetings on Tuesdays."
+HEADING = "BUSIB 4300 Syllabus"
+
+OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
+                           is_dataless=lambda path: False)
+
+
+def a_one_page_pdf(path: Path) -> PdfDocument:
+    """No metadata slots and no structured strings, so the page yields exactly one
+    located value: its heading."""
+    return PdfDocument(
+        metadata={},
+        pages=(PdfPage(number=1, text=PAGE_ONE,
+                       regions=(Region(zone="heading", start=0, end=len(HEADING),
+                                       ordinal=1, label=HEADING),)),))
+
+
+def test_skeleton_p5_step(conn, tmp_path: Path, sink):
+    create_schema(conn)
+    create_extraction_schema(conn)
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    document = corpus / "Syllabus BUSIB 4300 Spring 2026.pdf"
+    document.write_bytes(b"%PDF-1.4 fixture bytes")
+
+    # P1's real row, as P3 would have handed it over. `parent_folder_context` is
+    # §2.9's name for the value P1 stores in `directory_position` (MINOR 11).
+    file_id = record_file(
+        conn, document, filename=document.name,
+        normalized_filename=document.name.lower(), extension=".pdf",
+        observed_size=document.stat().st_size,
+        observed_timestamps=json.dumps({"mtime": 1.0}),
+        parent_folder_context=str(corpus), mime_type="application/pdf",
+        detected_format="pdf", scan_state="fixture-scan-state", materialized=True)
+    file_row = dict(get_file(conn, file_id))
+    assert file_row["directory_position"] == str(corpus)
+
+    # R — §2.9 routes by signature, and the decision is recorded.
+    decision = route(file_id=file_id, content_hash=file_row["content_hash"],
+                     path=document, extension=".pdf",
+                     detect_format=lambda target: "pdf")
+    assert decision.extractor_name == EXTRACTOR_NAME
+    assert decision.disagree is False
+    record_routing_decision(conn, decision)
+    assert len(routing_decisions(conn, file_id, file_row["content_hash"])) == 1
+
+    # E1 — page-one text, and ONE observation in the frozen shape.
+    result = extract_pdf(file_row=file_row, path=document, policy=OPEN_POLICY,
+                         read_pdf=a_one_page_pdf,
+                         find_structured_strings=lambda text: (), now=FIXED_CLOCK,
+                         context_window=24)
+    run_id = sink.write(result)
+
+    observations = sink.observations_for(run_id)
+    assert len(observations) == 1
+    only = observations[0]
+    assert only["raw_value"] == HEADING
+    assert locator_for(only["location"]) == "heading:page=1/heading=1#0-19"
+    assert only["reliability"] in EXTRACTOR_RELIABILITY
+    assert only["file_id"] == file_id
+    assert only["content_hash"] == file_row["content_hash"]
+
+    # It validates against P4's frozen shape, through P4's own conformance rules.
+    units = [{k: v for k, v in u.items() if k != "run_id"}
+             for u in sink.units_for(run_id)]
+    validate_observation({k: v for k, v in only.items() if k != "run_id"},
+                         text_units=units)
+    validate_run(sink.run_for(run_id), 1)
+
+    # Page-one text is a `text_units` row, not an observation (G1).
+    page = [u for u in units if u["container_path"]
+            == ({"kind": "page", "index": 1, "label": None},)]
+    assert page and page[0]["text"] == PAGE_ONE
+    assert all(o["raw_value"] != PAGE_ONE for o in observations)
+
+    # Deterministic: the native tier, no model, no network.
+    row = sink.run_for(run_id)
+    assert row["analysis_tier"] == "native"
+    assert row["completeness"] == "complete"
+    assert row["coverage"] == {"units": "pages", "processed": 1, "total": 1}
+
+    # P5 authors the extraction event; P1 writes it (M8).
+    append(conn, extraction_event(
+        run_id=run_id, file_id=file_id, content_hash=file_row["content_hash"],
+        extractor_name=row["extractor_name"],
+        extractor_version=row["extractor_version"],
+        completeness=row["completeness"], observed_at=FIXED_CLOCK))
+    event = conn.execute("SELECT * FROM events WHERE event_type = ?",
+                         (EXTRACTION,)).fetchone()
+    assert event["subsystem"] == "P5"
+    assert json.loads(event["explanation"])["run_id"] == run_id
+
+    # And the run is measurable (§8.5, B7).
+    envelope = extraction_stage_output(run=row)
+    assert envelope["stage_id"] == STAGE_ID
+    assert envelope["outcome"] == "produced"
+    assert envelope["inputs"] == (file_row["content_hash"],)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p5/test_p5_skeleton_step.py -v`
+Expected: FAIL if any prior task is incomplete; otherwise PASS.
+
+- [ ] **Step 3: Run the full suite one final time**
+
+Run: `pytest -v --tb=short`
+Expected: PASS — every P5 test from Tasks 1–21 green, and every P1, P2 and P3 test still green (P5 modified no file belonging to another part).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add tests/p5/test_p5_skeleton_step.py
+git commit -m "test(P5): walking-skeleton P5 step, page-one text and ONE observation in the frozen shape"
+```
+
+---
+
+## Self-Review
+
+**Spec coverage.** Every Contract-out record has a task. The **routing decision per file** → Task 4.
+**Observations, `text_units` and `extraction_runs`** → Tasks 2 and 5 for the shape and the outcome
+record, Tasks 6–14 for the eight producers. **Events (§8.2)** → Tasks 1 and 16. **P2's `stage_output`
+(§8.5, B7)** → Task 17. P5's two own tables → Tasks 4 (routing) and 11 (sensitivity signal), both created
+by `schema.create_extraction_schema` and nowhere else.
+
+The six extractor families the SPEC names map one-to-one onto modules and tasks: **E1 PDF (§2.2)** →
+Task 7 · **E2 DOCX (§2.3)** → Task 9 · **E3 structured text and code (§2.4, §2.9)** → Tasks 10 and 11 ·
+**E4 archives (§2.5)** → Task 12 · **E5 images (§2.6)** → Task 13 · **E6 OCR (§2.7)** → Task 14, with
+Task 8 deciding when E6 may run. **R the router (§2.9)** → Task 4. **O5's filesystem re-emission** →
+Task 6.
+
+Done-means 1–13 map as: 1→T4/T5/T6/T10 · 2→T2/T19 · 3→T2/T19 · 4→T7 · 5→T8/T20 · 6→T9 · 7→T12 · 8→T13 ·
+9→T14 · 10→T4/T10/T11 · 11→T19 · 12→T18 · 13→T2/T7/T10/T14/T19.
+
+**Authorship.** P5 authors and P1 writes, everywhere. `authorship.event_defaults` (Task 1) is the single
+place `subsystem` is set, it refuses any value but `"P5"`, and it refuses a type P5 does not author.
+Task 20's `test_subsystem_is_set_in_exactly_one_module` fails if a second route appears. Both types —
+`extraction` and **`OCR`** (MINOR 2) — are reserved §8.2 names already in P1's frozen table, so **P5
+registers nothing** (B5 rule 4) and Task 16 asserts it against P1's live `RESERVED_EVENT_TYPES`.
+
+**No invention.** There is **no module-level number anywhere in `extractors`** — Task 20 asserts it by
+walking every module's namespace — which discharges six Deferred rows at once: the numeric budget
+ceilings, the OCR DPI, the sensor-shaped aspect ratios, the no-usable-facts threshold, the archive size
+ceiling and any confidence cutoff. There is exactly **one** module-level regex, `shape._LINE_BREAK_HYPHEN`,
+which is P4 D8's named mechanical transform. No screen resolution, no language tag, no producer string
+and no marker file name exists in any module-level container.
+
+**Open questions this plan does not answer.** **OQ1** (no-usable-facts threshold) — `no_usable_facts` is
+a keyword-only parameter with no default and `ocr_policy` holds no number. **OQ2** (CSV and PDF listed
+twice) — both keep two `source_type` candidates, the decision records the candidates, and the operative
+one is §2.9's own document order rather than a preference of P5's. **OQ3** — closed as **I4** and guarded
+so it stays closed. **OQ4** (library and engine choices) — every reader is a keyword-only parameter with
+no default, in all six extractors. **OQ5** (spreadsheets and presentations at launch) — a reader
+returning `None` produces `unsupported`; nothing in P5 decides. **OQ6** (private reclassification
+deletes or gates) — P5 publishes no deletion (Task 18) and no gating vocabulary (Task 20). **OQ7** (P5
+flags vs P7 classifies) — one signal value, `POTENTIALLY_SENSITIVE`, and `handling_class` appears
+nowhere. **OQ8** (nested archive manifest) — `ArchiveManifest` has no nested field and `extract_archive`
+takes exactly one reader. **P5 OQ1 and OQ2 as this plan's header states them are CLOSED** and stay
+closed: `Location` is P4's structured record, and OCR's provider, config, languages, confidence and
+capped flag are on `extraction_runs`, asserted by Task 14.
+
+**The guard-token trap, handled.** Every guard in Tasks 18, 19 and 20 is **runtime introspection** of a
+module's namespace with dunder names skipped — which is where `__doc__` lives. This file's own prose
+quotes `python-docx`, Apple Vision and 200 DPI, all of them design quotations; a source-text guard would
+fail on the sentence it exists to enforce. It cost one real failure during construction
+(`test_the_provider_is_the_engines_and_p5_spells_none` matched `ocr.__doc__`) and the fix was to scope
+the guard, not to soften it.
+
+**Test filenames.** Checked against `tests/`, `tests/eval/` and `tests/p3/` as they stand: **no
+`test_p5_*.py` basename collides with any existing test file.** `tests/p5/conftest.py` shares a basename
+with three other conftests, which pytest special-cases — `tests/p3/conftest.py` already coexists with
+`tests/conftest.py` and `tests/eval/conftest.py` in a green suite. **`tests/p5/__init__.py` is therefore
+not created, and must not be**: under prepend import mode pytest inserts a conftest's own directory on
+`sys.path` only when that directory is not a package, and `tests/p5/conftest.py` and every test file
+import `p4_stub` as a top-level module.
+
+**Corrections made to earlier sections.** One, recorded rather than made silently: the Global Constraints
+bullet on O5 read *"P5 hashes nothing — `hashlib` does not appear in `src/extractors/`"*, which Task 2's
+own `shape.fingerprint` contradicts — it hashes a **configuration mapping** to produce P4's
+`config_fingerprint`, and P4 requires that. The rule was always about **file bytes**; the clause now says
+so, and Task 20's `test_p5_hashes_no_file_bytes` asserts the true form (`hashlib` bound in exactly one
+module, `fingerprint` taking a mapping and refusing a `Path`). Tasks 1–9 are otherwise untouched.
+
+**Placeholder scan.** No "TBD", no "add error handling", no "similar to Task N", no angle-bracket
+placeholder standing in for a real name. Every code step carries complete runnable code; every test step
+names the exact `pytest` command and the expected count.
+
+**Type consistency.** All eight producers take the same five keywords with the same spellings —
+`file_row`, `path`, `policy`, `now`, `context_window` — which is what makes Task 19's producer table a
+uniform call and what makes the one-shape claim checkable rather than argued. `find_structured_strings`
+is spelled identically in Tasks 7, 9, 10, 11 and 14; `source_type` is a required keyword in Tasks 10 and
+11 only, because those are the two halves of one family. `EXTRACTOR_NAME` is `text.structured` in both
+halves of E3 and is registered once in `runs.ANALYSIS_TIER_BY_EXTRACTOR`. `completeness` values are P4's
+eight everywhere and P5 publishes no ninth.
+
+**Verification.** The whole plan was assembled into a runnable tree and run: **272 passed, 0 failed**,
+across 21 source modules and 21 test files, against P1's real `database_agent` and P2's real
+`eval_harness`. Tasks 19, 20 and 21 — the three that could only pass if Tasks 1–18 were mutually
+consistent — passed on their first run.
+
+## Known gaps, carried deliberately
+
+- **No real format reader exists.** Every one of the ten is an injected callable with a deterministic
+  fixture implementation in tests. That is the plan's central design choice, not an omission: it is what
+  makes the six extractors independently buildable and what makes Task 19's one-shape claim provable.
+  The libraries a real deployment needs are named below and the *choice* is a NEEDS JOSEPH item.
+- **`filesystem.extract_filesystem` reads P3's row with `.get`**, so a caller must hand it a **mapping**,
+  not the raw `sqlite3.Row` that P1's `get_file` returns. Task 21 converts with `dict(row)`. Worth
+  either widening Task 6 to accept a Row or stating the mapping requirement on P5's read surface.
+- **`files.extraction_status_by_tier` still has no writer.** Task 5 computes the map as a pure function
+  and hands it to an injected writer because P1 publishes no setter and `files` is P1's table. Unchanged
+  from what Task 5's author reported; restated because it is still open.
+- **The sensitivity signal is keyed by batch position, not by `observation_key`.** P4's sink returns a
+  `run_id` and nothing else, so P5 has no P4-assigned handle for a *per located value* record and owns no
+  locator serialization to derive one. See *SPEC vs design* item 3.
+- **`text_units` uniqueness depends on the long-tail reader.** `DuplicateUnit` enforces G1's key at the
+  boundary, but a reader that omits `region` ordinals will hit it rather than silently losing a unit.
+  That is the intended failure direction and it is tested; it is still a contract the reader must meet.
+- **A `partial` outcome exists only for archives.** E3 reads a text file whole or not at all, and a
+  reader that raises is the caller's error to record: inventing a `failed` path around an injected
+  callable would be P5 deciding what a library failure means.
+- **No end-to-end orchestrator.** There is no `extract_file(path)` that routes, dispatches, writes the
+  run, appends the event and emits the envelope in one call. Each piece is built and tested; the driver
+  that sequences them is P13's or the caller's, and no contract assigns it to P5. Task 21 is the closest
+  thing and it sequences them by hand, deliberately, so the seams stay visible.
+
+## Dependencies a real deployment needs
+
+Named, not chosen. **This plan installs none of them** and adds no third-party runtime dependency: every
+reader below is a keyword-only constructor parameter with a deterministic fixture implementation in
+`tests/p5/`, so a real library drops in without changing an observation, a run or a text unit. The
+*choice* is a NEEDS JOSEPH item.
+
+| Format / capability | Reader parameter | Candidate library | Why the standard library cannot |
+|---|---|---|---|
+| Signature / MIME detection (§2.9) | `detect_format` | `python-magic` (libmagic), or macOS `UTType` via PyObjC | `mimetypes` maps **extensions**, which is the opposite of §2.9's rule; the stdlib ships no signature database |
+| PDF text, metadata, page structure (§2.2) | `read_pdf` | `pypdf`, `pdfminer.six`, or PDFKit via PyObjC | PDF is a compressed object graph with its own font and encoding model; nothing in the stdlib parses it |
+| PDF date strings (§2.2, P4 D8) | `read_pdf` → `iso_dates` | same as above | `D:20260717140322Z` is a PDF-specific syntax; `datetime` does not parse it and §3.10 forbids P5 parsing dates out of text |
+| DOCX paragraphs, headings, tables, headers/footers, relationships (§2.3) | `read_docx` | `python-docx` | DOCX is OOXML inside a ZIP; `zipfile` reaches the parts but the paragraph, style, table and relationship model is a large specification |
+| Markdown / HTML structure (§2.4) | `read_text_document` | `markdown-it-py`, `beautifulsoup4` | the stdlib reads the **bytes** but derives no headings; `html.parser` is a tokenizer, not a document model |
+| TOML / JSON / CSV (§2.4) | `read_text_document` | **stdlib** `tomllib`, `json`, `csv` | none needed — these three are genuinely stdlib |
+| YAML (§2.9) | `read_text_document` | `PyYAML` or `ruamel.yaml` | no YAML parser in the stdlib |
+| Jupyter notebooks (§2.4) | `read_text_document` | `nbformat` (or `json` plus the notebook schema) | the container is JSON; the **cell-type and metadata schema** is versioned and external |
+| Spreadsheets — XLSX/XLS/ODS/Numbers (§2.9) | `read_long_tail` | `openpyxl`, `xlrd`, `odfpy` | binary and OOXML workbook formats with formulas, shared strings and styles |
+| Presentations — PPTX/PPT/ODP (§2.9) | `read_long_tail` | `python-pptx`, `odfpy` | same; plus the speaker-notes and slide-layout model |
+| Email — EML / MBOX (§2.9) | `read_long_tail` | **stdlib** `email`, `mailbox` | none needed |
+| Email — MSG (§2.9) | `read_long_tail` | `extract-msg` | MSG is an OLE compound file, not RFC 5322 |
+| Calendar — ICS (§2.9) | `read_long_tail` | `icalendar` | RFC 5545 recurrence rules are not in the stdlib |
+| Contacts — VCF (§2.9) | `read_long_tail` | `vobject` | RFC 6350 vCard parsing is not in the stdlib |
+| Audio / video container metadata (§2.9) | `read_long_tail` | `mutagen`, or `ffprobe` via subprocess | container and codec parsing; duration, tags and embedded captions |
+| Speech-to-text transcripts (§2.9) | `read_long_tail` (`transcribe=True`) | deferred with the authorizing policy — see NEEDS JOSEPH | speech recognition is a model, not a parser |
+| Archive manifests — ZIP / TAR (§2.5) | `read_manifest` | **stdlib** `zipfile`, `tarfile` | none needed — both expose an entry list *without extracting*, which is exactly §2.5's requirement |
+| Archive manifests — 7z / RAR (§2.5) | `read_manifest` | `py7zr`, `rarfile` | no stdlib support |
+| Image dimensions, EXIF, colour (§2.6) | `read_image` | `Pillow`, or macOS `ImageIO` via PyObjC | the stdlib decodes no image format |
+| **HEIC** (§2.6, mandatory) | `read_image` | `pillow-heif`, or macOS `ImageIO` | HEIC is HEIF/HEVC; failing to configure it *"can silently exclude a meaningful portion of an Apple-centric corpus"* |
+| Perceptual hash (§2.6, G5) | `perceptual_hash` → `ImageRecord.perceptual_hash` | `imagehash`, or an ImageIO-based implementation | requires decoding and resampling the image |
+| OCR (§2.7, macOS-only for v1 per **S1**) | `ocr_engine` | **Apple Vision** via PyObjC — the one engine §2.7 names | text recognition is a model |
+| Structured-string patterns — DOI, citations, identifiers (§2.2) | `find_structured_strings` | none; the pattern set is **Deferred** and hand-authored | not a library problem — the patterns are content the design has not written |
+| Repository markers, camera-filename patterns, screen resolutions, sensor ratios | `recognize_markers`, `filename_pattern`, `dimension_signal` | none; all **Deferred** | same — these are lists the design has not written |
+
+## SPEC vs design — conflicts found
+
+Reported, not unilaterally resolved. Each says what this plan did in the meantime.
+
+**1. §2.4 and §2.6 ask E3 and E5 to emit fields O5 gives to P3.** P5's SPEC lists *"Filename ·
+extension"* in E3's emit block and §2.6 lists *"file size"* and *"content hash"* in E5's. But O5 and the
+SPEC's own *Contract out* say the opposite — *"The §1.2 basic filesystem record is P3's and P5 never
+recomputes it; P5 surfaces it as `source_type: filesystem` observations referencing P3's row, which is
+how a filename or parent-folder value becomes citable evidence."* All four values are §1.2 fields, and
+emitting them again would put one value in two homes and defeat §3.4's cache key.
+**This plan discharges all four through the `filesystem` run (Task 6) and emits none of them in E3 or
+E5**, with tests asserting their absence (Tasks 10 and 13). **The SPEC's two emit blocks should be
+amended to point at the filesystem run.** The requirement is met either way; the wording is not.
+
+**2. §2.6's stripped-EXIF formulation cannot be satisfied literally.** The SPEC says the record of a
+stripped-EXIF image is *"a `complete` image run that emitted no `metadata` observations."* But §2.6 also
+requires format, pixel dimensions and colour information, and P4's zone for all three is `metadata` — so
+a conforming E5 **always** emits metadata rows and the sentence can never be true.
+**This plan asserts the checkable form**: no EXIF-addressed observation, and **no `signal_tier` of any
+kind** on any row (Task 13). That is the substantive claim — *"No screenshot signal exists anywhere"* —
+and it is what the SPEC's own fixture line actually asks for. **The SPEC sentence should be restated as
+"no EXIF observation and no `signal_tier`."**
+
+**3. P4's sink gives P5 no handle for a per-located-value record.** `EvidenceSink.write` returns a
+`run_id`; `observation_key` is P4-assigned and P5 owns no locator serialization to derive one. So §2.9's
+sensitivity signal — which is *per located value*, and cannot ride on the observation (P4 rule 6 forbids
+an extractor-private field) or on the run (wrong granularity) — has nothing to key on.
+**This plan keys it on the observation's position in the batch the sink wrote atomically** (Task 11) and
+says so in the module docstring. **P4 should return the assigned `observation_key`s alongside the
+`run_id`**, at which point this table's key changes and nothing else does. This is a seam gap for P4,
+not a P5 preference.
+
+**4. §2.7's "nine persisted fields" is eight bullets.** §2.7's sentence lists *provider and version,
+languages, configuration, page or image reference, raw recognized text, locations or bounding boxes,
+confidence information, complete or capped* — eight items, nine only if *"provider and version"* counts
+as two. The SPEC's *"All nine have a home"* is right on the second reading.
+**This plan spells nine** (`PERSISTED_FIELDS`, Task 14) with provider and version separate, because they
+land on two different P4 columns. Worth a one-word clarification in the SPEC.
+
+**5. B7 asks P5's `stage_output` to carry "the version tuple"; P2 as built does not accept one.**
+`eval_harness.replay.StageResult` has five fields and no version tuple; `record_stage_output` takes
+`version_tuple_ref` from the **run** it is replaying, and `record_version_tuple` assembles six axes of
+which P5 owns exactly one (`extractor_versions`).
+**This plan publishes `extractor_versions()` — P5's axis — and leaves the tuple to P2** (Task 17), with a
+test that P2's `record_version_tuple` accepts it. **B7's wording should say "its axis of the version
+tuple."**
+
+**6. §2.5 requires E4 to store a file count and gives it no home.** P4 has no count field on an
+observation and a second observation carrying `"5"` would be a value P6 could rank.
+**This plan puts it on `run.coverage {units: "entries", processed, total}`** (Task 12), which is exactly
+the rule Task 7 already applied to §2.2's page count and which Task 7's own table flagged for report.
+Two SPEC fields, one rule; worth writing the rule down once in the SPEC rather than twice in tasks.
+
+**7. P1 publishes no writer for `files.extraction_status_by_tier`.** The column exists in `db.py`'s
+`FILES_DDL` and `invalidate_extraction_state` resets it to `'{}'`, but there is no setter and `files` is
+P1's table. Task 5 computes the map as a pure function and hands it to an injected writer. **Unchanged
+since Task 5 reported it; still a real gap in P1's published surface.**
+
+## NEEDS JOSEPH
+
+Manual input required. Each item states the question, the § that raises it, what the design does and does
+not say, the options, and a recommendation. **None of these is answered in code** — each is held by a
+keyword with no default or a caller-supplied strategy, with a guard in Task 20 that fails if someone
+answers it in an implementation instead of in a SPEC.
+
+**1. Which OCR engine, and is macOS-only acceptable for v1?**
+§2.7, **S1**. The design names **Apple Vision** and names no other provider anywhere; S1 reads that as
+"v1 ships OCR on macOS only." The plan holds `ocr_engine` as an injected callable and spells no provider
+name.
+*Options:* (a) Apple Vision only, macOS-only v1, as S1 says. (b) Apple Vision plus a cross-platform
+fallback (Tesseract / PaddleOCR) — but §2.7 names none and adding one is P5 authoring scope.
+(c) A cloud OCR API — which would make OCR a network call and collide with §8.4's local-first posture.
+**Recommendation: (a).** It is what the design says, and the plan's injected engine means (b) costs one
+new reader and zero changes to any record if you later decide otherwise.
+
+**2. Which OCR languages, and how is "where required" determined?**
+§2.7, SPEC *Deferred*. The design says *"appropriate language support including CJK where required"* and
+settles neither the list nor how "required" is decided. The plan holds `config` as a required keyword
+with no default and holds no language tag anywhere.
+*Options:* (a) A fixed list you write once (e.g. English + the CJK set your corpus needs).
+(b) Per-scan configuration the user sets. (c) Detect the language first — which needs a language
+detector §2.2 arguably prohibits in spirit (*"no global language-quality checks"*).
+**Recommendation: (a) as a P1 configuration default with (b) available**, and explicitly not (c).
+**This needs your input: which languages are in your corpus.**
+
+**3. What is the OCR rendering resolution?**
+§2.7 says *"a practical rendering resolution such as 200 DPI"* — *"such as"* makes 200 an example, not a
+value, so the plan holds no number. **A real deployment needs one.**
+**Recommendation: start at 200 DPI** (the design's own example) and treat it as a P1 ceiling you can
+raise; it interacts directly with item 4's page cap.
+
+**4. What are the four §8.6 ceiling values?**
+`ocr.max_pages_per_file`, `ocr.max_time_per_file`, `ocr.max_time_per_scan`,
+`image.max_analysis_ops_per_scan`. P1 publishes the **keys** (G4) and holds no defaults; §8.6 names the
+knobs and no numbers. The SPEC's own worked example implies a page cap exists (*"89 scanned PDFs deferred
+after the OCR limit"*, and a 400-page book that stops).
+**Recommendation:** pick them empirically against your real corpus once one real OCR engine is wired —
+they are the only P5 numbers that change user-visible behaviour, and guessing them now would be the
+invented value this plan spent twenty tasks avoiding.
+
+**5. What does OCR confidence mean downstream?**
+§2.7 requires confidence to be *persisted*; nothing in the design says what a low confidence does. The
+plan stores the engine's value on the observation and acts on it nowhere.
+*Options:* (a) P6 weighs it in §3.7's scoring. (b) A threshold below which an OCR observation is not
+usable evidence. (c) Purely informational, for the review surface.
+**Recommendation: (a)**, and explicitly not (b) — a threshold here would be a second no-usable-facts
+rule, and OQ1 already owns that question.
+
+**6. Does the initial release ship spreadsheet and presentation extraction, or mark them `unsupported`?**
+**SPEC OQ5.** §2.4 explicitly permits either; §2.9 gives both full field lists. The plan holds it open:
+supply a reader and the format extracts, supply none and the run is `unsupported` with zero observations.
+*Options:* (a) Ship both at launch (`openpyxl` + `python-pptx`). (b) Ship `unsupported` and add them
+later — legitimate under §2.4 and visible to the user in §8.6's count line. (c) Ship spreadsheets only.
+**Recommendation: (b) for v1, then (a).** The plan makes the upgrade a reader injection with no schema
+change, and §2.4 was written to permit exactly this.
+
+**7. Is speech-to-text in scope at all, and does a transcript survive revocation of the policy that
+authorized it?**
+§2.9 and **SPEC OQ6**. §2.9 authorizes transcripts *only* under an explicit privacy and compute policy;
+§8.8 makes the *authorization* plan-versioned while the *evidence* is shared; the design never says what
+happens when the policy is revoked. The plan requires an injected `transcription_authorized` predicate
+with no default and refuses a transcript that arrives without it.
+*Options:* (a) Out of scope for v1 — audio/video stops at container metadata. (b) In scope, and a
+transcript survives revocation as evidence. (c) In scope, and revocation deletes the transcript and its
+text units.
+**Recommendation: (a) for v1.** It needs a model, a consent flow and an answer to (b)/(c), and §2.9 makes
+it conditional precisely so it can be deferred. **This needs your decision.**
+
+**8. Does reclassifying a file as private delete P5's stored observations, or only gate them?**
+**SPEC OQ6**, §8.4, §8.7. §8.4 says the user should be able to review and **delete** local derived data;
+§8.7 lists marking a file private as a correction. The same question applies to the `text_units` a run
+produced, which are the bulk of the derived text (G1). The plan publishes **no deletion of any kind** and
+no gating vocabulary.
+*Options:* (a) Gate — the rows stay, P7's handling class hides them. (b) Delete — irreversible, and
+breaks §8.2's *"a user inspecting a placement must still be able to reach the origin of the conclusion."*
+(c) Gate by default with an explicit user-initiated delete.
+**Recommendation: (c).** But this is a privacy commitment, not an engineering call, and §8.4 gives it to
+P7 — **it needs your ratification before P7 is planned.**
+
+**9. Does P5 flag sensitivity, or assign a handling class?**
+**SPEC OQ7.** §2.9 requires email addresses, message content and VCF output be *treated as* potentially
+sensitive at extraction; §8.4 puts handling-class assignment in P7. The boundary is unstated. The plan
+emits **one** signal value and assigns no class.
+**Recommendation: P5 flags, P7 classifies** — which is what this plan implements and what §8.4's
+allocation implies. Confirm it so OQ7 can close.
+
+**10. Routing precedence for the two formats §2.9 lists twice.**
+**SPEC OQ2.** CSV is under both *Spreadsheets* and *Code/structured data*; PDF is under both *Text
+documents* and *Presentations ("PDF slide decks")*. Each pairing has a **different field list** and the
+design gives no tiebreak. The plan records **both** candidates on the routing decision and operates on
+§2.9's own document order (`spreadsheet` for CSV, `text_document` for PDF) rather than a preference.
+*Options:* (a) Ratify document order as the rule. (b) Content-sniff — a PDF with slide-shaped pages
+routes as a presentation. (c) Run both extractors and let the two `extraction_runs` rows coexist, which
+B1's one-row-per-(file × extractor) design already permits.
+**Recommendation: (a) for v1**, and note that (c) is available with no schema change if the field lists
+turn out to matter.
+
+**11. Which P2 outcome does an `unreadable` or `metadata_only` run report?**
+§8.5 / B7, and Task 17's mapping table. Six of P4's eight `completeness` values map to a P2 outcome
+unambiguously. Two do not: both produce **real metadata-level observations** while leaving §8.5's
+extraction question — *"did the expected text, metadata, table values, OCR text, or image facts
+appear?"* — unanswered.
+*Options:* (a) `abstained` — P5 declined to assert, which is what this plan implements.
+(b) `produced` — rows exist, so measure them.
+**Recommendation: (a).** Measuring an indexed-but-unreadable PSD as *produced* would let a corpus of
+unreadable files look like a successful extraction run, which is §8.6's exact failure mode.
+
+**12. What is the "no usable facts" threshold?**
+**SPEC OQ1.** The owner and surface are settled — P6 publishes `no_usable_facts(file_id, content_hash)`
+(M11) and P5 calls it before any targeted OCR on a broken-text-layer PDF. The **threshold behind the
+verdict** is a deferred configuration value the design never names. It is P6's to hold, but it gates a
+P5 behaviour, so it needs an answer before targeted OCR is real.
+
+**13. May a nested archive's manifest be read one level down, in memory?**
+**SPEC OQ8.** §2.5 lists nested archives among those marked *unreadable or partially inspected*, but
+reading an inner manifest **without unpacking** is not the same act as extraction, and the design does
+not distinguish them. The plan reads one manifest and recurses never; a nested archive is `partial`.
+*Options:* (a) Never — as implemented. (b) One level, in memory, never to disk. (c) N levels with a
+configured depth ceiling — which would be a new §8.6 knob the design does not have.
+**Recommendation: (a) for v1.** `submission.zip` containing a nested archive still yields its outer
+manifest, which is the evidence §2.5's example is actually about.
+
+**14. The hand-authored content P5 consumes but must not invent.**
+Five Deferred lists, all of them content rather than code, all held as caller-supplied strategies:
+the **tool-generated producer/creator strings** (§2.2 gives three examples), the **known screen
+resolutions** and **sensor-shaped aspect ratios** (§2.6), the **camera-filename patterns** (§2.6's
+example is `IMG_4821.png`), the **repository markers and package manifests beyond §1.1's four**, and the
+**citation and identifier pattern sets** (§2.2 names DOI and names the rest as classes). None blocks the
+build — every extractor runs with an empty strategy — and each one that stays empty is a class of
+evidence the product does not see. **These are the "domain stuff" you asked to be told about.**
