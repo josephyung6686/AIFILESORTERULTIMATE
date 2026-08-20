@@ -27,8 +27,6 @@ COLUMNS: tuple[tuple[str, str], ...] = (
     ("match_kind", "match_kind"),
     ("tail_required", "tail"),
     ("case_sensitive", "case sensitive"),
-    ("capture", "capture group"),
-    ("pattern_label", "pattern label"),
     ("role", "role"),
     ("pattern_label", "convention"),
     ("class", "class"),
@@ -119,6 +117,7 @@ def render(doc: dict) -> str:
              ("evaluation_order", "evaluation order"),
              ("return_value_contract", "return value"),
              ("kind_vocabulary", "kind vocabulary"),
+             ("sourcing_note", "sourcing"),
              ("boundary_rule", "boundary rule"))
     for key, label in front:
         if key in doc:
@@ -174,10 +173,15 @@ def render(doc: dict) -> str:
 
     if doc.get("sources"):
         out += ["## Sources", ""]
+        marks = {"fetched": "read", "fetched_by_teammate": "read (teammate)",
+                 "search_summary": "SEARCH SUMMARY — not opened",
+                 "unreachable": "UNREACHABLE", "internal": "internal"}
         for src in doc["sources"]:
             note = f" — {src['note']}" if src.get("note") else ""
-            out.append(f"- [{src['title']}]({src['url']}) — retrieved "
-                       f"{src['retrieved']}{note}")
+            when = ("retrieved " + src["retrieved"]) if src.get("retrieved") \
+                else ("consulted " + src.get("consulted", "?"))
+            tag = marks.get(src.get("verification"), "?")
+            out.append(f"- [{src['title']}]({src['url']}) — **[{tag}]** {when}{note}")
         out.append("")
 
     out += ["---", "",

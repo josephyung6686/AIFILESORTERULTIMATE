@@ -59,6 +59,7 @@ ACCEPT = [
     ("GX010042.MP4", "fnp-gopro-chaptered", "camera_file_system"),
     # course codes must NOT match anything -- the ref-dcf-generic refusal
     ("MATH2010.png", None, None), ("ECON1001.png", None, None),
+    ("FALL2024.png", None, None), ("NOTE2024.jpg", None, None),
     ("CHEM1220.jpg", None, None), ("BUSIB4300.pdf", None, None),
     ("Screenshot of the enrollment error.png", None, None),
     ("IMG_final_v3.jpg", None, None), ("Wash U.docx", None, None),

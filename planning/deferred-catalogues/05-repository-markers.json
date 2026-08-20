@@ -28,38 +28,44 @@
     {
       "title": "npm — package.json documentation",
       "url": "https://docs.npmjs.com/cli/v10/configuring-npm/package-json",
-      "retrieved": "2026-08-20",
-      "note": "Vendor definition of the Node manifest."
+      "note": "Vendor definition of the Node manifest.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Python Packaging — pyproject.toml specification",
       "url": "https://packaging.python.org/en/latest/specifications/pyproject-toml/",
-      "retrieved": "2026-08-20",
-      "note": "PEP 518/621 project manifest — the basis for `unc-pyproject-as-exclusion`."
+      "note": "PEP 518/621 project manifest — the basis for `unc-pyproject-as-exclusion`.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Rust — The Cargo Book, the manifest format",
       "url": "https://doc.rust-lang.org/cargo/reference/manifest.html",
-      "retrieved": "2026-08-20",
-      "note": "Vendor definition of `Cargo.toml`."
+      "note": "Vendor definition of `Cargo.toml`.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Go — Go Modules Reference, go.mod files",
       "url": "https://go.dev/ref/mod#go-mod-file",
-      "retrieved": "2026-08-20",
-      "note": "Vendor definition of `go.mod`."
+      "note": "Vendor definition of `go.mod`.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Jupyter — Notebook format (nbformat) specification",
       "url": "https://nbformat.readthedocs.io/en/latest/format_description.html",
-      "retrieved": "2026-08-20",
-      "note": "Defines the top-level keys `nbformat`, `nbformat_minor`, `metadata` (`kernelspec`, `language_info`) and `cells` — the five notebook-metadata rows."
+      "note": "Defines the top-level keys `nbformat`, `nbformat_minor`, `metadata` (`kernelspec`, `language_info`) and `cells` — the five notebook-metadata rows.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Git — gitrepository-layout",
       "url": "https://git-scm.com/docs/gitrepository-layout",
-      "retrieved": "2026-08-20",
-      "note": "Defines the `.git` directory whose promotion to an exclusion root is refused."
+      "note": "Defines the `.git` directory whose promotion to an exclusion root is refused.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     }
   ],
   "injection": "Two different injection points, matching the two owners.\n\n**P3** receives `p3_exclusion_roots` as configuration on the scan, alongside §1.1's eleven literal directory names. It is data P3 reads, never a constant in P3's source.\n\n**P5** never receives `p5_evidence_markers` at all. The markers reach P5 as *reader output*: a caller-supplied `read_text_document(path) -> TextDocument` returns `markers=(StructuralMarker(kind=…, value=…), …)`, and E3 places them at `zone = metadata` with the kind as the field label. For archives, E4 takes a caller-supplied `recognize_markers(member_paths)`. Either way the list lives in the caller, and P5 PLAN Task 20's runtime-introspection guard asserts that no marker file name appears in any module-level container inside `src/extractors/`.",
@@ -1800,5 +1806,6 @@
       "example_true": "nbformat",
       "example_false": "cells"
     }
-  ]
+  ],
+  "sourcing_note": "**How to read the `verification` column, because it is not decoration.** Only five pages were opened and read directly while authoring these catalogues; three more were opened by the catalogues-finish agent, who supplied verbatim quotes. Everything else is marked `search_summary`: the fact came from a web-search result summary and the page itself was not retrieved. Those rows say `consulted` rather than `retrieved`, because claiming a retrieval date for a page nobody opened is exactly the kind of unearned confidence these catalogues exist to keep out of the product. A `search_summary` source is not worthless — it is how most of the vendor-prefix and manifest-name knowledge here was gathered — but it must not be quoted as if read, and a row that would be harmful if wrong should be upgraded before launch."
 }

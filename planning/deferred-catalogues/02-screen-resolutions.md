@@ -7,6 +7,7 @@
 - **consumer**: the caller-supplied `dimension_signal(width, height) -> str | None` that P5's `extract_image` requires; a match returns the literal `"exact display resolution"`, which P5 maps to `signal_tier: 3`
 - **match_field**: the image's pixel dimensions as an **unordered** pair. Every `match` is written in the conventional landscape form `longer`x`shorter`, and `also_written` gives the portrait form; the matcher compares `(max(w,h), min(w,h))` so both orientations of one panel are one row.
 - **normalization for matching**: Integer comparison on the sorted pair. No tolerance, no rounding, no nearest-neighbour: "exact display resolutions" is §2.6's own word. `1919x1080` matches nothing.
+- **sourcing**: **How to read the `verification` column, because it is not decoration.** Only five pages were opened and read directly while authoring these catalogues; three more were opened by the catalogues-finish agent, who supplied verbatim quotes. Everything else is marked `search_summary`: the fact came from a web-search result summary and the page itself was not retrieved. Those rows say `consulted` rather than `retrieved`, because claiming a retrieval date for a page nobody opened is exactly the kind of unearned confidence these catalogues exist to keep out of the product. A `search_summary` source is not worthless — it is how most of the vendor-prefix and manifest-name knowledge here was gathered — but it must not be quoted as if read, and a row that would be harmful if wrong should be upgraded before launch.
 
 ## Design basis
 
@@ -135,13 +136,13 @@ v1 covers four families: VESA/common monitor standards, Apple Mac panels, iOS de
 
 ## Sources
 
-- [Wikipedia — Display resolution standards](https://en.wikipedia.org/wiki/Display_resolution_standards) — retrieved 2026-08-20 — Named standards and their exact pixel dimensions: VGA 640×480 4:3, XGA 1024×768 4:3, WXGA 1366×768, SXGA 1280×1024 5:4, WUXGA 1920×1200 16:10, HD 1280×720, FHD 1920×1080, QHD 2560×1440, WQXGA 2560×1600, 4K UHD 3840×2160, 5K 5120×2880, 8K UHD 7680×4320.
-- [Apple — iOS Device Compatibility Reference, Displays](https://developer.apple.com/library/archive/documentation/DeviceInformation/Reference/iOSDeviceCompatibility/Displays/Displays.html) — retrieved 2026-08-20 — Apple's own device/native-resolution table through iPhone X: 640×1136, 750×1334, 1080×1920, 1125×2436, 1536×2048, 1668×2224, 2048×2732.
-- [Apple — iPhone 15 Pro Max tech specs](https://support.apple.com/en-us/111828) — retrieved 2026-08-20 — 2796-by-1290 at 460 ppi.
-- [Apple — iPhone 16 Pro Max tech specs](https://support.apple.com/en-us/121032) — retrieved 2026-08-20 — Confirms the 15/16 Pro Max panel pair.
-- [Apple — MacBook Pro 14- and 16-inch tech specs](https://www.apple.com/macbook-pro-14-and-16/specs/) — retrieved 2026-08-20 — 3024-by-1964 (14-inch) and 3456-by-2234 (16-inch) native, both at 254 ppi.
-- [VESA / Club 3D resolutions guide](https://www.club-3d.com/en/technology/24/resolutions_guide/) — retrieved 2026-08-20 — Ultrawide and DCI entries (2560×1080, 3440×1440, 3840×1600, 5120×1440, 4096×2160).
-- [VESA — Display Monitor Timing Standard v1.13](https://glenwing.github.io/docs/VESA-DMT-1.13.pdf) — retrieved 2026-08-20 — The standards body's own timing table behind the classic monitor modes.
+- [Wikipedia — Display resolution standards](https://en.wikipedia.org/wiki/Display_resolution_standards) — **[read]** retrieved 2026-08-20 — Named standards and their exact pixel dimensions: VGA 640×480 4:3, XGA 1024×768 4:3, WXGA 1366×768, SXGA 1280×1024 5:4, WUXGA 1920×1200 16:10, HD 1280×720, FHD 1920×1080, QHD 2560×1440, WQXGA 2560×1600, 4K UHD 3840×2160, 5K 5120×2880, 8K UHD 7680×4320.
+- [Apple — iOS Device Compatibility Reference, Displays](https://developer.apple.com/library/archive/documentation/DeviceInformation/Reference/iOSDeviceCompatibility/Displays/Displays.html) — **[read]** retrieved 2026-08-20 — Apple's own device/native-resolution table through iPhone X: 640×1136, 750×1334, 1080×1920, 1125×2436, 1536×2048, 1668×2224, 2048×2732.
+- [Apple — iPhone 15 Pro Max tech specs](https://support.apple.com/en-us/111828) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — 2796-by-1290 at 460 ppi.
+- [Apple — iPhone 16 Pro Max tech specs](https://support.apple.com/en-us/121032) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Confirms the 15/16 Pro Max panel pair.
+- [Apple — MacBook Pro 14- and 16-inch tech specs](https://www.apple.com/macbook-pro-14-and-16/specs/) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — 3024-by-1964 (14-inch) and 3456-by-2234 (16-inch) native, both at 254 ppi.
+- [VESA / Club 3D resolutions guide](https://www.club-3d.com/en/technology/24/resolutions_guide/) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Ultrawide and DCI entries (2560×1080, 3440×1440, 3840×1600, 5120×1440, 4096×2160).
+- [VESA — Display Monitor Timing Standard v1.13](https://glenwing.github.io/docs/VESA-DMT-1.13.pdf) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — The standards body's own timing table behind the classic monitor modes.
 
 ---
 

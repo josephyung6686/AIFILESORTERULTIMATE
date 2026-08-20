@@ -26,32 +26,37 @@
     {
       "title": "Apple — iOS Device Compatibility Reference, Cameras",
       "url": "https://developer.apple.com/library/archive/documentation/DeviceInformation/Reference/iOSDeviceCompatibility/Cameras/Cameras.html",
-      "retrieved": "2026-08-20",
-      "note": "Apple's own per-device still-image capture dimensions — the source for the 4:3 iPhone output sizes."
+      "note": "Apple's own per-device still-image capture dimensions — the source for the 4:3 iPhone output sizes.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Apple Developer Forums — 24MP capture for iPhone 15 / 15 Pro",
       "url": "https://developer.apple.com/forums/thread/738418",
-      "retrieved": "2026-08-20",
-      "note": "Confirms iPhone 15 Pro supported photo dimensions `4032x3024` (12 MP) and `8064x6048` (48 MP), both 4:3."
+      "note": "Confirms iPhone 15 Pro supported photo dimensions `4032x3024` (12 MP) and `8064x6048` (48 MP), both 4:3.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Photography Life — Aspect Ratio",
       "url": "https://photographylife.com/aspect-ratio",
-      "retrieved": "2026-08-20",
-      "note": "\"With full frame and APS-C cameras, this aspect ratio is 3:2\"; \"4:3 is used by medium format, Micro Four Thirds, most smartphones and some point-and-shoot cameras\"; 16:9 is \"the most common video format today and not a common format in photography, but some cameras provide it as a cropping option.\""
+      "note": "\"With full frame and APS-C cameras, this aspect ratio is 3:2\"; \"4:3 is used by medium format, Micro Four Thirds, most smartphones and some point-and-shoot cameras\"; 16:9 is \"the most common video format today and not a common format in photography, but some cameras provide it as a cropping option.\"",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Canon — How to choose the right aspect ratios in photography",
       "url": "https://en.canon-cna.com/get-inspired/tips-and-techniques/how-to-choose-the-right-aspect-ratios-in-photography/",
-      "retrieved": "2026-08-20",
-      "note": "Vendor confirmation of 3:2, 4:3, 16:9 and 1:1 as the in-camera capture ratios Canon bodies offer."
+      "note": "Vendor confirmation of 3:2, 4:3, 16:9 and 1:1 as the in-camera capture ratios Canon bodies offer.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Wikipedia — Panasonic Lumix DC-GH5S",
       "url": "https://en.wikipedia.org/wiki/Panasonic_Lumix_DC-GH5S",
-      "retrieved": "2026-08-20",
-      "note": "Micro Four Thirds body; 17.3 × 13 mm sensor is 4:3 by construction."
+      "note": "Micro Four Thirds body; 17.3 × 13 mm sensor is 4:3 by construction.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     }
   ],
   "injection": "Same injection point as catalogue 02, and the same prohibition: `make_dimension_signal(resolutions, ratios)` is built by P5's **caller** and passed as the required `dimension_signal` keyword. P5 PLAN's Global Constraints forbid any module-level aspect ratio inside `src/extractors/` — \"no module-level gazetteer, regex, screen resolution, producer string, or language tag\" — and Task 20 asserts it by runtime introspection, so nothing in this file may become an `extractors` constant.",
@@ -368,5 +373,6 @@
       "example_true": "1919x1080",
       "example_false": "1920x1080"
     }
-  ]
+  ],
+  "sourcing_note": "**How to read the `verification` column, because it is not decoration.** Only five pages were opened and read directly while authoring these catalogues; three more were opened by the catalogues-finish agent, who supplied verbatim quotes. Everything else is marked `search_summary`: the fact came from a web-search result summary and the page itself was not retrieved. Those rows say `consulted` rather than `retrieved`, because claiming a retrieval date for a page nobody opened is exactly the kind of unearned confidence these catalogues exist to keep out of the product. A `search_summary` source is not worthless — it is how most of the vendor-prefix and manifest-name knowledge here was gathered — but it must not be quoted as if read, and a row that would be harmful if wrong should be upgraded before launch."
 }

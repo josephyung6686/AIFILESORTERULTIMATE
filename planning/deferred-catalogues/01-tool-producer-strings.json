@@ -75,49 +75,57 @@
       "title": "Skia — SkPDF::Metadata Struct Reference (fProducer default)",
       "url": "https://api.skia.org/structSkPDF_1_1Metadata.html",
       "retrieved": "2026-08-20",
-      "note": "Confirms the producer default is the literal `\"Skia/PDF m\"` followed by the milestone number — the basis for the `Skia/PDF` prefix entry that covers Chrome print-to-PDF and Google Docs PDF export."
+      "note": "Confirms the producer default is the literal `\"Skia/PDF m\"` followed by the milestone number — the basis for the `Skia/PDF` prefix entry that covers Chrome print-to-PDF and Google Docs PDF export.",
+      "verification": "fetched"
     },
     {
       "title": "Microsoft Q&A — Office Print to PDF Metadata (exiftool output)",
       "url": "https://learn.microsoft.com/en-my/answers/questions/5291383/office-print-to-pdf-metadata",
       "retrieved": "2026-08-20",
-      "note": "Shows a real macOS Word→PDF file with `Producer: macOS Version 11.7.10 (Build 20G1427) Quartz PDFContext` and `Creator: Word` — the basis for the `Quartz PDFContext` regex and the bare `Word` creator entry."
+      "note": "Shows a real macOS Word→PDF file with `Producer: macOS Version 11.7.10 (Build 20G1427) Quartz PDFContext` and `Creator: Word` — the basis for the `Quartz PDFContext` regex and the bare `Word` creator entry.",
+      "verification": "fetched"
     },
     {
       "title": "ExifTool — PDF Tags",
       "url": "https://exiftool.sourceforge.net/TagNames/PDF.html",
       "retrieved": "2026-08-20",
-      "note": "Authoritative spelling of the PDF Info-dictionary slot names (`Producer`, `Creator`, `Author`, `Title`, `Subject`, `Keywords`) used in `property_names`."
+      "note": "Authoritative spelling of the PDF Info-dictionary slot names (`Producer`, `Creator`, `Author`, `Title`, `Subject`, `Keywords`) used in `property_names`.",
+      "verification": "fetched"
     },
     {
       "title": "ExifTool — EXIF Tags (Software 0x0131, ProcessingSoftware 0x000b, HostComputer 0x013c)",
       "url": "https://exiftool.org/TagNames/EXIF.html",
-      "retrieved": "2026-08-20",
-      "note": "Slot names for the EXIF half of `property_names`."
+      "note": "Slot names for the EXIF half of `property_names`.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "RFC 5545 §3.7.3 — PRODID",
       "url": "https://www.rfc-editor.org/rfc/rfc5545#section-3.7.3",
-      "retrieved": "2026-08-20",
-      "note": "iCalendar's `PRODID` is defined as identifying the product that created the object — a tool slot by specification, which is why it is a discount target."
+      "note": "iCalendar's `PRODID` is defined as identifying the product that created the object — a tool slot by specification, which is why it is a discount target.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Kozea/WeasyPrint issue #2118 — Allow suppressing the Producer metadata",
       "url": "https://github.com/Kozea/WeasyPrint/issues/2118",
-      "retrieved": "2026-08-20",
-      "note": "Confirms WeasyPrint stamps its own name and version into Producer."
+      "note": "Confirms WeasyPrint stamps its own name and version into Producer.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "wkhtmltopdf issue #2000 — meta data for author, title, subject, generator/creator/producer",
       "url": "https://github.com/wkhtmltopdf/wkhtmltopdf/issues/2000",
-      "retrieved": "2026-08-20",
-      "note": "Confirms wkhtmltopdf writes generator/creator/producer metadata and that the Qt backend surfaces in Producer."
+      "note": "Confirms wkhtmltopdf writes generator/creator/producer metadata and that the Qt backend surfaces in Producer.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Wikipedia — Adobe Distiller",
       "url": "https://en.wikipedia.org/wiki/Adobe_Distiller",
-      "retrieved": "2026-08-20",
-      "note": "Background for the `Acrobat Distiller` producer family."
+      "note": "Background for the `Acrobat Distiller` producer family.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     }
   ],
   "injection": "P6 receives this list as data at construction — `FactResolver(..., tool_producer_strings=load('01-tool-producer-strings.json'))` or the P1-namespaced configuration object equivalent. It is **not** imported as a module-level constant, and it is never imported anywhere under `src/extractors/`: P5 emits the producer value verbatim with no flag (M4), and Task 20's runtime-introspection guard fails if any producer string appears in an `extractors` module namespace.",
@@ -1530,5 +1538,6 @@
       "example_true": "Ver.1.10",
       "example_false": "Version 2 of the proposal"
     }
-  ]
+  ],
+  "sourcing_note": "**How to read the `verification` column, because it is not decoration.** Only five pages were opened and read directly while authoring these catalogues; three more were opened by the catalogues-finish agent, who supplied verbatim quotes. Everything else is marked `search_summary`: the fact came from a web-search result summary and the page itself was not retrieved. Those rows say `consulted` rather than `retrieved`, because claiming a retrieval date for a page nobody opened is exactly the kind of unearned confidence these catalogues exist to keep out of the product. A `search_summary` source is not worthless — it is how most of the vendor-prefix and manifest-name knowledge here was gathered — but it must not be quoted as if read, and a row that would be harmful if wrong should be upgraded before launch."
 }

@@ -7,6 +7,7 @@
 - **consumer**: the caller-supplied `dimension_signal(width, height) -> str | None` that P5's `extract_image` requires; a match returns the literal `"sensor-shaped dimensions"`, which P5 maps to `signal_tier: 2`
 - **match_field**: the image's pixel dimensions reduced to lowest terms as `longer:shorter`. `4032x3024` reduces to `4:3`; `3024x4032` reduces to the same thing, because the pair is unordered.
 - **normalization for matching**: Reduce `(max(w,h), min(w,h))` by their GCD and compare the resulting `a:b` string exactly. If no exact reduction matches, fall back to a numeric comparison: a ratio matches when `abs(w/h - target) / target <= tolerance`. Both steps are needed — most sensors reduce exactly, but a few real sensor sizes (Pixel-class `4080x3072`) are 0.4 % off nominal and would otherwise be missed.
+- **sourcing**: **How to read the `verification` column, because it is not decoration.** Only five pages were opened and read directly while authoring these catalogues; three more were opened by the catalogues-finish agent, who supplied verbatim quotes. Everything else is marked `search_summary`: the fact came from a web-search result summary and the page itself was not retrieved. Those rows say `consulted` rather than `retrieved`, because claiming a retrieval date for a page nobody opened is exactly the kind of unearned confidence these catalogues exist to keep out of the product. A `search_summary` source is not worthless — it is how most of the vendor-prefix and manifest-name knowledge here was gathered — but it must not be quoted as if read, and a row that would be harmful if wrong should be upgraded before launch.
 
 ## Design basis
 
@@ -90,11 +91,11 @@ Five ratios, and that is the whole contract. Every consumer camera in wide use p
 
 ## Sources
 
-- [Apple — iOS Device Compatibility Reference, Cameras](https://developer.apple.com/library/archive/documentation/DeviceInformation/Reference/iOSDeviceCompatibility/Cameras/Cameras.html) — retrieved 2026-08-20 — Apple's own per-device still-image capture dimensions — the source for the 4:3 iPhone output sizes.
-- [Apple Developer Forums — 24MP capture for iPhone 15 / 15 Pro](https://developer.apple.com/forums/thread/738418) — retrieved 2026-08-20 — Confirms iPhone 15 Pro supported photo dimensions `4032x3024` (12 MP) and `8064x6048` (48 MP), both 4:3.
-- [Photography Life — Aspect Ratio](https://photographylife.com/aspect-ratio) — retrieved 2026-08-20 — "With full frame and APS-C cameras, this aspect ratio is 3:2"; "4:3 is used by medium format, Micro Four Thirds, most smartphones and some point-and-shoot cameras"; 16:9 is "the most common video format today and not a common format in photography, but some cameras provide it as a cropping option."
-- [Canon — How to choose the right aspect ratios in photography](https://en.canon-cna.com/get-inspired/tips-and-techniques/how-to-choose-the-right-aspect-ratios-in-photography/) — retrieved 2026-08-20 — Vendor confirmation of 3:2, 4:3, 16:9 and 1:1 as the in-camera capture ratios Canon bodies offer.
-- [Wikipedia — Panasonic Lumix DC-GH5S](https://en.wikipedia.org/wiki/Panasonic_Lumix_DC-GH5S) — retrieved 2026-08-20 — Micro Four Thirds body; 17.3 × 13 mm sensor is 4:3 by construction.
+- [Apple — iOS Device Compatibility Reference, Cameras](https://developer.apple.com/library/archive/documentation/DeviceInformation/Reference/iOSDeviceCompatibility/Cameras/Cameras.html) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Apple's own per-device still-image capture dimensions — the source for the 4:3 iPhone output sizes.
+- [Apple Developer Forums — 24MP capture for iPhone 15 / 15 Pro](https://developer.apple.com/forums/thread/738418) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Confirms iPhone 15 Pro supported photo dimensions `4032x3024` (12 MP) and `8064x6048` (48 MP), both 4:3.
+- [Photography Life — Aspect Ratio](https://photographylife.com/aspect-ratio) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — "With full frame and APS-C cameras, this aspect ratio is 3:2"; "4:3 is used by medium format, Micro Four Thirds, most smartphones and some point-and-shoot cameras"; 16:9 is "the most common video format today and not a common format in photography, but some cameras provide it as a cropping option."
+- [Canon — How to choose the right aspect ratios in photography](https://en.canon-cna.com/get-inspired/tips-and-techniques/how-to-choose-the-right-aspect-ratios-in-photography/) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Vendor confirmation of 3:2, 4:3, 16:9 and 1:1 as the in-camera capture ratios Canon bodies offer.
+- [Wikipedia — Panasonic Lumix DC-GH5S](https://en.wikipedia.org/wiki/Panasonic_Lumix_DC-GH5S) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Micro Four Thirds body; 17.3 × 13 mm sensor is 4:3 by construction.
 
 ---
 

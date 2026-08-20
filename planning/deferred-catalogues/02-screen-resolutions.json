@@ -29,43 +29,50 @@
       "title": "Wikipedia — Display resolution standards",
       "url": "https://en.wikipedia.org/wiki/Display_resolution_standards",
       "retrieved": "2026-08-20",
-      "note": "Named standards and their exact pixel dimensions: VGA 640×480 4:3, XGA 1024×768 4:3, WXGA 1366×768, SXGA 1280×1024 5:4, WUXGA 1920×1200 16:10, HD 1280×720, FHD 1920×1080, QHD 2560×1440, WQXGA 2560×1600, 4K UHD 3840×2160, 5K 5120×2880, 8K UHD 7680×4320."
+      "note": "Named standards and their exact pixel dimensions: VGA 640×480 4:3, XGA 1024×768 4:3, WXGA 1366×768, SXGA 1280×1024 5:4, WUXGA 1920×1200 16:10, HD 1280×720, FHD 1920×1080, QHD 2560×1440, WQXGA 2560×1600, 4K UHD 3840×2160, 5K 5120×2880, 8K UHD 7680×4320.",
+      "verification": "fetched"
     },
     {
       "title": "Apple — iOS Device Compatibility Reference, Displays",
       "url": "https://developer.apple.com/library/archive/documentation/DeviceInformation/Reference/iOSDeviceCompatibility/Displays/Displays.html",
       "retrieved": "2026-08-20",
-      "note": "Apple's own device/native-resolution table through iPhone X: 640×1136, 750×1334, 1080×1920, 1125×2436, 1536×2048, 1668×2224, 2048×2732."
+      "note": "Apple's own device/native-resolution table through iPhone X: 640×1136, 750×1334, 1080×1920, 1125×2436, 1536×2048, 1668×2224, 2048×2732.",
+      "verification": "fetched"
     },
     {
       "title": "Apple — iPhone 15 Pro Max tech specs",
       "url": "https://support.apple.com/en-us/111828",
-      "retrieved": "2026-08-20",
-      "note": "2796-by-1290 at 460 ppi."
+      "note": "2796-by-1290 at 460 ppi.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Apple — iPhone 16 Pro Max tech specs",
       "url": "https://support.apple.com/en-us/121032",
-      "retrieved": "2026-08-20",
-      "note": "Confirms the 15/16 Pro Max panel pair."
+      "note": "Confirms the 15/16 Pro Max panel pair.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "Apple — MacBook Pro 14- and 16-inch tech specs",
       "url": "https://www.apple.com/macbook-pro-14-and-16/specs/",
-      "retrieved": "2026-08-20",
-      "note": "3024-by-1964 (14-inch) and 3456-by-2234 (16-inch) native, both at 254 ppi."
+      "note": "3024-by-1964 (14-inch) and 3456-by-2234 (16-inch) native, both at 254 ppi.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "VESA / Club 3D resolutions guide",
       "url": "https://www.club-3d.com/en/technology/24/resolutions_guide/",
-      "retrieved": "2026-08-20",
-      "note": "Ultrawide and DCI entries (2560×1080, 3440×1440, 3840×1600, 5120×1440, 4096×2160)."
+      "note": "Ultrawide and DCI entries (2560×1080, 3440×1440, 3840×1600, 5120×1440, 4096×2160).",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     },
     {
       "title": "VESA — Display Monitor Timing Standard v1.13",
       "url": "https://glenwing.github.io/docs/VESA-DMT-1.13.pdf",
-      "retrieved": "2026-08-20",
-      "note": "The standards body's own timing table behind the classic monitor modes."
+      "note": "The standards body's own timing table behind the classic monitor modes.",
+      "verification": "search_summary",
+      "consulted": "2026-08-20"
     }
   ],
   "injection": "This list is data for the **caller** that constructs `dimension_signal`, not for P5. `extract_image(..., dimension_signal=make_dimension_signal(load('02-screen-resolutions.json'), load('03-sensor-aspect-ratios.json')))`. `dimension_signal` is a **required keyword with no default** (P5 PLAN Task 15) precisely so that no resolution can reach `src/extractors/`: P5 PLAN's Global Constraints forbid any module-level screen resolution or aspect ratio inside `extractors`, and Task 20 asserts it by runtime introspection of every module namespace.",
@@ -1306,5 +1313,6 @@
       "example_true": "1920x1080",
       "example_false": "4032x3024"
     }
-  ]
+  ],
+  "sourcing_note": "**How to read the `verification` column, because it is not decoration.** Only five pages were opened and read directly while authoring these catalogues; three more were opened by the catalogues-finish agent, who supplied verbatim quotes. Everything else is marked `search_summary`: the fact came from a web-search result summary and the page itself was not retrieved. Those rows say `consulted` rather than `retrieved`, because claiming a retrieval date for a page nobody opened is exactly the kind of unearned confidence these catalogues exist to keep out of the product. A `search_summary` source is not worthless — it is how most of the vendor-prefix and manifest-name knowledge here was gathered — but it must not be quoted as if read, and a row that would be harmful if wrong should be upgraded before launch."
 }

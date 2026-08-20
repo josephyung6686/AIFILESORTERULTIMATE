@@ -7,6 +7,7 @@
 - **consumer**: `p3_exclusion_roots` → P3's R3 exclusion verdict, which skips **descendants** of the marker-bearing directory. `p5_evidence_markers` → the `StructuralMarker(kind, value)` tuples that a caller-supplied `read_text_document` returns, and the `recognize_markers` recognizer E4 uses on archive members.
 - **match_field**: a filename, a directory name, or a top-level notebook JSON key — each row says which in `applies_to`. `StructuralMarker.value` stores the marker "verbatim" (P5 PLAN Task 12), so the recorded value is the spelling found on disk, not a normalized one.
 - **normalization for matching**: Exact string comparison. Case-insensitive by default because macOS and Windows filesystems are case-insensitive; the rows whose bare word is ordinary English (`LICENSE`, `COPYING`, `WORKSPACE`, `DESCRIPTION`, `README`, `CODEOWNERS`) are case-**sensitive** so that a document named `licence` or `description` cannot match.
+- **sourcing**: **How to read the `verification` column, because it is not decoration.** Only five pages were opened and read directly while authoring these catalogues; three more were opened by the catalogues-finish agent, who supplied verbatim quotes. Everything else is marked `search_summary`: the fact came from a web-search result summary and the page itself was not retrieved. Those rows say `consulted` rather than `retrieved`, because claiming a retrieval date for a page nobody opened is exactly the kind of unearned confidence these catalogues exist to keep out of the product. A `search_summary` source is not worthless — it is how most of the vendor-prefix and manifest-name knowledge here was gathered — but it must not be quoted as if read, and a row that would be harmful if wrong should be upgraded before launch.
 
 ## Design basis
 
@@ -202,12 +203,12 @@ Deliberately absent from both: `node_modules`, `.git`, `venv`, `build`, `dist`, 
 
 ## Sources
 
-- [npm — package.json documentation](https://docs.npmjs.com/cli/v10/configuring-npm/package-json) — retrieved 2026-08-20 — Vendor definition of the Node manifest.
-- [Python Packaging — pyproject.toml specification](https://packaging.python.org/en/latest/specifications/pyproject-toml/) — retrieved 2026-08-20 — PEP 518/621 project manifest — the basis for `unc-pyproject-as-exclusion`.
-- [Rust — The Cargo Book, the manifest format](https://doc.rust-lang.org/cargo/reference/manifest.html) — retrieved 2026-08-20 — Vendor definition of `Cargo.toml`.
-- [Go — Go Modules Reference, go.mod files](https://go.dev/ref/mod#go-mod-file) — retrieved 2026-08-20 — Vendor definition of `go.mod`.
-- [Jupyter — Notebook format (nbformat) specification](https://nbformat.readthedocs.io/en/latest/format_description.html) — retrieved 2026-08-20 — Defines the top-level keys `nbformat`, `nbformat_minor`, `metadata` (`kernelspec`, `language_info`) and `cells` — the five notebook-metadata rows.
-- [Git — gitrepository-layout](https://git-scm.com/docs/gitrepository-layout) — retrieved 2026-08-20 — Defines the `.git` directory whose promotion to an exclusion root is refused.
+- [npm — package.json documentation](https://docs.npmjs.com/cli/v10/configuring-npm/package-json) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Vendor definition of the Node manifest.
+- [Python Packaging — pyproject.toml specification](https://packaging.python.org/en/latest/specifications/pyproject-toml/) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — PEP 518/621 project manifest — the basis for `unc-pyproject-as-exclusion`.
+- [Rust — The Cargo Book, the manifest format](https://doc.rust-lang.org/cargo/reference/manifest.html) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Vendor definition of `Cargo.toml`.
+- [Go — Go Modules Reference, go.mod files](https://go.dev/ref/mod#go-mod-file) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Vendor definition of `go.mod`.
+- [Jupyter — Notebook format (nbformat) specification](https://nbformat.readthedocs.io/en/latest/format_description.html) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Defines the top-level keys `nbformat`, `nbformat_minor`, `metadata` (`kernelspec`, `language_info`) and `cells` — the five notebook-metadata rows.
+- [Git — gitrepository-layout](https://git-scm.com/docs/gitrepository-layout) — **[SEARCH SUMMARY — not opened]** consulted 2026-08-20 — Defines the `.git` directory whose promotion to an exclusion root is refused.
 
 ---
 
