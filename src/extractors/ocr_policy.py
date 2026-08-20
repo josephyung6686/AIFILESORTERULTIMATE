@@ -53,8 +53,39 @@ def _has_text(result: ExtractionResult) -> bool:
     return any(unit["text"].strip() for unit in result.text_units)
 
 
+#: §2.6's hierarchy, read at the level that decides. "Camera EXIF is strong photo
+#: evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact
+#: display resolutions, PNG format, and software metadata may support a screenshot
+#: hypothesis." Tiers 1 and 2 are evidence ABOUT the image; tier 3 is what every
+#: image has, which is why it appears in the design as support for the SCREENSHOT
+#: hypothesis rather than against it.
+USABLE_METADATA_TIERS: frozenset[int] = frozenset({1, 2})
+
+
 def _has_metadata_observation(result: ExtractionResult) -> bool:
-    return any(o["location"]["zone"] == "metadata" for o in result.observations)
+    """Did this run find metadata that says anything about the image?
+
+    This counted ANY `zone=metadata` row, and §2.7's main path was dead as a result.
+    E5 emits `format` and `pixel dimensions` for every image, both at `zone=metadata`,
+    so an opaque PNG screenshot with no EXIF -- §2.7's own named example -- always had
+    "usable metadata" and never reached OCR. Executed 2026-08-21: no real image could
+    reach E6 at all. §2.7 opens by saying OCR "is the main way screenshots and opaque
+    loose images become understandable to the pre-sorting engine", so that path being
+    unreachable is not a small gap.
+
+    §2.6's hierarchy is the fix and it is already on the record: M2 puts `signal_tier`
+    on the observation precisely so it is "carried on the record and never re-derived
+    downstream". Reading it here uses that hierarchy; it does not build a second one.
+
+    A tier-3-only image is one the design says "may support a screenshot hypothesis",
+    and §2.6 also warns the system "must not mistake the absence of EXIF for proof
+    that an image is a screenshot" -- which is why the answer is to READ it, not to
+    classify it. Running OCR on a photograph a messaging platform stripped is exactly
+    right: nothing is being classified, the pixels are being read.
+    """
+    return any(o["location"]["zone"] == "metadata"
+               and o.get("signal_tier") in USABLE_METADATA_TIERS
+               for o in result.observations)
 
 
 def text_layer_state(*, result: ExtractionResult, file_id: str, content_hash: str,

@@ -179,3 +179,72 @@ def test_text_layer_state_is_available_on_its_own():
     assert text_layer_state(result=extracted(""), file_id="f1",
                             content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                             no_usable_facts=lambda f, c: False) == "text_layer_absent"
+
+
+# --- §2.7's main path was dead (executed 2026-08-21) --------------------------
+#
+# "OCR is not merely a rescue tool for scanned PDFs. It is the main way screenshots
+# and opaque loose images become understandable to the pre-sorting engine." Executed
+# against the real E5, no image could reach E6: `extract_image` emits `format` and
+# `pixel dimensions` for EVERY image, both at `zone=metadata`, and
+# `_has_metadata_observation` counted any metadata row as usable metadata. So
+# `image_ocr_decision` returned run_ocr=False for a PNG screenshot with no EXIF, no
+# colour and no software -- §2.7's named example.
+#
+# The tests above passed because they SYNTHESIZE a zero-observation image result,
+# which `extract_image` never produces.
+#
+# §2.6 already ranks these: "camera EXIF is strong photo evidence; capture time, GPS,
+# and sensor-shaped dimensions reinforce it; exact display resolutions, PNG format,
+# and software metadata may support a screenshot hypothesis." Tier 3 is the level
+# every image has, so it cannot distinguish an opaque image from an informative one.
+# P5 already stamps the tier on the record (M2: "carried on the record and never
+# re-derived downstream"), so reading it here is using the hierarchy, not building a
+# second one.
+
+def _real_image(**over):
+    """A run from the REAL E5, not a synthesized one."""
+    from pathlib import Path as _P
+    from extractors.image import ImageRecord, extract_image
+    from extractors.safety import SafetyPolicy
+    record = ImageRecord(**{"image_format": "PNG", "dimensions": "2880x1800",
+                            "width": 2880, "height": 1800,
+                            **over.pop("record", {})})
+    return extract_image(
+        file_row={"file_id": "f1", "filename": "Screenshot.png",
+                  "content_hash": "5f7b1a1c9d4e6f2a3b8c0d1e2f3a4b5c6d7e8f90a1b"
+                                  "2c3d4e5f60718293a4b5c"},
+        path=_P("/c/Screenshot.png"),
+        policy=SafetyPolicy(is_protected_container=lambda p: False,
+                            is_dataless=lambda p: False),
+        read_image=lambda p: record,
+        dimension_signal=over.pop("dimension_signal", lambda w, h: None),
+        filename_pattern=lambda n: None, now=FIXED_CLOCK, context_window=40)
+
+
+def test_a_real_opaque_screenshot_reaches_ocr():
+    """§2.7's named example: an opaque image without EXIF."""
+    result = _real_image()
+    assert result.observations, "E5 always emits format and dimensions"
+    assert image_ocr_decision(result=result).run_ocr is True
+
+
+def test_a_real_photograph_with_camera_exif_does_not_reach_ocr():
+    """§2.6 tier 1 -- "camera EXIF is strong photo evidence"."""
+    from extractors.image import ExifValue
+    result = _real_image(record={"exif": (
+        ExifValue(name="Make", value="Apple", kind="camera EXIF"),)})
+    assert image_ocr_decision(result=result).run_ocr is False
+
+
+def test_sensor_shaped_dimensions_are_enough_to_hold_ocr_back():
+    """§2.6 tier 2 -- "capture time, GPS, and sensor-shaped dimensions reinforce it"."""
+    result = _real_image(dimension_signal=lambda w, h: "sensor-shaped dimensions")
+    assert image_ocr_decision(result=result).run_ocr is False
+
+
+def test_an_exact_display_resolution_is_not_enough():
+    """§2.6 tier 3, and the whole point: the signal that "may support a screenshot
+    hypothesis" must not be read as evidence that the image is already understood."""
+    result = _real_image(dimension_signal=lambda w, h: "exact display resolution")
+    assert image_ocr_decision(result=result).run_ocr is True

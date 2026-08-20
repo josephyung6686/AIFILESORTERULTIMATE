@@ -164,3 +164,68 @@ def unrouted_result(*, file_row: Mapping[str, Any], decision,
                 failure_reason=failure_reason),
         observations=tuple(observations),
     )
+
+
+#: C4, ratified 2026-08-20 -- P4's ninth `completeness` value. Named here because
+#: this module constructs the run that carries it; the vocabulary is P4's.
+DATALESS_COMPLETENESS = "dataless"
+
+
+def dataless_result(*, file_row: Mapping[str, Any], error: BaseException,
+                    source_type: str, now: str) -> ExtractionResult:
+    """The run for a file whose bytes are not on this machine (11 §5, C4).
+
+    §8.6 requires unfinished work to stay visible AS unfinished, "to show the
+    difference between completed work and deferred work" and to avoid "the false
+    impression that an unprocessed file was understood and found unimportant". A
+    dataless file is neither `deferred` (no budget ran out), nor `unreadable`
+    (nothing is damaged), nor `unsupported` (an extractor exists and would have
+    worked). C4 added the ninth value so the line can say so.
+
+    **The gate keeps one job.** `admit()` still raises `DatalessRefused` and writes
+    nothing; this is the catcher, and it constructs a row rather than performing a
+    read. Nothing here opens, stats or hashes the file: every value comes from the
+    `files` row P1 already holds.
+
+    **`analysis_tier` is `native`, not `filesystem`.** 18-wave2-orchestrator.md's OQ4
+    direction says `filesystem`, and executed, that reproduces the break A4 was
+    ratified to fix: a file recorded while local already has a `complete` filesystem
+    run, so a second filesystem-tier run at `dataless` makes
+    `extraction_status_by_tier` raise `TierConflict` on precisely the files this
+    value exists to make visible. A4's precedent applies unchanged -- a run that
+    stopped because the content could not be read is the NATIVE extractor reporting
+    that it could not read it. The filesystem tier keeps saying what `stat` knows,
+    which is still true and still `complete`.
+
+    **Only for a file that already has an identity.** A file dataless at first sight
+    has no `files` row, because minting one needs a hash and hashing downloads the
+    bytes. That is OQ3's second count and it is enforced here rather than left as a
+    caveat: P3's `dataless_detections` row is the whole record for those, and a run
+    invented without a real `file_id` and `content_hash` would be a fact about a file
+    nobody has read.
+
+    **No `failure_reason`, and P4 is what says so.** The first version of this
+    function recorded the refusal there and P4's conformance rule 9 rejected it:
+    `failure_reason` belongs to `failed` and `unreadable` only. That is the right
+    answer and it is C4's own point -- a file in iCloud has not failed and is not
+    damaged, so a reason phrased as one would be the lie the ninth value was added
+    to stop. `completeness = dataless` IS the explanation, and P3's
+    `dataless_detections` row is where the observation of it lives. `error` is
+    accepted so the caller's catch site reads as a catch site and so a future
+    refusal type is passed rather than assumed, but nothing about it is stored.
+    """
+    if not file_row.get("file_id") or not file_row.get("content_hash"):
+        raise ValueError(
+            "a `dataless` run needs the identity P1 recorded while the file was "
+            "local; a file dataless at first sight has neither, and inventing one "
+            "would assert a read that 11 §5 forbids (OQ3)"
+        )
+    return ExtractionResult(
+        run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+                extractor_name=STOPPED_EXTRACTOR_NAME, extractor_version=VERSION,
+                source_type=source_type, analysis_tier=STOPPED_ANALYSIS_TIER,
+                config={}, completeness=DATALESS_COMPLETENESS,
+                coverage=coverage("files", 0, 1),
+                observation_count=0, started_at=now, finished_at=now),
+        observations=(), text_units=(),
+    )
