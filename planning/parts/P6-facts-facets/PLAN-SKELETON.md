@@ -1504,7 +1504,7 @@ introspection guard is a test rather than a convention.
 observation `BUSIB 4300 Syllabus`; there is **no** `Spring 2026` heading fixture and no such filename
 fixture. P6 authors the three-observation set with P4's builders. Not a defect — the SPEC says
 Done-means items are *"assertable against P4-shaped fixtures"*, not against P4's own nineteen — but
-it is work Task 26 owns and a planner should not assume `by_number` supplies it.
+it is work Task 27 owns and a planner should not assume `by_number` supplies it.
 
 **F16 (MEDIUM). P4's observation reads are in insertion order, which is not a property of the
 corpus.** Verified by execution on 2026-08-21, prompted by the note that `observation_keys_for_run`

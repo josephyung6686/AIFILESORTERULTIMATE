@@ -2,7 +2,7 @@
 
 Date: 2026-08-21 (overnight)
 For: **Joseph.** Three seats sat: [design reading](seat-design-reading.md) · [what ships](seat-what-ships.md) · [what goes wrong](seat-what-goes-wrong.md).
-Source of truth: [`00-database-agent-product-design.md`](../../00-database-agent-product-design.md). **Every quotation below was matched mechanically against its named source — 61 spans, 0 failures.** Where a seat is quoted it says so.
+Source of truth: [`00-database-agent-product-design.md`](../../00-database-agent-product-design.md). **Every quotation below was matched mechanically against its named source — 67 spans, 0 failures.** Where a seat is quoted it says so.
 
 **How to read this.** Six decisions. Each one gives you the question, what is already settled (several
 are less open than they look), the options, where the seats disagree and what the disagreement turns
@@ -13,6 +13,23 @@ document says so rather than averaging them.**
 this was being written and it changes three sections** — D2 gains a second question, D5's fix is
 narrowed to one option by execution, and one seat argument is corrected. Round 5 (scope) does not
 exist yet.
+
+---
+
+## The whole thing on one page
+
+Answer in this order. Everything below this table is the argument for it.
+
+| | The question | Recommendation (seat) | Dissent | Door | Blocks |
+|---|---|---|---|---|---|
+| **D6** | Field keys spaced or snake_case? `subject` or `course`? | **snake_case** (design) · **`subject`** as a coin-flip | **Ships + risk both prefer spaced — but their stated reason is an artifact `00` does not contain** | **One-way at P6 Task 2** | P6 Task 2 · D1's open option |
+| **D2** | Which record is authoritative — and **which part produces a classification at all?** | **P7's `ClassificationRecord`, keyed `(file_id, content_hash)`** (risk, ships at zero cost). Name a detector owner. | Design seat reads the fact layer as the home; and flags that `Unreadable or unclassified` may not be a sensitivity value at all | **Near one-way** | P6 Task 2's row · P7 Task 4's shape |
+| **D1** | §3.11's six domains, or §3.15's six launch domains? | **§3.15's** — add ~4 career fields from §5.4 (risk + design) | Ships prefers §3.11's; career is additive and can wait | Two-way opening, **one-way closing** | P6 Tasks 2 and 13 |
+| **D3** | What may a user delete? | **Ratify the tombstone direction; build nothing; stop the unconditional bundle copy** (ships + risk) | Ships' own counter: no writer-less column — take the migration later. I agree with the counter. | Two-way, **but sealed bundles are one-way and accrue per scan** | P7 Task 15 only (1 of 22) |
+| **D5** | Take the four-pass restructure? | **Yes — and approve the `dispatch` split**, which round 4 shows is the only remaining shape | None on the structure. Round 4 **supersedes the risk seat's first fix item.** | Code two-way; **data one-way** | Nothing to start; P6's last task |
+| **D4** | Which jurisdictions ship? | **One, matching your corpus. Write only: `jurisdiction` is never a destination dimension.** (all three) | Which one: design's examples are US, the catalogue authors wrote UK | **Two-way** | Nothing |
+
+**If you have ten minutes: D6, then D2.** Why, at the end.
 
 ---
 

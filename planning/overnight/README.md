@@ -9,7 +9,9 @@ This page is the entry point; read it in order.
 
 ## 1. If you have ten minutes
 
-Open **[`council/DECISION-BRIEF.md`](council/DECISION-BRIEF.md)**. Six decisions, each with the
+Open **[`council/DECISION-BRIEF.md`](council/DECISION-BRIEF.md)**. It opens with the whole thing
+on one page — six decisions in the order to answer them, with the recommendation, the dissent, and
+whether each is a one-way door. Then six sections, each with the
 question, what is already settled, the options, and where three independent seats disagree and what
 the disagreement turns on. Every quotation in it was matched mechanically against your words — 61
 spans, 0 failures.
@@ -67,7 +69,7 @@ have hurt:
 | **P6 plan skeleton** | [`../parts/P6-facts-facets/PLAN-SKELETON.md`](../parts/P6-facts-facets/PLAN-SKELETON.md) | 27 tasks, coverage table |
 | **P7 plan skeleton** | [`../parts/P7-privacy-consent-gate/PLAN-SKELETON.md`](../parts/P7-privacy-consent-gate/PLAN-SKELETON.md) | 22 tasks, negative-test table |
 | **Five review rounds** | [`reviews/`](reviews/) | fidelity · buildability · adversarial · connection · scope |
-| **Domain catalogue** | [`../domains/`](../domains/) | **560 domains**, 13 slices, gated |
+| **Domain catalogue** | [`../domains/`](../domains/) | **574 domains**, 14 slices, gated clean |
 | P1–P7 connection contract | [`../22-p1-p7-connection-contract.md`](../22-p1-p7-connection-contract.md) | the seams |
 
 ## 5. The domain catalogue
@@ -82,9 +84,10 @@ its justification, collisions with neighbours, and an honest `design | inference
 sensitivity values, no held thresholds, no duplicate ids, and — the one that matters — **every design
 quotation checked against your words. Zero fabrications across all thirteen files.**
 
-Known: a fourteenth slice is being authored to close a demonstrated gap (no domain owns calendar
+A **fourteenth slice** closed a demonstrated gap: no domain in the first 560 owned calendar
 artifacts, though `.ics` routes to a `calendar` source type and two authors cited a calendar domain
-expecting one).
+expecting one. **574 domains, and every cross-reference now resolves — the gate reports zero
+problems, in-file and cross-file.**
 
 ## 6. What I did not do
 
