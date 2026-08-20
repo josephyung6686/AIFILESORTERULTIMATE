@@ -56,6 +56,32 @@ from scan_agent.scan import scan
 from scan_agent.stat_cache import VERDICT_RECOMPUTE, cache_verdicts
 
 
+def TARGETED_OCR_UNAVAILABLE(file_id: str, content_hash: str) -> bool:
+    """P6 has not run, so §2.2's `text_layer_broken` route cannot be evaluated.
+
+    §2.2 names three text-layer states and the broken one is reachable only from P6's
+    `no_usable_facts` verdict — "targeted OCR on a PDF with a non-empty but broken
+    text layer only when its stored evidence yields no usable facts". P6 is unbuilt,
+    so there is no verdict to give.
+
+    Callers passed `lambda f, h: False` for this, and that is not the same statement.
+    `False` from P6 means *"I examined this file's stored facts and the text layer is
+    fine."* Every text-bearing PDF in a real corpus received that answer from a
+    function that had examined nothing. The behaviour is right — no targeted OCR
+    without P6 — and the claim was wrong, which is the same shape as an OCR path no
+    real image could reach: a value that looks like a verdict and is an absence.
+
+    §8.6's rule is that unfinished work stays visible as unfinished. This is that
+    rule applied to a callable: the answer is still `False`, and now the call site
+    says why. **When P6 lands this is deleted, not edited** — and note the ordering
+    constraint it must be replaced under: P6's verdict is defined only after P6's
+    deterministic pass for that content hash has completed, so wiring a real P6 into
+    the single-loop caller runs targeted OCR over every text-bearing PDF. See
+    `planning/22-p1-p7-connection-contract.md` §4.
+    """
+    return False
+
+
 @dataclass(frozen=True)
 class Wave2:
     """What one pass produced. Handles, not counts: the counts are P2's."""

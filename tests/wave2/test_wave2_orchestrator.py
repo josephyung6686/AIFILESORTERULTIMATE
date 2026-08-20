@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from database_agent.files_table import get_file
-from orchestrator import Wave2, run_wave2
+from orchestrator import TARGETED_OCR_UNAVAILABLE, Wave2, run_wave2
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.selection import record_selection
 
@@ -115,7 +115,7 @@ def go(db, corpus, **over):
         policy=policy, readers=readers(**over.pop("readers", {})),
         sink=RunWriter(db, author="P5"),
         now=lambda: FIXED_CLOCK, context_window=40,
-        no_usable_facts=over.pop("no_usable_facts", lambda f, h: False),
+        no_usable_facts=over.pop("no_usable_facts", TARGETED_OCR_UNAVAILABLE),
         transcription_authorized=lambda: False,
         corpus_form="snapshot", policy_settings={},
         file_entry_body=lambda row: {"payload_ref": f"blobs/{row['content_hash']}"},
@@ -468,3 +468,46 @@ def test_the_bundle_does_not_pass_p1s_column_off_as_p7s_handling_class(db, corpu
                 assert isinstance(keyword.value, ast.Constant) and keyword.value.value is None, (
                     "handling_class is P7's and P7 is unbuilt; the honest value is a "
                     "literal None, not a different part's column")
+
+
+# ------------------------------- the P6 verdict, stated absent rather than faked
+#
+# §2.2 names three text-layer states, and `text_layer_broken` is reachable only from
+# P6's `no_usable_facts` verdict. P6 does not exist, so every caller passed
+# `lambda f, h: False` -- which does not mean "P6 is absent", it means "P6 examined
+# this file and its text layer is fine". Every text-bearing PDF in a real corpus got
+# that answer from a function that had examined nothing.
+#
+# The behaviour is right (no targeted OCR without P6) and the statement was wrong,
+# which is the same shape as the dead OCR path: a value that looks like a verdict and
+# is actually an absence. §8.6's rule is that unfinished work stays visible AS
+# unfinished.
+
+def test_the_absent_p6_verdict_is_named_rather_than_faked():
+    from orchestrator import TARGETED_OCR_UNAVAILABLE
+    assert TARGETED_OCR_UNAVAILABLE("f1", "a" * 64) is False
+    assert "P6" in (TARGETED_OCR_UNAVAILABLE.__doc__ or "")
+
+
+def test_the_verdict_parameter_has_no_default(db, corpus):
+    """B7: P5 wires the OCR switch and never invents the threshold. A default here
+    would let a caller ship the lie by omission rather than by choice."""
+    import inspect
+    from orchestrator import run_wave2
+    parameter = inspect.signature(run_wave2).parameters["no_usable_facts"]
+    assert parameter.default is inspect.Parameter.empty
+
+
+def test_a_real_verdict_is_still_accepted(db, corpus):
+    """The absence is a caller's statement, not a restriction: when P6 exists it
+    passes its own verdict and this path is unchanged."""
+    asked = []
+
+    def p6_says_no_usable_facts(file_id, content_hash):
+        asked.append((file_id, content_hash))
+        return False
+
+    go(db, corpus, no_usable_facts=p6_says_no_usable_facts)
+    assert asked, "the verdict was never consulted, so the seam is not wired at all"
+    for file_id, content_hash in asked:
+        assert file_id and len(content_hash) == 64
