@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import pytest
 
+from evidence_shape.runs import MalformedRun
+
 from extractors.sink import ExtractionResult
 
 from p4_stub import validate_observation, validate_run
@@ -29,6 +31,14 @@ class RecordingSink:
 
     def write(self, result: ExtractionResult, *,
               supersede_reason: str | None = None) -> str:
+        # `run_id` is P4-assigned, and the merge below would let a batch that carried
+        # one override the id this sink minted. P4's `RunWriter` refuses that batch;
+        # a double that accepted it would be testing something the database does not
+        # do (tests/p5/test_p5_join.py's agreement test).
+        if "run_id" in result.run:
+            raise MalformedRun(
+                f"the batch carries run_id {result.run['run_id']!r}; the run_id is "
+                "P4's to assign (D5) and the sink mints it")
         run_id = f"run-{len(self.runs) + 1}"
         self.runs.append({"run_id": run_id, **result.run})
         for observation in result.observations:

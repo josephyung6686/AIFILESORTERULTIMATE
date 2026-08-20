@@ -19,13 +19,19 @@ P5 emits the structured location; P4 serializes it.
 """
 from __future__ import annotations
 
-import hashlib
-
-from evidence_shape.canonical import sha256_of
-import json
 import re
 import unicodedata
 from typing import Any, Mapping, Sequence
+
+# `canonical_json` is re-exported under P4's own name, never redefined:
+# `extractors/events.py` imports it from this module, so the name stays importable
+# here -- but the form itself is P4's, because §8.5's replay diff and §3.4's cache key
+# are both comparisons of stored bytes, and a second serialization is a second answer
+# to "what are these bytes". P5 held a byte-identical copy of it while `fingerprint`
+# below already delegated its DIGEST to P4; one edit to P4's canonical form and the
+# fingerprint would have diverged again, silently, with no test failing.
+from evidence_shape.canonical import canonical_json
+from evidence_shape.runs import config_fingerprint
 
 #: Section 2.8's field list, in section 2.8's order, plus the additions P4 marks with
 #: a cross. The three context fields are P4's published shape of section 2.8's single
@@ -80,18 +86,13 @@ class ForbiddenAnalysisTier(Exception):
     """I4 - P5 attempted to write `llm`, which only P8 writes."""
 
 
-def canonical_json(value: Any) -> str:
-    """Deterministic serialization. Section 8.5's replay diff and section 3.4's cache
-    key both need one."""
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
 def fingerprint(config: Mapping[str, Any]) -> str:
     """P4's `config_fingerprint` - "so section 3.4's key and section 8.5's diff can
     tell configs apart".
 
-    This is the ONLY hash P5 computes, and it is a hash of configuration, never of
-    file bytes: the content hash is P1's and P5 never recomputes it (O5).
+    This is the ONLY digest anywhere in P5's surface, and it is a digest of
+    configuration, never of file bytes: the content hash is P1's and P5 never
+    recomputes it (O5).
 
     **It delegates to P4 and computes nothing itself.** P5 previously called
     `hashlib.sha256` on the same canonical JSON, while P4's `sha256_of`
@@ -101,8 +102,14 @@ def fingerprint(config: Mapping[str, Any]) -> str:
     two runs of one process would never have matched and replay would have reported
     divergence that did not happen. P4 owns the field, so P4 computes it; a second
     computation of one value is the same defect as a second name for one concept.
+
+    It calls P4's published function rather than repeating its two steps here. The
+    first fix left P5 spelling out `sha256_of(canonical_json(...))`, which is the same
+    defect one level up: P4 could add a step to `config_fingerprint` and P5 would
+    diverge again with no test failing. `dict(...)` only because P4 takes a Mapping
+    and the canonical form serializes a dict.
     """
-    return sha256_of(canonical_json(dict(config)))
+    return config_fingerprint(dict(config))
 
 
 def segment(kind: str, *, index: int | None = None, label: str | None = None) -> dict:

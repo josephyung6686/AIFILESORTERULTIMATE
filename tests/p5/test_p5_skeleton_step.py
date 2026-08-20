@@ -4,16 +4,30 @@ P4/P5 extract page-one text; emit ONE observation in the frozen shape.
 
 This test stays in the repository as the integration test every later part must keep
 green. It is deterministic: no model, no cloud, no embeddings, no network.
+
+It writes through P4's REAL sink now, not conftest.py's `RecordingSink`. A walking
+skeleton that stops at a list of dicts is the gap the 2026-08-21 stress test named:
+the suite was comprehensive about SHAPE and never about the JOIN, and P5's own event
+writer was what made the stop necessary. Every assertion below is the one that was
+here; each reads P4's stored rows instead of the double's lists, and the event is no
+longer appended by this test -- the sink appends it, once, at the end of the batch.
 """
 import json
 from pathlib import Path
 
-import pytest
-
 from database_agent.db import create_schema
 from database_agent.files_table import get_file, record_file
 
-from extractors.events import EXTRACTION, append, extraction_event
+from evidence_shape.conformance import validate_run
+from evidence_shape.location import Segment
+from evidence_shape.runs import Coverage
+from evidence_shape.schema import create_evidence_schema
+from evidence_shape.store import (
+    RunWriter, get_run, observations_for_run, text_unit_at, text_units_for_run,
+)
+
+from extractors.authorship import SUBSYSTEM
+from extractors.events import EXTRACTION
 from extractors.pdf import EXTRACTOR_NAME, PdfDocument, PdfPage, extract_pdf
 from extractors.reading import Region
 from extractors.router import record_routing_decision, route, routing_decisions
@@ -23,7 +37,6 @@ from extractors.shape import EXTRACTOR_RELIABILITY
 from extractors.stage_output import STAGE_ID, extraction_stage_output
 
 from conftest import FIXED_CLOCK
-from p4_stub import locator_for, validate_observation, validate_run
 
 PAGE_ONE = "BUSIB 4300 Syllabus\nSpring 2026. Meetings on Tuesdays."
 HEADING = "BUSIB 4300 Syllabus"
@@ -42,9 +55,10 @@ def a_one_page_pdf(path: Path) -> PdfDocument:
                                        ordinal=1, label=HEADING),)),))
 
 
-def test_skeleton_p5_step(conn, tmp_path: Path, sink):
+def test_skeleton_p5_step(conn, tmp_path: Path):
     create_schema(conn)
     create_extraction_schema(conn)
+    create_evidence_schema(conn)
 
     corpus = tmp_path / "corpus"
     corpus.mkdir()
@@ -77,49 +91,50 @@ def test_skeleton_p5_step(conn, tmp_path: Path, sink):
                          read_pdf=a_one_page_pdf,
                          find_structured_strings=lambda text: (), now=FIXED_CLOCK,
                          context_window=24)
-    run_id = sink.write(result)
+    # P5 authors; P4 writes. The batch is one transaction: run row, text units,
+    # observations, then the one §8.2 event (M8).
+    run_id = RunWriter(conn, author=SUBSYSTEM).write(result)
 
-    observations = sink.observations_for(run_id)
+    observations = observations_for_run(conn, run_id)
     assert len(observations) == 1
     only = observations[0]
-    assert only["raw_value"] == HEADING
-    assert locator_for(only["location"]) == "heading:page=1/heading=1#0-19"
-    assert only["reliability"] in EXTRACTOR_RELIABILITY
-    assert only["file_id"] == file_id
-    assert only["content_hash"] == file_row["content_hash"]
+    assert only.raw_value == HEADING
+    assert only.locator == "heading:page=1/heading=1#0-19"
+    assert only.reliability in EXTRACTOR_RELIABILITY
+    assert only.file_id == file_id
+    assert only.content_hash == file_row["content_hash"]
 
     # It validates against P4's frozen shape, through P4's own conformance rules.
-    units = [{k: v for k, v in u.items() if k != "run_id"}
-             for u in sink.units_for(run_id)]
-    validate_observation({k: v for k, v in only.items() if k != "run_id"},
-                         text_units=units)
-    validate_run(sink.run_for(run_id), 1)
+    # This was `p4_stub.validate_observation` + `validate_run` over the double's
+    # dicts; P4's `validate_run` over the stored records is the same rules and more
+    # of them -- rules 5, 9 and 10 need the whole set, which is what a run has.
+    stored = get_run(conn, run_id)
+    units = text_units_for_run(conn, run_id)
+    validate_run(stored, observations, units)     # raises NonConforming, or returns
+    # The stub's `validate_run(run, 1)` asserted this and P4's rules do not: the count
+    # is DERIVED from the rows by `record_observation`, and a stored count that
+    # disagrees with them is a fact nobody downstream can use.
+    assert stored.observation_count == 1
 
     # Page-one text is a `text_units` row, not an observation (G1).
-    page = [u for u in units if u["container_path"]
-            == ({"kind": "page", "index": 1, "label": None},)]
-    assert page and page[0]["text"] == PAGE_ONE
-    assert all(o["raw_value"] != PAGE_ONE for o in observations)
+    page = text_unit_at(conn, run_id, (Segment("page", 1),))
+    assert page is not None and page.text == PAGE_ONE
+    assert all(o.raw_value != PAGE_ONE for o in observations)
 
     # Deterministic: the native tier, no model, no network.
-    row = sink.run_for(run_id)
-    assert row["analysis_tier"] == "native"
-    assert row["completeness"] == "complete"
-    assert row["coverage"] == {"units": "pages", "processed": 1, "total": 1}
+    assert stored.analysis_tier == "native"
+    assert stored.completeness == "complete"
+    assert stored.coverage == Coverage("pages", 1, 1)
 
-    # P5 authors the extraction event; P1 writes it (M8).
-    append(conn, extraction_event(
-        run_id=run_id, file_id=file_id, content_hash=file_row["content_hash"],
-        extractor_name=row["extractor_name"],
-        extractor_version=row["extractor_version"],
-        completeness=row["completeness"], observed_at=FIXED_CLOCK))
-    event = conn.execute("SELECT * FROM events WHERE event_type = ?",
-                         (EXTRACTION,)).fetchone()
-    assert event["subsystem"] == "P5"
-    assert json.loads(event["explanation"])["run_id"] == run_id
+    # Exactly one §8.2 event, and the sink wrote it -- nothing here appended one.
+    events = conn.execute("SELECT * FROM events WHERE event_type = ?",
+                          (EXTRACTION,)).fetchall()
+    assert len(events) == 1
+    assert events[0]["subsystem"] == "P5"
+    assert json.loads(events[0]["explanation"])["run_id"] == run_id
 
     # And the run is measurable (§8.5, B7).
-    envelope = extraction_stage_output(run=row)
+    envelope = extraction_stage_output(run=stored.to_mapping())
     assert envelope["stage_id"] == STAGE_ID
     assert envelope["outcome"] == "produced"
     assert envelope["inputs"] == (file_row["content_hash"],)

@@ -115,12 +115,16 @@ def test_the_marker_classes_hold_no_members():
 
 
 def test_p5_hashes_no_file_bytes():
-    # O5. `hashlib` is bound in exactly one module and hashes a CONFIGURATION
-    # mapping to produce P4's `config_fingerprint` — never a path, never a byte.
+    # O5. `hashlib` is bound in NO P5 module. It used to be bound in exactly one,
+    # `extractors.shape`, where it hashed a CONFIGURATION mapping — never a path,
+    # never a byte. That import outlived its use: `fingerprint` delegates the whole
+    # digest to P4's `config_fingerprint`, so P5 now computes no digest at all and
+    # the invariant this test names holds more strongly, not less. The empty list is
+    # the assertion; a hashing module reappearing in P5 is the thing to catch.
     binding = [module.__name__ for module in p5_modules()
                if getattr(constants(module).get("hashlib"), "__name__", "")
                == "hashlib"]
-    assert binding == ["extractors.shape"]
+    assert binding == []
     from extractors.shape import fingerprint
     parameters = inspect.signature(fingerprint).parameters
     assert list(parameters) == ["config"]

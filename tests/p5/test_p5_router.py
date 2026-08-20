@@ -8,9 +8,11 @@ import pytest
 
 from database_agent.db import create_schema
 
+from evidence_shape.vocabulary import COMPLETENESS, SOURCE_TYPES, check
+
 from extractors.router import (
     HANDLER_BY_FORMAT, HANDLER_BY_SOURCE_TYPE, SOURCE_TYPE_BY_FORMAT,
-    record_routing_decision, route, routing_decisions,
+    UNROUTED_COMPLETENESS, record_routing_decision, route, routing_decisions,
 )
 from extractors.schema import create_extraction_schema
 
@@ -79,15 +81,46 @@ def test_every_format_in_the_table_is_one_2_9_or_2_6_names():
         "dmg", "bin",                                                      # opaque binary
     }
     named_by_2_6_or_the_spec_fixtures = {"heic", "png", "jpg", "jpeg"}
-    assert set(SOURCE_TYPE_BY_FORMAT) == named_by_2_9 | named_by_2_6_or_the_spec_fixtures
+    # The only keys neither § spells. They are here on ratification B6 and each is
+    # declared HERE as well as in the table, so a later format cannot be added
+    # silently: adding a key without adding it to one of these three sets fails.
+    added_by_b6_and_not_by_a_design_sentence = {
+        "webp", "gif", "tiff", "tif", "bmp", "heif", "avif",   # §2.6 names only HEIC and PNG
+        "mp3", "m4a", "wav", "mp4", "mov",                     # §2.9 names the family and no format
+    }
+    assert set(SOURCE_TYPE_BY_FORMAT) == (named_by_2_9
+                                          | named_by_2_6_or_the_spec_fixtures
+                                          | added_by_b6_and_not_by_a_design_sentence)
 
 
-def test_no_audio_or_video_format_is_enumerated():
-    # §2.9's audio-and-video bullet names a family and NO format. There is nothing to
-    # key routing on, so the table has no entry and P5 invents none. The handler is
-    # built and tested (Task 11); the routing entry is a NEEDS JOSEPH item.
-    assert not [fmt for fmt, families in SOURCE_TYPE_BY_FORMAT.items()
-                if "audio_video" in families]
+def test_every_source_type_the_table_names_is_in_p4s_closed_vocabulary():
+    # P4 D2: "Closed means an extractor may not add a value... Adding a zone or a kind
+    # is a P4 contract revision plus a shape-version bump, never a local decision
+    # inside an extractor." The router is the one place in P5 that maps a format onto
+    # a `source_type`, so it is where an invented family would enter the system. The
+    # formats added under B6 are the reason this walk exists rather than a reviewer's
+    # eye: the next format someone adds is checked by a test.
+    for fmt, families in SOURCE_TYPE_BY_FORMAT.items():
+        assert families, f"{fmt!r} is a key with no family; route() would find no handler"
+        for family in families:
+            check(family, SOURCE_TYPES, name=f"SOURCE_TYPE_BY_FORMAT[{fmt!r}]")
+    for family in HANDLER_BY_SOURCE_TYPE:
+        check(family, SOURCE_TYPES, name="HANDLER_BY_SOURCE_TYPE key")
+    for family, completeness in UNROUTED_COMPLETENESS.items():
+        check(family, SOURCE_TYPES, name="UNROUTED_COMPLETENESS key")
+        check(completeness, COMPLETENESS, name=f"UNROUTED_COMPLETENESS[{family!r}]")
+
+
+def test_the_audio_and_video_routing_entry_is_answered_rather_than_open():
+    # This assertion used to be its own opposite: §2.9's audio-and-video bullet names
+    # a family and NO format, so there was nothing to key routing on and the entry was
+    # a NEEDS JOSEPH item. B6 (ratified 2026-08-20) answered it - "Every file type is
+    # extracted, and extracted correctly for its own type - except audio and video,
+    # which stop at container metadata for v1" - and NEEDS JOSEPH 7 was answered the
+    # same day: "Speech-to-text is OUT OF SCOPE for v1... Audio and video stop at
+    # container metadata." The five tokens are inference from that, not design text.
+    assert {fmt for fmt, families in SOURCE_TYPE_BY_FORMAT.items()
+            if "audio_video" in families} == {"mp3", "m4a", "wav", "mp4", "mov"}
 
 
 def test_an_unknown_format_is_unsupported_and_never_an_empty_document():
@@ -129,6 +162,87 @@ def test_svg_routes_to_the_image_extractor():
                      path=Path("/corpus/logo.svg"), extension=".svg",
                      detect_format=detector({"logo.svg": "svg"}))
     assert decision.extractor_name == "image.metadata"
+
+
+def test_the_rest_of_a_mac_corpus_reaches_e5_rather_than_the_unsupported_stop():
+    # 19-p4-p5-stress.md, "Routing: images and media": "Screenshots on this Mac are
+    # usually PNG (routed). iPhone photos are HEIC (routed). WhatsApp / browser saves
+    # are often WebP or GIF. Those files get a filesystem filename and nothing else -
+    # no dimensions, no EXIF, no OCR trigger via E5. OCR policy keys off an
+    # image/native result that never ran." Neither §2.6 nor §2.9 names these tokens;
+    # B6 is what puts them in the table, and the table's comment says so.
+    png = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
+                path=Path("/corpus/Screenshot.png"), extension=".png",
+                detect_format=detector({"Screenshot.png": "png"}))
+    for name, extension, fmt in (("saved.webp", ".webp", "webp"),
+                                 ("meme.gif", ".gif", "gif"),
+                                 ("scan.tiff", ".tiff", "tiff"),
+                                 ("old.bmp", ".bmp", "bmp"),
+                                 ("burst.heif", ".heif", "heif"),
+                                 ("shared.avif", ".avif", "avif")):
+        decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
+                         path=Path("/corpus") / name, extension=extension,
+                         detect_format=detector({name: fmt}))
+        assert decision.source_type == "image"
+        # The handler PNG and HEIC already reach. §2.7's OCR policy keys off an
+        # image/native result, and a family that never routes has none to key off.
+        assert decision.extractor_name == png.extractor_name == "image.metadata"
+        assert decision.unrouted_completeness is None
+
+
+def test_both_customary_spellings_of_tiff_are_keys():
+    # §2.9 routes on the detected format "where possible" and on the declared
+    # extension otherwise, so a scan the detector cannot identify is keyed by ".tif".
+    # One format under two extensions, as `jpg`/`jpeg` and `yaml`/`yml` already are.
+    decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
+                     path=Path("/corpus/scan.tif"), extension=".tif",
+                     detect_format=lambda path: None)
+    assert decision.detected_format is None
+    assert decision.source_type == "image"
+    assert decision.extractor_name == "image.metadata"
+
+
+def test_audio_and_video_reach_e3_and_stop_at_container_metadata():
+    # B6, ratified 2026-08-20: "Every file type is extracted, and extracted correctly
+    # for its own type - except audio and video, which stop at container metadata for
+    # v1." The handler is not new and is not invented here: the P5 SPEC's own routing
+    # table already reads "| Audio and video | - | duration, container and codec
+    # metadata, creation time, embedded tags, subtitles or captions where present;
+    # speech-to-text transcripts only under an explicit privacy and compute policy |
+    # E3 |", and E3 is `text.structured` (long_tail.py). What was missing was a format
+    # token to key routing on - the literal "-" in that row's format column.
+    for name, extension, fmt in (("lecture.mp3", ".mp3", "mp3"),
+                                 ("voice memo.m4a", ".m4a", "m4a"),
+                                 ("interview.wav", ".wav", "wav"),
+                                 ("demo.mp4", ".mp4", "mp4"),
+                                 ("clip.mov", ".mov", "mov")):
+        decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
+                         path=Path("/corpus") / name, extension=extension,
+                         detect_format=detector({name: fmt}))
+        assert decision.source_type == "audio_video"
+        assert decision.extractor_name == HANDLER_BY_SOURCE_TYPE["audio_video"]
+        assert decision.extractor_name == "text.structured"
+        # NOT `metadata_only`. That value is zero observations - §2.9's safe stop for
+        # disk images and unknown binaries - and zero observations cannot carry the
+        # duration, codec and tag fields §2.9's audio/video bullet asks for. "Stops at
+        # container metadata" is E3 running with transcription unauthorized.
+        assert decision.unrouted_completeness is None
+
+
+def test_an_mp3_is_no_longer_indistinguishable_from_an_unknown_binary():
+    # 19-p4-p5-stress.md: "An `.mp3` is not an unknown format. It is a format the
+    # product chose not to transcribe. Today it is indistinguishable from
+    # `thing.qqq`." B6 is what makes the two different.
+    unknown = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
+                    path=Path("/corpus/thing.qqq"), extension=".qqq",
+                    detect_format=lambda path: None)
+    mp3 = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124", path=Path("/corpus/lecture.mp3"),
+                extension=".mp3", detect_format=detector({"lecture.mp3": "mp3"}))
+    assert (unknown.source_type, unknown.extractor_name) == (None, None)
+    assert unknown.unrouted_completeness == "unsupported"
+    assert mp3.source_type == "audio_video"
+    assert mp3.extractor_name is not None
+    assert mp3.unrouted_completeness is None
 
 
 def test_the_four_core_families_reach_their_named_handlers():

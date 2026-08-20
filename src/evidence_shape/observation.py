@@ -76,9 +76,35 @@ OBSERVATION_ROW_FIELDS: tuple[str, ...] = (
 NULLABLE_FIELDS = frozenset(
     {"normalized_value", "context_before", "context_after", "confidence", "signal_tier"})
 
+#: The fields that carry no meaning empty, and the counterpart to `NULLABLE_FIELDS`.
+#: Four of them are `observation_key`'s and rule 8's inputs, so an empty one is a
+#: citation handle that addresses nothing; `run_id` is the row's own run.
+#:
+#: PUBLISHED, with `check_non_empty` below, because the extractor that BUILDS an
+#: observation and the record that STORES one must refuse the same values. P5's
+#: builder took an empty `raw_value` happily and the refusal then arrived at write
+#: time, deep in a scan -- and a rule restated in the consumer to fix that is how one
+#: concept ends up with two answers, which is the defect this project has paid for
+#: most often. One definition, two callers.
+NON_EMPTY_FIELDS: tuple[str, ...] = (
+    "file_id", "content_hash", "extractor_name", "extractor_version", "raw_value",
+    "observed_at", "run_id",
+)
+
 
 class MalformedObservation(ValueError):
     """A non-conforming observation. P4 fails it rather than coercing it."""
+
+
+def check_non_empty(value, *, name: str):
+    """Presence, or a rejection. No stripping, no defaulting, no coercion.
+
+    Shaped like `vocabulary.check`: it raises on the way through and returns the
+    value, so a caller reads as the check it is performing.
+    """
+    if not isinstance(value, str) or not value:
+        raise MalformedObservation(f"{name} is a non-empty string, not {value!r}")
+    return value
 
 
 def observation_key(*, content_hash: str, extractor_name: str, locator: str,
@@ -120,12 +146,8 @@ class Observation:
     signal_tier: int | None = None
 
     def __post_init__(self) -> None:
-        for name in ("file_id", "content_hash", "extractor_name", "extractor_version",
-                     "raw_value", "observed_at", "run_id"):
-            value = getattr(self, name)
-            if not isinstance(value, str) or not value:
-                raise MalformedObservation(
-                    f"{name} is a non-empty string, not {value!r}")
+        for name in NON_EMPTY_FIELDS:
+            check_non_empty(getattr(self, name), name=name)
         # R1's identity, in P1's spelling and no other. `observation_key` hashes
         # `content_hash` first, so one file under two spellings is two citation
         # handles and §3.4's cache misses on a file it already extracted. The

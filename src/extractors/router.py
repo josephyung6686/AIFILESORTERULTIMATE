@@ -12,7 +12,11 @@ versioned and enormous, and copying a slice of one in here would be an invented 
 with no section behind it. What P5 owns is the table P4 explicitly defers to it -
 "MIME/signature -> extractor routing table | section 2.9 | P5".
 
-Every key below is a format section 2.9 or section 2.6 names. Nothing else is a key.
+Every key below is a format section 2.9 or section 2.6 names, with ONE exception that
+says so out loud: the image and audio/video tokens neither section spells, which are
+here on ratification B6 (2026-08-20) and carry a comment marking which part is design
+text and which part is inference. Nothing else is a key, and the test that walks this
+table makes a silent addition fail rather than a reviewer catch it.
 """
 from __future__ import annotations
 
@@ -22,8 +26,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
-#: The router's own version, part of the routing decision's identity.
-VERSION = "0.1.0"
+#: The router's own version, part of the routing decision's identity. Bumped when the
+#: table changes: eleven formats that were `unsupported` under 0.1.0 now route, and two
+#: tables both stamping "0.1.0" into `extraction_routing.router_version` is exactly the
+#: ambiguity section 3.4's cache key exists to prevent.
+VERSION = "0.2.0"
 
 #: Section 2.9's eleven bullets and section 2.6's images, as (format token ->
 #: source_type candidates). The value is a TUPLE because section 2.9 lists two
@@ -79,14 +86,66 @@ SOURCE_TYPE_BY_FORMAT: dict[str, tuple[str, ...]] = {
     "png": ("image",),
     "jpg": ("image",),
     "jpeg": ("image",),
+    # The rest of a real Mac corpus's images. NOTHING BELOW IS QUOTED FROM THE DESIGN:
+    # section 2.6's only two format sentences are "HEIC support must be included
+    # explicitly, because failing to configure the image stack for HEIC can silently
+    # exclude a meaningful portion of an Apple-centric corpus" and, as a screenshot
+    # signal, "exact display resolutions, PNG format, and software metadata may support
+    # a screenshot hypothesis". Neither names WebP, GIF, TIFF, BMP, AVIF or HEIF, and
+    # section 2.9's own image handling is section 2.6's by reference.
+    #
+    # They are keys on RATIFICATION grounds instead. B6 (2026-08-20): "Every file type
+    # is extracted, and extracted correctly for its own type" - and E5 IS the extractor
+    # for their own type, so leaving them `unsupported` asserts something B6's own
+    # consequence column calls false ("`unsupported` now means a format genuinely has
+    # no extractor, not one deferred by choice"). The corpus argument is section 2.6's:
+    # "Messaging platforms and downloaded web images often strip metadata from real
+    # photographs" is about the WhatsApp and browser saves that arrive as WebP and GIF,
+    # and until they route, section 2.7's OCR policy has no image/native result to key
+    # off. INFERENCE, marked as such: B6 was asked about spreadsheets and
+    # presentations, and applying its "every file type" clause here is P5 reading a
+    # ratification wider than the question that produced it. Raised as product scope
+    # by 19-p4-p5-stress.md, "Routing: images and media".
+    "webp": ("image",),
+    "gif": ("image",),
+    "tiff": ("image",),
+    "tif": ("image",),      # one format, two customary extensions - as jpg/jpeg above
+    "bmp": ("image",),
+    "heif": ("image",),     # HEIC's own container; the HEIC sentence is the nearest
+    "avif": ("image",),     # design text either of these two has
     # Compressed archives - "Yield their manifests without extraction."
     "zip": ("archive",),
     # Disk images, executables, databases, encrypted containers, damaged files,
     # unknown binary. Section 2.9 names no format; the SPEC's fixtures name two.
     "dmg": ("opaque_binary",),
     "bin": ("opaque_binary",),
-    # Audio and video: section 2.9 names a family and NO format, so there is nothing
-    # to key routing on and no entry is invented here. See NEEDS JOSEPH.
+    # Audio and video. Section 2.9 names a family and NO format - its bullet is "Audio
+    # and video files should yield duration, container and codec metadata, creation
+    # time, embedded tags, subtitles or captions where present, and - only under an
+    # explicit privacy and compute policy - speech-to-text transcripts" (the design's
+    # em dashes rendered as hyphens, as everywhere else here) - and the P5
+    # SPEC's routing table records that absence as a literal "-" in its format column
+    # while still naming E3 as the family's handler. That was the NEEDS JOSEPH item
+    # this comment used to point at, and B6 ANSWERED it on 2026-08-20: "Every file type
+    # is extracted, and extracted correctly for its own type - except audio and video,
+    # which stop at container metadata for v1", with NEEDS JOSEPH 7 answered the same
+    # day - "Speech-to-text is OUT OF SCOPE for v1... Audio and video stop at container
+    # metadata." So the family routes, to the handler the SPEC's table already names.
+    #
+    # `metadata_only` would be the WRONG stop. P4 spells that value as ZERO
+    # observations - section 2.9's safe stop for disk images, executables and unknown
+    # binaries, which is `opaque_binary` below - and zero observations cannot carry the
+    # duration, codec, creation-time and tag fields the bullet above asks for. "Stops
+    # at container metadata" is E3 running with `transcription_authorized()` false, not
+    # a run that never opened the file.
+    #
+    # The five tokens are INFERENCE: B6 names no extension any more than section 2.9
+    # does. They are what a Mac corpus holds, and deliberately not a codec catalogue.
+    "mp3": ("audio_video",),
+    "m4a": ("audio_video",),
+    "wav": ("audio_video",),
+    "mp4": ("audio_video",),
+    "mov": ("audio_video",),
 }
 
 #: Two formats have a dedicated extractor of their own (sections 2.2 and 2.3).
@@ -105,7 +164,8 @@ HANDLER_BY_SOURCE_TYPE: dict[str, str | None] = {
     "calendar": "text.structured",
     "contacts": "text.structured",
     "code_structured": "text.structured",
-    "audio_video": "text.structured",
+    "audio_video": "text.structured",  # E3's long-tail half; the SPEC routing table's
+                                       # own handler for the family, kept by B6
     "archive": "archive.manifest",
     "image": "image.metadata",
     "design_creative": None,          # raster and SVG are re-routed below

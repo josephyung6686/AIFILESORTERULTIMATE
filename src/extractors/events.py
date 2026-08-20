@@ -1,24 +1,33 @@
 # src/extractors/events.py
-# WHEN P4 LANDS, `append` BECOMES A CALL INTO P4 AND STOPS WRITING DIRECTLY.
+# P5 WRITES NO EVENT. P4 DOES, ONCE PER RUN, AT THE END OF THE BATCH.
 #
 # P4 Task 10 publishes `record_run_event(conn, run_id, *, author)`, which appends the
 # one §8.2 event for a run AFTER its observations exist, reading the `observation_key`s
 # out of the rows so the event and the database cannot disagree. P5 is the AUTHOR
 # (`author="P5"`); P4 is the writer. That is M8.
 #
-# This module exists because P4 has not landed, and it must not survive as a second
-# writer: two helpers appending one run's event means either a duplicated event or a
-# dead API, and M8 cannot survive two. The day `evidence_shape` is importable:
+# `append` lived here and called P1's `append_event` directly. Both surviving meant an
+# orchestrator following both plans wrote TWO `extraction` events per run, and
+# "exactly one event per run" could not hold. What had blocked the swap was real and
+# was recorded at the call site: `record_run_event` needs the run and its observations
+# already stored, and P5 authored its event for a run no sink had yet seen. There was
+# no sink. `evidence_shape.store.RunWriter` is now that sink -- run row, text units,
+# observations, then the one event, in one transaction -- so the event P5 used to
+# append is appended by the writer that owns the rows it references.
 #
-#     from database_agent.events import append_event
+# `append` is therefore DELETED rather than made a one-line call into P4. A delegating
+# wrapper would leave one writer under two names, which is the same defect as one
+# value under two computations and is the one this project has paid for most often.
 #
-#     def append(conn, event) -> int:
-#         return record_run_event(conn, event.run_id, author=SUBSYSTEM)
-#
-# `extraction_event()` / `ocr_event()` stay: they are the payload builders and the
-# guard that P5 authors none of P3's event types. What goes is the direct
-# `append_event` call below -- P4 builds the same dict from the stored rows.
-"""Section 8.2 - the two events P5 authors. P1 writes them (M8).
+# `extraction_event()` / `ocr_event()` remain below as payload builders and as the
+# guard that P5 authors none of P3's event types. Stated plainly, because a comment
+# that overstates is how the header above went stale: NOTHING IN `src/` CALLS EITHER
+# ONE. `record_run_event` builds its own payload from the stored rows, and it writes no
+# `prompt_fingerprint` on purpose -- P4's SPEC, Provenance: "`prompt fingerprint` does
+# not apply (P4 is model-free)" -- so §2.7's configuration identity reaches the
+# database on `extraction_runs.config_fingerprint`, not on the event row. Their only
+# callers today are tests/p5/.
+"""Section 8.2 - the two events P5 authors. P4 writes them, once per run (M8).
 
 Each carries "the event type, file ID, content hash, responsible subsystem, extractor
 version, time of observation, and a structured explanation or evidence reference".
@@ -33,10 +42,7 @@ produces P4's `config_fingerprint` so one configuration has one identity in both
 """
 from __future__ import annotations
 
-import sqlite3
 from typing import Any, Mapping
-
-from database_agent.events import append_event
 
 from extractors.authorship import event_defaults
 from extractors.shape import canonical_json, fingerprint
@@ -83,28 +89,3 @@ def ocr_event(*, run_id: str, file_id: str, content_hash: str, provider: str,
             **extra,
         }),
     )
-
-
-def append(conn: sqlite3.Connection, event: Mapping[str, Any]) -> int:
-    """Hand one authored event to **P4's** writer. P5 stores no event of its own.
-
-    P4 shipped 2026-08-20 and publishes `record_run_event(conn, run_id, *, author)`,
-    which appends the run's one §8.2 event AFTER its observations exist and builds the
-    explanation from the stored rows -- so the event and the database cannot disagree.
-    This function called P1's `append_event` directly until then. Both surviving meant
-    an orchestrator following both plans wrote TWO `extraction` events per run, and
-    "exactly one event per run" could not hold. P5 is the AUTHOR; P4 is the writer.
-
-    `extraction_event()` / `ocr_event()` stay: they are the payload builders and the
-    guard that P5 authors none of P3's event types.
-    """
-    # NOT YET P4's writer, and this is a finding rather than an oversight.
-    # `record_run_event(conn, run_id, *, author)` reads the run's observation_keys
-    # from the STORED rows, so it requires the run to already exist in P4's tables.
-    # P5 authors an event for a run it has just built and not yet handed to a sink,
-    # so there is nothing for P4 to read. Closing break 5 therefore needs the
-    # orchestrator's ordering -- write run, write observations, THEN one event --
-    # which is exactly the sequence 18-wave2-orchestrator.md specifies and which
-    # does not exist yet. Swapping the call here without that ordering trades two
-    # writers for one broken one.
-    return append_event(conn, **event)

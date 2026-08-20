@@ -11,6 +11,13 @@ event. The event's evidence reference is "`run_id` plus the `observation_key`s",
 those keys do not exist until the observations are written -- so `record_run_event`
 reads them from the rows rather than being handed them, and the event and the
 database cannot disagree.
+
+`RunWriter` is that order, made atomic and made callable once. The four writers below
+stay published -- P4's own tests drive them individually -- but a caller that runs
+them by hand can crash between two of them and leave a run with zero observations,
+which conformance rule 9 makes a MEANINGFUL state rather than an obvious defect: an
+`unsupported`, `deferred` or `failed` run legitimately carries none. One transaction
+is what makes a half-written batch impossible to mistake for a run that read nothing.
 """
 from __future__ import annotations
 
@@ -18,11 +25,15 @@ import json
 import sqlite3
 import uuid
 
+from database_agent.db import transaction
 from database_agent.events import append_event
 
-from evidence_shape.authorship import event_defaults, run_event_type
+from evidence_shape.authorship import check_author, event_defaults, run_event_type
 from evidence_shape.canonical import canonical_json
-from evidence_shape.runs import RUN_FIELDS, ExtractionRun, run_from_mapping
+from evidence_shape.conformance import validate_run
+from evidence_shape.runs import (
+    RUN_FIELDS, ExtractionRun, MalformedRun, run_from_mapping,
+)
 from evidence_shape.location import Segment
 from evidence_shape.locator import serialize_container_path
 from evidence_shape.observation import OBSERVATION_FIELDS, OBSERVATION_ROW_FIELDS, Observation, observation_from_mapping
@@ -246,3 +257,124 @@ def supersede_chain(conn: sqlite3.Connection,
                     observation_id: str) -> list[sqlite3.Row]:
     """Every link, oldest first. §8.2: both extraction records remain available."""
     return chain(conn, "evidence", observation_id)
+
+
+class AmbiguousSupersession(Exception):
+    """A superseding batch matches more than one unsuperseded prior observation."""
+
+
+def _container_path(container_path) -> tuple[Segment, ...]:
+    """An emitted container path as P4's records hold it.
+
+    P5's `extractors.shape.text_unit` freezes its path into a TUPLE of mappings, and
+    `text_unit_from_mapping` reads a tuple as already being `Segment`s -- so the
+    emitted unit raises `MalformedTextUnit` on its own contents. This is the one
+    adaptation the batch writer performs, and it converts rather than re-deciding
+    anything: `kind`, `index` and `label` are copied across and D3's 1-based index
+    rule is still `Segment`'s to enforce.
+    """
+    return tuple(part if isinstance(part, Segment)
+                 else Segment(part["kind"], part.get("index"), part.get("label"))
+                 for part in container_path)
+
+
+class RunWriter:
+    """One extraction batch, written in one transaction. P5's `EvidenceSink`.
+
+    An extractor returns ONE result -- the run, its observations and its text units,
+    none of them carrying a `run_id` -- and this writes all of it or none of it. The
+    batch is validated through the twelve conformance rules FIRST, so a non-conforming
+    run is refused before the run row exists rather than discovered halfway through;
+    rules 5, 9 and 10 need the whole set at once, which is precisely what a batch has
+    and what three separate inserts did not.
+
+    `author` is fixed at construction because it is a property of the part doing the
+    extracting, not of one run: M8 -- "the acting part authors; P1 writes". P5
+    constructs this with `author="P5"`, P8 with `author="P8"` for an `llm`-tier run,
+    and `P1` is refused here rather than at the first write.
+
+    This takes P5's `ExtractionResult` structurally -- `.run`, `.observations`,
+    `.text_units` -- and imports nothing from `extractors`. P5 depends on P4; the
+    reverse would make the evidence layer unbuildable without a sorter, which is the
+    independence P4's Done-means 9 is about.
+    """
+
+    def __init__(self, conn: sqlite3.Connection, *, author: str) -> None:
+        self.conn = conn
+        self.author = check_author(author)
+
+    def write(self, result, *, supersede_reason: str | None = None) -> str:
+        """Write the batch and return the `run_id` P4 minted for it."""
+        if "run_id" in result.run:
+            # P5's own header: "Not computed here, because they are P4-assigned:
+            # `observation_id`, `observation_key`, `run_id` ...". Merging a caller's
+            # id over the minted one lets a batch name a row it does not own -- and
+            # the run then lands under that id while the event, the observations and
+            # the returned handle all use the minted one.
+            raise MalformedRun(
+                f"the batch carries run_id {result.run['run_id']!r}; the run_id is "
+                "P4's to assign (D5) and this writer mints it")
+        run_id = new_id()
+        run = run_from_mapping({"run_id": run_id, **result.run})
+        text_units = tuple(
+            text_unit_from_mapping({
+                **unit, "run_id": run_id,
+                "container_path": _container_path(unit["container_path"])})
+            for unit in result.text_units)
+        observations = tuple(
+            observation_from_mapping({**observation, "run_id": run_id})
+            for observation in result.observations)
+        validate_run(run, observations, text_units)
+
+        with transaction(self.conn) as conn:
+            record_run(conn, run)
+            for unit in text_units:
+                record_text_unit(conn, unit)
+            written = [record_observation(conn, observation)
+                       for observation in observations]
+            if supersede_reason is not None:
+                self._supersede(conn, run_id, observations, written,
+                                supersede_reason)
+            # Last, because its evidence reference is the keys of the rows above.
+            record_run_event(conn, run_id, author=self.author)
+        return run_id
+
+    def _supersede(self, conn: sqlite3.Connection, run_id: str, observations,
+                   written: list[str], reason: str) -> None:
+        """§8.2's link, over the only pairing the design publishes.
+
+        Which earlier row a new one supersedes is not settled anywhere: §8.2 gives an
+        example (a garbled OCR pass, then a recovered name) and states only that both
+        must remain available, and `extraction_runs` carries no supersede columns at
+        all, so there is no run-level link to fall back on. The narrowest defensible
+        rule is therefore identity: a new observation supersedes the prior one that
+        carries the SAME `observation_key`. That handle is `content_hash`,
+        `extractor_name`, `locator` and `raw_value` -- and MINOR 8 leaves
+        `extractor_version` out of it exactly so a re-extraction's row and the row it
+        improves on share one key.
+
+        Two consequences, both deliberate and neither invented here. A pass that reads
+        a DIFFERENT value -- §8.2's own example -- pairs nothing, because two readings
+        are two handles and P4 publishes no rule for pairing them; P6's `file_facts`
+        decides which wins. And more than one unsuperseded prior row under one handle
+        means "the prior row" names two: `mark_superseded` would let the second link
+        silently overwrite the first's `supersedes` pointer, so this refuses rather
+        than picking a winner and losing a link.
+        """
+        for observation, new_observation_id in zip(observations, written):
+            candidates = [row["observation_id"] for row in conn.execute(
+                "SELECT observation_id FROM evidence WHERE observation_key = ? "
+                "AND run_id != ? AND superseded_by IS NULL ORDER BY observation_id",
+                (observation.observation_key, run_id))]
+            if not candidates:
+                continue
+            if len(candidates) > 1:
+                raise AmbiguousSupersession(
+                    f"{len(candidates)} unsuperseded observations carry "
+                    f"{observation.observation_key}; §8.2 links one earlier record to "
+                    "one later one and the design does not say which of these is the "
+                    "one this batch supersedes"
+                )
+            supersede_observation(conn, old_observation_id=candidates[0],
+                                  new_observation_id=new_observation_id,
+                                  reason=reason)
