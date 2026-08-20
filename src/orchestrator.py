@@ -38,10 +38,12 @@ from eval_harness.bundle import (
     add_extraction_run, add_file_entry, add_text_unit, open_bundle, seal_bundle,
 )
 
-from evidence_shape.store import observations_for_run, text_units_for_run
+from evidence_shape.store import (
+    observations_for_run, runs_for_content, text_units_for_run,
+)
 
 from extractors.authorship import COMPONENT_VERSION, SUBSYSTEM
-from extractors.dispatch import extract
+from extractors.dispatch import current_versions, extract
 from extractors.failure import failed_result
 from extractors.filesystem import dataless_result, extract_filesystem
 from extractors.router import route
@@ -71,6 +73,26 @@ def get_file(conn: sqlite3.Connection, file_id: str) -> dict:
     P5 should not know where its `file_row` came from.
     """
     return dict(_get_file_row(conn, file_id))
+
+
+def _extraction_is_stale(conn: sqlite3.Connection, content_hash: str,
+                        versions: Mapping[str, str]) -> bool:
+    """Has any extractor that already ran on this content been upgraded since?
+
+    §3.4 puts the extractor version in the cache key so that "stale results" do not
+    survive and "model or prompt changes" stay auditable. §1.2's stat-cache verdict
+    keys on path, mtime and size and holds no version, so REUSE alone would mean a bug
+    shipped in `pdf.text 0.1.0` stays in the database for the life of the corpus --
+    two caches, and the outer one wins.
+
+    An extractor with no published version -- OCR, whose version is the provider's --
+    is never called stale here. Guessing would be worse than the gap.
+    """
+    for run in runs_for_content(conn, content_hash):
+        current = versions.get(run.extractor_name)
+        if current is not None and current != run.extractor_version:
+            return True
+    return False
 
 
 def _write(sink, result, written: list[str]) -> str:
@@ -145,8 +167,12 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
 
     # 2 -- the roster. §1.2's stat cache: on REUSE, P5 is not invoked and prior
     #      results stand. That is resumption's work done without being called that.
+    versions = current_versions()
     for verdict in cache_verdicts(conn, scan_run_id):
-        if verdict["verdict"] != VERDICT_RECOMPUTE or verdict["file_id"] is None:
+        if verdict["file_id"] is None:
+            continue
+        if verdict["verdict"] != VERDICT_RECOMPUTE and not _extraction_is_stale(
+                conn, get_file(conn, verdict["file_id"])["content_hash"], versions):
             continue
         file_row = get_file(conn, verdict["file_id"])
         # `current_path`, not `path`. The live column is `current_path` and the

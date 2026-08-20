@@ -254,3 +254,54 @@ def test_the_orchestrator_holds_no_vocabulary():
                   "text_document", "image", "filesystem", "native", "ocr",
                   "extraction", "OCR", "heading", "body", "P5"):
         assert token not in held, token
+
+
+# ------------------------------------------- OQ6: two caches, and the outer one won
+#
+# §1.2's stat cache keys on path, mtime and size. §3.4's extraction cache keys on
+# content hash, extractor version, analysis tier and config fingerprint -- "this
+# prevents stale results from surviving a content rewrite ... and makes model or
+# prompt changes auditable". P5 publishes `cache_key` with the extractor version in
+# it; P3's verdict has no version at all.
+#
+# An orchestrator that skips every VERDICT_REUSE file therefore never re-runs an
+# upgraded extractor over an unchanged corpus, and a bug shipped in `pdf.text 0.1.0`
+# stays in the database for the life of the corpus. The stat cache is the OUTER one,
+# so it wins, and §3.4's auditability is unreachable from behind it.
+
+def test_an_extractor_upgrade_re_extracts_an_unchanged_corpus(db, corpus, monkeypatch):
+    import extractors.pdf as pdf_module
+    go(db, corpus)
+    first = {r["run_id"] for r in db.execute(
+        "SELECT run_id FROM extraction_runs WHERE extractor_name = ?",
+        (pdf_module.EXTRACTOR_NAME,))}
+    assert first, "the PDF ran at all"
+
+    monkeypatch.setattr(pdf_module, "VERSION", "0.2.0")
+    go(db, corpus)
+
+    versions = {r["extractor_version"] for r in db.execute(
+        "SELECT extractor_version FROM extraction_runs WHERE extractor_name = ?",
+        (pdf_module.EXTRACTOR_NAME,))}
+    assert versions == {"0.1.0", "0.2.0"}, versions
+
+
+def test_the_earlier_runs_are_kept_not_replaced(db, corpus, monkeypatch):
+    """§8.2: a newer result supersedes an earlier one and BOTH remain available.
+    `extraction_runs` is append-only and carries no supersede columns at all."""
+    import extractors.pdf as pdf_module
+    go(db, corpus)
+    before = db.execute("SELECT count(*) c FROM extraction_runs").fetchone()["c"]
+    monkeypatch.setattr(pdf_module, "VERSION", "0.2.0")
+    go(db, corpus)
+    assert db.execute(
+        "SELECT count(*) c FROM extraction_runs").fetchone()["c"] > before
+
+
+def test_no_upgrade_still_means_no_re_extraction(db, corpus):
+    """The property the skip exists for, kept: §1.2's "nothing is re-read"."""
+    go(db, corpus)
+    before = db.execute("SELECT count(*) c FROM extraction_runs").fetchone()["c"]
+    go(db, corpus)
+    assert db.execute(
+        "SELECT count(*) c FROM extraction_runs").fetchone()["c"] == before

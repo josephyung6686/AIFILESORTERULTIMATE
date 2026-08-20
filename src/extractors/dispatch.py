@@ -42,7 +42,7 @@ from extractors.sink import ExtractionResult
 from extractors.structured_text import (
     STRUCTURED_TEXT_SOURCE_TYPES, extract_structured_text,
 )
-from extractors import archive, docx, image, pdf, structured_text
+from extractors import archive, docx, filesystem, image, pdf, structured_text
 
 
 @dataclass(frozen=True)
@@ -181,3 +181,36 @@ class UnknownFamily(Exception):
     """The router named a handler nothing implements, or a family neither half of
     `text.structured` claims. Raised rather than swallowed: a silently skipped file is
     the one outcome §2.4 rules out absolutely."""
+
+
+def current_versions() -> dict[str, str]:
+    """Every extractor this module can run, at the version it is at right now.
+
+    §3.4's cache key is "content hash, extractor version, analysis tier, model
+    identifier when relevant, and prompt fingerprint", and it exists so that a change
+    "makes model or prompt changes auditable" and stale results do not survive. P3's
+    §1.2 stat-cache verdict keys on path, mtime and size and carries no version at
+    all -- so a caller that trusts the stat cache alone never re-runs an upgraded
+    extractor over an unchanged corpus, and the stat cache is the OUTER one.
+
+    Published here rather than assembled by the caller because this module is what
+    decides which extractor runs; a second list somewhere else would go stale the
+    first time a seventh extractor is added.
+
+    **OCR is deliberately absent.** Its `extractor_name` is `ocr.` plus whatever the
+    engine reports, and its version is the PROVIDER's (§2.7's first two persisted
+    fields), so P5 cannot state it without asking an engine that may not be installed.
+    A caller sees no entry and therefore never calls an OCR run stale, which is the
+    honest answer rather than a guessed one.
+    """
+    return {
+        pdf.EXTRACTOR_NAME: pdf.VERSION,
+        docx.EXTRACTOR_NAME: docx.VERSION,
+        archive.EXTRACTOR_NAME: archive.VERSION,
+        image.EXTRACTOR_NAME: image.VERSION,
+        # `long_tail` imports its name and version from `structured_text`: one family,
+        # two halves, one version.
+        structured_text.EXTRACTOR_NAME: structured_text.VERSION,
+        filesystem.EXTRACTOR_NAME: filesystem.VERSION,
+        filesystem.STOPPED_EXTRACTOR_NAME: filesystem.VERSION,
+    }
