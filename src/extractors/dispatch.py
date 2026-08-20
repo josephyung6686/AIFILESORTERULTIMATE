@@ -82,6 +82,27 @@ class Dispatched:
     results: tuple[ExtractionResult, ...]
     sensitivity: tuple = ()
 
+    def __post_init__(self) -> None:
+        """A signal indexes into ONE batch, so it may only ride with one.
+
+        `SensitivitySignal.observation_index` is a position in the emitting
+        extractor's observation list. If a `Dispatched` carried signals alongside two
+        results there would be no way to say which batch the position counts in, and
+        a caller would have to guess -- which is exactly the defect this invariant
+        exists to prevent: the Wave-2 caller resolved E3's signals against the
+        FILESYSTEM run's keys for a day, so §2.9's "addresses and message content as
+        potentially sensitive" was recorded against a filename.
+
+        Only E3 raises signals and it returns exactly one result, so this holds today
+        and the assertion is here to make a future two-result emitter fail loudly
+        rather than silently mis-key a privacy signal.
+        """
+        if self.sensitivity and len(self.results) != 1:
+            raise ValueError(
+                f"{len(self.results)} results carry {len(self.sensitivity)} "
+                "sensitivity signals; a signal's observation_index is a position in "
+                "ONE batch and cannot name which of several it counts in")
+
 
 def _ocr(*, file_row, path, policy, readers, now, context_window) -> ExtractionResult | None:
     if readers.ocr_engine is None:

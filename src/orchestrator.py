@@ -223,6 +223,11 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
                 no_usable_facts=no_usable_facts,
                 transcription_authorized=transcription_authorized)
             results.extend(routed)
+            # The signals index into the ROUTED batch, never the indexer's. Compared
+            # by identity because `results` is filesystem-first and the filesystem
+            # run always has observations -- the filename is one -- so a "first
+            # result with observations" test matched the wrong run every time.
+            signal_target = routed[0] if routed else None
         except ProtectedContainerRefused:
             # 11 §4b, ratified 2026-08-20. NOTHING: no run row, no observation, no
             # status write for anything inside. `continue` the outer loop and never
@@ -240,7 +245,7 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
             # already known, and §8.6 requires it to stay visible AS unfinished.
             results = [dataless_result(file_row=file_row, error=refusal,
                                        source_type=decision.source_type, now=stamp)]
-            signals = ()
+            signals, signal_target = (), None
 
         # §2.9: "Every file leaves the router with exactly one routing decision."
         # The decision existed in memory for one loop iteration and was never stored,
@@ -255,8 +260,9 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
             # caller kept only the runs, so on a real scan the signal never reached
             # the database and P7 would have had nothing to redact against. Keyed on
             # P4's handle, in emit order -- which is only trustworthy since
-            # `observation_keys_for_run` stopped ordering by a uuid4.
-            if signals and result.observations:
+            # `observation_keys_for_run` stopped ordering by a uuid4 -- and only
+            # correct at all since the target became the run that RAISED them.
+            if signals and result is signal_target:
                 record_sensitivity_signals(
                     conn, run_id=run_id, signals=signals,
                     observation_keys=observation_keys_for_run(conn, run_id),

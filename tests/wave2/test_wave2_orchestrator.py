@@ -566,3 +566,55 @@ def test_the_two_refusals_still_propagate_and_are_not_contract_violations():
     from extractors.safety import DatalessRefused, ProtectedContainerRefused
     for refusal in (DatalessRefused, ProtectedContainerRefused):
         assert not issubclass(refusal, ContractViolation), refusal.__name__
+
+
+# ------------------ the sensitivity signal, keyed to the run it came FROM
+#
+# Found by review round 3. Fixing `observation_keys_for_run`'s ordering was necessary
+# and not sufficient: the caller resolved the signals against the WRONG RUN's keys.
+#
+# `results` is built filesystem-first (`results = [extract_filesystem(...)]`, then
+# `results.extend(routed)`), and the filesystem run always has observations — the
+# filename is one. So `if signals and result.observations` matched on the first
+# iteration, every time, and a signal whose `observation_index` is a position in E3's
+# batch was resolved against the FILESYSTEM batch's keys.
+#
+# Same class as the uuid4 ordering defect, one layer up: a positional handle resolved
+# against the wrong list. §2.9's "addresses and message content as potentially
+# sensitive" was recorded against a filename, and P7's redaction would have protected
+# the wrong value.
+
+def test_a_sensitivity_signal_is_keyed_to_the_run_that_raised_it(db, corpus):
+    from extractors.long_tail import LongTailFile, LongTailValue
+
+    card = corpus / "contacts.vcf"
+    card.write_bytes(b"BEGIN:VCARD\nFN:Joseph Yung\nEMAIL:jy@example.com\nEND:VCARD")
+
+    def read_contacts(p, transcribe=False):
+        return LongTailFile(values=(
+            LongTailValue(name="FN", value="Joseph Yung", entry_ordinal=None,
+                          kind="name"),
+            LongTailValue(name="EMAIL", value="jy@example.com", entry_ordinal=None,
+                          kind="email"),
+        ))
+
+    go(db, corpus, readers={"read_long_tail": read_contacts})
+
+    rows = db.execute("SELECT run_id, observation_key, signal "
+                      "FROM extraction_sensitivity_signal").fetchall()
+    assert rows, "§2.9's contacts signal never reached the database"
+
+    for row in rows:
+        run = db.execute("SELECT extractor_name FROM extraction_runs WHERE run_id = ?",
+                         (row["run_id"],)).fetchone()
+        # The signal came from E3, so it must be stored against E3's run.
+        assert run["extractor_name"] == "text.structured", run["extractor_name"]
+        # And the key must name a row on THAT run, not a filename on the indexer's.
+        owner = db.execute(
+            "SELECT run_id, raw_value FROM evidence WHERE observation_key = ?",
+            (row["observation_key"],)).fetchone()
+        assert owner is not None, "the signal names a key no observation carries"
+        assert owner["run_id"] == row["run_id"]
+        assert owner["raw_value"] != "contacts.vcf", (
+            "the signal landed on the filename — it was resolved against the "
+            "filesystem run's keys")
