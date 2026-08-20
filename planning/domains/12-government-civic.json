@@ -93,10 +93,10 @@
    "template": {
     "dimension_order": [
      "authority",
-     "matter or record type",
-     "year"
+     "record type",
+     "issue year"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a record type is only meaningful once the issuing body is known, and a year is only meaningful once the matter is. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, which keeps the year last. §5.9: “It should also support a scoped General or Other branch within a meaningful parent.” — a one-off notice with no matter belongs directly under the authority, not in a deeper invented path",
+    "why": "The issue year is derived from the `issue_date` fact rather than being a field of its own; §5.7 requires the other two levels to be fields, and they are. §5.5: “a parent dimension should provide the context required to understand the child” — a record type is only meaningful once the issuing body is known, and a year is only meaningful once the matter is. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, which keeps the year last. §5.9: “It should also support a scoped General or Other branch within a meaningful parent.” — a one-off notice with no matter belongs directly under the authority, not in a deeper invented path",
     "time_first": false
    },
    "collides_with": [
@@ -213,7 +213,7 @@
      "stage",
      "version"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a stage such as 'options appraisal' means nothing until the policy question is known. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so no date level appears; where a policy runs over years the year belongs inside the version label, not as a folder",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a stage such as 'options appraisal' means nothing until the policy question is known. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so no date level appears; where a policy runs over years the year belongs inside the version label, not as a folder. The policy-area level is backed by an `llm_supported` fact against §3.14's rule that templates use validated facts, so it should be offered only from an existing folder name or a user-confirmed label: §3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”",
     "time_first": false
    },
    "collides_with": [
@@ -446,7 +446,7 @@
      "rule subject",
      "stage"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a stage such as 'final rule' means nothing without the rule, and rule subjects collide across regulators. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so the effective date stays a fact rather than a level",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a stage such as 'final rule' means nothing without the rule, and rule subjects collide across regulators. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so the effective date stays a fact rather than a level. The rule-subject level is backed by an `llm_supported` fact, so it should come from a user-confirmed label rather than from a rule; where none exists the instrument reference is the safer level",
     "time_first": false
    },
    "collides_with": [
@@ -607,6 +607,13 @@
      "why": "§3.8: “The system must separate roles that happen to contain the same entity type.” — an intergovernmental instrument has no our-side/their-side asymmetry, which makes it unusual in this slice: both parties are authorities and the field is plural by nature"
     },
     {
+     "field": "counterparty",
+     "type": "string",
+     "example": "the other public body, seen from the user's own side",
+     "reliability_ceiling": "validated",
+     "why": "§3.8: “The system must separate roles that happen to contain the same entity type.” — `parties` records both sides as the instrument states them; `counterparty` is the role split that makes a folder level possible, because a level named for the user's own body would be a collector with one child"
+    },
+    {
      "field": "agreement_type",
      "type": "string",
      "example": "memorandum of understanding",
@@ -640,6 +647,13 @@
      "example": "the tiers or polities the parties belong to",
      "reliability_ceiling": "possible",
      "why": "This domain cannot be written jurisdiction-neutrally at the level of what the tiers are called — the tiers themselves differ. §3.13 possible: “A possible fact is a useful but insufficient clue”"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "schedule or annex",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — an instrument, its schedules and its variations are different objects that share a title. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -674,10 +688,10 @@
    "template": {
     "dimension_order": [
      "counterparty",
-     "arrangement",
+     "subject",
      "document role"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child”. The order is written from the user's own body outward, because §3.8: “A folder should not become a collection point for everything produced by the same person or organization.” — a level naming the user's own authority would be a collector with exactly one child. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child”. The order is written from the user's own body outward, because §3.8: “A folder should not become a collection point for everything produced by the same person or organization.” — a level naming the user's own authority would be a collector with exactly one child. The subject level is backed by an `llm_supported` fact against §3.14's rule that templates use validated facts, so it should come from a user-confirmed label; where none exists the agreement type is the safer level. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
     "time_first": false
    },
    "collides_with": [
@@ -855,6 +869,13 @@
      "why": "§3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. No format is asserted: award-reference shapes are set per funder and per jurisdiction, and a plausible invented one would be worse than an empty field"
     },
     {
+     "field": "round",
+     "type": "string",
+     "example": "the funding round or cycle as printed on the call",
+     "reliability_ceiling": "validated",
+     "why": "Programmes run in rounds that reuse the same document names, so the round is what stops one year's applications merging into the next. Confirmable from a labeled round or deadline field beside a programme name"
+    },
+    {
      "field": "stage",
      "type": "string",
      "example": "assessment",
@@ -904,7 +925,7 @@
    "template": {
     "dimension_order": [
      "programme",
-     "round or cycle",
+     "round",
      "stage"
     ],
     "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a stage is meaningless without the programme, and programmes run in rounds that reuse the same document names. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so the round rather than the year carries the time signal; where a programme has run once, §5.8: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.”",
@@ -969,8 +990,8 @@
      "field": "procedure_type",
      "type": "string",
      "example": "open procedure",
-     "reliability_ceiling": "validated",
-     "why": "Procedure types are named differently in every procurement regime and some regimes have procedures others lack. The field is retained because it changes what documents should exist, but its values are jurisdiction-defined — see the open question"
+     "reliability_ceiling": "possible",
+     "why": "Procedure types are named differently in every procurement regime and some regimes have procedures others lack, so no allow-list can be shipped and no rule can confirm a value against one. §3.13 possible: “A possible fact is a useful but insufficient clue” is the honest ceiling — see the open question"
     },
     {
      "field": "stage",
@@ -985,6 +1006,13 @@
      "example": "2026-07-15",
      "reliability_ceiling": "direct",
      "why": "§3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled deadline field only. It is the field bidders search on and the one most often mis-parsed from prose"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "specification",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a procurement pack is many documents under one reference, and the role is what makes any of them findable. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -1228,6 +1256,13 @@
      "example": "held by the applicant",
      "reliability_ceiling": "llm_supported",
      "why": "See the open question. This field exists to be honest that the product usually cannot fill it, not because a rule can. §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review” — never a folder dimension"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "decision notice",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a case is a form, drawings, statements, responses and a decision, and the role is the only thing separating them. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -1357,13 +1392,21 @@
      "example": "the address or asset the permission attaches to",
      "reliability_ceiling": "validated",
      "why": "Many permissions attach to a place or a thing rather than to a person, which changes the grouping key entirely. Confirmable only alongside a permit context term"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "licence certificate issued",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a permission file mixes the application, the grant, the conditions and years of inspections. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
     "deterministic": [
      "a licensing term in a title or heading zone — 'licence' | 'license' | 'permit' | 'registration certificate' | 'authorisation' | 'conditions of this licence' — co-occurring with a labeled holder field or a labeled expiry field",
      "a decision structure ('the authority has decided to' | 'granted subject to' | 'refused' | 'notice of variation') co-occurring with an application or licence number field",
-     "an inspection-report structure detected as labeled inspection date and outcome fields co-occurring with a licence number"
+     "an inspection-report structure detected as labeled inspection date and outcome fields co-occurring with a licence number",
+     "an address-shaped premises string or a labeled asset identifier co-occurring with a licensing term in the same document, which is what lets the permission be attached to a place rather than only to a person"
     ],
     "needs_llm": [
      "a reminder or renewal letter with no licence number, identifiable only from prose",
@@ -1484,11 +1527,19 @@
      "example": "held by the requester",
      "reliability_ceiling": "llm_supported",
      "why": "See the open question. §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review”"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "disclosed bundle",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — the request, the response and the bundle are three objects sharing one reference. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
     "deterministic": [
      "an information-rights term in a title or heading zone — 'freedom of information' | 'information request' | 'access to information' | 'request for records' | 'public records request' — co-occurring with a labeled reference field or a public-body name",
+     "a disposition term in a response letter's heading or decision zone — 'disclosed in full' | 'disclosed in part' | 'refused' | 'information not held' | 'transferred' — co-occurring with a labeled request reference, which is what confirms the outcome field",
      "a refusal or exemption structure detected as a labeled exemption or exception citation co-occurring with an information-rights term",
      "a redaction marking pattern (blacked-out regions detected at extraction, or a labeled 'redacted' annotation) co-occurring with a request reference"
     ],
@@ -1608,6 +1659,7 @@
    "recognition": {
     "deterministic": [
      "a statistics context term in a title or heading zone — 'statistical bulletin' | 'census' | 'official statistics' | 'methodology note' | 'quality report' | 'reference period' — co-occurring with a producing-body name or a labeled release-date field",
+     "the programme name taken from the title zone only when a statistics context term is present in the same zone, which is §3.7: “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.” doing the work a gazetteer cannot",
      "a statistical-table structure detected as labeled row and column headers together with a footnote block, co-occurring with a statistics context term. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”"
     ],
     "needs_llm": [
@@ -1698,8 +1750,8 @@
      "field": "electoral_area",
      "type": "string",
      "example": "the district or constituency named on the notice",
-     "reliability_ceiling": "validated",
-     "why": "The area is the second organising dimension; area names and the tiers they belong to are jurisdiction-defined and cannot be enumerated neutrally"
+     "reliability_ceiling": "possible",
+     "why": "The area is the second organising dimension, and it is the clearest case in the slice of a field a rule cannot confirm: an area name has no detectable shape, and the gazetteer that would recognise one is jurisdiction-set and therefore unbuildable until the scope question is answered. §3.13 possible: “A possible fact is a useful but insufficient clue”"
     },
     {
      "field": "function",
@@ -1762,7 +1814,7 @@
      "electoral area",
      "function"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a count record is legible only under its poll and area. The election level looks like a date level and is not: it is an event identifier whose label happens to contain a date, in the same way a photo event's label does. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” still governs the ordering of everything below it",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a count record is legible only under its poll and area. The election level looks like a date level and is not: it is an event identifier whose label happens to contain a date, in the same way a photo event's label does. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” still governs the ordering of everything below it. NOTE that the area level is backed only by a `possible` fact, and §3.14 says templates use validated facts, so this level should be offered only once the user has confirmed the area label",
     "time_first": false
    },
    "collides_with": [
@@ -1819,8 +1871,8 @@
      "field": "electoral_area",
      "type": "string",
      "example": "the district the campaign is contesting",
-     "reliability_ceiling": "validated",
-     "why": "Confirmable only with a campaign or elections term beside it; area names are jurisdiction-defined"
+     "reliability_ceiling": "possible",
+     "why": "Same limit as on gov.elections-administration: an area name has no shape a rule can match and no gazetteer can be shipped without a jurisdiction. §3.13 possible: “A possible fact is a useful but insufficient clue”"
     },
     {
      "field": "poll_date",
@@ -1828,6 +1880,13 @@
      "example": "2026-05-07",
      "reliability_ceiling": "direct",
      "why": "§3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — from a labeled field only. It is the fact that separates one candidacy from the next in the same area"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "canvassing record",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a campaign produces literature, records and returns that share nothing but the campaign. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -1868,7 +1927,7 @@
      "function",
      "document role"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — 'canvassing' is meaningless without the campaign. The organisation does not lead because for most users there is only one, which §5.7 forbids a template that would “use an author or organization merely as a collector” rules out as a level",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — 'canvassing' is meaningless without the campaign. The organisation does not lead because for most users there is only one, which §5.7 forbids a template that would “use an author or organization merely as a collector” rules out as a level. The campaign level is backed by an `llm_supported` fact against §3.14's rule that templates use validated facts, so it should come from an existing folder name or a user-confirmed label rather than from a rule: §3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”, and §5.10: “A carefully curated existing folder should be treated as a strong expression of user intent.”",
     "time_first": false
    },
    "collides_with": [
@@ -1944,14 +2003,22 @@
      "field": "status",
      "type": "string",
      "example": "closed — resolved",
+     "reliability_ceiling": "possible",
+     "why": "Open, awaiting reply, escalated, closed. In a caseload the status is what makes the corpus navigable, and it is also almost never written on any single document — it is a property of the file that a reader infers from the last thing in it. §3.13 possible: “A possible fact is a useful but insufficient clue”"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "letter to body",
      "reliability_ceiling": "validated",
-     "why": "Open, awaiting reply, escalated, closed. In a caseload the status is what makes the corpus navigable at all"
+     "why": "The work-type field, and the template's leaf dimension — a case is an approach, an authorisation, letters both ways and an outcome. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
     "deterministic": [
      "a casework term in a title or heading zone — 'casework' | 'on behalf of my constituent' | 'authority to act' | 'complaint reference' | 'ombudsman' — co-occurring with a labeled case-reference field",
-     "an authorisation-form structure detected as labeled consent and signature fields co-occurring with a representative office name"
+     "an authorisation-form structure detected as labeled consent and signature fields co-occurring with a representative office name",
+     "an authority-shaped name in the addressee zone co-occurring with a casework term in the body, which is what confirms the body approached rather than the office writing"
     ],
     "needs_llm": [
      "an ordinary letter to an authority whose casework character is visible only from the phrase pattern of writing on someone else's behalf",
@@ -2067,7 +2134,8 @@
    "recognition": {
     "deterministic": [
      "a development context term in a title or heading zone — 'implementing partner' | 'logframe' | 'theory of change' | 'annual review' | 'beneficiaries' | 'humanitarian response' — co-occurring with a named programme or a donor-shaped organisation name",
-     "a results-framework structure detected as labeled indicator, baseline and target columns co-occurring with a programme title. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”"
+     "a results-framework structure detected as labeled indicator, baseline and target columns co-occurring with a programme title. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+     "a country name matched on a word boundary against a country list — one of the few gazetteers this slice can ship, because countries are not jurisdiction-relative — co-occurring with a development context term. §3.7: “It should use word-boundary matching rather than substring matching.”"
     ],
     "needs_llm": [
      "a field report whose programme is never named and must be inferred from the activities described",
@@ -2168,6 +2236,13 @@
      "why": "Reporting, engagement, consular assistance and documentary services are different objects with very different sensitivity; the record role is the field that separates them"
     },
     {
+     "field": "matter",
+     "type": "string",
+     "example": "the case or bilateral matter the document belongs to",
+     "reliability_ceiling": "possible",
+     "why": "The template's middle level. It is populated from the case reference where one exists and inferred from the correspondence otherwise, which is why the ceiling is not higher. §3.13 possible: “A possible fact is a useful but insufficient clue”"
+    },
+    {
      "field": "case_reference",
      "type": "string",
      "example": "the post's case reference exactly as printed",
@@ -2218,7 +2293,7 @@
      "record role",
      "matter"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — an assistance note is legible only under the role and the case. State names do not lead because both parties appear on every document and a level named for the sending state would be a collector, which §5.7 forbids a template that would “use an author or organization merely as a collector” forbids",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — an assistance note is legible only under the role and the case. State names do not lead because both parties appear on every document and a level named for the sending state would be a collector, which §5.7 forbids a template that would “use an author or organization merely as a collector” forbids. The middle level is backed by a fact below `validated`, and §3.14 says templates use validated facts, so it should be offered only once the user has confirmed the label.",
     "time_first": false
    },
    "collides_with": [
@@ -2277,6 +2352,13 @@
      "why": "Service record, posting order, discharge, benefit claim, appeal and support record are the recurring set, and the role is what determines the record's lifetime"
     },
     {
+     "field": "matter",
+     "type": "string",
+     "example": "the claim or service episode the document belongs to",
+     "reliability_ceiling": "possible",
+     "why": "The template's middle level, populated from the service or claim reference where one is present and inferred from the correspondence otherwise. §3.13 possible: “A possible fact is a useful but insufficient clue”"
+    },
+    {
      "field": "service_reference",
      "type": "string",
      "example": "the service or claim number exactly as printed",
@@ -2296,6 +2378,13 @@
      "example": "the state whose armed forces the record belongs to",
      "reliability_ceiling": "possible",
      "why": "The document rarely states it because it assumes it. §3.13 possible: “A possible fact is a useful but insufficient clue”"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "medical board record",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a claim file mixes forms, evidence, decisions and appeals. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -2333,10 +2422,10 @@
    "template": {
     "dimension_order": [
      "record role",
-     "matter or claim",
+     "matter",
      "document role"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child”. The service person does not lead: in a veteran's own corpus it would be a one-child collector, which §5.7 forbids a template that would “use an author or organization merely as a collector” forbids, and in an administering body's corpus a level named for a third party puts people's names in the filesystem. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child”. The service person does not lead: in a veteran's own corpus it would be a one-child collector, which §5.7 forbids a template that would “use an author or organization merely as a collector” forbids, and in an administering body's corpus a level named for a third party puts people's names in the filesystem. The middle level is backed by a fact below `validated`, and §3.14 says templates use validated facts, so it should be offered only once the user has confirmed the label. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
     "time_first": false
    },
    "collides_with": [
@@ -2771,7 +2860,8 @@
    "recognition": {
     "deterministic": [
      "a housing context term in a title or heading zone — 'tenancy agreement' | 'rent account' | 'housing application' | 'allocation' | 'repair order' | 'notice seeking possession' — co-occurring with an address-shaped property string or a labeled tenancy reference",
-     "a rent-statement structure detected as labeled charge and balance columns co-occurring with a tenancy reference. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”"
+     "a rent-statement structure detected as labeled charge and balance columns co-occurring with a tenancy reference. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+     "a landlord-shaped organisation name in a letterhead or footer zone co-occurring with a housing context term, which is what confirms the landlord field rather than the property one"
     ],
     "needs_llm": [
      "a letter about a housing issue with no reference and no housing vocabulary",
@@ -2882,7 +2972,8 @@
    "recognition": {
     "deterministic": [
      "a transport context term in a title or heading zone — 'timetable' | 'fares' | 'service specification' | 'road works' | 'traffic order' | 'highway' | 'concession' — co-occurring with an authority-shaped name or a labeled validity period",
-     "a timetable structure detected as a labeled grid of stops against times co-occurring with an operator or route identifier"
+     "a timetable structure detected as a labeled grid of stops against times co-occurring with an operator or route identifier",
+     "a route or asset identifier pattern co-occurring with a transport context term, which is the only way a locally assigned identifier becomes a fact rather than a number"
     ],
     "needs_llm": [
      "an asset condition report whose network element must be read from prose and photographs",
@@ -3007,7 +3098,8 @@
    "recognition": {
     "deterministic": [
      "an environmental context term in a title or heading zone — 'environmental permit' | 'discharge consent' | 'emissions' | 'monitoring return' | 'sampling result' | 'pollution incident' — co-occurring with a labeled permit reference or a named site",
-     "a monitoring-return structure detected as labeled determinand, result and limit columns co-occurring with a permit reference. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”"
+     "a monitoring-return structure detected as labeled determinand, result and limit columns co-occurring with a permit reference. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+     "a regulator-shaped organisation name in a letterhead or issuing zone co-occurring with an environmental permitting term, which is what separates the regulator from the operator named in the same document"
     ],
     "needs_llm": [
      "a laboratory report with no permit reference, whose regulatory purpose must be inferred from the parameters measured",
@@ -3230,6 +3322,13 @@
      "example": "2026-04-22",
      "reliability_ceiling": "direct",
      "why": "§3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled decision or effective date field only"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "determination",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a case is a complaint, an investigation, a hearing bundle and a determination. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -3341,6 +3440,13 @@
      "example": "children's stock",
      "reliability_ceiling": "llm_supported",
      "why": "§3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review” — a search field. Collection divisions are local conventions"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "circulation report",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a function produces plans, records and reports that are not interchangeable. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -3430,8 +3536,8 @@
      "field": "creating_body",
      "type": "string",
      "example": "the body whose activity created the records",
-     "reliability_ceiling": "validated",
-     "why": "§3.8: “Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement.” — archival practice is the one place in this catalogue where that guidance genuinely inverts, because provenance IS the organising principle. The field is retained precisely so the difference is visible"
+     "reliability_ceiling": "direct",
+     "why": "§3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — an archival description carries a labeled creator element, which is a labeled form field in §3.13's sense. §3.8: “Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement.” — archival practice is the one place in this catalogue where that guidance genuinely inverts, because provenance IS the organising principle. The field is retained precisely so the difference is visible"
     },
     {
      "field": "reference_code",
@@ -3451,8 +3557,8 @@
      "field": "closure_status",
      "type": "string",
      "example": "closed until review",
-     "reliability_ceiling": "validated",
-     "why": "Whether material is open, closed or closed-in-part is the fact that governs everything the product may do with it. Closure periods and grounds are jurisdiction-set so no period is asserted"
+     "reliability_ceiling": "direct",
+     "why": "§3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — an archival description carries a labeled access-conditions element. Whether material is open, closed or closed-in-part is the fact that governs everything the product may do with it, and closure periods and grounds are jurisdiction-set so no period is asserted"
     },
     {
      "field": "covering_dates",
@@ -3460,6 +3566,13 @@
      "example": "the covering dates as printed in the description",
      "reliability_ceiling": "direct",
      "why": "§3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. Archival covering dates are frequently approximate or open-ended, which is precisely the case §3.10: “Date extraction should be deliberately narrow.” protects against; the field stores the description's own string rather than a parsed range"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "finding aid",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — an accession record, a description and an access decision describe the same material at different moments. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -3578,6 +3691,13 @@
      "example": "2026-02-18",
      "reliability_ceiling": "direct",
      "why": "§3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled record date only. Object dates are approximate by nature and are not parsed"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "condition report",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — an object file mixes acquisition papers, catalogue records, condition reports and movement records. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -3801,6 +3921,13 @@
      "example": "the academic year exactly as printed",
      "reliability_ceiling": "validated",
      "why": "§3.10: “Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.” — and academic-year boundaries differ by jurisdiction and sometimes by institution"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "minutes",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — an agenda, its papers and its minutes are one meeting's three documents. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -3919,6 +4046,13 @@
      "example": "2026-06-30",
      "reliability_ceiling": "direct",
      "why": "§3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled decision date only"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "panel report",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a review is a submission, evidence, a visit record, a report and a decision. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -4155,6 +4289,13 @@
      "example": "the polity the organisation is registered in",
      "reliability_ceiling": "possible",
      "why": "Legal forms for nonprofits differ so much between systems that the entity type is not translatable. §3.13 possible: “A possible fact is a useful but insufficient clue”"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "board minutes",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a governance year mixes constitutional documents, meeting papers, accounts and returns. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -4271,8 +4412,8 @@
      "field": "restriction",
      "type": "string",
      "example": "restricted to a named project",
-     "reliability_ceiling": "validated",
-     "why": "§3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review”. Whether a gift is restricted governs what may be done with it, and it is the fact that connects a donor record to a grant report"
+     "reliability_ceiling": "direct",
+     "why": "§3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — gift and fund records carry a labeled restricted/unrestricted field. §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review”. Whether a gift is restricted governs what may be done with it, and it is the fact that connects a donor record to a grant report"
     }
    ],
    "recognition": {
@@ -4480,8 +4621,8 @@
      "field": "programme",
      "type": "string",
      "example": "the funding programme the award sits under",
-     "reliability_ceiling": "validated",
-     "why": "Retained so a recipient's reports retrieve alongside the funder's programme records where both exist"
+     "reliability_ceiling": "possible",
+     "why": "Retained so a recipient's reports retrieve alongside the funder's programme records where both exist. A recipient's own reports frequently name the award and not the programme, so the value is usually inferred from the funder rather than read. §3.13 possible: “A possible fact is a useful but insufficient clue”"
     },
     {
      "field": "report_type",
@@ -4501,8 +4642,8 @@
      "field": "restriction",
      "type": "string",
      "example": "restricted to a named activity",
-     "reliability_ceiling": "validated",
-     "why": "§3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review”, and the fact that connects an award to the donor-side restriction record"
+     "reliability_ceiling": "direct",
+     "why": "§3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — conditions of grant carry a labeled restriction. §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review”, and it is the fact that connects an award to the donor-side restriction record"
     }
    ],
    "recognition": {
@@ -4614,6 +4755,13 @@
      "example": "2026-02-01 to 2026-10-31",
      "reliability_ceiling": "possible",
      "why": "Campaign boundaries are rarely stated and are usually inferred from activity, which is exactly §3.13 possible: “A possible fact is a useful but insufficient clue”"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "policy briefing",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a campaign packet is content-incoherent and purpose-coherent, so the role is what makes any single file findable inside it. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -4654,7 +4802,7 @@
      "record role",
      "document role"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a briefing is legible only under its campaign. §5.7 forbids a template that would “use an author or organization merely as a collector” keeps the organisation out of the order for a single-organisation corpus",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a briefing is legible only under its campaign. §5.7 forbids a template that would “use an author or organization merely as a collector” keeps the organisation out of the order for a single-organisation corpus. The campaign level is backed by an `llm_supported` fact, so in practice it comes from an existing folder name or a user-confirmed label rather than from a rule: §3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”, and §5.10: “A carefully curated existing folder should be treated as a strong expression of user intent.”",
     "time_first": false
    },
    "collides_with": [
@@ -4725,6 +4873,13 @@
      "example": "2026-04-18",
      "reliability_ceiling": "direct",
      "why": "§3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled meeting date only"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "meeting note",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — an informal group's files are notes, lists and materials with no other structure. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -4764,7 +4919,7 @@
      "activity or project",
      "document role"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child”. Deliberately shallow: informal corpora are small and §5.8: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.” means a group with one project should be one folder. §5.9: “It should also support a scoped General or Other branch within a meaningful parent.” covers the notes that belong to the group and to nothing narrower",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child”. Deliberately shallow: informal corpora are small and §5.8: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.” means a group with one project should be one folder. §5.9: “It should also support a scoped General or Other branch within a meaningful parent.” covers the notes that belong to the group and to nothing narrower. Both upper levels are `llm_supported`, so both come from an existing folder name or a user-confirmed label rather than from a rule: §3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”",
     "time_first": false
    },
    "collides_with": [
@@ -4833,8 +4988,15 @@
      "field": "property",
      "type": "string",
      "example": "the building or site the record concerns",
+     "reliability_ceiling": "possible",
+     "why": "Buildings work is a large part of this corpus and attaches to a place rather than to the organisation. A building name is a proper noun with no detectable shape and no gazetteer, so no rule can confirm it. §3.13 possible: “A possible fact is a useful but insufficient clue”"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "register entry",
      "reliability_ceiling": "validated",
-     "why": "Buildings work is a large part of this corpus and attaches to a place rather than to the organisation"
+     "why": "The work-type field, and the template's leaf dimension — registers, meeting records and buildings papers share only the institution. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -4946,12 +5108,20 @@
      "example": "the unit or lot the record concerns",
      "reliability_ceiling": "direct",
      "why": "§3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” from a labeled unit field, and deliberately excluded from the template: a folder named for a neighbour's unit is a directory listing of who owes money"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "meeting minutes",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — rules, notices, minutes and accounts are the four things a member actually looks for. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
     "deterministic": [
      "an association term in a title or heading zone — 'residents association' | 'homeowners association' | 'service charge' | 'annual general meeting' | 'covenants' | 'reserve fund' — co-occurring with a scheme or association name",
-     "a dues or service-charge structure detected as labeled unit, charge and balance columns co-occurring with an association name. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”"
+     "a dues or service-charge structure detected as labeled unit, charge and balance columns co-occurring with an association name. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+     "a financial-year pattern co-occurring with an association term and an accounts or budget heading, which is §3.5's model for a deterministic recogniser: “BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context” with the year in place of the course code"
     ],
     "needs_llm": [
      "a notice to residents that reads as ordinary correspondence",
@@ -5065,6 +5235,13 @@
      "example": "the representation case reference as printed",
      "reliability_ceiling": "direct",
      "why": "§3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. Representation cases are casework and carry the same third-party hazard as everything else in this slice that has a case reference"
+    },
+    {
+     "field": "document_role",
+     "type": "string",
+     "example": "collective agreement",
+     "reliability_ceiling": "validated",
+     "why": "The work-type field, and the template's leaf dimension — a branch's files mix membership, meetings, agreements and casework. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use"
     }
    ],
    "recognition": {
@@ -5103,10 +5280,10 @@
    "template": {
     "dimension_order": [
      "record role",
-     "round or case",
+     "case or round",
      "document role"
     ],
-    "why": "§5.5: “a parent dimension should provide the context required to understand the child”. Function leads and the member does not appear as a level, for the same reason as every other casework-bearing domain in this slice. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
+    "why": "§5.5: “a parent dimension should provide the context required to understand the child”. Function leads and the member does not appear as a level, for the same reason as every other casework-bearing domain in this slice. The middle level is populated from `case_reference` where one exists and from `bargaining_round` otherwise, and the second of those is `llm_supported`, so it should be offered only once the user has confirmed the label. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
     "time_first": false
    },
    "collides_with": [

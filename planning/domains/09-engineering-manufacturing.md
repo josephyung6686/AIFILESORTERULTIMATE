@@ -3357,3 +3357,4 @@ Time first: **no**
 `none` — No §2.9 marking. Nothing in this domain's typical file reaches a category §8.4 "The product processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records." — which is the honest reading, and also the slice-wide finding recorded on `eng.engineering-project`: the design's corpus list has no concept of commercial confidentiality, trade secrets or export-controlled technical data, which are the restrictions that actually govern this supercategory. No handling class is set; handling classes are P7's (§8.4).
 
 ---
+

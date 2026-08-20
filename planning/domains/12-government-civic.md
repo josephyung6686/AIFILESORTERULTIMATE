@@ -14,7 +14,7 @@ Contract: [`_CONTRACT.md`](_CONTRACT.md) · Source of truth: [`00-database-agent
 - No thresholds, no scores, no counts, no retention periods. Digits appear only inside `example` values, which are data in the same way the contract's own `BUSIB 4300` is.
 - **No reference number, form number, statute citation, agency acronym or programme name is asserted anywhere in this file.** Where a real corpus would carry one, the `example` describes the string's role instead — *the case reference as printed on the document, retained verbatim*. A plausible-looking invented reference in a shipped catalogue would be worse than an empty field, and this slice is the one where the temptation is strongest.
 
-## Seven findings that apply to the whole slice
+## Eight findings that apply to the whole slice
 
 **1 — Jurisdiction is the defining hazard here, and it is sharper than for tax or law.** For finance and legal practice, jurisdiction changes vocabulary and thresholds around objects that mostly still exist everywhere: a bank statement is a bank statement. For government it changes the objects. Which tier of government performs a function, whether a function exists at all, what its documents are called, which of them are public, and how they are numbered are all set by each polity — and often differ between regions inside one polity. A two-tier local system and a single-tier one do not produce the same papers with different names; they produce different papers. So this slice is written **functionally** everywhere it can be: *a permit application to a local planning authority*, not a named agency; *the statutory return as named*, not a form number; *a body with rule-making power*, not a regulator. Five entries additionally carry an explicit `jurisdiction` field — the branch root, intergovernmental agreements, elections, defence and veterans, and nonprofit governance — always at ceiling `possible`, because a document assumes its jurisdiction rather than stating it.
 
@@ -37,6 +37,8 @@ All three mean the product would be **inferring the user's institutional role fr
 **6 — Three entries produce folder labels more disclosing than their contents.** A folder level named for a political campaign, a religious congregation or a trade union publishes something about the user to anything that lists the directory — a backup, a sync client, a screen-share — that the file inside would reveal only on opening. The product has no notion of a label being more revealing than what it holds. This is raised three times, on `civic.political-campaign`, `npo.religious-institution` and `civic.trade-union`, but **it is one decision, not three**.
 
 **7 — `time_first` is `no` on all forty-four, and the near-misses are instructive.** §5.5 makes capture-based media the exception — "Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material." — and nothing in a public-administration slice is capture-based. Four entries look like exceptions and are not: a council meeting date, an election, an emergency incident and a legislative session all sit at or near the top of their template, but each is an **event or a structural container whose label happens to contain a date**, not a calendar bucket. §5.5's actual rule — "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders." — is satisfied in every one of them. Six entries do carry a period or year as the **last** dimension — the branch root, transport, environmental regulation, public lands, fundraising and volunteering — because monitoring returns, superseded timetables, appeal results and rotas are genuinely serial and otherwise indistinguishable. A period as a leaf is not a period as a root.
+
+**8 — Eleven folder levels in this slice cannot be filled by a rule, and each one says so.** §3.14 is explicit that templates use validated facts to create folder proposals. A policy area, a rule subject, a campaign name, a community group, a bargaining round, an electoral area and a consular or claim matter are all things a corpus contains and no pattern can confirm — they are proper nouns and prose subjects with no detectable shape and, for the electoral case, no shippable gazetteer for the reason finding 1 gives. The catalogue does not quietly promote them: each is marked `possible` or `llm_supported`, and each template that uses one as a level says in its `why` that the level should be offered only from an existing folder name or a user-confirmed label. §3.9's "Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal." and §5.10's "A carefully curated existing folder should be treated as a strong expression of user intent." are what make that route legitimate rather than a workaround. Every other dimension in all forty-four templates is backed by a `direct` or `validated` field of the same name.
 
 ## What this slice deliberately does not own
 
@@ -101,7 +103,7 @@ All three mean the product would be **inferring the user's institutional role fr
 
 A document issued by, or addressed to, a public body that carries an authority and a record type but no more specific governmental sub-domain — the branch root for this slice.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names a governmental domain. §5.1's candidate top-level branches are “Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material” — none of which is a governmental branch. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. This root exists because §3.15: “Other domains remain placeholders until user demand and corpus evidence justify detailed templates.”
 
@@ -148,11 +150,11 @@ A document issued by, or addressed to, a public body that carries an authority a
 
 ### Template (§5)
 
-`authority → matter or record type → year`
+`authority → record type → issue year`
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child” — a record type is only meaningful once the issuing body is known, and a year is only meaningful once the matter is. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, which keeps the year last. §5.9: “It should also support a scoped General or Other branch within a meaningful parent.” — a one-off notice with no matter belongs directly under the authority, not in a deeper invented path
+The issue year is derived from the `issue_date` fact rather than being a field of its own; §5.7 requires the other two levels to be fields, and they are. §5.5: “a parent dimension should provide the context required to understand the child” — a record type is only meaningful once the issuing body is known, and a year is only meaningful once the matter is. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, which keeps the year last. §5.9: “It should also support a scoped General or Other branch within a meaningful parent.” — a one-off notice with no matter belongs directly under the authority, not in a deeper invented path
 
 ### Collides with
 
@@ -177,7 +179,7 @@ Time first: **no**
 
 The working papers by which a public body develops a policy position — options papers, evidence reviews, impact assessments, drafts and the decision that closes them.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names policy work. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Modelled on the design's project-shaped domains: §3.3 gives rules “routing obvious files into plausible domains” and sends the rest to the model
 
@@ -227,7 +229,7 @@ The working papers by which a public body develops a policy position — options
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child” — a stage such as 'options appraisal' means nothing until the policy question is known. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so no date level appears; where a policy runs over years the year belongs inside the version label, not as a folder
+§5.5: “a parent dimension should provide the context required to understand the child” — a stage such as 'options appraisal' means nothing until the policy question is known. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so no date level appears; where a policy runs over years the year belongs inside the version label, not as a folder. The policy-area level is backed by an `llm_supported` fact against §3.14's rule that templates use validated facts, so it should be offered only from an existing folder name or a user-confirmed label: §3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”
 
 ### Collides with
 
@@ -248,7 +250,7 @@ Time first: **no**
 
 Records of a legislature's own business — bills and their versions, amendments, committee papers, evidence, votes and the transcript of proceedings.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names legislative work. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The bill-plus-stage structure is modelled on the design's stage-bearing domains, per §3.3 gives rules “routing obvious files into plausible domains” and sends the rest to the model
 
@@ -323,7 +325,7 @@ Time first: **no**
 
 A regulator's record of making, amending or revoking a rule — the proposal, the supporting analysis, the comments received, the response to them and the final instrument.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names rulemaking. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The proposal-to-final packet is a purpose-coherent group in the sense of §3.9: “The documents are content-incoherent but purpose-coherent.”
 
@@ -373,7 +375,7 @@ A regulator's record of making, amending or revoking a rule — the proposal, th
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child” — a stage such as 'final rule' means nothing without the rule, and rule subjects collide across regulators. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so the effective date stays a fact rather than a level
+§5.5: “a parent dimension should provide the context required to understand the child” — a stage such as 'final rule' means nothing without the rule, and rule subjects collide across regulators. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so the effective date stays a fact rather than a level. The rule-subject level is backed by an `llm_supported` fact, so it should come from a user-confirmed label rather than from a rule; where none exists the instrument reference is the safer level
 
 ### Collides with
 
@@ -394,7 +396,7 @@ Time first: **no**
 
 A structured invitation for public or stakeholder comment and everything it produces — the consultation document, the responses, the analysis and the published outcome.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names consultation. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The consultation packet is content-incoherent and purpose-coherent in the sense of §3.9: “The documents are content-incoherent but purpose-coherent.”
 
@@ -469,7 +471,7 @@ Time first: **no**
 
 Agreements between public bodies — shared-service arrangements, funding transfers between tiers of government, mutual-aid compacts and instruments between states.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names intergovernmental instruments. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental — it names “legal matters” but not agreements between public bodies
 
@@ -478,11 +480,13 @@ Agreements between public bodies — shared-service arrangements, funding transf
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `parties` | string | the public bodies named as parties on the front page | `validated` | §3.8: “The system must separate roles that happen to contain the same entity type.” — an intergovernmental instrument has no our-side/their-side asymmetry, which makes it unusual in this slice: both parties are authorities and the field is plural by nature |
+| `counterparty` | string | the other public body, seen from the user's own side | `validated` | §3.8: “The system must separate roles that happen to contain the same entity type.” — `parties` records both sides as the instrument states them; `counterparty` is the role split that makes a folder level possible, because a level named for the user's own body would be a collector with one child |
 | `agreement_type` | string | memorandum of understanding | `validated` | The instrument's binding character differs sharply between an operational memorandum and a treaty-level instrument, and the type term is the only reliable carrier of that. Confirmable with an agreement-structure term beside it |
 | `subject` | string | shared emergency communications | `llm_supported` | What the agreement covers is prose. §3.5: the model “can only propose facts that belong to the active domain schema, and it must cite exact supporting evidence already extracted from the file.” |
 | `commencement_date` | date | 2026-04-01 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled commencement or entry-into-force field only |
 | `review_or_expiry_date` | date | 2029-03-31 | `direct` | §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review” — a search field that makes an expiring arrangement findable. Direct only when labeled |
 | `jurisdiction` | string | the tiers or polities the parties belong to | `possible` | This domain cannot be written jurisdiction-neutrally at the level of what the tiers are called — the tiers themselves differ. §3.13 possible: “A possible fact is a useful but insufficient clue” |
+| `document_role` | string | schedule or annex | `validated` | The work-type field, and the template's leaf dimension — an instrument, its schedules and its variations are different objects that share a title. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -514,11 +518,11 @@ Agreements between public bodies — shared-service arrangements, funding transf
 
 ### Template (§5)
 
-`counterparty → arrangement → document role`
+`counterparty → subject → document role`
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child”. The order is written from the user's own body outward, because §3.8: “A folder should not become a collection point for everything produced by the same person or organization.” — a level naming the user's own authority would be a collector with exactly one child. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”
+§5.5: “a parent dimension should provide the context required to understand the child”. The order is written from the user's own body outward, because §3.8: “A folder should not become a collection point for everything produced by the same person or organization.” — a level naming the user's own authority would be a collector with exactly one child. The subject level is backed by an `llm_supported` fact against §3.14's rule that templates use validated facts, so it should come from a user-confirmed label; where none exists the agreement type is the safer level. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”
 
 ### Collides with
 
@@ -538,7 +542,7 @@ Time first: **no**
 
 The running record of a local authority as an organisation — meeting agendas and minutes, reports to committee, local budgets, service performance reports and local notices.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names local government. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Modelled on the meeting-cycle shape the design never names but which §5.3: “The product opens an accepted branch and proposes one or more domain templates based on the groups and facts that already belong inside it.” would have to propose for it
 
@@ -613,7 +617,7 @@ Time first: **no**
 
 A funder's record of running a grant programme — the call, the applications received, assessment, award and monitoring of the money it gives out.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names grant administration. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The funder-side/recipient-side split is §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -625,6 +629,7 @@ A funder's record of running a grant programme — the call, the applications re
 | `funder` | string | a public body operating a grant scheme | `validated` | §3.8's worked pair: “A consulting document may mention the author’s firm and the client organization.” transposed onto funding: the funder and the recipient are the pair, and this domain is written from the funder's side. Getting these the wrong way round produces a folder of other people's money |
 | `applicant_or_recipient` | string | the organisation named on the application | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — a labeled applicant field on an application form. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.” is the reason this is worth extracting at all: it lives in a form cell, not in prose |
 | `award_reference` | string | the grant or award reference exactly as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. No format is asserted: award-reference shapes are set per funder and per jurisdiction, and a plausible invented one would be worse than an empty field |
+| `round` | string | the funding round or cycle as printed on the call | `validated` | Programmes run in rounds that reuse the same document names, so the round is what stops one year's applications merging into the next. Confirmable from a labeled round or deadline field beside a programme name |
 | `stage` | string | assessment | `validated` | Call, application, assessment, award, monitoring and closure are the recurring stages, and the stage is what makes an unsuccessful application legible next to a funded one |
 | `grant_period` | date range | 2026-04-01 to 2028-03-31 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — from a labeled period field only. §3.10: “Date extraction should be deliberately narrow.” |
 
@@ -659,7 +664,7 @@ A funder's record of running a grant programme — the call, the applications re
 
 ### Template (§5)
 
-`programme → round or cycle → stage`
+`programme → round → stage`
 
 Time first: **no**
 
@@ -688,7 +693,7 @@ Time first: **no**
 
 A public body's competitive purchase — the notice, the tender documents, the bids received, evaluation and the decision to award.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names procurement. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental names “client engagements” but from the supplier's side, not the buyer's
 
@@ -699,9 +704,10 @@ A public body's competitive purchase — the notice, the tender documents, the b
 | `procurement_title` | string | the title of the requirement as printed on the notice | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — a document title. Procurement notices are reliably titled because they must be findable by bidders |
 | `contracting_authority` | string | a public body running the procurement | `validated` | §3.8: “The system must separate roles that happen to contain the same entity type.” — the buying authority, the bidding suppliers and the incumbent supplier all appear as organisation names in the same pack, and only one of them is this field |
 | `procurement_reference` | string | the tender reference exactly as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. Reference formats are set per jurisdiction and per authority, so the field is a verbatim string with no asserted shape |
-| `procedure_type` | string | open procedure | `validated` | Procedure types are named differently in every procurement regime and some regimes have procedures others lack. The field is retained because it changes what documents should exist, but its values are jurisdiction-defined — see the open question |
+| `procedure_type` | string | open procedure | `possible` | Procedure types are named differently in every procurement regime and some regimes have procedures others lack, so no allow-list can be shipped and no rule can confirm a value against one. §3.13 possible: “A possible fact is a useful but insufficient clue” is the honest ceiling — see the open question |
 | `stage` | string | evaluation | `validated` | Notice, clarification, bid, evaluation, award and standstill are the recurring stages; the stage is what distinguishes a draft specification from the issued one |
 | `submission_deadline` | date | 2026-07-15 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled deadline field only. It is the field bidders search on and the one most often mis-parsed from prose |
+| `document_role` | string | specification | `validated` | The work-type field, and the template's leaf dimension — a procurement pack is many documents under one reference, and the role is what makes any of them findable. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -763,7 +769,7 @@ Time first: **no**
 
 The record of a public contract once awarded — the executed contract, the published award record, variations, performance reporting and closure.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names contract award registers. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental names “legal matters” and “client engagements”; a published award record is neither
 
@@ -834,7 +840,7 @@ Time first: **no**
 
 An application to change the use or fabric of a specific piece of land or property, and everything the deciding authority produces in determining it.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names planning. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The property-plus-case shape follows §3.8: “The system must separate roles that happen to contain the same entity type.”, with the applicant and the deciding authority as the pair
 
@@ -849,6 +855,7 @@ An application to change the use or fabric of a specific piece of land or proper
 | `application_type` | string | change of use | `validated` | Application types are jurisdiction-defined and are not translations of one another; the field is kept because it changes which documents should exist, but its values cannot be enumerated neutrally |
 | `decision` | string | approved with conditions | `validated` | The outcome is what the user is actually looking for years later. Confirmable from a decision-notice structure; a decision recovered from correspondence prose is not |
 | `record_side` | string | held by the applicant | `llm_supported` | See the open question. This field exists to be honest that the product usually cannot fill it, not because a rule can. §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review” — never a folder dimension |
+| `document_role` | string | decision notice | `validated` | The work-type field, and the template's leaf dimension — a case is a form, drawings, statements, responses and a decision, and the role is the only thing separating them. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -913,7 +920,7 @@ Time first: **no**
 
 An authority's record of granting, refusing, varying or revoking permissions to individuals and businesses, and the inspection and enforcement that follows.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names licensing. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Written as the counterpart to the holder-side domain the finance-admin slice already owns, which is §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -928,6 +935,7 @@ An authority's record of granting, refusing, varying or revoking permissions to 
 | `status` | string | granted subject to conditions | `validated` | Granted, refused, varied, suspended, revoked, lapsed. The status is the single fact that decides whether the document still means anything, and it is confirmable from a decision-structure heading |
 | `valid_until` | date | 2027-03-31 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled expiry field only. This is the field that makes a licence surface before it lapses, which is the main reason a user keeps it |
 | `premises_or_asset` | string | the address or asset the permission attaches to | `validated` | Many permissions attach to a place or a thing rather than to a person, which changes the grouping key entirely. Confirmable only alongside a permit context term |
+| `document_role` | string | licence certificate issued | `validated` | The work-type field, and the template's leaf dimension — a permission file mixes the application, the grant, the conditions and years of inspections. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -936,6 +944,7 @@ An authority's record of granting, refusing, varying or revoking permissions to 
 - a licensing term in a title or heading zone — 'licence' | 'license' | 'permit' | 'registration certificate' | 'authorisation' | 'conditions of this licence' — co-occurring with a labeled holder field or a labeled expiry field
 - a decision structure ('the authority has decided to' | 'granted subject to' | 'refused' | 'notice of variation') co-occurring with an application or licence number field
 - an inspection-report structure detected as labeled inspection date and outcome fields co-occurring with a licence number
+- an address-shaped premises string or a labeled asset identifier co-occurring with a licensing term in the same document, which is what lets the permission be attached to a place rather than only to a person
 
 **Needs the LLM** — language interpretation a rule cannot do safely (§3.3, §3.5):
 
@@ -991,7 +1000,7 @@ Time first: **no**
 
 A request for recorded information held by a public body, and the response — including the disclosed material, redactions, refusals and any review or appeal.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names information rights. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The request-and-response pair is §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -1006,12 +1015,14 @@ A request for recorded information held by a public body, and the response — i
 | `outcome` | string | disclosed in part | `validated` | Disclosed, disclosed in part, refused, not held, transferred. This decides whether the bundle beside it is the answer or an explanation of why there is none |
 | `response_date` | date | 2026-08-03 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled response date. Statutory response periods differ by jurisdiction so no period is asserted, only the date |
 | `record_side` | string | held by the requester | `llm_supported` | See the open question. §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review” |
+| `document_role` | string | disclosed bundle | `validated` | The work-type field, and the template's leaf dimension — the request, the response and the bundle are three objects sharing one reference. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
 **Deterministic** — a pattern *plus* corroborating context, never a bare pattern (§3.4, §3.5):
 
 - an information-rights term in a title or heading zone — 'freedom of information' | 'information request' | 'access to information' | 'request for records' | 'public records request' — co-occurring with a labeled reference field or a public-body name
+- a disposition term in a response letter's heading or decision zone — 'disclosed in full' | 'disclosed in part' | 'refused' | 'information not held' | 'transferred' — co-occurring with a labeled request reference, which is what confirms the outcome field
 - a refusal or exemption structure detected as a labeled exemption or exception citation co-occurring with an information-rights term
 - a redaction marking pattern (blacked-out regions detected at extraction, or a labeled 'redacted' annotation) co-occurring with a request reference
 
@@ -1068,7 +1079,7 @@ Time first: **no**
 
 The production of official statistics — the instrument, the collection round, the methodology, the published outputs and the microdata access that surrounds them.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names statistical programmes. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The programme-and-round shape borrows from §3.3 gives rules “routing obvious files into plausible domains” and sends the rest to the model
 
@@ -1088,6 +1099,7 @@ The production of official statistics — the instrument, the collection round, 
 **Deterministic** — a pattern *plus* corroborating context, never a bare pattern (§3.4, §3.5):
 
 - a statistics context term in a title or heading zone — 'statistical bulletin' | 'census' | 'official statistics' | 'methodology note' | 'quality report' | 'reference period' — co-occurring with a producing-body name or a labeled release-date field
+- the programme name taken from the title zone only when a statistics context term is present in the same zone, which is §3.7: “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.” doing the work a gazetteer cannot
 - a statistical-table structure detected as labeled row and column headers together with a footnote block, co-occurring with a statistics context term. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”
 
 **Needs the LLM** — language interpretation a rule cannot do safely (§3.3, §3.5):
@@ -1143,7 +1155,7 @@ Time first: **no**
 
 The conduct of an election or referendum by the body responsible for it — registration, nominations, ballots, polling operations, counting and declaration.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names elections. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Modelled as an event-shaped administrative domain, which §5.3: “The product opens an accepted branch and proposes one or more domain templates based on the groups and facts that already belong inside it.” would have to propose from the evidence
 
@@ -1153,7 +1165,7 @@ The conduct of an election or referendum by the body responsible for it — regi
 |---|---|---|---|---|
 | `election` | string | the name of the poll as printed on its notice | `validated` | The poll is the event everything belongs to. Its label almost always embeds a date, which is why the template's first level is an event rather than a year |
 | `administering_body` | string | the body responsible for conducting the poll | `validated` | §3.8: “The system must separate roles that happen to contain the same entity type.” — the administering body, the candidates, the parties and the observers all appear as names in the same pack and only one is this field |
-| `electoral_area` | string | the district or constituency named on the notice | `validated` | The area is the second organising dimension; area names and the tiers they belong to are jurisdiction-defined and cannot be enumerated neutrally |
+| `electoral_area` | string | the district or constituency named on the notice | `possible` | The area is the second organising dimension, and it is the clearest case in the slice of a field a rule cannot confirm: an area name has no detectable shape, and the gazetteer that would recognise one is jurisdiction-set and therefore unbuildable until the scope question is answered. §3.13 possible: “A possible fact is a useful but insufficient clue” |
 | `function` | string | nomination | `validated` | Registration, nomination, ballot production, postal voting, polling, counting and declaration are the recurring functions, and the function is the work-type field for this domain |
 | `poll_date` | date | 2026-05-07 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled date of poll only. §3.10: “Date extraction should be deliberately narrow.” |
 | `jurisdiction` | string | the polity whose electoral law governs the poll | `possible` | Electoral systems differ in every dimension that matters here — who administers, what documents exist, what may be published. §3.13 possible: “A possible fact is a useful but insufficient clue” |
@@ -1193,7 +1205,7 @@ The conduct of an election or referendum by the body responsible for it — regi
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child” — a count record is legible only under its poll and area. The election level looks like a date level and is not: it is an event identifier whose label happens to contain a date, in the same way a photo event's label does. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” still governs the ordering of everything below it
+§5.5: “a parent dimension should provide the context required to understand the child” — a count record is legible only under its poll and area. The election level looks like a date level and is not: it is an event identifier whose label happens to contain a date, in the same way a photo event's label does. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” still governs the ordering of everything below it. NOTE that the area level is backed only by a `possible` fact, and §3.14 says templates use validated facts, so this level should be offered only once the user has confirmed the area label
 
 ### Collides with
 
@@ -1217,7 +1229,7 @@ Time first: **no**
 
 The files of running for office or organising a party or campaign — nominations, canvassing, literature, volunteers, donations and regulated spending returns.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names political activity. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Structurally a campaign in the sense the career slice uses for a job-search campaign, per §3.3 gives rules “routing obvious files into plausible domains” and sends the rest to the model
 
@@ -1228,8 +1240,9 @@ The files of running for office or organising a party or campaign — nomination
 | `campaign` | string | the campaign or candidacy as the user names it | `llm_supported` | A campaign rarely names itself in a labeled field; it is named in prose and in folder names. §3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.” — an existing folder is often the strongest evidence this domain has |
 | `organisation` | string | the party, campaign committee or independent candidacy | `validated` | §3.8: “The system must separate roles that happen to contain the same entity type.” — the campaigning organisation, the regulator receiving its returns and the printer named on its literature are three different roles |
 | `function` | string | canvassing | `validated` | Nomination, canvassing, literature, events, fundraising, volunteers and compliance returns are the recurring functions and the work-type field for this domain |
-| `electoral_area` | string | the district the campaign is contesting | `validated` | Confirmable only with a campaign or elections term beside it; area names are jurisdiction-defined |
+| `electoral_area` | string | the district the campaign is contesting | `possible` | Same limit as on gov.elections-administration: an area name has no shape a rule can match and no gazetteer can be shipped without a jurisdiction. §3.13 possible: “A possible fact is a useful but insufficient clue” |
 | `poll_date` | date | 2026-05-07 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — from a labeled field only. It is the fact that separates one candidacy from the next in the same area |
+| `document_role` | string | canvassing record | `validated` | The work-type field, and the template's leaf dimension — a campaign produces literature, records and returns that share nothing but the campaign. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -1266,7 +1279,7 @@ The files of running for office or organising a party or campaign — nomination
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child” — 'canvassing' is meaningless without the campaign. The organisation does not lead because for most users there is only one, which §5.7 forbids a template that would “use an author or organization merely as a collector” rules out as a level
+§5.5: “a parent dimension should provide the context required to understand the child” — 'canvassing' is meaningless without the campaign. The organisation does not lead because for most users there is only one, which §5.7 forbids a template that would “use an author or organization merely as a collector” rules out as a level. The campaign level is backed by an `llm_supported` fact against §3.14's rule that templates use validated facts, so it should come from an existing folder name or a user-confirmed label rather than from a rule: §3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”, and §5.10: “A carefully curated existing folder should be treated as a strong expression of user intent.”
 
 ### Collides with
 
@@ -1291,7 +1304,7 @@ Time first: **no**
 
 An elected representative's or ombudsman's office handling an individual's problem with a public body — the approach, the authorisation, the correspondence chased and the outcome.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names casework. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The case-per-person shape mirrors the law slice's matter file, which is itself an §3.3 gives rules “routing obvious files into plausible domains” and sends the rest to the model case
 
@@ -1304,7 +1317,8 @@ An elected representative's or ombudsman's office handling an individual's probl
 | `representative_office` | string | the office handling the case | `validated` | §3.8's worked pair: “A consulting document may mention the author’s firm and the client organization.” |
 | `issue_category` | string | housing repairs | `llm_supported` | What the case is about is prose, and the categories offices use are local conventions. §3.5: the model “can only propose facts that belong to the active domain schema, and it must cite exact supporting evidence already extracted from the file.” |
 | `body_approached` | string | the public body the office wrote to | `validated` | The third role. It is the field that connects a casework file to the authority-side record of the same complaint |
-| `status` | string | closed — resolved | `validated` | Open, awaiting reply, escalated, closed. In a caseload the status is what makes the corpus navigable at all |
+| `status` | string | closed — resolved | `possible` | Open, awaiting reply, escalated, closed. In a caseload the status is what makes the corpus navigable, and it is also almost never written on any single document — it is a property of the file that a reader infers from the last thing in it. §3.13 possible: “A possible fact is a useful but insufficient clue” |
+| `document_role` | string | letter to body | `validated` | The work-type field, and the template's leaf dimension — a case is an approach, an authorisation, letters both ways and an outcome. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -1312,6 +1326,7 @@ An elected representative's or ombudsman's office handling an individual's probl
 
 - a casework term in a title or heading zone — 'casework' | 'on behalf of my constituent' | 'authority to act' | 'complaint reference' | 'ombudsman' — co-occurring with a labeled case-reference field
 - an authorisation-form structure detected as labeled consent and signature fields co-occurring with a representative office name
+- an authority-shaped name in the addressee zone co-occurring with a casework term in the body, which is what confirms the body approached rather than the office writing
 
 **Needs the LLM** — language interpretation a rule cannot do safely (§3.3, §3.5):
 
@@ -1366,7 +1381,7 @@ Deliberately shallow. §5.5: “a parent dimension should provide the context re
 
 A funded development or humanitarian programme delivered in another country — the design, the implementing agreement, delivery reporting, monitoring and evaluation.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names development programmes. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The programme-plus-partner shape follows §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -1387,6 +1402,7 @@ A funded development or humanitarian programme delivered in another country — 
 
 - a development context term in a title or heading zone — 'implementing partner' | 'logframe' | 'theory of change' | 'annual review' | 'beneficiaries' | 'humanitarian response' — co-occurring with a named programme or a donor-shaped organisation name
 - a results-framework structure detected as labeled indicator, baseline and target columns co-occurring with a programme title. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”
+- a country name matched on a word boundary against a country list — one of the few gazetteers this slice can ship, because countries are not jurisdiction-relative — co-occurring with a development context term. §3.7: “It should use word-boundary matching rather than substring matching.”
 
 **Needs the LLM** — language interpretation a rule cannot do safely (§3.3, §3.5):
 
@@ -1437,7 +1453,7 @@ Time first: **no**
 
 The records of a diplomatic mission or consular post — reporting to the sending state, engagement with the host state, and assistance or documentary services provided to nationals.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names diplomatic material. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Written functionally throughout because the document types are defined entirely by the sending state's practice
 
@@ -1449,6 +1465,7 @@ The records of a diplomatic mission or consular post — reporting to the sendin
 | `sending_state` | string | the state the mission represents | `validated` | §3.8: “The system must separate roles that happen to contain the same entity type.” — sending state, host state and the national being assisted are three roles whose names all appear on the same page. Collapsing the first two is the characteristic error |
 | `host_state` | string | the state the mission is accredited to | `validated` | §3.8's worked pair: “A consulting document may mention the author’s firm and the client organization.” transposed onto missions |
 | `record_role` | string | consular assistance case | `validated` | Reporting, engagement, consular assistance and documentary services are different objects with very different sensitivity; the record role is the field that separates them |
+| `matter` | string | the case or bilateral matter the document belongs to | `possible` | The template's middle level. It is populated from the case reference where one exists and inferred from the correspondence otherwise, which is why the ceiling is not higher. §3.13 possible: “A possible fact is a useful but insufficient clue” |
 | `case_reference` | string | the post's case reference exactly as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. No format asserted |
 | `date` | date | 2026-02-09 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled date field only |
 
@@ -1487,7 +1504,7 @@ The records of a diplomatic mission or consular post — reporting to the sendin
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child” — an assistance note is legible only under the role and the case. State names do not lead because both parties appear on every document and a level named for the sending state would be a collector, which §5.7 forbids a template that would “use an author or organization merely as a collector” forbids
+§5.5: “a parent dimension should provide the context required to understand the child” — an assistance note is legible only under the role and the case. State names do not lead because both parties appear on every document and a level named for the sending state would be a collector, which §5.7 forbids a template that would “use an author or organization merely as a collector” forbids. The middle level is backed by a fact below `validated`, and §3.14 says templates use validated facts, so it should be offered only once the user has confirmed the label.
 
 ### Collides with
 
@@ -1512,7 +1529,7 @@ Time first: **no**
 
 The administrative record of military service and of the entitlements that follow it — service records, postings, discharge, benefit claims and veteran support.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names defence or veterans' administration. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Written functionally: rank structures, benefit schemes and discharge vocabularies are defined per state
 
@@ -1523,9 +1540,11 @@ The administrative record of military service and of the entitlements that follo
 | `service_person` | string | the named individual the record concerns | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — a labeled name field on a service or claim document. For a veteran's own corpus this is the user; for an administering body's corpus it is a third party, which is the same split the whole slice carries |
 | `administering_body` | string | the department or agency administering the entitlement | `validated` | §3.8: “The system must separate roles that happen to contain the same entity type.” — the service branch that employed the person and the body that administers their benefits are usually different organisations |
 | `record_role` | string | discharge record | `validated` | Service record, posting order, discharge, benefit claim, appeal and support record are the recurring set, and the role is what determines the record's lifetime |
+| `matter` | string | the claim or service episode the document belongs to | `possible` | The template's middle level, populated from the service or claim reference where one is present and inferred from the correspondence otherwise. §3.13 possible: “A possible fact is a useful but insufficient clue” |
 | `service_reference` | string | the service or claim number exactly as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. Deliberately without a format: service-number schemes are per state and per branch, and inventing one would be a fabrication in a domain where a wrong number has consequences |
 | `service_period` | date range | 2008-09-01 to 2020-06-30 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — labeled enlistment and discharge fields only |
 | `jurisdiction` | string | the state whose armed forces the record belongs to | `possible` | The document rarely states it because it assumes it. §3.13 possible: “A possible fact is a useful but insufficient clue” |
+| `document_role` | string | medical board record | `validated` | The work-type field, and the template's leaf dimension — a claim file mixes forms, evidence, decisions and appeals. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -1558,11 +1577,11 @@ The administrative record of military service and of the entitlements that follo
 
 ### Template (§5)
 
-`record role → matter or claim → document role`
+`record role → matter → document role`
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child”. The service person does not lead: in a veteran's own corpus it would be a one-child collector, which §5.7 forbids a template that would “use an author or organization merely as a collector” forbids, and in an administering body's corpus a level named for a third party puts people's names in the filesystem. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”
+§5.5: “a parent dimension should provide the context required to understand the child”. The service person does not lead: in a veteran's own corpus it would be a one-child collector, which §5.7 forbids a template that would “use an author or organization merely as a collector” forbids, and in an administering body's corpus a level named for a third party puts people's names in the filesystem. The middle level is backed by a fact below `validated`, and §3.14 says templates use validated facts, so it should be offered only once the user has confirmed the label. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”
 
 ### Collides with
 
@@ -1583,7 +1602,7 @@ Time first: **no**
 
 Preparing for and responding to incidents — risk assessments, plans, exercises, live incident logs, situation reports and post-incident review.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names emergency management. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The incident-as-event shape is the nearest thing in the slice to the design's photo-event pattern, though it is not capture-based
 
@@ -1654,7 +1673,7 @@ Time first: **no**
 
 Population-level health functions run by a public body — surveillance and notification, immunisation and screening programmes, outbreak management, inspection and health protection guidance.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names public health administration. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Distinguished from the healthcare slice's clinical domains by having a population rather than a patient as its subject
 
@@ -1725,7 +1744,7 @@ Time first: **no**
 
 A statutory service's file on a named person or household — assessment, eligibility, plan, review and the correspondence and decisions in between.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names social services. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The case-per-person shape follows the same pattern as the law slice's matter file
 
@@ -1800,7 +1819,7 @@ Deliberately two levels. §5.5: “a parent dimension should provide the context
 
 A social landlord's or housing authority's record of allocating and managing homes — applications, tenancies, rent accounts, repairs, and estate management.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names housing administration. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Written as the landlord-side counterpart to the personal slice's tenure domain, which is §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -1821,6 +1840,7 @@ A social landlord's or housing authority's record of allocating and managing hom
 
 - a housing context term in a title or heading zone — 'tenancy agreement' | 'rent account' | 'housing application' | 'allocation' | 'repair order' | 'notice seeking possession' — co-occurring with an address-shaped property string or a labeled tenancy reference
 - a rent-statement structure detected as labeled charge and balance columns co-occurring with a tenancy reference. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”
+- a landlord-shaped organisation name in a letterhead or footer zone co-occurring with a housing context term, which is what confirms the landlord field rather than the property one
 
 **Needs the LLM** — language interpretation a rule cannot do safely (§3.3, §3.5):
 
@@ -1871,7 +1891,7 @@ Time first: **no**
 
 A transport authority's record of running a network — service specifications and contracts, timetables and fares, asset and highway records, works notices and passenger casework.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names transport administration. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Written functionally because which body owns roads, rail, parking and licensing differs completely between systems
 
@@ -1891,6 +1911,7 @@ A transport authority's record of running a network — service specifications a
 
 - a transport context term in a title or heading zone — 'timetable' | 'fares' | 'service specification' | 'road works' | 'traffic order' | 'highway' | 'concession' — co-occurring with an authority-shaped name or a labeled validity period
 - a timetable structure detected as a labeled grid of stops against times co-occurring with an operator or route identifier
+- a route or asset identifier pattern co-occurring with a transport context term, which is the only way a locally assigned identifier becomes a fact rather than a number
 
 **Needs the LLM** — language interpretation a rule cannot do safely (§3.3, §3.5):
 
@@ -1941,7 +1962,7 @@ Time first: **no**
 
 A regulator's control of environmental impact — permits with conditions, monitoring returns, sampling and inspection results, incidents and enforcement.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names environmental regulation. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Distinguished from general licensing by carrying a monitoring stream, which is §3.11: “It should then activate domain-specific schemas only when the evidence indicates that a domain is plausible.”
 
@@ -1963,6 +1984,7 @@ A regulator's control of environmental impact — permits with conditions, monit
 
 - an environmental context term in a title or heading zone — 'environmental permit' | 'discharge consent' | 'emissions' | 'monitoring return' | 'sampling result' | 'pollution incident' — co-occurring with a labeled permit reference or a named site
 - a monitoring-return structure detected as labeled determinand, result and limit columns co-occurring with a permit reference. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”
+- a regulator-shaped organisation name in a letterhead or issuing zone co-occurring with an environmental permitting term, which is what separates the regulator from the operator named in the same document
 
 **Needs the LLM** — language interpretation a rule cannot do safely (§3.3, §3.5):
 
@@ -2013,7 +2035,7 @@ Time first: **no**
 
 The management of land or a site held for public benefit — designation, management plans, access and permissions, conservation works, and visitor operations.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names land management. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Written functionally because designation regimes and the tier holding the land differ per jurisdiction
 
@@ -2083,7 +2105,7 @@ Time first: **no**
 
 A regulator's record of controlling entry to and conduct within a profession — registration, renewal, continuing-competence audit, complaints and fitness-to-practise decisions.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names professional regulation. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Written as the regulator-side counterpart to the registrant-side domains the career, healthcare and law slices already own, which is §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -2097,6 +2119,7 @@ A regulator's record of controlling entry to and conduct within a profession —
 | `record_role` | string | fitness-to-practise decision | `validated` | Application, registration, renewal, competence audit, complaint, investigation and determination are the recurring set, and they run from routine to career-ending |
 | `status` | string | registered with conditions | `validated` | Registered, lapsed, suspended, conditions imposed, removed. The status is the fact the register exists to publish |
 | `decision_date` | date | 2026-04-22 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled decision or effective date field only |
+| `document_role` | string | determination | `validated` | The work-type field, and the template's leaf dimension — a case is a complaint, an investigation, a hearing bundle and a determination. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -2154,7 +2177,7 @@ Time first: **no**
 
 Running a library service — stock selection and cataloguing, membership and circulation, programming and events, and service performance.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names libraries. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Kept separate from archives because the two have different organising units — an item held in many copies versus a unique record in a series
 
@@ -2167,6 +2190,7 @@ Running a library service — stock selection and cataloguing, membership and ci
 | `catalogue_identifier` | string | the local catalogue or accession identifier as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — a labeled catalogue field. Bibliographic identifiers proper belong to the item, not to the administration of it, which is why the field is named for the local record |
 | `reporting_period` | date range | 2026-04-01 to 2027-03-31 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — labeled period fields only |
 | `collection_area` | string | children's stock | `llm_supported` | §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review” — a search field. Collection divisions are local conventions |
+| `document_role` | string | circulation report | `validated` | The work-type field, and the template's leaf dimension — a function produces plans, records and reports that are not interchangeable. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -2223,7 +2247,7 @@ Time first: **no**
 
 Custody of records as evidence — accession and appraisal, arrangement and description, retention scheduling, preservation, and controlled access to closed material.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names archives. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The design's own §8 fixity discipline is the nearest thing it says to archival practice
 
@@ -2233,11 +2257,12 @@ Custody of records as evidence — accession and appraisal, arrangement and desc
 |---|---|---|---|---|
 | `collection_or_series` | string | the collection or series as named in the description | `validated` | Archival material is described in hierarchies, and the series is the level at which meaning lives. Confirmable with an archival context term beside it |
 | `repository` | string | the repository holding the material | `validated` | §3.8: “The system must separate roles that happen to contain the same entity type.” — the repository, the creating body and the depositor are three roles, and the creating body is the one that gives the records their meaning |
-| `creating_body` | string | the body whose activity created the records | `validated` | §3.8: “Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement.” — archival practice is the one place in this catalogue where that guidance genuinely inverts, because provenance IS the organising principle. The field is retained precisely so the difference is visible |
+| `creating_body` | string | the body whose activity created the records | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — an archival description carries a labeled creator element, which is a labeled form field in §3.13's sense. §3.8: “Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement.” — archival practice is the one place in this catalogue where that guidance genuinely inverts, because provenance IS the organising principle. The field is retained precisely so the difference is visible |
 | `reference_code` | string | the archival reference exactly as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. Reference schemes are repository-specific and hierarchical; the field stores the string verbatim |
 | `record_role` | string | finding aid | `validated` | Accession record, appraisal note, finding aid, retention schedule, preservation record and access decision are the recurring set |
-| `closure_status` | string | closed until review | `validated` | Whether material is open, closed or closed-in-part is the fact that governs everything the product may do with it. Closure periods and grounds are jurisdiction-set so no period is asserted |
+| `closure_status` | string | closed until review | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — an archival description carries a labeled access-conditions element. Whether material is open, closed or closed-in-part is the fact that governs everything the product may do with it, and closure periods and grounds are jurisdiction-set so no period is asserted |
 | `covering_dates` | string | the covering dates as printed in the description | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. Archival covering dates are frequently approximate or open-ended, which is precisely the case §3.10: “Date extraction should be deliberately narrow.” protects against; the field stores the description's own string rather than a parsed range |
+| `document_role` | string | finding aid | `validated` | The work-type field, and the template's leaf dimension — an accession record, a description and an access decision describe the same material at different moments. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -2299,7 +2324,7 @@ Time first: **no**
 
 Managing objects held in a collection — acquisition, cataloguing, condition and conservation, location and movement, loans and exhibition, and disposal.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names collections. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The object-as-unit shape is distinct from both the library item and the archival series
 
@@ -2313,6 +2338,7 @@ Managing objects held in a collection — acquisition, cataloguing, condition an
 | `maker_or_origin` | string | the maker or origin as recorded | `llm_supported` | §3.8: “It should avoid using authorship or creator identity as a destination dimension.” — the maker is retained as a fact for retrieval and kept out of the template for that reason |
 | `exhibition_or_loan` | string | the exhibition or loan the record belongs to | `validated` | Loans and exhibitions are the projects of this domain and the reason most of its paperwork exists |
 | `record_date` | date | 2026-02-18 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled record date only. Object dates are approximate by nature and are not parsed |
+| `document_role` | string | condition report | `validated` | The work-type field, and the template's leaf dimension — an object file mixes acquisition papers, catalogue records, condition reports and movement records. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -2374,7 +2400,7 @@ Time first: **no**
 
 The administration of schools by a district, board or local education authority — admissions, statutory returns, funding allocation, staffing, inspection and school improvement.
 
-**Provenance:** **inference** — extends a domain the design names
+**Provenance:** **inference** — extends the fields of a domain the design does name
 
 **Cite:** No design sentence names education administration. §3.11 names the student-facing schema — “Academic files may use school, term, course, instructor, and work type.” — and this domain is the institution's side, which the design does not describe
 
@@ -2444,7 +2470,7 @@ Time first: **no**
 
 Running an educational institution as an organisation — governing-body business, statutes and policy, registry operations, quality assurance and institutional reporting.
 
-**Provenance:** **inference** — extends a domain the design names
+**Provenance:** **inference** — extends the fields of a domain the design does name
 
 **Cite:** No design sentence names institutional administration. §3.11's academic schema — “Academic files may use school, term, course, instructor, and work type.” — describes coursework, not the institution's own business, and §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental names “academic programs” from the student's side
 
@@ -2457,6 +2483,7 @@ Running an educational institution as an organisation — governing-body busines
 | `function` | string | quality assurance | `validated` | Governance, statutes and policy, registry, quality assurance, institutional reporting and estates are the recurring functions |
 | `meeting_or_cycle` | string | the meeting or reporting cycle as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — a labeled meeting or cycle field in a header zone |
 | `academic_year` | string | the academic year exactly as printed | `validated` | §3.10: “Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.” — and academic-year boundaries differ by jurisdiction and sometimes by institution |
+| `document_role` | string | minutes | `validated` | The work-type field, and the template's leaf dimension — an agenda, its papers and its minutes are one meeting's three documents. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -2518,7 +2545,7 @@ Time first: **no**
 
 An accrediting or quality-assurance body's record of reviewing an institution or programme — standards, submissions received, review visits, findings and decisions.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names accreditation bodies. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Written as the assessor-side counterpart to the institution-side domain the education slice already owns, which is §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -2532,6 +2559,7 @@ An accrediting or quality-assurance body's record of reviewing an institution or
 | `record_role` | string | review panel report | `validated` | Standards, self-assessment received, evidence, visit record, panel report, decision and condition-monitoring are the recurring set |
 | `outcome` | string | accredited with conditions | `validated` | The decision is what the whole file exists to produce, and it is confirmable from a decision-structure heading |
 | `decision_date` | date | 2026-06-30 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled decision date only |
+| `document_role` | string | panel report | `validated` | The work-type field, and the template's leaf dimension — a review is a submission, evidence, a visit record, a report and a decision. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -2589,7 +2617,7 @@ Time first: **no**
 
 The process by which a standards organisation develops and maintains a voluntary standard — committees, working drafts, ballots and comment resolution, publication and review.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names standards bodies. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The draft-ballot-publish cycle is a stage-bearing process in the sense of §3.3 gives rules “routing obvious files into plausible domains” and sends the rest to the model
 
@@ -2664,7 +2692,7 @@ Time first: **no**
 
 The constitutional and board-level record of a nonprofit — governing document, registration, trustee or board business, policies, annual reporting and regulatory returns.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names nonprofit governance. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Distinct from the corporate domains the finance-admin slice owns because the governing document, the regulator and the reporting duties are different objects
 
@@ -2678,6 +2706,7 @@ The constitutional and board-level record of a nonprofit — governing document,
 | `record_role` | string | annual report and accounts | `validated` | Governing document, board papers, policy, annual report, regulatory return and audit are the recurring set |
 | `financial_year` | string | the financial year exactly as printed | `validated` | Nonprofit financial years are chosen by the organisation and rarely align to a calendar year, which is why the field stores the printed string. §3.10 is explicit that file names and documents “frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values” |
 | `jurisdiction` | string | the polity the organisation is registered in | `possible` | Legal forms for nonprofits differ so much between systems that the entity type is not translatable. §3.13 possible: “A possible fact is a useful but insufficient clue” |
+| `document_role` | string | board minutes | `validated` | The work-type field, and the template's leaf dimension — a governance year mixes constitutional documents, meeting papers, accounts and returns. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -2739,7 +2768,7 @@ Time first: **no**
 
 Raising money from supporters and recording who gave — appeals and campaigns, donor and gift records, tax-relief claims, events, and stewardship.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names fundraising. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Written as the recipient-organisation counterpart to the finance-admin slice's giving domain, which is §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -2752,7 +2781,7 @@ Raising money from supporters and recording who gave — appeals and campaigns, 
 | `record_role` | string | gift record | `validated` | Appeal material, gift record, pledge, tax-relief claim, event record and stewardship communication are the recurring set |
 | `donor` | string | the supporter named on the gift record | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” from a labeled donor field, and deliberately excluded from the template: a folder named for a donor is disclosure by directory listing, and §3.8: “A folder should not become a collection point for everything produced by the same person or organization.” |
 | `campaign_period` | date range | 2026-11-01 to 2026-12-31 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — labeled appeal-period fields only |
-| `restriction` | string | restricted to a named project | `validated` | §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review”. Whether a gift is restricted governs what may be done with it, and it is the fact that connects a donor record to a grant report |
+| `restriction` | string | restricted to a named project | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — gift and fund records carry a labeled restricted/unrestricted field. §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review”. Whether a gift is restricted governs what may be done with it, and it is the fact that connects a donor record to a grant report |
 
 ### Recognition
 
@@ -2810,7 +2839,7 @@ Time first: **no**
 
 Recruiting, checking, deploying and supporting volunteers — roles, applications and references, background checks, training, rotas, hours and recognition.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names volunteering from the organisation's side. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Structurally the recruiting shape the career slice owns, applied to unpaid roles, per §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -2880,7 +2909,7 @@ Time first: **no**
 
 What a funded organisation owes its funder after the award — narrative and financial reports, claims and drawdowns, variation requests, monitoring visits and closure.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names recipient-side reporting. §3.11's schema list names no grant fields at all. The research slice owns the research case; §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental names research workflows but no general grant workflow
 
@@ -2890,10 +2919,10 @@ What a funded organisation owes its funder after the award — narrative and fin
 |---|---|---|---|---|
 | `award_reference` | string | the funder's award reference exactly as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — a labeled award field, and the key that connects everything in this domain to the funder's own file. No format asserted |
 | `funder` | string | the body that made the award | `validated` | §3.8's worked pair: “A consulting document may mention the author’s firm and the client organization.” — funder and recipient, seen from the recipient's end |
-| `programme` | string | the funding programme the award sits under | `validated` | Retained so a recipient's reports retrieve alongside the funder's programme records where both exist |
+| `programme` | string | the funding programme the award sits under | `possible` | Retained so a recipient's reports retrieve alongside the funder's programme records where both exist. A recipient's own reports frequently name the award and not the programme, so the value is usually inferred from the funder rather than read. §3.13 possible: “A possible fact is a useful but insufficient clue” |
 | `report_type` | string | narrative report | `validated` | Narrative report, financial report, claim, variation request, monitoring visit note and closure report are the recurring set, and mixing narrative with financial is the characteristic filing error |
 | `reporting_period` | date range | 2026-04-01 to 2026-09-30 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — labeled period fields only. Reports are serial and near-identical, so the period is the only thing that distinguishes them |
-| `restriction` | string | restricted to a named activity | `validated` | §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review”, and the fact that connects an award to the donor-side restriction record |
+| `restriction` | string | restricted to a named activity | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” — conditions of grant carry a labeled restriction. §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review”, and it is the fact that connects an award to the donor-side restriction record |
 
 ### Recognition
 
@@ -2951,7 +2980,7 @@ Time first: **no**
 
 Organised effort to change a decision or policy — campaign strategy, research and briefings, submissions, media and public materials, supporter mobilisation and outcome.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names advocacy. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Held together by purpose rather than content, which is §3.9: “Purpose must be a first-class facet.”
 
@@ -2964,6 +2993,7 @@ Organised effort to change a decision or policy — campaign strategy, research 
 | `target_decision` | string | the decision or policy the campaign seeks to change | `llm_supported` | §3.9: “Topic answers what a file is about, while purpose answers what the file was for.” — the target is the purpose and it is almost never a labeled field. §3.5: the model “can only propose facts that belong to the active domain schema, and it must cite exact supporting evidence already extracted from the file.” |
 | `record_role` | string | briefing | `validated` | Strategy, research, briefing, submission, media material, supporter communication and outcome record are the recurring set |
 | `campaign_period` | date range | 2026-02-01 to 2026-10-31 | `possible` | Campaign boundaries are rarely stated and are usually inferred from activity, which is exactly §3.13 possible: “A possible fact is a useful but insufficient clue” |
+| `document_role` | string | policy briefing | `validated` | The work-type field, and the template's leaf dimension — a campaign packet is content-incoherent and purpose-coherent, so the role is what makes any single file findable inside it. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -3000,7 +3030,7 @@ Organised effort to change a decision or policy — campaign strategy, research 
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child” — a briefing is legible only under its campaign. §5.7 forbids a template that would “use an author or organization merely as a collector” keeps the organisation out of the order for a single-organisation corpus
+§5.5: “a parent dimension should provide the context required to understand the child” — a briefing is legible only under its campaign. §5.7 forbids a template that would “use an author or organization merely as a collector” keeps the organisation out of the order for a single-organisation corpus. The campaign level is backed by an `llm_supported` fact, so in practice it comes from an existing folder name or a user-confirmed label rather than from a rule: §3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”, and §5.10: “A carefully curated existing folder should be treated as a strong expression of user intent.”
 
 ### Collides with
 
@@ -3021,7 +3051,7 @@ Time first: **no**
 
 Building and running a local or member-led group — meetings, membership, shared resources, projects, small grants and the record of what the group did.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names community organising. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Included because informal groups produce real corpora that fit none of the design's named domains, which is §3.15: “Other domains remain placeholders until user demand and corpus evidence justify detailed templates.”
 
@@ -3034,6 +3064,7 @@ Building and running a local or member-led group — meetings, membership, share
 | `record_role` | string | meeting note | `validated` | Meeting note, membership record, resource list, project record, small-grant record and communication are the recurring set |
 | `locality` | string | the neighbourhood or area the group serves | `llm_supported` | §3.11 permits “several additional fields used only for search, privacy protection, explanation, or later review” — a search field, never a folder dimension: a folder named for the user's own neighbourhood is a home address in a directory listing |
 | `meeting_date` | date | 2026-04-18 | `direct` | §3.10: “Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.” — a labeled meeting date only |
+| `document_role` | string | meeting note | `validated` | The work-type field, and the template's leaf dimension — an informal group's files are notes, lists and materials with no other structure. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -3070,7 +3101,7 @@ Building and running a local or member-led group — meetings, membership, share
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child”. Deliberately shallow: informal corpora are small and §5.8: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.” means a group with one project should be one folder. §5.9: “It should also support a scoped General or Other branch within a meaningful parent.” covers the notes that belong to the group and to nothing narrower
+§5.5: “a parent dimension should provide the context required to understand the child”. Deliberately shallow: informal corpora are small and §5.8: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.” means a group with one project should be one folder. §5.9: “It should also support a scoped General or Other branch within a meaningful parent.” covers the notes that belong to the group and to nothing narrower. Both upper levels are `llm_supported`, so both come from an existing folder name or a user-confirmed label rather than from a rule: §3.9: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.”
 
 ### Collides with
 
@@ -3091,7 +3122,7 @@ Time first: **no**
 
 Running a congregation or religious body as an organisation — governance, membership and life-event registers, services and programmes, giving, buildings and safeguarding.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names religious institutions. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The personal slice owns an individual's faith participation; this is the institution's own administration
 
@@ -3103,7 +3134,8 @@ Running a congregation or religious body as an organisation — governance, memb
 | `function` | string | life-event register | `validated` | Governance, membership and registers, services and programmes, giving, buildings and safeguarding are the recurring functions |
 | `record_role` | string | register entry | `validated` | The work-type field. Registers of life events are the distinctive object here and in some jurisdictions they have civil effect, which changes their status entirely |
 | `period` | string | the year or liturgical cycle as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. Calendars differ between traditions and are not translatable to a civil year, so the field stores the printed string rather than a parsed date |
-| `property` | string | the building or site the record concerns | `validated` | Buildings work is a large part of this corpus and attaches to a place rather than to the organisation |
+| `property` | string | the building or site the record concerns | `possible` | Buildings work is a large part of this corpus and attaches to a place rather than to the organisation. A building name is a proper noun with no detectable shape and no gazetteer, so no rule can confirm it. §3.13 possible: “A possible fact is a useful but insufficient clue” |
+| `document_role` | string | register entry | `validated` | The work-type field, and the template's leaf dimension — registers, meeting records and buildings papers share only the institution. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -3165,7 +3197,7 @@ Time first: **no**
 
 A body of residents or owners administering a shared property — constitution, meetings, member records, dues and accounts, rules and enforcement, maintenance and reserves.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names owners' associations. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. Kept separate from general nonprofit governance because the association has powers over the members' own homes, which nothing else in the catalogue does
 
@@ -3178,6 +3210,7 @@ A body of residents or owners administering a shared property — constitution, 
 | `record_role` | string | dues notice | `validated` | Constitution and rules, meeting record, member record, dues and accounts, enforcement, maintenance and reserve-fund records are the recurring set |
 | `financial_year` | string | the financial year exactly as printed | `validated` | Association years are set by the constitution and rarely align to a calendar year. §3.10 is explicit that file names and documents “frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values” |
 | `unit` | string | the unit or lot the record concerns | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.” from a labeled unit field, and deliberately excluded from the template: a folder named for a neighbour's unit is a directory listing of who owes money |
+| `document_role` | string | meeting minutes | `validated` | The work-type field, and the template's leaf dimension — rules, notices, minutes and accounts are the four things a member actually looks for. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -3185,6 +3218,7 @@ A body of residents or owners administering a shared property — constitution, 
 
 - an association term in a title or heading zone — 'residents association' | 'homeowners association' | 'service charge' | 'annual general meeting' | 'covenants' | 'reserve fund' — co-occurring with a scheme or association name
 - a dues or service-charge structure detected as labeled unit, charge and balance columns co-occurring with an association name. §2.3: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”
+- a financial-year pattern co-occurring with an association term and an accounts or budget heading, which is §3.5's model for a deterministic recogniser: “BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context” with the year in place of the course code
 
 **Needs the LLM** — language interpretation a rule cannot do safely (§3.3, §3.5):
 
@@ -3239,7 +3273,7 @@ Time first: **no**
 
 Running or participating in a union or staff association — membership, branch business, representation and casework, collective bargaining, industrial action ballots and reporting.
 
-**Provenance:** **proposal** — new — the design names nothing like it
+**Provenance:** **proposal** — new; the design names nothing like it
 
 **Cite:** No design sentence names unions. §5.7 lists the template library's intended coverage — “covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” — and names nothing governmental. The career slice owns the employment relationship; a union sits on the other side of it, which is §3.8: “The system must separate roles that happen to contain the same entity type.”
 
@@ -3253,6 +3287,7 @@ Running or participating in a union or staff association — membership, branch 
 | `record_role` | string | collective agreement | `validated` | Membership, branch meeting, representation case, collective agreement, ballot and statutory return are the recurring set, and they run from routine to legally consequential |
 | `bargaining_round` | string | the pay round or negotiation as named | `llm_supported` | Negotiations are named informally and in prose. §3.5: the model “can only propose facts that belong to the active domain schema, and it must cite exact supporting evidence already extracted from the file.” |
 | `case_reference` | string | the representation case reference as printed | `direct` | §3.13 direct: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.”. Representation cases are casework and carry the same third-party hazard as everything else in this slice that has a case reference |
+| `document_role` | string | collective agreement | `validated` | The work-type field, and the template's leaf dimension — a branch's files mix membership, meetings, agreements and casework. §5.7 requires a template's dimensions to be drawn from the domain's allowed fact fields, so the level and the field must exist together. Confirmable from the same context-term list the deterministic recognisers use |
 
 ### Recognition
 
@@ -3285,11 +3320,11 @@ Running or participating in a union or staff association — membership, branch 
 
 ### Template (§5)
 
-`record role → round or case → document role`
+`record role → case or round → document role`
 
 Time first: **no**
 
-§5.5: “a parent dimension should provide the context required to understand the child”. Function leads and the member does not appear as a level, for the same reason as every other casework-bearing domain in this slice. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”
+§5.5: “a parent dimension should provide the context required to understand the child”. Function leads and the member does not appear as a level, for the same reason as every other casework-bearing domain in this slice. The middle level is populated from `case_reference` where one exists and from `bargaining_round` otherwise, and the second of those is `llm_supported`, so it should be offered only once the user has confirmed the label. §5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”
 
 ### Collides with
 
