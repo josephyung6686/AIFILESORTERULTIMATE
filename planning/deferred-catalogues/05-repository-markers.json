@@ -4,7 +4,7 @@
   "version": "1.0",
   "authored": "2026-08-20",
   "owner": "`p3_exclusion_roots` → P3 · `p5_evidence_markers` → P5 (injected into the caller's reader)",
-  "consumer": "`p3_exclusion_roots` → P3's R3 exclusion verdict, which skips **descendants** of the marker-bearing directory. `p5_evidence_markers` → the `StructuralMarker(kind, value)` tuples that a caller-supplied `read_text_document` returns, and the `recognize_markers` recognizer E4 uses on archive members.",
+  "consumer": "`p3_exclusion_roots` → P3's R3 exclusion verdict, which skips **descendants** of the marker-bearing directory. `p5_evidence_markers` → the `StructuralMarker(kind, value)` tuples a caller-supplied **`read_text_document`** returns for E3. **NOT E4's `recognize_markers`** — that recognizer's kind vocabulary is catalogue 07's ['document name', 'source-code manifest'], and this file's kinds are ['README file', 'notebook metadata', 'package manifest', 'repository marker']. The two sets are disjoint, so feeding this file to E4 would fail on its first row. Catalogue 07 is what E4 consumes.",
   "match_field": "a filename, a directory name, or a top-level notebook JSON key — each row says which in `applies_to`. `StructuralMarker.value` stores the marker \"verbatim\" (P5 PLAN Task 12), so the recorded value is the spelling found on disk, not a normalized one.",
   "normalization_for_matching": "Exact string comparison. Case-insensitive by default because macOS and Windows filesystems are case-insensitive; the rows whose bare word is ordinary English (`LICENSE`, `COPYING`, `WORKSPACE`, `DESCRIPTION`, `README`, `CODEOWNERS`) are case-**sensitive** so that a document named `licence` or `description` cannot match.",
   "design_cites": [

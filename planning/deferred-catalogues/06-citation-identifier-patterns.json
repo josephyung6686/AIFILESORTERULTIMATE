@@ -165,17 +165,17 @@
     },
     {
       "id": "cid-email",
-      "pattern": "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+\\b",
+      "pattern": "\\b[A-Za-z0-9._%+-]+@(?!\\d+x\\b)[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}\\b",
       "match_kind": "regex",
       "case_sensitive": false,
       "kind": "email",
       "zone": "link (mapped)",
       "checksum": null,
-      "rationale": "§2.2 names email addresses literally. RFC 5321's mailbox grammar admits quoted local parts and address literals that no practical regex handles; this is the pragmatic subset that covers real addresses in documents, and the limitation is stated rather than hidden. **Privacy note:** §2.9 requires email addresses to be marked as potentially sensitive at emission, for P7 to act on — that marking is P5's, not this catalogue's, but a finder built from this file will be the thing that surfaces them.",
+      "rationale": "RFC 5321 §4.1.2 local-part and domain, with a guard the earlier pattern lacked: **the domain may not be an Apple asset scale suffix.** `logo@2x.png` and `icon@3x.png` are the standard 2x/3x retina asset convention, and both matched as email addresses — which in a design or app archive would manufacture a PII finding out of a filename. §2.2 names email addresses literally. RFC 5321's mailbox grammar admits quoted local parts and address literals that no practical regex handles; this is the pragmatic subset that covers real addresses in documents, and the limitation is stated rather than hidden. **Privacy note:** §2.9 requires email addresses to be marked as potentially sensitive at emission, for P7 to act on — that marking is P5's, not this catalogue's, but a finder built from this file will be the thing that surfaces them.",
       "design_cite": "§2.2 \"email addresses\"; §2.9 \"treating addresses and message content as potentially sensitive\"",
-      "false_positive_risk": "low",
+      "false_positive_risk": "medium",
       "example_true": "j.chen@uchicago.edu",
-      "example_false": "@channel please review",
+      "example_false": "logo@2x.png",
       "source": "RFC 5321 §4.1.2"
     },
     {
