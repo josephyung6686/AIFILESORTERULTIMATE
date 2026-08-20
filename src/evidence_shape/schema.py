@@ -1,7 +1,16 @@
 # src/evidence_shape/schema.py
-"""P4's three tables. They live inside P1's single local SQLite database (§0: "Each
-part owns its own tables within it"); P1 owns the handle, the transaction boundary,
-`files` and `events`, and P4 creates none of them and modifies no P1 file.
+"""P4's three tables. They live inside the one local SQLite database the design names
+-- §0: "A local SQLite database acts as the durable working memory of the product."
+P1 owns the handle, the transaction boundary, `files` and `events`, and P4 creates
+none of them and modifies no P1 file.
+
+That attribution was a fabricated quotation until 2026-08-21. This docstring cited
+§0 as saying "Each part owns its own tables within it"; the design says no such
+thing, in either document -- one-table-per-part is a P1 CONVENTION that acquired
+quote marks somewhere in P1's and P2's PLANs and was then copied into P4's PLAN,
+P7's plan skeleton and this module. The convention is sound and is what the code
+does; the sentence was never the design's. Found by a fidelity review that matched
+every quotation in the wave mechanically against the source.
 
 One column is not a published field. P1's `mark_superseded` and `chain` are
 `... WHERE record_id = ?`, and P4's published primary key is `observation_id`.

@@ -22,6 +22,12 @@ computations of one fingerprint, two spellings of one engine name, a published e
 random-UUID order. **P6 and P7 are planned against live modules.** Every surface below was checked
 by import and signature this pass.
 
+**Correction (round 4).** This table lists surfaces that **exist**, which is exactly why it missed
+every seam that actually breaks. The failures are all the converse: a function a neighbouring SPEC
+names and no plan builds — P7's `SensitivityFacts` (0 mentions in P6's plan), P8's `contradicts` and
+`normalize` (each part hands them to the other), and P2's `StageAdapter`, named in no SPEC at all.
+Of 69 seams round 4 tabulated, **21 have no producer.** See §6, check 7.
+
 | Needed by | Real surface | Verified |
 |---|---|---|
 | P6 ← P4 | `evidence_shape.observation.Observation` — `observation_key`, `signal_tier`, `context_before` / `context_after` / `context_truncated` | names match P6 SPEC's Contract in exactly |
@@ -32,31 +38,43 @@ by import and signature this pass.
 | P7 ← P1 | `files.sensitivity_state` column | **exists, and nothing writes it** — see §3 |
 | P7 ← P4 | the three context fields | present, and M5 says they exist *so §8.4 can redact a value without dropping its context* |
 | P7 ← P5 | `extractors.safety.admit`, `SafetyPolicy`, the two refusals | present |
-| P7 → P2 | `bundle_file_entry.handling_class` | present; **was being fed P1's `sensitivity_state`, fixed this pass to `None`** |
+| ~~P7 → P2~~ **orchestrator → P2** | `bundle_file_entry.handling_class` | mis-attributed here: **P7 never reaches the bundle** (its own OQ8 says so). The producer is the caller's stage 4, and **no task in either plan gives it a value** |
 
 ---
 
-## 2. The three refusals — a distinction P7 must not collapse
+## 2. The four refusals — a distinction P7 must not collapse
 
-There are already two refusals in the codebase, and they behave differently **on purpose**. P7's
-gate is a third kind. Conflating them is the obvious way this part goes wrong.
+Two refusals were in the codebase, and they behave differently **on purpose**. P7's gate is a third
+kind. **A fourth landed on 2026-08-21 and this section is the page a Task 19 author reads to pick a
+base class, so it must name it.** Conflating any two is the obvious way this part goes wrong.
 
 | Refusal | Rule | Refuses | Record produced |
 |---|---|---|---|
 | `ProtectedContainerRefused` | 11 §4b | **reading** | **nothing at all** — no run, no observation, no status write. P3's exclusion verdict on the container is the whole record |
 | `DatalessRefused` | 11 §5 | **reading** | **one run** at `completeness = dataless`, zero observations — the identity is already known and §8.6 requires the file to stay visible as unfinished |
 | P7's gate | §8.4 | **release**, not reading | an audit record; the content stays local and readable |
+| `ContractViolation` | — | nothing: it is about the **call**, not the file | **nothing, and it ends the scan.** `extractors.failure.ContractViolation` always propagates. A caller's ordering error is not a fact about a file, and recording it as one both lies about the corpus and hides the defect. P6's `FactPassNotRun` inherits this |
 
 The asymmetry between the first two is not an inconsistency: nothing inside a protected container
 ever acquires a `file_id` or a `content_hash`, so a run row there is **unconstructible**, whereas a
 dataless file's identity already exists. P7's is different again — it never prevents a local read.
 
-**C4 binds all three:** *"the gate still raises and writes nothing — a gate that also wrote would be
+Round 4 executed both candidate base classes for `FactPassNotRun`: under `Exception` it is swallowed
+into a `failed` run per text-bearing PDF; under `ContractViolation` it propagates and **ends the scan
+on the first text-bearing PDF**, because `ocr_policy.text_layer_state` consults the verdict
+unconditionally. The second is the correct behaviour and it is still not sufficient — loop 1 cannot
+avoid arming the verdict while `dispatch` publishes one entry point. The base class is necessary; the
+`dispatch` split is what makes it usable.
+
+Note for P7 Task 21, which asserts `src/privacy/` imports neither refusal: **that list is now three
+names.**
+
+**C4 binds the first three:** *"the gate still raises and writes nothing — a gate that also wrote would be
 doing two jobs."* The catcher is always the caller's.
 
 ---
 
-## 3. `sensitivity` — one concept with three candidate homes
+## 3. `sensitivity` — one concept with four candidate homes, and no producer at all
 
 **The largest connection risk in the wave, and P6's own SPEC flags it** (P6 open question 11,
 marked `[seam]`):
@@ -74,9 +92,18 @@ Live state, checked this pass:
 - P2's `bundle_file_entry.handling_class` is §8.4's and was being fed P1's `sensitivity_state`
   until this pass. Both were NULL on a live scan, so nothing failed and the name was still wrong.
 
+**Two corrections from round 4.** There are **four** homes, not three: P7's classification record
+carries `handling_class` *and* a separate `protected` flag, and its own SPEC says whether the two are
+co-extensive is unsettled. And the sharper framing is not "which record is authoritative" but that
+**none of the four has a producer.** No part's SPEC claims the detector that writes a classification
+— P7's Deferred row says the rule set is hand-authored and that P7 merely "publishes the vocabulary
+the detectors write into". So `basis = detector` is unproduced, `files.sensitivity_state` stays NULL
+after P7 ships, and `Denied(unclassified)` is the universal outcome of §8.4's door. **Deciding which
+record wins does not make anything write one.**
+
 **This is the exact defect class that has cost this project the most, at the largest scale it has
 appeared.** It is not resolvable by inference — it is a decision about which record is
-authoritative. It is in [`overnight/NEEDS-JOSEPH.md`](overnight/NEEDS-JOSEPH.md).
+authoritative, and a second decision about who produces it. It is in [`overnight/NEEDS-JOSEPH.md`](overnight/NEEDS-JOSEPH.md).
 
 **Until it is decided,** the standing rule for anyone building: a part that does not own the
 concept passes `None` and says the value is unknown. It never forwards a neighbouring part's
@@ -99,10 +126,15 @@ injects `lambda f, h: False`.
 The signature is right; the **ordering** is wrong. Wiring a real P6 into today's caller shape runs
 OCR over the entire corpus.
 
-Inference, marked as such: the caller must become three passes rather than one loop — native
+Inference, marked as such: the caller must become **four** passes rather than one loop — native
 extraction → P6 deterministic pass → targeted OCR for the files P6 reports → **a second P6 pass**,
 which the SPEC implies rather than states outright when it says the verdict *"is re-evaluated after
 targeted OCR adds observations, because the new run changes the §3.4 cache key."*
+
+**Caveat (round 4).** "The two cache keys differ by `analysis_tier` alone" is not derivable from the
+code: §3.4's key takes **one** `analysis_tier` and **one** `extractor_version`, and a single file's
+observations already span `filesystem.record/filesystem` and `pdf.text/native` before OCR exists. A
+multi-run fact has no single tier or version to key on, and nothing settles which one it carries.
 
 ---
 
@@ -137,3 +169,11 @@ Not prose. These are the assertions a caller-level test must make once P6 and P7
 5. Exactly one part writes each concept: one fingerprint, one hash spelling, one extractor name per
    engine, one sensitivity record.
 6. Every refusal produces the record its rule requires, and no more.
+7. **Every surface a SPEC's Contract-in names has a producing task in some plan.** Added by round 4,
+   which found that checks 1–6 all run in one direction — they look for a published thing with no
+   consumer, and every seam that actually broke was a *consumer with no producer*. This one check
+   catches four of round 4's findings mechanically.
+
+Check 4 is currently vacuous in the safe direction: "no content reaches a model before P7's
+classification" is trivially satisfied when no file is ever classified. It needs "**and a
+classification exists for every file**" to mean anything.
