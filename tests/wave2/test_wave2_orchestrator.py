@@ -305,3 +305,67 @@ def test_no_upgrade_still_means_no_re_extraction(db, corpus):
     go(db, corpus)
     assert db.execute(
         "SELECT count(*) c FROM extraction_runs").fetchone()["c"] == before
+
+
+# --------------------------------------------------- the walking skeleton, Wave 2
+#
+# 02-segmentation-map.md: the skeleton "is not a prototype to throw away. It is the
+# first passing test of the seam layout, and it stays in the repository as the
+# integration test every later part must keep green." The tests above each isolate one
+# property; this one is the corpus -- a routed document, a structured-text file, an
+# image, a disk image that stops, a video that stops at container metadata, and an
+# application bundle that must not be touched at all.
+
+@pytest.fixture()
+def mixed_corpus(tmp_path: Path) -> Path:
+    root = tmp_path / "Documents"
+    root.mkdir()
+    (root / "syllabus.pdf").write_bytes(b"%PDF-1.4 BUSIB 4300 syllabus")
+    (root / "notes.md").write_bytes(b"# BUSIB 4300\nlecture notes")
+    (root / "Screenshot.png").write_bytes(b"\x89PNG fake")
+    (root / "archive.dmg").write_bytes(b"disk image")
+    (root / "clip.mp4").write_bytes(b"video")
+    bundle = root / "Numbers.app" / "Contents"
+    bundle.mkdir(parents=True)
+    (bundle / "sheet.numbers").write_bytes(b"inside an app bundle")
+    return root
+
+
+def test_the_wave_2_skeleton_runs_a_mixed_corpus_end_to_end(db, mixed_corpus):
+    import json
+    from database_agent.identity import is_content_hash
+    from eval_harness.counts import bundle_counts
+
+    result = go(db, mixed_corpus)
+
+    files = {r["filename"]: r for r in db.execute("SELECT * FROM files")}
+    # The application bundle and everything inside it: no row at all (11 §4b).
+    assert "sheet.numbers" not in files
+    assert not any(".app" in r["current_path"] for r in files.values())
+    assert set(files) == {"syllabus.pdf", "notes.md", "Screenshot.png",
+                          "archive.dmg", "clip.mp4"}
+
+    # Live hashes, in P1's spelling -- the stress test's last ordered item was the
+    # skeleton "with live hex hashes, not sha256:abc".
+    assert all(is_content_hash(r["content_hash"]) for r in files.values())
+
+    # Every file carries a real per-tier status; the column read `{}` before.
+    status = {name: json.loads(r["extraction_status_by_tier"])
+              for name, r in files.items()}
+    assert all(s["filesystem"] == "complete" for s in status.values())
+    # §2.9's safe stop, at the NATIVE tier -- break 2. `complete` from the indexer
+    # and `metadata_only` from the stopper used to be two runs at one tier.
+    assert status["archive.dmg"]["native"] == "metadata_only"
+    # B6: audio and video stop at container metadata. Not `unsupported`, which would
+    # say no extractor exists, and not `metadata_only`, which carries zero rows.
+    assert "native" in status["clip.mp4"]
+
+    # Exactly one §8.2 event per run, which is break 5.
+    events = db.execute(
+        "SELECT count(*) c FROM events WHERE event_type = 'extraction'").fetchone()["c"]
+    assert events == len(result.run_ids)
+
+    # And the bundle P2 has been able to build since it shipped, from a scan.
+    counts = bundle_counts(db, result.bundle_id)
+    assert counts["files_indexed"] == 5
+    assert counts["files_with_any_run"] == 5
