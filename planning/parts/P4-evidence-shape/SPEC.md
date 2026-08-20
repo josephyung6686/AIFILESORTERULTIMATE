@@ -631,8 +631,14 @@ their gate; P6, P7 and P8 may assume it passed.
    as empty"*, and its metadata-level rows — *"at minimum filename, format, dimensions or canvas
    properties, embedded metadata"* — are what "indexed" means. A rule forbidding them would make an
    indexed PSD indistinguishable from a file nobody opened, which is the conflation §2.4 forbids.
-   `metadata_only` runs likewise carry the metadata-level rows §2.9's basic filesystem extraction
-   produces.
+   **`metadata_only` carries ZERO observations from the stopping extractor** — settled 2026-08-20,
+   because this sentence and the SPEC's own worked example 19 said opposite things and six extractors
+   would have run the gate. Example 19 is the frozen reading: the run records the deliberate stop and
+   emits nothing, while the file stays indexed through its `filesystem` observations (example 11),
+   which P3 already produced and P5 re-emits under O5. Keeping the metadata rows on the *stopping*
+   run instead would put §2.9's basic filesystem record in two homes and make `complete`-with-zero,
+   `unsupported` and `metadata_only` indistinguishable — the three states §2.4 and §2.9 require be
+   told apart.
 10. Every observation with a non-null `text_span` has a `text_units` row on the same `run_id` whose
     `container_path` equals the observation's, and RAW-1 holds against that row's `text` (D12).
 11. `signal_tier` is null unless the observation is one of §2.6's image-hierarchy signals; where
@@ -802,8 +808,10 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    was buildable either way. This follows §2.1's *"read each file once per content version"* and §8.2's
    same-content-new-path rule, and it means a duplicate is never re-extracted. Consequences to carry:
    P5 re-extracts per content version, not per path; P6 attaches facts to the hash; P11's §6.9
-   multi-home file has one evidence set with several homes. The original wording follows.
-   §2.8's field list contains
+   multi-home file has one evidence set with several homes.
+
+   *The original, now-superseded wording is kept below for provenance. It describes the question as
+   unsettled; it is settled. Nothing in the paragraph that follows is in force.* — §2.8's field list contains
    both. §2.1 says the engine should *"read each file once per content version"*; §8.2 says *"If the
    same content appears at a new path, the system recognizes it as the same file version."* Together
    those imply one observation set per content hash, shared by every duplicate file — but §2.8 still

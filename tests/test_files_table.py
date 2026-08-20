@@ -1,10 +1,12 @@
+import json
 from pathlib import Path
 
 import pytest
 
 from database_agent.db import create_schema
 from p1_contract import p3_basic_record
-from database_agent.files_table import FILES_COLUMNS, get_file, record_file
+from database_agent.files_table import (
+    FILES_COLUMNS, get_file, invalidate_extraction_state, record_file)
 
 
 def _p3_fields(path=None, **overrides):
@@ -71,3 +73,36 @@ def test_no_preferred_column_on_p1_tables(conn):
     for table in ("files", "events"):
         cols = [r["name"] for r in conn.execute(f"PRAGMA table_info({table})")]
         assert "preferred" not in cols
+
+
+def test_p1_publishes_a_writer_for_extraction_status_by_tier(conn, sample_file):
+    """The column existed with a reset and no setter: P5 could compute the map and
+    P1 had nowhere to put it, so `files` stayed `{}` after a real extraction."""
+    from database_agent.files_table import set_extraction_status
+    file_id = record_file(conn, sample_file, **_p3_fields(sample_file))
+    set_extraction_status(conn, file_id, status_by_tier={"native": "complete"},
+                          author="P5", component_version="1.0")
+    assert json.loads(get_file(conn, file_id)["extraction_status_by_tier"]) == {
+        "native": "complete"}
+
+
+def test_p1_holds_no_tier_vocabulary_and_stores_what_it_is_given(conn, sample_file):
+    """I4's four tiers are P4's vocabulary, not P1's. P1 stores an opaque map for the
+    same reason it stores an opaque `sensitivity_state`: interpreting it here would be
+    a second home for a vocabulary another part owns."""
+    from database_agent.files_table import set_extraction_status
+    file_id = record_file(conn, sample_file, **_p3_fields(sample_file))
+    set_extraction_status(conn, file_id, status_by_tier={"a-tier-p1-never-heard-of": "x"},
+                          author="P5", component_version="1.0")
+    assert json.loads(get_file(conn, file_id)["extraction_status_by_tier"]) == {
+        "a-tier-p1-never-heard-of": "x"}
+
+
+def test_invalidation_clears_a_status_a_caller_had_set(conn, sample_file):
+    """R3: new bytes invalidate the extraction state, whatever it had reached."""
+    from database_agent.files_table import set_extraction_status
+    file_id = record_file(conn, sample_file, **_p3_fields(sample_file))
+    set_extraction_status(conn, file_id, status_by_tier={"native": "complete"},
+                          author="P5", component_version="1.0")
+    invalidate_extraction_state(conn, file_id, author="P5", component_version="1.0")
+    assert get_file(conn, file_id)["extraction_status_by_tier"] == "{}"

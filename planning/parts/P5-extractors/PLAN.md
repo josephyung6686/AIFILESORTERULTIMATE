@@ -39,9 +39,12 @@ vocabularies. P5's `shape.py` is a *builder* for them, not a second definition o
 are P4's field names, and hands them to an injected `EvidenceSink`. `tests/p5/p4_stub.py` reconstructs
 P4's vocabularies, its locator serialization and its twelve conformance rules **from P4's SPEC**, and
 every extractor test validates its output through that stub. When P4 ships, `p4_stub.py` is deleted
-and the same tests import `from evidence.records import ...` and `from evidence.conformance import
-validate_observation` instead — the production modules under `src/extractors/` do not change, because
-they never imported the stub.
+and the same tests import from **`evidence_shape`** — the package P4 actually publishes. The swap is
+written out verbatim in Task 2 so it is a delete-and-import, not a search-and-replace against a module
+path that does not exist. (An earlier draft of this plan named `evidence.records` / `evidence.conformance`;
+no such package exists in P4's plan, and shipping both would have left two locator implementations —
+the drift §2.8 exists to prevent.) The production modules under `src/extractors/` do not change at
+all, because they never imported the stub — they talk to the injected `EvidenceSink` and nothing else.
 
 ### 2. Two safety rules bind every extractor, and neither has an override path
 
@@ -544,7 +547,17 @@ caller constructs.
 `../P4-evidence-shape/SPEC.md`, the five closed vocabularies, the locator serialization with its
 escaping rules, and the twelve conformance rules. Every extractor test below validates through it.
 **When P4 lands, delete this file** and change the imports in `tests/p5/` to
-`from evidence.records import ...` / `from evidence.conformance import validate_observation`. Nothing
+the real P4 package:
+
+```python
+from evidence_shape.locator import parse_locator, serialize_locator
+from evidence_shape.vocabulary import SOURCE_TYPES, ZONES
+from evidence_shape.conformance import validate_observation
+from evidence_shape.store import observation_keys_for_run, record_run_event
+```
+
+`locator_for` in this stub is P4's `serialize_locator`; `ZONES` / `SOURCE_TYPES` live in
+`evidence_shape.vocabulary`, not beside the records. Nothing
 under `src/extractors/` imports it, so nothing under `src/extractors/` changes.
 
 - [ ] **Step 1: Write the failing test**
@@ -1112,8 +1125,12 @@ Every extractor test in tests/p5/ validates its output through this file, so a P
 extractor cannot ship a record P4 would reject.
 
 WHEN P4 LANDS: delete this file and change the imports in tests/p5/ to
-    from evidence.records import locator_for, parse_locator, ZONES, SOURCE_TYPES
-    from evidence.conformance import validate_observation, validate_run
+    # When P4 ships, this stub is deleted and these are the real imports:
+    #   from evidence_shape.locator import parse_locator, serialize_locator
+    #   from evidence_shape.vocabulary import SOURCE_TYPES, ZONES
+    #   from evidence_shape.conformance import validate_observation
+    # P4 publishes `serialize_locator`, not `locator_for`, and keeps the vocabularies
+    # in their own module. There is no `evidence` package -- it is `evidence_shape`.
 Nothing under src/extractors/ imports this file, so nothing under src/extractors/
 changes.
 
@@ -4915,10 +4932,12 @@ on an observation and Task 20 asserts appear nowhere in `src/extractors/`.
 **Why the signal is a P5 table and not a field.** P4's rule 6 forbids an extractor-private field on an
 observation, so the signal cannot ride on the record; and it is *per located value*, so it cannot ride
 on the run. It is therefore P5's second table — the one the architecture line names — keyed by
-`(run_id, observation_index)`, the position of the observation within the batch the sink wrote
-atomically. **This is a seam gap, not a preference:** P4's sink returns a `run_id` and nothing else, so
-P5 has no `observation_key` to key on and owns no locator serialization to derive one. It is reported
-in *SPEC vs design* rather than worked around by P5 growing a second locator implementation.
+`(run_id, observation_key)` — **P4's handle, since 2026-08-20.** The batch position is still how a
+signal is *carried* (it is the only handle at emit time; P4 assigns keys at write time), but it is not
+how one is *stored*: `record_sensitivity_signals` takes P4's assigned keys and requires them with no
+default. A position would not survive a re-run and P7 could not redact against it. The seam gap that
+forced position-keying is closed by P4 publishing `observation_keys_for_run(conn, run_id)` — P5 still
+grows no locator implementation of its own.
 
 **Text units must be uniquely addressed, and the reader is what makes them so.** `text_units` is keyed
 by `(run_id, container_path)` (G1), and a slide holds a title, text boxes and speaker notes at one
@@ -5127,11 +5146,14 @@ def test_the_signal_is_stored_and_read_back(conn):
     create_schema(conn)
     create_extraction_schema(conn)
     result, _ = run_it(an_email(), "email")
+    keys = [f"k{i}" for i in range(len(result.extraction.observations))]
     record_sensitivity_signals(conn, run_id="run-1", signals=result.sensitivity,
-                               now=FIXED_CLOCK)
+                               observation_keys=keys, now=FIXED_CLOCK)
     rows = sensitivity_signals_for(conn, "run-1")
     assert [r["signal"] for r in rows] == [POTENTIALLY_SENSITIVE]
     assert rows[0]["basis"]
+    # keyed on P4's handle, which is what P7 redacts against and what survives a re-run
+    assert rows[0]["observation_key"] in keys
 
 
 def test_audio_stops_at_container_metadata_without_the_policy(sink):
@@ -5322,10 +5344,13 @@ class LongTailFile:
 class SensitivitySignal:
     """One located value section 2.9 says to treat as potentially sensitive.
 
-    Keyed by the observation's POSITION in the batch: P4's sink returns a `run_id`
-    and nothing else, so there is no `observation_key` to key on, and P5 owns no
-    locator serialization to derive one. Reported as a seam gap rather than closed by
-    a second implementation.
+    `observation_index` is the observation's position in the batch, which is the only
+    handle that exists at EMIT time -- P4 assigns `observation_key` at write time. The
+    index is therefore how a signal is carried, not how it is stored: at write time
+    `record_sensitivity_signals` takes P4's assigned keys and the row is keyed on
+    `observation_key`, which is what survives a re-run and what P7 can redact against.
+    The seam gap that forced position-keying is closed: P4 publishes
+    `observation_keys_for_run(conn, run_id)`.
     """
     observation_index: int
     signal: str
@@ -5506,26 +5531,38 @@ def extract_long_tail(
 
 SENSITIVITY_DDL = """
 CREATE TABLE IF NOT EXISTS extraction_sensitivity_signal (
-    signal_id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id            TEXT NOT NULL,
-    observation_index INTEGER NOT NULL,
-    signal            TEXT NOT NULL,
-    basis             TEXT NOT NULL,
-    observed_at       TEXT NOT NULL,
-    UNIQUE (run_id, observation_index)
+    signal_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id          TEXT NOT NULL,
+    observation_key TEXT NOT NULL,   -- P4's handle, not a batch position
+    signal          TEXT NOT NULL,
+    basis           TEXT NOT NULL,
+    observed_at     TEXT NOT NULL,
+    UNIQUE (run_id, observation_key)
 );
 """
 
 
 def record_sensitivity_signals(conn: sqlite3.Connection, *, run_id: str,
                                signals: Sequence[SensitivitySignal],
+                               observation_keys: Sequence[str],
                                now: str) -> int:
-    """Persist the signals for one written batch. Returns how many were stored."""
+    """Persist the signals for one written batch. Returns how many were stored.
+
+    `observation_keys` is P4's assignment for this batch, in emit order --
+    `evidence_shape.store.observation_keys_for_run(conn, run_id)`. It is required with
+    no default: a default would let a caller store a batch position in a column named
+    `observation_key`, which is the two-vocabularies defect wearing the right name.
+    """
     for signal in signals:
+        if signal.observation_index >= len(observation_keys):
+            raise IndexError(
+                f"signal at batch position {signal.observation_index} has no key: "
+                f"P4 assigned {len(observation_keys)} for run {run_id}")
         conn.execute(
-            "INSERT INTO extraction_sensitivity_signal (run_id, observation_index, "
+            "INSERT INTO extraction_sensitivity_signal (run_id, observation_key, "
             "signal, basis, observed_at) VALUES (?, ?, ?, ?, ?)",
-            (run_id, signal.observation_index, signal.signal, signal.basis, now),
+            (run_id, observation_keys[signal.observation_index],
+             signal.signal, signal.basis, now),
         )
     return len(signals)
 
@@ -5534,7 +5571,9 @@ def sensitivity_signals_for(conn: sqlite3.Connection,
                             run_id: str) -> list[sqlite3.Row]:
     return conn.execute(
         "SELECT * FROM extraction_sensitivity_signal WHERE run_id = ? "
-        "ORDER BY observation_index", (run_id,)).fetchall()
+        # signal_id is insertion order, which is emit order: `observation_index`
+        # is no longer a column, the row is keyed on P4's `observation_key`.
+        "ORDER BY signal_id", (run_id,)).fetchall()
 ```
 
 **Modify: `src/extractors/schema.py`** — P5's second table joins the first. The architecture line names
@@ -7624,6 +7663,25 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'extractors.events'`
 
 ```python
 # src/extractors/events.py
+# WHEN P4 LANDS, `append` BECOMES A CALL INTO P4 AND STOPS WRITING DIRECTLY.
+#
+# P4 Task 10 publishes `record_run_event(conn, run_id, *, author)`, which appends the
+# one §8.2 event for a run AFTER its observations exist, reading the `observation_key`s
+# out of the rows so the event and the database cannot disagree. P5 is the AUTHOR
+# (`author="P5"`); P4 is the writer. That is M8.
+#
+# This module exists because P4 has not landed, and it must not survive as a second
+# writer: two helpers appending one run's event means either a duplicated event or a
+# dead API, and M8 cannot survive two. The day `evidence_shape` is importable:
+#
+#     from evidence_shape.store import record_run_event
+#
+#     def append(conn, event) -> int:
+#         return record_run_event(conn, event.run_id, author=SUBSYSTEM)
+#
+# `extraction_event()` / `ocr_event()` stay: they are the payload builders and the
+# guard that P5 authors none of P3's event types. What goes is the direct
+# `append_event` call below -- P4 builds the same dict from the stored rows.
 """Section 8.2 - the two events P5 authors. P1 writes them (M8).
 
 Each carries "the event type, file ID, content hash, responsible subsystem, extractor

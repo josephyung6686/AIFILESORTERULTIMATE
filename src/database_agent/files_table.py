@@ -1,6 +1,7 @@
 """Contract out §2 — the `files` row: the union of §8.2's file record and §1.2's per-file record."""
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import uuid
@@ -140,6 +141,31 @@ def invalidate_extraction_state(conn: sqlite3.Connection, file_id: str, *,
     conn.execute(
         "UPDATE files SET extraction_status_by_tier = '{}' WHERE file_id = ?",
         (file_id,),
+    )
+
+
+def set_extraction_status(conn: sqlite3.Connection, file_id: str, *,
+                          status_by_tier: dict, author: str,
+                          component_version: str) -> None:
+    """Record the per-tier extraction status a caller computed (§1.2, R3).
+
+    The column has existed since the first schema and `invalidate_extraction_state`
+    has always reset it, but nothing could ever SET it — so a real extraction left
+    `files` reading `{}` forever and §8.6's progress line had no per-tier state to
+    render. Found while planning P5, which computes this map and had nowhere to put it.
+
+    **P1 holds no tier vocabulary.** I4's four analysis tiers are P4's, so the map is
+    stored opaquely, exactly as `sensitivity_state` is: validating the keys here would
+    put one vocabulary in two homes, which is this project's most expensive defect.
+    A key P1 has never heard of round-trips unchanged.
+
+    `author` and `component_version` name the part that did the extracting. As with
+    `invalidate_extraction_state`, P1 appends no event of its own (M8): the acting
+    part authors its `extraction` or `OCR` event and P1 records the status under it.
+    """
+    conn.execute(
+        "UPDATE files SET extraction_status_by_tier = ? WHERE file_id = ?",
+        (json.dumps(status_by_tier, sort_keys=True), file_id),
     )
 
 

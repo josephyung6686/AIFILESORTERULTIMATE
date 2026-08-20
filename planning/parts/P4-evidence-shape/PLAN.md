@@ -3747,7 +3747,7 @@ git commit -m "feat(P4): the run writer, and the §8.2 event its caller authors"
 
 **Interfaces:**
 - Consumes: `evidence_shape.location.Segment`; `evidence_shape.locator.serialize_container_path`; `evidence_shape.observation` — `OBSERVATION_FIELDS`, `OBSERVATION_ROW_FIELDS`, `Observation`, `observation_from_mapping`; `evidence_shape.text_units` — `TEXT_UNIT_FIELDS`, `TextUnit`, `text_unit_from_mapping`.
-- Produces (`store.py`): `record_observation(conn, observation) -> str`, `get_observation(conn, observation_id) -> Observation`, `observation_row(conn, observation_id) -> sqlite3.Row`, `observations_for_run(conn, run_id) -> list[Observation]`, `observations_for_file(conn, file_id) -> list[Observation]`, `observations_by_key(conn, observation_key) -> list[Observation]`, `record_text_unit(conn, unit) -> None`, `text_units_for_run(conn, run_id) -> list[TextUnit]`, `text_unit_at(conn, run_id, container_path) -> TextUnit | None`, `unit_for_observation(conn, observation) -> TextUnit | None`.
+- Produces (`store.py`): `record_observation(conn, observation) -> str`, `get_observation(conn, observation_id) -> Observation`, `observation_row(conn, observation_id) -> sqlite3.Row`, `observations_for_run(conn, run_id) -> list[Observation]`, `observations_for_file(conn, file_id) -> list[Observation]`, `observations_by_key(conn, observation_key) -> list[Observation]`, `observation_keys_for_run(conn, run_id) -> list[str]`, `record_text_unit(conn, unit) -> None`, `text_units_for_run(conn, run_id) -> list[TextUnit]`, `text_unit_at(conn, run_id, container_path) -> TextUnit | None`, `unit_for_observation(conn, observation) -> TextUnit | None`.
 
 **`observations_by_key` is the citation resolver, and §8.7 is why it exists.** *"`observation_key` is stable and permanently resolvable, so a negative example recorded today still resolves after an extractor upgrade."* It returns a **list**, not one row: two extractor versions produce two rows carrying one key, which is exactly what MINOR 8 arranged and what §8.5's cross-version diff reads.
 
@@ -4000,6 +4000,23 @@ def get_observation(conn: sqlite3.Connection, observation_id: str) -> Observatio
 def observations_for_run(conn: sqlite3.Connection, run_id: str) -> list[Observation]:
     return [_observation_from_row(row) for row in conn.execute(
         "SELECT * FROM evidence WHERE run_id = ? ORDER BY observation_id", (run_id,))]
+
+
+def observation_keys_for_run(conn: sqlite3.Connection, run_id: str) -> list[str]:
+    """The keys P4 assigned to one batch, in the order the batch was written.
+
+    Published because a caller that emits a per-located-value record alongside a batch
+    has no handle otherwise: `record_observation` returns an `observation_id`, and a
+    caller that derived its own key would need a second locator implementation --
+    the drift §2.8 exists to prevent. P5's §2.9 sensitivity signal is the first such
+    caller, and keyed on batch position until this existed.
+
+    Ordered by `observation_id`, which is insertion order, so position N in the emitted
+    batch is position N here.
+    """
+    return [row["observation_key"] for row in conn.execute(
+        "SELECT observation_key FROM evidence WHERE run_id = ? ORDER BY observation_id",
+        (run_id,))]
 
 
 def observations_for_file(conn: sqlite3.Connection, file_id: str) -> list[Observation]:
@@ -5222,7 +5239,7 @@ git commit -m "feat(P4): the conformance validator — the cross-record rules, R
 
 **Two fields are outside the comparison, and rule 8's own premise is what puts them there.** The premise is *two runs*. A `run_id` is minted per run and an `observed_at` is the wall-clock instant a reading was taken, so a comparison that included either would report every row as changed on every re-run and rule 8 would be unsatisfiable by construction — including for the cache §3.4 wants and the diff §8.5 wants. `EXCLUDED_FROM_COMPARISON` is exactly those two, each carrying its reason in the source, and it is the only exclusion list in this package.
 
-**`file_id` stays in.** Excluding it would be P4 taking a position on **open question 2** — whether an observation is owned by the content hash or by the file record — from inside an implementation. Two runs over one file in one database carry one `file_id`, which is Done-means 8's case, so nothing forces the question and P4 does not touch it.
+**`file_id` is excluded, because OQ2 closed.** Ratified 2026-08-20: the content hash owns the observation, so two `files` rows holding the same bytes share one observation set. If `file_id` were compared, a duplicate would read as a *different* set and rule 8 could never hold across one — the exact case the ratification exists to make work. The field stays **on** the observation, as §2.8 requires: it records which copy was opened, not who owns the reading. (While OQ2 was open this plan kept `file_id` in, deliberately, so as not to answer a contract question from inside an implementation. The contract answered it.)
 
 **The compared set is a multiset, sorted.** A set has no order, so the digest sorts; but D10's collapse key is `(run_id, raw_value, zone)` and Task 6 deliberately enforces no uniqueness on it, so two identical readings may legitimately both exist. Collapsing them here would make a validator quietly disagree with the table it validates.
 
@@ -5269,8 +5286,10 @@ def _observation(run_id, *, version="3.1.0", name="pdf.text",
         context_after=" — Spring 2026", context_truncated=False)
 
 
-def test_the_compared_set_is_every_emitted_field_but_two():
-    assert EXCLUDED_FROM_COMPARISON == ("run_id", "observed_at")
+def test_the_compared_set_is_every_emitted_field_but_three():
+    # `file_id` joined the exclusions when OQ2 closed: the content hash owns the
+    # observation, so two copies of one file must compare equal.
+    assert EXCLUDED_FROM_COMPARISON == ("run_id", "observed_at", "file_id")
     assert COMPARED_FIELDS == tuple(
         name for name in OBSERVATION_FIELDS if name not in EXCLUDED_FROM_COMPARISON)
 
@@ -5380,9 +5399,12 @@ byte-identical observation set (§3.4 caching, §8.5 replay)."
 Two fields are outside the comparison and rule 8's own premise is what puts them
 there. The premise is TWO RUNS: a `run_id` is minted per run and `observed_at` is the
 instant a reading was taken, so a comparison carrying either would report every row as
-changed on every re-run and the rule could never hold. `file_id` stays in -- dropping
-it would take a position on open question 2 (is an observation owned by the content
-hash or by the file record?) from inside an implementation.
+changed on every re-run and the rule could never hold. `file_id` is excluded for a
+different reason: OQ2 closed on 2026-08-20 and the CONTENT HASH owns the observation,
+so two `files` rows over one set of bytes share one observation set. Comparing
+`file_id` would make a duplicate look like a different set and rule 8 could never hold
+across one. The field stays ON the observation (§2.8 requires it) -- it says which
+copy was opened, not who owns the reading.
 
 SPEC vs design, reported and not resolved here: rule 8 lists THREE key fields and
 §3.4 asks for a cache key on "the content hash and the exact process that produced
@@ -5412,10 +5434,15 @@ REPLAY_KEY_FIELDS: tuple[str, ...] = (
     "content_hash", "extractor_name", "extractor_version", "config_fingerprint",
 )
 
-#: The only exclusion list in this package, and each member is forced by rule 8's own
-#: premise -- not chosen. `run_id`: minted per run, and rule 8 compares two runs.
-#: `observed_at`: the wall clock at the reading, which no re-run reproduces.
-EXCLUDED_FROM_COMPARISON: tuple[str, str] = ("run_id", "observed_at")
+#: The only exclusion list in this package, and each member is forced -- not chosen.
+#: `run_id`: minted per run, and rule 8 compares two runs. `observed_at`: the wall
+#: clock at the reading, which no re-run reproduces. `file_id`: OQ2 closed on
+#: 2026-08-20 -- the CONTENT HASH owns the observation, so two `files` rows holding
+#: the same bytes share one observation set. Comparing `file_id` would report the
+#: second copy as a different set and rule 8 could never hold across a duplicate,
+#: which is precisely the outcome the ratification forbids. `file_id` remains ON the
+#: observation as §2.8 requires -- it records which copy was opened, not who owns it.
+EXCLUDED_FROM_COMPARISON: tuple[str, str, str] = ("run_id", "observed_at", "file_id")
 
 #: What "byte-identical observation set" is computed over.
 COMPARED_FIELDS: tuple[str, ...] = tuple(
