@@ -697,8 +697,17 @@ raises `UnbackedClassification`, because §8.4 says the classification *"is itse
 That `evidence_refs` holds P4 `observation_key` values and that a value shaped like an
 `observation_id` is refused (M14). And that the mapping from P4's nine `completeness` values to
 `unreadable_unclassified` is stated explicitly per value rather than by an `in`-check over a set the
-author guessed — including the case of a file with **no run row at all**, which is what a dataless
-file has.
+author guessed — including the case of a file with **no run row at all**.
+
+> **Corrected 2026-08-22.** This sentence used to finish *"which is what a dataless file has"*, and
+> that contradicts §2's refusal table four sections above it. §2 is right, and the asymmetry is
+> deliberate: `DatalessRefused` produces **one run** at `completeness = dataless` — the identity is
+> already known and §8.6 requires the file to stay visible as unfinished — while
+> `ProtectedContainerRefused` produces **nothing at all**, because nothing inside a protected
+> container ever acquires a `file_id` or a `content_hash`, so a run row there is unconstructible.
+> **No run row at all is the PROTECTED-CONTAINER case.** Both routes reach
+> `unreadable_unclassified` and a task must cover both, but for different reasons — and a plan that
+> looked for the dataless file's missing run row would be looking for something that exists.
 
 ---
 

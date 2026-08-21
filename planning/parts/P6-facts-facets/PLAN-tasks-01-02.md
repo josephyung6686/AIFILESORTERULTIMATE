@@ -170,8 +170,9 @@ def test_what_event_defaults_produces_is_accepted_by_p1s_live_writer(conn):
 import importlib
 import pkgutil
 
-import pytest
 import dataclasses
+
+import pytest
 
 from evidence_shape.conformance import validate_observation
 from evidence_shape.fixtures import by_number
@@ -251,6 +252,9 @@ def test_is_stronger_is_strict_and_total_over_the_five():
 
 
 def test_extractors_write_two_of_the_six_and_p6_owns_all_six(p6_conn):
+    # Takes `p6_conn` so Task 1's step 4 proves the fixture builds — P1's schema plus
+    # P4's three tables — before Task 2 extends it with P6's own.
+    #
     # P4 conformance rule 3 / P4 D11: an *observation* may carry only `direct` or
     # `possible`. A *fact* may carry any of the six. The same tuple, two admissible
     # subsets, asserted from both sides — not a comment in a docstring.
@@ -1412,22 +1416,23 @@ def p6_conn(conn):
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `pytest tests/p6/test_p6_fields.py -v`
-Expected: PASS — 24 passed.
+Expected: PASS — 25 passed.
 
 - [ ] **Step 5: Re-run Task 1's tests against the extended fixture**
 
 Run: `pytest tests/p6/ -v`
-Expected: PASS — 41 passed. `tests/p6/test_p6_states.py::test_extractors_write_two_of_the_six_and_p6_owns_all_six`
-takes `p6_conn`, which now also creates P6's tables and loads the catalogue; nothing in that test
-reads `fields`, so it is unaffected. `test_no_module_in_facts_publishes_a_second_copy_of_the_six`
-now walks four modules instead of two (`authorship`, `fields`, `schema`, `states`, `vocabulary`) and
-must still report no offender — `FIELD_SCOPES` and `VALUE_KINDS` are collections of strings, and
-neither is the six.
+Expected: PASS — 42 passed (17 from Task 1, 25 here).
+`tests/p6/test_p6_states.py::test_extractors_write_two_of_the_six_and_p6_owns_all_six` takes
+`p6_conn`, which now also creates P6's tables and loads the catalogue; nothing in that test reads
+`fields`, so it is unaffected. `test_no_module_in_facts_publishes_a_second_copy_of_the_six` now
+walks five modules instead of two — `authorship`, `fields`, `schema`, `states`, `vocabulary`, of
+which four are inspected because `states` is skipped by name — and must still report no offender:
+`FIELD_SCOPES` and `VALUE_KINDS` are collections of strings, and neither is the six.
 
 - [ ] **Step 6: Run the whole suite**
 
 Run: `pytest tests/ -q`
-Expected: PASS — the 1300 P1–P5 tests, plus 41.
+Expected: PASS — the 1300 P1–P5 tests, plus 42.
 
 - [ ] **Step 7: Commit**
 
