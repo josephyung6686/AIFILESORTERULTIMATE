@@ -9,6 +9,30 @@ Do not treat a green suite as “everything is perfect.” Every remaining break
 
 ---
 
+> **Items 1–4 of *What to do next* are CLOSED (2026-08-21, commits `abcd1c4` + this one).** Nine
+> tests in `tests/wave2/test_wave2_full_tree.py`, each verified red before green; suite at 1,256.
+> This file stays as the pass that found the breaks — it is not rewritten.
+>
+> | | Closed by |
+> |---|---|
+> | 1 · bundle is the roster + current runs + `add_extraction_output` | roster from `cache_verdicts`, runs from `runs_for_file`, payloads deduped on P2's own UNIQUE key |
+> | 2 · OCR failure keeps the native run; `failed` version; `UnknownFamily` | `_ocr` records its own failure run; `_failed_version`; `UnknownFamily(ContractViolation)` |
+> | 3 · eviction composes `{filesystem: complete, native: dataless}` **+ the done-means 3 fixture, both halves** | status merge; `test_eviction_composes_…` (identity exists) and `test_a_file_dataless_at_first_sight_…` (identity never minted) |
+> | 4 · one dataless switch | P3's detection wins in the caller; the native extractor no longer opens an evicted file |
+>
+> **Still open, and deliberately not touched:**
+>
+> - **Defect 5** — `extract_filesystem` sits inside the two-refusal `try` but outside the
+>   `except Exception` catcher, which lives in `_extract_one` and runs after it. Fixing it changes
+>   exception semantics for the indexer (is an indexer crash a fact about the FILE, or a
+>   `ContractViolation` about the row it was handed?), and that is a decision, not a patch.
+> - **Defect 6** — 11 §7, two in-flight scans on one root. Unowned, and P3's, not the caller's.
+> - Found while fixing 1: two runs at one version over one content hash collided on
+>   `bundle_extraction_output`'s UNIQUE key and killed the scan **at the bundle, after every
+>   extraction had succeeded**. Deduped.
+
+---
+
 ## Verdict
 
 It is **not** perfect. It **is** the Wave 1–2 cut: one SQLite database, P3 fills `files`, P4 freezes one observation shape, P5 fills it, P2 measures, the caller runs them in order.

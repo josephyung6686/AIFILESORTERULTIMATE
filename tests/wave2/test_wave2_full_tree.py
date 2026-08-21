@@ -251,3 +251,30 @@ def test_the_dataless_predicate_is_one_gate_not_two(db, corpus):
         "the native extractor ran against an evicted file in the same pass that "
         "recorded it dataless -- on a real machine iCloud downloads it, which is "
         "the one thing 11 §5 exists to prevent")
+
+
+def test_a_file_dataless_at_first_sight_gets_identity_and_runs_from_nobody(db, corpus):
+    """Done-means 3's other half — the case 11 §5 exists for.
+
+    A file already in iCloud the first time it is ever seen has never been hashed,
+    and it must not be: `os.stat` does not download, `open` does, and P1 refuses to
+    mint a row without a content hash (R1). So there is no `file_id`, which means no
+    run can be constructed against it and it cannot appear in the bundle either --
+    the detection table is the whole record, and §8.6's line reads it from there.
+
+    The eviction test above covers the OTHER half, where identity already exists.
+    The two are different code paths and only one of them had a caller test.
+    """
+    first_sight = corpus / "syllabus.pdf"
+    result = go(db, corpus, source=_EvictingSource(first_sight))
+
+    assert db.execute("SELECT count(*) AS n FROM files WHERE current_path = ?",
+                      (str(first_sight),)).fetchone()["n"] == 0, (
+        "the file was hashed, which downloads it")
+    assert db.execute(
+        "SELECT count(*) AS n FROM dataless_detections WHERE path = ?",
+        (str(first_sight),)).fetchone()["n"] == 1
+
+    # and the rest of the corpus is unaffected: one refusal is not a stopped scan
+    assert db.execute("SELECT count(*) AS n FROM files").fetchone()["n"] == 1
+    assert result.run_ids, "the other file produced no runs"
