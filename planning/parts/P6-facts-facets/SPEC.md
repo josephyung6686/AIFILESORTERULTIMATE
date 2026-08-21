@@ -716,7 +716,12 @@ Each item is assertable against P4-shaped fixtures with no other part implemente
 **Deterministic operation**
 17. The whole of items 4–10, 13–16 and 18–27 pass with P8 absent and no model configured — the
     Wave 2 requirement and the walking skeleton's `P6 resolve it to ONE validated fact
-    (course = X) with its evidence link`.
+    (subject = X) with its evidence link`.
+
+    > **Amended by D6, 2026-08-22.** This quoted the walking skeleton's pre-D6 wording,
+    > `course = X`. `02-segmentation-map.md:190` now reads `subject = X`, and the stored
+    > field key is `subject` everywhere. Caught by a Task 27 author, whose guard asserts
+    > `"(course = X)" not in text` so it cannot silently return.
 
 **Abstention is a record, not a gap (B7)**
 18. Every refusal asserted in items 7–12 also writes an `unresolved` row naming the field attempted

@@ -822,3 +822,648 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
   ```
 
 ---
+
+### Task 21: §8.5 / B7 — the `factual_validation` envelope, through P2's live writer
+
+**Files:** create `src/facts/stage_output.py`; test `tests/p6/test_p6_stage_output.py`.
+
+**Interfaces:**
+- Consumes: `eval_harness.vocabulary.STAGE_IDS`, `OUTCOMES`, `BUDGET_STATES`, `DIMENSIONS`,
+  `check_stage`, `check_dimension`; `eval_harness.replay.StageResult`;
+  `eval_harness.stage_output.record_stage_output`, `DimensionValue`;
+  `evidence_shape.store.runs_for_content`; `evidence_shape.canonical.canonical_json`;
+  `facts.resolver.ResolveResult`.
+- Produces: `STAGE_ID: str` (`"factual_validation"`), `DIMENSION: str` (`"fact"`),
+  `ENVELOPE_FIELDS: tuple[str, ...]`, `UnsettledOutcome`,
+  `fact_stage_output(*, result: ResolveResult) -> dict`,
+  `fact_version_axes(conn, *, content_hash: str, model_identifier: str | None,
+  prompt_fingerprint: str | None) -> dict`.
+
+**Done-means:** 20 (the outcome half), 21.
+
+---
+
+**Two vocabularies that look like one, and the module exists partly to keep them apart.** P2 publishes
+ten `STAGE_IDS` and ten `DIMENSIONS`, and they are **different lists**. Verified live:
+`"factual_validation"` is `STAGE_IDS[1]`; `"fact"` is `DIMENSIONS[1]`. `check_stage("fact")` raises
+`UnknownStage`; `check_dimension("factual_validation")` raises `UnknownDimension`. P6 spells each
+once, in this module, and the test asserts the cross-substitution raises rather than silently
+recording under the wrong name.
+
+**The envelope is produced, not stored.** `eval_harness.replay.StageResult` is what a stage adapter
+returns; P2 adds `run_id`, `stage_id` and `version_tuple_ref` from the run it is replaying. P5's
+`extractors/stage_output.py` set this pattern and this module follows it, with one deliberate
+difference: **P6 fills `values`**, and P5 does not. `StageResult`'s sixth field is
+`values: Sequence[DimensionValue] = <factory>`, and §8.5's `fact` dimension is P6's to measure, so
+`ENVELOPE_FIELDS` here is the **six** `StageResult` fields rather than P5's five.
+
+**`inputs[]`, resolved against P5 as built rather than against a reading of the SPEC.** The SPEC says
+`inputs[]` carries *"the `subject_ref`s of the `extraction` stage outputs it consumed"*.
+`extractors.stage_output.extraction_stage_output` sets `"subject_ref": run["file_id"]` — read from
+the live module, not inferred. So P6's `inputs` is `(file_id,)` while P6's own `subject_ref` is the
+**content hash** (§8.2's identity for a file version). The two differ on purpose, and the test asserts
+the P5 half rather than restating it, so a future change to P5's subject key breaks this test instead
+of quietly mis-linking the two stages.
+
+**No fact id goes in the payload.** §8.5 replays a bundle and diffs the stored forms. A `fact_id` is
+minted per row and is not stable across two runs of the same corpus, so putting one in the payload
+would make every replay report a divergence that is not one. The payload carries a **count** and the
+reason histogram — everything §8.5's "Fact quality: did it abstain when evidence was absent?" needs,
+and nothing that changes between two identical runs.
+
+> **NEEDS-JOSEPH (new, found while writing this task): the §8.5 outcome table has no row for a
+> privacy-only refusal, and P2's live writer makes the obvious candidates unreachable.**
+>
+> The SPEC's table has four reachable rows. Its `abstained` row is defined as *"every attempted field
+> ended in an `unresolved` row with a **non-budget** reason"*, which would sweep `privacy_withheld`
+> into `abstained`. But the SPEC's own `unresolved` rule 4 says the opposite in the same document:
+> *"`budget_deferred` and `privacy_withheld` are **not** abstentions … conflating them would report a
+> budget stop as a considered refusal."* And `deferred` is not available either: P2's
+> `record_stage_output` raises `ValueError` unless `budget_state == "ceiling_reached"`, and a privacy
+> stop reaches no ceiling.
+>
+> So a file that produced **zero** facts and whose only refusals are `privacy_withheld` has no
+> representable outcome. That is a real gap between two ratified documents, not a choice this task
+> may make, so it is **held open as a raise**: `UnsettledOutcome`, naming the question. Three things
+> keep that from being reckless:
+> - The case is narrow. `privacy_withheld` is written only when an LLM **stage exists** and a
+>   handling class bars it. With P8 absent — Done-means 17's world, and today's — `stages["llm"]` is
+>   `None`, the route does not exist, nothing is withheld, and this branch is unreachable.
+> - Any field reachable by `direct` or `rule` is still answered, so a privacy bar with **any** fact
+>   written reports `produced` and never reaches the raise.
+> - Raising is this project's stated tie-break: *"the one that … makes a wrong outcome impossible
+>   rather than merely unlikely, wins"*. Recording a prohibition as a considered refusal is the wrong
+>   outcome the SPEC names in words; a raise forces the decision instead of writing it.
+>
+> **Do not resolve this by picking an outcome.** Two candidate resolutions exist and both are
+> Joseph's: add a `withheld` outcome to P2's five, or rule that `privacy_withheld` **is** an
+> abstention for envelope purposes while remaining a non-abstention in the `unresolved` vocabulary.
+
+---
+
+- [ ] **Step 1: Read P2's live writer and P5's precedent — both, before writing anything.**
+
+  ```bash
+  cd "/Users/jy/GRAPH AGENT" && PYTHONPATH=src python3 -c "
+  import inspect
+  from eval_harness.vocabulary import STAGE_IDS, DIMENSIONS, OUTCOMES, BUDGET_STATES
+  print('stage :', STAGE_IDS.index('factual_validation'), STAGE_IDS[1])
+  print('dim   :', DIMENSIONS.index('fact'), DIMENSIONS[1])
+  print('out   :', OUTCOMES); print('budget:', BUDGET_STATES)
+  from eval_harness.replay import StageResult
+  print('StageResult:', inspect.signature(StageResult))
+  from eval_harness.stage_output import record_stage_output, DimensionValue
+  print('record_stage_output:', inspect.signature(record_stage_output))
+  print('DimensionValue:', inspect.signature(DimensionValue))
+  from eval_harness.run import VERSION_AXES, VERSION_TUPLE_FIELDS
+  print('axes:', VERSION_AXES); print('tuple:', VERSION_TUPLE_FIELDS)
+  from extractors.stage_output import extraction_stage_output
+  print('P5 subject_ref is the', 'file_id' if 'file_id' in inspect.getsource(extraction_stage_output) else '???')
+  "
+  ```
+
+  Expected: `factual_validation` at index 1 of `STAGE_IDS`; `fact` at index 1 of `DIMENSIONS`;
+  `OUTCOMES == ("produced","abstained","deferred","not_implemented","error")`;
+  `BUDGET_STATES == ("within_ceiling","ceiling_reached")`;
+  `StageResult(subject_ref, outcome, payload, inputs, budget_state, values=...)`;
+  `VERSION_TUPLE_FIELDS` is seven, `VERSION_AXES` is six.
+
+- [ ] **Step 2: Write the test file, complete.**
+
+  Create `tests/p6/test_p6_stage_output.py`:
+
+  ```python
+  # tests/p6/test_p6_stage_output.py
+  """§8.5 / B7 — P6's envelope, driven through P2's LIVE writer.
+
+  Nothing here is asserted against a reconstruction of P2. Every outcome pairing goes
+  into `eval_harness.stage_output.record_stage_output` and is read back out of the
+  `stage_output` table, because B7's claim is that a budget stop and a considered
+  refusal are "distinguishable from the records alone" — which is a claim about rows,
+  not about a mapping table.
+  """
+  from __future__ import annotations
+
+  import json
+
+  import pytest
+
+  from eval_harness.replay import StageResult
+  from eval_harness.run import (
+      VERSION_AXES, VERSION_TUPLE_FIELDS, record_version_tuple, start_run,
+  )
+  from eval_harness.stage_output import (
+      DimensionValue, dimension_values, record_stage_output, stage_outputs,
+  )
+  from eval_harness.store import create_eval_schema
+  from eval_harness.vocabulary import (
+      BUDGET_STATES, DIMENSIONS, OUTCOMES, STAGE_IDS, UnknownDimension, UnknownStage,
+      check_dimension, check_stage,
+  )
+  from evidence_shape.fixtures import by_number
+  from evidence_shape.schema import create_evidence_schema
+  from evidence_shape.store import record_run
+
+  from extractors.stage_output import extraction_stage_output
+
+  import facts.stage_output as stage_output_module
+  from facts.resolver import ResolveResult
+  from facts.stage_output import (
+      DIMENSION, ENVELOPE_FIELDS, STAGE_ID, UnsettledOutcome, fact_stage_output,
+      fact_version_axes,
+  )
+
+  FILE_ID = "file-01"
+  CONTENT_HASH = "042896dc1966b8a6214e5383aba5b8b931cfa049d17aafa37eb8a77c859b95da"
+
+
+  def a_result(**overrides) -> ResolveResult:
+      base = dict(file_id=FILE_ID, content_hash=CONTENT_HASH,
+                  stages_run=("direct", "rule"))
+      base.update(overrides)
+      return ResolveResult(**base)
+
+
+  PRODUCED = a_result(fact_ids=("fact-1",))
+  ABSTAINED = a_result(reason_counts={"no_candidate_evidence": 2,
+                                      "below_margin": 1})
+  DEFERRED = a_result(reason_counts={"budget_deferred": 3},
+                      stages_barred={"llm": "budget"},
+                      deferred_against=("model.max_cost_per_scan",))
+  ERRORED = ResolveResult.errored(file_id=FILE_ID, content_hash=CONTENT_HASH,
+                                  error="rules.apply_rules: boom")
+
+
+  @pytest.fixture()
+  def p2_run(conn):
+      """A live P2 run. Mirrors `tests/p5/test_p5_stage_output.py` exactly."""
+      create_eval_schema(conn)
+      ref = record_version_tuple(
+          conn, extractor_versions={"pdf.text": "1.0.0"}, graph_algorithm_version=None,
+          prompt_fingerprint=None, model_identifier=None,
+          template_library_version=None, placement_scorer_version=None,
+          analysis_tiers_enabled=["filesystem", "native"])
+      run_id = start_run(conn, bundle_id="b-p6", run_kind="replay",
+                         version_tuple_ref=ref, budget_ceilings={},
+                         run_settings={"model_enabled": False,
+                                       "embeddings_enabled": False},
+                         pinned_plan_id=None, pinned_plan_version=None)
+      return run_id, ref
+
+
+  def emit(conn, p2_run, result: ResolveResult) -> int:
+      run_id, ref = p2_run
+      envelope = fact_stage_output(result=result)
+      return record_stage_output(
+          conn, run_id=run_id, stage_id=envelope["stage_id"],
+          subject_ref=envelope["subject_ref"], outcome=envelope["outcome"],
+          payload=envelope["payload"], version_tuple_ref=ref,
+          inputs=envelope["inputs"], budget_state=envelope["budget_state"],
+          dimension_values=envelope["values"])
+
+
+  # --- two vocabularies that look like one --------------------------------------
+
+  def test_the_stage_id_is_one_of_section_8_5s_ten():
+      assert STAGE_ID == "factual_validation"
+      assert STAGE_ID in STAGE_IDS
+      assert check_stage(STAGE_ID) == STAGE_ID
+
+
+  def test_the_dimension_is_fact_and_the_two_lists_are_not_interchangeable():
+      assert DIMENSION == "fact"
+      assert DIMENSION in DIMENSIONS
+      assert DIMENSION not in STAGE_IDS
+      assert STAGE_ID not in DIMENSIONS
+      with pytest.raises(UnknownStage):
+          check_stage(DIMENSION)
+      with pytest.raises(UnknownDimension):
+          check_dimension(STAGE_ID)
+
+
+  # --- the envelope shape --------------------------------------------------------
+
+  def test_the_envelope_is_exactly_p2s_stage_result_shape():
+      envelope = fact_stage_output(result=PRODUCED)
+      assert set(ENVELOPE_FIELDS) == set(envelope) - {"stage_id"}
+      StageResult(**{k: v for k, v in envelope.items() if k != "stage_id"})
+
+
+  def test_p6_fills_values_where_p5_does_not_because_the_fact_dimension_is_p6s():
+      assert "values" in ENVELOPE_FIELDS
+      envelope = fact_stage_output(result=PRODUCED)
+      assert [value.dimension for value in envelope["values"]] == [DIMENSION]
+
+
+  def test_subject_ref_is_the_content_hash_because_a_fact_is_per_file_version():
+      assert fact_stage_output(result=PRODUCED)["subject_ref"] == CONTENT_HASH
+
+
+  def test_inputs_carries_the_subject_refs_of_the_extraction_stage_outputs():
+      # Asserted against P5 AS BUILT: `extraction_stage_output` keys its subject by
+      # file id, so P6's `inputs[]` must be file ids even though P6's own subject is
+      # the content hash. Reading P5's live envelope here means a change on that side
+      # breaks this test instead of quietly mis-linking two stages.
+      p5_envelope = extraction_stage_output(run={
+          "file_id": FILE_ID, "content_hash": CONTENT_HASH,
+          "extractor_name": "pdf.text", "extractor_version": "1.0.0",
+          "source_type": "text_document", "analysis_tier": "native",
+          "completeness": "complete", "observation_count": 3,
+          "coverage": {"units": "pages", "processed": 1, "total": 1}})
+      assert p5_envelope["subject_ref"] == FILE_ID
+      assert fact_stage_output(result=PRODUCED)["inputs"] == (p5_envelope["subject_ref"],)
+
+
+  # --- the four outcomes ---------------------------------------------------------
+
+  def test_facts_written_is_produced_within_ceiling():
+      envelope = fact_stage_output(result=PRODUCED)
+      assert (envelope["outcome"], envelope["budget_state"]) == \
+          ("produced", "within_ceiling")
+
+
+  def test_evidence_based_refusal_is_abstained_within_ceiling():
+      envelope = fact_stage_output(result=ABSTAINED)
+      assert (envelope["outcome"], envelope["budget_state"]) == \
+          ("abstained", "within_ceiling")
+
+
+  def test_a_ceiling_is_deferred_ceiling_reached():
+      envelope = fact_stage_output(result=DEFERRED)
+      assert (envelope["outcome"], envelope["budget_state"]) == \
+          ("deferred", "ceiling_reached")
+
+
+  def test_a_ceiling_outranks_facts_because_deferred_work_must_be_visible_as_deferred():
+      # §00: the product must avoid "the false impression that an unprocessed file was
+      # understood and found unimportant". A run that wrote two facts AND hit a ceiling
+      # reports `deferred`; reporting `produced` would hide the unfinished half.
+      mixed = a_result(fact_ids=("fact-1", "fact-2"),
+                       reason_counts={"budget_deferred": 1},
+                       stages_barred={"llm": "budget"},
+                       deferred_against=("model.max_dossier_tokens_per_call",))
+      envelope = fact_stage_output(result=mixed)
+      assert (envelope["outcome"], envelope["budget_state"]) == \
+          ("deferred", "ceiling_reached")
+
+
+  def test_the_stage_failed_is_error():
+      envelope = fact_stage_output(result=ERRORED)
+      assert envelope["outcome"] == "error"
+      assert envelope["budget_state"] in BUDGET_STATES
+
+
+  def test_every_outcome_p6_can_emit_is_one_of_p2s_five():
+      for result in (PRODUCED, ABSTAINED, DEFERRED, ERRORED):
+          assert fact_stage_output(result=result)["outcome"] in OUTCOMES
+
+
+  # --- through P2's live writer --------------------------------------------------
+
+  def test_produced_and_abstained_are_written_and_read_back(conn, p2_run):
+      emit(conn, p2_run, PRODUCED)
+      emit(conn, p2_run, ABSTAINED)
+      rows = stage_outputs(conn, p2_run[0], stage_id=STAGE_ID)
+      assert [row["outcome"] for row in rows] == ["produced", "abstained"]
+      assert {row["budget_state"] for row in rows} == {"within_ceiling"}
+      assert {row["subject_ref"] for row in rows} == {CONTENT_HASH}
+      assert json.loads(rows[0]["inputs"]) == [FILE_ID]
+
+
+  def test_the_two_are_distinguishable_from_the_records_alone(conn, p2_run):
+      # Done-means 20. Nothing in this assertion consults P6: the reader has the
+      # `stage_output` rows and only those.
+      emit(conn, p2_run, ABSTAINED)
+      emit(conn, p2_run, DEFERRED)
+      rows = stage_outputs(conn, p2_run[0], stage_id=STAGE_ID)
+      pairs = [(row["outcome"], row["budget_state"]) for row in rows]
+      assert pairs == [("abstained", "within_ceiling"),
+                       ("deferred", "ceiling_reached")]
+      deferred_payload = json.loads(rows[1]["payload"])
+      assert deferred_payload["unresolved_reasons"] == {"budget_deferred": 3}
+      assert deferred_payload["deferred_against"] == ["model.max_cost_per_scan"]
+
+
+  def test_p2s_writer_refuses_the_pairing_p6_must_never_emit(conn, p2_run):
+      # P6 does not need to invent B7's rule; it needs to not fight it. Proof that the
+      # rule is live rather than remembered.
+      run_id, ref = p2_run
+      with pytest.raises(ValueError):
+          record_stage_output(conn, run_id=run_id, stage_id=STAGE_ID,
+                              subject_ref=CONTENT_HASH, outcome="abstained",
+                              payload=None, version_tuple_ref=ref, inputs=(FILE_ID,),
+                              budget_state="ceiling_reached")
+      with pytest.raises(ValueError):
+          record_stage_output(conn, run_id=run_id, stage_id=STAGE_ID,
+                              subject_ref=CONTENT_HASH, outcome="deferred",
+                              payload=None, version_tuple_ref=ref, inputs=(FILE_ID,),
+                              budget_state="within_ceiling")
+
+
+  def test_an_envelope_is_emitted_for_a_file_that_produced_facts_and_for_one_that_did_not(conn, p2_run):
+      # Done-means 21, both halves, in one run.
+      emit(conn, p2_run, PRODUCED)
+      emit(conn, p2_run, ABSTAINED)
+      rows = stage_outputs(conn, p2_run[0], stage_id=STAGE_ID)
+      assert len(rows) == 2
+      assert all(row["version_tuple_ref"] == p2_run[1] for row in rows)
+
+
+  def test_the_dimension_value_lands_under_fact_and_carries_its_own_outcome(conn, p2_run):
+      emit(conn, p2_run, PRODUCED)
+      values = dimension_values(conn, p2_run[0], dimension=DIMENSION)
+      assert len(values) == 1
+      assert values[0]["stage_id"] == STAGE_ID
+      assert values[0]["subject_ref"] == CONTENT_HASH
+      assert values[0]["outcome"] == "produced"
+      assert json.loads(values[0]["value"]) == {"fact_count": 1, "unresolved_count": 0}
+
+
+  def test_a_dimension_value_with_nothing_produced_is_null(conn, p2_run):
+      emit(conn, p2_run, ABSTAINED)
+      values = dimension_values(conn, p2_run[0], dimension=DIMENSION)
+      assert values[0]["outcome"] == "abstained"
+      assert values[0]["value"] is None
+
+
+  # --- the payload ---------------------------------------------------------------
+
+  def test_the_payload_is_p6s_own_and_carries_no_fact_id(conn, p2_run):
+      # §8.5 diffs STORED FORMS across two runs. A `fact_id` is minted per row and is
+      # not stable between two runs of the same corpus, so one in the payload would
+      # report a divergence that is not one.
+      payload = json.loads(fact_stage_output(result=PRODUCED)["payload"])
+      assert payload["fact_count"] == 1
+      assert "fact-1" not in fact_stage_output(result=PRODUCED)["payload"]
+      assert set(payload) == {"fact_count", "unresolved_reasons", "stages_run",
+                              "stages_barred", "deferred_against", "error"}
+
+
+  def test_the_payload_is_byte_stable_for_the_same_result():
+      first = fact_stage_output(result=DEFERRED)["payload"]
+      second = fact_stage_output(result=a_result(
+          reason_counts={"budget_deferred": 3}, stages_barred={"llm": "budget"},
+          deferred_against=("model.max_cost_per_scan",)))["payload"]
+      assert first == second
+
+
+  # --- the two refusals this module makes ----------------------------------------
+
+  def test_a_privacy_only_refusal_has_no_settled_outcome_and_is_held_open():
+      # NEEDS-JOSEPH, stated in this task's preamble: the §8.5 table would call this
+      # `abstained`, the SPEC's `unresolved` rule 4 forbids exactly that, and P2's
+      # writer makes `deferred` unreachable without a ceiling. Held open as a raise.
+      withheld = a_result(reason_counts={"privacy_withheld": 2},
+                          stages_barred={"llm": "privacy"})
+      with pytest.raises(UnsettledOutcome):
+          fact_stage_output(result=withheld)
+
+
+  def test_a_privacy_bar_that_still_produced_a_fact_reports_produced():
+      # The raise is narrow: any field reachable by `direct` or `rule` is still
+      # answered, and P8 absent means nothing is ever withheld at all.
+      partial = a_result(fact_ids=("fact-1",),
+                         reason_counts={"privacy_withheld": 1},
+                         stages_barred={"llm": "privacy"})
+      assert fact_stage_output(result=partial)["outcome"] == "produced"
+
+
+  def test_a_result_with_no_record_at_all_is_refused():
+      # B7's whole point: without the `unresolved` row, §3.6's "no fact" is a missing
+      # row and P2 cannot tell a considered refusal from a crash or a skip. A result
+      # with neither a fact nor a reason is that missing row, and it is a bug in the
+      # producer, not an outcome to report.
+      with pytest.raises(ValueError):
+          fact_stage_output(result=a_result())
+
+
+  # --- P6's slice of the version tuple -------------------------------------------
+
+  @pytest.fixture()
+  def p4_run(conn):
+      create_evidence_schema(conn)
+      record_run(conn, by_number(1).run)
+      return by_number(1).run
+
+
+  def test_fact_version_axes_supplies_p6s_three_and_assembles_no_tuple(conn, p4_run):
+      axes = fact_version_axes(conn, content_hash=p4_run.content_hash,
+                               model_identifier=None, prompt_fingerprint=None)
+      assert set(axes) == {"extractor_versions", "model_identifier",
+                           "prompt_fingerprint"}
+      assert set(axes) < set(VERSION_AXES)
+      assert axes["extractor_versions"] == {"pdf.text": "1.0.0"}
+
+
+  def test_the_axes_merge_into_p2s_seven_field_tuple(conn, p4_run):
+      create_eval_schema(conn)
+      axes = fact_version_axes(conn, content_hash=p4_run.content_hash,
+                               model_identifier="claude-x", prompt_fingerprint="sha256:ab")
+      ref = record_version_tuple(
+          conn, graph_algorithm_version=None, template_library_version=None,
+          placement_scorer_version=None, analysis_tiers_enabled=["native"], **axes)
+      assert ref.startswith("sha256:")
+      assert set(axes) <= set(VERSION_TUPLE_FIELDS)
+
+
+  def test_two_versions_of_one_extractor_are_refused_rather_than_resolved(conn):
+      # §3.4's cache key is per (extractor, version) and a map cannot hold both, so a
+      # caller comparing two extractor versions is comparing two runs. Same rule P5
+      # states on its own half of this axis.
+      import dataclasses
+      create_evidence_schema(conn)
+      run = by_number(1).run
+      record_run(conn, run)
+      record_run(conn, dataclasses.replace(run, run_id="run-01b",
+                                           extractor_version="2.0.0"))
+      with pytest.raises(ValueError):
+          fact_version_axes(conn, content_hash=run.content_hash,
+                            model_identifier=None, prompt_fingerprint=None)
+
+
+  def test_the_module_defines_no_number():
+      numbers = {name: value for name, value in vars(stage_output_module).items()
+                 if not name.startswith("_") and not isinstance(value, bool)
+                 and isinstance(value, (int, float))}
+      assert numbers == {}
+  ```
+
+- [ ] **Step 3: Run it and read the failure.**
+
+  ```bash
+  cd "/Users/jy/GRAPH AGENT" && PYTHONPATH=src python3 -m pytest tests/p6/test_p6_stage_output.py -q
+  ```
+
+  **Expected FAILURE:** collection error —
+  `ModuleNotFoundError: No module named 'facts.stage_output'`. One error, zero tests.
+
+- [ ] **Step 4: Write `src/facts/stage_output.py`, complete.**
+
+  ```python
+  # src/facts/stage_output.py
+  """§8.5 / B7 — P2's envelope, produced by P6 and stored by P2.
+
+  "P6 emits a `stage_output` with `stage_id = factual_validation`, a populated
+  `inputs[]`, and the version tuple, for a file that produced facts and for a file
+  that produced none."
+
+  Produced, not stored: `eval_harness.replay.StageResult` is the shape a stage adapter
+  returns, and P2 adds `run_id`, `stage_id` and `version_tuple_ref` from the run it is
+  replaying. P5's `extractors/stage_output.py` set this pattern; this module follows it
+  with one deliberate difference — P6 fills `values`, because §8.5's `fact` dimension is
+  P6's to measure and P5 has no dimension of its own to report here.
+
+  TWO VOCABULARIES THAT LOOK LIKE ONE. P2 publishes ten `STAGE_IDS` and ten
+  `DIMENSIONS` and they are different lists: P6's stage is `factual_validation`, P6's
+  dimension is `fact`, and each raises under the other's checker. They are spelled here
+  and nowhere else in `facts`.
+  """
+  from __future__ import annotations
+
+  import sqlite3
+
+  from evidence_shape.canonical import canonical_json
+  from evidence_shape.store import runs_for_content
+
+  from eval_harness.stage_output import DimensionValue
+  from eval_harness.vocabulary import check_dimension, check_stage
+
+  from facts.resolver import ResolveResult
+
+  #: Stage 2 of §8.5's ten. Checked at import, so a P2 rename is a startup failure.
+  STAGE_ID: str = check_stage("factual_validation")
+
+  #: §8.5's `fact` dimension — NOT the stage id, and not interchangeable with it.
+  DIMENSION: str = check_dimension("fact")
+
+  #: `eval_harness.replay.StageResult`'s six fields, as P6 fills them. P5 fills five;
+  #: the sixth is `values`, and it is P6's because the `fact` dimension is P6's.
+  ENVELOPE_FIELDS: tuple[str, ...] = ("subject_ref", "outcome", "payload", "inputs",
+                                      "budget_state", "values")
+
+
+  class UnsettledOutcome(Exception):
+      """A result whose §8.5 outcome the design does not settle.
+
+      One case only: zero facts, at least one `privacy_withheld` refusal, and no
+      ceiling. The §8.5 table would call it `abstained`; the SPEC's `unresolved`
+      rule 4 says `privacy_withheld` is not an abstention; and P2's writer refuses
+      `deferred` without `ceiling_reached`. NEEDS-JOSEPH — see this task's preamble.
+      Unreachable while P8 is absent, because a route that does not exist is not a
+      route that was barred.
+      """
+
+
+  def fact_stage_output(*, result: ResolveResult) -> dict:
+      """One envelope for one `(file_id, content_hash)` P6 decided about.
+
+      `subject_ref` is the CONTENT HASH — §8.2's identity for a file version, and the
+      thing a fact is keyed by. `inputs` is the file id, because that is what P5's
+      `extraction` stage keys its own subject by (`extractors.stage_output`), and
+      §8.5 links the two stages by that ref.
+      """
+      unresolved_count = sum(result.reason_counts.values())
+      outcome, budget_state = _outcome_for(result, unresolved_count=unresolved_count)
+      payload = canonical_json({
+          # No fact id: §8.5 diffs stored forms across runs and a minted id is not
+          # stable between two runs of the same corpus.
+          "fact_count": len(result.fact_ids),
+          "unresolved_reasons": dict(result.reason_counts),
+          "stages_run": list(result.stages_run),
+          "stages_barred": dict(result.stages_barred),
+          "deferred_against": list(result.deferred_against),
+          "error": result.error,
+      })
+      value = ({"fact_count": len(result.fact_ids),
+                "unresolved_count": unresolved_count}
+               if outcome == "produced" else None)
+      return {
+          "stage_id": STAGE_ID,
+          "subject_ref": result.content_hash,
+          "outcome": outcome,
+          "payload": payload,
+          "inputs": (result.file_id,),
+          "budget_state": budget_state,
+          "values": (DimensionValue(dimension=DIMENSION,
+                                    subject_ref=result.content_hash,
+                                    outcome=outcome, value=value),),
+      }
+
+
+  def _outcome_for(result: ResolveResult, *, unresolved_count: int) -> tuple[str, str]:
+      """The §8.5 table, in the one order that keeps unfinished work visible.
+
+      The ceiling is checked BEFORE the facts. A run that wrote two facts and then hit
+      a ceiling reports `deferred`: §8.6 requires deferred work be visible as deferred,
+      and `produced` would hide the half that never ran. This is not a widening of the
+      SPEC's first row — that row already reads `within_ceiling`.
+      """
+      if result.error is not None:
+          return "error", ("ceiling_reached" if result.deferred_against
+                           else "within_ceiling")
+      if result.deferred_against:
+          return "deferred", "ceiling_reached"
+      if result.fact_ids:
+          return "produced", "within_ceiling"
+      if result.reason_counts.get("privacy_withheld"):
+          raise UnsettledOutcome(
+              "zero facts and a privacy-withheld refusal has no §8.5 outcome: the "
+              "table would say 'abstained', the SPEC's unresolved rule 4 forbids it, "
+              "and P2 refuses 'deferred' without a ceiling. NEEDS-JOSEPH."
+          )
+      if unresolved_count:
+          return "abstained", "within_ceiling"
+      raise ValueError(
+          "a result with no fact and no `unresolved` row is the missing row B7 exists "
+          "to forbid: P2 cannot tell a considered refusal from a crash or a skip"
+      )
+
+
+  def fact_version_axes(conn: sqlite3.Connection, *, content_hash: str,
+                        model_identifier: str | None,
+                        prompt_fingerprint: str | None) -> dict:
+      """P6's three axes of §8.5's seven-field version tuple.
+
+      P6 SUPPLIES axes; it does not assemble the tuple — the other four belong to P9,
+      P10, P11 and the caller, and `eval_harness.run.record_version_tuple` refuses a
+      partial one. The caller merges these three in.
+
+      `extractor_versions` is P6's slice of P4's runs for this content hash. Two
+      versions of one extractor in one tuple is refused rather than resolved: §3.4's
+      cache key is per (extractor, version) and a map cannot hold both, so a caller
+      comparing two extractor versions is comparing two runs.
+      """
+      versions: dict[str, str] = {}
+      for run in runs_for_content(conn, content_hash):
+          name, version = run.extractor_name, run.extractor_version
+          if versions.get(name, version) != version:
+              raise ValueError(
+                  f"{name!r} appears at two versions, {versions[name]!r} and "
+                  f"{version!r}; §8.5's tuple holds one version per extractor"
+              )
+          versions[name] = version
+      return {
+          "extractor_versions": versions,
+          "model_identifier": model_identifier,
+          "prompt_fingerprint": prompt_fingerprint,
+      }
+  ```
+
+- [ ] **Step 5: Run it and read the pass.**
+
+  ```bash
+  cd "/Users/jy/GRAPH AGENT" && PYTHONPATH=src python3 -m pytest tests/p6/test_p6_stage_output.py -q
+  ```
+
+  **Expected PASS:** 23 passed. Then the whole suite, which must be unchanged apart from
+  the two new files:
+
+  ```bash
+  cd "/Users/jy/GRAPH AGENT" && PYTHONPATH=src python3 -m pytest -q
+  ```
+
+- [ ] **Step 6: Commit.**
+
+  ```bash
+  cd "/Users/jy/GRAPH AGENT" && git add src/facts/stage_output.py tests/p6/test_p6_stage_output.py && git commit -m "feat(P6): the factual_validation envelope through P2's live writer, and the privacy-only outcome held open"
+  ```

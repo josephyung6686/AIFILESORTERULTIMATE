@@ -2192,6 +2192,7 @@ review does not catch.
 """
 import dataclasses
 import inspect
+import json
 
 import pytest
 
@@ -2239,8 +2240,8 @@ def transform(value, *, identifier_class):
     return f"[{identifier_class}]"
 
 
-def a_request(**over) -> ModelCallRequest:
-    base = dict(stage="grouping", target=Target(file_ids=("file-1",)),
+def a_request(conn, **over) -> ModelCallRequest:
+    base = dict(stage="grouping", target=Target(file_ids=(only_file(conn),)),
                 model_target=CLOUD,
                 requested_items=(Excerpt(observation_key=KEY, span=TextSpan(16, 27),
                                          reason="the group's subject"),),
@@ -2261,8 +2262,15 @@ def a_policy(**over) -> Policy:
     return Policy(**base)
 
 
+def only_file(conn) -> str:
+    """P1 mints the `file_id` itself -- `record_file` returns a fresh UUID -- so the
+    test reads it back rather than pinning a literal it does not own."""
+    (row,) = conn.execute("SELECT file_id FROM files").fetchall()
+    return row["file_id"]
+
+
 @pytest.fixture()
-def corpus(p7_conn):
+def corpus(p7_conn, tmp_path):
     """A file, a run, a unit, one observation, and a policy. No classification.
 
     No classification is the REALISTIC state (D2: the detector is unwritten), so the
@@ -2271,21 +2279,29 @@ def corpus(p7_conn):
     """
     create_evidence_schema(p7_conn)
     create_privacy_schema(p7_conn)
-    record_file(p7_conn, file_id="file-1", current_path="/corpus/passport.pdf",
-                content_hash=CONTENT_HASH)
+    path = tmp_path / "passport.pdf"
+    path.write_bytes(BODY.encode("utf-8"))
+    file_id = record_file(
+        p7_conn, path, filename="passport.pdf",
+        normalized_filename="passport", extension=".pdf",
+        observed_size=path.stat().st_size,
+        observed_timestamps=json.dumps({"mtime": FIXED_CLOCK}),
+        parent_folder_context="corpus", mime_type="application/pdf",
+        detected_format="pdf", scan_state="scanned", materialized=True,
+        content_hash=CONTENT_HASH)
     record_run(p7_conn, ExtractionRun(
-        run_id="run-1", file_id="file-1", content_hash=CONTENT_HASH,
+        run_id="run-1", file_id=file_id, content_hash=CONTENT_HASH,
         extractor_name="pdf_text", extractor_version="1.0.0",
         source_type="text_document", analysis_tier="native", config={},
         completeness="complete", started_at=FIXED_CLOCK, observation_count=1))
     record_text_unit(p7_conn, TextUnit(run_id="run-1", container_path=PAGE, text=BODY))
     record_observation(p7_conn, Observation(
-        file_id="file-1", content_hash=CONTENT_HASH, extractor_name="pdf_text",
+        file_id=file_id, content_hash=CONTENT_HASH, extractor_name="pdf_text",
         extractor_version="1.0.0", source_type="text_document",
         raw_value="992-33-1188", location=LOCATION, occurrence_count=1,
         observed_at=FIXED_CLOCK, reliability="direct", run_id="run-1",
         context_before="Passport number ", context_after=" issued 2019.",
-        context_truncated=False)) 
+        context_truncated=False))
     set_policy(p7_conn, a_policy(), author="P7", component_version=COMPONENT,
                user_id="joseph")
     return p7_conn
@@ -2299,9 +2315,10 @@ def classify(conn, handling_class, *, protected):
     path would be unreachable.
     """
     ClassificationStore(conn).write(ClassificationRecord(
-        file_id="file-1", content_hash=CONTENT_HASH, handling_class=handling_class,
-        protected=protected, basis="user", evidence_refs=(KEY,),
-        reliability_state="user_confirmed", observed_at=FIXED_CLOCK))
+        file_id=only_file(conn), content_hash=CONTENT_HASH,
+        handling_class=handling_class, protected=protected, basis="user",
+        evidence_refs=(KEY,), reliability_state="user_confirmed",
+        observed_at=FIXED_CLOCK))
 
 
 def a_gate(conn, **over) -> Gate:
@@ -2404,13 +2421,13 @@ def test_an_unclassified_file_is_denied_and_this_is_the_ordinary_path(corpus):
     # D2: the detector is unwritten, so on a real corpus EVERY file lands here.
     # §8.6: "Cost exhaustion must never turn into lower-quality automatic
     # classification" -- there is no path from "nothing has looked" to `public_low`.
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     assert isinstance(decision, Denied)
     assert decision.reason == "unclassified"
 
 
 def test_a_denial_never_resolves_to_a_low_class(corpus):
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     assert UNCLASSIFIED == "unreadable_unclassified"
     assert "public_low" not in decision.explanation
 
@@ -2419,7 +2436,7 @@ def test_a_cloud_target_under_a_local_first_mode_is_denied(corpus):
     # §8.4: "Fully offline mode: No content leaves the device."
     set_policy(corpus, a_policy(policy_version="policy-2", operation_mode="offline"),
                author="P7", component_version=COMPONENT, user_id="joseph")
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     assert isinstance(decision, Denied)
     assert decision.reason == "mode_forbids_target"
 
@@ -2428,7 +2445,7 @@ def test_a_protected_file_with_a_cloud_target_is_denied(corpus):
     # §8.4: "Protected material should not be included in cloud-model prompts by
     # default." The flag is consumed, never inferred from the class (Open question 1).
     classify(corpus, "personal_non_sensitive", protected=True)
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     assert isinstance(decision, Denied)
     assert decision.reason == "protected_cloud_target"
 
@@ -2438,7 +2455,7 @@ def test_a_sensitive_file_without_a_grant_needs_consent(corpus):
     # that requirement and choose whether to allow a local model, a cloud model, a
     # redacted prompt, or no model use."
     classify(corpus, "sensitive_personal", protected=False)
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     assert isinstance(decision, NeedsConsent)
     assert decision.options == ("local_model", "cloud_model", "redacted_prompt",
                                 "no_model_use")
@@ -2451,13 +2468,13 @@ def test_a_grant_for_the_scope_turns_consent_into_a_release(corpus):
     set_policy(corpus, a_policy(policy_version="policy-3",
                                 consent_grants=(("Academics", "cloud_model"),)),
                author="P7", component_version=COMPONENT, user_id="joseph")
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     assert isinstance(decision, Released)
 
 
 def test_a_clean_release_carries_the_redacted_value_and_the_manifest(corpus):
     classify(corpus, "personal_non_sensitive", protected=False)
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     assert isinstance(decision, Released)
     (item,) = decision.materialised_items
     assert isinstance(item, Materialised)
@@ -2470,7 +2487,7 @@ def test_a_clean_release_carries_the_redacted_value_and_the_manifest(corpus):
 
 def test_the_released_payload_holds_no_unredacted_value(corpus):
     classify(corpus, "personal_non_sensitive", protected=False)
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     assert "992-33-1188" not in str(decision.materialised_items)
 
 
@@ -2481,7 +2498,7 @@ def test_an_over_budget_request_is_denied_as_the_m9_backstop(corpus):
     # pipeline. The ceiling is read from P1; no number is written here.
     classify(corpus, "personal_non_sensitive", protected=False)
     set_ceiling(corpus, "model.max_dossier_tokens_per_call", 100)
-    decision = a_gate(corpus).release(a_request(max_dossier_tokens=4000))
+    decision = a_gate(corpus).release(a_request(corpus, max_dossier_tokens=4000))
     assert isinstance(decision, Denied)
     assert decision.reason == "dossier_over_budget"
 
@@ -2492,7 +2509,7 @@ def test_a_whole_document_excerpt_is_denied(corpus):
     classify(corpus, "personal_non_sensitive", protected=False)
     whole = Excerpt(observation_key=KEY, span=TextSpan(0, len(BODY)),
                     reason="all of it")
-    decision = a_gate(corpus).release(a_request(requested_items=(whole,)))
+    decision = a_gate(corpus).release(a_request(corpus, requested_items=(whole,)))
     assert isinstance(decision, Denied)
     assert decision.reason == "whole_document_requested"
 
@@ -2500,7 +2517,7 @@ def test_a_whole_document_excerpt_is_denied(corpus):
 def test_every_denial_carries_an_explanation_and_a_remedy(corpus):
     # §8.6 requires the UI show "what has been deferred, and why", and a denial with
     # no legitimate alternative is a dead end the user cannot act on.
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     assert decision.explanation
     assert decision.remedy_options
 
@@ -2509,7 +2526,7 @@ def test_every_denial_carries_an_explanation_and_a_remedy(corpus):
 
 def test_the_audit_record_exists_before_the_released_is_returned(corpus):
     classify(corpus, "personal_non_sensitive", protected=False)
-    decision = a_gate(corpus).release(a_request())
+    decision = a_gate(corpus).release(a_request(corpus))
     record = audit_record(corpus, decision.audit_id)
     assert record.outcome == "released"
     assert record.release_id == decision.release_id
@@ -2517,8 +2534,8 @@ def test_the_audit_record_exists_before_the_released_is_returned(corpus):
 
 
 def test_a_denial_is_audited_too(corpus):
-    decision = a_gate(corpus).release(a_request())
-    (record,) = audit_records_for(corpus, file_id="file-1")
+    decision = a_gate(corpus).release(a_request(corpus))
+    (record,) = audit_records_for(corpus, file_id=only_file(corpus))
     assert record.outcome == "denied"
     assert isinstance(decision, Denied)
 
@@ -2528,8 +2545,8 @@ def test_a_consent_request_is_audited_and_no_release_accompanies_it(corpus):
     # log holds a `consent_requested` event and no `model_release` for that request
     # until a choice is recorded."
     classify(corpus, "sensitive_personal", protected=False)
-    a_gate(corpus).release(a_request())
-    outcomes = [r.outcome for r in audit_records_for(corpus, file_id="file-1")]
+    a_gate(corpus).release(a_request(corpus))
+    outcomes = [r.outcome for r in audit_records_for(corpus, file_id=only_file(corpus))]
     assert outcomes == ["consent_requested"]
 
 
@@ -2542,7 +2559,7 @@ def test_nothing_materialises_before_every_denying_check_has_run(corpus):
         seen.append(value)
         return "passport_number"
 
-    decision = a_gate(corpus, classifier=watching_classifier).release(a_request())
+    decision = a_gate(corpus, classifier=watching_classifier).release(a_request(corpus))
     assert isinstance(decision, Denied)
     assert seen == []
 
@@ -2577,7 +2594,7 @@ def test_a_contract_violation_propagates_rather_than_becoming_a_denial(corpus):
     bad = Excerpt(observation_key="sha256:" + "f" * 64, span=TextSpan(16, 27),
                   reason="a key nothing carries")
     with pytest.raises(UnresolvableSpan):
-        a_gate(corpus).release(a_request(requested_items=(bad,)))
+        a_gate(corpus).release(a_request(corpus, requested_items=(bad,)))
 
 
 def test_the_gate_imports_none_of_p5s_three_refusals():

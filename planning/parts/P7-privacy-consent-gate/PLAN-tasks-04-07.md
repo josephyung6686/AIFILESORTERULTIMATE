@@ -258,6 +258,12 @@ FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 LATER = "2026-08-22T18:30:00+00:00"
 COMPONENT = "0.1.0"
 
+#: Bare hex digests, because that is what P1 stores (R1) and what P4 refuses to
+#: accept anything else as: `MalformedRun: content_hash is the digest P1 stored`.
+HASH_A = "a" * 64
+HASH_B = "b" * 64
+HASH_EDITED = "e" * 64
+
 #: §8.4: "A scanned passport ... should enter a protected state immediately." The
 #: DETECTOR that would notice is unwritten (D2), so the test plays its part and the
 #: `basis` says which part it is playing.
@@ -265,7 +271,7 @@ PASSPORT_KEYS = ("obs-key-passport-mrz", "obs-key-passport-number")
 
 
 def a_file(conn, tmp_path: Path, *, name: str = "passport.pdf",
-           content_hash: str = "sha256:aaa") -> str:
+           content_hash: str = HASH_A) -> str:
     """A `files` row. `record_file` stats the path, so the bytes must exist."""
     path = tmp_path / name
     path.write_bytes(b"scanned passport")
@@ -278,7 +284,7 @@ def a_file(conn, tmp_path: Path, *, name: str = "passport.pdf",
 
 
 def a_record(**over) -> ClassificationRecord:
-    base = dict(file_id="file-1", content_hash="sha256:aaa",
+    base = dict(file_id="file-1", content_hash=HASH_A,
                 handling_class="highly_sensitive_credential_bearing",
                 protected=True, basis="detector", evidence_refs=PASSPORT_KEYS,
                 reliability_state="validated", observed_at=FIXED_CLOCK)
@@ -354,12 +360,12 @@ def test_write_returns_a_fact_id_and_current_reads_the_record_back(store):
     record = a_record()
     fact_id = store.write(record)
     assert isinstance(fact_id, str) and fact_id
-    assert store.current("file-1", "sha256:aaa") == record
+    assert store.current("file-1", HASH_A) == record
 
 
 def test_current_is_keyed_on_the_content_hash_and_not_on_the_file_id(store):
     store.write(a_record())
-    assert store.current("file-1", "sha256:bbb") is None
+    assert store.current("file-1", HASH_B) is None
 
 
 def test_new_bytes_at_the_same_file_inherit_nothing(store):
@@ -367,8 +373,8 @@ def test_new_bytes_at_the_same_file_inherit_nothing(store):
     # version and inherit nothing." The edited scan reads as unlooked-at, which is
     # what makes `Denied(unclassified)` correct rather than a regression.
     store.write(a_record())
-    assert store.current("file-1", "sha256:edited") is None
-    assert store.current_fact_id("file-1", "sha256:edited") is None
+    assert store.current("file-1", HASH_EDITED) is None
+    assert store.current_fact_id("file-1", HASH_EDITED) is None
 
 
 def test_current_is_none_before_anything_classifies(store):
@@ -380,7 +386,7 @@ def test_current_fact_id_returns_the_unsuperseded_row(store):
     old = store.write(a_record())
     new = store.write(a_record(reliability_state="user_confirmed", observed_at=LATER))
     store.supersede(old, new, "user reclassified")
-    assert store.current_fact_id("file-1", "sha256:aaa") == new
+    assert store.current_fact_id("file-1", HASH_A) == new
 
 
 # --- §3.13's ordering, quoted and not re-derived ----------------------------
@@ -401,7 +407,7 @@ def test_a_user_confirmed_record_outranks_a_validated_one(store):
                          basis="user", evidence_refs=(), observed_at=LATER)
     store.write(validated)
     store.write(confirmed)
-    assert store.current("file-1", "sha256:aaa") == confirmed
+    assert store.current("file-1", HASH_A) == confirmed
 
 
 def test_the_ordering_holds_regardless_of_write_order(store):
@@ -409,7 +415,7 @@ def test_the_ordering_holds_regardless_of_write_order(store):
                          evidence_refs=())
     store.write(confirmed)
     store.write(a_record(reliability_state="direct", observed_at=LATER))
-    assert store.current("file-1", "sha256:aaa") == confirmed
+    assert store.current("file-1", HASH_A) == confirmed
 
 
 def test_strongest_reads_the_order_and_computes_no_score(store):
@@ -429,7 +435,7 @@ def test_a_rejected_record_is_stored_and_is_never_current(store):
     # fact is a record of a proposal the user marked incorrect, so it must survive
     # and must never be the answer to "what is this file".
     rejected = store.write(a_record(reliability_state=REJECTED))
-    assert store.current("file-1", "sha256:aaa") is None
+    assert store.current("file-1", HASH_A) is None
     assert [r.reliability_state for r in store.history("file-1")] == [REJECTED]
     assert rejected
 
@@ -445,7 +451,7 @@ def test_two_live_records_at_the_same_rank_raise_rather_than_pick(store):
     store.write(a_record(evidence_refs=("obs-key-a",)))
     store.write(a_record(evidence_refs=("obs-key-b",), observed_at=LATER))
     with pytest.raises(AmbiguousCurrentClassification):
-        store.current("file-1", "sha256:aaa")
+        store.current("file-1", HASH_A)
 
 
 # --- supersede, never overwrite ---------------------------------------------
@@ -503,14 +509,14 @@ def test_a_superseded_record_is_not_current(store):
     store.supersede(old, new, "detector re-ran on better evidence")
     # The superseded record outranks the survivor by §3.13, and is still not the
     # answer: supersession is a stronger statement than reliability.
-    assert store.current("file-1", "sha256:aaa").reliability_state == "validated"
+    assert store.current("file-1", HASH_A).reliability_state == "validated"
 
 
 def test_history_is_oldest_first_and_spans_file_versions(store):
     store.write(a_record(observed_at=FIXED_CLOCK))
-    store.write(a_record(content_hash="sha256:edited", observed_at=LATER))
+    store.write(a_record(content_hash=HASH_EDITED, observed_at=LATER))
     assert [r.content_hash for r in store.history("file-1")] == \
-        ["sha256:aaa", "sha256:edited"]
+        [HASH_A, HASH_EDITED]
 
 
 # --- the projection onto files.sensitivity_state ----------------------------
@@ -563,7 +569,7 @@ def test_the_projection_carries_the_record_and_not_a_second_vocabulary(store):
         "protected": True,
         "basis": "detector",
         "reliability_state": "validated",
-        "content_hash": "sha256:aaa",
+        "content_hash": HASH_A,
         "evidence_refs": list(PASSPORT_KEYS),
         "observed_at": FIXED_CLOCK,
     }
@@ -583,7 +589,7 @@ def test_the_record_stays_authoritative_and_the_column_is_the_projection(p7_conn
     mirror(p7_conn, record, component_version=COMPONENT)
     # Provenance -- basis, evidence, reliability, supersede chain -- is answerable
     # from the record. The column answers only "what is this file right now".
-    assert store.current(file_id, "sha256:aaa").evidence_refs == PASSPORT_KEYS
+    assert store.current(file_id, HASH_A).evidence_refs == PASSPORT_KEYS
     assert json.loads(get_file(p7_conn, file_id)["sensitivity_state"])["evidence_refs"] \
         == list(PASSPORT_KEYS)
 
@@ -609,7 +615,7 @@ def test_no_input_makes_the_column_read_public_low(p7_conn, tmp_path, store):
     # unclassified file to public so the pipeline can continue.
     file_id = a_file(p7_conn, tmp_path)
     assert get_file(p7_conn, file_id)["sensitivity_state"] is None
-    assert store.current(file_id, "sha256:aaa") is None
+    assert store.current(file_id, HASH_A) is None
 
 
 # --- D2's shape: no protocol, no injection, no P6 surface -------------------
@@ -638,7 +644,7 @@ def test_the_store_needs_no_p6_table_to_exist(p7_conn, store):
         "SELECT name FROM sqlite_master WHERE type = 'table'")}
     assert "file_facts" not in tables
     store.write(a_record())
-    assert store.current("file-1", "sha256:aaa") is not None
+    assert store.current("file-1", HASH_A) is not None
 
 
 def test_the_store_appends_no_event(p7_conn, store):
@@ -658,7 +664,7 @@ def test_whether_protected_is_the_top_two_classes_is_not_answered_here(store):
     low_but_protected = a_record(handling_class="personal_non_sensitive",
                                  protected=True, basis="safety_domain")
     store.write(low_but_protected)
-    assert store.current("file-1", "sha256:aaa").protected is True
+    assert store.current("file-1", HASH_A).protected is True
     import privacy.classification_store as module
     assert not [name for name in vars(module) if "co_extensive" in name]
 ```

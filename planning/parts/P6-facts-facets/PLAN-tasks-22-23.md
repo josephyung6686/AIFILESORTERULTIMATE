@@ -718,3 +718,541 @@ git commit -m "feat(P6): 8.7 query-before-propose over P1's learning records (I4
 ```
 
 ---
+### Task 23: §8.8 plan versioning — what belongs to a plan version and what does not
+
+**Files:**
+- Create: `src/facts/plan_versions.py`
+- Test: `tests/p6/test_p6_plan_versions.py`
+
+**Interfaces:**
+- Consumes: `facts.values` — `ensure_value`, `VALUE_ORIGINS`, and the `values` table;
+  `facts.file_facts` — `FILE_FACTS_COLUMNS`, `FACT_ORIGINS`, `write_fact`;
+  `facts.fields` — `create_fields`; `facts.cache` — `fact_cache_key`;
+  `database_agent.supersede.SUPERSEDE_COLUMNS`.
+- Produces: `PLAN_VERSIONED: tuple[str, ...]` (`display_label`, `aliases`),
+  `SHARED_ACROSS_PLAN_VERSIONS: tuple[str, ...]`,
+  `VALUE_RENDERINGS_COLUMNS: tuple[str, ...]`, `create_plan_version_tables(conn) -> None`,
+  `display_label(conn, *, value_id, plan_version) -> str`,
+  `set_display_label(conn, *, value_id, plan_version, label) -> None`.
+
+**Done-means:** none numbered; §8.8's obligations.
+
+---
+
+**The whole task is one sentence of the design, and its two halves point opposite ways.** §8.8,
+verbatim: *"A new plan should never silently reclassify or move old files. It creates a new set of
+placement recommendations subject to review. The evidence database remains shared across plan
+versions, but the destination tree and user policy define which projections are valid in each
+version."*
+
+- **The negative.** Nothing P6 stores as a *record* is plan-versioned. A new plan version
+  re-resolves nothing, invalidates nothing and reclassifies nothing. This is the half that matters,
+  and it is enforced by absence: none of P6's four record tables has a plan-version column, so
+  there is no place a version could be written even by a later mistake.
+- **The positive.** §8.8's list of what a plan version captures includes *"User labels and
+  aliases"*. So the **rendering** of a value is the plan's: `UChicago` and `University of Chicago`
+  are two labels for one value, and choosing between them is a plan-version decision that must
+  leave the value and every fact pointing at it untouched.
+
+**Why the rendering gets its own table, and why that is not a fifth record table.** Task 3 puts
+`display_label` on the `values` row. If `set_display_label` wrote there, then changing a label in
+plan v3 would rewrite a row that v2 shares — which is precisely the silent cross-version mutation
+§8.8 forbids. The rendering therefore lives in a **plan-version-keyed side table**,
+`value_renderings`, and the `values` row keeps the version-independent default Task 3 gives it. The
+result is that the shared/versioned split is checkable from `PRAGMA table_info` alone, the same
+reviewer-checkable-negative-contract principle Task 4 uses for paths and destinations.
+
+> **Contradiction found, and flagged rather than papered over.** The skeleton's architecture
+> paragraph says P6 *"owns **four** tables"*. This task adds a fifth, and Task 19 already adds one
+> too (its recorded deterministic pass — its Files block reads *"modify `src/facts/schema.py`"*).
+> The line should read **four record tables**: `fields`, `values`, `file_facts`, `unresolved` are
+> the records, and `value_renderings` and Task 19's pass record are auxiliary. If a reviewer wants
+> the count kept literally at four, the only alternative is putting per-version labels on the
+> `values` row, and that alternative breaks §8.8. Flagging, not deciding.
+
+> **Second, smaller contradiction.** Task 23's Files block lists no `modify src/facts/schema.py`,
+> while Tasks 2–5 and 19 all list it. So this task declares its own DDL in `plan_versions.py` and
+> publishes `create_plan_version_tables`, rather than editing a file its Files block does not name.
+> **One line is then owed to whoever assembles `schema.py`:** its aggregate creator must call
+> `create_plan_version_tables`, or the table exists only where a test creates it.
+
+**`aliases` is named in `PLAN_VERSIONED` and has no writer, on purpose.** §8.8 versions *"labels and
+aliases"*, so the boundary declaration names both. But the skeleton publishes accessors for the
+label only, and Task 3 already uses `values.aliases` for something different — §0's taxonomy
+aliases, which a merge records and which are **identity**, not rendering (Task 3: *"a merge records
+an alias and deletes nothing"*). Inventing a `set_aliases` here would either duplicate that column
+or build a surface no Done-means asks for. So `PLAN_VERSIONED` **declares** the boundary and
+`value_renderings` carries only the column that has a writer — D3's rule against a writer-less
+column, applied. The per-version alias override is **owed, not stubbed**; a named test in Task 25
+should hold it open.
+
+**P6 mints no §8.2 event type for a rendering change, and appends none.** §8.8's diff — *"Applications
+was renamed to Admissions"* — belongs to the plan-version object, and that object is P10's and
+P12's. `destination-tree edit` is already a reserved name and is not P6's to write. A test asserts
+the event count is unchanged across a rendering change.
+
+**Two cross-task assumptions this task makes explicit.** First, `facts.schema.create_facts_schema` —
+the name follows P4's `evidence_shape.schema.create_evidence_schema` exactly, but it appears in no
+`Interfaces:` block, so if Wave A names its creator otherwise, this one import changes. Second,
+`write_fact` is called with exactly the ten keywords its Task 4 contract publishes, and with no P1
+`files` row present (P1 puts no foreign key on `events.file_id` — verified). If Task 4 lands an
+eleventh required keyword or a files-row precondition, it breaks this test *and* Task 20's resolver,
+which is the right place for that to surface.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p6/test_p6_plan_versions.py
+"""8.8: the evidence database is shared across plan versions; the rendering is not.
+
+The negative half is the one that matters and it is enforced by absence -- no P6
+record table has a plan-version column, so there is nowhere a version could be
+written. The positive half is one side table holding the label a plan version chose.
+"""
+from __future__ import annotations
+
+import pytest
+
+from database_agent import db
+from database_agent.supersede import SUPERSEDE_COLUMNS
+from evidence_shape.observation import observation_key
+from facts.cache import fact_cache_key
+from facts.fields import create_fields
+from facts.file_facts import FACT_ORIGINS, FILE_FACTS_COLUMNS, write_fact
+from facts.plan_versions import (
+    PLAN_VERSIONED,
+    SHARED_ACROSS_PLAN_VERSIONS,
+    VALUE_RENDERINGS_COLUMNS,
+    create_plan_version_tables,
+    display_label,
+    set_display_label,
+)
+from facts.schema import create_facts_schema
+from facts.values import ensure_value
+
+CONTENT_HASH = "sha256:" + "a" * 64
+FORBIDDEN = ("path", "destination", "folder", "node", "group")
+RECORD_TABLES = ("fields", "values", "file_facts", "unresolved")
+
+REF = observation_key(
+    content_hash=CONTENT_HASH,
+    extractor_name="pdf.text",
+    locator="heading:page=1/heading=2",
+    raw_value="University of Chicago",
+)
+CACHE_KEY = fact_cache_key(
+    content_hash=CONTENT_HASH,
+    extractor_version="1.0.0",
+    analysis_tier="native",
+    model_identifier=None,
+    prompt_fingerprint=None,
+)
+
+
+@pytest.fixture()
+def conn(tmp_path):
+    connection = db.open_database(tmp_path / "p6-plan-versions.db")
+    db.create_schema(connection)
+    create_facts_schema(connection)
+    create_fields(connection)
+    create_plan_version_tables(connection)
+    yield connection
+    connection.close()
+
+
+@pytest.fixture()
+def value_id(conn) -> str:
+    # 3.8's target_school, which D1 ratifies into the catalogue. 2.8's three
+    # renderings of one institution are the design's own worked example.
+    return ensure_value(
+        conn,
+        field_key="target_school",
+        canonical_value="University of Chicago",
+        first_evidence_ref=REF,
+        origin="automatic",
+    )
+
+
+@pytest.fixture()
+def fact_id(conn, value_id) -> str:
+    return write_fact(
+        conn,
+        file_id="file-1",
+        content_hash=CONTENT_HASH,
+        field_key="target_school",
+        value_id=value_id,
+        reliability_state="direct",
+        origin=FACT_ORIGINS[0],
+        evidence_refs=(REF,),
+        cache_key=CACHE_KEY,
+        active=True,
+    )
+
+
+def snapshot(connection) -> dict[str, list[tuple]]:
+    """Every table's every row, as plain tuples, so equality is byte-for-byte."""
+    names = [
+        row["name"]
+        for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+        )
+    ]
+    return {
+        name: [tuple(row) for row in connection.execute(f'SELECT * FROM "{name}"')]
+        for name in names
+    }
+
+
+# --- the declaration -------------------------------------------------------------
+
+
+def test_the_two_tuples_name_the_8_8_split_and_do_not_overlap():
+    assert PLAN_VERSIONED == ("display_label", "aliases")
+    assert set(PLAN_VERSIONED).isdisjoint(SHARED_ACROSS_PLAN_VERSIONS)
+    for name in RECORD_TABLES:
+        assert name in SHARED_ACROSS_PLAN_VERSIONS
+    for name in ("evidence_refs", "reliability_state", "supersession_history"):
+        assert name in SHARED_ACROSS_PLAN_VERSIONS
+
+
+def test_what_is_declared_shared_is_actually_a_shared_record(conn):
+    # 8.8: "The evidence database remains shared across plan versions."
+    tables = {
+        row["name"]
+        for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+    }
+    for name in RECORD_TABLES:
+        assert name in tables
+    assert "evidence_refs" in FILE_FACTS_COLUMNS
+    assert "reliability_state" in FILE_FACTS_COLUMNS
+    for column in SUPERSEDE_COLUMNS:
+        assert column in FILE_FACTS_COLUMNS
+
+
+def test_no_record_table_carries_a_plan_version_column(conn):
+    # Enforced by absence: there is nowhere a version could be written.
+    for name in RECORD_TABLES:
+        columns = {row[1] for row in conn.execute(f'PRAGMA table_info("{name}")')}
+        assert "plan_version" not in columns, name
+        assert "plan_id" not in columns, name
+
+
+def test_no_plan_versioned_attribute_is_a_fact_column():
+    # A fact is a claim, not a rendering. If `display_label` ever became a
+    # `file_facts` column, a label change would rewrite facts.
+    assert set(FILE_FACTS_COLUMNS).isdisjoint(PLAN_VERSIONED)
+
+
+def test_the_renderings_table_is_keyed_by_version_and_carries_no_destination(conn):
+    assert VALUE_RENDERINGS_COLUMNS == ("value_id", "plan_version", "display_label")
+    columns = [row[1] for row in conn.execute("PRAGMA table_info(value_renderings)")]
+    assert tuple(columns) == VALUE_RENDERINGS_COLUMNS
+    # 3.14's negative contract, applied to this table too.
+    for column in columns:
+        for forbidden in FORBIDDEN:
+            assert forbidden not in column, column
+
+
+# --- the rendering ---------------------------------------------------------------
+
+
+def test_two_plan_versions_render_one_value_two_ways(conn, value_id):
+    set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
+    set_display_label(
+        conn, value_id=value_id, plan_version="v3", label="University of Chicago"
+    )
+    assert display_label(conn, value_id=value_id, plan_version="v2") == "UChicago"
+    assert (
+        display_label(conn, value_id=value_id, plan_version="v3")
+        == "University of Chicago"
+    )
+
+
+def test_a_version_that_chose_nothing_falls_back_and_never_borrows(conn, value_id):
+    set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
+    # v3 chose nothing, so it renders the value's own label -- NOT v2's choice. A
+    # rendering is scoped to the version that made it.
+    assert display_label(conn, value_id=value_id, plan_version="v3") != "UChicago"
+
+
+def test_the_fallback_chain_ends_at_the_canonical_string(conn, value_id):
+    # Total by construction: 5.5 needs something to show for every value, and a
+    # renderer that can return None shows nothing on a version that chose nothing.
+    rendered = display_label(conn, value_id=value_id, plan_version="v9")
+    assert isinstance(rendered, str) and rendered != ""
+
+
+def test_re_rendering_the_same_version_replaces_rather_than_duplicates(conn, value_id):
+    set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
+    set_display_label(conn, value_id=value_id, plan_version="v2", label="U Chicago")
+    rows = conn.execute("SELECT COUNT(*) AS n FROM value_renderings").fetchone()["n"]
+    assert rows == 1
+    assert display_label(conn, value_id=value_id, plan_version="v2") == "U Chicago"
+
+
+def test_a_rendering_for_a_value_that_does_not_exist_is_refused(conn):
+    with pytest.raises(ValueError):
+        set_display_label(
+            conn, value_id="no-such-value", plan_version="v2", label="Ghost"
+        )
+    rows = conn.execute("SELECT COUNT(*) AS n FROM value_renderings").fetchone()["n"]
+    assert rows == 0
+
+
+def test_a_rendering_without_a_plan_version_is_refused(conn, value_id):
+    with pytest.raises(ValueError):
+        set_display_label(conn, value_id=value_id, plan_version="", label="UChicago")
+
+
+# --- the guarantee -----------------------------------------------------------------
+
+
+def test_a_new_plan_version_changes_no_shared_record_byte_for_byte(conn, value_id, fact_id):
+    before = snapshot(conn)
+    set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
+    set_display_label(
+        conn, value_id=value_id, plan_version="v3", label="University of Chicago"
+    )
+    after = snapshot(conn)
+    assert set(before) == set(after)
+    for name in after:
+        if name == "value_renderings":
+            continue
+        assert after[name] == before[name], name
+    # And the versioned table is the only thing that moved.
+    assert len(after["value_renderings"]) == 2
+    assert before["value_renderings"] == []
+
+
+def test_the_value_itself_is_untouched_by_a_rendering_change(conn, value_id):
+    before = conn.execute(
+        'SELECT * FROM "values" WHERE value_id = ?', (value_id,)
+    ).fetchone()
+    set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
+    after = conn.execute(
+        'SELECT * FROM "values" WHERE value_id = ?', (value_id,)
+    ).fetchone()
+    assert tuple(after) == tuple(before)
+
+
+def test_every_fact_pointing_at_the_value_still_resolves_unchanged(conn, value_id, fact_id):
+    before = [
+        tuple(row)
+        for row in conn.execute("SELECT * FROM file_facts WHERE value_id = ?", (value_id,))
+    ]
+    assert len(before) == 1
+    set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
+    after = [
+        tuple(row)
+        for row in conn.execute("SELECT * FROM file_facts WHERE value_id = ?", (value_id,))
+    ]
+    assert after == before
+
+
+def test_a_rendering_change_re_resolves_nothing_and_invalidates_no_cache_key(
+    conn, value_id, fact_id
+):
+    # 3.4's cache key has five parts and a plan version is none of them, so a plan
+    # edit cannot invalidate a fact. 8.8: "A new plan should never silently
+    # reclassify or move old files."
+    before = conn.execute(
+        "SELECT cache_key FROM file_facts WHERE fact_id = ?", (fact_id,)
+    ).fetchone()["cache_key"]
+    set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
+    after = conn.execute(
+        "SELECT cache_key FROM file_facts WHERE fact_id = ?", (fact_id,)
+    ).fetchone()["cache_key"]
+    assert after == before == CACHE_KEY
+
+
+def test_p6_appends_no_event_for_a_rendering_change(conn, value_id, fact_id):
+    # 8.8's diff belongs to the plan-version object, which is P10's and P12's. P6
+    # mints no 8.2 type here and writes none of anyone else's.
+    before = conn.execute("SELECT COUNT(*) AS n FROM events").fetchone()["n"]
+    set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
+    after = conn.execute("SELECT COUNT(*) AS n FROM events").fetchone()["n"]
+    assert after == before
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pytest tests/p6/test_p6_plan_versions.py -v`
+
+Expected: **FAIL** — collection error, `ModuleNotFoundError: No module named 'facts.plan_versions'`.
+All 15 tests error at import.
+
+- [ ] **Step 3: Write the implementation**
+
+```python
+# src/facts/plan_versions.py
+"""8.8 -- what belongs to a plan version, and what does not.
+
+8.8's guarantee is one sentence: "A new plan should never silently reclassify or move
+old files. It creates a new set of placement recommendations subject to review. The
+evidence database remains shared across plan versions, but the destination tree and
+user policy define which projections are valid in each version."
+
+THE NEGATIVE, which is the half that matters.  Nothing P6 stores as a record is
+plan-versioned: `fields`, value identity, `file_facts`, `unresolved`, every evidence
+ref, every reliability state and all supersession history are shared.  Enforced by
+ABSENCE -- no record table carries a plan-version column, so there is nowhere a
+version could be written even by a later mistake.  A new plan version therefore
+re-resolves nothing, invalidates nothing and reclassifies nothing; 3.4's cache key has
+five parts and a plan version is none of them.
+
+THE POSITIVE.  8.8's plan version captures "User labels and aliases", so the RENDERING
+of a value is the plan's.  `UChicago` and `University of Chicago` are two labels for
+one value, and choosing between them must leave the value and every fact pointing at
+it untouched.  That is why the rendering lives here, in a plan-version-keyed side
+table, and not on the `values` row: writing it there would rewrite a row every other
+plan version shares, which is the silent cross-version mutation 8.8 forbids.
+
+`aliases` is declared in PLAN_VERSIONED and has no writer here on purpose.  8.8
+versions "labels and aliases", so the boundary names both; but `values.aliases` is
+already 0's taxonomy aliases, which are identity rather than rendering, and no
+Done-means asks for a per-version alias override.  Declaring the boundary is this
+module's job; building a column with no writer is not (D3).
+
+P6 MINTS NO 8.2 EVENT TYPE HERE and appends none.  8.8's plan diff ("Applications was
+renamed to Admissions") belongs to the plan-version object, and that object is P10's
+and P12's.  `destination-tree edit` is a reserved name and is not P6's to write.
+"""
+from __future__ import annotations
+
+import sqlite3
+
+#: 8.8: "User labels and aliases" are captured BY a plan version. A declaration of the
+#: boundary, not a column list -- only `display_label` has a writer today.
+PLAN_VERSIONED: tuple[str, ...] = ("display_label", "aliases")
+
+#: Everything a plan version must NOT be able to change. The four record tables, plus
+#: the three fact properties 8.8's guarantee turns on.
+SHARED_ACROSS_PLAN_VERSIONS: tuple[str, ...] = (
+    "fields",
+    "values",
+    "file_facts",
+    "unresolved",
+    "evidence_refs",
+    "reliability_state",
+    "supersession_history",
+)
+
+#: The one plan-version-keyed table P6 owns. Not a fifth RECORD table: it holds no
+#: claim, no evidence and no reliability state, and nothing reads it to decide a fact.
+VALUE_RENDERINGS_COLUMNS: tuple[str, ...] = ("value_id", "plan_version", "display_label")
+
+_DDL = """
+CREATE TABLE IF NOT EXISTS value_renderings (
+    value_id      TEXT NOT NULL,
+    plan_version  TEXT NOT NULL,
+    display_label TEXT NOT NULL,
+    PRIMARY KEY (value_id, plan_version)
+)
+"""
+
+
+def create_plan_version_tables(conn: sqlite3.Connection) -> None:
+    """Create the rendering table inside P1's database. Creates no other part's.
+
+    Owed: `facts.schema`'s aggregate creator must call this, or the table exists only
+    where a test creates it.
+    """
+    conn.execute(_DDL)
+
+
+def _value_row(conn: sqlite3.Connection, value_id: str) -> sqlite3.Row:
+    # `values` is a SQLite keyword; the identifier must be quoted or the statement is
+    # a syntax error rather than a missing table.
+    row = conn.execute(
+        'SELECT canonical_value, display_label FROM "values" WHERE value_id = ?',
+        (value_id,),
+    ).fetchone()
+    if row is None:
+        raise ValueError(
+            f"no value {value_id!r}: a rendering with no value to render would be a "
+            "label the user can never trace back to a fact"
+        )
+    return row
+
+
+def set_display_label(conn: sqlite3.Connection, *, value_id: str, plan_version: str,
+                      label: str) -> None:
+    """Record the label THIS plan version shows for one value. Touches no record.
+
+    Writes only `value_renderings`: no fact, no value, no field, no event. A repeat
+    for the same version replaces that version's choice rather than accumulating a
+    second one -- a value renders one way per version or the display is ambiguous.
+    """
+    if not plan_version:
+        raise ValueError("plan_version is required: a rendering belongs to a version")
+    if not label:
+        raise ValueError(
+            "label is required: an empty rendering is not a choice, and clearing one "
+            "is a different operation than making one"
+        )
+    _value_row(conn, value_id)
+    conn.execute(
+        "INSERT INTO value_renderings (value_id, plan_version, display_label) "
+        "VALUES (?, ?, ?) "
+        "ON CONFLICT (value_id, plan_version) DO UPDATE SET "
+        "display_label = excluded.display_label",
+        (value_id, plan_version, label),
+    )
+
+
+def display_label(conn: sqlite3.Connection, *, value_id: str,
+                  plan_version: str) -> str:
+    """This version's rendering, else the value's own label, else its canonical string.
+
+    Total by construction: 5.5 shows the user "three schools, five terms, twelve course
+    branches" before they commit, and a renderer that can return None shows nothing for
+    a value whose version made no choice.
+
+    The chain never borrows another version's label. A rendering is scoped to the
+    version that chose it, exactly as 8.8 scopes everything else a plan captures.
+    """
+    chosen = conn.execute(
+        "SELECT display_label FROM value_renderings "
+        "WHERE value_id = ? AND plan_version = ?",
+        (value_id, plan_version),
+    ).fetchone()
+    if chosen is not None:
+        return chosen["display_label"]
+    value = _value_row(conn, value_id)
+    return value["display_label"] or value["canonical_value"]
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `pytest tests/p6/test_p6_plan_versions.py -v`
+
+Expected: **PASS** — 15 passed.
+
+- [ ] **Step 5: Confirm the negative from the schema alone**
+
+A reviewer must be able to check §8.8's guarantee without reading a test:
+
+```bash
+cd "/Users/jy/GRAPH AGENT" && PYTHONPATH=src python3 -c "
+import tempfile; from pathlib import Path
+from database_agent import db
+from facts.schema import create_facts_schema
+from facts.plan_versions import create_plan_version_tables, PLAN_VERSIONED
+c = db.open_database(Path(tempfile.mkdtemp())/'x.db'); db.create_schema(c)
+create_facts_schema(c); create_plan_version_tables(c)
+for t in ('fields','values','file_facts','unresolved'):
+    cols = [r[1] for r in c.execute(f'PRAGMA table_info(\"{t}\")')]
+    print(t, 'plan_version' in cols, sorted(set(cols) & set(PLAN_VERSIONED)))
+"
+```
+
+Expected: `False []` for `fields`, `file_facts` and `unresolved`; `values` prints
+`False ['aliases', 'display_label']` — the version-independent defaults Task 3 owns, which is the
+one place the two tuples touch and the reason `value_renderings` exists.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/facts/plan_versions.py tests/p6/test_p6_plan_versions.py
+git commit -m "feat(P6): 8.8 plan versioning -- shared records, versioned renderings"
+```
