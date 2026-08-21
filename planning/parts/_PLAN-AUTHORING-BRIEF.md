@@ -169,3 +169,38 @@ P1–P5 and the Wave-2 caller are shipped and green: **1300 tests**. P4's 19 gol
 (`evidence_shape.fixtures`) mean P6 is buildable with **no extractor present** — use them. Plan
 against live signatures, never against a reconstructed stub: doing the latter cost this project a
 whole class of defects in P4/P5.
+
+---
+
+## 9. Round 5's seven cuts — one ratified, six NOT. Write the task; flag the cut.
+
+`planning/overnight/reviews/round-5-scope.md` recommends deleting seven things. **Joseph has ruled
+on exactly one.** The rest are live recommendations against tasks this brief tells you to write, and
+an author who does not know that will produce a confident plan for work that may be deleted.
+
+| Cut | Target | Status |
+|---|---|---|
+| **CUT 1** | P6 Task 26 — the four-pass orchestrator restructure | **RATIFIED (D5). Do not write it.** |
+| **CUT 2** | P7 Task 19 — `transport_guard.py`, `assert_single_egress` | **NOT ruled.** §8.4 states a property, not a static analyser; no sentence asks for one. |
+| **CUT 3** | P6 Task 23 — `plan_versions.py` | **NOT ruled.** |
+| **CUT 4** | P7's `Gate` facade as a seven-method object | **NOT ruled.** Touches Task 11. |
+| **CUT 5** | P7 Task 4's `SensitivityStateWriter` and `mirror_state` | **Resolved by D2** — the injected writer is gone; P1 publishes `set_sensitivity_state`. |
+| **CUT 6** | P6's `STRENGTH_ORDER` / `strength()` / `is_stronger()` five-rank ladder | **NOT ruled.** Touches §3.13 ordering wherever it appears. |
+| **CUT 7** | P6 read surface — `event_facts`, `session_facts`, `family_facts` | **NOT ruled.** Touches Task 24. |
+
+**What to do if your task is a cut target.** Write it in full, to the same standard as any other
+task — an unratified recommendation is not a decision, and a half-written task is worth nothing to
+either outcome. Then add a short, prominent callout at the top of that task naming the cut, its
+argument in one sentence, and the fact that it is unratified. Assembly needs to find these; a
+reader deciding the cut needs the plan in front of them to decide against.
+
+**Do not silently comply with a cut, and do not silently ignore one.** Both are the same failure:
+a decision made by an author instead of by Joseph.
+
+## 10. The `SensitivityFacts` rename applies to EVERY task that names it
+
+The settled D2 paragraph in P7's skeleton names Tasks 4, 12, 13 and 14. That list is incomplete —
+**Tasks 17 and 18 also carry `facts_seam.SensitivityFacts` in their `Consumes`.** The rule is not a
+list of task numbers; it is: wherever `facts_seam.SensitivityFacts` appears, read
+`classification_store.ClassificationStore` — a concrete store over a table P7 owns, no injection,
+no protocol, no fixture standing in for P6.

@@ -1296,3 +1296,799 @@ git commit -m "feat(P7): display_policy per facet, and a protected summary with 
 ```
 
 ---
+
+### Task 19: The transport guard — Done-means 3's instrument
+
+**Files:**
+- Create: `src/privacy/transport_guard.py`, `tests/p7/transport_fixtures.py`
+- Test: `tests/p7/test_p7_transport.py`
+
+**Interfaces:**
+- Consumes: `inspect`, `typing.get_args`, `privacy.release.Released`,
+  `evidence_shape.observation.Observation`, `evidence_shape.text_units.TextUnit` (the **classes**,
+  as members of `CONTENT_PARAMETER_TYPES` — neither is one of P4's four text materialisers, so
+  layer L2's *"exactly one module under `src/privacy/` binds a P4 text materialiser"* is untouched
+  and Task 21's repo-wide guard still passes).
+- Produces (`transport_guard.py`):
+  - `CONTENT_PARAMETER_TYPES: frozenset[type]` = `{str, bytes, Path, Observation, TextUnit}`.
+  - `EgressGuardFailure`, `MultipleEgressPoints`, `NoEgressPoint`, `UnreleasedContentParameter`.
+  - `egress_functions(module) -> list[Callable]`.
+  - `assert_single_egress(module) -> None`.
+
+**Done-means:** 3 — the instrument only. The coverage table states the limit and this plan repeats
+it rather than softening it: *"**No — and this is a finding.** The transport is P8's. P7 proves the
+instrument, the unforgeable token, and the single materialisation locus. The property itself is P8
+Done-means 1."*
+
+**What this is, precisely.** §8.4's opening sentence — *"Privacy policy must be enforced **before**
+content reaches any model or external connector"* — is a **property**, and P8's Done-means 1 states
+the method for checking it: *"Exactly one function in the codebase constructs a model request, and
+its only parameter type is P7's `Released`. A call without a release is not constructible. Verified
+by inspection plus a test that the un-released path does not type-check / does not exist."*
+`assert_single_egress` is that inspection, mechanised. It is an **existence proof over a module
+namespace** — it answers *does a string-prompt entry point exist in this module?* — and it is not a
+runtime check on a call. Nothing here executes a transport.
+
+**Three implementation rules, each of which is the difference between a guard and a decoration.**
+
+1. **It reads resolved annotations, never source text.** `inspect.signature(fn, eval_str=True)` and
+   `typing.get_args`. A source scan sees the word `Released` in a docstring and passes a transport
+   that takes a string; a fixture whose docstring says exactly that is in the suite. This project
+   has recorded that failure more than once, which is why `code_tokens()` exists in
+   `tests/p3/test_p3_no_invention.py` — and why this task does not need it, because it never looks
+   at text at all.
+2. **It walks into containers and unions.** `list[str]`, `Sequence[str]`, `str | None`,
+   `Path | None` are the shapes a transport that "takes no string" actually takes one in.
+   `_leaves` recurses through `get_args` and checks every leaf.
+3. **It checks every function in the module, public or private, and the entry-point count only over
+   the public ones.** *"the un-released path does not exist"* is a statement about the module, not
+   about its exports: a private `_format(text: str)` beside the entry point is a string-prompt path
+   that happens to be unexported, and inside a module whose entire job is egress there is nothing
+   for it to legitimately be. Classes are walked too — an SDK-client wrapper, `Client.send(self,
+   prompt: str)`, is the single most likely real shape and a module-level-functions-only guard would
+   miss it entirely. The receiver parameter (`self` / `cls`) is skipped; everything else is checked.
+
+**An unresolvable annotation is a failure, not a crash.** If `eval_str=True` raises, the parameter
+cannot be **shown** to be a `Released`, and a guard that propagates a bare `NameError` gives an
+ambiguous signal at exactly the moment it matters. It is re-raised as
+`UnreleasedContentParameter` with the original attached.
+
+**A `str` return annotation is legal and must stay legal.** The model's reply comes back as text;
+that is the direction the gate does not govern. Only **parameters** are checked, and a test pins it
+so a later tightening does not make the real transport unrepresentable.
+
+**The honest limit, said here and again in a named test.** Running this over the **real** transport
+is P8's Done-means 1 and cannot happen in this repository today: there is no `src/llm/` and no
+transport module to point it at. What Task 19 delivers is a checker proven correct against four
+conforming fixtures and against seventeen non-conforming ones — the skeleton's rule that *"A checker
+only proven on the passing case is an assertion that has never been tested."* Round 5 recommended
+cutting this task on the grounds that P8 stated its own method; the ruling for this plan is that the
+method P8 stated **is this**, and shipping it here means the day P8 lands, the check exists and was
+not written by someone who wanted it to pass.
+
+- [ ] **Step 1: Write the fixture transports**
+
+```python
+# tests/p7/transport_fixtures.py
+"""Conforming and non-conforming transports, for proving the guard in both directions.
+
+Each factory builds a real `ModuleType` populated with real function objects, rather
+than a source string: the guard resolves annotations through `fn.__globals__`, which
+is this module's namespace, so `Released`, `Path`, `Observation` and `TextUnit` all
+resolve exactly as they would in a real transport module. Nothing here is executed by
+the guard; only its signature is read.
+
+`_module` sets `__module__` on each member it is given, because the guard filters on
+`__module__` to distinguish a function a module DEFINES from one it merely imported.
+Members passed as keywords are left alone, which is how the imported-helper fixture is
+built.
+"""
+from __future__ import annotations
+
+import json
+from collections.abc import Sequence
+from pathlib import Path
+from types import ModuleType
+
+from evidence_shape.observation import Observation
+from evidence_shape.text_units import TextUnit
+
+from privacy.release import Released
+
+
+def _module(name: str, *defined, **imported) -> ModuleType:
+    module = ModuleType(name)
+    for member in defined:
+        member.__module__ = name
+        setattr(module, member.__name__, member)
+    for attribute, value in imported.items():
+        setattr(module, attribute, value)
+    return module
+
+
+# --- conforming ---------------------------------------------------------------
+
+def conforming_transport() -> ModuleType:
+    """The shape P8's Done-means 1 requires: one public function, one parameter,
+    annotated `Released`."""
+
+    def send(released: Released) -> str:
+        return released.release_id
+
+    return _module("conforming_transport", send)
+
+
+def conforming_transport_with_a_timeout() -> ModuleType:
+    """A non-content parameter beside the release. Done-means 3 constrains the
+    CONTENT parameter -- "No transport function accepts a string, a file path, or an
+    observation record" -- and says nothing about a timeout."""
+
+    def send(released: Released, timeout: int = 30) -> str:
+        return released.release_id
+
+    return _module("conforming_transport_with_a_timeout", send)
+
+
+def conforming_transport_as_a_class() -> ModuleType:
+    """The likeliest real shape: a client wrapper. The receiver is skipped; the
+    parameter is not."""
+
+    class Client:
+        def send(self, released: Released) -> str:
+            return released.release_id
+
+    return _module("conforming_transport_as_a_class", Client)
+
+
+def conforming_transport_with_an_imported_helper() -> ModuleType:
+    """`json.dumps` in the namespace is not an entry point this module defines."""
+
+    def send(released: Released) -> str:
+        return released.release_id
+
+    return _module("conforming_transport_with_an_imported_helper", send,
+                   dumps=json.dumps)
+
+
+# --- non-conforming: the count --------------------------------------------------
+
+def transport_with_two_entry_points() -> ModuleType:
+    def send(released: Released) -> str:
+        return released.release_id
+
+    def send_batch(released: Released) -> str:
+        return released.release_id
+
+    return _module("transport_with_two_entry_points", send, send_batch)
+
+
+def transport_with_no_entry_point() -> ModuleType:
+    return _module("transport_with_no_entry_point")
+
+
+# --- non-conforming: the content types -----------------------------------------
+
+def transport_taking_a_string() -> ModuleType:
+    def send(prompt: str) -> str:
+        return prompt
+
+    return _module("transport_taking_a_string", send)
+
+
+def transport_taking_a_path() -> ModuleType:
+    def send(document: Path) -> str:
+        return str(document)
+
+    return _module("transport_taking_a_path", send)
+
+
+def transport_taking_an_observation() -> ModuleType:
+    def send(observation: Observation) -> str:
+        return observation.raw_value
+
+    return _module("transport_taking_an_observation", send)
+
+
+def transport_taking_a_text_unit() -> ModuleType:
+    def send(unit: TextUnit) -> str:
+        return unit.text
+
+    return _module("transport_taking_a_text_unit", send)
+
+
+def transport_taking_bytes() -> ModuleType:
+    def send(payload: bytes) -> str:
+        return payload.decode()
+
+    return _module("transport_taking_bytes", send)
+
+
+def transport_taking_a_list_of_strings() -> ModuleType:
+    """The hole a naive checker leaves: no parameter is annotated `str`, and every
+    element of one of them is."""
+
+    def send(released: Released, extra: list[str]) -> str:
+        return released.release_id
+
+    return _module("transport_taking_a_list_of_strings", send)
+
+
+def transport_taking_a_sequence_of_strings() -> ModuleType:
+    def send(released: Released, extra: Sequence[str]) -> str:
+        return released.release_id
+
+    return _module("transport_taking_a_sequence_of_strings", send)
+
+
+def transport_taking_an_optional_path() -> ModuleType:
+    def send(released: Released, attachment: Path | None = None) -> str:
+        return released.release_id
+
+    return _module("transport_taking_an_optional_path", send)
+
+
+# --- non-conforming: the ways a parameter avoids being annotated ----------------
+
+def transport_with_an_unannotated_parameter() -> ModuleType:
+    def send(released):
+        return released
+
+    return _module("transport_with_an_unannotated_parameter", send)
+
+
+def transport_taking_var_keyword() -> ModuleType:
+    """`**payload` accepts a prompt under any name at all."""
+
+    def send(released: Released, **payload) -> str:
+        return released.release_id
+
+    return _module("transport_taking_var_keyword", send)
+
+
+def transport_taking_var_positional() -> ModuleType:
+    def send(released: Released, *parts) -> str:
+        return released.release_id
+
+    return _module("transport_taking_var_positional", send)
+
+
+def transport_with_no_released_parameter() -> ModuleType:
+    """One entry point, nothing forbidden, and no release either -- so nothing binds
+    the call to a policy version, a model target or an audit record."""
+
+    def send(timeout: int = 30) -> str:
+        return "sent"
+
+    return _module("transport_with_no_released_parameter", send)
+
+
+# --- non-conforming: the ones a source scan would pass --------------------------
+
+def transport_with_a_private_string_helper() -> ModuleType:
+    """The un-released path, unexported. It is still a path."""
+
+    def send(released: Released) -> str:
+        return _format(released.release_id)
+
+    def _format(text: str) -> str:
+        return text
+
+    return _module("transport_with_a_private_string_helper", send, _format)
+
+
+def transport_as_a_class_taking_a_string() -> ModuleType:
+    class Client:
+        def send(self, prompt: str) -> str:
+            return prompt
+
+    return _module("transport_as_a_class_taking_a_string", Client)
+
+
+def transport_whose_docstring_mentions_released() -> ModuleType:
+    """The fixture that decides the technique.
+
+    A source-text scan for `Released` passes this module. Its entry point takes a
+    string.
+    """
+
+    def send(prompt: str) -> str:
+        """Send a Released to the model. Accepts only a Released. Released, Released."""
+        return prompt
+
+    return _module("transport_whose_docstring_mentions_released", send)
+```
+
+- [ ] **Step 2: Write the failing test**
+
+```python
+# tests/p7/test_p7_transport.py
+"""Done-means 3's instrument, proven in both directions.
+
+§8.4 opens with a sequencing requirement -- "Privacy policy must be enforced before
+content reaches any model or external connector" -- and P8's Done-means 1 states the
+method: "Exactly one function in the codebase constructs a model request, and its only
+parameter type is P7's `Released`. A call without a release is not constructible.
+Verified by inspection plus a test that the un-released path does not type-check /
+does not exist."
+
+`assert_single_egress` is that inspection. It is an existence proof over a module
+namespace, not a runtime check: it answers whether a string-prompt entry point EXISTS,
+and it answers by resolving annotations rather than by reading text. The last test in
+this file states, by name, what it cannot do.
+"""
+import inspect
+from pathlib import Path
+
+import pytest
+
+from evidence_shape.observation import Observation
+from evidence_shape.text_units import TextUnit
+
+from privacy.transport_guard import (
+    CONTENT_PARAMETER_TYPES, EgressGuardFailure, MultipleEgressPoints,
+    NoEgressPoint, UnreleasedContentParameter, assert_single_egress,
+    egress_functions,
+)
+
+import transport_fixtures as fixtures
+
+
+# --- the conforming shapes pass -------------------------------------------------
+
+def test_the_conforming_transport_passes():
+    # One public function, one parameter, annotated `Released`. A checker only proven
+    # on the passing case is an assertion that has never been tested, so this is the
+    # first of twenty-two and not the whole file.
+    assert_single_egress(fixtures.conforming_transport()) is None
+
+
+def test_a_non_content_parameter_beside_the_release_is_allowed():
+    # Done-means 3 constrains the CONTENT parameter: "No transport function accepts a
+    # string, a file path, or an observation record." A timeout is none of those, and
+    # a guard that refused one would make the real transport unwritable.
+    assert_single_egress(fixtures.conforming_transport_with_a_timeout())
+
+
+def test_a_class_based_transport_passes():
+    # The receiver is skipped and the parameter is checked. This is the shape an SDK
+    # client wrapper takes, so a module-level-functions-only guard would be blind to
+    # the most likely real transport.
+    assert_single_egress(fixtures.conforming_transport_as_a_class())
+
+
+def test_a_string_return_annotation_is_allowed():
+    # The model's reply comes back as text. The gate governs what LEAVES, and pinning
+    # this stops a later tightening from making the real transport unrepresentable.
+    module = fixtures.conforming_transport()
+    assert_single_egress(module)
+    only = egress_functions(module)[0]
+    assert inspect.signature(only, eval_str=True).return_annotation is str
+
+
+def test_an_imported_helper_is_not_counted_as_an_entry_point():
+    # A real transport imports things. The guard filters on `__module__`, so a helper
+    # the module did not define is not one of its entry points.
+    module = fixtures.conforming_transport_with_an_imported_helper()
+    assert hasattr(module, "dumps")
+    assert [fn.__name__ for fn in egress_functions(module)] == ["send"]
+    assert_single_egress(module)
+
+
+# --- exactly one entry point ----------------------------------------------------
+
+def test_two_entry_points_fail():
+    with pytest.raises(MultipleEgressPoints) as caught:
+        assert_single_egress(fixtures.transport_with_two_entry_points())
+    assert "send" in str(caught.value) and "send_batch" in str(caught.value)
+
+
+def test_no_entry_point_fails():
+    # "Exactly one" is violated by zero as surely as by two, and a module with no
+    # entry point is not a transport. Naming this `MultipleEgressPoints` would have
+    # been a lie in the exception name, which is why the guard publishes both.
+    with pytest.raises(NoEgressPoint):
+        assert_single_egress(fixtures.transport_with_no_entry_point())
+
+
+# --- the content types ----------------------------------------------------------
+
+def test_the_five_content_types_are_the_published_set():
+    assert CONTENT_PARAMETER_TYPES == frozenset(
+        {str, bytes, Path, Observation, TextUnit})
+
+
+def test_a_transport_taking_a_string_fails():
+    with pytest.raises(UnreleasedContentParameter, match="prompt"):
+        assert_single_egress(fixtures.transport_taking_a_string())
+
+
+def test_a_transport_taking_a_path_fails():
+    with pytest.raises(UnreleasedContentParameter, match="document"):
+        assert_single_egress(fixtures.transport_taking_a_path())
+
+
+def test_a_transport_taking_an_observation_fails():
+    with pytest.raises(UnreleasedContentParameter, match="observation"):
+        assert_single_egress(fixtures.transport_taking_an_observation())
+
+
+def test_a_transport_taking_a_text_unit_fails():
+    with pytest.raises(UnreleasedContentParameter, match="unit"):
+        assert_single_egress(fixtures.transport_taking_a_text_unit())
+
+
+def test_a_transport_taking_bytes_fails():
+    with pytest.raises(UnreleasedContentParameter, match="payload"):
+        assert_single_egress(fixtures.transport_taking_bytes())
+
+
+# --- containers and unions, which is where "takes no string" hides ---------------
+
+def test_a_list_of_strings_fails():
+    with pytest.raises(UnreleasedContentParameter, match="extra"):
+        assert_single_egress(fixtures.transport_taking_a_list_of_strings())
+
+
+def test_a_sequence_of_strings_fails():
+    with pytest.raises(UnreleasedContentParameter, match="extra"):
+        assert_single_egress(fixtures.transport_taking_a_sequence_of_strings())
+
+
+def test_an_optional_path_fails():
+    with pytest.raises(UnreleasedContentParameter, match="attachment"):
+        assert_single_egress(fixtures.transport_taking_an_optional_path())
+
+
+# --- the ways a parameter avoids being annotated ---------------------------------
+
+def test_an_unannotated_parameter_fails():
+    # An unannotated parameter is not shown to be a `Released`, and "not shown to be"
+    # is the only standard an inspection can hold.
+    with pytest.raises(UnreleasedContentParameter, match="released"):
+        assert_single_egress(fixtures.transport_with_an_unannotated_parameter())
+
+
+def test_var_keyword_fails():
+    with pytest.raises(UnreleasedContentParameter, match="payload"):
+        assert_single_egress(fixtures.transport_taking_var_keyword())
+
+
+def test_var_positional_fails():
+    with pytest.raises(UnreleasedContentParameter, match="parts"):
+        assert_single_egress(fixtures.transport_taking_var_positional())
+
+
+def test_a_transport_with_no_released_parameter_fails():
+    # Nothing forbidden and no release either. SPEC §6: the payload "is bound to one
+    # model target and one prompt fingerprint, and is single-use" -- a call carrying no
+    # release is bound to nothing and has no audit record behind it.
+    with pytest.raises(UnreleasedContentParameter, match="Released"):
+        assert_single_egress(fixtures.transport_with_no_released_parameter())
+
+
+# --- the two fixtures a weaker guard would pass ----------------------------------
+
+def test_a_private_string_helper_fails():
+    """"The un-released path does not exist" is about the module, not its exports.
+
+    A private `_format(text: str)` beside the entry point is a string-prompt path that
+    happens to be unexported, and inside a module whose whole job is egress there is
+    nothing for it to legitimately be. The entry-point COUNT is taken over public
+    functions; the content check is taken over all of them.
+    """
+    with pytest.raises(UnreleasedContentParameter, match="_format"):
+        assert_single_egress(fixtures.transport_with_a_private_string_helper())
+
+
+def test_a_class_method_taking_a_string_fails():
+    with pytest.raises(UnreleasedContentParameter, match="Client.send"):
+        assert_single_egress(fixtures.transport_as_a_class_taking_a_string())
+
+
+def test_the_check_reads_signatures_and_never_source_text():
+    """The fixture that decides the technique.
+
+    Its docstring says "Released" four times and its entry point takes a `str`. A
+    source scan passes it. `inspect.signature(..., eval_str=True)` does not, because
+    it never reads the text -- it resolves the annotation objects.
+    """
+    module = fixtures.transport_whose_docstring_mentions_released()
+    assert "Released" in egress_functions(module)[0].__doc__
+    with pytest.raises(UnreleasedContentParameter, match="prompt"):
+        assert_single_egress(module)
+
+
+# --- shape of the guard's own surface --------------------------------------------
+
+def test_egress_functions_returns_only_the_public_entry_points():
+    module = fixtures.transport_with_a_private_string_helper()
+    assert [fn.__name__ for fn in egress_functions(module)] == ["send"]
+    assert hasattr(module, "_format")
+
+
+def test_every_failure_shares_one_base():
+    # A caller that does not care WHICH way a transport failed catches one thing.
+    for failure in (MultipleEgressPoints, NoEgressPoint, UnreleasedContentParameter):
+        assert issubclass(failure, EgressGuardFailure)
+    for factory in (fixtures.transport_with_two_entry_points,
+                    fixtures.transport_with_no_entry_point,
+                    fixtures.transport_taking_a_string):
+        with pytest.raises(EgressGuardFailure):
+            assert_single_egress(factory())
+
+
+# --- the honest limit ------------------------------------------------------------
+
+def test_running_this_over_the_real_transport_is_p8s_obligation():
+    """Done-means 3 is NOT closed by this file, and the coverage table says so.
+
+        "**No — and this is a finding.** The transport is P8's. P7 proves the
+        instrument, the unforgeable token, and the single materialisation locus. The
+        property itself is P8 Done-means 1."
+
+    There is no transport module in this repository to point `assert_single_egress`
+    at. Layers L1 and L2 -- the unforgeable single-use release (Task 12) and the
+    single materialisation locus (Tasks 9 and 21) -- are proven here; layer L3 is
+    proven only to the extent that the instrument is proven, which is what the
+    twenty-five tests above do.
+
+    The call P8 must make, once `src/llm/transport.py` exists, is exactly:
+
+        from privacy.transport_guard import assert_single_egress
+        import llm.transport
+        assert_single_egress(llm.transport)
+
+    and P8's Done-means 1 -- not this test -- is what fails if it is never made.
+    """
+    import privacy.transport_guard as module
+
+    assert inspect.isfunction(module.assert_single_egress)
+    assert list(inspect.signature(module.assert_single_egress).parameters) == [
+        "module"]
+```
+
+- [ ] **Step 3: Run the test and watch it fail**
+
+Run: `pytest tests/p7/test_p7_transport.py -v`
+Expected: FAIL — `ImportError: cannot import name 'CONTENT_PARAMETER_TYPES' from
+'privacy.transport_guard'` (the module does not exist yet, so collection fails on the first import).
+
+- [ ] **Step 4: Write `src/privacy/transport_guard.py`**
+
+```python
+# src/privacy/transport_guard.py
+"""Done-means 3's instrument: does a string-prompt entry point exist in this module?
+
+§8.4 opens with a sequencing requirement -- "Privacy policy must be enforced before
+content reaches any model or external connector" -- which is a PROPERTY of a transport
+P7 does not own. P8's Done-means 1 states the method for checking it: "Exactly one
+function in the codebase constructs a model request, and its only parameter type is
+P7's `Released`. A call without a release is not constructible. Verified by inspection
+plus a test that the un-released path does not type-check / does not exist."
+
+This module is that inspection, mechanised. It is an EXISTENCE PROOF over a module
+namespace, not a runtime check on a call: nothing here executes a transport, and a
+transport that passes has been shown to have no place to put a string, not to have
+declined to use one.
+
+Three rules, each of which separates a guard from a decoration:
+
+1. **Resolved annotations, never source text.** `inspect.signature(fn, eval_str=True)`.
+   A text scan sees `Released` in a docstring and passes a transport that takes a
+   string; `tests/p7/transport_fixtures.py` contains exactly that module.
+2. **Containers and unions are walked.** `list[str]`, `Sequence[str]` and
+   `Path | None` are how a transport that "takes no string" takes one.
+3. **Every function in the module is checked; only the public ones are counted.**
+   "The un-released path does not exist" is a claim about the module, not its exports,
+   so a private `_format(text: str)` fails it. Classes are walked too: a client
+   wrapper `Client.send(self, prompt: str)` is the likeliest real shape.
+
+Running this over the real transport is P8's obligation and cannot happen here --
+there is no transport module in this repository. What P7 ships is a checker proven
+against four conforming fixtures and seventeen non-conforming ones.
+"""
+from __future__ import annotations
+
+import inspect
+import typing
+from collections.abc import Callable
+from pathlib import Path
+from types import FunctionType, ModuleType
+
+from evidence_shape.observation import Observation
+from evidence_shape.text_units import TextUnit
+
+from privacy.release import Released
+
+#: The types a transport may not take. Done-means 3: "No transport function accepts a
+#: string, a file path, or an observation record." `bytes` and `TextUnit` are the same
+#: refusal wearing different clothes -- P4's `TextUnit.text` is the complete extracted
+#: text, which §8.4 puts in the always-local set.
+CONTENT_PARAMETER_TYPES: frozenset[type] = frozenset(
+    {str, bytes, Path, Observation, TextUnit})
+
+#: Skipped on a method: it is the instance, not a parameter the caller supplies.
+_RECEIVER_NAMES: frozenset[str] = frozenset({"self", "cls"})
+
+
+class EgressGuardFailure(AssertionError):
+    """A module does not satisfy Done-means 3's static property.
+
+    An `AssertionError` because this is an assertion helper: it is called from a test
+    and its failure is a test failure, not an exception a running product handles.
+    """
+
+
+class MultipleEgressPoints(EgressGuardFailure):
+    """More than one public entry point. "Exactly one function ... constructs a model
+    request" -- two doors is two places to audit and one of them will be forgotten."""
+
+
+class NoEgressPoint(EgressGuardFailure):
+    """No public entry point at all. Zero violates "exactly one" as surely as two, and
+    a module with no entry point is not the transport the caller thinks it is."""
+
+
+class UnreleasedContentParameter(EgressGuardFailure):
+    """A parameter that could carry content without a release.
+
+    Raised for a forbidden type, for a container or union that has one inside it, for
+    an unannotated parameter (which is not SHOWN to be a `Released`, and "shown to be"
+    is the only standard an inspection can hold), for an annotation that cannot be
+    resolved, and for an entry point that takes no `Released` at all.
+    """
+
+
+def _defined_here(obj: object, module: ModuleType) -> bool:
+    return getattr(obj, "__module__", None) == module.__name__
+
+
+def _functions(module: ModuleType, *,
+               public_only: bool) -> list[tuple[str, FunctionType, bool]]:
+    """Every function this module defines, as `(qualified_name, fn, has_receiver)`.
+
+    Module-level functions and the methods of module-level classes. Imported members
+    are excluded by `__module__`, so a transport that imports a helper is not accused
+    of having two entry points.
+    """
+    found: list[tuple[str, FunctionType, bool]] = []
+    for name, value in vars(module).items():
+        if name.startswith("__"):
+            continue
+        if public_only and name.startswith("_"):
+            continue
+        if isinstance(value, FunctionType) and _defined_here(value, module):
+            found.append((name, value, False))
+        elif isinstance(value, type) and _defined_here(value, module):
+            for attribute, member in vars(value).items():
+                if attribute.startswith("__"):
+                    continue
+                if public_only and attribute.startswith("_"):
+                    continue
+                if isinstance(member, (staticmethod, classmethod)):
+                    found.append((f"{name}.{attribute}", member.__func__,
+                                  isinstance(member, classmethod)))
+                elif isinstance(member, FunctionType):
+                    found.append((f"{name}.{attribute}", member, True))
+    found.sort(key=lambda entry: entry[0])
+    return found
+
+
+def _leaves(annotation: object) -> list[object]:
+    """Every leaf of a possibly-parameterised annotation.
+
+    `list[str]` -> `[str]`; `Path | None` -> `[Path, NoneType]`;
+    `dict[str, Released]` -> `[str, Released]`. This is rule 2, and without it a
+    transport declares `extra: list[str]` and passes.
+    """
+    arguments = typing.get_args(annotation)
+    if not arguments:
+        return [annotation]
+    leaves: list[object] = []
+    for argument in arguments:
+        leaves.extend(_leaves(argument))
+    return leaves
+
+
+def _parameters(qualified_name: str, function: FunctionType,
+                has_receiver: bool) -> list[inspect.Parameter]:
+    try:
+        signature = inspect.signature(function, eval_str=True)
+    except (NameError, TypeError) as error:
+        raise UnreleasedContentParameter(
+            f"{qualified_name}: an annotation could not be resolved ({error}), so no "
+            "parameter can be shown to be a Released"
+        ) from error
+    parameters = list(signature.parameters.values())
+    if has_receiver and parameters and parameters[0].name in _RECEIVER_NAMES:
+        parameters = parameters[1:]
+    return parameters
+
+
+def egress_functions(module: ModuleType) -> list[Callable]:
+    """The module's public entry points, sorted by name.
+
+    Public module-level functions plus the public methods of public module-level
+    classes. This is what Done-means 3 counts; the content check below looks wider.
+    """
+    return [function for _, function, _ in _functions(module, public_only=True)]
+
+
+def assert_single_egress(module: ModuleType) -> None:
+    """Assert Done-means 3's static property of `module`.
+
+    Raises `NoEgressPoint` or `MultipleEgressPoints` when the module does not have
+    exactly one public entry point, and `UnreleasedContentParameter` when any function
+    it defines -- public or private, module-level or method -- has a parameter that
+    could carry content, or when the entry point takes no `Released`.
+
+    Returns `None` on success. Nothing is executed, nothing is written, and the module
+    under inspection is not imported by this function: the caller imports it and hands
+    it over, which is what keeps the guard usable from a test in another package.
+    """
+    public = _functions(module, public_only=True)
+    if not public:
+        raise NoEgressPoint(
+            f"{module.__name__} defines no public entry point; Done-means 3 requires "
+            "exactly one, and zero violates it as surely as two")
+    if len(public) > 1:
+        raise MultipleEgressPoints(
+            f"{module.__name__} defines {len(public)} public entry points "
+            f"{[name for name, _, _ in public]}; Done-means 3 requires exactly one, "
+            "because two doors is two places to audit")
+
+    for qualified_name, function, has_receiver in _functions(module,
+                                                            public_only=False):
+        for parameter in _parameters(qualified_name, function, has_receiver):
+            if parameter.annotation is inspect.Parameter.empty:
+                raise UnreleasedContentParameter(
+                    f"{qualified_name}({parameter.name}) is unannotated, so it cannot "
+                    "be shown to be a Released")
+            for leaf in _leaves(parameter.annotation):
+                if leaf in CONTENT_PARAMETER_TYPES:
+                    raise UnreleasedContentParameter(
+                        f"{qualified_name}({parameter.name}) accepts {leaf!r}, which "
+                        "is content the gate never minted a release for")
+
+    name, entry_point, has_receiver = public[0]
+    if not any(parameter.annotation is Released
+               for parameter in _parameters(name, entry_point, has_receiver)):
+        raise UnreleasedContentParameter(
+            f"{name} takes no Released; SPEC §6 binds a release to one model target "
+            "and one prompt fingerprint, and a call carrying none is bound to nothing")
+```
+
+- [ ] **Step 5: Run the test and watch it pass**
+
+Run: `pytest tests/p7/test_p7_transport.py -v`
+Expected: PASS — 26 passed
+
+- [ ] **Step 6: Run P7's suite, and P1–P5**
+
+Run: `pytest tests/p7 -q && pytest tests/ -q`
+Expected: PASS — Tasks 1–19 green, and the 1300 P1–P5 tests still green (P7 modified no file
+belonging to another part).
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/privacy/transport_guard.py tests/p7/transport_fixtures.py tests/p7/test_p7_transport.py
+git commit -m "feat(P7): the transport guard, proven against one conforming and seventeen non-conforming transports"
+```
+
+---
+
+## What these three tasks did not close
+
+- **Done-means 3** stays where the coverage table put it. The instrument is proven; the property is
+  P8's, and the call that closes it (`assert_single_egress(llm.transport)`) is written out in this
+  plan's last test so P8 does not have to rediscover it.
+- **Done-means 9's second clause** — *"P11/P12 consume the answer rather than re-deriving it"* — is a
+  property of two parts that do not exist. Task 17 makes it possible by naming the permitting policy
+  in the verdict and says so in a named test.
+- **Open question 1** (is `protected` the top two classes?), **Open question 3** (what is a corpus
+  area?) and **P13's Open question 7** (does a redaction setting have a scope?) are each held open
+  by a signature and named in a test. None is answered in code.
+- **The detector is still unwritten.** With no rule set, Task 17 answers `unreadable_unclassified`
+  for every file and Task 18 counts zero protected records. Both are correct; neither is a finished
+  product, and each has a test that says so in its own docstring.
