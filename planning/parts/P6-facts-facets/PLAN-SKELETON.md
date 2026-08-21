@@ -112,7 +112,7 @@ Two consequences that are contract:
 - **`unresolved` is not a weak fact.** No `value_id`, no reliability state, absent from every fact
   read including the proposal-eligible read. A reader that treats it as a `possible` has broken it.
 - **`budget_deferred` and `privacy_withheld` are not abstentions.** §8.6: deferred work must be
-  *"visible as deferred, never as 'understood and found unimportant'"*. P2's writer already enforces
+  *mark the deferred stage, and leave the file or group in review rather than guessing (§8.6), which "avoids the false impression that an unprocessed file was understood and found unimportant"*. P2's writer already enforces
   the separation — `record_stage_output` raises `ValueError` when `outcome == "deferred"` and
   `budget_state != "ceiling_reached"`, and again when `budget_state == "ceiling_reached"` and
   `outcome == "abstained"`. P6 does not need to invent the rule; it needs to not fight it.

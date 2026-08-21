@@ -335,7 +335,7 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
       assert len(rows) == 1
       assert rows[0]["field_key"] == FIELD
       assert rows[0]["reason"] == "budget_deferred"
-      # "visible as deferred, never as 'understood and found unimportant'": the row
+      # mark the deferred stage, and leave the file or group in review rather than guessing (§8.6), which "avoids the false impression that an unprocessed file was understood and found unimportant": the row
       # records which producers had already run, so a reader can see the work stopped
       # rather than concluded.
       assert rows[0]["attempted_producers"] is not None
@@ -1199,7 +1199,7 @@ and nothing that changes between two identical runs.
 
   # --- the payload ---------------------------------------------------------------
 
-  def test_the_payload_is_p6s_own_and_carries_no_fact_id(conn, p2_run):
+  def test_the_payload_is_p6s_own_and_carries_no_fact_id():
       # §8.5 diffs STORED FORMS across two runs. A `fact_id` is minted per row and is
       # not stable between two runs of the same corpus, so one in the payload would
       # report a divergence that is not one.
@@ -1213,7 +1213,8 @@ and nothing that changes between two identical runs.
   def test_the_payload_is_byte_stable_for_the_same_result():
       first = fact_stage_output(result=DEFERRED)["payload"]
       second = fact_stage_output(result=a_result(
-          reason_counts={"budget_deferred": 3}, stages_barred={"llm": "budget"},
+          content_hash=CONTENT_HASH_C, reason_counts={"budget_deferred": 3},
+          stages_barred={"llm": "budget"},
           deferred_against=("model.max_cost_per_scan",)))["payload"]
       assert first == second
 
@@ -1466,7 +1467,7 @@ and nothing that changes between two identical runs.
   cd "/Users/jy/GRAPH AGENT" && PYTHONPATH=src python3 -m pytest tests/p6/test_p6_stage_output.py -q
   ```
 
-  **Expected PASS:** 23 passed. Then the whole suite, which must be unchanged apart from
+  **Expected PASS:** 27 passed. Then the whole suite, which must be unchanged apart from
   the two new files:
 
   ```bash

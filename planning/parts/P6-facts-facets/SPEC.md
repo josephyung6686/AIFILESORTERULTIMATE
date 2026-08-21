@@ -363,7 +363,7 @@ Rules that make the row trustworthy:
 3. A later fact for the same `(file_id, content_hash, field_id)` does not delete the row — it
    supersedes it, and the row remains readable as the record of what was once refused (§8.2, §8.7).
 4. `budget_deferred` and `privacy_withheld` are **not** abstentions. §8.6 requires deferred work be
-   "visible as deferred, never as 'understood and found unimportant'"; conflating them would report a
+   mark the deferred stage, and leave the file or group in review rather than guessing (§8.6), which "avoids the false impression that an unprocessed file was understood and found unimportant"; conflating them would report a
    budget stop as a considered refusal.
 
 ### The six reliability states (§3.13)

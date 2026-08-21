@@ -1223,7 +1223,8 @@ def test_the_read_order_is_imposed_and_not_inherited_from_insertion(p6_conn):
     # Written in one order, read back in another -- because the read sorts. Without
     # this the same corpus written in a different order reads differently and §8.5's
     # replay reports a regression when nothing changed.
-    for field_key, canonical in ((OTHER_FIELD, "Zeta LLP"), (FIELD, "BUSIB 4300")):
+    # Inserted subject-then-client; read back client-then-subject.
+    for field_key, canonical in ((FIELD, "BUSIB 4300"), (OTHER_FIELD, "Zeta LLP")):
         _write(p6_conn, field_key=field_key,
                value_id=_value(p6_conn, field_key=field_key, canonical=canonical),
                evidence_refs=(_key(canonical),))
@@ -1236,12 +1237,21 @@ def test_the_read_order_is_imposed_and_not_inherited_from_insertion(p6_conn):
 Run: `pytest tests/p6/test_p6_file_facts.py -q`
 
 Expected: **collection error** — `ModuleNotFoundError: No module named 'facts.file_facts'`, raised at
-the `from facts.file_facts import ...` line. All 24 tests error at collection; none run.
+the `from facts.file_facts import ...` line. All 25 tests error at collection; none run.
 
 - [ ] **Step 3: Add the `file_facts` DDL to `src/facts/schema.py`**
 
-Append this to `src/facts/schema.py`, after `VALUES_DDL`. It imports P1's `supersede_ddl` so the three
-supersede column names are P1's spelling rather than P6's typing (M1).
+Append this to `src/facts/schema.py`, after `VALUES_DDL`, and put the one new import at the top of the
+file beside the existing ones. It imports P1's `supersede_ddl` so the three supersede column names are
+P1's spelling rather than P6's typing (M1).
+
+**One assumption on Task 1, stated so it can be checked rather than discovered.** `event_defaults(**fields)
+-> dict` is expected to return a mapping that already carries `subsystem = "P6"`, a
+`component_version`, and an `observed_at` from the part's one clock, with the caller's fields merged
+in. `write_fact` calls it **once** and reads `observed_at` back out of the returned dict for the row's
+`created_at`, so the fact and its creation event share one instant from one clock and this module owns
+no clock of its own. If Task 1's `event_defaults` does not fill `observed_at`, that is a Task 1 defect
+and `append_event` will raise `MalformedEvent` at the first test here — which is the right failure.
 
 ```python
 from database_agent.supersede import supersede_ddl
@@ -1550,7 +1560,7 @@ def facts_for_file(conn: sqlite3.Connection, file_id: str,
 
 Run: `pytest tests/p6/test_p6_file_facts.py -v`
 
-Expected: PASS — **24 passed**. Four are the ones a reviewer should read the output of:
+Expected: PASS — **25 passed**. Four are the ones a reviewer should read the output of:
 
 - `test_the_module_declares_exactly_the_table_it_has` passes only if `FILE_FACTS_COLUMNS` and the DDL
   agree column for column and in order, which is what makes every other schema assertion in the file

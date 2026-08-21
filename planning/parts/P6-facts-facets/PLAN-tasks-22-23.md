@@ -480,8 +480,8 @@ def test_the_correction_and_its_evidence_can_never_be_removed(conn):
 
 
 def test_suppression_is_versionless_and_survives_a_new_plan_version(conn):
-    # I4: "a rejection in plan v2 has to stop the same proposal in v3 ... which is why
-    # the store is a versionless projection over `events`."
+    # I4: "a rejection in plan v2 has to stop the same proposal in v3. That is why
+    # the store is a versionless projection over `events`".
     columns = {row[1] for row in conn.execute("PRAGMA table_info(events)")}
     assert "plan_version" not in columns
     assert "plan_id" not in columns
@@ -984,8 +984,8 @@ def test_a_version_that_chose_nothing_falls_back_and_never_borrows(conn, value_i
 
 
 def test_the_fallback_chain_ends_at_the_canonical_string(conn, value_id):
-    # Total by construction: 5.5 needs something to show for every value, and a
-    # renderer that can return None shows nothing on a version that chose nothing.
+    # Total by construction: 5.5's preview needs something to show for every value,
+    # and a renderer that can return None shows nothing on a version that chose none.
     rendered = display_label(conn, value_id=value_id, plan_version="v9")
     assert isinstance(rendered, str) and rendered != ""
 
@@ -1212,9 +1212,9 @@ def display_label(conn: sqlite3.Connection, *, value_id: str,
                   plan_version: str) -> str:
     """This version's rendering, else the value's own label, else its canonical string.
 
-    Total by construction: 5.5 shows the user "three schools, five terms, twelve course
-    branches" before they commit, and a renderer that can return None shows nothing for
-    a value whose version made no choice.
+    Total by construction: 5.5 previews "three schools, five terms, and twelve course
+    branches" before the user commits, and a renderer that can return None shows
+    nothing for a value whose version made no choice.
 
     The chain never borrows another version's label. A rendering is scoped to the
     version that chose it, exactly as 8.8 scopes everything else a plan captures.

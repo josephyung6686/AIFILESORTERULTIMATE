@@ -2410,3 +2410,738 @@ git commit -m "feat(P7): W1's local-first floor and the more-redacting default, 
 ```
 
 ---
+
+### Task 7: The six releasable item kinds, the always-local nine, and `whole_document_requested`
+
+**Files:**
+- Create: `src/privacy/items.py`
+- Test: `tests/p7/test_p7_items.py`
+
+**Interfaces:**
+- Consumes: `privacy.vocabulary.ITEM_KINDS`, `.ALWAYS_LOCAL`, `.DENIAL_REASONS`, `.OutOfVocabulary`,
+  `evidence_shape.location.TextSpan(start, end)`,
+  `evidence_shape.store.runs_for_file(conn, file_id) -> list[ExtractionRun]`,
+  `extractors.long_tail.POTENTIALLY_SENSITIVE`,
+  `.sensitivity_signals_for(conn, run_id) -> list[sqlite3.Row]`.
+- Produces (`items.py`):
+  - `Excerpt(observation_key: str, span: TextSpan, reason: str)`
+  - `RedactedIdentifier(observation_key: str, span: TextSpan, identifier_class: str)`
+  - `CandidateLabel(label: str)`
+  - `MetadataField(name: str, value: str)`
+  - `EvidenceReference(observation_key: str)`
+  - `Filename(file_id: str, value: str)`
+  - `RequestedItem` — the union of the six.
+  - `ITEM_FIELDS: Mapping[str, tuple[str, ...]]` — kind → field names, read from
+    `dataclasses.fields`, never retyped.
+  - `RATIFIED_ITEM_KINDS: tuple[str, ...]` (§8.4's five), `UNRATIFIED_ITEM_KINDS: tuple[str, ...]`
+    (`("filename",)`), `FILENAME_OPEN_QUESTION: str`.
+  - `kind_of(item) -> str`
+  - `is_whole_document(item, *, unit_length) -> bool`
+  - `check_item(item, *, unit_length, protected, sensitive_keys, allow_unratified) -> None` (A11)
+  - `sensitive_observation_keys(conn, file_id) -> frozenset[str]` (A13)
+  - `AlwaysLocalRequested`, `WholeDocumentRequested`, `UnratifiedItemKind`, `ProtectedItemRequested`.
+
+**Done-means:** 6 (the `always_local_item` and `whole_document_requested` reasons).
+
+**The sixth kind is built and cannot be shipped by accident — NEEDS-JOSEPH B5d/C9a.** §8.4's
+sentence names **five**: *"selected excerpts, redacted identifiers, candidate labels, non-sensitive
+metadata, and evidence references"*, and the same sentence puts *"Paths"* in the always-local set.
+§7.7's residual dossier *"includes the filename"*. §7.3 forbids filenames in prompts **only** for
+`Protected Records`: *"it should normally remain local-only and must not cause filenames or content
+to be exposed in model prompts."* P7's SPEC reads directory path ≠ filename — §7.3's carve-out is
+vacuous under any other reading — permits `filename` for non-protected files, denies it for
+protected ones, and lists the whole thing as its own Open question 2. **This plan does not settle
+it.** `allow_unratified` is a required keyword with no default, so a caller cannot admit a
+`Filename` without writing the word; `UNRATIFIED_ITEM_KINDS` names the kind; and
+`FILENAME_OPEN_QUESTION` names the three sections that disagree. A reviewer sees an unratified
+reading rather than a shipped one, and Task 21 can assert that no module under `src/privacy/` passes
+`allow_unratified=True`.
+
+**The protected-filename rule takes the stricter of two readings, and says which.** §7.3 has no
+locality qualifier — *"must not cause filenames or content to be exposed in model prompts"*, full
+stop — while §8.4's *"not included in cloud-model prompts **by default**"* is what the consent path
+reopens. So `check_item` refuses a `Filename` on a protected file for **any** target, and
+`NeedsConsent` is where the user reopens it. Reported as a reading.
+
+**The always-local set is enforced structurally for five kinds and by name for the sixth, and the
+gap is named rather than papered over.** Eight of §8.4's nine always-local items have no field to
+live in: `Excerpt`, `RedactedIdentifier` and `EvidenceReference` carry an `observation_key` and at
+most a span; `CandidateLabel` carries a label; `Filename` carries a filename. `MetadataField` is
+the one free-text channel, so its `name` is checked against `ALWAYS_LOCAL` — **the nine names
+exactly, with no synonym list**. A synonym list is a detection rule and *"`src/privacy/` contains no
+regex, no gazetteer, no filename pattern, no keyword list"*. **The consequence is real and is
+reported: `MetadataField(name="current_path", ...)` is not caught by this layer.** What catches it
+is that a `metadata_field` is *"a named non-sensitive field"* whose name the caller declares, and
+Task 13 decides on the declared name; P7 owns no detector that could second-guess it.
+
+**"OCR output" is the whole output, not an excerpt of it.** §8.4 permits *"a short heading or OCR
+excerpt"* in the very sentence that puts *"OCR output"* in the always-local set, so an `Excerpt`
+whose observation sits in the `ocr` zone is releasable and the complete OCR text is not — and the
+mechanism that stops the complete text is `WholeDocumentRequested`, not the always-local check.
+
+**"Raw sensitive values" is the one always-local item that needs P5.** It cannot be recognised
+without a detection rule P7 does not own, and P5 already publishes the only per-value sensitivity
+signal in the product: *"Email addresses, message content and every VCF value are marked
+POTENTIALLY SENSITIVE at emission, for P7 to act on. P5 assigns no handling class: section 8.4
+gives classification to P7."* So an `Excerpt` over an observation P5 marked is
+`AlwaysLocalRequested`, while a `RedactedIdentifier` over the **same** key is permitted — that is
+what §8.4's *"redacted identifiers"* allowance means, and Task 8's transform is injected with no
+default so nothing unredacted escapes through it.
+
+**`sensitive_keys` is a required keyword and `check_item` opens no database.** The walk is
+`runs_for_file` → `sensitivity_signals_for`, published here as `sensitive_observation_keys`; P7
+adds no reader to P5 and composes the two that exist.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p7/test_p7_items.py
+"""§8.4's compact dossier: what may be named in a request, and what may not.
+
+Two of the assertions here are held open on purpose.
+
+`filename` is the sixth kind and §8.4's own sentence names five. §7.7 puts the
+filename in the residual dossier and §7.3 forbids filenames in prompts only for
+Protected Records. P7's SPEC adopts the reading that makes §7.3 non-vacuous and lists
+it as Open question 2. NEEDS-JOSEPH B5d/C9a: the tests below prove the kind is
+unadmittable without an explicit opt-in, and never that the reading is right.
+
+The always-local check over `MetadataField.name` is a VOCABULARY check against §8.4's
+nine names, not a detector. `MetadataField(name="current_path")` is not caught here
+and a test says so, because a synonym list would be the gazetteer P7 is forbidden to
+own.
+"""
+from __future__ import annotations
+
+import dataclasses
+
+import pytest
+
+from evidence_shape.location import TextSpan
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.schema import create_evidence_schema
+from evidence_shape.store import record_run
+
+from extractors.long_tail import (
+    POTENTIALLY_SENSITIVE,
+    SENSITIVITY_DDL,
+    SensitivitySignal,
+    record_sensitivity_signals,
+)
+
+from privacy.items import (
+    FILENAME_OPEN_QUESTION,
+    ITEM_FIELDS,
+    RATIFIED_ITEM_KINDS,
+    UNRATIFIED_ITEM_KINDS,
+    AlwaysLocalRequested,
+    CandidateLabel,
+    EvidenceReference,
+    Excerpt,
+    Filename,
+    MetadataField,
+    ProtectedItemRequested,
+    RedactedIdentifier,
+    UnratifiedItemKind,
+    WholeDocumentRequested,
+    check_item,
+    is_whole_document,
+    kind_of,
+    sensitive_observation_keys,
+)
+from privacy.vocabulary import ALWAYS_LOCAL, ITEM_KINDS, OutOfVocabulary
+
+HASH_A = "a" * 64
+CLOCK = "2026-08-22T12:00:00+00:00"
+UNIT = 400          # the length of the text unit the excerpts address
+SENSITIVE_KEY = "obs-key-email"
+
+
+def ok(item, **over) -> None:
+    """The permissive baseline: nothing protected, nothing sensitive, no opt-in."""
+    base = dict(unit_length=UNIT, protected=False, sensitive_keys=frozenset(),
+                allow_unratified=False)
+    base.update(over)
+    check_item(item, **base)
+
+
+def an_excerpt(start: int = 12, end: int = 60, key: str = "obs-key-heading") -> Excerpt:
+    return Excerpt(observation_key=key, span=TextSpan(start, end),
+                   reason="the heading that names the course")
+
+
+@pytest.fixture()
+def p4_p5_conn(p7_conn):
+    """P7's database with P4's and P5's tables added, so the walk is a real walk."""
+    create_evidence_schema(p7_conn)
+    p7_conn.executescript(SENSITIVITY_DDL)
+    return p7_conn
+
+
+# --- the six kinds ----------------------------------------------------------
+
+def test_the_five_ratified_kinds_are_84s_own_sentence():
+    # "selected excerpts, redacted identifiers, candidate labels, non-sensitive
+    # metadata, and evidence references."
+    assert RATIFIED_ITEM_KINDS == ("excerpt", "redacted_identifier", "candidate_label",
+                                   "metadata_field", "evidence_reference")
+
+
+def test_the_sixth_kind_is_marked_unratified():
+    # NEEDS-JOSEPH B5d/C9a. Six kinds exist; §8.4's sentence names five.
+    assert UNRATIFIED_ITEM_KINDS == ("filename",)
+    assert RATIFIED_ITEM_KINDS + UNRATIFIED_ITEM_KINDS == ITEM_KINDS
+    assert len(ITEM_KINDS) == 6 and len(RATIFIED_ITEM_KINDS) == 5
+
+
+def test_the_open_question_names_the_sections_that_disagree():
+    for section in ("8.4", "7.7", "7.3"):
+        assert section in FILENAME_OPEN_QUESTION
+
+
+def test_kind_of_maps_every_kind(): 
+    items = (an_excerpt(),
+             RedactedIdentifier("obs-key-1", TextSpan(0, 9), "an-opaque-class"),
+             CandidateLabel("BUSIB 4300"),
+             MetadataField("page_count", "14"),
+             EvidenceReference("obs-key-1"),
+             Filename("file-1", "syllabus.pdf"))
+    assert tuple(kind_of(item) for item in items) == ITEM_KINDS
+
+
+def test_kind_of_refuses_a_stranger():
+    # A seventh kind is a P7 contract revision, not an implementation decision.
+    with pytest.raises(OutOfVocabulary):
+        kind_of("just a string")
+
+
+def test_item_fields_are_read_from_the_dataclasses_and_not_retyped():
+    assert ITEM_FIELDS["excerpt"] == ("observation_key", "span", "reason")
+    assert ITEM_FIELDS["redacted_identifier"] == ("observation_key", "span",
+                                                  "identifier_class")
+    assert set(ITEM_FIELDS) == set(ITEM_KINDS)
+
+
+def test_an_evidence_reference_carries_an_id_and_no_content():
+    # SPEC §4: "evidence_reference  an id only -- no content." Checked with
+    # `dataclasses.fields`, not by reading the class body.
+    names = {field.name for field in dataclasses.fields(EvidenceReference)}
+    assert names == {"observation_key"}
+    assert not (names & {"value", "text", "raw_value", "excerpt", "span"})
+
+
+def test_the_citation_handle_is_the_key_and_never_the_id():
+    # M14: "a per-row `observation_id` dies when the extractor is upgraded."
+    for kind in (Excerpt, RedactedIdentifier, EvidenceReference):
+        names = {field.name for field in dataclasses.fields(kind)}
+        assert "observation_key" in names
+        assert "observation_id" not in names
+
+
+def test_a_redacted_identifier_carries_a_class_and_no_value():
+    names = {field.name for field in dataclasses.fields(RedactedIdentifier)}
+    assert names == {"observation_key", "span", "identifier_class"}
+
+
+def test_every_ratified_kind_passes_without_the_opt_in():
+    for item in (an_excerpt(),
+                 RedactedIdentifier("obs-key-1", TextSpan(0, 9), "an-opaque-class"),
+                 CandidateLabel("BUSIB 4300"),
+                 MetadataField("page_count", "14"),
+                 EvidenceReference("obs-key-1")):
+        ok(item)
+
+
+# --- the always-local nine --------------------------------------------------
+
+def test_the_always_local_set_is_84s_nine():
+    # "Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS,
+    # user edits, group memberships, and raw sensitive values should remain local."
+    assert len(ALWAYS_LOCAL) == 9
+
+
+@pytest.mark.parametrize("name", ALWAYS_LOCAL)
+def test_no_always_local_name_is_expressible_as_a_metadata_field(name):
+    # One test per name, nine tests. `metadata_field` is the only kind with a
+    # free-text field name, so it is the only place one of the nine could be asked
+    # for by name.
+    with pytest.raises(AlwaysLocalRequested):
+        ok(MetadataField(name, "whatever the caller put here"))
+
+
+def test_five_kinds_have_no_field_an_always_local_item_could_live_in():
+    # The structural half. An excerpt cannot carry a path, a hash or an EXIF blob
+    # because it has nowhere to put one: it names an observation and a span.
+    for kind in (Excerpt, RedactedIdentifier, EvidenceReference, CandidateLabel,
+                 Filename):
+        names = {field.name for field in dataclasses.fields(kind)}
+        assert not (names & set(ALWAYS_LOCAL))
+
+
+def test_the_always_local_check_is_a_vocabulary_check_and_not_a_detector():
+    # REPORTED GAP, deliberately: P7 owns no synonym list, because a synonym list is
+    # the gazetteer the SPEC's Deferred table puts outside this contract. A caller
+    # that declares a path under another name is trusted, and Task 13 decides on the
+    # declared name.
+    ok(MetadataField("current_path", "/Users/j/Corpus/passport.pdf"))
+
+
+def test_complete_extracted_text_is_unreachable_through_a_span_as_well():
+    with pytest.raises(WholeDocumentRequested):
+        ok(an_excerpt(0, UNIT))
+
+
+def test_a_short_ocr_excerpt_is_permitted_and_the_whole_output_is_not():
+    # §8.4 permits "a short heading or OCR excerpt" in the same sentence that puts
+    # "OCR output" in the always-local set, so the boundary is the SPAN, not the
+    # zone.
+    ok(an_excerpt(0, 40, key="obs-key-ocr-line-1"))
+    with pytest.raises(WholeDocumentRequested):
+        ok(an_excerpt(0, UNIT, key="obs-key-ocr-whole"))
+
+
+def test_a_raw_sensitive_value_is_not_releasable_as_an_excerpt():
+    # P5's POTENTIALLY_SENSITIVE is the only per-value sensitivity signal in the
+    # product, and §8.4's "raw sensitive values" cannot be recognised without it.
+    with pytest.raises(AlwaysLocalRequested):
+        ok(an_excerpt(key=SENSITIVE_KEY),
+           sensitive_keys=frozenset({SENSITIVE_KEY}))
+
+
+def test_the_redacted_form_of_the_same_value_is_releasable():
+    # §8.4 lists "redacted identifiers" among what MAY be sent. The raw value stays
+    # local; the transform's output is what leaves, and Task 8 injects the transform
+    # with no default so a build that forgets to wire one emits nothing.
+    ok(RedactedIdentifier(SENSITIVE_KEY, TextSpan(0, 9), "an-opaque-class"),
+       sensitive_keys=frozenset({SENSITIVE_KEY}))
+
+
+def test_an_unmarked_excerpt_is_not_made_sensitive_by_a_neighbour():
+    ok(an_excerpt(), sensitive_keys=frozenset({SENSITIVE_KEY}))
+
+
+# --- whole_document_requested -----------------------------------------------
+
+def test_an_excerpt_covering_the_whole_unit_is_refused():
+    # §8.4: "It should not send full documents where a short heading or OCR excerpt
+    # is enough to resolve the question."
+    assert is_whole_document(an_excerpt(0, UNIT), unit_length=UNIT) is True
+    with pytest.raises(WholeDocumentRequested):
+        ok(an_excerpt(0, UNIT))
+
+
+def test_a_span_that_stops_one_character_short_is_not_a_whole_document():
+    # The check is exact coverage and nothing cleverer. A near-whole dossier is
+    # §8.6's ladder to reduce, and the ladder runs in P8 before the call (M9); a
+    # threshold here would be a number the design does not state.
+    assert is_whole_document(an_excerpt(0, UNIT - 1), unit_length=UNIT) is False
+    ok(an_excerpt(0, UNIT - 1))
+
+
+def test_a_span_starting_after_the_beginning_is_not_a_whole_document():
+    assert is_whole_document(an_excerpt(1, UNIT), unit_length=UNIT) is False
+
+
+def test_a_span_longer_than_the_unit_is_still_a_whole_document():
+    assert is_whole_document(an_excerpt(0, UNIT + 50), unit_length=UNIT) is True
+
+
+def test_is_whole_document_is_false_for_every_kind_without_document_text():
+    # Only `excerpt` releases document text. `redacted_identifier` releases the
+    # transform's output, so a span covering everything is pointless rather than
+    # dangerous, and refusing it would be a rule the design does not state.
+    for item in (RedactedIdentifier("obs-key-1", TextSpan(0, UNIT), "an-opaque-class"),
+                 CandidateLabel("BUSIB 4300"), MetadataField("page_count", "14"),
+                 EvidenceReference("obs-key-1"), Filename("file-1", "syllabus.pdf")):
+        assert is_whole_document(item, unit_length=UNIT) is False
+
+
+# --- the sixth kind, held unratified ---------------------------------------
+
+def test_filename_is_refused_without_an_explicit_opt_in():
+    with pytest.raises(UnratifiedItemKind) as caught:
+        ok(Filename("file-1", "syllabus.pdf"))
+    assert "8.4" in str(caught.value)
+
+
+def test_filename_is_permitted_for_a_non_protected_file_under_the_flagged_reading():
+    # SPEC Open question 2, and the SPEC's own words: "This is the one place where
+    # the contract resolves an apparent conflict rather than deferring it, because
+    # P8 and P11 cannot build without an answer."
+    ok(Filename("file-1", "syllabus.pdf"), allow_unratified=True)
+
+
+def test_filename_is_refused_for_a_protected_file():
+    # §7.3, which carries no locality qualifier: Protected Records "must not cause
+    # filenames or content to be exposed in model prompts". The stricter of the two
+    # readings; §8.4's "by default" is what the consent path reopens.
+    with pytest.raises(ProtectedItemRequested):
+        ok(Filename("file-1", "passport.pdf"), protected=True, allow_unratified=True)
+
+
+def test_a_protected_file_may_still_release_a_bounded_excerpt():
+    # Protected is not the same refusal as always-local. §8.4's protected rule is
+    # about cloud prompts and consent, and that decision is Task 13's; the item
+    # layer refuses only what no mode can release.
+    ok(an_excerpt(), protected=True)
+
+
+def test_the_opt_in_has_no_default():
+    import inspect
+    parameter = inspect.signature(check_item).parameters["allow_unratified"]
+    assert parameter.default is inspect.Parameter.empty
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+
+
+# --- the P5 walk ------------------------------------------------------------
+
+def test_sensitive_observation_keys_walks_p4s_runs_and_p5s_signals(p4_p5_conn):
+    record_run(p4_p5_conn, ExtractionRun(
+        run_id="run-1", file_id="file-1", content_hash=HASH_A,
+        extractor_name="long_tail", extractor_version="1", source_type="email",
+        analysis_tier="native", config={}, completeness="complete",
+        started_at=CLOCK, observation_count=1))
+    record_sensitivity_signals(
+        p4_p5_conn, run_id="run-1",
+        signals=[SensitivitySignal(observation_index=0, signal=POTENTIALLY_SENSITIVE,
+                                   basis="email address in body")],
+        observation_keys=[SENSITIVE_KEY], now=CLOCK)
+    assert sensitive_observation_keys(p4_p5_conn, "file-1") == frozenset({SENSITIVE_KEY})
+    assert sensitive_observation_keys(p4_p5_conn, "file-2") == frozenset()
+
+
+def test_the_walk_feeds_check_item_and_the_two_meet(p4_p5_conn):
+    record_run(p4_p5_conn, ExtractionRun(
+        run_id="run-1", file_id="file-1", content_hash=HASH_A,
+        extractor_name="long_tail", extractor_version="1", source_type="contacts",
+        analysis_tier="native", config={}, completeness="complete",
+        started_at=CLOCK, observation_count=1))
+    record_sensitivity_signals(
+        p4_p5_conn, run_id="run-1",
+        signals=[SensitivitySignal(observation_index=0, signal=POTENTIALLY_SENSITIVE,
+                                   basis="every VCF value")],
+        observation_keys=[SENSITIVE_KEY], now=CLOCK)
+    keys = sensitive_observation_keys(p4_p5_conn, "file-1")
+    with pytest.raises(AlwaysLocalRequested):
+        ok(an_excerpt(key=SENSITIVE_KEY), sensitive_keys=keys)
+
+
+def test_p7_adds_no_reader_to_p5(p4_p5_conn):
+    # The two readers P4 and P5 already publish are composed, not reimplemented.
+    import privacy.items as module
+    assert module.runs_for_file.__module__ == "evidence_shape.store"
+    assert module.sensitivity_signals_for.__module__ == "extractors.long_tail"
+
+
+# --- no invention -----------------------------------------------------------
+
+def test_items_holds_no_threshold_and_no_identifier_class():
+    # SPEC Deferred: "Which identifier classes exist and how each is transformed is
+    # not enumerated anywhere in the design." And §8.6 gives no numeric value for
+    # any ceiling. `unit_length` is the caller's measurement, not a constant.
+    import privacy.items as module
+    numbers = [value for name, value in vars(module).items()
+               if not name.startswith("_") and isinstance(value, (int, float))
+               and not isinstance(value, bool)]
+    assert not numbers
+    assert not [name for name in vars(module) if "identifier_classes" in name.lower()]
+
+
+def test_items_imports_none_of_extractors_three_refusals():
+    # `safety.admit`, ProtectedContainerRefused and DatalessRefused are P3's and
+    # P5's refusals and are decided upstream; a file that failed either never
+    # acquires the (file_id, content_hash) pair P7 keys on.
+    import privacy.items as module
+    assert not ({"admit", "ProtectedContainerRefused", "DatalessRefused"}
+                & set(vars(module)))
+```
+
+- [ ] **Step 2: Run the test and watch it fail**
+
+Run: `pytest tests/p7/test_p7_items.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'privacy.items'` (collection fails on the
+first import of the module under test).
+
+- [ ] **Step 3: Write `src/privacy/items.py`**
+
+```python
+# src/privacy/items.py
+"""§8.4's compact dossier: the six kinds a request may name, and the nine it may not.
+
+§8.4 permits "selected excerpts, redacted identifiers, candidate labels,
+non-sensitive metadata, and evidence references" -- five -- and puts "Paths, complete
+extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group
+memberships, and raw sensitive values" out of reach of every mode.
+
+**The sixth kind is unratified and cannot be admitted by accident.** §7.7's residual
+dossier "includes the filename"; §7.3 forbids filenames in prompts only for Protected
+Records; §8.4 puts paths -- not filenames -- in the always-local set. P7's SPEC reads
+directory path != filename, because §7.3's carve-out is vacuous under any other
+reading, and lists the whole thing as its Open question 2. This module builds
+`Filename` and refuses it unless the caller passes `allow_unratified=True`, so the
+reading is visible at every call site instead of settled here.
+
+**Every request names references, never content.** An `Excerpt` carries an
+observation key and a span; the gate resolves it from local storage
+(`privacy.resolve`) and nothing else in `src/privacy/` may. That asymmetry is what
+makes a bypassing call unconstructible rather than merely forbidden.
+
+**The always-local set is structural for five kinds and by name for the sixth.**
+Nothing but `MetadataField` has a free-text field, so nothing but `MetadataField`
+could name one of the nine -- and its `name` is checked against `ALWAYS_LOCAL`
+exactly, with **no synonym list**, because a synonym list is the gazetteer the SPEC's
+Deferred table puts outside this contract. A caller that declares a path under
+another name is trusted; P7 owns no detector that could second-guess it.
+
+**"Raw sensitive values" needs P5.** It is the one always-local item no vocabulary
+check can recognise, and P5 already marks it: "Email addresses, message content and
+every VCF value are marked POTENTIALLY SENSITIVE at emission, for P7 to act on."
+An `Excerpt` over a marked observation is refused; a `RedactedIdentifier` over the
+same observation is permitted, which is exactly what §8.4's "redacted identifiers"
+allowance means.
+"""
+from __future__ import annotations
+
+import sqlite3
+from collections.abc import Mapping
+from dataclasses import dataclass, fields
+from types import MappingProxyType
+
+from evidence_shape.location import TextSpan
+from evidence_shape.store import runs_for_file
+
+from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
+
+from privacy.vocabulary import ALWAYS_LOCAL, ITEM_KINDS, OutOfVocabulary
+
+
+@dataclass(frozen=True)
+class Excerpt:
+    """§8.4's "selected excerpts". A reference plus a bounded span, never text."""
+
+    observation_key: str
+    span: TextSpan
+    reason: str
+
+
+@dataclass(frozen=True)
+class RedactedIdentifier:
+    """§8.4's "redacted identifiers". The class is opaque (SPEC Deferred)."""
+
+    observation_key: str
+    span: TextSpan
+    identifier_class: str
+
+
+@dataclass(frozen=True)
+class CandidateLabel:
+    """§8.4's "candidate labels": a label already present in the local database.
+
+    **Reported seam:** "already present" is P6's label store and P6 is unbuilt, so
+    P7 cannot verify it. Until P6 exists, `candidate_label` is the one kind whose
+    contents P7 cannot bound, and this is named rather than papered over with a
+    length ceiling the design does not state.
+    """
+
+    label: str
+
+
+@dataclass(frozen=True)
+class MetadataField:
+    """§8.4's "non-sensitive metadata": "file type, page count, capture year"."""
+
+    name: str
+    value: str
+
+
+@dataclass(frozen=True)
+class EvidenceReference:
+    """§8.4's "evidence references". An id only -- no content (SPEC §4).
+
+    The id is P4's `observation_key`, never the per-row `observation_id`, which dies
+    on extractor upgrade (M14).
+    """
+
+    observation_key: str
+
+
+@dataclass(frozen=True)
+class Filename:
+    """UNRATIFIED. §8.4 names five kinds; this is a sixth. See the module docstring."""
+
+    file_id: str
+    value: str
+
+
+RequestedItem = (Excerpt | RedactedIdentifier | CandidateLabel | MetadataField
+                 | EvidenceReference | Filename)
+
+_KIND_BY_TYPE: Mapping[type, str] = MappingProxyType({
+    Excerpt: "excerpt",
+    RedactedIdentifier: "redacted_identifier",
+    CandidateLabel: "candidate_label",
+    MetadataField: "metadata_field",
+    EvidenceReference: "evidence_reference",
+    Filename: "filename",
+})
+
+#: §8.4's own sentence, in its own order.
+RATIFIED_ITEM_KINDS: tuple[str, ...] = (
+    "excerpt", "redacted_identifier", "candidate_label", "metadata_field",
+    "evidence_reference",
+)
+
+#: NEEDS-JOSEPH B5d/C9a. Built, named, and unadmittable without an explicit opt-in.
+UNRATIFIED_ITEM_KINDS: tuple[str, ...] = ("filename",)
+
+FILENAME_OPEN_QUESTION = (
+    "SPEC Open question 2. §8.4 puts *paths* in the always-local set; §7.7 puts the "
+    "filename in the residual dossier; §7.3 forbids filenames in prompts only for "
+    "Protected Records. P7's SPEC adopts the reading that makes §7.3 non-vacuous -- "
+    "directory path is not filename -- and flags it. Unratified."
+)
+
+if RATIFIED_ITEM_KINDS + UNRATIFIED_ITEM_KINDS != ITEM_KINDS:
+    raise ImportError(
+        f"the ratified five plus the unratified one must be Task 2's {ITEM_KINDS!r}; "
+        "adding a member is a P7 contract revision, not an implementation decision"
+    )
+
+#: kind -> field names, read from the dataclasses so a shape change cannot drift
+#: from its published description.
+ITEM_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType({
+    kind: tuple(field.name for field in fields(item_type))
+    for item_type, kind in _KIND_BY_TYPE.items()
+})
+
+
+class AlwaysLocalRequested(Exception):
+    """One of §8.4's nine always-local items was named. No mode releases it."""
+
+
+class WholeDocumentRequested(Exception):
+    """An excerpt that resolves to the complete extracted text (§8.4)."""
+
+
+class UnratifiedItemKind(Exception):
+    """`filename` was requested without an explicit opt-in. See B5d/C9a."""
+
+
+class ProtectedItemRequested(Exception):
+    """§7.3: a Protected Records filename may not be exposed in a model prompt."""
+
+
+def kind_of(item: RequestedItem) -> str:
+    """The `ITEM_KINDS` name of an item. A seventh kind is a contract revision."""
+    try:
+        return _KIND_BY_TYPE[type(item)]
+    except KeyError:
+        raise OutOfVocabulary(
+            f"{type(item).__name__} is not one of §8.4's item kinds {ITEM_KINDS!r}"
+        ) from None
+
+
+def is_whole_document(item: RequestedItem, *, unit_length: int) -> bool:
+    """True when an excerpt covers the whole of the text unit it addresses.
+
+    Exact coverage and nothing cleverer. A near-whole dossier is §8.6's ladder to
+    reduce and the ladder runs in P8 before the call (M9); a threshold here would be
+    a number the design does not state. Only `excerpt` releases document text, so
+    only `excerpt` can be a whole document.
+    """
+    if not isinstance(item, Excerpt):
+        return False
+    return item.span.start == 0 and item.span.end >= unit_length
+
+
+def check_item(item: RequestedItem, *, unit_length: int, protected: bool,
+               sensitive_keys: frozenset[str], allow_unratified: bool) -> None:
+    """Raise unless this item may be named in a request at all.
+
+    Target-independent only. Whether a protected file may reach a *cloud* model under
+    a given mode is `privacy.release`'s decision; what is refused here is what no
+    mode releases.
+
+    Every keyword is required. `sensitive_keys` comes from
+    `sensitive_observation_keys`, `protected` from the classification record (never
+    inferred from the class -- SPEC Open question 1), and `allow_unratified` from a
+    caller willing to write the word.
+    """
+    kind = kind_of(item)
+    if kind in UNRATIFIED_ITEM_KINDS and not allow_unratified:
+        raise UnratifiedItemKind(
+            f"{kind!r} is not one of §8.4's five releasable kinds "
+            f"{RATIFIED_ITEM_KINDS!r}. {FILENAME_OPEN_QUESTION}"
+        )
+    if protected and isinstance(item, Filename):
+        raise ProtectedItemRequested(
+            "§7.3: Protected Records 'must not cause filenames or content to be "
+            "exposed in model prompts'. The user reopens this through consent, not "
+            "through a default."
+        )
+    if isinstance(item, MetadataField) and item.name in ALWAYS_LOCAL:
+        raise AlwaysLocalRequested(
+            f"{item.name!r} is one of §8.4's always-local items {ALWAYS_LOCAL!r}; "
+            "no mode releases it and the gate has no code path that materialises one"
+        )
+    if isinstance(item, Excerpt) and item.observation_key in sensitive_keys:
+        raise AlwaysLocalRequested(
+            f"{item.observation_key!r} was marked {POTENTIALLY_SENSITIVE!r} by P5, "
+            "so its raw value is one of §8.4's always-local items. A "
+            "`redacted_identifier` over the same observation is releasable."
+        )
+    if is_whole_document(item, unit_length=unit_length):
+        raise WholeDocumentRequested(
+            "§8.4: the engine 'should not send full documents where a short heading "
+            "or OCR excerpt is enough to resolve the question'"
+        )
+
+
+def sensitive_observation_keys(conn: sqlite3.Connection,
+                               file_id: str) -> frozenset[str]:
+    """The observation keys P5 marked POTENTIALLY SENSITIVE, for one file.
+
+    P5's reader is keyed by `run_id` only, so the file-level walk composes P4's
+    `runs_for_file` with P5's `sensitivity_signals_for`. P7 adds no reader to either.
+    """
+    keys: set[str] = set()
+    for run in runs_for_file(conn, file_id):
+        for row in sensitivity_signals_for(conn, run.run_id):
+            if row["signal"] == POTENTIALLY_SENSITIVE:
+                keys.add(row["observation_key"])
+    return frozenset(keys)
+```
+
+- [ ] **Step 4: Run the test and watch it pass**
+
+Run: `pytest tests/p7/test_p7_items.py -v`
+Expected: PASS — 39 passed (31 test functions; the `ALWAYS_LOCAL` parametrization contributes nine
+cases, one per always-local name).
+
+- [ ] **Step 5: Run P7's suite so far, and P1–P5**
+
+Run: `pytest tests/p7 -q && pytest tests/ -q`
+Expected: PASS — Tasks 1–7 green, and P1–P5 still green.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/privacy/items.py tests/p7/test_p7_items.py
+git commit -m "feat(P7): the releasable item kinds, the always-local nine, whole_document_requested, and filename held unratified"
+```
+
+---
+
+## What these four tasks leave open, by name
+
+| # | Question | Held by | Where it must be answered |
+|---|---|---|---|
+| **C5** | Does P6 keep a `sensitivity status` row among §3.11's universal fields, beside P7's authoritative record? P7's SPEC Contract-in says P6 *"must accept `sensitivity` as a first-class universal field"*; D2 makes P7's record authoritative; round 1's F-2 found the P6 field has no producer. | Task 4 depends on no P6 field: its store creates its own table and one test asserts it works in a database with no `file_facts` at all. | **Joseph.** Until then P6 creates no such row and P7 reads none. |
+| **B5d / C9a** | Is `filename` a sixth releasable kind? §8.4 names five and puts *paths* in the always-local set; §7.7 puts the filename in the residual dossier; §7.3 forbids filenames in prompts only for Protected Records. | Task 7: `UNRATIFIED_ITEM_KINDS`, `FILENAME_OPEN_QUESTION`, and `allow_unratified` as a required keyword with no default. | **Joseph.** Task 21 should assert no module under `src/privacy/` passes `allow_unratified=True`. |
+| **OQ1** | Is `protected` exactly the top two handling classes? | Task 4 stores `protected` and never derives it; Task 7 takes it as a required keyword. | P7 SPEC revision. |
+| **OQ3** | What is a *"corpus area"*? | Task 5: `scope` is an opaque string P7 neither parses nor validates. | P7 SPEC revision; affects P3, P9, P10. |
+| **OQ11** | Which of `offline` and `local_model` ships as the install default? | Task 6: `install_mode` is a required keyword and `src/privacy/` holds no default mode. | Turns on whether a local model is assumed present. |
+| **§2.9** | Which consent option authorizes speech-to-text? | Task 5: an explicit grant at the scope whose option is not `no_model_use`. Reported as a reading. | Not stated anywhere in the design. |
+| **M10 seam** | P5's `transcription_authorized` is `Callable[[], bool]` and takes no scope. | Task 5: `TranscriptionAuthorization` carries the scope as a field, and a test asserts P5's signature so the day it widens the adapter can be deleted. | P5 contract revision, or leave the adapter. |
+| **Always-local by name** | `MetadataField(name="current_path")` is not caught by Task 7's vocabulary check. | Task 7: a test asserts the gap deliberately, because a synonym list is the gazetteer P7 may not own. | Task 13's decision on the declared name, or a detector nobody has written. |
+| **`candidate_label`** | *"a label already present in the local database"* is unverifiable while P6 is unbuilt. | Task 7: named in `CandidateLabel`'s docstring; no length ceiling invented. | P6. |
