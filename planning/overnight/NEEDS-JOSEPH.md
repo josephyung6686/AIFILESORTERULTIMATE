@@ -351,3 +351,36 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > **This adds one name to P5's vocabulary and that is your call, not mine.** The alternatives were:
 > record no run at all (silently loses the fact that OCR was attempted and failed), or invent a
 > provider string (worse). Ratify the spelling or replace it.
+
+**C3 · P4's `norm` region unit does not say where the origin is, and §8.4 redacts against it**
+
+> `REGION_UNITS` is `("px", "norm")` and `Region` is `(x, y, w, h, unit)`. Neither says whether the
+> origin is top-left or bottom-left. **Apple Vision reports bottom-left; almost every other image
+> tool reports top-left.** A consumer that assumes the common convention redacts a band mirrored
+> about the horizontal axis — it looks like a working redaction and covers the wrong text, which is
+> a §8.4 failure of the quiet kind.
+>
+> I did not invent a key for it. An extra field would be stored by `location()` and then silently
+> dropped by `parse_locator`, which reads exactly five — a value computed and discarded, which is on
+> this project's own defect list. The options are: add `norm_bottom_left` / `norm_top_left` to
+> `REGION_UNITS` (a P4 vocabulary change plus a shape-version bump), or state one origin in P4's
+> contract and make every adapter convert. **The second is cheaper and I would take it**, but it is a
+> P4 contract decision and the wrong moment to make it is silently.
+>
+> Related, and free: `location()` accepts any `region` mapping without validating it. My adapter
+> shipped `width`/`height` and nothing complained until `parse_locator` raised `KeyError: 'w'` deep
+> in a write. Worth a check at the constructor — though note P4 already owns that rule, so the check
+> belongs in P4 and not in P5's `shape.location`.
+
+**C4 · pdfminer.six is chosen but provisional**
+
+> Chosen on the repo's own contract, not on taste: `Region` says the reader names the zone *"because
+> that is library knowledge (a heading style, a table cell, a footer)"*, and §2.2 requires headings
+> and a text offset per observation. That needs per-character font size and position. pdfminer
+> exposes both; pypdf exposes neither and could not produce an honest `Region` at all.
+>
+> Its known cost is speed on large documents. You said we might switch — the seam is
+> `macos_readers(read_pdf=…)`, and the two zone policies (`heading_ratio`, `margin_fraction`) are
+> constructor arguments on `pdfminer_reader()` rather than buried constants. **If you switch to
+> PDFKit, the thing to check is whether it can distinguish a heading from body text**; if it can
+> only give geometry, zone quality drops and §3.7's positional weighting gets weaker evidence.

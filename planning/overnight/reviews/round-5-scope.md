@@ -104,7 +104,12 @@ obligation. What goes is the machinery that *sequences* it.
 §2.2 written as permissive, and it is the one that cannot do anything in v1 because no OCR engine is
 chosen. Verified with `ast`, not by reading: `src/extractors/dispatch.py` declares
 `Readers.ocr_engine: Callable[..., Any] | None = None`, `_ocr` returns `None` when it is unset, and
-**the only `ocr_engine` values anywhere in the repo are `None` and six test lambdas.** P5's own
+**the only `ocr_engine` values anywhere in the repo are `None` and six test lambdas.**
+> **[Annotation, 2026-08-21 later the same day: no longer true — `src/readers/` wires Apple
+> Vision, and scanned PDFs now reach OCR with no P6 involved. CUT 1's CONCLUSION stands,
+> because the blocker was always P6; this half of its argument has expired. Also imprecise:
+> the OCR ENGINE was never open — §2.7 names it and S1 ratified it. The open choice was the
+> PDF library, now pdfminer.six and provisional.]** P5's own
 NEEDS JOSEPH 1 (*which* engine) is open.
 
 **The v1 posture already exists and is already tested.** `src/orchestrator.py:59` defines

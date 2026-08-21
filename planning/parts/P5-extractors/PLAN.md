@@ -260,6 +260,20 @@ summary.
 | `ocr_engine` | E6 §2.7 recognition, regions, confidence | no | **Apple Vision** — the one engine §2.7 names, and the whole of v1's OCR scope (S1) |
 | `speech_to_text` | §2.9 transcripts, **only** under P7's explicit policy | no | deferred with the policy; see NEEDS JOSEPH |
 
+**Three of these are now chosen and wired — outside this part, as this plan requires (2026-08-21).**
+`src/readers/` is the deployment layer and the libraries live in a `readers` extra; `dependencies`
+in `pyproject.toml` stays empty and a guard test fails if any `src/extractors/` module imports one.
+
+| Reader | Wired to | Status |
+|---|---|---|
+| `read_pdf` | **pdfminer.six** | Chosen because `Region`'s contract needs per-character font size and position to name a zone honestly, and a page-text-only library cannot. **Provisional** — Joseph has flagged a possible switch, and `macos_readers(read_pdf=…)` is the override seam. |
+| `ocr_engine` | **Apple Vision** | Was never open: §2.7 names it and **S1** ratified it as the whole of v1's OCR scope. Only the wiring was missing. |
+| `read_text_document` | stdlib | Encoding only. No heading detection — Markdown's `#` is real library knowledge and this reader does not claim to be a Markdown reader. |
+
+The rest return `None`, which is §2.4's `unsupported` — *"recorded as unsupported rather than
+silently treated as an empty document"* — and **not** a failure. That distinction only became
+reachable for four of the six families on the same day; see `extractors/failure.py`.
+
 ---
 
 ## File Structure

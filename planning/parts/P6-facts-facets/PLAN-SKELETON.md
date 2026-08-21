@@ -1211,10 +1211,15 @@ record or three). That P6 imports nothing from a grouping, tree, placement or mo
 > as a fallback"*. The `text_layer_absent` route is the `should`, and it is already built and
 > unaffected. The `text_layer_broken` route — the only route this restructure exists to serve —
 > cannot do anything in v1, because **no OCR engine is chosen**: `Readers.ocr_engine` defaults to
-> `None`, `_ocr` returns `None` when it is unset, and the only `ocr_engine` values anywhere in the
-> repository are `None` and a handful of test lambdas. A guard built now can only ever be tested
-> against a synthesised exception, which is §2.7's dead-path defect — class 4 on this project's own
-> list.
+> `None` and `_ocr` returns `None` when it is unset.
+>
+> **Updated 2026-08-21 (later the same day): an engine IS now wired.** `src/readers/` ships Apple
+> Vision, and §2.2's `text_layer_absent` route — the `should` — runs today: a scanned PDF reaches
+> OCR with no P6 in the loop, proven end to end in `tests/readers/`. **The cut stands and its
+> conclusion is unchanged, because the blocker was always P6 and is now ONLY P6.** What has expired
+> is the *second* half of the argument: a guard for the broken route is no longer untestable for
+> want of an engine, it is unreachable for want of a verdict. Recorded rather than quietly dropped —
+> a decision left standing on a premise nobody rechecked is how it gets re-litigated later.
 >
 > **What stays.** `facts/usable.py` keeps `no_usable_facts_for(conn, *, usable_threshold)` and every
 > test Done-means 28 names. That is the whole of the SPEC's read-surface obligation. What goes is

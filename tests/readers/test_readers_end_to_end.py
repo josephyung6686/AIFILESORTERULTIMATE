@@ -10,9 +10,15 @@ from pathlib import Path
 
 import pytest
 
+# All three, and all three BEFORE the `readers.deployment` import below.
+# `deployment` imports `ocr_vision`, which imports Vision and Quartz at module scope,
+# so guarding only pdfminer would make this module raise during COLLECTION on any
+# machine without pyobjc -- and a collection error is fatal to the whole run, not a
+# skip. The suite would go from "readers skipped" to "nothing ran".
 pytest.importorskip("pdfminer", reason="pdfminer.six is an optional `readers` extra")
+pytest.importorskip("Vision", reason="pyobjc-framework-Vision is a `readers` extra")
+pytest.importorskip("Quartz", reason="pyobjc-framework-Quartz is a `readers` extra")
 
-from evidence_shape.store import observations_for_run
 from orchestrator import TARGETED_OCR_UNAVAILABLE, run_wave2
 from pdf_bytes import build_pdf
 from readers.deployment import macos_readers
@@ -190,3 +196,82 @@ def test_extractors_never_import_the_deployment_layer():
                             "readers", "pdfminer", "Vision", "Quartz", "objc"}:
                         offenders.append(f"{module.name}: import {alias.name}")
     assert not offenders, offenders
+
+
+# ------------------------------------------------- the scanned PDF, end to end
+def build_scanned_pdf(path: Path, text: str = "BUSIB 4300") -> Path:
+    """A PDF whose page is an IMAGE of text — no text layer at all.
+
+    Drawn with Quartz rather than hand-assembled, because a genuine scanned page is
+    a raster embedded in a PDF and that is not something you can write by hand in a
+    content stream. This is the file §2.2 means by *"a PDF with no extractable text
+    and evidence of being created from a photographed page"*.
+    """
+    import Quartz
+    from Foundation import NSURL
+
+    width, height = 600, 200
+    space = Quartz.CGColorSpaceCreateDeviceRGB()
+    bitmap = Quartz.CGBitmapContextCreate(
+        None, width, height, 8, 0, space, Quartz.kCGImageAlphaPremultipliedLast)
+    Quartz.CGContextSetRGBFillColor(bitmap, 1, 1, 1, 1)
+    Quartz.CGContextFillRect(bitmap, Quartz.CGRectMake(0, 0, width, height))
+    Quartz.CGContextSetRGBFillColor(bitmap, 0, 0, 0, 1)
+    Quartz.CGContextSelectFont(bitmap, b"Helvetica", 64.0, Quartz.kCGEncodingMacRoman)
+    raw = text.encode("mac-roman")
+    Quartz.CGContextShowTextAtPoint(bitmap, 40.0, 80.0, raw, len(raw))
+    image = Quartz.CGBitmapContextCreateImage(bitmap)
+
+    media = Quartz.CGRectMake(0, 0, width, height)
+    pdf = Quartz.CGPDFContextCreateWithURL(
+        NSURL.fileURLWithPath_(str(path)), media, None)
+    Quartz.CGPDFContextBeginPage(pdf, {Quartz.kCGPDFContextMediaBox: media})
+    Quartz.CGContextDrawImage(pdf, media, image)
+    Quartz.CGPDFContextEndPage(pdf)
+    Quartz.CGPDFContextClose(pdf)
+    return path
+
+
+def test_a_scanned_pdf_reaches_ocr_with_no_p6_in_the_loop(db, tmp_path):
+    """§2.2: *"A file with no text should route directly to OCR."*
+
+    That clause is a `should` and it needs no verdict from P6 — `text_layer_state`
+    asks P6 only about a NON-EMPTY text layer, because a document with no text has
+    no stored evidence P6 could have failed to make facts from. So the moment an
+    engine is wired, scanned PDFs are read. This is the half of §2.2 that does not
+    wait for the fact layer, and it is why D5 could cut the four-pass restructure
+    without stranding scanned documents.
+    """
+    pytest.importorskip("Quartz")
+    root = tmp_path / "Documents"
+    root.mkdir()
+    build_scanned_pdf(root / "scan.pdf")
+
+    go(db, root)
+
+    runs = {row["extractor_name"]: row["completeness"] for row in db.execute(
+        "SELECT extractor_name, completeness FROM extraction_runs")}
+    assert "ocr.apple_vision" in runs, (
+        f"a PDF with no text layer never reached OCR; runs were {runs}")
+
+    recognised = " ".join(row["raw_value"] for row in db.execute(
+        "SELECT raw_value FROM evidence WHERE extractor_name = 'ocr.apple_vision'"))
+    assert "BUSIB" in recognised, f"OCR ran but recognised {recognised!r}"
+
+
+def test_the_scanned_pdf_keeps_both_runs_and_both_tiers(db, tmp_path):
+    """§2.2 requires "no text layer" and "broken text layer" to stay
+    distinguishable, and §8.5 requires evaluation decomposed by stage — so the
+    native attempt and the OCR run are two rows, not one merged outcome."""
+    import json
+
+    from database_agent.files_table import get_file
+
+    root = tmp_path / "Documents"
+    root.mkdir()
+    build_scanned_pdf(root / "scan.pdf")
+    go(db, root)
+
+    row = db.execute("SELECT file_id FROM files").fetchone()
+    status = json.loads(get_file(db, row["file_id"])["extraction_status_by_tier"])
+    assert set(status) >= {"filesystem", "native", "ocr"}, status

@@ -60,20 +60,26 @@ from scan_agent.stat_cache import VERDICT_RECOMPUTE, cache_verdicts
 
 
 def TARGETED_OCR_UNAVAILABLE(file_id: str, content_hash: str) -> bool:
-    """No OCR engine is wired, so §2.2's `text_layer_broken` route cannot act.
+    """P6 has not run, so §2.2's `text_layer_broken` route cannot be evaluated.
 
     §2.2 names three text-layer states and the broken one is reachable only from P6's
     `no_usable_facts` verdict — "targeted OCR on a PDF with a non-empty but broken
     text layer only when its stored evidence yields no usable facts". P6 is unbuilt,
-    so there is no verdict to give — **and even a built P6 would change nothing here
-    yet**, because there is no engine for the verdict to route to. `Readers.ocr_engine`
-    defaults to `None`, `_ocr` returns `None` when it is unset, and the only values it
-    ever takes in this repository are `None` and test lambdas.
+    so there is no verdict to give.
 
-    That is why D5 was answered against restructuring the caller: §2.2's targeted-OCR
-    clause is a `may`, the `text_layer_absent` route is the `should` and is already
-    built, and a guard for the broken route could only be tested against a synthesised
-    exception. **This function is kept, not deleted** (P6 Task 26 is cut).
+    **This says nothing about OCR being unavailable.** `src/readers/` wires Apple
+    Vision, and §2.2's OTHER route — *"A file with no text should route directly to
+    OCR"* — needs no verdict at all: `ocr_policy.text_layer_state` asks P6 only about
+    a NON-EMPTY text layer, because a document with no text has no stored evidence P6
+    could have failed to make facts from. Scanned PDFs are read today; only the
+    broken-text-layer route waits.
+
+    An earlier version of this docstring said *"no OCR engine is wired"*, which was
+    true when round 5 argued D5 and stopped being true when the readers landed. The
+    D5 conclusion is unchanged — P6 Task 26 stays cut, because the blocker was always
+    P6 and is now ONLY P6 — but the second half of its argument has expired, and a
+    stale reason left in place is how a decision gets re-litigated from a premise
+    nobody rechecked. **This function is kept, not deleted.**
 
     Callers passed `lambda f, h: False` for this, and that is not the same statement.
     `False` from P6 means *"I examined this file's stored facts and the text layer is

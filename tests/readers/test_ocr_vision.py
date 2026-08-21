@@ -97,12 +97,17 @@ def test_boxes_say_which_coordinate_space_they_are_in(screenshot):
     `location.region`. Vision returns NORMALISED, BOTTOM-LEFT-origin rectangles;
     a consumer that assumed pixels or a top-left origin would redact the wrong part
     of the image, which is a §8.4 failure and not a cosmetic one."""
+    from evidence_shape.vocabulary import REGION_UNITS
+
     out = vision_ocr()(screenshot, config=dict(ACCURATE))
     box = out.regions[0].box
     assert box is not None
-    assert set(box) >= {"x", "y", "width", "height", "space"}
-    assert box["space"] == "normalized_bottom_left"
-    assert all(0.0 <= box[k] <= 1.0 for k in ("x", "y", "width", "height"))
+    # P4's region shape EXACTLY. `width`/`height` were accepted by `location()`
+    # without complaint and only failed much later inside `parse_locator`, which
+    # reads `w` and `h` -- so the adapter is where the drift has to be caught.
+    assert set(box) == {"x", "y", "w", "h", "unit"}
+    assert box["unit"] in REGION_UNITS
+    assert all(0.0 <= box[k] <= 1.0 for k in ("x", "y", "w", "h"))
 
 
 def test_confidence_is_carried_through(screenshot):

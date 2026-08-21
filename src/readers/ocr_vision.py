@@ -109,15 +109,23 @@ def _recognise(image, *, languages, level) -> list[tuple[str, float, Any]]:
 
 
 def _box(rect) -> dict[str, Any]:
-    """Vision's rectangle, with its coordinate space named.
+    """Vision's rectangle, in P4's region shape exactly: `x`, `y`, `w`, `h`, `unit`.
 
-    Vision returns NORMALISED coordinates with a BOTTOM-LEFT origin. A consumer that
-    assumed pixels, or a top-left origin, would redact the wrong part of the image --
-    §8.4 redaction reads this, so the space is recorded rather than assumed.
+    `unit` is `norm` -- one of P4's two (`px`, `norm`) -- because Vision reports
+    normalised coordinates. The adapter uses P4's key names rather than the
+    library's: `width`/`height` round-tripped through `location()` unvalidated and
+    only exploded much later in `parse_locator`, which reads `w` and `h`.
+
+    **P4's `norm` does not say where the origin is, and Vision's is BOTTOM-LEFT.**
+    Most image tooling is top-left, so a consumer that assumes the common convention
+    redacts a band mirrored about the horizontal axis -- a §8.4 failure that looks
+    like a working redaction. That ambiguity is P4's to close and is raised in
+    NEEDS-JOSEPH; nothing is invented here, because an extra key would be stored by
+    `location()` and silently dropped by `parse_locator`.
     """
     return {"x": float(rect.origin.x), "y": float(rect.origin.y),
-            "width": float(rect.size.width), "height": float(rect.size.height),
-            "space": "normalized_bottom_left"}
+            "w": float(rect.size.width), "h": float(rect.size.height),
+            "unit": "norm"}
 
 
 def vision_ocr() -> Callable[..., OcrOutput]:

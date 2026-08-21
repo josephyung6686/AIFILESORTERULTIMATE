@@ -75,6 +75,19 @@ surface, not two. Split into separate parts, this becomes two engines and two re
 
 ---
 
+### `src/readers/` is not a fourteenth part either
+
+P5's readers are constructor parameters and its SPEC says it *"adds no third-party runtime
+dependency"* — so the libraries a real deployment chooses live outside it, in `src/readers/`, behind
+a `readers` extra. It fills P5's shapes (`PdfDocument`, `OcrOutput`) and decides nothing the product
+means: no source type, no completeness, no analysis tier, no field name. The dependency runs one
+way and a guard test enforces it — `src/extractors/` may never import `readers`, `pdfminer`,
+`Vision` or `Quartz`.
+
+What an adapter MAY decide is anything the library knows: a heading style, a table cell, a footer,
+the PDF date syntax, an engine's own name and version. That is why `Region`'s contract puts zone
+assignment in the reader — it is the only layer that can see a font size.
+
 ### Where the sensitivity detector lives — P7, and it is injected (D2)
 
 **There is no fourteenth part.** §8.4 requires a handling class before content reaches
@@ -206,6 +219,11 @@ does not become `abstain` inside P8. This is the B2 contract test the first path
 ## Layout
 
 ```text
+src/
+├── database_agent/   P1        evidence_shape/  P4        scan_agent/     P3
+├── eval_harness/     P2        extractors/      P5        orchestrator.py  the Wave-2 caller
+└── readers/          NOT A PART — the deployment layer: pdfminer.six, Apple Vision
+
 planning/
 ├── 00-database-agent-product-design.md    source of truth — Joseph's wording is authoritative
 ├── 01-product-design-structured.md        the same content, §0–§8
