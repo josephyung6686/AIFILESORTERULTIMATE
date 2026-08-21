@@ -415,8 +415,8 @@ def test_a_shipped_filesystem_mime_type_slot_fills_file_type(p6_conn, tmp_path):
 def test_a_slot_naming_a_field_outside_the_catalogue_raises_and_creates_nothing(
         p6_conn, tmp_path):
     # §3.5's "document title" slot has no catalogue field, and §3.12 is the reason
-    # the answer is a raise rather than a new row: "the system may create new values
-    # ... but it should not invent new fields automatically". Done-means 3's negative
+    # the answer is a raise rather than a new row: "The system may create new values
+    # ... but it should not invent new fields automatically." Done-means 3's negative
     # half, reached from a producer instead of from Task 2's own test.
     file_id, content_hash = _file(p6_conn, tmp_path, name="syllabus.pdf",
                                   body=b"%PDF-4")
@@ -581,8 +581,12 @@ def test_facts_direct_holds_no_date_knowledge():
     # one place with no pattern id to name.
     assert "re" not in vars(direct_module)
     assert not [name for name in vars(direct_module) if "date" in name.lower()]
-    assert {literal for literal in _code_strings(direct_module)
-            if any(character.isdigit() for character in literal)} == set()
+    # Two adjacent digits, not one: `UnknownFile`'s message names P1 and P6, and a
+    # part number is not a date format. Any year, offset, or `%Y:%m:%d` fragment has
+    # two in a row.
+    assert not [literal for literal in _code_strings(direct_module)
+                if any(left.isdigit() and right.isdigit()
+                       for left, right in zip(literal, literal[1:]))]
 ```
 
 - [ ] **Step 2: Run the test and read the failure**
