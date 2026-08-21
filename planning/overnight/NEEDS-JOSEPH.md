@@ -399,9 +399,21 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > - **P6 keeps the row** and P7's classification is projected into it as a `user_confirmed` or
 >   `validated` fact — the "one record" reading, with P7 as the writer.
 >
-> I have written the skeletons to **create no such row until you say** and to have P7 read none,
-> because a catalogue row with no producer is the defect class that has cost this project the most
-> and building it either way is a guess. This is the last live piece of OQ11.
+> **Sharpened 2026-08-22, and it is now a blocking conflict, not a loose end.** P7's SPEC
+> Contract-in does not merely assume this field, it *requires* it, verbatim:
+>
+> > **P6 must accept `sensitivity` as a first-class universal field** (§3.11) rather than a
+> > domain-scoped one.
+>
+> So P7's own contract instructs P6 to build the row, while D2 makes P7's `ClassificationRecord`
+> the authoritative one. Those can be reconciled — P6 carries the row and **P7 writes it**, giving
+> it the producer round 1 F-2 found missing — but that is a **third** home for one concept
+> (P7's record, P1's column, P6's fact row), which is the shape OQ11 was opened to prevent.
+>
+> I have written the skeletons to **create no such row until you say**, which means they currently
+> contradict P7's SPEC on this line. That is deliberate: building it either way is a guess, and a
+> guess here is the defect class that has cost this project the most. **This is the last live piece
+> of OQ11 and it blocks P7 Task 4.**
 
 **C6 · `SensitivityFacts` is a P6 seam that D2 left with nothing on the other side**
 
