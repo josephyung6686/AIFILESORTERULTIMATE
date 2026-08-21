@@ -241,7 +241,6 @@ from privacy.policy import Policy
 from privacy.release import RELEASED_FIELDS, ModelTarget, Released
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
-COMPONENT = "0.1.0"
 FINGERPRINT = "fp-1"
 CLOUD = ModelTarget(locality="cloud", model_id="acme-large", provider="Acme")
 OTHER_CLOUD = ModelTarget(locality="cloud", model_id="acme-small", provider="Acme")
@@ -740,7 +739,7 @@ src/privacy/schema.py
 - [ ] **Step 5: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_binding.py -v`
-Expected: PASS — 21 passed
+Expected: PASS — 22 passed
 
 - [ ] **Step 6: Run P7's suite so far, and P1–P5**
 
@@ -1815,8 +1814,8 @@ def deny_protected_records_template(*, file_ids: Sequence[str],
                          "§7.3: normally local-only; deterministic rules and local "
                          "placement still apply"),
             RemedyOption("review",
-                         "§7.11: the system must not act on protected material "
-                         "'without explicit user action'"),
+                         "§7.11: the system must not 'move them out of a protected "
+                         "area without explicit user action'"),
         ),
         evidence_refs=(),
     )
@@ -1962,7 +1961,7 @@ def record_denial(conn: sqlite3.Connection, denied: Denied, *, request,
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_denials.py -v`
-Expected: PASS — 29 passed
+Expected: PASS — 39 passed
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
@@ -2510,7 +2509,7 @@ import json
 import sqlite3
 import uuid
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
@@ -2763,7 +2762,7 @@ def record_consent_choice(conn: sqlite3.Connection, consent_request_id: str,
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_consent.py -v`
-Expected: PASS — 26 passed
+Expected: PASS — 28 passed
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 

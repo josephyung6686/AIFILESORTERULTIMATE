@@ -249,7 +249,7 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
 
   def test_the_order_is_direct_then_rule_then_llm(p6):
       recorder = Recorder()
-      resolve(a_resolver(recorder, llm=Recorder.stage(recorder, "llm")), p6)
+      resolve(a_resolver(recorder, llm=recorder.stage("llm")), p6)
       # Asserted from the call sequence, not from a docstring.
       assert recorder.calls == ["direct", "rule", "llm"]
       assert DEGRADATION_ORDER == ("direct", "rule", "llm")
@@ -480,18 +480,15 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
 
 
   def test_the_resolver_imports_no_producer_module():
-      # The producers arrive as injected `Stage` callables; importing one here would
-      # put a build-order edge inside a wave that has none, and would let a strategy
-      # reach this module.
-      forbidden = {"direct", "rules", "facets", "dates", "domains", "llm_seam",
-                   "discount", "usable", "cache"}
-      imported = {name for name, value in vars(resolver_module).items()
-                  if getattr(value, "__module__", "").startswith("facts.")}
-      assert not {getattr(value, "__module__", "").split(".")[-1]
-                  for value in vars(resolver_module).values()
-                  if getattr(value, "__module__", "").startswith("facts.")} & forbidden
-      assert imported <= {"write_unresolved", "unresolved_for_file", "exhausted_ceilings",
-                          "ResolveResult", "FactResolver", "StageSetInvalid"}
+      # The producers arrive as injected `Stage` callables. Importing one here would
+      # put a build-order edge inside a wave that has none, and would let a threshold,
+      # a gazetteer or a regex catalogue reach this module through a sibling.
+      allowed = {"facts.budgets", "facts.unresolved", "facts.resolver"}
+      from_facts = {module for module in
+                    (getattr(value, "__module__", None)
+                     for value in vars(resolver_module).values())
+                    if module and module.startswith("facts.")}
+      assert from_facts <= allowed
   ```
 
 - [ ] **Step 3: Run it and read the failure.**
@@ -812,7 +809,7 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
   cd "/Users/jy/GRAPH AGENT" && PYTHONPATH=src python3 -m pytest tests/p6/test_p6_budgets.py -q
   ```
 
-  **Expected PASS:** 22 passed. Then confirm nothing else moved:
+  **Expected PASS:** 26 passed. Then confirm nothing else moved:
 
   ```bash
   cd "/Users/jy/GRAPH AGENT" && PYTHONPATH=src python3 -m pytest -q

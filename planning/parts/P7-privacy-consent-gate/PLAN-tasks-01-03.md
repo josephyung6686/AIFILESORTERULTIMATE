@@ -733,6 +733,8 @@ Where a vocabulary can be DERIVED from a design sentence mechanically, it is. A 
 that retypes the nine always-local items proves the author can retype; a test that
 splits the design's sentence proves the identifiers are the design's words.
 """
+from collections.abc import Mapping
+
 import pytest
 
 from scan_agent.exclusion import LABEL_UNTOUCHED_PROTECTED, REASON_PROTECTED_CONTAINER
@@ -941,12 +943,20 @@ def test_p7s_vocabulary_module_holds_none_of_p3s_strings():
     # The test imports P3 to pin the distinction; `src/privacy/` imports neither
     # constant and holds no copy of either literal.
     p3 = {LABEL_UNTOUCHED_PROTECTED, REASON_PROTECTED_CONTAINER, "protected container"}
+
+    def strings_in(value):
+        if isinstance(value, str):
+            return {value}
+        if isinstance(value, tuple):
+            return {v for v in value if isinstance(v, str)}
+        if isinstance(value, Mapping):
+            return {v for v in value.values() if isinstance(v, str)}
+        return set()
+
     for name, value in vars(vocabulary).items():
         if name.startswith("_"):
             continue
-        assert value not in p3, name
-        if isinstance(value, tuple):
-            assert not set(value) & p3, name
+        assert not strings_in(value) & p3, name
 
 
 # --- consent options, display facets, bases, outcomes ------------------------
@@ -1878,7 +1888,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from types import MappingProxyType
 
 from evidence_shape.observation import observation_key
