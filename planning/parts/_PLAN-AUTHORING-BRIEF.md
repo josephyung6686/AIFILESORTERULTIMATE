@@ -402,3 +402,48 @@ settled by §17's rule: one stored key per concept, the other word an alias.
 
 **The §3.4 cache-key rule is now copied seven times across sections.** One helper in `facts.cache`
 (Task 6's module) taking `(conn, content_hash, observations)` deletes all seven.
+
+---
+
+## 19. A gate bypass in the written Task 11 — fix before any P7 code is written
+
+Raised by the Task 7 author, reading Task 11's already-written implementation.
+
+`Gate._materialise` does:
+
+```python
+if not isinstance(item, TEXT_BEARING): continue   # <-- BEFORE the check
+check_item(item, unit_length=…)
+```
+
+**Every non-text-bearing item skips `check_item` entirely** — `MetadataField`,
+`CandidateLabel`, `EvidenceReference` and `Filename` are never checked at all.
+`PLAN-tasks-15-22.md`'s own fixture 7 is *"GPS requested as an item"*, and under this ordering it
+would be **released unchecked**. §8.4's whole requirement is that the gate is the only door; a door
+that inspects only the items it expects to be dangerous is not one.
+
+Second, smaller, same function: the call is `check_item(item, unit_length=…)` positionally, which is
+a `TypeError` under the published `check_item(item, *, unit_length, protected, sensitive_keys,
+allow_unratified)`.
+
+**Check every item first; filter by kind afterwards, if at all.**
+
+## 20. Task 7 exists twice, and the two versions conflict on field shapes
+
+`PLAN-tasks-04-07.md` (line 2414) and `PLAN-tasks-07.md` both carry a `### Task 7`. My overlap
+again. They disagree on three shapes, and **the 04-07 version is unbuildable**:
+
+| | 04-07 | 07 | Which is right |
+|---|---|---|---|
+| `MetadataField` | `(name, value)` | `(name)` | **07.** SPEC §6: `requested_items[]` are *"references only, never materialised content"*. A `value` IS materialised content. |
+| `Filename` | `(file_id, value)` | `(file_id)` | **07**, same reason. |
+| `span` | non-optional | `TextSpan \| None` | **07.** Task 9 pins it optional for the container-path form; its own test fails on construction otherwise. |
+
+**Take `PLAN-tasks-07.md`'s field lists.** The rest of the two sections agree.
+
+## 21. One more reported contradiction, not resolved
+
+`PLAN-tasks-20-22.md` reaches `Denied(always_local_item)` via an `Excerpt` in the `ocr` **zone**. But
+§8.4 permits *"a short heading or OCR excerpt"* in the same sentence that makes OCR output
+always-local, so `items.py` does not branch on zone and will not deny it. The fixture should stand on
+a P5-signalled key instead. Reported by its author rather than patched into either file.
