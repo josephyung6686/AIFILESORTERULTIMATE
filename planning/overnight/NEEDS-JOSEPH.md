@@ -306,3 +306,48 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 
 > There is no `hr.personnel-file` entry in this catalogue, and there probably should be one somewhere: the employer's per-employee file is the natural home for contracts, pay letters, training records, reviews and case outcomes about one person. This slice deliberately declines to create it, because a per-person folder is exactly what §3.8's “It should avoid using authorship or creator identity as a destination dimension” warns against and because it collides head-on with the career slice, which holds the same documents from the individual's own side. Whether the product should model an employer-held personnel file at all — and if so, which slice owns it — is Joseph's call and it is left open rather than resolved by omission.
 
+
+---
+
+# Added 2026-08-21 (midday), after the decisions were answered
+
+**C1 · The 566 template dimensions with no schema field — the largest open item in the catalogue**
+
+> `planning/domains/check.py` now fails at 566 and this is deliberate. **566 of 1,648 template
+> dimensions branch on a field the same domain's schema does not declare.** A domain is a schema
+> plus a template — the §3.6 allow-list and the §5.3 branch menu — so a dimension naming an
+> undeclared field opens a tree level no fact can ever fill.
+>
+> Three groups, and only one of them is mechanical:
+>
+> - **176 near-misses** (`manuscript` where the schema declares `manuscript_title`). Fixable by
+>   renaming the dimension to the declared field — but which declared field is a judgement in the
+>   ~20 cases where a domain has two candidates (`manuscript_id` vs `manuscript_title`).
+> - **85 time-derived** (`year`, `period`). Only 4 sit in templates flagged `time_first`. Either
+>   these are legitimate time buckets derived from a declared date field — in which case the
+>   contract needs a sentence saying a time bucket is not a fact field — or they are defects.
+>   **This one sentence resolves 85 of the 566 and is the cheapest thing you can answer here.**
+> - **305 with no related field at all** (`recruiting_cycle`, `target_institution`, `client`,
+>   `matter`). These need a decision about what the domain legitimises. `client` and `matter` are
+>   §3.8 role fields that round 1's F-1 already argued for; `recruiting_cycle` is career, which
+>   **D1 says not to author**. So the answer for career is almost certainly "drop the dimension",
+>   not "add the field" — but that is yours to say.
+>
+> Nothing was invented to make this green. The systematic offenders are `document_type` 104,
+> `artifact_type` 50, `client` 34, `matter` 28, `project` 27 — five names are 243 of the 566.
+
+**C2 · The name an OCR run carries when the engine crashed before reporting its own**
+
+> §2.7's first two persisted fields are the OCR provider and its version, and both come from the
+> engine's return value (`output.provider`). An engine that RAISES returns nothing, so neither is
+> knowable — but the failure still needs a run row, because a file whose text layer was absent and
+> whose OCR then crashed has received nothing at all, and §8.6 requires that to stay visible.
+>
+> I used `extractors.ocr.UNREPORTED_PROVIDER_NAME = "ocr"` — the family with the provider left off.
+> It cannot collide with any `ocr.<provider>` (no dot), it is non-empty as P4 requires, and it
+> invents neither a provider nor a provider version. The run's `extractor_version` is `ocr.VERSION`,
+> P5's OCR **adapter** version — the code that actually ran and failed.
+>
+> **This adds one name to P5's vocabulary and that is your call, not mine.** The alternatives were:
+> record no run at all (silently loses the fact that OCR was attempted and failed), or invent a
+> provider string (worse). Ratify the spelling or replace it.

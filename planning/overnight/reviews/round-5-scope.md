@@ -10,8 +10,13 @@ reassignment.
 **Round 4 (connection) had not been written when this round ran** — `planning/overnight/reviews/`
 contains rounds 1, 2 and 3 only, at 03:12, 03:38 and 03:36 on 2026-08-21. Its recommendations are
 therefore judged below only where rounds 1–3 anticipated them (B-3, B-15, A9, A17 are all
-connection-shaped and are treated). If round 4 lands after this, its additions have not been through
-this filter.
+connection-shaped and are treated).
+
+**Closed 2026-08-21 (late).** Round 4's fourteen findings have now been through this filter — see
+*Verdict on rounds 1–4's additions*. The two rounds ran concurrently and this one read the directory
+first; that is a sequencing error, because a scope filter is the one round that must run last. Its
+consequence was not the unfiltered additions but an unresolved contradiction with round 4 over
+Task 26, which **D5 settled in this round's favour**.
 
 Substrate as of this round: `pytest tests/ -q` → **1244 passed in 6.9s.**
 
@@ -408,7 +413,39 @@ in CUT 1).
 
 ## Verdict on rounds 1–4's additions
 
-Round 4 does not exist yet. On rounds 1–3:
+> **Round 4's filter, run 2026-08-21 (late).** The section below was written while round 4 was
+> still being authored — the two rounds ran concurrently and this one read the directory first, so
+> round 4's fourteen findings never went through the scope lens. That gap is closed here rather
+> than by re-running the round, because **D5 resolved the collision that made it matter**: this
+> round's CUT 1 (delete Task 26) was ratified over the council's D5 (fix Task 26), and three of
+> round 4's findings exist only to serve a task that is no longer built.
+>
+> | Round 4 | Scope verdict | Why |
+> |---|---|---|
+> | **C-1** `FactPassNotRun`'s base class + the `dispatch` split | **Half kept, half cut** | The `ContractViolation` base class **earns its place** — it is right on its own merits, it is one line, and it costs nothing while unused. The `dispatch` split **goes with Task 26**: it existed only to give loop 1 an entry point that does not arm the verdict. |
+> | **C-2** P7's spine is a P6 surface that does not exist; the classification is unowned | **Earns its place — and is now closed** | This was the largest finding in the wave and D2 answered it. Not scope-cuttable: a gate with no classification is §8.4 unimplemented. |
+> | **C-3** P6 cannot reach the five adversarial cases it names as its gate | **Earns its place** | P6's own SPEC names them as its gate. A gate you cannot reach is not a gate, and this is one fixture, not a task. |
+> | **C-4** Task 26's parameter and `FactResolver`'s missing verdict | **MOOT** | Task 26 is cut. Nothing else consumes it. |
+> | **C-5** P8's Contract-in names two P6 functions P6 Task 17 disowns | **Earns its place** | `normalize` and `contradicts`: each part hands them to the other, so neither builds them. Deferrable to P8's wave, but the *ownership sentence* is owed now — it is one line and it is exactly check 7's shape. |
+> | **C-6** pass 4's cache-key identity is unstated | **MOOT** | There is no pass 4. |
+> | **C-7** the bundle stays a Wave-2 artifact | **Partly overtaken by events** | The half about the bundle lying (membership and contents) was fixed in code on 2026-08-21. What remains — that neither plan makes the bundle P6-aware — is real and belongs to P6's wave, not to this cut. |
+> | **C-8** three back-edges are nine; two have no fixture | **Narrowed** | The count correction is free and should land in `02`. Building two new fixtures is P6/P7-wave work, and one of the nine (P6→P5) disappears with Task 26. |
+> | **C-9** the P5→P7 back-edge has a producer, a consumer and no wiring | **Earns its place, and it is small** | `transcription_authorized` is threaded end to end and every caller passes `lambda: False`. §8.4 authorising transcription is a `must`; this is a wiring line, not a task. |
+> | **C-10** `SensitivityStateWriter` needs a P1 setter no task adds | **Earns its place — now closed** | P1 publishes `set_sensitivity_state`; the protocol is dropped (CUT 5 agrees). |
+> | **C-11** round 1's four unwritten universal fields have named downstream consumers | **Narrowed by D1** | Three of four are named literally in a downstream Contract-in, so they are not speculative. But **no career fields** — D1 is explicit — and the catalogue writes no field rows. The universal four are §3.11's and are a different question from the career schema; keep them, and keep them separate from D1. |
+> | **C-12 / C-13 / C-14** | **Free corrections** | All three are one-line edits or deletions. C-14's observation that the walking skeleton is five independent tests is worth acting on and is not a new task. |
+> | **The seven contract corrections + check 7** | **Earn their place** | Check 7 — *every surface a SPEC's Contract-in names has a producing task in some plan* — is the single highest-value item round 4 produced, because checks 1–6 all ran in one direction and every seam that actually breaks is the converse. It is a script, not a part. |
+>
+> **Net: of round 4's fourteen, two are closed by D2, three are moot under D5, three are narrowed,
+> and six stand.** Round 4 was overwhelmingly a *gap* round rather than an *addition* round, which
+> is why it survives a scope filter better than its size suggests — you cannot scope-cut a missing
+> producer, only the consumer that needs it.
+>
+> **The one place this round's own arithmetic is wrong:** CUT 1's saving is credited against rounds
+> 2 and 3 only. It also deletes round 4's C-4, C-6 and half of C-1. The saving is **understated by
+> three findings.**
+
+Round 4 did not exist when the section below was written. On rounds 1–3:
 
 **Round 1 (24 findings) is almost entirely corrections, not additions, and that is the right shape
 for a fidelity round.** Eighteen of twenty-four cost nothing to build: fix a citation, drop a
@@ -537,6 +574,7 @@ the only round 1 addition that is strictly required to build.
 ## What this round did not look at
 
 Contract fidelity (round 1), buildability (round 2), defect-class reproduction (round 3), and
-connection to built P1–P5 (round 4, unwritten). Where a cut here removes a finding from an earlier
+connection to built P1–P5 (round 4 — unwritten when this ran, filtered afterwards; see the verdict
+section). Where a cut here removes a finding from an earlier
 round, that is said in the cut's own entry, so a reader reconciling the five rounds can see which
 findings were fixed and which were deleted.

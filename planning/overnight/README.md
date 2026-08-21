@@ -1,9 +1,31 @@
 # Overnight run — start here
 
-Date: 2026-08-21 · Joseph asleep · **1,244 tests passing**
+Date: 2026-08-21 · **1,255 tests passing**
 
 Everything I could decide, I decided and built. Everything that was yours, I refused and wrote down.
 This page is the entry point; read it in order.
+
+---
+
+## 0. Answered since — read this before anything below it
+
+**You have now answered all six decisions** (2026-08-21, midday). Four taken as recommended, D1
+narrowed, **D5 not taken** — round 5's CUT 1 wins and **P6 Task 26 is cut, not fixed**. The
+ratification table is at the top of [`council/DECISION-BRIEF.md`](council/DECISION-BRIEF.md); each
+decision is applied at its binding site, not collected in one file.
+
+Two things landed with them:
+
+1. **`23-full-tree-stress.md`'s four caller breaks are fixed**, with eight new tests
+   (`tests/wave2/test_wave2_full_tree.py`). The eval bundle could lie about the corpus in two
+   opposite directions at once, and an OCR failure could erase a finished PDF run. **Every one of
+   them passed all 1,244 tests.**
+2. **The domain catalogue's gate now fails, deliberately, at 566.** D6 was not a naming preference:
+   both spellings were already in the catalogue — 966 spaced keys and 959 snake_case, 131 of them
+   the same key twice. Normalising them exposed the larger defect underneath. See §5.
+
+**Round 4's findings have now been through round 5's scope filter**, which is the gap §6 flagged.
+Two of fourteen are closed by D2, three are moot under D5, three are narrowed, six stand.
 
 ---
 
@@ -86,8 +108,39 @@ quotation checked against your words. Zero fabrications across all thirteen file
 
 A **fourteenth slice** closed a demonstrated gap: no domain in the first 560 owned calendar
 artifacts, though `.ics` routes to a `calendar` source type and two authors cited a calendar domain
-expecting one. **574 domains, and every cross-reference now resolves — the gate reports zero
-problems, in-file and cross-file.**
+expecting one. **574 domains, and every cross-reference resolves.**
+
+### The gate now fails at 566, and that is the finding (2026-08-21, midday)
+
+Applying D6 exposed what the "zero problems" above was not looking at.
+
+D6 read like a naming preference. It was a repair: **both spellings were already in the catalogue** —
+966 spaced keys and 959 snake_case, **131 of them the same key spelled two ways**. One concept in two
+vocabularies, at scale, in an artifact whose gate had just called itself clean. Normalising collapsed
+2,295 distinct keys to 2,164.
+
+Then the second new check, and this is the one that matters:
+
+> **566 of 1,648 template dimensions branch on a field the same domain's schema does not declare.**
+
+A domain is a schema **plus** a template — the allow-list §3.6 validates against and the menu §5.3
+draws branch proposals from. A dimension naming an undeclared field opens a tree level **no fact can
+ever fill**, because §3.6 rejects every value for it. The gate only ever asked whether
+`dimension_order` existed, never whether it *resolved* — the same one-directional blindness round 4
+found in the seam contract, reproduced in the tool built to catch exactly this.
+
+| | count | example |
+|---|---|---|
+| no related field at all | **305** | `career.resume` branches on `recruiting_cycle`; the schema has no cycle field |
+| near-miss, naming drift | **176** | `manuscript` vs the declared `manuscript_title` |
+| time-derived | **85** | `year` — and only **4** of these are in templates flagged `time_first` |
+
+Systematic, not scattered: `document_type` 104, `artifact_type` 50, `client` 34, `matter` 28,
+`project` 27. **`client` is one of §3.8's role fields round 1's F-1 already said to add**, so part of
+this overlaps D1 and is not mine to decide.
+
+**Nothing was invented to make the gate green.** 305 of these need a decision about what a domain
+legitimises. The gate stays red until they are answered — that is what it is for.
 
 ## 6. Late corrections, after the agents' final reports
 
