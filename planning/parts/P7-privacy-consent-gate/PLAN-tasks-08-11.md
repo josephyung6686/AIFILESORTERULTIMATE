@@ -2077,3 +2077,976 @@ git commit -m "feat(P7): the consent-aware audit record as one events row, and t
 ```
 
 ---
+
+### Task 11: `Gate.release` — the request, the three-branch union, and no override parameter
+
+**Files:**
+- Create: `src/privacy/release.py`, `src/privacy/gate.py`
+- Test: `tests/p7/test_p7_release.py`
+
+**Interfaces:**
+- Consumes: everything from Tasks 2–10 — `vocabulary.HANDLING_CLASSES`, `.DENIAL_REASONS`,
+  `.CONSENT_OPTIONS`, `.check_handling_class`, `.check_denial_reason`,
+  `classification.resolve_class(record) -> str`, `classification_store.ClassificationStore`,
+  `policy.Policy`, `.current_policy(conn, *, plan_version) -> Policy`,
+  `defaults.LOCAL_FIRST_MODES`, `items.Excerpt`, `.RedactedIdentifier`, `.check_item(item, *,
+  unit_length) -> None`, `.WholeDocumentRequested`, `redaction.apply_redaction`,
+  `.RedactionManifest`, `resolve.materialise(conn, item) -> Materialised`,
+  `audit.AuditRecord`, `.append_audit`, `authorship.SUBSYSTEM`;
+  `database_agent.files_table.get_file(conn, file_id) -> sqlite3.Row`,
+  `database_agent.budget.get_ceiling(conn, key) -> int | None`.
+- Produces (`release.py`):
+  - `ModelTarget` — frozen: `locality: str`, `model_id: str`, `provider: str`; `LOCALITIES`.
+  - `Target` — frozen: `file_ids: tuple[str, ...]`, `group_id: str | None = None`.
+  - `ModelCallRequest` — frozen; SPEC §6's **seven** exactly: `stage`, `target`, `model_target`,
+    `requested_items`, `prompt_template_id`, `prompt_fingerprint`, `max_dossier_tokens`.
+  - `Released` — frozen; SPEC §6's **six**: `release_id`, `audit_id`, `policy_version`,
+    `materialised_items`, `redaction_manifest`, `model_target`.
+  - `Denied` — frozen: `reason`, `explanation`, `remedy_options`.
+  - `NeedsConsent` — frozen: `requirement`, `options`.
+  - `ReleaseDecision` — the union alias.
+  - `REQUEST_FIELDS`, `RELEASED_FIELDS`, `FORBIDDEN_PARAMETER_NAMES: frozenset[str]`,
+    `UNCLASSIFIED: str`, `SENSITIVE_CLASSES: tuple[str, str]`, `TEXT_BEARING: tuple[type, ...]`,
+    `DECISION_ORDER: tuple[str, ...]`.
+  - `MalformedRequest`, `MalformedDecision`.
+- Produces (`gate.py`):
+  - `Gate(conn, *, plan_version, component_version, classifier, transform, consent_scope_for,
+    unclassified_permits_local, clock)`.
+  - `Gate.release(request) -> ReleaseDecision`.
+
+**Done-means:** 3 (the gate half), and the entry point for 5, 6, 7.
+
+**The signature is adopted verbatim on both sides (B2), so everything else is constructor state.**
+SPEC §6 publishes `Gate.release(ModelCallRequest) -> ReleaseDecision` and P8 calls it under exactly
+that signature. `Gate.release` therefore has **two** parameters, `self` and `request`, and the
+connection, the policy scope, the two injected redaction protocols, the clock and the two open
+questions that need a parameter all live on `Gate.__init__`. That is not a workaround; it is what
+"one door, named once" costs, and it is why the whitelist test can be an equality rather than a
+subset.
+
+**There is no override parameter, and the test proves it two ways.** The whitelist —
+`set(inspect.signature(Gate.release).parameters) == {"self", "request"}` — proves no unpublished
+parameter exists **at all**, which is the stronger half. The blacklist,
+`FORBIDDEN_PARAMETER_NAMES`, names the specific words a future convenience would use and asserts
+they appear in neither the signature nor any field of the request or of the three branch types.
+**Both are parsed from the signature and from `dataclasses.fields`, never from source text** — a
+source scan matches comments and docstrings, and that technique has produced a false result eight
+times on this project. This is P5's `SafetyPolicy` discipline applied to the gate: *"Two fields, and
+deliberately no third."*
+
+**Three parameters on `Gate.__init__` have no default, and each one is an open question refusing to
+be guessed.** `classifier` and `transform` are the SPEC's *Deferred* row for identifier classes
+(Task 8). `consent_scope_for` is Open question 3 — *"What is a 'corpus area'? … Consent grants
+cannot be scoped until this is named"* — so the caller maps a `file_id` to a scope name and P7
+defines no area, the same posture the sibling section's `revoke` takes with `files_in_scope`.
+`unclassified_permits_local` is Open question 5 — *"Does `unreadable_unclassified` permit a local
+model call?"* — and the skeleton requires the parameter carry **no default** until it is answered.
+
+**What Tasks 12–14 change, stated here so they do not each invent it.** `release.py` mints its
+`release_id` with `secrets.token_hex(16)` and records no ledger; **Task 12 modifies `release.py` to
+call `binding.mint_release` and adds the ledger.** `Denied` is constructed inline here with an
+explanation and remedy options; **Task 13 modifies `release.py` to route all eight reasons through
+`denial.deny` and adds `RemedyOption`**, so `Denied.remedy_options` may become
+`tuple[RemedyOption, ...]` — the field **name** is fixed here and the element type is Task 13's.
+`NeedsConsent` carries `requirement` and `options` here; **Task 14 modifies `release.py` to add
+`consent_request_id`**, which P13's `subject_ref` needs and SPEC §6 omits. Each is a `Modify:` line
+in that task, the pattern P5's Task 10 already used for `schema.py`. Nothing else in `release.py`
+moves.
+
+**`DECISION_ORDER` is published because the order is the contract.** Five denials, then consent,
+then the budget backstop, then the audit, then the token. It is published as a tuple so a reviewer
+can read the order without reading the function, and so a reordering is a diff on a constant rather
+than an invisible behaviour change. The order is forced, not chosen: the mode/target check needs no
+classification, the classification checks need no content, and **nothing materialises until every
+check that could deny has run** — a gate that resolved first would have the text in memory before it
+decided whether it was allowed to.
+
+**The gate raises nothing of its own, and the two exceptions that do escape are about the CALL.**
+`resolve.UnresolvableSpan` and `resolve.AmbiguousObservationKey` propagate: a request that addresses
+a span the evidence does not carry is a contract violation by the caller, the fourth kind of
+refusal, and it always propagates. `Denied` and `NeedsConsent` are values. The catcher is the
+caller's: `Denied` → P8 writes its `Refusal` with `PRIVACY_GATE_REFUSED`; `NeedsConsent` → the
+calling part routes to P13 and **never absorbs it** (B2).
+
+**`Denied(unclassified)` is the ordinary path, and this task is built for that.** The detector is
+unwritten (D2), so against a real corpus `ClassificationStore.current` returns `None` for every file
+and `resolve_class(None)` returns `unreadable_unclassified`. The denial fixture needs no setup; the
+`Released` fixture is the one that has to write a classification by hand, and its test says so.
+
+**`materialised_items` holds only what had a value to resolve.** SPEC §6: *"materialised_items[]
+post-redaction values only."* `excerpt` and `redacted_identifier` carry `(observation_key, span)` and
+resolve to text; `candidate_label`, `metadata_field`, `evidence_reference` and `filename` carry no
+local content — §4 says an evidence reference is *"an id only — no content"* — so they were never
+materialised and the caller still holds them on the request it sent. The gate does not echo back
+what it did not touch.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p7/test_p7_release.py
+"""§8.4's one door: the request, the three branches, and no way around it.
+
+The shape tests are the point. A gate whose decision logic is right and whose
+signature has an `override=` keyword is not a gate, and the second failure is the one
+review does not catch.
+"""
+import dataclasses
+import inspect
+
+import pytest
+
+from database_agent.budget import set_ceiling
+from database_agent.files_table import record_file
+from evidence_shape.location import Location, Segment, TextSpan
+from evidence_shape.locator import serialize_locator
+from evidence_shape.observation import Observation, observation_key
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.schema import create_evidence_schema
+from evidence_shape.store import record_observation, record_run, record_text_unit
+from evidence_shape.text_units import TextUnit
+
+from privacy.audit import audit_record, audit_records_for
+from privacy.classification import ClassificationRecord
+from privacy.classification_store import ClassificationStore
+from privacy.gate import Gate
+from privacy.items import Excerpt
+from privacy.policy import Policy, create_privacy_schema, set_policy
+from privacy.release import (
+    DECISION_ORDER, FORBIDDEN_PARAMETER_NAMES, RELEASED_FIELDS, REQUEST_FIELDS,
+    SENSITIVE_CLASSES, UNCLASSIFIED, Denied, ModelCallRequest, ModelTarget,
+    NeedsConsent, Released, Target,
+)
+from privacy.resolve import Materialised
+
+COMPONENT = "0.1.0"
+FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
+CONTENT_HASH = "a" * 64
+PAGE = (Segment(kind="page", index=2),)
+BODY = "Passport number 992-33-1188 issued 2019."
+LOCATION = Location(zone="body", container_path=PAGE, text_span=TextSpan(16, 27))
+SPAN = serialize_locator(LOCATION)
+KEY = observation_key(content_hash=CONTENT_HASH, extractor_name="pdf_text",
+                      locator=SPAN, raw_value="992-33-1188")
+CLOUD = ModelTarget(locality="cloud", model_id="acme-large", provider="Acme")
+LOCAL = ModelTarget(locality="local", model_id="llama-local", provider="self-hosted")
+
+
+def classifier(value, *, context_before, context_after):
+    return "passport_number"
+
+
+def transform(value, *, identifier_class):
+    return f"[{identifier_class}]"
+
+
+def a_request(**over) -> ModelCallRequest:
+    base = dict(stage="grouping", target=Target(file_ids=("file-1",)),
+                model_target=CLOUD,
+                requested_items=(Excerpt(observation_key=KEY, span=TextSpan(16, 27),
+                                         reason="the group's subject"),),
+                prompt_template_id="group-coherence-v1", prompt_fingerprint="fp-1",
+                max_dossier_tokens=800)
+    base.update(over)
+    return ModelCallRequest(**base)
+
+
+def a_policy(**over) -> Policy:
+    base = dict(policy_version="policy-1", operation_mode="cloud_assisted",
+                consent_grants=(), redaction_settings={
+                    facet: "redacted" for facet in
+                    ("names", "previews", "thumbnails", "ocr_text", "location_data")},
+                automatic_move_permissions={}, plan_version="plan-1",
+                set_at=FIXED_CLOCK)
+    base.update(over)
+    return Policy(**base)
+
+
+@pytest.fixture()
+def corpus(p7_conn):
+    """A file, a run, a unit, one observation, and a policy. No classification.
+
+    No classification is the REALISTIC state (D2: the detector is unwritten), so the
+    fixture that denies needs no setup and the fixture that releases has to write one
+    by hand.
+    """
+    create_evidence_schema(p7_conn)
+    create_privacy_schema(p7_conn)
+    record_file(p7_conn, file_id="file-1", current_path="/corpus/passport.pdf",
+                content_hash=CONTENT_HASH)
+    record_run(p7_conn, ExtractionRun(
+        run_id="run-1", file_id="file-1", content_hash=CONTENT_HASH,
+        extractor_name="pdf_text", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=FIXED_CLOCK, observation_count=1))
+    record_text_unit(p7_conn, TextUnit(run_id="run-1", container_path=PAGE, text=BODY))
+    record_observation(p7_conn, Observation(
+        file_id="file-1", content_hash=CONTENT_HASH, extractor_name="pdf_text",
+        extractor_version="1.0.0", source_type="text_document",
+        raw_value="992-33-1188", location=LOCATION, occurrence_count=1,
+        observed_at=FIXED_CLOCK, reliability="direct", run_id="run-1",
+        context_before="Passport number ", context_after=" issued 2019.",
+        context_truncated=False)) 
+    set_policy(p7_conn, a_policy(), author="P7", component_version=COMPONENT,
+               user_id="joseph")
+    return p7_conn
+
+
+def classify(conn, handling_class, *, protected):
+    """Stands in for the detector nobody has written (D2).
+
+    The test writes the classification itself and says so, because until a rule set
+    is supplied every real file resolves to `Denied(unclassified)` and the release
+    path would be unreachable.
+    """
+    ClassificationStore(conn).write(ClassificationRecord(
+        file_id="file-1", content_hash=CONTENT_HASH, handling_class=handling_class,
+        protected=protected, basis="user", evidence_refs=(KEY,),
+        reliability_state="user_confirmed", observed_at=FIXED_CLOCK))
+
+
+def a_gate(conn, **over) -> Gate:
+    base = dict(plan_version="plan-1", component_version=COMPONENT,
+                classifier=classifier, transform=transform,
+                consent_scope_for=lambda file_id: "Academics",
+                unclassified_permits_local=False, clock=lambda: FIXED_CLOCK)
+    base.update(over)
+    return Gate(conn, **base)
+
+
+# --- the signature: no override, and nothing unpublished ----------------------
+
+def test_release_takes_the_request_and_nothing_else():
+    # B2: "P8 adopts this call, this return union, and these field names verbatim."
+    # An equality, not a subset: the whitelist is what proves no unpublished
+    # parameter exists at all.
+    assert set(inspect.signature(Gate.release).parameters) == {"self", "request"}
+
+
+def test_no_forbidden_word_appears_in_any_published_name():
+    published = set(inspect.signature(Gate.release).parameters)
+    for kind in (ModelCallRequest, Released, Denied, NeedsConsent, Target,
+                 ModelTarget):
+        published |= {field.name for field in dataclasses.fields(kind)}
+    assert not published & FORBIDDEN_PARAMETER_NAMES
+
+
+def test_the_blacklist_names_the_words_a_convenience_would_use():
+    assert {"force", "override", "bypass", "allow", "approved", "skip", "unsafe",
+            "trusted", "internal"} <= FORBIDDEN_PARAMETER_NAMES
+
+
+def test_the_constructor_carries_no_override_either():
+    parameters = set(inspect.signature(Gate.__init__).parameters)
+    assert not parameters & FORBIDDEN_PARAMETER_NAMES
+
+
+def test_three_constructor_parameters_have_no_default():
+    # Each is an open question refusing to be guessed: the redaction transform
+    # (SPEC *Deferred*), "what is a corpus area" (OQ3), and whether an unclassified
+    # file permits a LOCAL call (OQ5).
+    parameters = inspect.signature(Gate.__init__).parameters
+    for name in ("classifier", "transform", "consent_scope_for",
+                 "unclassified_permits_local"):
+        assert parameters[name].kind is inspect.Parameter.KEYWORD_ONLY
+        assert parameters[name].default is inspect.Parameter.empty
+
+
+# --- the request carries references, never content ----------------------------
+
+def test_the_request_is_spec_6s_seven_fields():
+    assert REQUEST_FIELDS == ("stage", "target", "model_target", "requested_items",
+                              "prompt_template_id", "prompt_fingerprint",
+                              "max_dossier_tokens")
+    assert tuple(f.name for f in dataclasses.fields(ModelCallRequest)) == REQUEST_FIELDS
+
+
+def test_no_request_field_accepts_a_document_a_path_or_an_observation():
+    # "P8 never holds releasable content. It composes a request out of REFERENCES."
+    # Asserted over the annotations, so a field typed to take a string of document
+    # text is a red test rather than a code review someone has to remember to do.
+    annotations = {f.name: str(f.type) for f in dataclasses.fields(ModelCallRequest)}
+    assert annotations["stage"] == "str"
+    assert annotations["prompt_template_id"] == "str"
+    assert annotations["prompt_fingerprint"] == "str"
+    assert annotations["max_dossier_tokens"] == "int"
+    assert annotations["target"] == "Target"
+    assert annotations["model_target"] == "ModelTarget"
+    assert annotations["requested_items"] == "tuple[object, ...]"
+    for annotation in annotations.values():
+        assert "Observation" not in annotation
+        assert "Path" not in annotation
+        assert "TextUnit" not in annotation
+
+
+def test_call_site_is_not_a_request_field():
+    # B2: "`call_site` is already inside the fingerprint, so it is not a separate
+    # request field and not a separate binding term."
+    assert "call_site" not in REQUEST_FIELDS
+
+
+def test_released_is_spec_6s_six_fields():
+    assert RELEASED_FIELDS == ("release_id", "audit_id", "policy_version",
+                               "materialised_items", "redaction_manifest",
+                               "model_target")
+    assert tuple(f.name for f in dataclasses.fields(Released)) == RELEASED_FIELDS
+
+
+def test_the_decision_order_is_published():
+    assert DECISION_ORDER == (
+        "mode_forbids_target", "unclassified", "protected_cloud_target",
+        "protected_records_template", "always_local_item", "needs_consent",
+        "whole_document_requested", "dossier_over_budget", "audit", "release")
+
+
+# --- the three branches -------------------------------------------------------
+
+def test_an_unclassified_file_is_denied_and_this_is_the_ordinary_path(corpus):
+    # D2: the detector is unwritten, so on a real corpus EVERY file lands here.
+    # §8.6: "Cost exhaustion must never turn into lower-quality automatic
+    # classification" -- there is no path from "nothing has looked" to `public_low`.
+    decision = a_gate(corpus).release(a_request())
+    assert isinstance(decision, Denied)
+    assert decision.reason == "unclassified"
+
+
+def test_a_denial_never_resolves_to_a_low_class(corpus):
+    decision = a_gate(corpus).release(a_request())
+    assert UNCLASSIFIED == "unreadable_unclassified"
+    assert "public_low" not in decision.explanation
+
+
+def test_a_cloud_target_under_a_local_first_mode_is_denied(corpus):
+    # §8.4: "Fully offline mode: No content leaves the device."
+    set_policy(corpus, a_policy(policy_version="policy-2", operation_mode="offline"),
+               author="P7", component_version=COMPONENT, user_id="joseph")
+    decision = a_gate(corpus).release(a_request())
+    assert isinstance(decision, Denied)
+    assert decision.reason == "mode_forbids_target"
+
+
+def test_a_protected_file_with_a_cloud_target_is_denied(corpus):
+    # §8.4: "Protected material should not be included in cloud-model prompts by
+    # default." The flag is consumed, never inferred from the class (Open question 1).
+    classify(corpus, "personal_non_sensitive", protected=True)
+    decision = a_gate(corpus).release(a_request())
+    assert isinstance(decision, Denied)
+    assert decision.reason == "protected_cloud_target"
+
+
+def test_a_sensitive_file_without_a_grant_needs_consent(corpus):
+    # §8.4: "If a model needs text containing sensitive content, the user should see
+    # that requirement and choose whether to allow a local model, a cloud model, a
+    # redacted prompt, or no model use."
+    classify(corpus, "sensitive_personal", protected=False)
+    decision = a_gate(corpus).release(a_request())
+    assert isinstance(decision, NeedsConsent)
+    assert decision.options == ("local_model", "cloud_model", "redacted_prompt",
+                                "no_model_use")
+    assert SENSITIVE_CLASSES == ("sensitive_personal",
+                                 "highly_sensitive_credential_bearing")
+
+
+def test_a_grant_for_the_scope_turns_consent_into_a_release(corpus):
+    classify(corpus, "sensitive_personal", protected=False)
+    set_policy(corpus, a_policy(policy_version="policy-3",
+                                consent_grants=(("Academics", "cloud_model"),)),
+               author="P7", component_version=COMPONENT, user_id="joseph")
+    decision = a_gate(corpus).release(a_request())
+    assert isinstance(decision, Released)
+
+
+def test_a_clean_release_carries_the_redacted_value_and_the_manifest(corpus):
+    classify(corpus, "personal_non_sensitive", protected=False)
+    decision = a_gate(corpus).release(a_request())
+    assert isinstance(decision, Released)
+    (item,) = decision.materialised_items
+    assert isinstance(item, Materialised)
+    assert item.value == "[passport_number]"
+    assert item.context_before == "Passport number "
+    assert decision.redaction_manifest.any_redacted is True
+    assert decision.model_target == CLOUD
+    assert decision.policy_version == "policy-1"
+
+
+def test_the_released_payload_holds_no_unredacted_value(corpus):
+    classify(corpus, "personal_non_sensitive", protected=False)
+    decision = a_gate(corpus).release(a_request())
+    assert "992-33-1188" not in str(decision.materialised_items)
+
+
+def test_an_over_budget_request_is_denied_as_the_m9_backstop(corpus):
+    # M9: P8 measures and runs §8.6's ladder BEFORE calling. A
+    # `dossier_over_budget` denial in a running pipeline is a P8 defect to fix, not
+    # a normal outcome -- reachable in test, and it should never fire in a correct
+    # pipeline. The ceiling is read from P1; no number is written here.
+    classify(corpus, "personal_non_sensitive", protected=False)
+    set_ceiling(corpus, "model.max_dossier_tokens_per_call", 100)
+    decision = a_gate(corpus).release(a_request(max_dossier_tokens=4000))
+    assert isinstance(decision, Denied)
+    assert decision.reason == "dossier_over_budget"
+
+
+def test_a_whole_document_excerpt_is_denied(corpus):
+    # §8.4: "It should not send full documents where a short heading or OCR excerpt
+    # is enough to resolve the question."
+    classify(corpus, "personal_non_sensitive", protected=False)
+    whole = Excerpt(observation_key=KEY, span=TextSpan(0, len(BODY)),
+                    reason="all of it")
+    decision = a_gate(corpus).release(a_request(requested_items=(whole,)))
+    assert isinstance(decision, Denied)
+    assert decision.reason == "whole_document_requested"
+
+
+def test_every_denial_carries_an_explanation_and_a_remedy(corpus):
+    # §8.6 requires the UI show "what has been deferred, and why", and a denial with
+    # no legitimate alternative is a dead end the user cannot act on.
+    decision = a_gate(corpus).release(a_request())
+    assert decision.explanation
+    assert decision.remedy_options
+
+
+# --- the ordering guarantee, from the gate's side ------------------------------
+
+def test_the_audit_record_exists_before_the_released_is_returned(corpus):
+    classify(corpus, "personal_non_sensitive", protected=False)
+    decision = a_gate(corpus).release(a_request())
+    record = audit_record(corpus, decision.audit_id)
+    assert record.outcome == "released"
+    assert record.release_id == decision.release_id
+    assert record.excerpts_included == ((KEY, SPAN),)
+
+
+def test_a_denial_is_audited_too(corpus):
+    decision = a_gate(corpus).release(a_request())
+    (record,) = audit_records_for(corpus, file_id="file-1")
+    assert record.outcome == "denied"
+    assert isinstance(decision, Denied)
+
+
+def test_a_consent_request_is_audited_and_no_release_accompanies_it(corpus):
+    # Done-means 7, from the side Done-means 7 itself says is testable: "the audit
+    # log holds a `consent_requested` event and no `model_release` for that request
+    # until a choice is recorded."
+    classify(corpus, "sensitive_personal", protected=False)
+    a_gate(corpus).release(a_request())
+    outcomes = [r.outcome for r in audit_records_for(corpus, file_id="file-1")]
+    assert outcomes == ["consent_requested"]
+
+
+def test_nothing_materialises_before_every_denying_check_has_run(corpus):
+    # The reason DECISION_ORDER is published: a gate that resolved first would hold
+    # the text in memory before deciding it was not allowed to.
+    seen = []
+
+    def watching_classifier(value, *, context_before, context_after):
+        seen.append(value)
+        return "passport_number"
+
+    decision = a_gate(corpus, classifier=watching_classifier).release(a_request())
+    assert isinstance(decision, Denied)
+    assert seen == []
+
+
+# --- one door -----------------------------------------------------------------
+
+def test_release_is_the_only_public_entry_point_that_returns_a_released(corpus):
+    # Done-means 3's gate half. Every other public callable on the facade is checked
+    # by return annotation, so a second door has to be added deliberately AND
+    # annotated as returning something else to hide.
+    classify(corpus, "personal_non_sensitive", protected=False)
+    gate = a_gate(corpus)
+    doors = []
+    for name in dir(gate):
+        if name.startswith("_"):
+            continue
+        member = getattr(type(gate), name, None)
+        if not callable(member):
+            continue
+        annotation = str(inspect.signature(member).return_annotation)
+        if "Released" in annotation or "ReleaseDecision" in annotation:
+            doors.append(name)
+    assert doors == ["release"]
+
+
+def test_a_contract_violation_propagates_rather_than_becoming_a_denial(corpus):
+    # The fourth kind of refusal. A request that addresses a span the evidence does
+    # not carry is about the CALL, and the gate does not convert a caller's mistake
+    # into a policy outcome the caller might then absorb.
+    from privacy.resolve import UnresolvableSpan
+    classify(corpus, "personal_non_sensitive", protected=False)
+    bad = Excerpt(observation_key="sha256:" + "f" * 64, span=TextSpan(16, 27),
+                  reason="a key nothing carries")
+    with pytest.raises(UnresolvableSpan):
+        a_gate(corpus).release(a_request(requested_items=(bad,)))
+
+
+def test_the_gate_imports_none_of_p5s_three_refusals():
+    # Task 21 asserts this repo-wide; asserted here because the gate is where the
+    # confusion would land. P7 refuses RELEASE; P5's two refuse READING, and a file
+    # that failed either never acquired the (file_id, content_hash) P7 keys on.
+    import privacy.gate
+    import privacy.release
+    for module in (privacy.gate, privacy.release):
+        for name in ("ProtectedContainerRefused", "DatalessRefused",
+                     "UnauthorizedTranscription"):
+            assert not hasattr(module, name)
+```
+
+- [ ] **Step 2: Run the test and watch it fail**
+
+Run: `pytest tests/p7/test_p7_release.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'privacy.gate'`. Collection fails on the
+import line; no test runs.
+
+- [ ] **Step 3: Write `src/privacy/release.py`**
+
+```python
+# src/privacy/release.py
+"""SPEC §6's request, its three-branch return, and the words that may not be parameters.
+
+§8.4 opens with a sequencing requirement -- "Privacy policy must be enforced before
+content reaches any model or external connector" -- and this module is the shape that
+makes it structural. P8 composes a request out of REFERENCES; the gate resolves them,
+redacts, audits, and mints a `Released`; the transport takes a `Released` and nothing
+else. There is no entry point that takes a string.
+
+`ReleaseDecision` has three branches and they are not interchangeable. `Released` is a
+capability. `Denied` is the gate's answer, and it is the only one of the product's
+refusals that consent may override -- which is what separates it from P5's protected
+container and dataless refusals, both of which refuse READING and neither of which has
+a consent path. `NeedsConsent` is a question only the user can answer: B2 forbids a
+caller from absorbing it into an abstention, a denial, or a retry. Consent pending is
+not consent refused.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, fields
+
+from privacy.items import Excerpt, RedactedIdentifier
+from privacy.redaction import RedactionManifest
+from privacy.resolve import Materialised
+from privacy.vocabulary import (
+    CONSENT_OPTIONS, check_denial_reason, check_handling_class,
+)
+
+#: §6: "{ locality: local | cloud, model_id, provider }". Two values and no third:
+#: Open question 9 asks what an "external connector" besides a model is, and until it
+#: is answered `ModelTarget` cannot describe one.
+LOCALITIES: tuple[str, str] = ("local", "cloud")
+
+#: Checked against Task 2's vocabulary at import, so these are provably members and
+#: not a second spelling of them.
+UNCLASSIFIED: str = check_handling_class("unreadable_unclassified")
+
+#: §8.4's "text containing sensitive content", as the two classes the design names
+#: that way: "Sensitive personal" and "Highly sensitive or credential-bearing".
+#: This is about the CLASS. Whether `protected` is co-extensive with these two is
+#: Open question 1 and is not answered here -- the flag is consumed separately.
+SENSITIVE_CLASSES: tuple[str, str] = (
+    check_handling_class("sensitive_personal"),
+    check_handling_class("highly_sensitive_credential_bearing"),
+)
+
+#: The two item kinds that resolve to document text. The other four carry none: §4
+#: says an evidence reference is "an id only -- no content".
+TEXT_BEARING: tuple[type, ...] = (Excerpt, RedactedIdentifier)
+
+#: The order the decision runs in, published so a reordering is a diff on a constant
+#: rather than an invisible behaviour change. Nothing materialises before "needs_consent".
+DECISION_ORDER: tuple[str, ...] = (
+    "mode_forbids_target", "unclassified", "protected_cloud_target",
+    "protected_records_template", "always_local_item", "needs_consent",
+    "whole_document_requested", "dossier_over_budget", "audit", "release",
+)
+
+#: The words a future convenience would reach for. Asserted disjoint from every
+#: published parameter and field name, by parsing the signature -- never by scanning
+#: source text, which matches comments and docstrings.
+FORBIDDEN_PARAMETER_NAMES: frozenset[str] = frozenset({
+    "force", "override", "bypass", "allow", "allow_all", "approved", "skip",
+    "unsafe", "trusted", "internal", "admin", "debug", "escalate", "ignore_policy",
+    "no_audit", "unaudited", "raw", "plaintext", "content", "text", "document",
+    "already_approved", "assume_consent", "privileged",
+})
+
+
+class MalformedRequest(ValueError):
+    """Shape check on the call. A request that cannot be decided is not denied."""
+
+
+class MalformedDecision(ValueError):
+    """A branch constructed outside its published shape."""
+
+
+@dataclass(frozen=True, slots=True)
+class ModelTarget:
+    """§6: which model, and whether it is on this device."""
+
+    locality: str
+    model_id: str
+    provider: str
+
+    def __post_init__(self) -> None:
+        if self.locality not in LOCALITIES:
+            raise MalformedRequest(
+                f"locality {self.locality!r} is not one of {LOCALITIES}")
+        if not self.model_id or not self.provider:
+            raise MalformedRequest(
+                "§8.4 audits which model received the data; a provider-less "
+                "identifier does not answer that for a hosted model")
+
+    def to_mapping(self) -> dict[str, str]:
+        return {"locality": self.locality, "model_id": self.model_id,
+                "provider": self.provider}
+
+
+@dataclass(frozen=True, slots=True)
+class Target:
+    """§6: "{ file_ids[], group_id? }" (§4.4, §7.7)."""
+
+    file_ids: tuple[str, ...]
+    group_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.file_ids:
+            raise MalformedRequest("a request names at least one file")
+
+
+@dataclass(frozen=True, slots=True)
+class ModelCallRequest:
+    """SPEC §6's seven fields, exactly. References only, never materialised content."""
+
+    stage: str
+    target: Target
+    model_target: ModelTarget
+    requested_items: tuple[object, ...]
+    prompt_template_id: str
+    prompt_fingerprint: str
+    max_dossier_tokens: int
+
+    def __post_init__(self) -> None:
+        if not self.stage:
+            raise MalformedRequest("§8.5 decomposes replay by stage")
+        if not self.prompt_fingerprint:
+            raise MalformedRequest(
+                "§8.4 audits the prompt fingerprint, and B2 puts `call_site` inside "
+                "it rather than beside it")
+        if not self.requested_items:
+            raise MalformedRequest("a request with no items has nothing to release")
+
+
+REQUEST_FIELDS: tuple[str, ...] = tuple(f.name for f in fields(ModelCallRequest))
+
+
+@dataclass(frozen=True, slots=True)
+class Released:
+    """SPEC §6's six fields. Single-use and bound; Task 12 adds the ledger."""
+
+    release_id: str
+    audit_id: int
+    policy_version: str
+    materialised_items: tuple[Materialised, ...]
+    redaction_manifest: RedactionManifest
+    model_target: ModelTarget
+
+
+RELEASED_FIELDS: tuple[str, ...] = tuple(f.name for f in fields(Released))
+
+
+@dataclass(frozen=True, slots=True)
+class Denied:
+    """The gate's answer. Evidence-referenced, and never a dead end (§8.6)."""
+
+    reason: str
+    explanation: str
+    remedy_options: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        check_denial_reason(self.reason)
+        if not self.explanation:
+            raise MalformedDecision(
+                "§8.6 requires the UI show what has been deferred, and why")
+        if not self.remedy_options:
+            raise MalformedDecision(
+                "a denial with no legitimate alternative is a dead end the user "
+                "cannot act on (§8.6)")
+
+
+@dataclass(frozen=True, slots=True)
+class NeedsConsent:
+    """A question only the user can answer. Task 14 adds `consent_request_id`."""
+
+    requirement: str
+    options: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if tuple(self.options) != CONSENT_OPTIONS:
+            raise MalformedDecision(
+                f"§8.4 offers exactly {CONSENT_OPTIONS}; a caller that saw fewer "
+                "would be choosing on the user's behalf")
+        if not self.requirement:
+            raise MalformedDecision(
+                "§8.4: the user should SEE that requirement before choosing")
+
+
+ReleaseDecision = Released | Denied | NeedsConsent
+```
+
+- [ ] **Step 4: Write `src/privacy/gate.py`**
+
+```python
+# src/privacy/gate.py
+"""The one door. `Gate.release(ModelCallRequest) -> ReleaseDecision`, and nothing else.
+
+B2 adopts this signature verbatim on both sides, so `release` takes the request and
+NOTHING ELSE -- no override, no flag, no connection. Everything the gate needs beyond
+the request is constructor state, and four of those constructor parameters carry no
+default because each is an open question this plan will not guess:
+
+    classifier / transform      SPEC *Deferred*: identifier classes and the redaction
+                                transform are not enumerated anywhere in the design.
+    consent_scope_for           Open question 3: "What is a 'corpus area'? ... Consent
+                                grants cannot be scoped until this is named."
+    unclassified_permits_local  Open question 5: does `unreadable_unclassified` permit
+                                a LOCAL model call?
+
+The gate writes exactly one thing -- the audit record -- and it writes it BEFORE the
+decision is returned, because §8.4 makes recording the authorization part of granting
+it. It raises nothing of its own: `Denied` and `NeedsConsent` are values, and the
+catcher is always the caller's. The two exceptions that do escape come from
+`resolve` and are about the CALL rather than about policy.
+
+Tasks 12, 13 and 14 modify this file: Task 12 replaces `_mint` with `binding`'s ledger,
+Task 13 routes the eight denials through `denial.deny`, and Task 14 adds the
+`consent_request_id`. The signature does not move.
+"""
+from __future__ import annotations
+
+import secrets
+import sqlite3
+from collections.abc import Callable
+
+from database_agent.budget import get_ceiling
+from database_agent.files_table import get_file
+from evidence_shape.canonical import canonical_json
+
+from privacy.audit import AuditRecord, append_audit
+from privacy.authorship import SUBSYSTEM
+from privacy.classification import resolve_class
+from privacy.classification_store import ClassificationStore
+from privacy.defaults import LOCAL_FIRST_MODES
+from privacy.items import WholeDocumentRequested, check_item
+from privacy.policy import current_policy
+from privacy.redaction import RedactionManifest, apply_redaction
+from privacy.release import (
+    SENSITIVE_CLASSES, TEXT_BEARING, UNCLASSIFIED, Denied, ModelCallRequest,
+    NeedsConsent, ReleaseDecision, Released,
+)
+from privacy.resolve import materialise
+from privacy.vocabulary import CONSENT_OPTIONS
+
+_DOSSIER_CEILING = "model.max_dossier_tokens_per_call"
+
+
+class Gate:
+    """§8.4's gate. One object, one door, no second name."""
+
+    def __init__(self, conn: sqlite3.Connection, *, plan_version: str,
+                 component_version: str, classifier, transform,
+                 consent_scope_for: Callable[[str], str],
+                 unclassified_permits_local: bool,
+                 clock: Callable[[], str]) -> None:
+        self._conn = conn
+        self._plan_version = plan_version
+        self._component_version = component_version
+        self._classifier = classifier
+        self._transform = transform
+        self._consent_scope_for = consent_scope_for
+        self._unclassified_permits_local = unclassified_permits_local
+        self._clock = clock
+        self._store = ClassificationStore(conn)
+
+    def release(self, request: ModelCallRequest) -> ReleaseDecision:
+        """§8.4's only door. See `release.DECISION_ORDER` for the order and why."""
+        policy = current_policy(self._conn, plan_version=self._plan_version)
+        cloud = request.model_target.locality == "cloud"
+        state = self._classifications(request)
+        classes = {file_id: resolve_class(record)
+                   for file_id, (_, record) in state.items()}
+
+        if cloud and policy.operation_mode in LOCAL_FIRST_MODES:
+            return self._deny(
+                request, policy, state, classes, "mode_forbids_target",
+                f"the policy is in {policy.operation_mode!r} mode, under which no "
+                f"content leaves the device, and this call targets "
+                f"{request.model_target.provider!r}",
+                ("run this stage against a local model",
+                 "change the operation mode, which is a first-class plan diff"))
+
+        unclassified = sorted(f for f, c in classes.items() if c == UNCLASSIFIED)
+        if unclassified and (cloud or not self._unclassified_permits_local):
+            return self._deny(
+                request, policy, state, classes, "unclassified",
+                f"{len(unclassified)} of {len(classes)} targeted files have no "
+                "classification, and §8.4 makes classification a precondition of "
+                "escalation. Absence resolves to `unreadable_unclassified`, never to "
+                "a lower class",
+                ("classify the file and call again",
+                 "leave the file in review, which §8.6 prefers to a guess"))
+
+        protected = sorted(f for f, (_, record) in state.items()
+                           if record is not None and record.protected)
+        if cloud and protected:
+            return self._deny(
+                request, policy, state, classes, "protected_cloud_target",
+                f"{len(protected)} targeted files are protected, and protected "
+                "material is not included in cloud-model prompts by default",
+                ("run this stage against a local model",
+                 "grant consent for this area, which is a recorded user act"))
+
+        if self._needs_consent(request, policy, classes):
+            return self._request_consent(request, policy, state, classes)
+
+        materialised, manifest = self._materialise(request)
+        ceiling = get_ceiling(self._conn, _DOSSIER_CEILING)
+        if ceiling is not None and request.max_dossier_tokens > ceiling:
+            return self._deny(
+                request, policy, state, classes, "dossier_over_budget",
+                f"the caller is operating under {request.max_dossier_tokens} tokens "
+                f"and the configured ceiling is {ceiling}. M9 puts the measurement "
+                "and §8.6's reduction ladder in the caller, before this call; "
+                "reaching this denial in a running pipeline is a caller defect",
+                ("summarize deterministic facts", "preserve anchor excerpts",
+                 "split the task", "defer the decision"))
+
+        release_id = self._mint()
+        audit_id = self._append(
+            request, policy, state, classes, outcome="released",
+            release_id=release_id, excerpts=self._pairs(materialised),
+            manifest=manifest)
+        return Released(
+            release_id=release_id, audit_id=audit_id,
+            policy_version=policy.policy_version,
+            materialised_items=materialised, redaction_manifest=manifest,
+            model_target=request.model_target)
+
+    # -- the pieces, in the order `release` uses them --------------------------
+
+    def _classifications(self, request: ModelCallRequest) -> dict:
+        state = {}
+        for file_id in request.target.file_ids:
+            content_hash = get_file(self._conn, file_id)["content_hash"]
+            state[file_id] = (content_hash,
+                              self._store.current(file_id, content_hash))
+        return state
+
+    def _needs_consent(self, request, policy, classes) -> bool:
+        """§8.4: "If a model needs text containing sensitive content"."""
+        if not any(isinstance(item, TEXT_BEARING)
+                   for item in request.requested_items):
+            return False
+        sensitive = [f for f, c in classes.items() if c in SENSITIVE_CLASSES]
+        if not sensitive:
+            return False
+        granted = set(policy.consent_grants)
+        option = "cloud_model" if request.model_target.locality == "cloud" \
+            else "local_model"
+        return any((self._consent_scope_for(file_id), option) not in granted
+                   for file_id in sensitive)
+
+    def _materialise(self, request: ModelCallRequest):
+        resolved, entries = [], []
+        for item in request.requested_items:
+            if not isinstance(item, TEXT_BEARING):
+                continue
+            found = materialise(self._conn, item)
+            check_item(item, unit_length=found.unit_length)
+            value, entry = apply_redaction(
+                found.value, observation_key=found.observation_key,
+                span=found.span, context_before=found.context_before,
+                context_after=found.context_after,
+                context_truncated=found.context_truncated,
+                classifier=self._classifier, transform=self._transform)
+            resolved.append(
+                type(found)(observation_key=found.observation_key, span=found.span,
+                            value=value, zone=found.zone,
+                            context_before=found.context_before,
+                            context_after=found.context_after,
+                            context_truncated=found.context_truncated,
+                            unit_length=found.unit_length))
+            entries.append(entry)
+        return tuple(resolved), RedactionManifest(entries=tuple(entries))
+
+    @staticmethod
+    def _pairs(materialised) -> tuple[tuple[str, str], ...]:
+        return tuple((item.observation_key, item.span) for item in materialised)
+
+    @staticmethod
+    def _mint() -> str:
+        """Task 12 replaces this with `binding.mint_release` and its ledger."""
+        return secrets.token_hex(16)
+
+    def _deny(self, request, policy, state, classes, reason, explanation,
+              remedy_options) -> Denied:
+        self._append(request, policy, state, classes, outcome="denied",
+                     release_id=None, excerpts=(),
+                     manifest=RedactionManifest(entries=()))
+        return Denied(reason=reason, explanation=explanation,
+                      remedy_options=tuple(remedy_options))
+
+    def _request_consent(self, request, policy, state, classes) -> NeedsConsent:
+        self._append(request, policy, state, classes, outcome="consent_requested",
+                     release_id=None, excerpts=(),
+                     manifest=RedactionManifest(entries=()))
+        return NeedsConsent(
+            requirement=(
+                "this call needs text from files classified "
+                f"{sorted({c for c in classes.values() if c in SENSITIVE_CLASSES})}, "
+                f"and the policy holds no grant for the scope"),
+            options=CONSENT_OPTIONS)
+
+    def _append(self, request, policy, state, classes, *, outcome, release_id,
+                excerpts, manifest) -> int:
+        """The one write. It happens before the decision is returned (§8.4)."""
+        single = len(request.target.file_ids) == 1
+        distinct = sorted(set(classes.values()))
+        record = AuditRecord(
+            authorizing_policy=policy.policy_version,
+            file_sensitivity=(distinct[0] if len(distinct) == 1
+                              else canonical_json(distinct)),
+            excerpts_included=excerpts,
+            redaction_applied=manifest.any_redacted,
+            model=request.model_target.to_mapping(),
+            prompt_fingerprint=request.prompt_fingerprint,
+            audit_id=None, release_id=release_id, observed_at=self._clock(),
+            stage=request.stage, file_ids=request.target.file_ids,
+            group_id=request.target.group_id,
+            content_hashes=tuple(h for h, _ in state.values()),
+            operation_mode=policy.operation_mode,
+            policy_version=policy.policy_version, plan_version=policy.plan_version,
+            outcome=outcome,
+            file_id=request.target.file_ids[0] if single else None,
+            content_hash=state[request.target.file_ids[0]][0] if single else None,
+            redaction_manifest=tuple(manifest.to_mapping()))
+        return append_audit(self._conn, record, author=SUBSYSTEM,
+                            component_version=self._component_version)
+```
+
+- [ ] **Step 5: Run the test and watch it pass**
+
+Run: `pytest tests/p7/test_p7_release.py -v`
+Expected: PASS — 25 passed
+
+- [ ] **Step 6: Run P7's suite so far, and P1–P5**
+
+Run: `pytest tests/p7 -q && pytest tests/ -q`
+Expected: PASS — Tasks 1–11 green, and P1–P5's 1292 tests still green.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/privacy/release.py src/privacy/gate.py tests/p7/test_p7_release.py
+git commit -m "feat(P7): Gate.release, the three-branch union, and a signature with no override"
+```
+
+---

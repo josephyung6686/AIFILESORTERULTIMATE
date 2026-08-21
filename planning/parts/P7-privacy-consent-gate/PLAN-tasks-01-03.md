@@ -612,7 +612,7 @@ def event_defaults(*, event_type: str, **fields) -> dict[str, object]:
 - [ ] **Step 6: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_authorship.py -v`
-Expected: PASS — 18 passed
+Expected: PASS — 19 passed
 
 - [ ] **Step 7: Run P1–P5 and confirm P7 broke nothing**
 
@@ -1297,7 +1297,7 @@ OPEN_QUESTIONS: Mapping[int, str] = MappingProxyType({
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_vocabulary.py -v`
-Expected: PASS — 24 passed
+Expected: PASS — 26 passed
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
@@ -2116,7 +2116,7 @@ def sensitivity_signal_keys(conn: sqlite3.Connection,
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_classification.py -v`
-Expected: PASS — 31 passed
+Expected: PASS — 33 passed
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 

@@ -451,7 +451,16 @@ Append this constant to `src/facts/schema.py`, after the `fields` DDL Task 2 add
 #: `field_id` holds the field KEY. The SPEC's `fields` table publishes `field_key` as
 #: its stable identifier and declares no surrogate; the SPEC's `values` and
 #: `file_facts` shapes and the plan skeleton's `ValueRow` all name the foreign key
-#: `field_id`. The column keeps the published name and references the published key.
+#: `field_id`. The column keeps the published name and holds the published key.
+#:
+#: It carries NO `REFERENCES fields (...)` clause, and that is deliberate rather than
+#: forgotten. `open_database` leaves `PRAGMA foreign_keys` ON (verified: it reads 1),
+#: and a foreign key whose parent column is not a declared PRIMARY KEY or UNIQUE
+#: raises `sqlite3.OperationalError: foreign key mismatch` at INSERT -- also verified.
+#: Whether `fields.field_key` is declared PRIMARY KEY is Task 2's DDL decision, and
+#: this table must not fail at run time on a choice it does not own. The gate the SPEC
+#: actually names is the catalogue lookup: `get_field` raises `FieldNotInCatalogue`
+#: before any INSERT reaches here, and Task 3's test asserts it.
 #:
 #: UNIQUE (field_id, canonical_value) is §3.12's "a value belongs to exactly one
 #: field" enforced by the database rather than remembered by a caller.
@@ -465,7 +474,7 @@ Append this constant to `src/facts/schema.py`, after the `fields` DDL Task 2 add
 VALUES_DDL = """
 CREATE TABLE IF NOT EXISTS "values" (
     value_id           TEXT PRIMARY KEY,
-    field_id           TEXT NOT NULL REFERENCES fields (field_key),
+    field_id           TEXT NOT NULL,
     canonical_value    TEXT NOT NULL,
     raw_variants       TEXT NOT NULL,
     display_label      TEXT,

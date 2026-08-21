@@ -279,3 +279,22 @@ the pre-existing C1–C14. They are now **C20–C25**. In particular:
 
 If a citation and a substantive question disagree, **follow the substance and quote the passage that
 actually contains it**, as one author correctly did rather than propagating my wrong label.
+
+---
+
+## 15. Cross-task demands raised by finished sections — binding on the tasks named
+
+These came from authors discovering that a neighbour's published surface cannot carry what their own
+task needs. Each names a task someone else owns. **Honour them; do not renegotiate them silently.**
+
+| Demanded of | What, and why |
+|---|---|
+| **P7 Task 10** | `append_audit` needs one new keyword, `extra: Mapping \| None`, merged into the same `explanation` JSON. SPEC §7 enumerates a **release** record and has no field for a **denial's** reason, so Task 13 cannot record why it denied. |
+| **P7 Task 10** | `audit_records_for(file_id=…)` must match the `explanation` too, not only the `file_id` column. `events` has ONE `file_id` column, so a group-scoped release stores its ids in the explanation — otherwise Task 15's `prior_releases` under-reports every group release, and §8.4's retraction limit stops being "truthful and specific". |
+| **P7 Task 11** | `Denied` needs a fourth field, **`evidence_refs`**. The skeleton's own `deny(...)` takes them and SPEC §6 requires an evidence-referenced explanation, but Task 11's `Produces` omits the field. |
+| **P7 Task 11** | The import direction is fixed: `release.py` imports only `consent`; `binding` uses `TYPE_CHECKING`; `gate.py` holds the logic. Tasks 12–14 all need Task 11's branch types while `Gate.release` needs all three, so without this rule the four tasks form a cycle. |
+| **P7 Task 5** | `policy.grant_consent` **appends no event** — the exact mirror of the already-written ruling for `revoke_consent`. Task 5's `Produces` spells the signature with an ellipsis; pin it. |
+| **P7, any table** | Add **no `BEFORE DELETE` trigger** to a P7 table. Task 15 asserts exactly **thirteen** tables refuse a delete; a fourteenth fails a sibling's test. |
+| **P6 Task 25** | The no-import guard must permit exactly one edge: `facts` imports `ContractViolation` from `extractors`. `FactPassNotRun` must inherit it or the orchestrator's catch-all swallows the guard into a `failed` run and it stops guarding. |
+| **P6 Task 6** | `facts.cache` is Task 6's and **no other task may add to it**. Two cache-key rules currently exist across sibling sections — one keying a fact on its cited observations, one keying the pass on the file version's whole evidence set. Task 6 publishes one helper; the abstention case forces the pass-level rule, because an `unresolved` row with no citations still needs a key. |
+| **P6 Task 11** | `fill_or_abstain` must treat an absent second-best as score zero. A sibling wrote that as a test rather than prose, so a disagreement fails `test_a_missing_signal_contributes_nothing_to_either_candidate` instead of merging silently. |
