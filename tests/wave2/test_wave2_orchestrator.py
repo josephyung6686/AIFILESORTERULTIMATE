@@ -109,7 +109,7 @@ def go(db, corpus, **over):
         is_dataless=lambda path: False))
     return run_wave2(
         db, selection,
-        source=FilesystemCorpusSource(), mime_type_for=mime_for,
+        source=over.pop("source", FilesystemCorpusSource()), mime_type_for=mime_for,
         scan_state="scanned", budget_exhausted=NEVER,
         detect_format=lambda p: p.suffix.lstrip(".") or None,
         policy=policy, readers=readers(**over.pop("readers", {})),

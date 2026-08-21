@@ -32,17 +32,19 @@ from typing import Any, Callable, Mapping
 
 from extractors.archive import extract_archive
 from extractors.docx import extract_docx
+from extractors.failure import ContractViolation, failed_result
 from extractors.filesystem import unrouted_result
 from extractors.image import extract_image
 from extractors.long_tail import LONG_TAIL_SOURCE_TYPES, extract_long_tail
 from extractors.ocr import extract_ocr
 from extractors.ocr_policy import document_ocr_decision, image_ocr_decision
 from extractors.pdf import extract_pdf
+from extractors.safety import DatalessRefused, ProtectedContainerRefused
 from extractors.sink import ExtractionResult
 from extractors.structured_text import (
     STRUCTURED_TEXT_SOURCE_TYPES, extract_structured_text,
 )
-from extractors import archive, docx, filesystem, image, pdf, structured_text
+from extractors import archive, docx, filesystem, image, ocr, pdf, structured_text
 
 
 @dataclass(frozen=True)
@@ -104,14 +106,42 @@ class Dispatched:
                 "ONE batch and cannot name which of several it counts in")
 
 
-def _ocr(*, file_row, path, policy, readers, now, context_window) -> ExtractionResult | None:
+def _ocr(*, file_row, path, policy, readers, now,
+         context_window) -> ExtractionResult | None:
+    """The OCR run, the run its failure is, or None when no engine is wired.
+
+    The three outcomes are different facts and only two of them existed. No engine is
+    a DEPLOYMENT state, known before the call, and §2.2's and §2.7's routes simply
+    stop -- no run, by design. An engine that RAISES is a runtime event, and letting
+    it propagate from here discarded the finished native result that `extract()` was
+    holding: a completed extraction thrown away because a second, optional pass
+    failed. Executed 2026-08-21 against a `pages=()` PDF with a raising engine --
+    the database kept a `pdf.text failed` row and no native run at all, for a file
+    whose native pass had already returned.
+
+    The refusals and contract violations still propagate: they are not this file's
+    failure.
+    """
     if readers.ocr_engine is None:
         return None
-    return extract_ocr(
-        file_row=file_row, path=path, policy=policy, ocr_engine=readers.ocr_engine,
-        config=dict(readers.ocr_config or {}),
-        find_structured_strings=readers.find_structured_strings,
-        now=now, context_window=context_window)
+    try:
+        return extract_ocr(
+            file_row=file_row, path=path, policy=policy,
+            ocr_engine=readers.ocr_engine,
+            config=dict(readers.ocr_config or {}),
+            find_structured_strings=readers.find_structured_strings,
+            now=now, context_window=context_window)
+    except ContractViolation:
+        raise
+    except (ProtectedContainerRefused, DatalessRefused):
+        raise
+    except Exception as error:                       # noqa: BLE001 -- see docstring
+        return failed_result(
+            file_row=file_row, error=error,
+            extractor_name=ocr.UNREPORTED_PROVIDER_NAME,
+            extractor_version=ocr.VERSION,
+            source_type=ocr.SOURCE_TYPE, now=now,
+            analysis_tier=ocr.ANALYSIS_TIER)
 
 
 def extract(*, file_row: Mapping[str, Any], decision, path: Path, policy,
@@ -198,10 +228,18 @@ def extract(*, file_row: Mapping[str, Any], decision, path: Path, policy,
     )
 
 
-class UnknownFamily(Exception):
+class UnknownFamily(ContractViolation):
     """The router named a handler nothing implements, or a family neither half of
     `text.structured` claims. Raised rather than swallowed: a silently skipped file is
-    the one outcome §2.4 rules out absolutely."""
+    the one outcome §2.4 rules out absolutely.
+
+    A `ContractViolation` because it is a statement about the CALL: §2.9's routing
+    table and this dispatcher have drifted, which is a defect in P5 and not a fact
+    about the bytes. As a plain `Exception` the caller's catch-all turned it into
+    that FILE's `failed` run, with `failure_reason` reading like the file was
+    corrupt -- filing a P5 defect under the corpus's name and hiding it in exactly
+    the way `ContractViolation` was introduced to stop. Every routed file in a
+    drifted deployment would have been recorded unreadable."""
 
 
 def current_versions() -> dict[str, str]:

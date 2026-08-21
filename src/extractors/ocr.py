@@ -42,6 +42,19 @@ EXTRACTOR_NAME_PREFIX = "ocr."
 SOURCE_TYPE = "ocr"
 ANALYSIS_TIER = "ocr"
 
+#: The name an OCR run carries when the engine raised BEFORE reporting its own.
+#:
+#: `extractor_name_for` builds every real name from `output.provider`, and a crashed
+#: engine returns no output, so there is no provider to fold. This is the family with
+#: the provider left off -- it cannot collide with any `ocr.<provider>` (no dot), it
+#: is non-empty as P4 requires, and it invents neither a provider nor a provider
+#: version. The run's `extractor_version` is `VERSION`, P5's OCR ADAPTER version:
+#: that is the code which ran and failed. Section 2.7's first two persisted fields
+#: are the provider's and stay genuinely unknown rather than being guessed.
+#:
+#: Whether this is the right spelling is a vocabulary question -- see NEEDS-JOSEPH.
+UNREPORTED_PROVIDER_NAME = "ocr"
+
 #: Section 2.7's own list: "the OCR provider and version, languages, configuration,
 #: page or image reference, raw recognized text, locations or bounding boxes where
 #: available, confidence information, and whether extraction was complete or capped."
