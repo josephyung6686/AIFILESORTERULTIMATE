@@ -736,7 +736,7 @@ def is_destination_eligible(conn: sqlite3.Connection, *, field_key: str) -> bool
 cd "/Users/jy/GRAPH AGENT" && python3 -m pytest tests/p6/test_p6_read_surface.py -q
 ```
 
-Expected: **22 passed**. Then the whole part, to prove no sibling read regressed:
+Expected: **26 passed**. Then the whole part, to prove no sibling read regressed:
 
 ```bash
 cd "/Users/jy/GRAPH AGENT" && python3 -m pytest tests/p6 -q
@@ -1527,7 +1527,7 @@ by widening the rule to a shape or a length.
 
 - [ ] **Step 3: There is no implementation step**
 
-This task creates no source file. Its "implementation" is the twenty-three assertions above holding
+This task creates no source file. Its "implementation" is the twenty-one tests above holding
 against the twenty-four tasks that ran before it. If a guard fails, the fix belongs to the module
 that broke it:
 
@@ -1551,7 +1551,7 @@ cd "/Users/jy/GRAPH AGENT" && python3 -m pytest tests/p6 -q
 cd "/Users/jy/GRAPH AGENT" && python3 -m pytest -q
 ```
 
-Expected: **23 passed** for this file; the whole part green; and the pre-existing **1300 tests**
+Expected: **21 passed** for this file; the whole part green; and the pre-existing **1300 tests**
 still passing, because P6 touched no file outside `src/facts/` and `tests/p6/` (D5).
 
 - [ ] **Step 5: Commit**
