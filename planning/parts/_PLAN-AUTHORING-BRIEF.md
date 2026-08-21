@@ -204,3 +204,46 @@ The settled D2 paragraph in P7's skeleton names Tasks 4, 12, 13 and 14. That lis
 list of task numbers; it is: wherever `facts_seam.SensitivityFacts` appears, read
 `classification_store.ClassificationStore` — a concrete store over a table P7 owns, no injection,
 no protocol, no fixture standing in for P6.
+
+---
+
+## 11. The six reliability states — NAMED CONSTANTS, ruled 2026-08-22
+
+A cross-section conflict, caught by a Task 7–9 author reading a sibling section. Both halves were
+wrong, in opposite directions:
+
+- `PLAN-tasks-14-15.md` writes `reliability_state="direct"` and `="possible"` as **string literals**
+  (four sites). That is a second home for a vocabulary Task 1 publishes — the defect class that has
+  cost this project the most.
+- The Task 7–9 author avoided the literal by writing **`STATES[1]` / `STATES[4]`**, which is
+  single-homed and unreadable, and silently couples every consumer to the tuple's ORDER. Reordering
+  the tuple would then change meanings with no test failing.
+
+**The ruling, and it is the repo's own precedent, not a new invention.** P5 publishes
+`POTENTIALLY_SENSITIVE = "potentially sensitive"`; P1 publishes `SUPERSEDED_CONTENT =
+"superseded_content"`. So:
+
+> **Task 1 publishes the six states BOTH ways: `STATES: tuple[str, ...]` for iteration and
+> membership, AND one named constant per state (`DIRECT`, `POSSIBLE`, `VALIDATED`, `LLM_SUPPORTED`,
+> `USER_CONFIRMED`, `REJECTED`). Every other module imports the NAMED CONSTANT.** Never a bare
+> string, never an index.
+
+Task 1's guard becomes: **no string literal spelling a state name appears anywhere in `facts`
+outside the module that publishes them.** A named constant passes it and reads correctly; an index
+passes it and does not. Authors of Tasks 14 and 15 — this supersedes the literals already written
+there; the assembled PLAN will carry the constant form.
+
+The same rule applies to every closed vocabulary either part publishes, P7's handling classes and
+denial reasons included.
+
+## 12. Two gaps reported by authors — carry them, do not close them
+
+- **§3.5's content-hash slot has no producer.** `src/extractors/filesystem.py` deliberately emits no
+  content-hash observation, so a content-hash fact has nothing to cite, and P6's rule 1 forbids an
+  uncited fact. Task 8 supports the slot when a caller supplies one and passes an empty tuple in
+  production. The fact the hash actually supports is Task 14's duplicate family. **Consumer with no
+  producer** — the class round 4 was built to find.
+- **Catalogue `12-academic-capture-patterns/04-narrow-date-families.json`** (another agent, authored
+  2026-08-22) supplies the EXIF and labeled-date slot families and names *"Task 8's direct-fact slot
+  list"* in its own `owner` field. That is a real cross-agent join and it half-closes F8. Title and
+  content-hash slots still have no catalogue. Read it; do not edit it.
