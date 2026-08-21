@@ -2599,7 +2599,7 @@ def test_the_open_question_names_the_sections_that_disagree():
         assert section in FILENAME_OPEN_QUESTION
 
 
-def test_kind_of_maps_every_kind(): 
+def test_kind_of_maps_every_kind():
     items = (an_excerpt(),
              RedactedIdentifier("obs-key-1", TextSpan(0, 9), "an-opaque-class"),
              CandidateLabel("BUSIB 4300"),
@@ -3115,7 +3115,7 @@ def sensitive_observation_keys(conn: sqlite3.Connection,
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_items.py -v`
-Expected: PASS — 39 passed (31 test functions; the `ALWAYS_LOCAL` parametrization contributes nine
+Expected: PASS — 42 passed (34 test functions; the `ALWAYS_LOCAL` parametrization contributes nine
 cases, one per always-local name).
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**

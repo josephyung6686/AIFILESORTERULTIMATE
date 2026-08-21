@@ -331,3 +331,48 @@ folder is an ordinary destination.
 
 This is not mine to settle: it decides whether P10 can build a folder template on those two keys.
 **Both readings are written down; a P6 author is currently building the stricter one.**
+
+---
+
+## 17. Two lead rulings, 2026-08-22
+
+### `field_key`, not `field_id`. One name, one meaning.
+
+The SPEC's `fields` table publishes **`field_key`** as its stable identifier and declares no
+surrogate key. The SPEC's `values` / `file_facts` shapes and the skeleton's `ValueRow` name the
+foreign key **`field_id`**. Two authors independently resolved it the same way — keep the column
+named `field_id` and store the field *key* in it.
+
+**That is the worst of the three options and I am overruling it.** A column named `_id` holding a
+key is a name that lies about its content, and this project's most expensive defect class is one
+concept wearing two names. It cost us `subject`/`course`, spaced-vs-snake keys, and `capture
+date`/`capture year`.
+
+> **The column is `field_key` and it holds the field key, in `values`, in `file_facts`, and in
+> every signature that takes one.** The skeleton's `field_id` is the error, not the SPEC.
+
+Sections already written against `field_id` — including a read of `old["field_id"]` — are corrected
+at assembly. Whether `fields.field_key` is declared PRIMARY KEY is still Task 2's, and it matters:
+`PRAGMA foreign_keys` is ON and an FK to a non-PK/UNIQUE parent raises `foreign key mismatch` at
+INSERT, not at DDL.
+
+### `tests/p6/conftest.py` belongs to Task 1
+
+Nobody owned it. Two sections assume `p6_conn` exists and no task's `Files:` line creates it — a
+fixture with no producer, in the plan for the part whose guard task exists to catch exactly that.
+
+> **Task 1 creates `tests/p6/conftest.py` and publishes `p6_conn`.** It is the package-skeleton
+> task, it runs first, and every later task consumes it. Any other task carrying a copy becomes
+> *verify it exists, do not duplicate it*.
+
+### Carried, not ruled
+
+- **`content_hash` is missing from the SPEC's `file_facts` shape**, and `facts_for_file(conn,
+  file_id, content_hash)` — the skeleton's own published signature — is unimplementable without it.
+  Added by its author and flagged. The SPEC owes the column.
+- **`CREATE TABLE values` is a SQL syntax error.** `values` is a reserved word; every statement must
+  quote it `"values"`. One unquoted statement breaks `create_facts_schema` and therefore every later
+  P6 task. Found by execution, not by reading.
+- **`display_label` had no writer** — the SPEC's `values` shape carries it and no published function
+  sets it. Same no-producer defect as `sensitivity_status`. A `set_display_label` was added as a
+  named addition; its §8.8 plan-version scoping is deliberately NOT built.

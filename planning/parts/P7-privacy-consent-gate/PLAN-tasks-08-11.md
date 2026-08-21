@@ -1406,8 +1406,9 @@ git commit -m "feat(P7): the one materialisation locus - key to current row to t
   - `AuditRecord` — frozen, twenty-two fields (`AUDIT_FIELDS + CARRIED_FIELDS`, the three carried
     defaulting to `None` / `()`).
   - `MalformedAudit`.
-  - `append_audit(conn, record, *, author, component_version) -> int`.
+  - `append_audit(conn, record, *, author, component_version, extra=None) -> int`.
   - `audit_record(conn, audit_id) -> AuditRecord`.
+  - `audit_extra(conn, audit_id) -> dict[str, object]`.
   - `audit_records_for(conn, *, file_id=None, release_id=None, consent_request_id=None)
     -> list[AuditRecord]`.
 
@@ -1473,6 +1474,15 @@ field holds `(observation_key, span)` pairs where `span` is P4's canonical locat
 proves the reconstruction by **re-running `resolve.materialise` from the stored pairs** and comparing
 against what was released. That is why Task 9's `span` is a locator and not an opaque offset.
 
+**`extra` is one keyword, owned here, and it is what makes a denial legible.** SPEC §7 enumerates a
+**release** record: a denial's `reason` and `remedy_options[]`, and a consent request's `requirement`
+and `options`, have no field in it, while §8.6 requires the product show *"what has been deferred,
+and why"*. `append_audit(..., extra=...)` merges a mapping into the **same** canonical-JSON
+`explanation` — §8.2's own *"structured explanation or evidence reference"* slot — and refuses a key
+that collides with one of the sixteen, so the nineteen stay the nineteen. `audit_extra` reads the
+surplus back. Tasks 13 and 14 use it; this task owns it, which is what the sibling section's table
+already assigns.
+
 **Every model call, including local ones.** §8.4 says *"Every model call should be recorded in a
 consent-aware audit record"* and names no exemption; Open question 6 asks whether a local call is
 also a *consent* event, and that stays open. Denials and consent requests are appended too, on §8.2's
@@ -1510,8 +1520,8 @@ from evidence_shape.text_units import TextUnit
 
 from privacy.audit import (
     AUDIT_FIELDS, CARRIED_FIELDS, COLUMN_FIELDS, EXPLANATION_FIELDS,
-    OUTCOME_EVENT_TYPES, AuditRecord, MalformedAudit, append_audit, audit_record,
-    audit_records_for,
+    OUTCOME_EVENT_TYPES, AuditRecord, MalformedAudit, append_audit, audit_extra,
+    audit_record, audit_records_for,
 )
 from privacy.authorship import (
     CONSENT_REQUESTED, MODEL_RELEASE, MODEL_RELEASE_DENIED, SUBSYSTEM,
@@ -1810,6 +1820,28 @@ def test_no_filter_at_all_is_refused(p7_conn):
         audit_records_for(p7_conn)
 
 
+def test_extra_carries_what_spec_7_has_no_field_for(p7_conn):
+    # §8.6: the product must show "what has been deferred, and why". A denial's
+    # reason has no §7 field, and Tasks 13 and 14 write theirs through here.
+    audit_id = append_audit(
+        p7_conn, a_record(outcome="denied", release_id=None), author=SUBSYSTEM,
+        component_version=COMPONENT,
+        extra={"reason": "unclassified", "remedy_options": ["classify and retry"]})
+    assert audit_extra(p7_conn, audit_id) == {
+        "reason": "unclassified", "remedy_options": ["classify and retry"]}
+    # and the nineteen are untouched by it
+    assert audit_record(p7_conn, audit_id).outcome == "denied"
+
+
+def test_extra_may_not_shadow_a_spec_7_field(p7_conn):
+    # A second value under one name is how a record starts disagreeing with itself,
+    # in a log nothing may ever update.
+    with pytest.raises(MalformedAudit):
+        append_audit(p7_conn, a_record(), author=SUBSYSTEM,
+                     component_version=COMPONENT,
+                     extra={"outcome": "not really released"})
+
+
 # --- what left the device ------------------------------------------------------
 
 def test_excerpts_included_holds_pairs_and_not_a_second_copy_of_the_text(excerpt):
@@ -1872,8 +1904,8 @@ Two properties this module exists to make structural rather than procedural:
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, fields
+from collections.abc import Mapping
+from dataclasses import dataclass
 from types import MappingProxyType
 
 from database_agent.events import EVENT_FIELDS, append_event
@@ -1982,15 +2014,30 @@ def _check(record: AuditRecord, author: str) -> None:
 
 
 def append_audit(conn: sqlite3.Connection, record: AuditRecord, *, author: str,
-                 component_version: str) -> int:
+                 component_version: str,
+                 extra: Mapping[str, object] | None = None) -> int:
     """Append one audit record and return its `audit_id`.
 
     The id is P1's `event_id`, produced by the insert, so it cannot be handed to a
     caller before the row exists. That is SPEC §6's ordering guarantee, structurally.
+
+    `extra` merges into the same `explanation` object. SPEC §7 enumerates a RELEASE
+    record; a denial's reason and a consent request's four options have no field in
+    it, and §8.6 requires the product show "what has been deferred, and why". A key
+    that collides with one of the sixteen is refused, so the nineteen stay the
+    nineteen.
     """
     _check(record, author)
-    explanation = canonical_json(
-        {name: _jsonable(getattr(record, name)) for name in EXPLANATION_FIELDS})
+    payload = {name: _jsonable(getattr(record, name)) for name in EXPLANATION_FIELDS}
+    if extra:
+        collisions = sorted(set(extra) & set(payload))
+        if collisions:
+            raise MalformedAudit(
+                f"{collisions} are SPEC §7 field names; `extra` carries what §7 has "
+                "no field for, and a second value under one name is how a record "
+                "starts disagreeing with itself")
+        payload.update({name: _jsonable(value) for name, value in extra.items()})
+    explanation = canonical_json(payload)
     columns = {name: getattr(record, name) for name in COLUMN_FIELDS}
     return append_event(conn, **event_defaults(
         event_type=OUTCOME_EVENT_TYPES[record.outcome],
@@ -2031,6 +2078,18 @@ def audit_record(conn: sqlite3.Connection, audit_id: int) -> AuditRecord:
     return _record_from_row(row)
 
 
+def audit_extra(conn: sqlite3.Connection, audit_id: int) -> dict[str, object]:
+    """The keys `append_audit`'s `extra` added, beside SPEC §7's sixteen."""
+    import json
+
+    row = conn.execute("SELECT explanation FROM events WHERE event_id = ?",
+                       (audit_id,)).fetchone()
+    if row is None:
+        raise KeyError(f"no audit record {audit_id!r}")
+    return {name: value for name, value in json.loads(row["explanation"]).items()
+            if name not in EXPLANATION_FIELDS}
+
+
 def audit_records_for(conn: sqlite3.Connection, *, file_id: str | None = None,
                       release_id: str | None = None,
                       consent_request_id: str | None = None) -> list[AuditRecord]:
@@ -2062,7 +2121,7 @@ def audit_records_for(conn: sqlite3.Connection, *, file_id: str | None = None,
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_audit.py -v`
-Expected: PASS — 29 passed
+Expected: PASS — 31 passed
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
@@ -2102,7 +2161,7 @@ git commit -m "feat(P7): the consent-aware audit record as one events row, and t
     `requested_items`, `prompt_template_id`, `prompt_fingerprint`, `max_dossier_tokens`.
   - `Released` — frozen; SPEC §6's **six**: `release_id`, `audit_id`, `policy_version`,
     `materialised_items`, `redaction_manifest`, `model_target`.
-  - `Denied` — frozen: `reason`, `explanation`, `remedy_options`.
+  - `Denied` — frozen: `reason`, `explanation`, `remedy_options`, `evidence_refs`.
   - `NeedsConsent` — frozen: `requirement`, `options`.
   - `ReleaseDecision` — the union alias.
   - `REQUEST_FIELDS`, `RELEASED_FIELDS`, `FORBIDDEN_PARAMETER_NAMES: frozenset[str]`,
@@ -2148,6 +2207,10 @@ call `binding.mint_release` and adds the ledger.** `Denied` is constructed inlin
 explanation and remedy options; **Task 13 modifies `release.py` to route all eight reasons through
 `denial.deny` and adds `RemedyOption`**, so `Denied.remedy_options` may become
 `tuple[RemedyOption, ...]` — the field **name** is fixed here and the element type is Task 13's.
+`Denied` already carries the fourth field Task 13's `deny(reason, *, explanation,
+remedy_options, evidence_refs)` needs, defaulted to `()` so this task can construct one without
+them; SPEC §6 requires the explanation be *"evidence-referenced"* and M14 makes those
+`observation_key` values.
 `NeedsConsent` carries `requirement` and `options` here; **Task 14 modifies `release.py` to add
 `consent_request_id`**, which P13's `subject_ref` needs and SPEC §6 omits. Each is a `Modify:` line
 in that task, the pattern P5's Task 10 already used for `schema.py`. Nothing else in `release.py`
@@ -2785,11 +2848,17 @@ RELEASED_FIELDS: tuple[str, ...] = tuple(f.name for f in fields(Released))
 
 @dataclass(frozen=True, slots=True)
 class Denied:
-    """The gate's answer. Evidence-referenced, and never a dead end (§8.6)."""
+    """The gate's answer. Evidence-referenced, and never a dead end (§8.6).
+
+    `evidence_refs` is P4 `observation_key` values, never `observation_id` (M14).
+    SPEC §6 requires the explanation be "evidence-referenced" and Task 13's `deny`
+    takes them, so the dataclass has to be able to hold them.
+    """
 
     reason: str
     explanation: str
     remedy_options: tuple[str, ...]
+    evidence_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         check_denial_reason(self.reason)

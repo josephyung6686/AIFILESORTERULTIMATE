@@ -335,9 +335,10 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
       assert len(rows) == 1
       assert rows[0]["field_key"] == FIELD
       assert rows[0]["reason"] == "budget_deferred"
-      # mark the deferred stage, and leave the file or group in review rather than guessing (§8.6), which "avoids the false impression that an unprocessed file was understood and found unimportant": the row
-      # records which producers had already run, so a reader can see the work stopped
-      # rather than concluded.
+      # §8.6: "mark the deferred stage, and leave the file or group in review rather
+      # than guessing", which "avoids the false impression that an unprocessed file
+      # was understood and found unimportant". The row records which producers had
+      # already run, so a reader can see the work stopped rather than concluded.
       assert rows[0]["attempted_producers"] is not None
 
 
@@ -891,9 +892,12 @@ and nothing that changes between two identical runs.
 >   `None`, the route does not exist, nothing is withheld, and this branch is unreachable.
 > - Any field reachable by `direct` or `rule` is still answered, so a privacy bar with **any** fact
 >   written reports `produced` and never reaches the raise.
-> - Raising is this project's stated tie-break: *"the one that … makes a wrong outcome impossible
->   rather than merely unlikely, wins"*. Recording a prohibition as a considered refusal is the wrong
->   outcome the SPEC names in words; a raise forces the decision instead of writing it.
+> - Raising is this project's stated tie-break: *"the one that preserves more information, or that
+>   makes a wrong outcome impossible rather than merely unlikely, wins"* — `planning/10-i4-learning-ops.md`,
+>   verified by grep. (The skeleton's Task 19 attributes this sentence to `04-resolutions.md` **and**
+>   `10-i4-learning-ops.md`; it is only in the latter. Reported, not fixed here — the skeleton is not
+>   this task's file.) Recording a prohibition as a considered refusal is the wrong outcome the SPEC
+>   names in words; a raise forces the decision instead of writing it.
 >
 > **Do not resolve this by picking an outcome.** Two candidate resolutions exist and both are
 > Joseph's: add a `withheld` outcome to P2's five, or rule that `privacy_withheld` **is** an
@@ -1406,9 +1410,10 @@ and nothing that changes between two identical runs.
       """The §8.5 table, in the one order that keeps unfinished work visible.
 
       The ceiling is checked BEFORE the facts. A run that wrote two facts and then hit
-      a ceiling reports `deferred`: §8.6 requires deferred work be visible as deferred,
-      and `produced` would hide the half that never ran. This is not a widening of the
-      SPEC's first row — that row already reads `within_ceiling`.
+      a ceiling reports `deferred`: §8.6 says to "mark the deferred stage, and leave
+      the file or group in review rather than guessing", and `produced` would hide the
+      half that never ran. This is not a widening of the SPEC's first row — that row
+      already reads `within_ceiling`.
       """
       if result.error is not None:
           return "error", ("ceiling_reached" if result.deferred_against
