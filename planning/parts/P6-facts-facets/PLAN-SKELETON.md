@@ -7,6 +7,32 @@
 > Several authors can write the detail in parallel; the `Interfaces:` block on each task is what
 > keeps them from colliding.
 
+---
+
+## Ratified decisions — read this before planning any task (2026-08-22)
+
+Four decisions landed after this skeleton was written. **This document has been reconciled to them**;
+if you find a line that still contradicts one, that line is the error, not the decision.
+
+| | Ratified | What it changes here |
+|---|---|---|
+| **D6** | The academic field key is **`subject`**, and every stored field key is `snake_case`. | **OQ4 is CLOSED.** Done-means 4 resolves `subject`, the catalogue carries a `subject` row and no `course` row, and Task 25's guard **inverts** — it asserts the closure, not the question. §3.11's word "course" is prose for the same field and survives inside quotations. |
+| **D2** | P7's `ClassificationRecord` keyed `(file_id, content_hash)` is authoritative; `files.sensitivity_state` is its projection; `Unreadable or unclassified` is a **gate outcome**. | **OQ11 is CLOSED** on the question it asked — *which record is authoritative* — and the answer is P7's. Task 25's guard inverts. **Not settled by D2, so do not build it either way:** whether §3.11's `sensitivity status` stays a P6 universal field row beside P7's record. Round 1 F-2 found it has no producer. Create no such row until asked. |
+| **D5** | **Task 26 is CUT.** No `dispatch` split, no `run_wave2` restructure. | P6 touches **no file outside `src/facts/` and `tests/p6/`**. The four passes are a description, not a build item. See the note under preamble rule 5 for the consequence — it is not neutral. |
+| **D1** | Narrowed: *"acquiring one fails the test"* struck; no career fields authored. | Task 2 keeps the closed catalogue but its guard no longer forbids a later deliberate reversal of S3. §3.8's four role fields **are** in the catalogue (round 1 F-1) — Done-means 13 and 22 require `authored_by` to exist. |
+
+**The one thing D5 makes dangerous, stated once here and again at rule 5.** Task 19 has P6 raise
+`FactPassNotRun` — a `ContractViolation` — when the verdict is consulted before that content hash's
+deterministic pass. `ocr_policy.text_layer_state` consults it for **every text-bearing PDF** during
+the caller's single loop. With Task 26 cut, nothing reorders that. **So P6's resolver must not be
+passed to `run_wave2` as `no_usable_facts`: the caller keeps `TARGETED_OCR_UNAVAILABLE` until the
+four-pass work is done.** P6 publishes `no_usable_facts_for` as a read surface its own tests
+exercise; wiring it is a later, separate piece of work.
+
+**`planning/domains/` is not this part's field catalogue.** See Task 2.
+
+---
+
 **Goal:** Turn P4's observations into **claims with their evidence attached** — §3.1's file-as-many-facts,
 §3.2's observation/fact split, §3.5's three producers writing one format, §3.6's abstention,
 §3.7's conservative facets, §3.13's six reliability states — in `fields` / `values` / `file_facts` /
@@ -157,9 +183,20 @@ Three facts make this non-negotiable rather than a preference:
 
 **The property must be enforceable, not documented.** Task 19 makes P6 raise `FactPassNotRun` when
 the verdict is asked about a `(file_id, content_hash)` whose deterministic pass has not been
-recorded, so a caller that consults too early fails a test instead of OCRing the corpus. Task 26
-rewires the orchestrator into the four passes above and asserts the order from the recorded passes
-rather than from the call site.
+recorded, so a caller that consults too early fails a test instead of OCRing the corpus.
+
+**Task 26 is CUT (D5), and that changes what this paragraph can promise.** Nothing rewires the
+orchestrator, so the four passes above are a DESCRIPTION of the ordering P6's verdict needs, not a
+thing this plan builds. The operational consequence must be stated plainly, because it is the
+opposite of harmless: `ocr_policy.text_layer_state` consults `no_usable_facts` for every
+text-bearing PDF during loop 1, before any deterministic pass has run for that content hash. So if
+P6's resolver were passed as `no_usable_facts` today, Task 19's raise — correctly a
+`ContractViolation` — would **end the scan on the first text-bearing PDF**.
+
+**Therefore the caller keeps passing `orchestrator.TARGETED_OCR_UNAVAILABLE` even after P6 ships.**
+P6 publishes `no_usable_facts_for` as a read surface that P6's own tests exercise; it is not wired
+into `run_wave2`. Wiring it is the four-pass work, owed when an OCR engine makes the broken-text-layer
+route act on anything (`src/readers/` now supplies one, so the remaining blocker is only this).
 
 ---
 
@@ -214,8 +251,10 @@ Every task's requirements implicitly include these.
 - **Python 3.12**, stdlib only. `pyproject.toml` already carries `pythonpath = ["src"]` and
   `testpaths = ["tests"]`, so `facts` is importable and collected with no change to any file P6
   does not own.
-- **P6 creates and modifies no P1, P2, P3, P4 or P5 file.** The one exception the plan needs is
-  `src/orchestrator.py`, which is shared Wave-2 wiring — Task 26 states exactly what it adds.
+- **P6 creates and modifies no P1, P2, P3, P4 or P5 file — and, since D5 cut Task 26, no
+  `src/orchestrator.py` either.** The plan now has NO exception: every file it touches is under
+  `src/facts/` or `tests/p6/`. That is a stronger guard than the one it replaces, and it should be
+  asserted rather than merely stated.
 
 ---
 
@@ -521,9 +560,9 @@ without touching its neighbours — the same rule P5's six extractors follow.
 
 Twenty-seven tasks in five waves. **Tasks 1–6 are foundational and strictly sequential** — every
 later task writes rows into their tables. **Tasks 7–13, 14–16 and 17–23 parallelise within their
-wave.** Tasks 24–27 are the read surface, the guards, the orchestrator restructure and the skeleton,
-and run last. **Task 26 is the only task that touches a file P6 does not own** (`src/orchestrator.py`)
-and it is the one to schedule with the lead rather than around them.
+wave.** Tasks 24, 25 and 27 are the read surface, the guards and the skeleton, and run last.
+**Task 26 is cut (D5)**, so no task in this plan touches a file P6 does not own and none needs
+scheduling with the lead.
 
 Right-sizing rule applied throughout: a task is the smallest unit that carries its own red-green
 cycle and is worth a reviewer's gate. Where a §-section maps to one module and one Done-means item,
@@ -577,8 +616,19 @@ test `tests/p6/test_p6_fields.py`.
 **Done-means:** 2, and the negative half of 3.
 
 **What its tests must prove.** That the catalogue is exactly the six §3.11 universal fields, plus
-`download_session`, plus the six §3.11 domain rows verbatim — and **nothing else**: Career and
-recruiting, identity, medical and legal have no field rows.
+`download_session`, plus the six §3.11 domain rows, **plus §3.8's four role fields** — and nothing
+else: Career and recruiting, identity, medical and legal have no field rows.
+
+> **Round 1's F-1, applied here at last.** The four roles are the design's own words — §3.8:
+> *"authored_by and target_school, or our_firm and client"* — and this task's list said
+> **"nothing else"**, which forbade them. That is not a style disagreement: **Done-means 13 and 22
+> both require `authored_by` to exist** (*"an `authored_by` value is never returned as
+> destination-eligible"*, *"a human name → `authored_by` only"*), so two Done-means were unwritable
+> against the catalogue this task builds. A consumer with no producer, inside one document.
+>
+> They are role fields, so §3.8's other half binds immediately: *"It should avoid using authorship
+> or creator identity as a destination dimension"* — every one of the four is
+> `destination_eligible = FALSE`, which Done-means 13 already asserts for `authored_by`.
 
 > **D1, narrowed by Joseph 2026-08-21.** The clause *"and acquiring one fails the test"* is
 > **struck.** The closed reading it enforced is impossible: it makes P6's own test suite the thing
@@ -588,11 +638,23 @@ recruiting, identity, medical and legal have no field rows.
 > that resolution is held.** The test asserts the catalogue's contents; it does not assert that the
 > contents can never change.
 >
-> **Do not author career fields.** Not in this task, not in the domain catalogue as field rows. The
-> 574-entry catalogue is a **placeholder that writes no field rows** — that is the design seat's
-> actual ask and it is the half that is kept. **Career is owed before P10**, which is where a
-> destination dimension first needs one. Anyone adding one before then is reversing S3 and must say
-> so explicitly.
+> **Do not author career fields.** Not in this task, not in the domain catalogue as field rows.
+> **Career is owed before P10**, which is where a destination dimension first needs one. Anyone
+> adding one before then is reversing S3 and must say so explicitly.
+>
+> **And do not read `planning/domains/` as this catalogue's source.** The two are different objects
+> and conflating them is the likeliest way this task goes wrong:
+>
+> | | `FIELD_ROWS` (this task) | `planning/domains/` (574 entries) |
+> |---|---|---|
+> | What it is | The **closed** field catalogue §3.12 forbids adding to at run time | A **research artifact**: a proposed domain library, mostly `proposal` provenance |
+> | Size | §3.11's six universal + `download_session` + six domain sets, plus §3.8's four role fields (round 1 F-1) | 574 entries, 2,164 distinct field keys |
+> | Authority | Design-derived and binding | Not ratified. Its own gate currently reports **566 failures** — one third of its template dimensions branch on fields it never declares |
+> | Imported by `facts`? | It IS `facts` | **Never.** Task 25 already asserts catalogue 01 is imported nowhere in `facts`; that guard should name the whole directory |
+>
+> The 574 are a menu someone may one day draw from, entry by entry, with a decision each time. They
+> are not a placeholder for this table and they must not be loaded into it. What this task builds is
+> the **small list**: §00's own field names plus §3.8's four roles.
 
 That no producer can create a field at run time: the write path is a module-level authored table
 loaded by `create_fields`, there is no `add_field`, and an attempt to write a fact naming an unknown
@@ -1034,9 +1096,10 @@ verdict is a function of that row:
   `True` is not a value this branch can produce.
 - Asked after a pass at `analysis_tier = "native"`, it answers from the fact tables — this is the
   pass-3 gate.
-- Asked after a pass that already included `ocr`, it still answers, and Task 26 asserts the caller
-  does not loop: a file whose OCR pass also produced nothing is a file with no usable facts, not a
-  file to OCR again.
+- Asked after a pass that already included `ocr`, it still answers: a file whose OCR pass also
+  produced nothing is a file with no usable facts, not a file to OCR again. **Nothing asserts the
+  caller does not loop** — that was Task 26's, and Task 26 is cut. The non-looping property is owed
+  with the four-pass wiring, and until then no caller consults this verdict at all.
 
 That last bullet is the termination condition and it is a test, not a convention: the pass record
 carries which tiers it covered, so "have we already tried OCR for this content hash" is a lookup
@@ -1190,11 +1253,23 @@ to the read shapes rather than to the schema.
 **What its tests must prove.** That no threshold, weight, gazetteer, regex catalogue, producer
 string, resolution, aspect ratio, session window, GPS radius or usable-fact count exists as a
 module-level constant anywhere in `facts` — by **runtime introspection**, not by source-text search,
-because a source-text guard matches comments and docstrings. That every open question is still open,
-one named test each: OQ3 (`purpose` universal or Applications-domain), OQ4 (`subject` and `course`),
-OQ5 (Finance at launch), OQ6 (multiplicity), OQ8 (user-approved custom templates creating fields),
-OQ9 (group purpose onto members), OQ10 (equal-rank contradiction), OQ11 (`sensitivity status` — one
-record or three). That P6 imports nothing from a grouping, tree, placement or model module. That
+because a source-text guard matches comments and docstrings. That every **still-open** question is still open, one named
+test each: OQ3 (`purpose` universal or Applications-domain), OQ5 (Finance at launch), OQ6
+(multiplicity), OQ8 (user-approved custom templates creating fields), OQ9 (group purpose onto
+members), OQ10 (equal-rank contradiction).
+
+**OQ4 and OQ11 are CLOSED and their guards must INVERT.** A guard asserting they are open fails the
+day the decision is applied, which is the day this plan is executed — so the tests become:
+
+- **OQ4 is closed as `subject` (D6).** Assert the catalogue carries a `subject` row and **no**
+  `course` row, and that Done-means 4 resolves `subject = BUSIB 4300`. §3.11's word "course" is the
+  design's prose for the same field and stays inside quotations; the stored key is `subject`,
+  because a field key is a join handle and two spellings are two columns. The same rename has
+  already been applied across `planning/domains/` (1,302 keys).
+- **OQ11 is closed by D2.** Assert P6 publishes **no** sensitivity record of its own: P7's
+  `ClassificationRecord`, keyed `(file_id, content_hash)`, is authoritative, `files.sensitivity_state`
+  is its projection written through P1's `set_sensitivity_state`, and `Unreadable or unclassified`
+  is a **gate outcome** that never enters that column. P6 holds no sensitivity vocabulary at all. That P6 imports nothing from a grouping, tree, placement or model module. That
 `subsystem = "P6"` is written in exactly one place. That no module branches on `source_type` or
 `extractor_name`. That catalogue 01 is not imported anywhere in `facts`.
 
@@ -1249,7 +1324,9 @@ record or three). That P6 imports nothing from a grouping, tree, placement or mo
 **Files:** test `tests/p6/test_p6_deterministic.py`, `tests/p6/test_p6_skeleton_step.py`.
 
 **Interfaces:**
-- Consumes: `facts.resolver.FactResolver`, `evidence_shape.fixtures.by_number`, the Task 26 wiring.
+- Consumes: `facts.resolver.FactResolver`, `evidence_shape.fixtures.by_number`. **Not** the
+  Task 26 wiring, which is cut (D5): the skeleton's P6 step resolves facts from stored evidence
+  and does not run through `run_wave2`.
 - Produces: nothing.
 
 **Done-means:** 17, and the end-to-end half of 4.
@@ -1275,7 +1352,7 @@ All thirty items appear. Where an item cannot be proven by a test as written, it
 | 1 | `fields`/`values`/`file_facts` exist; no path, destination, folder or group column | 2, 3, 4 | schema-level assertion via `PRAGMA table_info` + forbidden-substring list |
 | 2 | all six universal + `download_session` + six domain sets present, and no field outside them | 2 | Career/identity/medical/legal have no rows (S3) |
 | 3 | a value auto-creates; a field cannot be created at runtime by any producer | 2 (negative), 3 (positive) | the LLM path is covered again in 17 |
-| 4 | the §3.2 fixture produces exactly course, term, work type with evidence refs, raws unchanged | 8, 10, 27 | **partly blocked — see findings F2:** §3.2 says `subject`, the SPEC says `course`, and OQ4 is open. The fixture is also **not** among P4's nineteen and must be authored |
+| 4 | the §3.2 fixture produces exactly **subject**, term, work type with evidence refs, raws unchanged | 8, 10, 27 | **Unblocked by D6 — `subject`.** F2 was right and is ratified: §3.1, §3.2 and §3.12 all say `subject`; only §3.11's Academic row says `course`, and that is prose for the same field. The SPEC's Done-means 4 wording is superseded. **Still owed:** the fixture is not among P4's nineteen and must be authored |
 | 5 | EXIF `DateTimeOriginal` → `capture date` as `direct`; EXIF observation still readable | 8 | **partly blocked — see findings F3:** `capture date` is not a field Done-means 2 permits to exist |
 | 6 | resolves an unknown `source_type`, no per-format branching anywhere | 7, 25 | positive case in 7, introspection guard in 25 |
 | 7 | `submit` → no `MIT`; `uncertainty` → no `UNC` | 11 | A01, A02 |
@@ -1354,13 +1431,13 @@ Quoted from the SPEC. **None is answered here.** Task 25 holds one named test pe
 |---|---|---|
 | 1 | `analysis tier` is never defined | **Settled — I4.** `filesystem \| native \| ocr \| llm`, owned by P5, consumed here in §3.4's cache key. Verified present as `evidence_shape.vocabulary.ANALYSIS_TIERS` |
 | 3 | *"Is `purpose` a universal field or an Applications-domain field? §3.9 requires it to be 'first-class'; §3.11's universal list omits it and places it only under College applications."* | **OPEN** |
-| 4 | *"Are `subject` (§3.1's `subject = BUSIB 4300`, §3.12's field list) and `course` (§3.11's Academic row) the same field under two names, or two fields?"* | **OPEN — and it blocks Done-means 4.** See finding F2 |
+| 4 | *"Are `subject` (§3.1's `subject = BUSIB 4300`, §3.12's field list) and `course` (§3.11's Academic row) the same field under two names, or two fields?"* | **CLOSED — D6, 2026-08-21. One field, and its key is `subject`.** Done-means 4 is unblocked. §3.11's "course" is prose for the same field and stays inside quotations. Task 25's guard **inverts**: it asserts the catalogue has a `subject` row and no `course` row |
 | 5 | *"Finance has a fact schema in §3.11 but is a safety domain in §3.15 … Does the Finance fact schema activate at launch, or does detection-and-protection precede any field extraction?"* **[seam with P7]** | **OPEN** |
 | 6 | *"Multiplicity. … May one (file, field) hold several simultaneously active values, and if so how does the §3.7 margin rule apply when more than one candidate is correct?"* | **OPEN** — `multiplicity` is a column with no answer |
 | 8 | *"Does user approval of a custom template create `fields` rows, and at what scope — corpus-wide or plan-version-local?"* **[seam with P10]** | **OPEN** |
 | 9 | *"After the user accepts the group, does that purpose become a fact on non-anchor members, or does it remain membership only?"* **[seam]** | **OPEN** — until settled, P6 writes nothing group-derived |
 | 10 | *"§3.13 orders the six states but does not define the comparison for two equal-rank contradicting facts … Reject both, surface both as competing candidates, or defer to the internal score?"* | **OPEN** — Task 17's contradiction check refuses to decide and writes `unresolved` |
-| 11 | *"`sensitivity status` is a universal fact (§3.11), a sensitivity state on the file record (§8.2), and a handling class in the privacy gate (§8.4). One record or three?"* **[seam]** | **OPEN, and already costly.** P1's `files.sensitivity_state` column exists and **no code in `src/` writes it**. The orchestrator hit the same ambiguity and left a note in place of an answer (`orchestrator.py:277-285`): it had been passing `sensitivity_state` as P2's `handling_class` — *"a DIFFERENT field on a different record. Both are NULL on a live scan, so nothing failed and the name was still wrong"* — and now passes `None`. P6 owns the third name (`sensitivity status`, a §3.11 universal **fact**), so P6 is the part that makes it three |
+| 11 | *"`sensitivity status` is a universal fact (§3.11), a sensitivity state on the file record (§8.2), and a handling class in the privacy gate (§8.4). One record or three?"* **[seam]** | **CLOSED — D2, 2026-08-21.** P7's `ClassificationRecord`, keyed `(file_id, content_hash)`, is authoritative; `files.sensitivity_state` is its projection, written through P1's `set_sensitivity_state` (which now exists); `Unreadable or unclassified` is a **gate outcome** and never enters the column. **Residue, still open (NEEDS-JOSEPH C5):** whether P6 keeps a `sensitivity status` field row at all — round 1 F-2 found it has no producer. Create none until asked. *Original note:* P1's `files.sensitivity_state` column exists and **no code in `src/` writes it**. The orchestrator hit the same ambiguity and left a note in place of an answer (`orchestrator.py:277-285`): it had been passing `sensitivity_state` as P2's `handling_class` — *"a DIFFERENT field on a different record. Both are NULL on a live scan, so nothing failed and the name was still wrong"* — and now passes `None`. P6 owns the third name (`sensitivity status`, a §3.11 universal **fact**), so P6 is the part that makes it three |
 | 12 | observations and facts sharing a reliability vocabulary | **CLOSED — ratified by Joseph 2026-08-20 (C1).** One vocabulary, six states; extractors stamp only `direct` and `possible` (P4 D11). Verified in code: `RELIABILITY_STATES` (6) and `EXTRACTOR_RELIABILITY_STATES` (2), enforced by conformance rule 3 |
 
 ---
@@ -1401,12 +1478,13 @@ by moving the call one line; the extract step has to **split**, which is why thi
 
 **What the plan does about it.** Preamble rule 5 states the four passes. Task 19 makes P6 raise
 `FactPassNotRun` when asked about an unrecorded pass — so too-early consultation is a failing test,
-and the `True` the SPEC warns about is not a value that branch can produce. Task 26 rewires
-`run_wave2` into the four passes and asserts the order from the pass records rather than from the
-call site. See *Does this change the orchestrator's shape* below for the size of that change.
+and the `True` the SPEC warns about is not a value that branch can produce. **The caller-side
+half — rewiring `run_wave2` into the four passes — is CUT (D5).** The guard therefore protects P6's
+own read surface and nothing consults it from the caller; see the note under preamble rule 5.
 
-**F2 (HIGH). The SPEC's Done-means 4 answers Open question 4 by fiat, and answers it against the
-design.** §3.2, verbatim: *"the system can create facts such as **subject** = BUSIB 4300, term =
+**F2 (HIGH) — RESOLVED by D6, 2026-08-21. `subject` wins; the analysis below is what the decision
+rests on and is kept for that reason.** The SPEC's Done-means 4 is superseded where it says `course`.
+Original finding: §3.2, verbatim: *"the system can create facts such as **subject** = BUSIB 4300, term =
 Spring 2026, and work type = syllabus."* §3.1 says the same: *"A fact is a statement such as
 **subject** = BUSIB 4300"*. §3.12's fields-table list also names *"subject, purpose, target
 university, project, event, or sensitivity"*. But Done-means 4 says P6 produces *"exactly the three
@@ -1416,8 +1494,9 @@ open. Three consequences: the design's own words for §3.2's worked example cann
 catalogue Done-means 2 permits; §3.12's fields list names two fields (`subject`, `purpose`) that the
 catalogue omits; and the walking skeleton's line *"P6 resolve it to ONE validated fact (course = X)"*
 picks the same side. **The design wins where they disagree, and the design says `subject` in §3.1,
-§3.2 and §3.12 and `course` only in §3.11's Academic row.** Not resolved here — it is OQ4 and it is
-Joseph's.
+§3.2 and §3.12 and `course` only in §3.11's Academic row.** ~~Not resolved here — it is OQ4 and it
+is Joseph's.~~ **Resolved: Joseph ratified `subject` (D6, 2026-08-21).** §3.11's "course" is prose
+for the same field and survives inside quotations; the stored key is `subject` everywhere.
 
 **F3 (HIGH). Done-means 5 requires a field Done-means 2 forbids from existing.** Item 5: *"An EXIF
 `DateTimeOriginal` observation produces `capture date` as a `direct` fact."* Item 2: the catalogue is
@@ -1550,16 +1629,21 @@ because that is where the pass boundary is; nothing inside P5 has to learn about
 
 What it costs when nothing is wired: **nothing.** With `readers.ocr_engine is None` — every test
 today, and any deployment that has not chosen an OCR engine — `_ocr` returns `None`, loops 3 and 4
-are empty, and the corpus resolves from native evidence in loops 1 and 2. Task 26 asserts that case
-explicitly so the restructure is provably free until an engine exists.
+are empty, and the corpus resolves from native evidence in loops 1 and 2.
 
-One scheduling note: Task 26 is the only task in this plan that touches a file P6 does not own. It is
-last for that reason, and it can be reviewed as a standalone diff against a green suite.
+**Superseded 2026-08-21/22.** `src/readers/` now wires Apple Vision, so `ocr_engine is None` is no
+longer the universal case and this paragraph's premise has expired. It does not revive Task 26: the
+`text_layer_absent` route needs no verdict from P6 and already runs, and the `text_layer_broken`
+route still waits on P6 itself.
+
+One scheduling note, now void: Task 26 was the only task touching a file P6 does not own, and it
+is cut (D5). Every remaining task is inside `src/facts/` and `tests/p6/`.
 
 ## SPEC vs design — where §3 and the SPEC disagree
 
-**D1. §3.2's worked example names `subject`; the SPEC's Done-means names `course`.** Full text in F2.
-The design wins; OQ4 is the vehicle.
+**D1. §3.2's worked example names `subject`; the SPEC's Done-means names `course`.** Full text in
+F2. **CLOSED (D6, 2026-08-21): the design wins and the field is `subject`.** The SPEC's Done-means 4
+is superseded on this word. Note this is design-disagreement D1 and is unrelated to decision D1.
 
 **D2. §3.1/§3.2 name `capture date`; §3.11's table has `capture year`.** Full text in F3. The design
 uses both, in different sentences, which is why this is a question and not a correction.
@@ -1621,10 +1705,13 @@ rather than leaving the Provenance section promising three types that raise at r
 document type`; A04's tier; A07's `kind` vs `media type`. Each is one word and each is currently
 asserted two different ways in two different places that both claim to be contract. **They should be
 settled together**, because four of the five are the same underlying issue — the design states its
-field names once in prose and once in a table, and the two do not match. **Recommendation:** settle
-OQ4 first, then apply the same rule (table wins, prose is illustrative — or the reverse) to the other
-three, and amend A04 and A07 to the settled names. It is an afternoon of naming and it removes five
-blocked tests.
+field names once in prose and once in a table, and the two do not match.
+
+**OQ4 is now settled (D6): `subject`, and the rule it establishes is PROSE WINS — §3.1/§3.2/§3.12's
+sentences over §3.11's row.** That precedent should now be applied to the other three (`capture
+date` vs `capture year`, `document type` vs `application document type`/`artifact type`), and A04 and
+A07 amended to the settled names. Those three are still Joseph's; what is no longer open is the
+tie-break rule, and applying it is naming work rather than a decision.
 
 **4. Which fields are `destination_eligible` beyond §3.8's rule?** §3.8 settles that no authorship or
 creator-identity field ever is. Nothing settles the rest, and P10 cannot build a folder template

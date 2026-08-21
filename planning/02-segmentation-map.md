@@ -187,7 +187,7 @@ P1      hash it, create the file record — P1 *writes*; it authors no event of
 P3      scan a fixture directory; assert the exclusion rules skip node_modules;
         P3 authors the discovery and stat-observation events P1 stores
 P4/P5   extract page-one text; emit ONE observation in the frozen shape
-P6      resolve it to ONE validated fact (course = X) with its evidence link
+P6      resolve it to ONE validated fact (subject = X) with its evidence link  [D6]
 P8      not exercised — the fact is rule-validated, no model needed
 P9      form a group of one, from a direct anchor
 P10     a hand-authored TWO-node tree; freeze it (two nodes so the §6.10 margin

@@ -4,7 +4,7 @@
 
 **Goal:** Publish §2.8's common evidence shape as running code — the three records ([`SPEC.md`](SPEC.md) *Contract out*: `evidence`, `extraction_runs`, `text_units`), the six closed vocabularies, the structured location scheme with its canonical locator, the content-addressed `observation_key`, and a conformance validator that enforces all twelve rules and **fails** a non-conforming observation rather than coercing it — so that P5's six extractors are written against a frozen contract and P6, P7, P8 and P2 can be built on its fixtures with no extractor in existence.
 
-**Architecture:** P4 is a third package (`src/evidence_shape/`) inside P1's single local SQLite database (§0: *"Each part owns its own tables within it"*). It owns three tables, created by its own `create_evidence_schema` — **P1's `db.py` is not modified**. Twelve modules, one per published surface, split by record and by concern so a reviewer can reject one without touching its neighbours. P4 runs no extractor, opens no file, and reads no bytes off disk: every test below builds its records in memory or from a fixture string. That is what makes the whole part testable before P5 exists.
+**Architecture:** P4 is a third package (`src/evidence_shape/`) inside P1's single local SQLite database (§0: *"A local SQLite database acts as the durable working memory of the product."* One table set per part is this project's convention, not a design quotation). It owns three tables, created by its own `create_evidence_schema` — **P1's `db.py` is not modified**. Twelve modules, one per published surface, split by record and by concern so a reviewer can reject one without touching its neighbours. P4 runs no extractor, opens no file, and reads no bytes off disk: every test below builds its records in memory or from a fixture string. That is what makes the whole part testable before P5 exists.
 
 **Tech Stack:** Python 3.12 · stdlib only (`sqlite3`, `json`, `hashlib`, `uuid`, `dataclasses`, `unicodedata`, `ast`) · `pytest` · P1's `database_agent` package as the substrate · no third-party runtime dependencies.
 
@@ -3264,7 +3264,7 @@ Expected: FAIL with `fixture 'p4_conn' not found` / `ModuleNotFoundError: No mod
 ```python
 # src/evidence_shape/schema.py
 """P4's three tables. They live inside P1's single local SQLite database (§0: "Each
-part owns its own tables within it"); P1 owns the handle, the transaction boundary,
+part owns its own tables within it — this project's convention, not a §0 quotation); P1 owns the handle, the transaction boundary,
 `files` and `events`, and P4 creates none of them and modifies no P1 file.
 
 One column is not a published field. P1's `mark_superseded` and `chain` are

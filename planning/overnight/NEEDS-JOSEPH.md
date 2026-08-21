@@ -384,3 +384,35 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > constructor arguments on `pdfminer_reader()` rather than buried constants. **If you switch to
 > PDFKit, the thing to check is whether it can distinguish a heading from body text**; if it can
 > only give geometry, zone quality drops and §3.7's positional weighting gets weaker evidence.
+
+**C5 · Does P6 keep a `sensitivity status` field row beside P7's authoritative record?**
+
+> D2 answered OQ11's actual question — *which record is authoritative* — and the answer is P7's
+> `ClassificationRecord`. It did **not** answer a second question hiding behind it: §3.11 lists
+> `sensitivity status` among P6's six universal fields, and round 1's F-2 found that field **has no
+> producer**. So it can exist as a catalogue row nothing ever writes.
+>
+> Two readings, and they are not close:
+>
+> - **P7 owns it entirely.** P6 creates no `sensitivity status` row. The field simply is not a fact
+>   in P6's sense; §3.11's mention is the design describing an attribute, not commissioning a field.
+> - **P6 keeps the row** and P7's classification is projected into it as a `user_confirmed` or
+>   `validated` fact — the "one record" reading, with P7 as the writer.
+>
+> I have written the skeletons to **create no such row until you say** and to have P7 read none,
+> because a catalogue row with no producer is the defect class that has cost this project the most
+> and building it either way is a guess. This is the last live piece of OQ11.
+
+**C6 · `SensitivityFacts` is a P6 seam that D2 left with nothing on the other side**
+
+> P7's plan defines `facts_seam.SensitivityFacts` as *"P7 talks to P6 through one injected
+> protocol"* — `current` / `write` / `supersede` / `history` over a sensitivity fact P6 owned. **D2
+> makes that record P7's own**, so there is no P6 record to read and no seam to inject: the four
+> methods now describe P7's own classification store over a table P7 owns.
+>
+> The shape is right and the ownership story is superseded. It is a real restructure of **Tasks 4,
+> 12, 13 and 14**, which all name it in their interfaces, and it was missed when D2 was first
+> applied — including by me. I have flagged it in the skeleton rather than rewriting those four
+> tasks, because renaming a seam into a store is a design change and not a reconciliation. **Confirm
+> the direction and it is a small edit; leave it and the first P7 author builds a fixture standing in
+> for a part that no longer owes them anything.**

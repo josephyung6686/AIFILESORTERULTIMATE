@@ -663,8 +663,14 @@ Each item is assertable against P4-shaped fixtures with no other part implemente
 **Observation → fact**
 4. Given the §3.2 fixture — filename `Syllabus BUSIB 4300 Spring 2026.pdf`, PDF title
    `BUSIB 4300 Syllabus`, page-one heading `Spring 2026` — P6 produces exactly the three facts
-   §3.2 names (course, term, work type), each with evidence refs to the observations that supported
-   it, and each observation's `raw value` unchanged afterwards (§3.2, §2.8).
+   §3.2 names (**`subject`**, term, work type), each with evidence refs to the observations that
+   supported it, and each observation's `raw value` unchanged afterwards (§3.2, §2.8).
+
+   > **Amended by D6, 2026-08-21.** This item said `course`. §3.2's own sentence is *"the system can
+   > create facts such as subject = BUSIB 4300"*, and §3.1 and §3.12 agree; only §3.11's Academic
+   > row says "course". The stored field key is `subject` -- a field key is a join handle and two
+   > spellings are two columns -- and §3.11's word survives inside quotations as prose for the same
+   > field. The `fields` catalogue carries a `subject` row and no `course` row.
 5. An EXIF `DateTimeOriginal` observation produces `capture date` as a `direct` fact, and the EXIF
    observation remains separately readable (§3.2).
 6. P6 resolves a fixture whose `source type` is unknown to it, with no per-format branching
@@ -843,8 +849,11 @@ joint review, not later.
    not share a cache slot. [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
 3. Is `purpose` a universal field or an Applications-domain field? §3.9 requires it to be
    "first-class"; §3.11's universal list omits it and places it only under College applications.
-4. Are `subject` (§3.1's `subject = BUSIB 4300`, §3.12's field list) and `course` (§3.11's Academic
-   row) the same field under two names, or two fields?
+4. ~~Are `subject` (§3.1's `subject = BUSIB 4300`, §3.12's field list) and `course` (§3.11's
+   Academic row) the same field under two names, or two fields?~~ **CLOSED — D6, 2026-08-21: one
+   field, and its stored key is `subject`.** A field key is a join handle, so two spellings would be
+   two columns. §3.11's "course" is the design's prose for the same field and survives inside
+   quotations; the `fields` catalogue carries `subject` and no `course`.
 5. Finance has a fact schema in §3.11 but is a *safety* domain in §3.15, "detected and protected
    before any cloud or automated placement decision is allowed". Does the Finance fact schema
    activate at launch, or does detection-and-protection precede any field extraction? **[seam with
@@ -866,9 +875,16 @@ joint review, not later.
     facts — two `validated` facts asserting conflicting course codes on one file. Reject both,
     surface both as competing candidates, or defer to the internal score §3.13 permits but declines
     to make authoritative?
-11. **[seam]** `sensitivity status` is a universal *fact* (§3.11), a *sensitivity state* on the file
-    record (§8.2), and a *handling class* in the privacy gate (§8.4). One record or three? Which part
-    writes it, and does a user reclassification (§8.4) arrive as a `user_confirmed` fact?
+11. ~~**[seam]** `sensitivity status` is a universal *fact* (§3.11), a *sensitivity state* on the
+    file record (§8.2), and a *handling class* in the privacy gate (§8.4). One record or three?~~
+    **CLOSED — D2, 2026-08-21.** P7's `ClassificationRecord`, keyed `(file_id, content_hash)`, is
+    authoritative. `files.sensitivity_state` is its projection, written through P1's
+    `set_sensitivity_state`. `Unreadable or unclassified` is a **gate outcome, not a file fact**, so
+    it never enters that column. P7 authors its own §8.4 audit record and P1 stores (M8).
+
+    **Two residues, both still open.** Whether P6 keeps a `sensitivity status` field row beside P7's
+    record — round 1 F-2 found it has no producer, so create none until asked (NEEDS-JOSEPH C5).
+    And whether a user reclassification arrives as a `user_confirmed` fact, which D2 did not reach.
 12. **[seam]** §2.8's observation record ends with a "reliability state" field, and §3.13 defines six
     reliability states for *file facts*. Do observations use the same six-value enum, a different
     one, or is the §2.8 field something else? P4 and P6 must agree before either is frozen.

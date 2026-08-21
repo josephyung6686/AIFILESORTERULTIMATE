@@ -6,6 +6,27 @@
 > [`../P5-extractors/PLAN.md`](../P5-extractors/PLAN.md). No placeholders, ever. A task that cannot
 > be written out in full is a task that was decomposed wrong.
 
+---
+
+## Ratified decisions — read this before planning any task (2026-08-22)
+
+| | Ratified | What it changes here |
+|---|---|---|
+| **D2** | `ClassificationRecord` keyed `(file_id, content_hash)` is **authoritative**; `files.sensitivity_state` is its **projection**, written through P1's published `set_sensitivity_state`; `Unreadable or unclassified` is a **gate outcome, not a file fact**. | P6 **OQ11 is CLOSED** — stop holding it open, and invert Task 21's guard or it fails the day this plan is executed. The classification is **not** "written through P6's `sensitivity` field". P7 takes **no** `SensitivityStateWriter` protocol: P1 publishes the setter, P7 calls it. |
+| **D3** | `events` append-only forever; derived projections may be tombstoned; "derived" is a **literal enumerated list**; **no writer-less tombstone column**. | Task 15's `delete_derived` still raises — but because nothing is built, not because the semantics are unratified. |
+
+**What is still open, and it is the thing that decides whether P7 is a product.** **No detector
+exists.** D2 puts the rule set behind an injection and no task in any plan produces one. Until it is
+supplied, a P7 running against a real corpus classifies nothing and **every real file resolves to
+`Denied(unclassified)`** — a correct, locked door with nobody holding a key. P7 can be built and
+proved against a fixture (that was always the split), but "P7 is done" and "the product classifies
+files" are different claims and this plan can only deliver the first.
+
+The caller's `handling_class=None` in `run_wave2` is the same fact seen from the other side: honest
+while nothing classifies, and **not** evidence of a finished gate.
+
+---
+
 **Goal:** Build §8.4 as the **only door** through which file content may reach a model or an external
 connector — the five handling classes, the four operation modes, the always-local set, the six
 releasable item kinds, `Gate.release` and its three-branch return, the consent-aware audit record,
@@ -15,10 +36,19 @@ to be caught in review but a call that **cannot be constructed**.
 
 **Architecture:** P7 is a sixth package, `src/privacy/`, alongside `database_agent` (P1),
 `eval_harness` (P2), `scan_agent` (P3), `evidence_shape` (P4) and `extractors` (P5), inside P1's
-single local SQLite database (§0: *"Each part owns its own tables within it"*). It owns the policy,
-consent-grant and release-ledger tables; it owns **no** classification table — the classification is
-written through P6's `sensitivity` field, and P6 does not exist, so that seam is an **injected
-protocol with a fixture implementation** exactly as P5 injected `no_usable_facts`. P7 reads P4's
+single local SQLite database (§0: *"A local SQLite database acts as the durable working memory of the product."* One table set per part is this project's convention, not a design quotation). It owns the policy,
+consent-grant and release-ledger tables.
+
+**It owns the classification (D2, ratified 2026-08-21).** `ClassificationRecord`, keyed
+`(file_id, content_hash)`, is **authoritative**; `files.sensitivity_state` is its projection onto
+the current row, written through P1's published `set_sensitivity_state`. P7 takes **no**
+`SensitivityStateWriter` and does **not** write "through P6's `sensitivity` field" — an earlier
+reading of SPEC §2 said so and D2 replaced it. P6 holds no sensitivity vocabulary at all.
+
+What IS still injected is the **detector**: the rule set that decides what a file carries. No task
+in any plan produces one, so a P7 running against a real corpus classifies nothing and every file
+resolves to `Denied(unclassified)`. That is the honest v1 posture and it must be stated at the call
+site rather than defaulted to "carries nothing". P7 reads P4's
 evidence through P4's published readers and is the **one and only** place in the repository where an
 `(observation_key, span)` becomes a string of document text.
 
@@ -128,20 +158,29 @@ of which two are provable inside P7 today and one is not:
   P8's obligation. **Say this plainly in the plan and in the report: until P8 exists, Done-means 3
   is proven only to the extent that the instrument is proven.**
 
-### 4. P6 does not exist, and P7 must not answer P6's open question
+### 4. P6 does not exist — and OQ11 is now CLOSED, so P7 stops holding it open
 
-SPEC §2 says the classification record is *"written through P6's `sensitivity` field"*. P6 is
-unbuilt, and **P6's own SPEC Open question 11 is open**: *"`sensitivity status` is a universal *fact*
-(§3.11), a *sensitivity state* on the file record (§8.2), and a *handling class* in the privacy gate
-(§8.4). One record or three? Which part writes it, and does a user reclassification (§8.4) arrive as
-a `user_confirmed` fact?"* P7's SPEC asserts an answer to that question; P6's SPEC still asks it.
+**P6 OQ11 asked** *"`sensitivity status` is a universal fact (§3.11), a sensitivity state on the
+file record (§8.2), and a handling class in the privacy gate (§8.4). One record or three?"*
 
-**P7 does not settle it.** Every task below is written against an injected `SensitivityFacts`
-protocol with a fixture implementation in `tests/p7/p6_fixture.py`, reconstructed from P6's SPEC —
-the same device `tests/p5/p4_stub.py` used, and the same delete-and-import swap when P6 ships. The
-protocol is the narrowest surface that satisfies §8.4 and it deliberately does **not** decide
-whether the fact, the file column and the handling class are one record or three. Task 21 holds
-P6 OQ11 open by name and fails if an implementation answers it.
+**D2 answered it (Joseph, 2026-08-21):**
+
+1. **P7's `ClassificationRecord`, keyed `(file_id, content_hash)`, is authoritative.** Keyed on the
+   hash because a classification is about BYTES; new bytes at a path are a new file version and
+   inherit nothing.
+2. **`files.sensitivity_state` is its projection**, written through P1's `set_sensitivity_state` —
+   the twin of `set_extraction_status`, with the same M8 rule: P7 authors its §8.4 audit record and
+   P1 stores. No `SensitivityStateWriter` protocol; P1 publishes the setter and P7 calls it.
+3. **`Unreadable or unclassified` is a GATE OUTCOME, not a file fact.** It lives on the release
+   decision and never in that column, so *"nothing has looked"* can never be read as *"this file
+   carries nothing"*.
+
+**So P7 is no longer blocked on P6 for this.** P6 is still unbuilt and P7 is still built against a
+fixture — that was always the split — but the fixture now stands for a settled shape rather than an
+open question. **Task 21 must no longer assert OQ11 is open**: that guard fails the day D2 is
+applied, which is the day this plan is executed. It should assert the D2 shape instead — that
+`src/privacy/` issues no `UPDATE files` of its own, and that `unclassified` never reaches the
+column.
 
 ### 5. Every open question stays open
 
@@ -400,7 +439,7 @@ seam mismatch and it is reported, not patched here.**
 ## What P7 consumes from P6 — and how, before P6 exists
 
 P6 is unbuilt and **P6's SPEC Open question 11 is open**. Every field below is quoted from
-`../P6-facts-facets/SPEC.md`; nothing is invented, and nothing here answers OQ11.
+`../P6-facts-facets/SPEC.md`; nothing is invented. OQ11 is answered by **D2**, not here.
 
 ```text
 file_facts     fact_id · file_id · field_id · value_id · reliability_state · origin ·
@@ -415,8 +454,28 @@ universal      file type · creation date · language · duplicate family · ver
   fields       sensitivity status                                                         (§3.11)
 ```
 
-P7 talks to P6 through **one injected protocol** with no default, defined in
-`src/privacy/facts_seam.py` and implemented for tests in `tests/p7/p6_fixture.py`:
+> **D2 changes what this section IS, and the change is structural — flagged here, not silently
+> rewritten.** This was designed as *"P7 talks to P6"*: a read seam onto a sensitivity fact P6
+> owned. **D2 makes `ClassificationRecord` P7's own authoritative record**, so there is no P6 record
+> to read and no seam to inject. What the four methods describe is now **P7's own classification
+> store** over a table P7 owns.
+>
+> That is smaller, not larger — but it is a real restructure of **Tasks 4, 12, 13 and 14**, which
+> name `facts_seam.SensitivityFacts` in their `Consumes`/`Produces`. A detail author should treat
+> the SHAPE below as correct and the OWNERSHIP story as superseded: `src/privacy/facts_seam.py`
+> becomes P7's classification store, `tests/p7/p6_fixture.py` stops standing in for P6, and the
+> "injected, no default" discipline is no longer needed for it — P7 can use its own table. **Do not
+> begin those four tasks until that rename is settled**; it is the last structural piece D2 moved
+> and it was missed when D2 was first applied.
+>
+> **What D2 did NOT settle**, and what is therefore still open: whether P6 keeps a `sensitivity
+> status` row among §3.11's universal fields at all. Round 1's F-2 already found that field has no
+> producer. D2 decided which record is AUTHORITATIVE; it did not decide whether a second,
+> P6-owned field row continues to exist beside it. Until that is answered, P6 should create no
+> such row and P7 should not read one.
+
+The shape, as originally defined in `src/privacy/facts_seam.py` and implemented for tests in
+`tests/p7/p6_fixture.py`:
 
 ```text
 SensitivityFacts
@@ -434,7 +493,7 @@ Three shape mismatches the fixture must make visible rather than paper over, eac
   home in the published P6 shape.
 - **Three spellings for one thing.** P7 SPEC says `sensitivity`; §3.11 and P6 say `sensitivity
   status`; P1's column is `sensitivity_state`. Task 2 pins all three.
-- **P6 OQ11 is open and stays open.** Task 21 asserts P7 publishes no answer to it.
+- **P6 OQ11 is CLOSED (D2).** Task 21 asserts the D2 shape — `ClassificationRecord` authoritative, the column a projection through P1's setter, `unclassified` never stored there — and no longer asserts the question is open.
 
 ## What P7 consumes from P13
 
@@ -495,7 +554,7 @@ src/privacy/__init__.py            package marker; exports Gate and the three de
 src/privacy/authorship.py          SUBSYSTEM = "P7"; the eight event names, asserted not added
 src/privacy/vocabulary.py          every closed vocabulary, and OPEN_QUESTIONS
 src/privacy/classification.py      SPEC §2's record; absence -> unreadable_unclassified
-src/privacy/facts_seam.py          the SensitivityFacts protocol — P6's seam, injected, no default
+src/privacy/facts_seam.py          P7's classification store (D2 — NOT a P6 seam; see §above)
 src/privacy/policy.py              modes, consent grants, redaction settings, policy_version
 src/privacy/defaults.py            W1 — the local-first floor and the more-redacting rule
 src/privacy/items.py               the six releasable kinds; the always-local set as a denial
@@ -666,8 +725,10 @@ records remain readable afterwards (§8.2's explicit rule). That the mirror onto
 one. That `Unreadable or unclassified` never reaches this column: it is a **gate outcome**, what the
 release decision says when it has no classification to release against, and storing it here would
 make "nothing has looked" indistinguishable from "this file carries nothing" (D2). And that the
-fixture holds P6 OQ11 open: it stores `protected` and `basis` in fields that P6's published
-`file_facts` shape has no column for, and says so in the assertion message.
+fixture reflects **D2**: `ClassificationRecord` is the authoritative record and the fixture stands
+for it, rather than storing `protected` and `basis` in fields P6's `file_facts` has no column for.
+Whether `protected` and `handling_class` are co-extensive is a separate question P7's own SPEC
+raises and D2 did not settle — that one stays open and is held by name.
 
 ---
 
@@ -1156,7 +1217,7 @@ regex, no gazetteer, no retention period, no corpus-area definition, and no defa
 beyond W1's two-member floor. That each of SPEC Open questions 1–11 is present in `OPEN_QUESTIONS`
 with its SPEC text and that no module answers it; specifically that Open question 11 names no winner
 between `offline` and `local_model`, Open question 3 defines no corpus area, and Open question 1
-never infers `protected` from the handling class. That **P6 OQ11** is likewise held open. That
+never infers `protected` from the handling class. That **the D2 shape holds** — see §4. That
 `src/privacy/` imports neither `ProtectedContainerRefused` nor `DatalessRefused` — the three refusals
 stay three. That `subsystem = "P7"` is written in exactly one module. And, repo-wide, that the set of
 packages binding a P4 text materialiser is `{evidence_shape, extractors, privacy}` and no other —
@@ -1195,7 +1256,7 @@ P8 that does not exist.
 | # | Done-means (abbreviated) | Task | Fully provable inside P7? |
 |---|---|---|---|
 | 1 | Five classes, four modes, closed; OOV is a load error | 2 | **Yes** |
-| 2 | Exactly one current `sensitivity` fact; absence → `unreadable_unclassified` | 3, 4 | **Yes**, against the P6 fixture. Against real P6: no — P6 is unbuilt and its OQ11 is open. |
+| 2 | Exactly one current classification per `(file_id, content_hash)`; absence → the gate outcome `unreadable_unclassified` | 3, 4 | **Yes**, against the fixture, and the shape is now settled (D2). Against a real corpus: the verdict is always `Denied(unclassified)` until a detector is injected. |
 | 3 | **Static property:** the transport has one entry point; its only content parameter is a `Released` | 19 (instrument), 12 (L1), 9+21 (L2) | **No — and this is a finding.** The transport is P8's. P7 proves the instrument, the unforgeable token, and the single materialisation locus. The property itself is P8 Done-means 1. |
 | 4 | Every `Released` carries an `audit_id` already in the log | 10 | **Yes** |
 | 5 | Bound to one `model_target` + `prompt_fingerprint`; consumed on first use; replay fails | 12 | **Yes** |
@@ -1359,7 +1420,7 @@ Each was verified by importing the package and reading `inspect.signature`, not 
    not P7's `basis` vocabulary. SPEC §2's record has no home in P6's published shape.
 10. **Three spellings of one field.** `sensitivity` (P7 SPEC), `sensitivity status` (§3.11, P6),
     `sensitivity_state` (P1's column).
-11. **P6 OQ11 is open.** P7's Contract-in states an answer to it. Held open here.
+11. **P6 OQ11 is CLOSED (D2, 2026-08-21).** P7's Contract-in stated an answer and D2 ratified that answer. What replaces it as open: no DETECTOR exists, so every real file is `Denied(unclassified)`.
 
 ## SPEC vs §8.4 — where the design and the contract differ
 
