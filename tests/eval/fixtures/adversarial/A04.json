@@ -1,16 +1,49 @@
-{"case_id": "A04",
+{
+ "case_id": "A04",
  "wording": "generic author metadata (`python-docx`, `Mozilla/5.0`, browser producer strings)",
  "attacks": "metadata trust",
- "sections": ["§2.2", "§2.3", "§3.8 (\"avoid using authorship or creator identity as a destination dimension\")"],
- "assert_against": "stage", "dimension": "fact", "subject_ref": "A04::doc::creator",
- "expected_outcome_kind": "produced",
- "expected_value": {"retained_as": "supporting_evidence"},
- "forbidden_value": {"used_as": "destination_dimension"},
- "text_units": [{"run_id": "A04-run", "container_path": [], "unit_locator": "",
-                 "text": "Quarterly notes.", "length": 16, "truncated": false}],
- "extraction_runs": [{"run_id": "A04-run", "file_id": "A04-file",
-                      "content_hash": "sha256:A04", "extractor_name": "docx.native",
-                      "extractor_version": "1.0.0", "source_type": "metadata",
-                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
-                      "coverage": {"units": "files", "processed": 1, "total": 1},
-                      "observation_count": 1, "creator": "python-docx"}]}
+ "sections": [
+  "\u00a72.2",
+  "\u00a72.3",
+  "\u00a73.8 (\"avoid using authorship or creator identity as a destination dimension\")"
+ ],
+ "assert_against": "stage",
+ "dimension": "fact",
+ "subject_ref": "A04::doc::creator",
+ "expected_outcome_kind": "abstained",
+ "expected_value": null,
+ "forbidden_value": {
+  "field": "authored_by",
+  "value": "python-docx"
+ },
+ "text_units": [
+  {
+   "run_id": "A04-run",
+   "container_path": [],
+   "unit_locator": "",
+   "text": "Quarterly notes.",
+   "length": 16,
+   "truncated": false
+  }
+ ],
+ "extraction_runs": [
+  {
+   "run_id": "A04-run",
+   "file_id": "A04-file",
+   "content_hash": "sha256:A04",
+   "extractor_name": "docx.native",
+   "extractor_version": "1.0.0",
+   "source_type": "metadata",
+   "config_fingerprint": "sha256:cfg",
+   "completeness": "complete",
+   "coverage": {
+    "units": "files",
+    "processed": 1,
+    "total": 1
+   },
+   "observation_count": 1,
+   "creator": "python-docx"
+  }
+ ],
+ "resolution_note": "F5, resolved 2026-08-22. `creator = python-docx` is a TOOL string, and \u00a72.2 says such a value 'should not be mistaken for meaningful content' -- the SUPPRESSION tier: no fact in any field, one `unresolved` row (`discounted_tool_metadata`). The DEMOTION tier this case used to assert (produced + retained_as supporting_evidence, never a destination dimension) is \u00a73.8's rule for a HUMAN name in `authored_by`. The case named tool strings and asserted the human-name tier, so it and P6 Done-means 22 could not both pass. The design decides it: Done-means 22 stands, the fixture moves."
+}

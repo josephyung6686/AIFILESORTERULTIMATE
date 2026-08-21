@@ -1503,15 +1503,41 @@ for the same field and survives inside quotations; the stored key is `subject` e
 the six universal fields, `download_session`, and the six §3.11 domain sets, *"and no field outside
 them"*. **`capture date` is in neither list** — the universal set has `creation date` and the Photos
 row has `capture year`. §3.1 and §3.2 both use `capture date = 2026-07-17` as the worked example, so
-this comes straight from the design. Options: `capture date` is `creation date` under another name;
-it is `capture year` at day precision; or §3.11's Photos row needs a seventh field. Not resolved here.
+this comes straight from the design.
+
+**RESOLVED 2026-08-22 — they are TWO fields and the design uses both deliberately.** Counted in
+`00`: *"capture date"* appears three times and always as a FACT WITH A VALUE — §3.1's
+`capture date = 2026-07-17` beside `subject = BUSIB 4300`, and §3.2's *"an EXIF field called
+DateTimeOriginal is raw metadata; capture date = 2026-07-17 is the file fact derived from it"*.
+*"capture year"* appears once, in §3.11's Photos sentence, among that domain's DESTINATION
+dimensions. A photo tree branches by year; the fact is the date.
+
+So: **`capture_date` is a `direct` fact derived from EXIF (Done-means 5), and `capture_year` is the
+Photos destination dimension derived from it.** Neither is `creation_date`, which §3.2 separates
+explicitly as the filesystem/document timestamp. Done-means 2's list gains `capture_date`; this is
+not "a seventh field" smuggled in but the field Done-means 5 always required.
+
+**Cross-check against R1a.** `planning/domains/canonical_fields.json` carries `capture_year` and
+**not** `capture_date` — correct for a roster whose job is destination dimensions, and a real gap for
+P6, whose job includes facts. Reported rather than edited: that file is another agent's.
 
 **F4 (HIGH). Done-means 14 requires a field that does not exist either.** It asserts one file holds
 *"`project`, `document type`, `purpose`, and `target university`"*. §3.11's prose worked case says
 *"`document type` = abstract"*, but §3.11's **field table** gives College applications
 *"application document type"* and Research *"artifact type"*. **There is no `document type` field.**
-Same class as F3, same origin: the design's prose and the design's table use different names. Not
-resolved here.
+
+**RESOLVED 2026-08-22 — `document type` is the design's GENERIC WORD for whichever specific field
+the active domain declares, and it is never itself a key.** `00` uses it twelve times, including
+*"project = PVA/RDP and document type = abstract"* — a research artifact, so that instance is
+`artifact_type`. College applications declare `application_document_type`. Two keys, one prose word,
+no third field.
+
+**Done-means 14 should therefore read `project`, `artifact_type`, `purpose`, `target_university`** —
+the case it describes is a research artifact that also carries an application purpose, which is
+exactly §3.1's "a file can simultaneously be" point.
+
+R1a already carries `"document type"` as an **alias** of `application_document_type`. It belongs on
+`artifact_type` as well, since §3.x's own worked example maps there. Reported, not edited.
 
 **F5 (HIGH). Adversarial case A04 as built asserts the opposite of the SPEC's suppression tier.**
 `tests/eval/fixtures/adversarial/A04.json` is worded *"generic author metadata (`python-docx`,
@@ -1691,7 +1717,15 @@ engine exists — which leaves `no_usable_facts` stubbed and the cycle live in t
 (a).** (c) is the status quo and it is the thing that let this survive undetected; the cost of (a) is
 one orchestrator diff against a green suite.
 
-**2. Three event types P6 needs and P1 does not have (F9).** Value creation, value merge/alias, and
+**2. Three event types P6 needs and P1 does not have (F9). RESOLVED 2026-08-22: ride the existing
+types; P6 mints none.** §8.2's reconstruction requirement is about being able to rebuild what
+happened, and P1's existing vocabulary plus P6's own rows already carry that: a value creation is
+visible as the `values` row itself, a merge as the alias row, and a user correction is keyed on
+`proposal_class` + `basis_key` in §8.7's learning record rather than on an event type. **Minting
+three new §8.2 types would put one concept in two homes** — the row and the event — which is this
+project's most expensive defect, and P6's own discipline already refuses it for `unresolved` (*"P6
+claims no new §8.2 event type for it"*). The SPEC must say so rather than leaving it implied.
+Original finding: value creation, value merge/alias, and
 user fact correction. *Options:* (a) register three new types in P1's `_REGISTERED` — a spec-level act
 under B5, which is exactly how the sixteen SPEC-registered types got there. (b) Ride them on
 `fact creation` / `fact rejection` with the five `CORRECTION_FIELDS` distinguishing them — which is
@@ -1707,11 +1741,25 @@ asserted two different ways in two different places that both claim to be contra
 settled together**, because four of the five are the same underlying issue — the design states its
 field names once in prose and once in a table, and the two do not match.
 
-**OQ4 is now settled (D6): `subject`, and the rule it establishes is PROSE WINS — §3.1/§3.2/§3.12's
-sentences over §3.11's row.** That precedent should now be applied to the other three (`capture
-date` vs `capture year`, `document type` vs `application document type`/`artifact type`), and A04 and
-A07 amended to the settled names. Those three are still Joseph's; what is no longer open is the
-tie-break rule, and applying it is naming work rather than a decision.
+**OQ4 is settled (D6): `subject`. But the rule it establishes is NOT "prose wins"** — that was my
+over-generalisation from a single case, and applying it blindly to the other three gives wrong
+answers. R1a's canonical catalogue demonstrates the better rule, which is D6's actual mechanism:
+
+> **One stored key per concept. Every other word the design uses for it becomes an ALIAS, never a
+> second key.** Which word becomes the key is decided per concept on the evidence, not by a blanket
+> precedence between prose and tables.
+
+For `subject`/`course` the prose word won. For `document type` the *specific* words won and the
+prose word is the alias. Both are the same rule. Applied 2026-08-22:
+
+| | Resolution |
+|---|---|
+| **F3** `capture date` vs `capture year` | **Not a tie — two fields.** `capture_date` is the EXIF-derived fact (§3.1, §3.2); `capture_year` is the Photos destination dimension (§3.11). Both exist. |
+| **F4** `document type` | **Not a key.** Generic prose for `application_document_type` (College apps) or `artifact_type` (Research/Code). Done-means 14 reads `artifact_type`. |
+| **F5** A04 | **Fixture moved.** `python-docx` is a tool string — §2.2's suppression tier, not §3.8's demotion tier. Done-means 22 stands. |
+| **F6** A07 | **Fixture moved.** `kind` → `media_type`. |
+
+A04 and A07 are amended in `tests/eval/fixtures/adversarial/`; P2's 156 tests stay green.
 
 **4. Which fields are `destination_eligible` beyond §3.8's rule?** §3.8 settles that no authorship or
 creator-identity field ever is. Nothing settles the rest, and P10 cannot build a folder template

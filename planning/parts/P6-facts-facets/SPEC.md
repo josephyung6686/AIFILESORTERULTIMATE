@@ -654,9 +654,21 @@ Each item is assertable against P4-shaped fixtures with no other part implemente
 **Schema**
 1. `fields`, `values`, `file_facts` exist with the shapes above; `file_facts` contains no path,
    destination, folder, or group column (§3.14).
-2. All six universal fields, `download_session`, and all six §3.11 domain field sets are present,
-   and no field outside them (§3.11, and the "such as" reading recorded under `fields`). Career and
-   recruiting, identity, medical and legal have no field rows and must not acquire any (S3).
+2. All six universal fields, `download_session`, all six §3.11 domain field sets, **§3.8's four
+   role fields** (`authored_by`, `target_school`, `our_firm`, `client`) and **`capture_date`** are
+   present, and no field outside them (§3.11, and the "such as" reading recorded under `fields`).
+   Career and recruiting, identity, medical and legal have no field rows.
+
+   > **Amended 2026-08-22.** Three changes, each closing a contradiction inside this document.
+   > **(a) §3.8's roles are IN.** Round 1's F-1: the design names them outright and Done-means 13
+   > and 22 both require `authored_by` to exist, so the old "no field outside them" made two of this
+   > SPEC's own Done-means unwritable. **(b) `capture_date` is IN** (F3): Done-means 5 requires it,
+   > §3.2 derives it from EXIF `DateTimeOriginal`, and it is distinct from both `creation_date`
+   > (filesystem/document timestamp, §3.2's own contrast) and `capture_year` (§3.11's Photos
+   > destination dimension). **(c) "and must not acquire any (S3)" is STRUCK** (D1, narrowed by
+   > Joseph 2026-08-21): the deferral stands on its own, and a test forbidding the row made P6's
+   > suite the thing that would reject a later deliberate reversal of S3 — a decision arriving as a
+   > regression. They still have no field rows today; nothing may add one silently.
 3. A new value auto-creates on first sight; a new field cannot be created at runtime by any
    producer, including the LLM path (§3.12, §3.5).
 

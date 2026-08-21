@@ -464,9 +464,19 @@ universal      file type · creation date · language · duplicate family · ver
 > name `facts_seam.SensitivityFacts` in their `Consumes`/`Produces`. A detail author should treat
 > the SHAPE below as correct and the OWNERSHIP story as superseded: `src/privacy/facts_seam.py`
 > becomes P7's classification store, `tests/p7/p6_fixture.py` stops standing in for P6, and the
-> "injected, no default" discipline is no longer needed for it — P7 can use its own table. **Do not
-> begin those four tasks until that rename is settled**; it is the last structural piece D2 moved
-> and it was missed when D2 was first applied.
+> "injected, no default" discipline is no longer needed for it — P7 can use its own table. **SETTLED 2026-08-22 — the
+> rename, in one paragraph, so those four tasks can start.**
+>
+> `src/privacy/facts_seam.py` becomes `src/privacy/classification_store.py`, and the
+> `SensitivityFacts` protocol becomes a concrete `ClassificationStore` over a table **P7 creates and
+> owns** — `current(file_id, content_hash)`, `write(record)`, `supersede(old, new, reason)`,
+> `history(file_id)`, unchanged in shape. It takes no injection and has no default to argue about,
+> because P7 is now both the writer and the reader; `tests/p7/p6_fixture.py` is **deleted**, not
+> reimplemented, since there is no longer a P6 surface for it to stand in for. Supersession still
+> runs through P1's three columns (`mark_superseded`, `chain`, `SUPERSEDE_COLUMNS`) — that is P1's
+> and P7 does not copy it — and `files.sensitivity_state` is still written through P1's
+> `set_sensitivity_state`. Tasks 12, 13 and 14 change only the import and the type name; Task 4
+> loses a protocol and gains a `CREATE TABLE`. **Nothing else in this plan moves.**
 >
 > **What D2 did NOT settle**, and what is therefore still open: whether P6 keeps a `sensitivity
 > status` row among §3.11's universal fields at all. Round 1's F-2 already found that field has no
