@@ -298,3 +298,36 @@ task needs. Each names a task someone else owns. **Honour them; do not renegotia
 | **P6 Task 25** | The no-import guard must permit exactly one edge: `facts` imports `ContractViolation` from `extractors`. `FactPassNotRun` must inherit it or the orchestrator's catch-all swallows the guard into a `failed` run and it stops guarding. |
 | **P6 Task 6** | `facts.cache` is Task 6's and **no other task may add to it**. Two cache-key rules currently exist across sibling sections — one keying a fact on its cited observations, one keying the pass on the file version's whole evidence set. Task 6 publishes one helper; the abstention case forces the pass-level rule, because an `unresolved` row with no citations still needs a key. |
 | **P6 Task 11** | `fill_or_abstain` must treat an absent second-best as score zero. A sibling wrote that as a test rather than prose, so a disagreement fails `test_a_missing_signal_contributes_nothing_to_either_candidate` instead of merging silently. |
+
+---
+
+## 16. Two more corrections, and one that needs Joseph
+
+**My skeleton is wrong against live P4.** Task 1's spec says `validate_observation` raises
+`NonConforming` on a bad `reliability`. It raises **`NotInVocabulary`** — verified by execution, and
+the two classes are unrelated. Write tests to the live behaviour, not to my sentence.
+
+**A guard I specified would have broken three sibling tasks.** Task 1's "no string literal spelling
+a state name" guard, read literally, also forbids `VERSION_FAMILY_STATES`, `SESSION_STATE`,
+`EVENT_STATE` and `LLM_STATES` — collections siblings legitimately publish inside `src/facts/`. The
+guard's real target is narrower: **no module other than the one publishing them may bind a
+collection whose members ARE the six states.** By runtime introspection, as always.
+
+**A trap worth carrying forward:** `FORBIDDEN_COLUMN_SUBSTRINGS` must not be run against the
+`fields` table — the legitimate column `destination_eligible` contains the substring `destination`.
+
+### NEEDS JOSEPH — `destination_eligible` for `target_school` and `client`
+
+My skeleton says **all four** of §3.8's role fields are `destination_eligible = FALSE`.
+`planning/domains/canonical_fields.json` (the other session's R1a catalogue) says `target_school`
+and `client` are **TRUE**. A P6 author resolved it toward the skeleton on precedence and recorded
+the reasoning rather than burying it — correctly.
+
+**I think the catalogue is right and my skeleton over-applied the rule.** §3.8's sentence is
+*"It should avoid using authorship or creator identity as a destination dimension."* `authored_by`
+and `our_firm` are authorship and creator identity. `target_school` — the school you are applying
+TO — and `client` — whom the work is FOR — are the **other side** of the role split, and a client
+folder is an ordinary destination.
+
+This is not mine to settle: it decides whether P10 can build a folder template on those two keys.
+**Both readings are written down; a P6 author is currently building the stricter one.**

@@ -974,7 +974,16 @@ and nothing that changes between two identical runs.
   )
 
   FILE_ID = "file-01"
+  #: Fixture 1's content hash, so the P4 half of this file uses the real one.
   CONTENT_HASH = "042896dc1966b8a6214e5383aba5b8b931cfa049d17aafa37eb8a77c859b95da"
+  #: Three more file VERSIONS. P2's `stage_dimension_value` is keyed
+  #: `(run_id, dimension, subject_ref)` — verified by execution, it raises
+  #: `IntegrityError` on a second `fact` value for one subject in one run — so two
+  #: results emitted into the same run must be two different subjects. That is P2
+  #: enforcing "one envelope per subject P6 decides about", not a test convenience.
+  CONTENT_HASH_B = "b" * 64
+  CONTENT_HASH_C = "c" * 64
+  CONTENT_HASH_D = "d" * 64
 
 
   def a_result(**overrides) -> ResolveResult:
@@ -985,12 +994,14 @@ and nothing that changes between two identical runs.
 
 
   PRODUCED = a_result(fact_ids=("fact-1",))
-  ABSTAINED = a_result(reason_counts={"no_candidate_evidence": 2,
+  ABSTAINED = a_result(content_hash=CONTENT_HASH_B,
+                       reason_counts={"no_candidate_evidence": 2,
                                       "below_margin": 1})
-  DEFERRED = a_result(reason_counts={"budget_deferred": 3},
+  DEFERRED = a_result(content_hash=CONTENT_HASH_C,
+                      reason_counts={"budget_deferred": 3},
                       stages_barred={"llm": "budget"},
                       deferred_against=("model.max_cost_per_scan",))
-  ERRORED = ResolveResult.errored(file_id=FILE_ID, content_hash=CONTENT_HASH,
+  ERRORED = ResolveResult.errored(file_id=FILE_ID, content_hash=CONTENT_HASH_D,
                                   error="rules.apply_rules: boom")
 
 
@@ -1126,7 +1137,7 @@ and nothing that changes between two identical runs.
       rows = stage_outputs(conn, p2_run[0], stage_id=STAGE_ID)
       assert [row["outcome"] for row in rows] == ["produced", "abstained"]
       assert {row["budget_state"] for row in rows} == {"within_ceiling"}
-      assert {row["subject_ref"] for row in rows} == {CONTENT_HASH}
+      assert {row["subject_ref"] for row in rows} == {CONTENT_HASH, CONTENT_HASH_B}
       assert json.loads(rows[0]["inputs"]) == [FILE_ID]
 
 

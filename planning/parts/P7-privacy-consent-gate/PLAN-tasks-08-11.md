@@ -2228,6 +2228,14 @@ LOCATION = Location(zone="body", container_path=PAGE, text_span=TextSpan(16, 27)
 SPAN = serialize_locator(LOCATION)
 KEY = observation_key(content_hash=CONTENT_HASH, extractor_name="pdf_text",
                       locator=SPAN, raw_value="992-33-1188")
+#: The same extractor's whole-page observation. §8.4's "full document", as a real
+#: record rather than as a hand-made span: an extractor that emits the page as one
+#: value is the ordinary way a whole-document request comes to exist.
+WHOLE_LOCATION = Location(zone="body", container_path=PAGE,
+                          text_span=TextSpan(0, len(BODY)))
+WHOLE_KEY = observation_key(content_hash=CONTENT_HASH, extractor_name="pdf_text",
+                            locator=serialize_locator(WHOLE_LOCATION),
+                            raw_value=BODY)
 CLOUD = ModelTarget(locality="cloud", model_id="acme-large", provider="Acme")
 LOCAL = ModelTarget(locality="local", model_id="llama-local", provider="self-hosted")
 
@@ -2302,6 +2310,11 @@ def corpus(p7_conn, tmp_path):
         observed_at=FIXED_CLOCK, reliability="direct", run_id="run-1",
         context_before="Passport number ", context_after=" issued 2019.",
         context_truncated=False))
+    record_observation(p7_conn, Observation(
+        file_id=file_id, content_hash=CONTENT_HASH, extractor_name="pdf_text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=BODY,
+        location=WHOLE_LOCATION, occurrence_count=1, observed_at=FIXED_CLOCK,
+        reliability="direct", run_id="run-1"))
     set_policy(p7_conn, a_policy(), author="P7", component_version=COMPONENT,
                user_id="joseph")
     return p7_conn
@@ -2507,7 +2520,7 @@ def test_a_whole_document_excerpt_is_denied(corpus):
     # §8.4: "It should not send full documents where a short heading or OCR excerpt
     # is enough to resolve the question."
     classify(corpus, "personal_non_sensitive", protected=False)
-    whole = Excerpt(observation_key=KEY, span=TextSpan(0, len(BODY)),
+    whole = Excerpt(observation_key=WHOLE_KEY, span=TextSpan(0, len(BODY)),
                     reason="all of it")
     decision = a_gate(corpus).release(a_request(corpus, requested_items=(whole,)))
     assert isinstance(decision, Denied)
@@ -2924,7 +2937,20 @@ class Gate:
         if self._needs_consent(request, policy, classes):
             return self._request_consent(request, policy, state, classes)
 
-        materialised, manifest = self._materialise(request)
+        try:
+            materialised, manifest = self._materialise(request)
+        except WholeDocumentRequested as refused:
+            # Task 7 raises `AlwaysLocalRequested` at CONSTRUCTION, so an
+            # always-local item never reaches this call; the whole-document check
+            # needs the stored unit length and can only run once the span has been
+            # resolved. Nothing has left: a refusal here discards what was resolved.
+            return self._deny(
+                request, policy, state, classes, "whole_document_requested",
+                f"{refused} -- §8.4: the engine \"should not send full documents "
+                "where a short heading or OCR excerpt is enough to resolve the "
+                "question\"",
+                ("request the heading, or a bounded excerpt of the passage",
+                 "cite the observation by reference, which carries no content"))
         ceiling = get_ceiling(self._conn, _DOSSIER_CEILING)
         if ceiling is not None and request.max_dossier_tokens > ceiling:
             return self._deny(
@@ -3052,7 +3078,7 @@ class Gate:
 - [ ] **Step 5: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_release.py -v`
-Expected: PASS — 25 passed
+Expected: PASS — 28 passed
 
 - [ ] **Step 6: Run P7's suite so far, and P1–P5**
 

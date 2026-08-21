@@ -26,9 +26,11 @@ evidence was absent?"* and an absent row cannot answer a question about absence.
 makes writes a row naming the field it attempted, the reason, the routes it tried, and the
 observation keys it looked at. Two rules make the row trustworthy and both are tests below: it is
 **not a weak fact** (no `value_id`, no reliability state, absent from every fact read), and
-`budget_deferred` and `privacy_withheld` are **not abstentions** — §8.6 requires deferred work be
-*"visible as deferred, never as 'understood and found unimportant'"*, and merging them would report a
-budget stop as a considered refusal.
+`budget_deferred` and `privacy_withheld` are **not abstentions** — §8.6 requires the product to
+*"mark the deferred stage, and leave the file or group in review rather than guessing"*, so that
+reporting *"avoids the false impression that an unprocessed file was understood and found
+unimportant"*. Merging them would report a budget stop as a considered refusal, which is that
+impression exactly.
 
 #### Verified by execution, 2026-08-22 — three things this task's shape depends on
 
@@ -259,8 +261,9 @@ def test_an_unresolved_row_is_absent_from_every_fact_read(p6_conn):
 
 
 def test_budget_deferred_and_privacy_withheld_are_not_abstentions(p6_conn):
-    """B7's second half, and §8.6's "visible as deferred, never as 'understood and
-    found unimportant'". All three are rows; only one is an abstention."""
+    """B7's second half, and §8.6's "avoids the false impression that an unprocessed
+    file was understood and found unimportant". All three are rows; only one is an
+    abstention."""
     assert NOT_ABSTENTIONS == frozenset({"budget_deferred", "privacy_withheld"})
     assert NOT_ABSTENTIONS <= set(UNRESOLVED_REASONS)
 
@@ -407,9 +410,11 @@ ATTEMPTED_PRODUCERS: tuple[str, str, str] = ("direct", "rule", "llm")
 
 #: The two reasons that are NOT abstentions (B7, §8.6). A refusal for either of these
 #: means the question was never answered on the evidence: the budget stopped the work,
-#: or the privacy class forbade the only remaining route. §8.6 requires deferred work
-#: be "visible as deferred, never as 'understood and found unimportant'", and reporting
-#: either of these as a considered refusal is exactly that failure.
+#: or the privacy class forbade the only remaining route. §8.6: "If the budget is
+#: exhausted, the product should retain extracted evidence, mark the deferred stage,
+#: and leave the file or group in review rather than guessing", and reporting
+#: "avoids the false impression that an unprocessed file was understood and found
+#: unimportant". Reporting either of these as a considered refusal is that impression.
 #:
 #: This is a frozenset and not a tuple because it is asked `in` and never iterated for
 #: order, and because P2's writer (`record_stage_output`) already enforces the
@@ -1233,7 +1238,7 @@ git commit -m "feat(P6): §3.4's five-part fact cache key — a rename is free, 
 
 ## Contract ambiguities these two tasks hit and did not resolve
 
-Four, reported rather than patched, because each one belongs to a task another author owns.
+Five, reported rather than patched, because each one belongs to a file another author owns.
 
 1. **`get_field(conn, field_key)` must return a `field_id`.** The SPEC's `fields` sketch names
    `field_key` as the *"stable identifier"* and lists no `field_id`, but `file_facts` and
@@ -1251,7 +1256,19 @@ Four, reported rather than patched, because each one belongs to a task another a
    `file_facts.supersedes` as `None` — verified by execution, silently, with no error raised. Task 5
    asserts the half that Done-means 19 and SPEC rule 3 require. Whether the fact should also point
    back at the refusal it replaced is `facts/supersede.py`'s question (Task 23).
-4. **The multi-observation reconciliation is stated in five places and owned by none.** A fact built
+4. **A fabricated quotation lives in P6's SPEC and in the skeleton, and is not repaired here.**
+   Both attribute to §8.6 the sentence *"visible as deferred, never as 'understood and found
+   unimportant'"*. The design contains no such sentence. Its actual words, grepped: *"If the budget
+   is exhausted, the product should retain extracted evidence, mark the deferred stage, and leave the
+   file or group in review rather than guessing"*, *"Cost exhaustion must never turn into
+   lower-quality automatic classification"*, *"The user interface should show the difference between
+   completed work and deferred work"*, and *"avoids the false impression that an unprocessed file was
+   understood and found unimportant"*. The paraphrase is faithful in substance, which is why it
+   spread; it is still not a quotation. These two tasks quote the design's words instead. **The SPEC
+   and `PLAN-SKELETON.md` still carry it** — they are not this author's files, and the same phrase
+   should be expected in the other P6 and P7 task documents written against the same skeleton.
+
+5. **The multi-observation reconciliation is stated in five places and owned by none.** A fact built
    from several observations has several extractor versions and several analysis tiers;
    `PLAN-tasks-07-09.md` and `PLAN-tasks-14-15.md` both state the same collapse rule
    (`extractor_version` = `canonical_json` of the sorted distinct `[name, version]` pairs;

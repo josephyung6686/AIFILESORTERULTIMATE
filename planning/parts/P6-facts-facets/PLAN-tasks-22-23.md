@@ -889,8 +889,14 @@ def fact_id(conn, value_id) -> str:
     )
 
 
-def snapshot(connection) -> dict[str, list[tuple]]:
-    """Every table's every row, as plain tuples, so equality is byte-for-byte."""
+def snapshot(connection) -> dict[str, list[str]]:
+    """Every table's every row, byte-for-byte.
+
+    Rows are compared as sorted reprs: SQLite guarantees no row order without an
+    ORDER BY, `ORDER BY rowid` is not available on every table, and sorting the
+    tuples themselves would compare None against str. Sorted reprs are total,
+    deterministic, and still catch a single changed byte in any column.
+    """
     names = [
         row["name"]
         for row in connection.execute(
@@ -898,7 +904,9 @@ def snapshot(connection) -> dict[str, list[tuple]]:
         )
     ]
     return {
-        name: [tuple(row) for row in connection.execute(f'SELECT * FROM "{name}"')]
+        name: sorted(
+            repr(tuple(row)) for row in connection.execute(f'SELECT * FROM "{name}"')
+        )
         for name in names
     }
 
@@ -1079,7 +1087,7 @@ def test_p6_appends_no_event_for_a_rendering_change(conn, value_id, fact_id):
 Run: `pytest tests/p6/test_p6_plan_versions.py -v`
 
 Expected: **FAIL** — collection error, `ModuleNotFoundError: No module named 'facts.plan_versions'`.
-All 15 tests error at import.
+All 16 tests error at import.
 
 - [ ] **Step 3: Write the implementation**
 
@@ -1226,7 +1234,7 @@ def display_label(conn: sqlite3.Connection, *, value_id: str,
 
 Run: `pytest tests/p6/test_p6_plan_versions.py -v`
 
-Expected: **PASS** — 15 passed.
+Expected: **PASS** — 16 passed.
 
 - [ ] **Step 5: Confirm the negative from the schema alone**
 
