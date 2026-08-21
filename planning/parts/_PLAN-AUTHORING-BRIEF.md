@@ -447,3 +447,37 @@ again. They disagree on three shapes, and **the 04-07 version is unbuildable**:
 §8.4 permits *"a short heading or OCR excerpt"* in the same sentence that makes OCR output
 always-local, so `items.py` does not branch on zone and will not deny it. The fixture should stand on
 a P5-signalled key instead. Reported by its author rather than patched into either file.
+
+---
+
+## 22. Task 11: take `PLAN-tasks-11.md`. It does not have the bypass.
+
+Both files carry a `### Task 11`. Verified by reading both:
+
+- **`PLAN-tasks-08-11.md`** filters `if not isinstance(item, TEXT_BEARING): continue` **before** its
+  only `check_item` call — §19's bypass. GPS-as-an-item is released unchecked.
+- **`PLAN-tasks-11.md`** runs a **precheck over every item with no filter**, catching
+  `AlwaysLocalRequested` and `ProtectedItemRequested`, and then a separate `_postcheck_items` where
+  the `TEXT_BEARING` filter is correct, because only text-bearing items have a resolved
+  `unit_length` and its only catch is `WholeDocumentRequested`.
+
+**Take `PLAN-tasks-11.md`.** It also honours the four cross-task demands verbatim.
+
+### Three things it raises that are still open
+
+- **Task numbering is not a build order for 11–14.** The module graph is acyclic
+  (`consent → release → denial/binding → gate`), but Tasks 12/13/14 are Create-only and each says
+  the wiring is Task 11's, while `denial.py` imports `release.Denied` at run time. Executable order
+  is **14, 11-a, 13, 12, 11-b**, so Task 11 lands in two commits.
+- **SPEC §6 and §7 cannot both hold for `release_id`.** §6 puts the audit append strictly before the
+  release exists, `mint_release` takes the `audit_id`, and `events` is append-only — so
+  `AuditRecord.release_id` is `None` on a release record and the join must run ledger → events.
+  A Contract-out mismatch, not an implementation choice.
+- **Task 20 pins `Gate.__init__` to ten keywords and two denials are unreachable without two more**
+  (`measure_tokens` — P7 owns no tokenizer; `template_for` — §7.3's residual library is unbuilt).
+  Added as optional defaulting to `None`, so with the default the denial cannot fire — the same
+  shape as "an unset ceiling cannot deny". Task 20's fixtures 4 and 16 need one more line to replay.
+
+**Good discipline worth copying:** `SENSITIVE_CLASSES` was *removed* from that author's own earlier
+draft, because publishing it would have answered NEEDS-JOSEPH C24 in code. The consent branch reads
+`ClassificationRecord.protected` per SPEC §2 instead.
