@@ -95,7 +95,7 @@ Engineering, manufacturing and physical-trades material that carries a project o
 | `project` | string | Hawk Mk2 actuator | `validated` | §3.11 names project as a field for research files and for code files. Reusing the same field name here rather than inventing a parallel one is what §3.12 "The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically." requires. |
 | `product` | string | Hawk Mk2 | `validated` | the marketed or delivered thing, as distinct from the project that produces it; §3.8 "The system must separate roles that happen to contain the same entity type." |
 | `discipline` | string | mechanical | `validated` | the engineering discipline is this slice's nearest analogue to §3.11's academic `subject`, and it is the dimension that most often decides which sub-domain schema is plausible |
-| `artifact_type` | string | specification | `validated` | §3.11's Research row names `artifact type`; this is the same field applied to engineering output |
+| `artifact_type` | string | specification | `validated` | §3.11's Research row names `artifact_type`; this is the same field applied to engineering output |
 | `lifecycle_stage` | string | detailed design | `validated` | §3.11's Research row names `stage`; a product programme has the same shape |
 | `organisation` | string | Kestrel Dynamics | `validated` | recorded for search and explanation only. §3.8 "It should avoid using authorship or creator identity as a destination dimension." |
 

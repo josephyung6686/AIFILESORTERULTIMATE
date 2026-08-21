@@ -11,14 +11,14 @@
       "design_cite": "§4.2 “a photo group, it might be a deterministic event created from camera, time, and GPS metadata” · §2.6 “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals” · §3.11 “Photos may use capture year, event, location, people, camera information, and media type”",
       "schema": [
         {
-          "field": "capture date",
+          "field": "capture_date",
           "type": "date",
           "example": "2026-07-17",
           "reliability_ceiling": "direct",
           "why": "§3.2 is the worked example for exactly this field: “an EXIF field called DateTimeOriginal is raw metadata”, and “capture date = 2026-07-17” is the file fact derived from it. §3.13: “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”."
         },
         {
-          "field": "capture year",
+          "field": "capture_year",
           "type": "year",
           "example": "2026",
           "reliability_ceiling": "direct",
@@ -39,7 +39,7 @@
           "why": "§3.11 names `location`. The GPS pair itself is direct EXIF; the place NAME is a gazetteer resolution over it, which is §3.13's “A validated fact was found by a deterministic rule and passed contextual checks”. The coordinate and the label are not the same fact."
         },
         {
-          "field": "camera information",
+          "field": "camera_information",
           "type": "string",
           "example": "Apple iPhone 15 Pro",
           "reliability_ceiling": "direct",
@@ -53,7 +53,7 @@
           "why": "§3.11 names `people` as a Photos field, and nothing anywhere in the design authorises an automatic producer for it — no face recognition, no contact matching. The only honest ceiling is §3.13's “A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user”. Recorded so the validator legitimises a user-entered value and refuses a model-proposed one."
         },
         {
-          "field": "media type",
+          "field": "media_type",
           "type": "string",
           "example": "photograph",
           "reliability_ceiling": "validated",
@@ -98,7 +98,7 @@
       ],
       "template": {
         "dimension_order": [
-          "capture year",
+          "capture_year",
           "event"
         ],
         "why": "§5.4 states the Photos template literally — “a Photos template may define year → event” — and §5.5 states the reason a capture domain may lead with time: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material”. Both halves apply here without strain, because the deterministic event is BUILT from capture time, so the parent level is the child's own defining evidence rather than an unrelated calendar imposed on it (§5.5: “a parent dimension should provide the context required to understand the child”).",
@@ -141,7 +141,7 @@
           "why": "The occasion label is the domain's reason to exist and cannot be derived from metadata: two cameras at one wedding share nothing but the date. §3.13's “A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user” is the ceiling; an LLM reading OCR'd signage or an invitation may reach `llm_supported` beneath it."
         },
         {
-          "field": "capture year",
+          "field": "capture_year",
           "type": "year",
           "example": "2024",
           "reliability_ceiling": "direct",
@@ -169,14 +169,14 @@
           "why": "§3.11 names `people`. Same ceiling and same reason as `pers.photo-event`: the design authorises no automatic producer."
         },
         {
-          "field": "contributor device",
+          "field": "contributor_device",
           "type": "string",
           "example": "Canon EOS R6",
           "reliability_ceiling": "direct",
           "why": "An occasion assembled from several cameras needs the camera identity kept per file rather than collapsed, or §4.2's event rule silently splits the occasion into one machine event per device. Direct EXIF."
         },
         {
-          "field": "media type",
+          "field": "media_type",
           "type": "string",
           "example": "photograph",
           "reliability_ceiling": "validated",
@@ -217,7 +217,7 @@
       ],
       "template": {
         "dimension_order": [
-          "capture year",
+          "capture_year",
           "occasion"
         ],
         "why": "§5.4's Photos template is “a Photos template may define year → event”, and §5.5 states the capture exception: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material”. Year-first also does real work here rather than merely following the rule — occasion labels recur annually, so `Birthday` without a year parent is a colliding branch, which is precisely §5.5's “a parent dimension should provide the context required to understand the child”.",
@@ -253,14 +253,14 @@
       "design_cite": "New. §2.6's warning that “Messaging platforms and downloaded web images often strip metadata from real photographs” describes the mechanism, and §3.11's Photos fields supply the vocabulary, but no design sentence names an archival photo domain. Proposed because it is the one capture domain where §5.5's stated reason for time-first — capture date being defining — is exactly what the material lacks.",
       "schema": [
         {
-          "field": "depicted period",
+          "field": "depicted_period",
           "type": "string",
           "example": "1970s",
           "reliability_ceiling": "user_confirmed",
           "why": "The era shown, which is what the material is actually about. It is not the capture date and not the scan date. Nothing in the design authorises deriving it, so §3.13's “A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user” is the ceiling; an LLM reading a handwritten caption may reach `llm_supported`."
         },
         {
-          "field": "digitisation date",
+          "field": "digitisation_date",
           "type": "date",
           "example": "2019-03-02",
           "reliability_ceiling": "direct",
@@ -274,7 +274,7 @@
           "why": "Who or what the material came from is the archive's real organising fact and is only ever supplied by a person."
         },
         {
-          "field": "caption text",
+          "field": "caption_text",
           "type": "string",
           "example": "Summer, Kyoto",
           "reliability_ceiling": "direct",
@@ -288,7 +288,7 @@
           "why": "§3.11 names `people`. Same ceiling as the other photo domains."
         },
         {
-          "field": "media type",
+          "field": "media_type",
           "type": "string",
           "example": "scanned print",
           "reliability_ceiling": "validated",
@@ -331,7 +331,7 @@
       "template": {
         "dimension_order": [
           "source",
-          "depicted period"
+          "depicted_period"
         ],
         "why": "This is the capture domain that must NOT lead with time, and the reason is that §5.5's exception is conditional on its own premise — “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material”. Where the capture date is the scan date, leading with it files a nineteen-thirties portrait under the year someone bought a scanner. The available time facts describe the digitising, not the material, so the domain reverts to §5.5's ordinary rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”.",
         "time_first": false
@@ -366,42 +366,42 @@
       "design_cite": "Extends §2.6's screenshot hypothesis and §2.7's list of what a screenshot is of — “a receipt, application portal, conversation, code problem, document, calendar, or research figure” — into a domain. §2.1 names the same set for `IMG_4821.png`: “a screenshot of a receipt, application portal, conversation, code error, or research figure”. §7.3's `Temporary Screenshots` is the residual template, not a schema.",
       "schema": [
         {
-          "field": "captured subject",
+          "field": "captured_subject",
           "type": "string",
           "example": "application portal",
           "reliability_ceiling": "llm_supported",
           "why": "The field the domain exists for. §2.7 supplies the value set literally: “a receipt, application portal, conversation, code problem, document, calendar, or research figure”. §2.1's list is the same with `code error` for `code problem`. Reaching it requires reading OCR text, which is §3.5's LLM case; the model “can only propose facts that belong to the active domain schema”, so this closed list is the allow-list."
         },
         {
-          "field": "media type",
+          "field": "media_type",
           "type": "string",
           "example": "screenshot",
           "reliability_ceiling": "validated",
           "why": "§3.11's `media type`. Earned only through §2.6's tier-three band — “Image dimensions, PNG format, software metadata, and known screen resolutions can support a screenshot hypothesis” — with an exact match against planning/deferred-catalogues/02-screen-resolutions.json (list_id `screen_resolutions`). A ratio match from planning/deferred-catalogues/03-sensor-aspect-ratios.json (list_id `sensor_aspect_ratios`) never supports it, and neither does missing EXIF."
         },
         {
-          "field": "capture date",
+          "field": "capture_date",
           "type": "date",
           "example": "2026-07-17",
           "reliability_ceiling": "direct",
           "why": "The file's own timestamp. Recorded because §7.3's `Temporary Screenshots` turns on time-sensitivity — “screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship” — not because it organises the domain."
         },
         {
-          "field": "source application",
+          "field": "source_application",
           "type": "string",
           "example": "Safari",
           "reliability_ceiling": "possible",
           "why": "Capture software metadata names the capturing tool, and OCR of window chrome may name the application shown. Neither is reliable: the chrome may be cropped and the software string may be a generic editor. §3.13's “A possible fact is a useful but insufficient clue, such as membership in a short download session or a low-confidence semantic match”."
         },
         {
-          "field": "ocr text",
+          "field": "ocr_text",
           "type": "string",
           "example": "Application Status: Submitted",
           "reliability_ceiling": "direct",
           "why": "The recognised text itself, which §2.7 makes the main route into these files: “OCR is not merely a rescue tool for scanned PDFs”. Direct as recognised output; every conclusion built on it is not."
         },
         {
-          "field": "referenced record",
+          "field": "referenced_record",
           "type": "string",
           "example": "order confirmation",
           "reliability_ceiling": "llm_supported",
@@ -446,7 +446,7 @@
       ],
       "template": {
         "dimension_order": [
-          "captured subject"
+          "captured_subject"
         ],
         "why": "A screenshot is capture-based media by mechanism and a record by meaning, and §5.5's exception is granted for a reason that does not hold here: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material”. The capture date of a portal screenshot is an accident of when the user pressed the key; §2.7 says what defines it — “a receipt, application portal, conversation, code problem, document, calendar, or research figure”. So this domain takes §5.5's ordinary rule, “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”, and the design's own residual default agrees: §7.3 puts `Temporary Screenshots` in one flat place, not under a year.",
         "time_first": false
@@ -486,21 +486,21 @@
       "design_cite": "Extends §2.7's routing rule — “A PDF with no extractable text and evidence of being created from a photographed page can route directly to OCR” — and §2.6's refusal to read dense text as a screenshot signal (“receipts, document scans, whiteboards, and photographs of pages can all contain dense text”) into a domain. No design sentence names a scanned-document domain.",
       "schema": [
         {
-          "field": "document type",
+          "field": "document_type",
           "type": "string",
           "example": "utility bill",
           "reliability_ceiling": "llm_supported",
           "why": "What the scanned page IS, which is the only fact that lets the scan join the group its paper original belongs to. Reached from OCR text, so §3.5's LLM case; the model “can only propose facts that belong to the active domain schema”."
         },
         {
-          "field": "document date",
+          "field": "document_date",
           "type": "date",
           "example": "2025-11-04",
           "reliability_ceiling": "validated",
           "why": "The date printed ON the page, which is not the scan date. §3.10 governs it: “Date extraction should be deliberately narrow” and “The product must not use fuzzy date parsing”. A rule reading a labeled date field beside an issuer name earns §3.13's “A validated fact was found by a deterministic rule and passed contextual checks”."
         },
         {
-          "field": "digitisation date",
+          "field": "digitisation_date",
           "type": "date",
           "example": "2026-01-09",
           "reliability_ceiling": "direct",
@@ -514,14 +514,14 @@
           "why": "The organisation whose document this is. A gazetteer match under §3.7's “word-boundary matching”, corroborated by a document-structure position rather than a bare mention."
         },
         {
-          "field": "scan completeness",
+          "field": "scan_completeness",
           "type": "string",
           "example": "ocr complete",
           "reliability_ceiling": "direct",
           "why": "§2.7 requires the OCR record to preserve whether extraction was complete or capped. A capped scan is a known-partial fact, not a clean absence, and the difference decides whether an empty field means `not present` or `not read`."
         },
         {
-          "field": "media type",
+          "field": "media_type",
           "type": "string",
           "example": "scanned document",
           "reliability_ceiling": "validated",
@@ -563,9 +563,9 @@
       ],
       "template": {
         "dimension_order": [
-          "document type",
+          "document_type",
           "issuer",
-          "document date"
+          "document_date"
         ],
         "why": "The scan is a delivery mechanism, not the subject. §5.5's ordinary rule applies: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. Leading with the digitisation date would file a decade of bills under the weekend someone finally scanned them — the exact scattering §5.5 names.",
         "time_first": false
@@ -600,14 +600,14 @@
       "design_cite": "Extends §2.9's audio and video extractor — “duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present” — and §3.11's Photos fields to moving-image capture. No design sentence names a home-video domain.",
       "schema": [
         {
-          "field": "capture date",
+          "field": "capture_date",
           "type": "date",
           "example": "2026-07-17",
           "reliability_ceiling": "direct",
           "why": "§2.9 lists creation time among the fields an audio or video extractor yields; §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field” covers a container metadata slot."
         },
         {
-          "field": "capture year",
+          "field": "capture_year",
           "type": "year",
           "example": "2026",
           "reliability_ceiling": "direct",
@@ -628,7 +628,7 @@
           "why": "§2.9: “duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present”. Recorded as a fact because it separates a short clip from a long recording without any threshold being set here."
         },
         {
-          "field": "camera information",
+          "field": "camera_information",
           "type": "string",
           "example": "Apple iPhone 15 Pro",
           "reliability_ceiling": "direct",
@@ -649,7 +649,7 @@
           "why": "§2.9 permits speech-to-text “only under an explicit privacy and compute policy”. The permission is conditional in the design and the condition is P7's to enforce, so the field exists but is never populated by default."
         },
         {
-          "field": "media type",
+          "field": "media_type",
           "type": "string",
           "example": "video",
           "reliability_ceiling": "validated",
@@ -688,7 +688,7 @@
       ],
       "template": {
         "dimension_order": [
-          "capture year",
+          "capture_year",
           "event"
         ],
         "why": "§5.5's exception names the category directly — “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material” — and a home video is capture-based media in exactly that sense: the moment it records is what it is. §5.4's “a Photos template may define year → event” gives the order, and pairing clips with the photographs from the same event keeps one occasion in one place.",
@@ -719,28 +719,28 @@
       "design_cite": "New. No design sentence names genealogy. Proposed as a distinct domain because the records arrive with the material in `pers.family-photo-archive` yet template in the opposite direction, and because a birth certificate for a living person is §3.15 identity material while the same document for an ancestor is research.",
       "schema": [
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "birth certificate",
           "reliability_ceiling": "llm_supported",
           "why": "The kind of vital record. §3.11 already uses `record type` in the Finance row (“Finance files may use institution, account type, tax year, and record type”); the same field name under a different active schema takes this domain's values, which is what §3.11's per-domain activation is for."
         },
         {
-          "field": "ancestor line",
+          "field": "ancestor_line",
           "type": "string",
           "example": "maternal",
           "reliability_ceiling": "user_confirmed",
           "why": "Which line the record belongs to. Only a person can state it, and stating it is what turns a pile of certificates into a tree."
         },
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
           "why": "Whom the record is about. §3.8's role rule matters here: the subject of a certificate, the informant on it, and the researcher who obtained it are three different roles and must not collapse — “A finance document may mention an account holder and an issuing bank” is the design's own example of the same failure in another domain."
         },
         {
-          "field": "record year",
+          "field": "record_year",
           "type": "year",
           "example": "1897",
           "reliability_ceiling": "validated",
@@ -754,7 +754,7 @@
           "why": "Where the record came from — an archive, a registry, a subscription research service. A gazetteer match under §3.7's “word-boundary matching” corroborated by a reference or citation number on the same page."
         },
         {
-          "field": "research status",
+          "field": "research_status",
           "type": "string",
           "example": "unverified",
           "reliability_ceiling": "user_confirmed",
@@ -795,9 +795,9 @@
       ],
       "template": {
         "dimension_order": [
-          "ancestor line",
-          "subject person",
-          "record type"
+          "ancestor_line",
+          "subject_person",
+          "record_type"
         ],
         "why": "A record domain under §5.5's ordinary rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. Record year is a search facet here and a poor parent — a marriage, the census that follows it, and the death certificate decades later are one person's file, and year-first scatters exactly that. §5.5's “a parent dimension should provide the context required to understand the child” runs the other way: `birth certificate` is meaningless until the person is known.",
         "time_first": false
@@ -839,7 +839,7 @@
           "why": "The trip is the domain's organising fact, and §3.12 gives “Japan Trip 2025” as a literal example value the system may create: “The system may create new values when it sees a new course, project, company, university, or event”."
         },
         {
-          "field": "travel dates",
+          "field": "travel_dates",
           "type": "date range",
           "example": "2025-03-04 to 2025-03-18",
           "reliability_ceiling": "validated",
@@ -860,21 +860,21 @@
           "why": "The airline, rail operator, hotel, or agency. §3.8's role rule applies: the provider, the traveller, and the payer are three roles, not one entity field — “A finance document may mention an account holder and an issuing bank”."
         },
         {
-          "field": "booking reference",
+          "field": "booking_reference",
           "type": "string",
           "example": "",
           "reliability_ceiling": "direct",
           "why": "A labeled reference on a confirmation is §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field” — a labeled form field. It is also the strongest join between an itinerary, a receipt, and a boarding pass for one trip."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "boarding pass",
           "reliability_ceiling": "llm_supported",
           "why": "§7.3 names the members literally: “isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents”. A labeled document may reach `validated`; an unlabeled confirmation email needs interpretation."
         },
         {
-          "field": "traveller role",
+          "field": "traveller_role",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "user_confirmed",
@@ -920,7 +920,7 @@
       "template": {
         "dimension_order": [
           "trip",
-          "record type"
+          "record_type"
         ],
         "why": "A record domain, so §5.5's ordinary rule applies: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A trip is the function, and its records span the year boundary freely — a December departure and a January return under year-first are two folders for one journey, which is the scattering §5.5 names. The year lives inside the trip label, as §3.12's own value “Japan Trip 2025” already shows.",
         "time_first": false
@@ -960,35 +960,35 @@
       "design_cite": "Extends §3.15's identity safety domain (“Finance, identity, medical, and legal material should be implemented first as safety domains”) and §7.3's `Protected Records`, which names “passport scans, medical documents, account statements, visas, legal forms, or credentials” with visas listed literally. No design sentence gives it fields.",
       "schema": [
         {
-          "field": "permit type",
+          "field": "permit_type",
           "type": "string",
           "example": "student visa",
           "reliability_ceiling": "llm_supported",
           "why": "The class of permission. §3.5's LLM case, bounded: the model “can only propose facts that belong to the active domain schema”."
         },
         {
-          "field": "issuing state",
+          "field": "issuing_state",
           "type": "string",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The state or authority granting it — a gazetteer match corroborated by an immigration document structure, per §3.7's “word-boundary matching”."
         },
         {
-          "field": "validity period",
+          "field": "validity_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "Valid-from and valid-to, read from labeled fields. §3.10: “Date extraction should be deliberately narrow”. This is the field that makes an expiry surface possible without any threshold being set here."
         },
         {
-          "field": "application stage",
+          "field": "application_stage",
           "type": "string",
           "example": "granted",
           "reliability_ceiling": "llm_supported",
           "why": "Applied, granted, refused, renewed, appealed. A refusal filed beside a grant without this field is a silent error with real consequences."
         },
         {
-          "field": "holder role",
+          "field": "holder_role",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "user_confirmed",
@@ -1036,9 +1036,9 @@
       ],
       "template": {
         "dimension_order": [
-          "holder role",
-          "issuing state",
-          "permit type"
+          "holder_role",
+          "issuing_state",
+          "permit_type"
         ],
         "why": "A record domain under §5.5's ordinary rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. Validity periods overlap and renewals chain, so a year parent splits one continuous permission across folders. §5.5's “a parent dimension should provide the context required to understand the child” puts the holder first because a permit type means nothing until it is known whose it is.",
         "time_first": false
@@ -1080,14 +1080,14 @@
           "why": "Shared with `pers.travel-record`, which is what lets the bookings and the photographs recognise each other. §3.12's own example value."
         },
         {
-          "field": "capture date",
+          "field": "capture_date",
           "type": "date",
           "example": "2025-03-09",
           "reliability_ceiling": "direct",
           "why": "§3.2's worked case: “capture date = 2026-07-17” derived from “an EXIF field called DateTimeOriginal is raw metadata”."
         },
         {
-          "field": "capture year",
+          "field": "capture_year",
           "type": "year",
           "example": "2025",
           "reliability_ceiling": "direct",
@@ -1108,7 +1108,7 @@
           "why": "§3.11's `event`. A trip contains many §4.2 events: “a photo group, it might be a deterministic event created from camera, time, and GPS metadata”. Keeping both means the trip does not flatten its own internal structure."
         },
         {
-          "field": "camera information",
+          "field": "camera_information",
           "type": "string",
           "example": "",
           "reliability_ceiling": "direct",
@@ -1122,7 +1122,7 @@
           "why": "§3.11's `people`; no automatic producer exists in the design."
         },
         {
-          "field": "media type",
+          "field": "media_type",
           "type": "string",
           "example": "photograph",
           "reliability_ceiling": "validated",
@@ -1219,21 +1219,21 @@
           "why": "An account, case, or customer reference in a labeled field — §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”. It is the only reliable join between a letter, its reply, and the payment that settled it."
         },
         {
-          "field": "document date",
+          "field": "document_date",
           "type": "date",
           "example": "2025-09-30",
           "reliability_ceiling": "validated",
           "why": "The date printed on the document, parsed under §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "letter",
           "reliability_ceiling": "llm_supported",
           "why": "§7.3's `Independent Records` describes the shape of the residual case — “standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group” — and this field is what lets a document escape that residual by naming what it is."
         },
         {
-          "field": "action state",
+          "field": "action_state",
           "type": "string",
           "example": "awaiting reply",
           "reliability_ceiling": "user_confirmed",
@@ -1319,35 +1319,35 @@
           "why": "The utility company. A gazetteer match under §3.7's “word-boundary matching”, corroborated by a bill structure rather than a bare mention."
         },
         {
-          "field": "utility type",
+          "field": "utility_type",
           "type": "string",
           "example": "electricity",
           "reliability_ceiling": "llm_supported",
           "why": "Electricity, gas, water, broadband, refuse, and so on. What makes a supplier switch tractable — the account changes, the utility does not."
         },
         {
-          "field": "supply address",
+          "field": "supply_address",
           "type": "string",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The property served. §3.8's role rule: the supply address, the billing address, and the account holder's address are three roles and are not interchangeable."
         },
         {
-          "field": "account identifier",
+          "field": "account_identifier",
           "type": "string",
           "example": "",
           "reliability_ceiling": "direct",
           "why": "The account, meter point, or supply number in a labeled field — §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”. It survives a tariff change and a supplier rebrand, which no other field does."
         },
         {
-          "field": "billing period",
+          "field": "billing_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The period the document covers, not the date it was issued. §3.10's “Date extraction should be deliberately narrow” governs the parse."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "bill",
           "reliability_ceiling": "llm_supported",
@@ -1388,8 +1388,8 @@
       ],
       "template": {
         "dimension_order": [
-          "supply address",
-          "utility type",
+          "supply_address",
+          "utility_type",
           "supplier"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. The property is the function here, and it is stable while accounts and suppliers change beneath it. Billing period is a strong search facet and a bad parent: year-first would split one supplier relationship across every year it ran. §5.5's “a parent dimension should provide the context required to understand the child” puts the address first because a supplier name means nothing until the property is known in a household with more than one.",
@@ -1432,42 +1432,42 @@
           "why": "The underwriter or provider. §3.8's role rule separates insurer, broker, policyholder, and insured — four roles that a naive organisation field would collapse (“A finance document may mention an account holder and an issuing bank”)."
         },
         {
-          "field": "policy number",
+          "field": "policy_number",
           "type": "string",
           "example": "",
           "reliability_ceiling": "direct",
           "why": "A labeled policy reference is §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field” and is the join between a schedule, a renewal, and a claim."
         },
         {
-          "field": "cover type",
+          "field": "cover_type",
           "type": "string",
           "example": "home contents",
           "reliability_ceiling": "llm_supported",
           "why": "What is insured. The field that keeps a travel policy and a home policy apart when both come from one insurer."
         },
         {
-          "field": "policy period",
+          "field": "policy_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "Cover start and end, from labeled fields, parsed under §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "insured subject",
+          "field": "insured_subject",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
           "why": "The property, vehicle, trip, or person covered. This is what lets an insurance record join the vehicle or property it belongs to without leaving this domain."
         },
         {
-          "field": "claim reference",
+          "field": "claim_reference",
           "type": "string",
           "example": "",
           "reliability_ceiling": "direct",
           "why": "A labeled claim reference, distinct from the policy number, because a claim is its own matter with its own life."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "policy schedule",
           "reliability_ceiling": "llm_supported",
@@ -1509,9 +1509,9 @@
       ],
       "template": {
         "dimension_order": [
-          "insured subject",
-          "cover type",
-          "policy period"
+          "insured_subject",
+          "cover_type",
+          "policy_period"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. Policy periods are annual, so year-first looks tempting and is exactly the trap §5.5 names — it separates a claim from the policy year it was made under when the two straddle a renewal. Insured subject first follows “a parent dimension should provide the context required to understand the child”: `renewal notice` means nothing until it is known what was renewed.",
         "time_first": false
@@ -1558,7 +1558,7 @@
           "why": "The vehicle itself, identified by a registration or chassis identifier. A rule may confirm it because such identifiers have a checkable structure AND appear beside vehicle context — the pattern alone is refused below."
         },
         {
-          "field": "service date",
+          "field": "service_date",
           "type": "date",
           "example": "2025-06-12",
           "reliability_ceiling": "validated",
@@ -1572,21 +1572,21 @@
           "why": "The garage, dealer, or testing station. §3.8's role rule: provider, owner, and registered keeper are separate fields — “A finance document may mention an account holder and an issuing bank”."
         },
         {
-          "field": "odometer reading",
+          "field": "odometer_reading",
           "type": "string",
           "example": "",
           "reliability_ceiling": "direct",
           "why": "A labeled reading on a service or test record, which is what makes a service history verifiable and is a labeled form field under §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "service invoice",
           "reliability_ceiling": "llm_supported",
           "why": "Service, roadworthiness test, tax, registration, insurance certificate, purchase, sale."
         },
         {
-          "field": "ownership period",
+          "field": "ownership_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "user_confirmed",
@@ -1629,8 +1629,8 @@
       "template": {
         "dimension_order": [
           "vehicle",
-          "record type",
-          "service date"
+          "record_type",
+          "service_date"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. The vehicle is the subject and the entire value of the folder is that one vehicle's history sits together — year-first destroys precisely that, which is the scattering §5.5 warns about. §5.5's “a parent dimension should provide the context required to understand the child”: a service invoice is meaningless until the vehicle is known.",
         "time_first": false
@@ -1672,7 +1672,7 @@
           "why": "The property this is about. An address string is not a reliable identifier — it is written a dozen ways and appears on every letter sent to the household — so the identity of the property is settled by a person."
         },
         {
-          "field": "tenure type",
+          "field": "tenure_type",
           "type": "string",
           "example": "tenancy",
           "reliability_ceiling": "llm_supported",
@@ -1686,7 +1686,7 @@
           "why": "Landlord, agent, seller, buyer, lender, or conveyancer. §3.8's role rule is load-bearing: these are separate fields, not one organisation field — “A finance document may mention an account holder and an issuing bank”."
         },
         {
-          "field": "agreement period",
+          "field": "agreement_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
@@ -1700,14 +1700,14 @@
           "why": "A tenancy, mortgage account, or transaction reference in a labeled field — §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "tenancy agreement",
           "reliability_ceiling": "llm_supported",
           "why": "Agreement, inventory, deposit protection, survey, mortgage offer, completion statement, deed, notice."
         },
         {
-          "field": "transaction stage",
+          "field": "transaction_stage",
           "type": "string",
           "example": "exchanged",
           "reliability_ceiling": "llm_supported",
@@ -1751,7 +1751,7 @@
       "template": {
         "dimension_order": [
           "property",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. The property is the durable subject; a purchase runs many months and a tenancy many years, so year-first splits single continuous relationships. §5.5's “a parent dimension should provide the context required to understand the child” puts the property above the record type because `notice` and `inventory` are meaningless labels on their own.",
         "time_first": false
@@ -1793,28 +1793,28 @@
           "why": "The move itself, as a named project. It is the purpose that binds the packet, and §3.9 puts purpose support in a user-created folder name or explicit language: “Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal”."
         },
         {
-          "field": "origin property",
+          "field": "origin_property",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
           "why": "Where the household moved from. §3.8's role separation: origin and destination are two fields, and an address field that holds either is useless for a move."
         },
         {
-          "field": "destination property",
+          "field": "destination_property",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
           "why": "Where the household moved to. Separate field, same reason."
         },
         {
-          "field": "move date",
+          "field": "move_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The date of the move, from a labeled field on a removal booking or a completion statement. §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "removal quotation",
           "reliability_ceiling": "llm_supported",
@@ -1863,7 +1863,7 @@
       "template": {
         "dimension_order": [
           "move",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. The move is the function, and it is already a bounded time span, so a year parent above it adds a level with one child — which §5.7's validator is told to refuse (“create meaningless one-child levels”).",
         "time_first": false
@@ -1912,28 +1912,28 @@
           "why": "A gazetteer match under §3.7's “word-boundary matching”, corroborated by a manual or warranty structure. §3.8 keeps manufacturer, retailer, and installer as separate roles."
         },
         {
-          "field": "model or serial",
+          "field": "model_or_serial",
           "type": "string",
           "example": "",
           "reliability_ceiling": "direct",
           "why": "A labeled model or serial number is §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field” and is the only field that distinguishes two identical items."
         },
         {
-          "field": "purchase date",
+          "field": "purchase_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "From a labeled receipt field, under §3.10's “Date extraction should be deliberately narrow”. It is what makes a warranty period computable without this catalogue stating one."
         },
         {
-          "field": "warranty period",
+          "field": "warranty_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "From labeled cover dates on a warranty document."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "user manual",
           "reliability_ceiling": "llm_supported",
@@ -1982,7 +1982,7 @@
       "template": {
         "dimension_order": [
           "item",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A manual is retrieved when the item breaks, which is years after purchase, so the purchase year is the least useful parent available. §5.5's “a parent dimension should provide the context required to understand the child”: `warranty` is meaningless until the item is known.",
         "time_first": false
@@ -2031,14 +2031,14 @@
           "why": "The veterinary practice, kennel, groomer, or breeder. §3.8's role rule keeps provider and owner apart — “A finance document may mention an account holder and an issuing bank”."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "vaccination record",
           "reliability_ceiling": "llm_supported",
           "why": "Vaccination, treatment, registration, microchip record, insurance, pedigree, boarding agreement."
         },
         {
-          "field": "record date",
+          "field": "record_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
@@ -2052,7 +2052,7 @@
           "why": "A labeled microchip, registration, or passport number — §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field” — which is the only stable join across providers."
         },
         {
-          "field": "species or breed",
+          "field": "species_or_breed",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
@@ -2095,7 +2095,7 @@
       "template": {
         "dimension_order": [
           "animal",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. An animal's history is retrieved as a history — a vaccination schedule and a chronic condition both span years — so year-first scatters exactly what a vet asks to see. §5.5's “a parent dimension should provide the context required to understand the child”: `vaccination record` needs the animal above it.",
         "time_first": false
@@ -2137,7 +2137,7 @@
           "why": "The clinic, hospital, practice, or clinician. §3.8's role rule is critical: the treating clinician, the referring clinician, the patient, and the payer are four roles, and a single organisation field would collapse them — “A finance document may mention an account holder and an issuing bank” is the design's own instance of the same mistake."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "test result",
           "reliability_ceiling": "llm_supported",
@@ -2151,21 +2151,21 @@
           "why": "The course of care a document belongs to. It is what makes a referral, a result, and a discharge letter one thing, and it is not written on any of them. Only a person can settle it."
         },
         {
-          "field": "record date",
+          "field": "record_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "From a labeled field on the document, under §3.10's “Date extraction should be deliberately narrow”. Distinct from the appointment date the document may also carry."
         },
         {
-          "field": "patient role",
+          "field": "patient_role",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "user_confirmed",
           "why": "§3.8 requires the role as its own field. This is the single field that keeps the corpus owner's record separate from a dependant's, and there is no rule that can read it."
         },
         {
-          "field": "body system or specialty",
+          "field": "body_system_or_specialty",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
@@ -2209,9 +2209,9 @@
       ],
       "template": {
         "dimension_order": [
-          "patient role",
-          "body system or specialty",
-          "record type"
+          "patient_role",
+          "body_system_or_specialty",
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A condition followed over years is the normal case, and year-first splits one clinical story into calendar fragments — the scattering §5.5 names, at its most harmful. Specialty rather than diagnosis is the deliberate choice for the middle level: §8.4 warns that “a visible list of passport filenames on a shared screen may not be”, and a folder named after a diagnosis is that warning in structural form.",
         "time_first": false
@@ -2251,14 +2251,14 @@
       "design_cite": "New. §3.15's medical safety domain covers the material (“Finance, identity, medical, and legal material should be implemented first as safety domains”) but names no fields and no role distinction. Proposed because §3.8's role rule makes the distinction mandatory: the same document type in a different role is a different field.",
       "schema": [
         {
-          "field": "subject person role",
+          "field": "subject_person_role",
           "type": "string",
           "example": "dependant",
           "reliability_ceiling": "user_confirmed",
           "why": "Whose record this is, expressed as a role rather than a relationship, so no assumption about household or family shape is encoded. §3.8: roles are separate fields — “A finance document may mention an account holder and an issuing bank”."
         },
         {
-          "field": "holder authority",
+          "field": "holder_authority",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
@@ -2272,21 +2272,21 @@
           "why": "As in `pers.medical-record`; §3.8's role separation applies identically."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "clinic letter",
           "reliability_ceiling": "llm_supported",
           "why": "Same value set as `pers.medical-record`."
         },
         {
-          "field": "record date",
+          "field": "record_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "From a labeled field, under §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "care arrangement",
+          "field": "care_arrangement",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
@@ -2326,8 +2326,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person role",
-          "record type"
+          "subject_person_role",
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. The subject person must be the top dimension or the records merge with the owner's, which is the failure the domain exists to prevent — §5.5's “a parent dimension should provide the context required to understand the child” in its strongest form. Beyond that level the catalogue deliberately stops, because deeper structure states something about the household.",
         "time_first": false
@@ -2362,21 +2362,21 @@
       "design_cite": "New. No design sentence names eldercare. Proposed because the material is a §3.9 purpose packet that is neither medical nor legal nor financial while drawing documents from all three: “content-incoherent but purpose-coherent” describes it exactly.",
       "schema": [
         {
-          "field": "subject person role",
+          "field": "subject_person_role",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
           "why": "Whom the care concerns, as a role. §3.8's separate-fields rule — “A finance document may mention an account holder and an issuing bank” — and the same refusal to encode a relationship as here in `pers.dependant-care`."
         },
         {
-          "field": "authority instrument",
+          "field": "authority_instrument",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
           "why": "The power of attorney, deputyship, or appointeeship that permits the holder to act. It is the document everything else depends on and it is worth its own field."
         },
         {
-          "field": "care provider",
+          "field": "care_provider",
           "type": "string",
           "example": "",
           "reliability_ceiling": "validated",
@@ -2390,7 +2390,7 @@
           "why": "The strand this document belongs to — assessment, funding, placement, benefits, complaint."
         },
         {
-          "field": "record date",
+          "field": "record_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
@@ -2439,7 +2439,7 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person role",
+          "subject_person_role",
           "matter"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. Care matters run for years and reopen; year-first would break every assessment-to-appeal chain. §5.5's “a parent dimension should provide the context required to understand the child” puts the subject person first because every matter label is meaningless without it.",
@@ -2480,28 +2480,28 @@
       "design_cite": "New. No design sentence names fitness. §2.9's structured-data extractor covers the file formats and §2.9's spreadsheet fields (“sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells”) cover exported logs, but neither names the domain.",
       "schema": [
         {
-          "field": "activity type",
+          "field": "activity_type",
           "type": "string",
           "example": "running",
           "reliability_ceiling": "llm_supported",
           "why": "What the activity is. The domain's organising fact, and the one thing a bulk export does not carry in its filename."
         },
         {
-          "field": "data source",
+          "field": "data_source",
           "type": "string",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The platform or device the data came from, identified by an export's own manifest or file structure rather than by a brand name in prose."
         },
         {
-          "field": "activity date",
+          "field": "activity_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "direct",
           "why": "A per-activity timestamp inside a track or record file is a labeled field — §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”."
         },
         {
-          "field": "export period",
+          "field": "export_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
@@ -2515,7 +2515,7 @@
           "why": "A GPS track present in the file. Direct as recorded data, and §8.4 requires GPS to stay local: “Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local”."
         },
         {
-          "field": "plan or programme",
+          "field": "plan_or_programme",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
@@ -2556,9 +2556,9 @@
       ],
       "template": {
         "dimension_order": [
-          "data source",
-          "activity type",
-          "export period"
+          "data_source",
+          "activity_type",
+          "export_period"
         ],
         "why": "Held at time_first false, and this is the least comfortable of the slice's decisions. A single workout is capture-based and its date is defining, which is exactly §5.5's exception — “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material”. But the material as it actually arrives is a bulk export, one file covering years, and a file cannot sit under a year it spans. Source and activity are the dimensions that describe the file rather than its contents, so §5.5's ordinary rule holds: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A corpus dominated by per-activity track files would justify the opposite order.",
         "time_first": false
@@ -2600,7 +2600,7 @@
           "why": "What the recipe makes. The organising fact, and rarely present as a labeled field — a saved web capture's title is as often the site's name."
         },
         {
-          "field": "cuisine or category",
+          "field": "cuisine_or_category",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
@@ -2614,21 +2614,21 @@
           "why": "Where it came from — a book, a site, a person. §3.8's role rule keeps the recipe's author and the person who saved it apart, and §3.8 is explicit that “It should avoid using authorship or creator identity as a destination dimension”."
         },
         {
-          "field": "meal plan period",
+          "field": "meal_plan_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "For plans rather than recipes, read from labeled fields under §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "dietary constraint",
+          "field": "dietary_constraint",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
           "why": "Recorded because it is how recipes are actually retrieved, and flagged here because a constraint may be medical or religious, which makes the field carry more than cooking."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "recipe",
           "reliability_ceiling": "llm_supported",
@@ -2669,7 +2669,7 @@
       ],
       "template": {
         "dimension_order": [
-          "cuisine or category",
+          "cuisine_or_category",
           "dish"
         ],
         "why": "§5.5's ordinary rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A recipe has no meaningful date at all — the date it was saved is noise — so time is not a candidate dimension here rather than a rejected one. §5.5's “a parent dimension should provide the context required to understand the child” puts category above dish because a dish name is self-describing and a flat list of hundreds is not navigable.",
@@ -2719,21 +2719,21 @@
           "why": "For collections, the specific object a document concerns."
         },
         {
-          "field": "acquisition date",
+          "field": "acquisition_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "From a labeled receipt or certificate field, under §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "provenance record",
+          "field": "provenance_record",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
           "why": "Certificates, prior-ownership documents, and authentication papers, which are the collection's real value and have no counterpart in a general inventory."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "reference material",
           "reliability_ceiling": "llm_supported",
@@ -2783,7 +2783,7 @@
       "template": {
         "dimension_order": [
           "pursuit",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5's ordinary rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A collection is retrieved by what is in it, never by when a document about it arrived. §5.5's “a parent dimension should provide the context required to understand the child”: `provenance document` is meaningless until the pursuit and item are known.",
         "time_first": false
@@ -2825,28 +2825,28 @@
           "why": "The work being played. §3.8's role rule matters unusually here: the composer, the arranger, the performer, and the editor are four roles on one score, and “It should avoid using authorship or creator identity as a destination dimension” means none of them becomes the folder."
         },
         {
-          "field": "instrument or voice",
+          "field": "instrument_or_voice",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
           "why": "Which part this is for. A score, a part, and a transposition of one piece are different files and only this field separates them."
         },
         {
-          "field": "score type",
+          "field": "score_type",
           "type": "string",
           "example": "part",
           "reliability_ceiling": "llm_supported",
           "why": "Full score, part, lead sheet, exercise, method book, arrangement."
         },
         {
-          "field": "practice date",
+          "field": "practice_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "direct",
           "why": "The capture date on a practice recording — a labeled container field, §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field”."
         },
         {
-          "field": "teacher or ensemble",
+          "field": "teacher_or_ensemble",
           "type": "string",
           "example": "",
           "reliability_ceiling": "validated",
@@ -2895,9 +2895,9 @@
       ],
       "template": {
         "dimension_order": [
-          "instrument or voice",
+          "instrument_or_voice",
           "piece",
-          "score type"
+          "score_type"
         ],
         "why": "§5.5's ordinary rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A piece is returned to for years and a practice recording is retrieved by what it is of, not when it was made. §5.5's “a parent dimension should provide the context required to understand the child”: `part` is a meaningless folder name until the piece and the instrument are known.",
         "time_first": false
@@ -2953,21 +2953,21 @@
           "why": "Writing, illustration, film, textile, and so on, confirmed from the file formats present rather than asserted from a filename."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "manuscript",
           "reliability_ceiling": "llm_supported",
           "why": "§3.11's `artifact type`, again shared across schemas: manuscript, sketch, working file, export, reference, submission."
         },
         {
-          "field": "collaborator role",
+          "field": "collaborator_role",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
           "why": "§3.8's role separation. Creative work carries editors, collaborators, and commissioners, and “It should avoid using authorship or creator identity as a destination dimension” means none of them becomes the folder level."
         },
         {
-          "field": "submission target",
+          "field": "submission_target",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
@@ -3011,7 +3011,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type",
+          "artifact_type",
           "stage"
         ],
         "why": "§5.5's ordinary rule, and §5.7 names creative projects among the library's own template subjects: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A creative project runs for years and its drafts are the point, so a year parent would separate a piece from its own revisions. §5.5's “a parent dimension should provide the context required to understand the child”: `draft` needs the artefact above it, which needs the project.",
@@ -3047,7 +3047,7 @@
       "design_cite": "New. No design sentence names journals. Proposed separately from `pers.creative-project` because the material is private rather than made, and separately from `pers.correspondence` because it has no counterparty.",
       "schema": [
         {
-          "field": "entry date",
+          "field": "entry_date",
           "type": "date",
           "example": "2026-03-04",
           "reliability_ceiling": "validated",
@@ -3061,14 +3061,14 @@
           "why": "Which journal an entry belongs to, where a person keeps more than one. Only a person can say."
         },
         {
-          "field": "entry medium",
+          "field": "entry_medium",
           "type": "string",
           "example": "digital note",
           "reliability_ceiling": "validated",
           "why": "Handwritten and scanned, typed, dictated, or in an application export. It decides whether the text is available at all, which no other field records."
         },
         {
-          "field": "period covered",
+          "field": "period_covered",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
@@ -3108,7 +3108,7 @@
       "template": {
         "dimension_order": [
           "journal",
-          "entry date"
+          "entry_date"
         ],
         "why": "time_first is TRUE here, and not by §5.5's capture exception — a journal is not capture-based media. It is true by elimination: the domain has no project, function, or subject dimension, so §5.5's stated harm from leading with time cannot occur. “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” warns that year-first scatters RELATED WORK across calendar folders; in a journal there is no related work to scatter, because the entries are related to each other only by sequence. Where a person keeps more than one journal that name comes first, since §5.5's “a parent dimension should provide the context required to understand the child” makes a date meaningless across two parallel journals.",
         "time_first": true
@@ -3143,7 +3143,7 @@
       "design_cite": "§8.4 names private correspondence in “identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”, and §2.9's email extractor states the observable fields: “sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context”, “treating addresses and message content as potentially sensitive”. The design names the material and its sensitivity; it names no domain schema.",
       "schema": [
         {
-          "field": "correspondent role",
+          "field": "correspondent_role",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
@@ -3157,7 +3157,7 @@
           "why": "§2.9 lists thread identifiers among the fields an email extractor yields; a labeled thread identifier is §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field” and is the only reliable join across a reply chain."
         },
         {
-          "field": "sent date",
+          "field": "sent_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "direct",
@@ -3178,7 +3178,7 @@
           "why": "Email, letter, card, or exported message archive. It decides what evidence exists and therefore what may be claimed."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "personal letter",
           "reliability_ceiling": "llm_supported",
@@ -3219,7 +3219,7 @@
       ],
       "template": {
         "dimension_order": [
-          "correspondent role",
+          "correspondent_role",
           "thread"
         ],
         "why": "§5.5's ordinary rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A correspondence is a relationship that spans years, and year-first cuts every thread that crosses a December. §5.5's “a parent dimension should provide the context required to understand the child” puts the correspondent first because a subject line means nothing without knowing who wrote it. The catalogue deliberately stops at a ROLE rather than proposing a folder per person, for §3.8's reason.",
@@ -3262,14 +3262,14 @@
           "why": "The occasion these records serve. Shared as a value with `pers.photo-occasion`, which is what lets the planning file and the photographs recognise each other."
         },
         {
-          "field": "occasion date",
+          "field": "occasion_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "From a labeled field on an invitation or booking, under §3.10's “Date extraction should be deliberately narrow”. §2.9's calendar extractor supplies the same fields where an event file exists: “event title, start and end time, location, organizer, attendees, and recurrence metadata”."
         },
         {
-          "field": "recipient role",
+          "field": "recipient_role",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
@@ -3283,14 +3283,14 @@
           "why": "Venue, caterer, retailer, or supplier. §3.8 keeps vendor, payer, and recipient apart."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "invitation",
           "reliability_ceiling": "llm_supported",
           "why": "Invitation, guest or gift list, order or booking, seating plan, thank-you record."
         },
         {
-          "field": "budget line",
+          "field": "budget_line",
           "type": "string",
           "example": "",
           "reliability_ceiling": "possible",
@@ -3333,7 +3333,7 @@
       "template": {
         "dimension_order": [
           "occasion",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — planning starts months before and thank-you records land months after, so an occasion routinely straddles a year boundary while the photographs of it do not. This is the sharpest illustration in the slice that ONE real-world event legitimately produces a time-first capture branch and a subject-first record branch, exactly as §5.5's two sentences describe.",
         "time_first": false
@@ -3368,14 +3368,14 @@
       "design_cite": "New. §3.15's legal safety domain (“Finance, identity, medical, and legal material should be implemented first as safety domains”) and §7.3's `Protected Records` — “passport scans, medical documents, account statements, visas, legal forms, or credentials” — cover the material's protection. No design sentence names estate matters or their fields.",
       "schema": [
         {
-          "field": "estate role",
+          "field": "estate_role",
           "type": "string",
           "example": "executor",
           "reliability_ceiling": "user_confirmed",
           "why": "Testator, executor, beneficiary, administrator, attorney. §3.8's role rule is unavoidable here: the same estate file holds documents where the corpus owner occupies different roles, and merging them is a substantive error — “A finance document may mention an account holder and an issuing bank”."
         },
         {
-          "field": "instrument type",
+          "field": "instrument_type",
           "type": "string",
           "example": "will",
           "reliability_ceiling": "llm_supported",
@@ -3389,21 +3389,21 @@
           "why": "Whose estate. The organising fact, and only a person can settle it."
         },
         {
-          "field": "execution date",
+          "field": "execution_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The date an instrument was executed, which is the field that decides which version governs. §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "professional adviser",
+          "field": "professional_adviser",
           "type": "string",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The solicitor, notary, or firm holding the file. §3.8 keeps adviser and party apart."
         },
         {
-          "field": "supersession state",
+          "field": "supersession_state",
           "type": "string",
           "example": "current",
           "reliability_ceiling": "user_confirmed",
@@ -3447,8 +3447,8 @@
       "template": {
         "dimension_order": [
           "estate",
-          "estate role",
-          "instrument type"
+          "estate_role",
+          "instrument_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. Estate documents are separated by decades and belong together; a year parent is the worst available choice, because it puts a will and its codicil in different folders. §5.5's “a parent dimension should provide the context required to understand the child”: `codicil` needs both the estate and the role above it to be readable.",
         "time_first": false
@@ -3488,35 +3488,35 @@
       "design_cite": "§3.15 names identity among the domains implemented first as safety domains: “Finance, identity, medical, and legal material should be implemented first as safety domains”, “meaning the system detects and protects them before any cloud or automated placement decision is allowed”. §8.4 requires that “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately” and §7.3 names “passport scans, medical documents, account statements, visas, legal forms, or credentials”. The design gives the domain and its protection and states no fields; P6 SPEC records that gap as deferred.",
       "schema": [
         {
-          "field": "document type",
+          "field": "document_type",
           "type": "string",
           "example": "passport",
           "reliability_ceiling": "llm_supported",
           "why": "Which credential this is. The field the domain exists for, and the only one safe to surface — §8.4's own example is that “a visible list of passport filenames on a shared screen may not be”."
         },
         {
-          "field": "holder role",
+          "field": "holder_role",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "user_confirmed",
           "why": "Whose credential. §3.8's separate-fields rule, and the field that keeps a household's documents from merging into one indistinguishable set."
         },
         {
-          "field": "issuing authority",
+          "field": "issuing_authority",
           "type": "string",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The state, agency, or authority. A gazetteer match under §3.7's “word-boundary matching”, corroborated by a credential structure."
         },
         {
-          "field": "validity period",
+          "field": "validity_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "Issue and expiry from labeled fields, under §3.10's “Date extraction should be deliberately narrow”. It is the only field that gives this domain a reason to be consulted rather than merely stored."
         },
         {
-          "field": "document status",
+          "field": "document_status",
           "type": "string",
           "example": "current",
           "reliability_ceiling": "user_confirmed",
@@ -3558,8 +3558,8 @@
       ],
       "template": {
         "dimension_order": [
-          "holder role",
-          "document type"
+          "holder_role",
+          "document_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A credential's validity spans a decade, so year-first is meaningless here; the holder is the only useful first dimension, per §5.5's “a parent dimension should provide the context required to understand the child”. The catalogue stops at two levels deliberately — §8.4 warns that “a visible list of passport filenames on a shared screen may not be”, and deeper structure makes the contents more legible from outside, not less.",
         "time_first": false
@@ -3606,14 +3606,14 @@
           "why": "The body joined or subscribed to. A gazetteer match under §3.7's “word-boundary matching”, corroborated by a membership document structure."
         },
         {
-          "field": "membership number",
+          "field": "membership_number",
           "type": "string",
           "example": "",
           "reliability_ceiling": "direct",
           "why": "A labeled membership or subscriber identifier — §3.13's “A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field” — and the join across years of renewals and a change of address."
         },
         {
-          "field": "membership type",
+          "field": "membership_type",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
@@ -3627,7 +3627,7 @@
           "why": "The membership year or subscription period, from labeled fields under §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "renewal notice",
           "reliability_ceiling": "llm_supported",
@@ -3676,7 +3676,7 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A membership is a relationship measured in years, and year-first would fragment one continuous relationship into annual slices — the scattering §5.5 names. §5.5's “a parent dimension should provide the context required to understand the child”: `renewal notice` needs the organisation above it.",
         "time_first": false
@@ -3718,35 +3718,35 @@
           "why": "§3.11's own field name. §3.8's role rule is the design's own example in this domain: “A finance document may mention an account holder and an issuing bank”, so the account holder and the issuing bank are separate fields."
         },
         {
-          "field": "account type",
+          "field": "account_type",
           "type": "string",
           "example": "current account",
           "reliability_ceiling": "llm_supported",
           "why": "§3.11's own field name."
         },
         {
-          "field": "tax year",
+          "field": "tax_year",
           "type": "year",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "§3.11's own field name. §3.10's “Date extraction should be deliberately narrow” governs it, and a tax year is exactly the case “The product must not use fuzzy date parsing” exists to prevent — it is a labeled span, not a calendar year."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "statement",
           "reliability_ceiling": "llm_supported",
           "why": "§3.11's own field name. Statement, transaction export, receipt, payment confirmation, tax document, agreement."
         },
         {
-          "field": "statement period",
+          "field": "statement_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The span a statement covers, which is not its issue date. A record domain whose files each cover a period needs the period as a field or the period becomes a guess."
         },
         {
-          "field": "account holder role",
+          "field": "account_holder_role",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "user_confirmed",
@@ -3789,10 +3789,10 @@
       ],
       "template": {
         "dimension_order": [
-          "account holder role",
+          "account_holder_role",
           "institution",
-          "account type",
-          "tax year"
+          "account_type",
+          "tax_year"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. Finance is the domain where year-first is most tempting and §5.5 rules against it: an account relationship runs for years and its documents belong together. Tax year stays as the deepest level, where it is a genuine filing unit rather than a calendar imposed on everything. §5.5's “a parent dimension should provide the context required to understand the child” puts the holder role first because §3.8 requires the owner's money and money managed for another to be distinguishable at the top.",
         "time_first": false
@@ -3832,7 +3832,7 @@
       "design_cite": "New. §8.4 names educational records in “identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”, which is the material; no design sentence names this domain or gives it fields. §3.15's launch domains — “academic coursework, college applications, research and lab work, career and recruiting, photos and captures, and code projects” — cover the holder's OWN academic material, not a third party's.",
       "schema": [
         {
-          "field": "subject person role",
+          "field": "subject_person_role",
           "type": "string",
           "example": "child",
           "reliability_ceiling": "user_confirmed",
@@ -3846,14 +3846,14 @@
           "why": "The school, nursery, or club. A gazetteer match under §3.7's “word-boundary matching”, corroborated by a report or letter structure rather than a bare mention."
         },
         {
-          "field": "academic period",
+          "field": "academic_period",
           "type": "string",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "The year or term. §3.10 requires dedicated academic-term patterns rather than generic parsing, and the term vocabulary a school uses is not always the university one."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "report",
           "reliability_ceiling": "llm_supported",
@@ -3867,7 +3867,7 @@
           "why": "The club, sport, or lesson an out-of-school record belongs to."
         },
         {
-          "field": "holder authority",
+          "field": "holder_authority",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
@@ -3908,9 +3908,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person role",
+          "subject_person_role",
           "setting",
-          "academic period"
+          "academic_period"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — with a real qualification. School material is genuinely period-structured, so `academic period` is a strong dimension, but it sits BELOW the setting for exactly §5.5's stated reason: “a parent dimension should provide the context required to understand the child”, and a term label repeats across settings and across children. This mirrors §5.4's Academic template, school → term, without copying its fields.",
         "time_first": false
@@ -3959,14 +3959,14 @@
           "why": "What the volunteer does, which is the field a reference or an application later needs."
         },
         {
-          "field": "engagement period",
+          "field": "engagement_period",
           "type": "date range",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "From labeled fields, under §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "training certificate",
           "reliability_ceiling": "llm_supported",
@@ -4024,7 +4024,7 @@
         "dimension_order": [
           "organisation",
           "role",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A volunteering relationship runs for years and its training and clearance records are retrieved as a set. §5.5's “a parent dimension should provide the context required to understand the child”: `hours log` is meaningless without the organisation and role above it.",
         "time_first": false
@@ -4066,21 +4066,21 @@
           "why": "The congregation, group, or body. Held as user vocabulary, per §5.1's requirement that labels reflect the user's own words rather than an imposed taxonomy."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "study material",
           "reliability_ceiling": "llm_supported",
           "why": "Study or teaching material, rite or ceremony record, role or office document, contribution record, correspondence."
         },
         {
-          "field": "rite or observance",
+          "field": "rite_or_observance",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
           "why": "The specific rite or observance a record concerns, which is what makes a certificate more than a dated PDF."
         },
         {
-          "field": "record date",
+          "field": "record_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
@@ -4128,7 +4128,7 @@
       "template": {
         "dimension_order": [
           "community",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. Participation is a long relationship and its records are retrieved by what they are. The catalogue stops at two levels deliberately: any deeper default would state something about the user's tradition and practice in the shape of their filesystem.",
         "time_first": false
@@ -4175,14 +4175,14 @@
           "why": "The dispute or transaction. The organising fact and the thing a person would name it by."
         },
         {
-          "field": "party role",
+          "field": "party_role",
           "type": "string",
           "example": "",
           "reliability_ceiling": "user_confirmed",
           "why": "Claimant, defendant, applicant, respondent, witness, or third party. §3.8's separate-fields rule at its most consequential — “A finance document may mention an account holder and an issuing bank” is the design's own instance of the same distinction."
         },
         {
-          "field": "case reference",
+          "field": "case_reference",
           "type": "string",
           "example": "",
           "reliability_ceiling": "direct",
@@ -4203,21 +4203,21 @@
           "why": "The solicitor or firm. §3.8 keeps adviser, party, and forum apart, and “It should avoid using authorship or creator identity as a destination dimension” forbids the firm becoming the folder."
         },
         {
-          "field": "filing date",
+          "field": "filing_date",
           "type": "date",
           "example": "",
           "reliability_ceiling": "validated",
           "why": "From a labeled field on a filing, under §3.10's “Date extraction should be deliberately narrow”."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "statement of case",
           "reliability_ceiling": "llm_supported",
           "why": "Filing, exhibit, order, correspondence, fee note. The field that keeps an exhibit bundle from being read as a filing, and it is only ever reached by interpretation."
         },
         {
-          "field": "matter stage",
+          "field": "matter_stage",
           "type": "string",
           "example": "",
           "reliability_ceiling": "llm_supported",
@@ -4260,8 +4260,8 @@
       "template": {
         "dimension_order": [
           "matter",
-          "party role",
-          "record type"
+          "party_role",
+          "record_type"
         ],
         "why": "§5.5's ordinary record rule: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”. A matter runs for years and its whole value is that the file sits together; year-first would separate a claim from the order that decided it. §5.5's “a parent dimension should provide the context required to understand the child”: `exhibit` needs the matter above it, and the party role belongs above the documents because it changes what every one of them means.",
         "time_first": false

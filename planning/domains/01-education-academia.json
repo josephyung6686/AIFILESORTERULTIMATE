@@ -26,7 +26,7 @@
           "why": "§3.1 'term = Spring 2026', and §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'."
         },
         {
-          "field": "course",
+          "field": "subject",
           "type": "string",
           "example": "BUSIB 4300",
           "reliability_ceiling": "validated",
@@ -40,7 +40,7 @@
           "why": "Named in §3.11 'Academic files may use school, term, course, instructor, and work type.'. Read from a labelled slot, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is a role, not authorship: §3.8 'It should avoid using authorship or creator identity as a destination dimension.', so it is metadata here and is not in the dimension order."
         },
         {
-          "field": "work type",
+          "field": "work_type",
           "type": "string",
           "example": "syllabus",
           "reliability_ceiling": "validated",
@@ -94,8 +94,8 @@
         "dimension_order": [
           "school",
           "term",
-          "course",
-          "work type"
+          "subject",
+          "work_type"
         ],
         "why": "§5.4 'An Academic template may define school → term → course → work type'. The order follows §5.5 'a parent dimension should provide the context required to understand the child' and §5.5 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.'.",
         "time_first": false
@@ -154,7 +154,7 @@
           "why": "§3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'."
         },
         {
-          "field": "course",
+          "field": "subject",
           "type": "string",
           "example": "BUSIB 4300",
           "reliability_ceiling": "validated",
@@ -168,14 +168,14 @@
           "why": "Inference. Teaching material is versioned per delivery: two years of the same course are different corpora. Reaches validated only through the same rule shape as course — a section-code pattern beside a validated course code."
         },
         {
-          "field": "teaching role",
+          "field": "teaching_role",
           "type": "enum",
           "example": "instructor of record",
           "reliability_ceiling": "llm_supported",
           "why": "Inference. Whether the holder taught, assisted, or guest-lectured is stated in prose far more often than in a labelled field, so it needs §3.5 'The LLM creates LLM-supported facts only when a file requires language interpretation that rules cannot resolve safely.'."
         },
         {
-          "field": "instruction work type",
+          "field": "instruction_work_type",
           "type": "string",
           "example": "grading rubric",
           "reliability_ceiling": "validated",
@@ -221,9 +221,9 @@
       "template": {
         "dimension_order": [
           "school",
-          "course",
+          "subject",
           "term",
-          "instruction work type"
+          "instruction_work_type"
         ],
         "why": "Inference, and deliberately not the Academic order. A teacher returns to the same course across years, so the course is the stable parent and the term is the child that varies — the reverse of a student's single-term view. §5.5 'a parent dimension should provide the context required to understand the child' supports either reading, so the divergence is flagged in the open question.",
         "time_first": false
@@ -270,14 +270,14 @@
           "why": "A gazetteer school name at a word boundary. The design's own worked example uses a secondary school by name under Academics, but names no K-12 domain."
         },
         {
-          "field": "school year",
+          "field": "school_year",
           "type": "string",
           "example": "2025-26",
           "reliability_ceiling": "validated",
           "why": "A K-12 year is a hyphenated span, not a semester; it needs its own pattern for the same reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'."
         },
         {
-          "field": "grade level",
+          "field": "grade_level",
           "type": "string",
           "example": "Grade 7",
           "reliability_ceiling": "validated",
@@ -291,7 +291,7 @@
           "why": "The child is the subject of the record, not its author, so §3.8 'It should avoid using authorship or creator identity as a destination dimension.' does not bar it — but a person's name is exactly the value that must not be guessed, so only the user establishes it."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "report card",
           "reliability_ceiling": "validated",
@@ -344,8 +344,8 @@
       "template": {
         "dimension_order": [
           "student",
-          "school year",
-          "record type"
+          "school_year",
+          "record_type"
         ],
         "why": "Proposal. A family corpus is organised per child first, because the child is the retrieval key a parent actually uses; the school is often constant for years and makes a poor top level. This departs from §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' and is the reason for the open question.",
         "time_first": false
@@ -399,21 +399,21 @@
           "why": "A degree-name pattern ('BA', 'BSc', 'Bachelor of') beside a validated school name. This is the fact that binds several years of courses into one thing."
         },
         {
-          "field": "major or concentration",
+          "field": "major_or_concentration",
           "type": "string",
           "example": "the declared field of study",
           "reliability_ceiling": "validated",
           "why": "A declaration or major term beside a school name and a degree name. It is not the course subject: a single course belongs to a department, a major is a commitment."
         },
         {
-          "field": "catalogue year",
+          "field": "catalogue_year",
           "type": "string",
           "example": "the requirement year the degree is audited against",
           "reliability_ceiling": "validated",
           "why": "Inference. Requirements are frozen per catalogue year, so two students in the same major graduate under different rules; a bare year would be ambiguous, so it needs the same dedicated-pattern discipline as §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'."
         },
         {
-          "field": "programme record type",
+          "field": "programme_record_type",
           "type": "string",
           "example": "degree audit",
           "reliability_ceiling": "validated",
@@ -465,7 +465,7 @@
         "dimension_order": [
           "school",
           "programme",
-          "programme record type"
+          "programme_record_type"
         ],
         "why": "Inference. Programme records are few and durable; a term level would scatter a handful of files across years, which is exactly what §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' warns against.",
         "time_first": false
@@ -533,14 +533,14 @@
           "why": "Read from a labelled slot on a form. It is a role, not authorship — the same distinction §3.8 'such as authored_by and target_school' draws — and it is not a folder dimension."
         },
         {
-          "field": "milestone outcome",
+          "field": "milestone_outcome",
           "type": "enum",
           "example": "the recorded result of a gate",
           "reliability_ceiling": "user_confirmed",
           "why": "A pass, fail, revise or defer outcome changes what a person keeps and how they feel about it; inferring it from prose would be both unreliable and intrusive, so only the user establishes it."
         },
         {
-          "field": "milestone date",
+          "field": "milestone_date",
           "type": "date",
           "example": "the date a gate was held",
           "reliability_ceiling": "validated",
@@ -646,21 +646,21 @@
           "why": "Proposal. Professional programmes are lock-step: the cohort, not the term, is what a person's material belongs to, and classmates share an identical course sequence."
         },
         {
-          "field": "licensing body",
+          "field": "licensing_body",
           "type": "string",
           "example": "the board that credentials the degree",
           "reliability_ceiling": "validated",
           "why": "Proposal, and the field that separates this domain from a generic graduate programme: the external body's requirements are a parallel record the school does not own."
         },
         {
-          "field": "board exam",
+          "field": "board_exam",
           "type": "string",
           "example": "the licensure examination the programme prepares for",
           "reliability_ceiling": "validated",
           "why": "A board-exam name beside a professional-degree name. It anchors a large body of preparation material that has no course code and would otherwise be unfilable."
         },
         {
-          "field": "programme stage",
+          "field": "programme_stage",
           "type": "enum",
           "example": "the year or phase of the programme",
           "reliability_ceiling": "llm_supported",
@@ -706,7 +706,7 @@
         "dimension_order": [
           "school",
           "programme",
-          "programme stage"
+          "programme_stage"
         ],
         "why": "Proposal. School and programme are the durable parents; stage is the leaf people navigate by. The licensing body and board exam are metadata rather than levels, because a person holds few of each and a level with one child is the case §5.9 'It should also support a scoped General or Other branch within a meaningful parent.' context warns about.",
         "time_first": false
@@ -746,7 +746,7 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "credentialing body",
+          "field": "credentialing_body",
           "type": "string",
           "example": "the body that requires the units",
           "reliability_ceiling": "validated",
@@ -760,7 +760,7 @@
           "why": "A credential name or number pattern beside a credentialing-body name."
         },
         {
-          "field": "reporting period",
+          "field": "reporting_period",
           "type": "string",
           "example": "the renewal cycle the units count toward",
           "reliability_ceiling": "validated",
@@ -825,7 +825,7 @@
       "template": {
         "dimension_order": [
           "credential",
-          "reporting period",
+          "reporting_period",
           "activity"
         ],
         "why": "Proposal. The credential is what a person is maintaining and is the durable parent; the reporting period is the audit unit and must be enumerable, because renewal is checked per cycle. This is the one shape in this file where a period sits above the individual item, and it does so because the period is a compliance boundary rather than a calendar.",
@@ -894,7 +894,7 @@
           "why": "A module or week term beside a provider or track name. Modules substitute for courses and carry no institutional code."
         },
         {
-          "field": "deliverable type",
+          "field": "deliverable_type",
           "type": "string",
           "example": "the kind of work produced",
           "reliability_ceiling": "validated",
@@ -993,21 +993,21 @@
           "why": "A platform or publisher name beside a lesson, chapter or module term. The source is the strongest available anchor and the only one likely to be explicit."
         },
         {
-          "field": "course title",
+          "field": "course_title",
           "type": "string",
           "example": "the title of the online course or book",
           "reliability_ceiling": "direct",
           "why": "Read from a document title, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is not a course in the Academic sense: no institution issued it."
         },
         {
-          "field": "progress unit",
+          "field": "progress_unit",
           "type": "string",
           "example": "the chapter, lesson or problem number",
           "reliability_ceiling": "validated",
           "why": "A chapter or lesson pattern beside a source or title. It is the sequence a person navigates by."
         },
         {
-          "field": "study artifact type",
+          "field": "study_artifact_type",
           "type": "string",
           "example": "the kind of material",
           "reliability_ceiling": "validated",
@@ -1051,7 +1051,7 @@
         "dimension_order": [
           "subject",
           "source",
-          "study artifact type"
+          "study_artifact_type"
         ],
         "why": "Proposal. Subject leads because a self-studier returns by topic, not by platform; the source is the concrete container beneath it. This follows §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' directly — no time level at all, because self-study has no period.",
         "time_first": false
@@ -1105,14 +1105,14 @@
           "why": "§3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'."
         },
         {
-          "field": "course",
+          "field": "subject",
           "type": "string",
           "example": "the parent course code",
           "reliability_ceiling": "validated",
           "why": "§3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as \"syllabus,\" \"lecture,\" \"credits,\" \"instructor,\" or \"semester.\"'."
         },
         {
-          "field": "lab section",
+          "field": "lab_section",
           "type": "string",
           "example": "the section identifier for the lab meeting",
           "reliability_ceiling": "validated",
@@ -1126,7 +1126,7 @@
           "why": "Inference, and the field that makes this domain distinct: reports, data and pre-labs cluster by experiment, not by week. An experiment pattern beside a validated course code is the same rule shape as the course rule itself."
         },
         {
-          "field": "lab artifact type",
+          "field": "lab_artifact_type",
           "type": "string",
           "example": "the kind of lab material",
           "reliability_ceiling": "validated",
@@ -1171,7 +1171,7 @@
         "dimension_order": [
           "school",
           "term",
-          "course",
+          "subject",
           "experiment"
         ],
         "why": "Inference, and a deliberate substitution: it is the Academic template of §5.4 'An Academic template may define school → term → course → work type' with experiment replacing work type as the leaf, because in a lab course the experiment is what makes the report findable — which is the same argument §5.5 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.' makes for work type in a lecture course.",
@@ -1226,7 +1226,7 @@
           "why": "§3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'."
         },
         {
-          "field": "course",
+          "field": "subject",
           "type": "string",
           "example": "the course assisted",
           "reliability_ceiling": "validated",
@@ -1240,14 +1240,14 @@
           "why": "Read from a labelled slot on an appointment letter, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is the fact that separates this from simply taking the course."
         },
         {
-          "field": "supervising instructor",
+          "field": "supervising_instructor",
           "type": "string",
           "example": "the faculty member the assistant reports to",
           "reliability_ceiling": "direct",
           "why": "Read from a labelled slot. A role, not authorship: §3.8 'such as authored_by and target_school'."
         },
         {
-          "field": "assistantship duty type",
+          "field": "assistantship_duty_type",
           "type": "string",
           "example": "the kind of duty the file records",
           "reliability_ceiling": "validated",
@@ -1291,8 +1291,8 @@
         "dimension_order": [
           "school",
           "term",
-          "course",
-          "assistantship duty type"
+          "subject",
+          "assistantship_duty_type"
         ],
         "why": "Proposal. It follows the Academic order of §5.4 'An Academic template may define school → term → course → work type' because the appointment is scoped to one course in one term, and the duty type is the leaf that satisfies §5.5 'a parent dimension should provide the context required to understand the child'.",
         "time_first": false
@@ -1346,7 +1346,7 @@
           "why": "The engagement is identified by a person's name in almost every real case, and a person's name must not be guessed onto a file. Only the user establishes it."
         },
         {
-          "field": "tutoring role",
+          "field": "tutoring_role",
           "type": "enum",
           "example": "whether the holder tutored or was tutored",
           "reliability_ceiling": "llm_supported",
@@ -1458,28 +1458,28 @@
           "why": "A programme or department name beside a curriculum term."
         },
         {
-          "field": "curriculum unit",
+          "field": "curriculum_unit",
           "type": "string",
           "example": "the course or module being designed",
           "reliability_ceiling": "validated",
           "why": "Proposal. The unit may not have a code yet — that is exactly what distinguishes design work from delivery — so it is recognised by a proposal or draft term beside a programme name."
         },
         {
-          "field": "learning outcome",
+          "field": "learning_outcome",
           "type": "string",
           "example": "a stated outcome the unit must meet",
           "reliability_ceiling": "llm_supported",
           "why": "Outcomes are prose statements, not labelled fields; extracting one requires reading."
         },
         {
-          "field": "approval stage",
+          "field": "approval_stage",
           "type": "enum",
           "example": "where the proposal sits in governance",
           "reliability_ceiling": "validated",
           "why": "An approval term ('proposal', 'committee review', 'approved', 'catalogue copy') beside a curriculum unit or programme name."
         },
         {
-          "field": "development artifact type",
+          "field": "development_artifact_type",
           "type": "string",
           "example": "the kind of design document",
           "reliability_ceiling": "validated",
@@ -1523,7 +1523,7 @@
         "dimension_order": [
           "school",
           "programme",
-          "curriculum unit"
+          "curriculum_unit"
         ],
         "why": "Proposal. No term level, because design work is not scoped to a delivery period — this is a document domain of the kind §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' describes.",
         "time_first": false
@@ -1563,21 +1563,21 @@
       "design_cite": "§3.11 'College application files may use target university, application cycle, application document type, and purpose.'; §5.4 'an Applications template may define target institution → application cycle → document type'; §4.8 'an application packet does not silently absorb a document with a conflicting target institution'; §3.9 'A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract.'",
       "schema": [
         {
-          "field": "target university",
+          "field": "target_university",
           "type": "string",
           "example": "UChicago",
           "reliability_ceiling": "validated",
           "why": "Named in §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. It is a role distinct from the school the applicant attends: §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.'. Reaches validated only through a gazetteer match at a word boundary together with admissions context, because §4.9 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.'."
         },
         {
-          "field": "application cycle",
+          "field": "application_cycle",
           "type": "string",
           "example": "the admissions cycle applied in",
           "reliability_ceiling": "validated",
           "why": "Named in §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. The design's own worked case is a document that has the institution but not the cycle: §4.1 'a document called Columbia Essay.docx may identify a target university but omit the admissions cycle'."
         },
         {
-          "field": "application document type",
+          "field": "application_document_type",
           "type": "string",
           "example": "supplemental essay",
           "reliability_ceiling": "validated",
@@ -1636,9 +1636,9 @@
       ],
       "template": {
         "dimension_order": [
-          "target institution",
-          "application cycle",
-          "application document type"
+          "target_institution",
+          "application_cycle",
+          "application_document_type"
         ],
         "why": "§5.4 'an Applications template may define target institution → application cycle → document type', restated in §5.6 'It may propose target institution → cycle → document type' with the example path §5.6 'Applications/UChicago/2026/Supplemental Essays'. The design explicitly refuses to make this order binding: a purpose-defined packet may stay whole — §5.6 'The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design' — and §5.6 'The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.'.",
         "time_first": false
@@ -1688,14 +1688,14 @@
       "design_cite": "Extends the College applications domain of §3.11 'College application files may use target university, application cycle, application document type, and purpose.' downward to secondary admission, which the design does not name. The role separation it depends on is the design's: §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.'.",
       "schema": [
         {
-          "field": "target school",
+          "field": "target_school",
           "type": "string",
           "example": "the school applied to",
           "reliability_ceiling": "validated",
           "why": "The same role as target university in §3.11 'College application files may use target university, application cycle, application document type, and purpose.', at a different level. A gazetteer school name at a word boundary together with admissions context."
         },
         {
-          "field": "entry year",
+          "field": "entry_year",
           "type": "string",
           "example": "the year of intended entry",
           "reliability_ceiling": "validated",
@@ -1709,14 +1709,14 @@
           "why": "The applicant is a minor and is not the corpus holder; a child's name must not be attached to a file by inference."
         },
         {
-          "field": "entry grade",
+          "field": "entry_grade",
           "type": "string",
           "example": "the grade applied for",
           "reliability_ceiling": "validated",
           "why": "A grade-level pattern beside a target-school name and an admissions term. It is the field with no higher-education counterpart."
         },
         {
-          "field": "admission document type",
+          "field": "admission_document_type",
           "type": "string",
           "example": "the kind of application document",
           "reliability_ceiling": "validated",
@@ -1768,8 +1768,8 @@
       "template": {
         "dimension_order": [
           "applicant",
-          "target school",
-          "admission document type"
+          "target_school",
+          "admission_document_type"
         ],
         "why": "Inference. It mirrors §5.4 'an Applications template may define target institution → application cycle → document type' with an applicant level added first, because a family applying for two children has two disjoint corpora that share every school name. Whether a child's name may be a folder level is the open question on the K-12 schooling entry.",
         "time_first": false
@@ -1809,35 +1809,35 @@
       "design_cite": "Extends the College applications domain of §3.11 'College application files may use target university, application cycle, application document type, and purpose.' to a level the design does not name. It reuses the design's own template, §5.4 'an Applications template may define target institution → application cycle → document type', with one added dimension.",
       "schema": [
         {
-          "field": "target university",
+          "field": "target_university",
           "type": "string",
           "example": "the institution applied to",
           "reliability_ceiling": "validated",
           "why": "Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'; the same gazetteer-plus-context rule."
         },
         {
-          "field": "target programme",
+          "field": "target_programme",
           "type": "string",
           "example": "the specific programme or department applied to",
           "reliability_ceiling": "validated",
           "why": "Inference, and the field that makes this domain distinct: two applications to the same university for different programmes are different applications, and the university alone cannot separate them."
         },
         {
-          "field": "application cycle",
+          "field": "application_cycle",
           "type": "string",
           "example": "the admissions cycle applied in",
           "reliability_ceiling": "validated",
           "why": "Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'."
         },
         {
-          "field": "application document type",
+          "field": "application_document_type",
           "type": "string",
           "example": "the kind of application document",
           "reliability_ceiling": "validated",
           "why": "Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. The graduate document types differ in kind: a statement of purpose and a writing sample have no undergraduate counterpart."
         },
         {
-          "field": "faculty of interest",
+          "field": "faculty_of_interest",
           "type": "string",
           "example": "a named potential supervisor",
           "reliability_ceiling": "llm_supported",
@@ -1891,10 +1891,10 @@
       ],
       "template": {
         "dimension_order": [
-          "target institution",
-          "target programme",
-          "application cycle",
-          "application document type"
+          "target_institution",
+          "target_programme",
+          "application_cycle",
+          "application_document_type"
         ],
         "why": "Inference. It is §5.4 'an Applications template may define target institution → application cycle → document type' with a programme level inserted, because §5.5 'a parent dimension should provide the context required to understand the child': a statement of purpose is only interpretable once the programme it targets is known.",
         "time_first": false
@@ -1941,28 +1941,28 @@
           "why": "Proposal, and the anchor: a test name is a closed, well-known vocabulary and matches cleanly at a word boundary, which §3.7 'It should use word-boundary matching rather than substring matching.' requires."
         },
         {
-          "field": "test sitting",
+          "field": "test_sitting",
           "type": "string",
           "example": "the administration the record belongs to",
           "reliability_ceiling": "validated",
           "why": "Proposal. A person may sit the same test several times; the sitting is what separates two otherwise identical score reports, and merging them would be the conflicting-fact failure of §4.9 'members carry irreconcilable course, institution, project, term, or purpose facts'."
         },
         {
-          "field": "testing body",
+          "field": "testing_body",
           "type": "string",
           "example": "the organisation that administers the test",
           "reliability_ceiling": "validated",
           "why": "A testing-body name beside a test name."
         },
         {
-          "field": "score recipient",
+          "field": "score_recipient",
           "type": "string",
           "example": "an institution the scores were sent to",
           "reliability_ceiling": "validated",
           "why": "Proposal. It is the link into an application, and it is a distinct role from the target university: sending a score is not applying."
         },
         {
-          "field": "testing record type",
+          "field": "testing_record_type",
           "type": "string",
           "example": "the kind of testing document",
           "reliability_ceiling": "validated",
@@ -2005,8 +2005,8 @@
       "template": {
         "dimension_order": [
           "test",
-          "test sitting",
-          "testing record type"
+          "test_sitting",
+          "testing_record_type"
         ],
         "why": "Proposal. The test is the durable parent, the sitting is the enumerable child, and the record type is the leaf — the same shape as §5.4 'an Applications template may define target institution → application cycle → document type' with the cycle replaced by a sitting.",
         "time_first": false
@@ -2046,7 +2046,7 @@
       "design_cite": "The design names the artifact — §4.7 'a transcript, resume, personal statement, recommendation form, certificate, or ID' lists a recommendation form among the compatible record types of an application packet — but names no domain for it.",
       "schema": [
         {
-          "field": "subject of letter",
+          "field": "subject_of_letter",
           "type": "string",
           "example": "the person the letter is about",
           "reliability_ceiling": "user_confirmed",
@@ -2067,14 +2067,14 @@
           "why": "Inference, and the field that makes a letter filable: a gazetteer institution name beside recommendation language. It is the same target role as in §3.11 'College application files may use target university, application cycle, application document type, and purpose.'."
         },
         {
-          "field": "relationship basis",
+          "field": "relationship_basis",
           "type": "string",
           "example": "the course, lab or job that gave rise to the letter",
           "reliability_ceiling": "llm_supported",
           "why": "Inference. The basis is stated in the letter's opening prose and is what links a letter to a course or a lab; it is recoverable only by reading."
         },
         {
-          "field": "letter direction",
+          "field": "letter_direction",
           "type": "enum",
           "example": "whether the holder wrote the letter or is its subject",
           "reliability_ceiling": "llm_supported",
@@ -2124,7 +2124,7 @@
         "dimension_order": [
           "target",
           "cycle",
-          "letter direction"
+          "letter_direction"
         ],
         "why": "Inference. It deliberately does not lead with the person: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. The target and cycle place a letter beside the application it supports, which is where a person looks for it.",
         "time_first": false
@@ -2164,28 +2164,28 @@
       "design_cite": "The design names the artifact repeatedly as a packet member — §5.6 'containing a transcript, ID, personal statement, resume, certificate, and research abstract' — and gives it no domain of its own.",
       "schema": [
         {
-          "field": "issuing school",
+          "field": "issuing_school",
           "type": "string",
           "example": "the institution that issued the record",
           "reliability_ceiling": "validated",
           "why": "Inference, and a distinct role from the target of an application: the issuer is where the person studied. A gazetteer school name beside registrar language."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "enum",
           "example": "official transcript",
           "reliability_ceiling": "validated",
           "why": "A registrar record-type term beside an issuing-school name. The design uses the noun for exactly this artifact in §3.9 'A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract.'."
         },
         {
-          "field": "issue date",
+          "field": "issue_date",
           "type": "date",
           "example": "the date the record was issued",
           "reliability_ceiling": "validated",
           "why": "Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. A transcript's issue date is what separates two otherwise identical copies."
         },
         {
-          "field": "official status",
+          "field": "official_status",
           "type": "enum",
           "example": "whether the copy is official or unofficial",
           "reliability_ceiling": "validated",
@@ -2242,9 +2242,9 @@
       ],
       "template": {
         "dimension_order": [
-          "issuing school",
-          "record type",
-          "issue date"
+          "issuing_school",
+          "record_type",
+          "issue_date"
         ],
         "why": "Inference. The issuing school is the durable parent; the issue date sits last because a person looks for a transcript by school and kind first, which is the ordering §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' prescribes.",
         "time_first": false
@@ -2289,42 +2289,42 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "sending institution",
+          "field": "sending_institution",
           "type": "string",
           "example": "where the credit was earned",
           "reliability_ceiling": "validated",
           "why": "Proposal. Two school roles in one record is the case §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' is about; conflating them silently merges two schools' material."
         },
         {
-          "field": "receiving institution",
+          "field": "receiving_institution",
           "type": "string",
           "example": "the school being asked to recognise the credit",
           "reliability_ceiling": "validated",
           "why": "The counterpart role. The evaluation is issued by the receiving school and is about the sending school's work."
         },
         {
-          "field": "source course",
+          "field": "source_course",
           "type": "string",
           "example": "the course as the sending institution named it",
           "reliability_ceiling": "validated",
           "why": "§3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as \"syllabus,\" \"lecture,\" \"credits,\" \"instructor,\" or \"semester.\"' applies to both course fields; they are different values of the same field kind and must not be merged."
         },
         {
-          "field": "equivalent course",
+          "field": "equivalent_course",
           "type": "string",
           "example": "the course the receiving institution maps it to",
           "reliability_ceiling": "validated",
           "why": "The mapping is the whole point of the record and is stated as an explicit pair on an evaluation."
         },
         {
-          "field": "credit basis",
+          "field": "credit_basis",
           "type": "enum",
           "example": "how the credit was earned",
           "reliability_ceiling": "validated",
           "why": "A basis term ('transfer', 'advanced placement', 'credit by examination', 'study abroad', 'dual enrolment') beside an evaluation term."
         },
         {
-          "field": "evaluation outcome",
+          "field": "evaluation_outcome",
           "type": "enum",
           "example": "whether the credit was granted",
           "reliability_ceiling": "validated",
@@ -2367,9 +2367,9 @@
       ],
       "template": {
         "dimension_order": [
-          "receiving institution",
-          "sending institution",
-          "credit basis"
+          "receiving_institution",
+          "sending_institution",
+          "credit_basis"
         ],
         "why": "Proposal. The receiving institution leads because it owns the decision and is where the record matters; the sending institution beneath it satisfies §5.5 'a parent dimension should provide the context required to understand the child', since an equivalence is meaningless without knowing what is being equated to what.",
         "time_first": false
@@ -2409,28 +2409,28 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "award year",
+          "field": "award_year",
           "type": "string",
           "example": "the aid year the award applies to",
           "reliability_ceiling": "validated",
           "why": "Proposal. An aid year is a named span that does not align with a semester or a tax year, so it needs its own pattern for the reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.' gives for academic terms."
         },
         {
-          "field": "aid type",
+          "field": "aid_type",
           "type": "enum",
           "example": "grant",
           "reliability_ceiling": "validated",
           "why": "Proposal, and the field the whole domain turns on: a grant, a loan and a work-study allocation have different consequences and different paperwork, and they arrive in one letter."
         },
         {
-          "field": "awarding body",
+          "field": "awarding_body",
           "type": "string",
           "example": "the institution or agency making the award",
           "reliability_ceiling": "validated",
           "why": "A school or agency name beside aid language. Distinct from the servicer role below — the same failure §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' describes."
         },
         {
-          "field": "aid document type",
+          "field": "aid_document_type",
           "type": "string",
           "example": "the kind of aid document",
           "reliability_ceiling": "validated",
@@ -2444,7 +2444,7 @@
           "why": "Proposal. The servicer is a different party from the awarding body and often changes during repayment; treating them as one field would merge a decade of correspondence with the original award."
         },
         {
-          "field": "aid application record",
+          "field": "aid_application_record",
           "type": "enum",
           "example": "the aid application the record belongs to",
           "reliability_ceiling": "validated",
@@ -2490,9 +2490,9 @@
       ],
       "template": {
         "dimension_order": [
-          "awarding body",
-          "award year",
-          "aid type"
+          "awarding_body",
+          "award_year",
+          "aid_type"
         ],
         "why": "Proposal. The awarding body is the durable parent because a person's aid history usually spans one institution; the award year is the audit unit beneath it and must be enumerable, since aid is decided and reconciled per year.",
         "time_first": false
@@ -2546,28 +2546,28 @@
           "why": "A named award beside application or funder language. Named awards are proper nouns and match cleanly at a word boundary, which §3.7 'It should use word-boundary matching rather than substring matching.' requires."
         },
         {
-          "field": "competition cycle",
+          "field": "competition_cycle",
           "type": "string",
           "example": "the cycle applied in",
           "reliability_ceiling": "validated",
           "why": "The same role as application cycle in §3.11 'College application files may use target university, application cycle, application document type, and purpose.': the cycle separates a failed attempt from a later successful one."
         },
         {
-          "field": "application stage",
+          "field": "application_stage",
           "type": "enum",
           "example": "where the application sits",
           "reliability_ceiling": "validated",
           "why": "A stage term ('nomination', 'submitted', 'shortlisted', 'awarded', 'declined', 'report due') beside an award name. Reapplication makes stage the field people navigate by."
         },
         {
-          "field": "award document type",
+          "field": "award_document_type",
           "type": "string",
           "example": "the kind of document",
           "reliability_ceiling": "validated",
           "why": "A document-type term beside an award or funder name."
         },
         {
-          "field": "reporting obligation",
+          "field": "reporting_obligation",
           "type": "string",
           "example": "a report the award requires after it is made",
           "reliability_ceiling": "llm_supported",
@@ -2616,7 +2616,7 @@
         "dimension_order": [
           "funder",
           "award",
-          "competition cycle"
+          "competition_cycle"
         ],
         "why": "Proposal. It mirrors §5.4 'an Applications template may define target institution → application cycle → document type' with the funder in the institution position, because a person reapplies to the same funder across cycles and expects those attempts side by side.",
         "time_first": false
@@ -2663,21 +2663,21 @@
           "why": "The same role the design gives finance in §3.11 'Finance files may use institution, account type, tax year, and record type.', applied to a school."
         },
         {
-          "field": "term billed",
+          "field": "term_billed",
           "type": "string",
           "example": "the term the charges belong to",
           "reliability_ceiling": "validated",
           "why": "§3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. A bursar account is reconciled per term, which is what makes the term the audit unit here."
         },
         {
-          "field": "account record type",
+          "field": "account_record_type",
           "type": "enum",
           "example": "the kind of account document",
           "reliability_ceiling": "validated",
           "why": "The same field name the design gives finance in §3.11 'Finance files may use institution, account type, tax year, and record type.', with school-specific values (statement, payment receipt, refund, hold notice, payment plan)."
         },
         {
-          "field": "charge category",
+          "field": "charge_category",
           "type": "string",
           "example": "what the charge is for",
           "reliability_ceiling": "validated",
@@ -2691,7 +2691,7 @@
           "why": "Proposal. A parent, an employer or a sponsor may pay, and the payer's identity must not be inferred from a name appearing on a statement."
         },
         {
-          "field": "hold status",
+          "field": "hold_status",
           "type": "enum",
           "example": "an account hold blocking registration",
           "reliability_ceiling": "validated",
@@ -2736,8 +2736,8 @@
       "template": {
         "dimension_order": [
           "institution",
-          "term billed",
-          "account record type"
+          "term_billed",
+          "account_record_type"
         ],
         "why": "Proposal. Institution leads per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'; the term sits second because a bursar account genuinely reconciles per term, and the record type is the leaf.",
         "time_first": false
@@ -2784,7 +2784,7 @@
           "why": "A gazetteer school name beside employment language. Employer and school are the same entity here, which is exactly why the roles must stay separate fields per §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.'."
         },
         {
-          "field": "department or unit",
+          "field": "department_or_unit",
           "type": "string",
           "example": "the hiring unit",
           "reliability_ceiling": "validated",
@@ -2798,21 +2798,21 @@
           "why": "Read from a labelled slot on an offer or timesheet, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct."
         },
         {
-          "field": "employment period",
+          "field": "employment_period",
           "type": "string",
           "example": "the period worked",
           "reliability_ceiling": "validated",
           "why": "Narrow date extraction only, per §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. Campus jobs are bounded by terms and by funding, not by calendar years."
         },
         {
-          "field": "employment record type",
+          "field": "employment_record_type",
           "type": "string",
           "example": "the kind of employment document",
           "reliability_ceiling": "validated",
           "why": "An employment record-type term beside an institution name."
         },
         {
-          "field": "funding source",
+          "field": "funding_source",
           "type": "enum",
           "example": "whether the position is work-study or departmentally funded",
           "reliability_ceiling": "validated",
@@ -2856,7 +2856,7 @@
       "template": {
         "dimension_order": [
           "institution",
-          "department or unit",
+          "department_or_unit",
           "position"
         ],
         "why": "Proposal. It follows §5.4 'a Career template may define company → role or recruiting cycle → document type''s shape — organisation, then role — with the unit standing in for the company, because at one school the unit is what distinguishes two jobs.",
@@ -2918,14 +2918,14 @@
           "why": "Read from a signature page. Plainly multi-valued, which is the multiplicity question the fact layer already carries; recorded as metadata, never as a level."
         },
         {
-          "field": "defense date",
+          "field": "defense_date",
           "type": "date",
           "example": "the date of the defence",
           "reliability_ceiling": "validated",
           "why": "Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. The defence date is the fixed point a whole corpus is organised around."
         },
         {
-          "field": "thesis stage",
+          "field": "thesis_stage",
           "type": "enum",
           "example": "the stage the artifact belongs to",
           "reliability_ceiling": "validated",
@@ -2981,7 +2981,7 @@
       "template": {
         "dimension_order": [
           "degree",
-          "thesis stage",
+          "thesis_stage",
           "chapter"
         ],
         "why": "Inference. Stage before chapter because a person looks for 'the defence copy' as a whole far more often than for 'chapter 3 of the defence copy'; both satisfy §5.5 'a parent dimension should provide the context required to understand the child'. No time level, per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'.",
@@ -3022,7 +3022,7 @@
       "design_cite": "Extends the research and lab work launch domain of §3.15 'academic coursework, college applications, research and lab work, career and recruiting, photos and captures, and code projects', whose fields the design gives as §3.11 'Research files may use project, stage, artifact type, lab, and venue.', to the placement rather than the project.",
       "schema": [
         {
-          "field": "host institution",
+          "field": "host_institution",
           "type": "string",
           "example": "the institution hosting the placement",
           "reliability_ceiling": "validated",
@@ -3043,7 +3043,7 @@
           "why": "Read from a labelled slot on a placement agreement. A role, not authorship: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'."
         },
         {
-          "field": "placement period",
+          "field": "placement_period",
           "type": "string",
           "example": "the period of the placement",
           "reliability_ceiling": "validated",
@@ -3057,7 +3057,7 @@
           "why": "A named programme beside a research and application term. It is the fact that makes an otherwise anonymous summer findable years later."
         },
         {
-          "field": "placement artifact type",
+          "field": "placement_artifact_type",
           "type": "string",
           "example": "the kind of placement document",
           "reliability_ceiling": "validated",
@@ -3105,8 +3105,8 @@
       "template": {
         "dimension_order": [
           "lab",
-          "placement period",
-          "placement artifact type"
+          "placement_period",
+          "placement_artifact_type"
         ],
         "why": "Inference. The lab leads because it is the durable name a person remembers; the period sits second because a student may return to the same lab across several summers and needs them separated. It is §5.4 'a Research template may define project → stage → artifact type' with the placement period standing in for stage.",
         "time_first": false
@@ -3160,28 +3160,28 @@
           "why": "Inference. Conferences recur annually under one name; the edition is what separates two submissions to the same venue, and merging them would be the conflicting-fact failure of §4.9 'members carry irreconcilable course, institution, project, term, or purpose facts'."
         },
         {
-          "field": "submission type",
+          "field": "submission_type",
           "type": "enum",
           "example": "poster",
           "reliability_ceiling": "validated",
           "why": "A submission-type term beside a conference name. It determines what artifacts exist at all — a poster corpus and a talk corpus look nothing alike."
         },
         {
-          "field": "submission status",
+          "field": "submission_status",
           "type": "enum",
           "example": "the outcome of the submission",
           "reliability_ceiling": "validated",
           "why": "A status term ('submitted', 'accepted', 'rejected', 'withdrawn') beside a conference name and an edition."
         },
         {
-          "field": "travel funding source",
+          "field": "travel_funding_source",
           "type": "string",
           "example": "the body funding the trip",
           "reliability_ceiling": "validated",
           "why": "Inference. Student travel is funded by a grant or a department, and the reimbursement paperwork is a large part of the corpus."
         },
         {
-          "field": "conference artifact type",
+          "field": "conference_artifact_type",
           "type": "string",
           "example": "the kind of conference document",
           "reliability_ceiling": "validated",
@@ -3228,7 +3228,7 @@
         "dimension_order": [
           "venue",
           "edition",
-          "conference artifact type"
+          "conference_artifact_type"
         ],
         "why": "Inference. The venue is the durable name and the edition is the enumerable child, satisfying §5.5 'a parent dimension should provide the context required to understand the child': 'poster' means nothing until the conference and year are known.",
         "time_first": false
@@ -3268,42 +3268,42 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "home institution",
+          "field": "home_institution",
           "type": "string",
           "example": "the school the student remains enrolled at",
           "reliability_ceiling": "validated",
           "why": "Proposal. Two school roles in one record, and keeping them apart is exactly what §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' requires; a merged school field would file a year abroad under the wrong university."
         },
         {
-          "field": "host institution",
+          "field": "host_institution",
           "type": "string",
           "example": "the school attended abroad",
           "reliability_ceiling": "validated",
           "why": "The counterpart role."
         },
         {
-          "field": "programme provider",
+          "field": "programme_provider",
           "type": "string",
           "example": "the third party running the exchange, when there is one",
           "reliability_ceiling": "validated",
           "why": "Proposal. A provider is neither school and owns much of the paperwork."
         },
         {
-          "field": "term abroad",
+          "field": "term_abroad",
           "type": "string",
           "example": "the term or year spent away",
           "reliability_ceiling": "validated",
           "why": "§3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'."
         },
         {
-          "field": "host country",
+          "field": "host_country",
           "type": "string",
           "example": "the country studied in",
           "reliability_ceiling": "validated",
           "why": "A gazetteer country name at a word boundary beside study-abroad language. It is the fact a person actually remembers a year abroad by."
         },
         {
-          "field": "mobility document type",
+          "field": "mobility_document_type",
           "type": "string",
           "example": "the kind of study-abroad document",
           "reliability_ceiling": "validated",
@@ -3349,9 +3349,9 @@
       ],
       "template": {
         "dimension_order": [
-          "host institution",
-          "term abroad",
-          "mobility document type"
+          "host_institution",
+          "term_abroad",
+          "mobility_document_type"
         ],
         "why": "Proposal. The host leads because the year abroad is remembered by where it was; the home institution stays metadata so a year abroad does not fragment across two school branches.",
         "time_first": false
@@ -3405,7 +3405,7 @@
           "why": "Proposal. The site is neither the school nor an employer; it is a third party with its own onboarding, and it is the fact a person remembers a rotation by."
         },
         {
-          "field": "service or specialty",
+          "field": "service_or_specialty",
           "type": "string",
           "example": "the service the block was on",
           "reliability_ceiling": "validated",
@@ -3426,7 +3426,7 @@
           "why": "Read from a labelled slot on an evaluation form. A role, not authorship: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'."
         },
         {
-          "field": "rotation record type",
+          "field": "rotation_record_type",
           "type": "string",
           "example": "the kind of rotation document",
           "reliability_ceiling": "validated",
@@ -3473,7 +3473,7 @@
       "template": {
         "dimension_order": [
           "programme",
-          "service or specialty",
+          "service_or_specialty",
           "site"
         ],
         "why": "Proposal. Specialty above site because the specialty is what a person is trying to recall; the site beneath it satisfies §5.5 'a parent dimension should provide the context required to understand the child'. Block stays metadata because block labels are opaque a year later.",
@@ -3514,14 +3514,14 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "host organisation",
+          "field": "host_organisation",
           "type": "string",
           "example": "the employer hosting the placement",
           "reliability_ceiling": "validated",
           "why": "Proposal. The host is an employer, which is the role the design gives the Career template's company: §5.4 'a Career template may define company → role or recruiting cycle → document type'."
         },
         {
-          "field": "course",
+          "field": "subject",
           "type": "string",
           "example": "the course code the placement is registered under",
           "reliability_ceiling": "validated",
@@ -3535,21 +3535,21 @@
           "why": "§3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'."
         },
         {
-          "field": "faculty sponsor",
+          "field": "faculty_sponsor",
           "type": "string",
           "example": "the faculty member supervising the credit",
           "reliability_ceiling": "direct",
           "why": "Read from a labelled slot on a learning agreement. A role, not authorship: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'."
         },
         {
-          "field": "site supervisor",
+          "field": "site_supervisor",
           "type": "string",
           "example": "the manager at the host organisation",
           "reliability_ceiling": "direct",
           "why": "Read from a labelled slot. A second, distinct supervisory role — the pair is the same separation §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' demands."
         },
         {
-          "field": "credit requirement type",
+          "field": "credit_requirement_type",
           "type": "string",
           "example": "the kind of academic deliverable the credit requires",
           "reliability_ceiling": "validated",
@@ -3593,9 +3593,9 @@
       ],
       "template": {
         "dimension_order": [
-          "host organisation",
+          "host_organisation",
           "term",
-          "credit requirement type"
+          "credit_requirement_type"
         ],
         "why": "Proposal. The host leads because it is what a person and a future employer both recognise, which follows §5.4 'a Career template may define company → role or recruiting cycle → document type' rather than the Academic template; the course registration stays metadata because it is an administrative wrapper, not how anyone searches.",
         "time_first": false
@@ -3642,7 +3642,7 @@
           "why": "Proposal. A language name is a closed vocabulary and matches at a word boundary, which §3.7 'It should use word-boundary matching rather than substring matching.' requires; several language names are also common words and must not match as substrings."
         },
         {
-          "field": "proficiency framework",
+          "field": "proficiency_framework",
           "type": "string",
           "example": "the scale the level is expressed on",
           "reliability_ceiling": "validated",
@@ -3663,14 +3663,14 @@
           "why": "A certification name beside a language name at a word boundary."
         },
         {
-          "field": "language study artifact type",
+          "field": "language_study_artifact_type",
           "type": "string",
           "example": "the kind of study material",
           "reliability_ceiling": "validated",
           "why": "An artifact term beside a language or framework name."
         },
         {
-          "field": "target requirement",
+          "field": "target_requirement",
           "type": "string",
           "example": "the institution or programme requiring the proficiency",
           "reliability_ceiling": "validated",
@@ -3716,7 +3716,7 @@
         "dimension_order": [
           "language",
           "level",
-          "language study artifact type"
+          "language_study_artifact_type"
         ],
         "why": "Proposal. Language then level is the natural progression and satisfies §5.5 'a parent dimension should provide the context required to understand the child': a level is uninterpretable without its language and framework. No time level, per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'.",
         "time_first": false
@@ -3770,28 +3770,28 @@
           "why": "Proposal. The instrument or medium is the organising fact of an arts corpus in the way a course code is for a lecture corpus, and a person may study two."
         },
         {
-          "field": "assessment event",
+          "field": "assessment_event",
           "type": "string",
           "example": "the jury, recital or review the work was presented at",
           "reliability_ceiling": "validated",
           "why": "Proposal, and the anchor: an arts corpus clusters around dated events rather than around assignments. An event term beside a discipline or school name."
         },
         {
-          "field": "repertoire or work",
+          "field": "repertoire_or_work",
           "type": "string",
           "example": "the piece or work presented",
           "reliability_ceiling": "user_confirmed",
           "why": "Proposal. Titles of works are ambiguous with filenames, performers, and everything else in a media corpus; asserting one by inference would be unreliable, so only the user establishes it."
         },
         {
-          "field": "panel member",
+          "field": "panel_member",
           "type": "string",
           "example": "a member of the jury or review panel",
           "reliability_ceiling": "direct",
           "why": "Read from a labelled slot on an evaluation sheet. A role, never a dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'."
         },
         {
-          "field": "arts artifact type",
+          "field": "arts_artifact_type",
           "type": "string",
           "example": "the kind of material",
           "reliability_ceiling": "validated",
@@ -3837,8 +3837,8 @@
       "template": {
         "dimension_order": [
           "discipline",
-          "assessment event",
-          "arts artifact type"
+          "assessment_event",
+          "arts_artifact_type"
         ],
         "why": "Proposal. Discipline leads because a musician who also paints has two disjoint bodies of work; the assessment event is the enumerable child and satisfies §5.5 'a parent dimension should provide the context required to understand the child'.",
         "time_first": false
@@ -3885,7 +3885,7 @@
           "why": "A gazetteer school name beside athletics language."
         },
         {
-          "field": "governing body",
+          "field": "governing_body",
           "type": "string",
           "example": "the association setting the eligibility rules",
           "reliability_ceiling": "validated",
@@ -3906,14 +3906,14 @@
           "why": "Proposal. A season is a named span that does not align with an academic term, so it needs its own pattern for the reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.' gives."
         },
         {
-          "field": "eligibility status",
+          "field": "eligibility_status",
           "type": "enum",
           "example": "the certification status recorded",
           "reliability_ceiling": "validated",
           "why": "A status term ('certified', 'pending', 'ineligible', 'medical hardship', 'redshirt') beside a governing-body or institution name. It is printed on the determination, not inferred."
         },
         {
-          "field": "compliance record type",
+          "field": "compliance_record_type",
           "type": "string",
           "example": "the kind of compliance document",
           "reliability_ceiling": "validated",
@@ -3959,7 +3959,7 @@
         "dimension_order": [
           "sport",
           "season",
-          "compliance record type"
+          "compliance_record_type"
         ],
         "why": "Proposal. Sport then season is how an athlete's material is remembered; the institution stays metadata because a transferring athlete would otherwise have their career split across two branches.",
         "time_first": false
@@ -4013,28 +4013,28 @@
           "why": "Read from a labelled slot on an advising record, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. A role, never a dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'."
         },
         {
-          "field": "advising term",
+          "field": "advising_term",
           "type": "string",
           "example": "the term being planned for",
           "reliability_ceiling": "validated",
           "why": "§3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. Advising is forward-looking: the term named is usually the next one, not the current one, which is a real source of misfiling."
         },
         {
-          "field": "plan of study",
+          "field": "plan_of_study",
           "type": "string",
           "example": "the plan the record belongs to",
           "reliability_ceiling": "validated",
           "why": "Proposal. A plan is revised repeatedly and its versions are the point; a plan term beside a school or programme name anchors it."
         },
         {
-          "field": "advising record type",
+          "field": "advising_record_type",
           "type": "string",
           "example": "the kind of advising document",
           "reliability_ceiling": "validated",
           "why": "A record-type term beside an advising or registration term."
         },
         {
-          "field": "registration outcome",
+          "field": "registration_outcome",
           "type": "enum",
           "example": "what actually happened at registration",
           "reliability_ceiling": "validated",
@@ -4078,8 +4078,8 @@
       "template": {
         "dimension_order": [
           "school",
-          "advising term",
-          "advising record type"
+          "advising_term",
+          "advising_record_type"
         ],
         "why": "Proposal. The term is the organising fact because advising is intrinsically per-registration-cycle, but the school still leads, per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'.",
         "time_first": false
@@ -4126,35 +4126,35 @@
           "why": "A gazetteer school name beside accommodations language."
         },
         {
-          "field": "accommodation type",
+          "field": "accommodation_type",
           "type": "string",
           "example": "the accommodation granted or requested",
           "reliability_ceiling": "validated",
           "why": "Proposal, and the field the domain turns on. An accommodation-type term beside an access-services term is checkable; the underlying condition is deliberately not a field here."
         },
         {
-          "field": "approval period",
+          "field": "approval_period",
           "type": "string",
           "example": "the period the approval covers",
           "reliability_ceiling": "validated",
           "why": "Proposal. Approvals are renewed per term or per year and lapse; the period is what distinguishes a current letter from a stale one."
         },
         {
-          "field": "access record type",
+          "field": "access_record_type",
           "type": "string",
           "example": "the kind of accommodations document",
           "reliability_ceiling": "validated",
           "why": "A record-type term beside an access-services or accommodation term."
         },
         {
-          "field": "supporting documentation",
+          "field": "supporting_documentation",
           "type": "enum",
           "example": "that a medical or psychological report supports the request",
           "reliability_ceiling": "user_confirmed",
           "why": "Proposal, and deliberately a flag rather than a content field: the system records that supporting documentation exists, never what it says. §3.6 'A model that cannot cite sufficient evidence must return unknown.'"
         },
         {
-          "field": "implementing course",
+          "field": "implementing_course",
           "type": "string",
           "example": "the course an accommodation letter was issued for",
           "reliability_ceiling": "validated",
@@ -4199,8 +4199,8 @@
       "template": {
         "dimension_order": [
           "institution",
-          "approval period",
-          "access record type"
+          "approval_period",
+          "access_record_type"
         ],
         "why": "Proposal. Deliberately no accommodation-type or condition level: a folder path is visible to anyone who sees the screen, and a path naming a disability discloses it. The period is the enumerable child because approvals lapse.",
         "time_first": false
@@ -4247,28 +4247,28 @@
           "why": "A gazetteer school name beside conduct-process language."
         },
         {
-          "field": "case reference",
+          "field": "case_reference",
           "type": "string",
           "example": "the case identifier the office issues",
           "reliability_ceiling": "validated",
           "why": "Proposal. A case reference is the only unambiguous handle on a process whose documents otherwise share vocabulary with ordinary coursework, and a bare reference-shaped token is exactly what §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' warns against reading alone."
         },
         {
-          "field": "case role",
+          "field": "case_role",
           "type": "enum",
           "example": "whether the holder is the respondent, the reporter, or a panel member",
           "reliability_ceiling": "user_confirmed",
           "why": "Proposal, and the field that decides everything: the same file means opposite things in the three directions, and getting it wrong by inference would be a serious harm. Only the user establishes it."
         },
         {
-          "field": "process stage",
+          "field": "process_stage",
           "type": "enum",
           "example": "the stage the document belongs to",
           "reliability_ceiling": "validated",
           "why": "A stage term ('notice', 'meeting', 'hearing', 'finding', 'sanction', 'appeal') beside a case-process term."
         },
         {
-          "field": "related course",
+          "field": "related_course",
           "type": "string",
           "example": "the course the allegation concerns",
           "reliability_ceiling": "validated",
@@ -4323,8 +4323,8 @@
       "template": {
         "dimension_order": [
           "institution",
-          "case reference",
-          "process stage"
+          "case_reference",
+          "process_stage"
         ],
         "why": "Proposal. Deliberately keyed on the case reference rather than on the course or the person: a path naming a course and 'misconduct' discloses the allegation to anyone who sees the screen. Stage is the leaf because a process is navigated chronologically.",
         "time_first": false
@@ -4378,21 +4378,21 @@
           "why": "A gazetteer school name beside a recognition or student-activities term."
         },
         {
-          "field": "holder role",
+          "field": "holder_role",
           "type": "string",
           "example": "the office or membership the holder held",
           "reliability_ceiling": "validated",
           "why": "Proposal. Officer material and member material are different corpora, and the role is what separates them. It is a role, never a dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'."
         },
         {
-          "field": "activity year",
+          "field": "activity_year",
           "type": "string",
           "example": "the year of activity",
           "reliability_ceiling": "validated",
           "why": "Proposal. Organisations turn over annually and their records are archived per year of leadership."
         },
         {
-          "field": "organisation record type",
+          "field": "organisation_record_type",
           "type": "string",
           "example": "the kind of organisation document",
           "reliability_ceiling": "validated",
@@ -4447,8 +4447,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "activity year",
-          "organisation record type"
+          "activity_year",
+          "organisation_record_type"
         ],
         "why": "Proposal. The organisation leads and the activity year sits beneath it because leadership turns over annually and each year's records are handed on as a set — a period that is an organisational boundary, not a calendar.",
         "time_first": false
@@ -4502,7 +4502,7 @@
           "why": "Proposal. The accreditor is a distinct party whose correspondence and standards are separate from the institution's response; conflating them loses who is asserting what."
         },
         {
-          "field": "review cycle",
+          "field": "review_cycle",
           "type": "string",
           "example": "the review the material belongs to",
           "reliability_ceiling": "validated",
@@ -4516,14 +4516,14 @@
           "why": "Proposal, and the field that makes this domain distinct: the entire corpus is organised as evidence mapped to numbered standards, and a bare standard number is exactly the token §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' warns against."
         },
         {
-          "field": "unit under review",
+          "field": "unit_under_review",
           "type": "string",
           "example": "the programme, department or school being reviewed",
           "reliability_ceiling": "validated",
           "why": "A unit name beside a review or accreditation term. Programmatic and institutional accreditation are different scopes and produce different corpora."
         },
         {
-          "field": "accreditation record type",
+          "field": "accreditation_record_type",
           "type": "string",
           "example": "the kind of accreditation document",
           "reliability_ceiling": "validated",
@@ -4568,7 +4568,7 @@
       "template": {
         "dimension_order": [
           "accreditor",
-          "review cycle",
+          "review_cycle",
           "standard"
         ],
         "why": "Proposal. The accreditor and cycle bound the work; the standard is the leaf because the corpus is genuinely indexed by standard, which satisfies §5.5 'a parent dimension should provide the context required to understand the child' — a standard number means nothing without its accreditor.",
@@ -4616,14 +4616,14 @@
           "why": "A gazetteer school name beside alumni language."
         },
         {
-          "field": "graduation year",
+          "field": "graduation_year",
           "type": "string",
           "example": "the class year",
           "reliability_ceiling": "validated",
           "why": "Proposal. The class year is the primary alumni identifier and appears beside the school in almost every alumni communication; alone it is only a year, which §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' forbids relying on."
         },
         {
-          "field": "alumni record type",
+          "field": "alumni_record_type",
           "type": "string",
           "example": "the kind of alumni document",
           "reliability_ceiling": "validated",
@@ -4637,7 +4637,7 @@
           "why": "An engagement name beside an alumni term. Reunions and regional chapters are the concrete events the material belongs to."
         },
         {
-          "field": "giving designation",
+          "field": "giving_designation",
           "type": "string",
           "example": "the fund or purpose a gift was directed to",
           "reliability_ceiling": "validated",
@@ -4683,7 +4683,7 @@
       "template": {
         "dimension_order": [
           "institution",
-          "alumni record type",
+          "alumni_record_type",
           "engagement"
         ],
         "why": "Proposal. No year level: alumni material accumulates thinly over decades and a year split would produce exactly the many-tiny-folders outcome the design warns designers about.",
@@ -4724,7 +4724,7 @@
       "design_cite": "The design names the artifact as a packet member — §3.9 'A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract.' lists a certificate — and §7.3 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group' describes standalone certificates as residual material. It names no credential domain.",
       "schema": [
         {
-          "field": "awarding body",
+          "field": "awarding_body",
           "type": "string",
           "example": "the institution or body that granted it",
           "reliability_ceiling": "validated",
@@ -4738,28 +4738,28 @@
           "why": "A degree, certificate or licence name beside an awarding-body name at a word boundary."
         },
         {
-          "field": "award date",
+          "field": "award_date",
           "type": "date",
           "example": "the date of conferral",
           "reliability_ceiling": "validated",
           "why": "Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'."
         },
         {
-          "field": "verification handle",
+          "field": "verification_handle",
           "type": "string",
           "example": "the credential identifier or verification reference printed on it",
           "reliability_ceiling": "direct",
           "why": "Read from a labelled slot on the artifact, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is what separates a credential from a decorative certificate."
         },
         {
-          "field": "credential status",
+          "field": "credential_status",
           "type": "enum",
           "example": "current, expired, or superseded",
           "reliability_ceiling": "validated",
           "why": "Inference. An expiry or renewal term beside a credential name. Whether a credential is still current is the question people actually have."
         },
         {
-          "field": "credential form",
+          "field": "credential_form",
           "type": "enum",
           "example": "the physical or digital form the artifact takes",
           "reliability_ceiling": "validated",
@@ -4804,9 +4804,9 @@
       ],
       "template": {
         "dimension_order": [
-          "awarding body",
+          "awarding_body",
           "credential",
-          "credential form"
+          "credential_form"
         ],
         "why": "Inference. Awarding body then credential satisfies §5.5 'a parent dimension should provide the context required to understand the child': a certificate name is uninterpretable without knowing who issued it. No date level, because a person holds few credentials and a date split would leave one-child folders.",
         "time_first": false

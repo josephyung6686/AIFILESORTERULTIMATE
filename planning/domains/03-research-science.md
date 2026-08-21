@@ -43,46 +43,46 @@ A domain here is **a schema (which fact fields are legal) plus a template (how i
 
 | # | id | name | provenance | sensitivity | template order | time first |
 |---|---|---|---|---|---|---|
-| 1 | `res.research-project` | Research project work (the §3.11 Research schema itself) | design | none | project → stage → artifact type | no |
+| 1 | `res.research-project` | Research project work (the §3.11 Research schema itself) | design | none | project → stage → artifact_type | no |
 | 2 | `res.manuscript-preparation` | Manuscript preparation and its version family | design | none | project → manuscript → stage | no |
-| 3 | `res.manuscript-submission` | Journal submission packets and editorial correspondence | inference | none | project → manuscript → submission stage | no |
-| 4 | `res.peer-review-author` | Peer review received, and the revision it drives | inference | **potentially sensitive** | project → manuscript → review round | no |
-| 5 | `res.peer-review-referee` | Reviewing and editorial work done for others | proposal | **potentially sensitive** | venue → review role → assignment | no |
+| 3 | `res.manuscript-submission` | Journal submission packets and editorial correspondence | inference | none | project → manuscript → submission_stage | no |
+| 4 | `res.peer-review-author` | Peer review received, and the revision it drives | inference | **potentially sensitive** | project → manuscript → review_round | no |
+| 5 | `res.peer-review-referee` | Reviewing and editorial work done for others | proposal | **potentially sensitive** | venue → review_role → assignment | no |
 | 6 | `res.preprint` | Preprints and preprint versions | inference | none | project → manuscript → stage | no |
-| 7 | `res.published-article` | Published articles, reprints and author copies | inference | none | project → manuscript → artifact type | no |
+| 7 | `res.published-article` | Published articles, reprints and author copies | inference | none | project → manuscript → artifact_type | no |
 | 8 | `res.figure-and-source` | Figures and figure source files | design | none | project → manuscript → figure | no |
-| 9 | `res.dataset` | Research datasets | inference | **potentially sensitive** | project → study → data level | no |
-| 10 | `res.data-dictionary` | Data dictionaries and codebooks | proposal | none | project → study → dataset version | no |
-| 11 | `res.analysis-code` | Analysis code and scripts | inference | none | project → analysis step → artifact type | no |
-| 12 | `res.computational-notebook` | Computational notebooks | inference | none | project → analysis step → artifact type | no |
-| 13 | `res.statistical-output` | Statistical output and results tables | proposal | none | project → analysis step → output type | no |
-| 14 | `res.lab-notebook` | Lab notebooks and experiment records | inference | none | project → experiment → entry date | no |
+| 9 | `res.dataset` | Research datasets | inference | **potentially sensitive** | project → study → data_level | no |
+| 10 | `res.data-dictionary` | Data dictionaries and codebooks | proposal | none | project → study → dataset_version | no |
+| 11 | `res.analysis-code` | Analysis code and scripts | inference | none | project → analysis_step → artifact_type | no |
+| 12 | `res.computational-notebook` | Computational notebooks | inference | none | project → analysis_step → artifact_type | no |
+| 13 | `res.statistical-output` | Statistical output and results tables | proposal | none | project → analysis_step → output_type | no |
+| 14 | `res.lab-notebook` | Lab notebooks and experiment records | inference | none | project → experiment → entry_date | no |
 | 15 | `res.protocol-sop` | Experimental protocols and standard operating procedures | design | none | lab → protocol → version | no |
-| 16 | `res.instrument-output` | Instrument runs and raw acquisition output | proposal | **potentially sensitive** | instrument → acquisition date → run | yes |
-| 17 | `res.sample-specimen` | Sample, specimen and reagent records | proposal | **potentially sensitive** | project → study → record type | no |
+| 16 | `res.instrument-output` | Instrument runs and raw acquisition output | proposal | **potentially sensitive** | instrument → acquisition_date → run | yes |
+| 17 | `res.sample-specimen` | Sample, specimen and reagent records | proposal | **potentially sensitive** | project → study → record_type | no |
 | 18 | `res.grant-proposal` | Grant proposals and funding applications | proposal | **potentially sensitive** | funder → programme → period | no |
-| 19 | `res.grant-reporting` | Grant reporting and post-award compliance | proposal | **potentially sensitive** | funder → award → reporting period | no |
-| 20 | `res.irb-ethics` | Ethics, IRB and IACUC approvals | proposal | **potentially sensitive** | study → review body → protocol | no |
-| 21 | `res.human-subjects-consent` | Consent and participant-facing materials | proposal | **potentially sensitive** | study → consent version → consent type | no |
-| 22 | `res.clinical-trial` | Clinical trial documentation | proposal | **potentially sensitive** | sponsor → trial → document type | no |
-| 23 | `res.research-agreement` | Collaboration agreements, MTAs and data-use agreements | proposal | **potentially sensitive** | counterparty → agreement type → agreement | no |
-| 24 | `res.conference-abstract` | Conference and meeting abstracts | inference | none | project → venue → artifact type | no |
-| 25 | `res.poster` | Conference posters | inference | none | project → venue → artifact type | no |
-| 26 | `res.talk` | Talks, seminars and presentation decks | inference | none | project → venue → artifact type | no |
-| 27 | `res.reading-library` | Literature and reading library | proposal | none | reading topic → venue → artifact type | no |
-| 28 | `res.reference-library` | Reference-manager libraries and bibliographies | proposal | none | reading topic → library → artifact type | no |
-| 29 | `res.systematic-review` | Systematic reviews and evidence screening | proposal | none | review → screening stage → artifact type | no |
-| 30 | `res.thesis-supervision` | Thesis and dissertation supervision | proposal | **potentially sensitive** | student → milestone → artifact type | no |
+| 19 | `res.grant-reporting` | Grant reporting and post-award compliance | proposal | **potentially sensitive** | funder → award → reporting_period | no |
+| 20 | `res.irb-ethics` | Ethics, IRB and IACUC approvals | proposal | **potentially sensitive** | study → review_body → protocol | no |
+| 21 | `res.human-subjects-consent` | Consent and participant-facing materials | proposal | **potentially sensitive** | study → consent_version → consent_type | no |
+| 22 | `res.clinical-trial` | Clinical trial documentation | proposal | **potentially sensitive** | sponsor → trial → document_type | no |
+| 23 | `res.research-agreement` | Collaboration agreements, MTAs and data-use agreements | proposal | **potentially sensitive** | counterparty → agreement_type → agreement | no |
+| 24 | `res.conference-abstract` | Conference and meeting abstracts | inference | none | project → venue → artifact_type | no |
+| 25 | `res.poster` | Conference posters | inference | none | project → venue → artifact_type | no |
+| 26 | `res.talk` | Talks, seminars and presentation decks | inference | none | project → venue → artifact_type | no |
+| 27 | `res.reading-library` | Literature and reading library | proposal | none | reading_topic → venue → artifact_type | no |
+| 28 | `res.reference-library` | Reference-manager libraries and bibliographies | proposal | none | reading_topic → library → artifact_type | no |
+| 29 | `res.systematic-review` | Systematic reviews and evidence screening | proposal | none | review → screening_stage → artifact_type | no |
+| 30 | `res.thesis-supervision` | Thesis and dissertation supervision | proposal | **potentially sensitive** | student → milestone → artifact_type | no |
 | 31 | `res.patent-disclosure` | Invention disclosures and patents | proposal | **potentially sensitive** | docket → jurisdiction → status | no |
-| 32 | `res.software-release` | Research software releases | inference | none | project → release version → artifact type | no |
-| 33 | `res.reproducibility-package` | Reproducibility and replication packages | proposal | none | project → manuscript → artifact type | no |
-| 34 | `res.data-management-plan` | Data management plans | proposal | none | funder → award → plan version | no |
-| 35 | `res.repository-deposit` | Repository and archive deposits | proposal | none | project → artifact type → repository | no |
+| 32 | `res.software-release` | Research software releases | inference | none | project → release_version → artifact_type | no |
+| 33 | `res.reproducibility-package` | Reproducibility and replication packages | proposal | none | project → manuscript → artifact_type | no |
+| 34 | `res.data-management-plan` | Data management plans | proposal | none | funder → award → plan_version | no |
+| 35 | `res.repository-deposit` | Repository and archive deposits | proposal | none | project → artifact_type → repository | no |
 | 36 | `res.facility-booking` | Core-facility and equipment bookings | proposal | none | facility → instrument → session | no |
-| 37 | `res.field-work` | Field work records | proposal | **potentially sensitive** | site → campaign → record type | no |
+| 37 | `res.field-work` | Field work records | proposal | **potentially sensitive** | site → campaign → record_type | no |
 | 38 | `res.survey-instrument` | Survey instruments and fielding records | proposal | **potentially sensitive** | study → instrument → wave | no |
-| 39 | `res.qualitative-coding` | Qualitative coding and interview analysis | proposal | **potentially sensitive** | study → transcript stage → artifact type | no |
-| 40 | `res.correction-retraction` | Corrections, retractions and the post-publication record | proposal | none | project → manuscript → artifact type | no |
+| 39 | `res.qualitative-coding` | Qualitative coding and interview analysis | proposal | **potentially sensitive** | study → transcript_stage → artifact_type | no |
+| 40 | `res.correction-retraction` | Corrections, retractions and the post-publication record | proposal | none | project → manuscript → artifact_type | no |
 
 Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `potentially sensitive`: **16**. Open questions: **17**.
 
@@ -102,7 +102,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.** The organising identifier of the whole supercategory. §4.2: “For a research group, it might be a manuscript, abstract, or protocol with a known project identifier.” makes a known project identifier the seed of a research group. |
 | `stage` | string | `in preparation` | `validated` | **§3.11 literal.** Where the work sits in its own lifecycle. §5.4 puts it second in the Research template, so it is a dimension, not only metadata. |
-| `artifact type` | string | `manuscript` | `validated` | **§3.11 literal.** What kind of research object the file is. Every sub-domain below is, formally, one authored value of this field plus the extra fields that value legitimises. |
+| `artifact_type` | string | `manuscript` | `validated` | **§3.11 literal.** What kind of research object the file is. Every sub-domain below is, formally, one authored value of this field plus the extra fields that value legitimises. |
 | `lab` | string | `Chen Lab` | `validated` | **§3.11 literal.** §3.15 names “research and lab work” as one launch domain; `lab` is the group the work was done in, not its author (§3.8). |
 | `venue` | string | `Nature Communications` | `validated` | **§3.11 literal.** §4.9 names 'research venue' as one of the roles a single institution name can play, which is exactly why venue is its own field and not a generic organisation. |
 
@@ -149,12 +149,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.** §4.5's worked group label pairs the project with the artifact types: 'PVA/RDP — Manuscripts and Figures'. |
-| `manuscript title` | string | `Photoactivatable RDP reporters in live cells` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13 names 'document title' as a direct source. The title is the identity of the version family, not the filename. |
+| `manuscript_title` | string | `Photoactivatable RDP reporters in live cells` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13 names 'document title' as a direct source. The title is the identity of the version family, not the filename. |
 | `stage` | string | `under revision` | `validated` | **§3.11 literal.** §5.4 places stage between project and artifact type. |
 | `venue` | string | `Nature Communications` | `validated` | **§3.11 literal.** The journal a draft is aimed at. See the open question: aiming is not publishing. |
-| `draft label` | string | `v3 clean` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The member's position inside the version family §3.1 already makes a universal fact. A filename suffix alone is never enough — the label is only written when a revision token corroborates it. |
-| `authorship position` | string | `first author` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The author list's ordering relative to the user is prose, not a labelled slot. §3.8 makes this an authorship role, so it may describe the file and may never become a folder level. |
-| `corresponding author` | string | `J. Chen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled 'Corresponding author:' slot only. §3.8 authorship role; never a destination dimension. |
+| `draft_label` | string | `v3 clean` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The member's position inside the version family §3.1 already makes a universal fact. A filename suffix alone is never enough — the label is only written when a revision token corroborates it. |
+| `authorship_position` | string | `first author` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The author list's ordering relative to the user is prose, not a labelled slot. §3.8 makes this an authorship role, so it may describe the file and may never become a folder level. |
+| `corresponding_author` | string | `J. Chen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled 'Corresponding author:' slot only. §3.8 authorship role; never a destination dimension. |
 
 **Recognition**
 
@@ -201,9 +201,9 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `venue` | string | `Nature Communications` | `validated` | **§3.11 literal.** Here the venue is settled, not aspirational: a submission exists at exactly one journal at a time. |
-| `manuscript id` | string | `NCOMMS-25-01234` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The publisher's tracking identifier. It is the only value that ties a decision letter, a revision and a proof together, and it is worthless without submission context — see never_alone. |
-| `submission stage` | string | `revision 1` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A narrowing of §3.11's `stage` for this domain: initial submission, revision, proof, accepted. |
-| `submission date` | date | `2026-03-14` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled date slot only. §3.10 forbids fuzzy parsing. |
+| `manuscript_id` | string | `NCOMMS-25-01234` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The publisher's tracking identifier. It is the only value that ties a decision letter, a revision and a proof together, and it is worthless without submission context — see never_alone. |
+| `submission_stage` | string | `revision 1` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A narrowing of §3.11's `stage` for this domain: initial submission, revision, proof, accepted. |
+| `submission_date` | date | `2026-03-14` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled date slot only. §3.10 forbids fuzzy parsing. |
 | `editor` | string | `Handling editor: R. Okonkwo` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot. §3.8 role field; never a destination dimension. |
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
 
@@ -246,10 +246,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `venue` | string | `Nature Communications` | `validated` | **§3.11 literal.**  |
-| `manuscript id` | string | `NCOMMS-25-01234` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Shared with res.manuscript-submission; it is the join key of the whole submission lifecycle. |
-| `review round` | string | `round 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A narrowing of §3.11's `stage`. A round is only asserted when a decision or report token corroborates it. |
+| `manuscript_id` | string | `NCOMMS-25-01234` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Shared with res.manuscript-submission; it is the join key of the whole submission lifecycle. |
+| `review_round` | string | `round 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A narrowing of §3.11's `stage`. A round is only asserted when a decision or report token corroborates it. |
 | `decision` | string | `major revision` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. An editor's decision is prose spread over a letter; there is no labelled slot to read it from. |
-| `reviewer designation` | string | `Reviewer 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A positional label inside one report, deliberately not a person. §3.8's role rule is why this is not an `authored_by`. |
+| `reviewer_designation` | string | `Reviewer 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A positional label inside one report, deliberately not a person. §3.8's role rule is why this is not an `authored_by`. |
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
 
 **Recognition**
@@ -291,10 +291,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `venue` | string | `Journal of Cell Biology` | `validated` | **§3.11 literal.** The only §3.11 Research field that survives into this domain intact. |
-| `review assignment id` | string | `JCB-2026-00417` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The editorial system's handle for one assignment. |
-| `review role` | string | `handling editor` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Reviewer, handling editor, statistical reviewer and board member are distinguished by invitation prose, not by a field. |
-| `reviewed manuscript title` | string | `Mitochondrial dynamics under hypoxia` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'. Deliberately a different field from res.manuscript-preparation's `manuscript title`: §3.8's rule is that the same entity type in a different role is a different field. |
-| `review due date` | date | `2026-04-02` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot in the invitation only. |
+| `review_assignment_id` | string | `JCB-2026-00417` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The editorial system's handle for one assignment. |
+| `review_role` | string | `handling editor` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Reviewer, handling editor, statistical reviewer and board member are distinguished by invitation prose, not by a field. |
+| `reviewed_manuscript_title` | string | `Mitochondrial dynamics under hypoxia` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'. Deliberately a different field from res.manuscript-preparation's `manuscript_title`: §3.8's rule is that the same entity type in a different role is a different field. |
+| `review_due_date` | date | `2026-04-02` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot in the invitation only. |
 
 **Recognition**
 
@@ -339,10 +339,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
-| `preprint server` | string | `bioRxiv` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A narrowing of §3.11's `venue` for a posting rather than a publication — and deliberately a separate field, because a paper can have both at once. |
-| `preprint accession` | string | `arXiv:2103.02702` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-arxiv-new`, `cid-arxiv-old` or `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone. The pattern is that catalogue's; the corroborating context is this one's. |
-| `preprint version` | string | `v2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Servers version postings explicitly. Only asserted when the accession carries the version suffix or a posting notice states it. |
-| `posting date` | date | `2026-02-08` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the server's own stamped header line, a labelled slot. |
+| `preprint_server` | string | `bioRxiv` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A narrowing of §3.11's `venue` for a posting rather than a publication — and deliberately a separate field, because a paper can have both at once. |
+| `preprint_accession` | string | `arXiv:2103.02702` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-arxiv-new`, `cid-arxiv-old` or `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone. The pattern is that catalogue's; the corroborating context is this one's. |
+| `preprint_version` | string | `v2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Servers version postings explicitly. Only asserted when the accession carries the version suffix or a posting notice states it. |
+| `posting_date` | date | `2026-02-08` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the server's own stamped header line, a labelled slot. |
 | `venue` | string | `Nature Communications` | `validated` | **§3.11 literal.** Present only once the preprint has a journal home. |
 
 **Recognition**
@@ -389,10 +389,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|---|---|
 | `venue` | string | `Nature Communications` | `validated` | **§3.11 literal.** Settled at publication and never changes again, which is what makes it a safer dimension here than in res.manuscript-preparation. |
 | `doi` | string | `10.1038/s41586-021-03819-2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone, corroborated by publisher furniture. A DOI in a reference list is somebody else's (§2.2: “A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen.”). |
-| `publication year` | date | `2026` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled 'Published' slot or PDF metadata only — never inferred from a filename (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
-| `article type` | string | `research article` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Research article, review, comment, editorial and letter are distinguished by publisher labelling that varies by venue. |
-| `citation locator` | string | `12(3), 45–67` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Volume, issue and pages as one string from the publisher's own citation block. Kept as one field because splitting it invites the fuzzy numeric parsing §3.10 forbids. |
-| `authorship position` | string | `first author` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 authorship role; describes the file, never a folder level. |
+| `publication_year` | date | `2026` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled 'Published' slot or PDF metadata only — never inferred from a filename (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
+| `article_type` | string | `research article` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Research article, review, comment, editorial and letter are distinguished by publisher labelling that varies by venue. |
+| `citation_locator` | string | `12(3), 45–67` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Volume, issue and pages as one string from the publisher's own citation block. Kept as one field because splitting it invites the fuzzy numeric parsing §3.10 forbids. |
+| `authorship_position` | string | `first author` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 authorship role; describes the file, never a folder level. |
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
 
 **Recognition**
@@ -435,11 +435,11 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
-| `figure label` | string | `Figure 3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The figure's identity inside its parent output. Only asserted with a caption or manuscript context — see never_alone. |
-| `panel label` | string | `3b` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Panels are edited and replaced independently of the assembled figure, so they need their own value. |
-| `manuscript title` | string | `Photoactivatable RDP reporters in live cells` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title', read from the parent output. This is the field that stops a figure packet absorbing a figure from a different study. |
-| `figure source format` | string | `Adobe Illustrator (.ai)` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” — the detected format is a direct observation, and it is what separates an editable source from an export. |
-| `source dataset` | string | `cohort2_normalised.csv` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which data a plot renders is stated in a caption or a methods line, not in a slot. |
+| `figure_label` | string | `Figure 3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The figure's identity inside its parent output. Only asserted with a caption or manuscript context — see never_alone. |
+| `panel_label` | string | `3b` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Panels are edited and replaced independently of the assembled figure, so they need their own value. |
+| `manuscript_title` | string | `Photoactivatable RDP reporters in live cells` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title', read from the parent output. This is the field that stops a figure packet absorbing a figure from a different study. |
+| `figure_source_format` | string | `Adobe Illustrator (.ai)` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” — the detected format is a direct observation, and it is what separates an editable source from an export. |
+| `source_dataset` | string | `cohort2_normalised.csv` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which data a plot renders is stated in a caption or a methods line, not in a slot. |
 
 **Recognition**
 
@@ -486,10 +486,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `study` | string | `PVA cohort 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Deliberately not `project`: a project runs several studies and a dataset belongs to exactly one. §3.8's role rule is the precedent for splitting a field rather than overloading it. |
-| `data level` | string | `analysis-ready` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Raw, processed and analysis-ready copies of the same data are different files with the same name, and the level is the only thing that distinguishes them. |
-| `collection date` | date | `2026-01-22` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot or a manifest field only (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
+| `data_level` | string | `analysis-ready` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Raw, processed and analysis-ready copies of the same data are different files with the same name, and the level is the only thing that distinguishes them. |
+| `collection_date` | date | `2026-01-22` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot or a manifest field only (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
 | `instrument` | string | `Illumina NovaSeq 6000` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. What produced the data. Shared with res.instrument-output, which is why the two collide below. |
-| `dataset version` | string | `v2.1` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Datasets are re-released; §3.1's version family is universal, this is the released label. |
+| `dataset_version` | string | `v2.1` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Datasets are re-released; §3.1's version family is universal, this is the released label. |
 | `accession` | string | `GSE123456` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A repository accession, corroborated by deposit context. The identifier patterns live in planning/deferred-catalogues/06-citation-identifier-patterns.json. |
 | `licence` | string | `CC BY 4.0` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled licence slot in a README or metadata record. |
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
@@ -540,11 +540,11 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `study` | string | `PVA cohort 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Shared with res.dataset; it is the join. |
-| `variable name` | string | `bl_hba1c` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled dictionary column (§2.9: spreadsheets yield “sheet names, column headers, visible cell values, table-like regions”). §3.13's “labeled form field” is the precedent for calling a named column direct. |
-| `variable label` | string | `Baseline HbA1c (mmol/mol)` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The human-readable gloss, from its own labelled column. |
-| `value coding` | string | `1 = yes; 2 = no; -9 = missing` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The coding scheme, from its own labelled column. This is the field that makes a dictionary re-usable years later and is the reason the domain exists separately. |
-| `dataset version` | string | `v2.1` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A dictionary is valid for one dataset version and silently wrong for another. |
-| `collection instrument` | string | `PHQ-9` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which instrument produced the variable, where one did. Shared with res.survey-instrument. |
+| `variable_name` | string | `bl_hba1c` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled dictionary column (§2.9: spreadsheets yield “sheet names, column headers, visible cell values, table-like regions”). §3.13's “labeled form field” is the precedent for calling a named column direct. |
+| `variable_label` | string | `Baseline HbA1c (mmol/mol)` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The human-readable gloss, from its own labelled column. |
+| `value_coding` | string | `1 = yes; 2 = no; -9 = missing` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The coding scheme, from its own labelled column. This is the field that makes a dictionary re-usable years later and is the reason the domain exists separately. |
+| `dataset_version` | string | `v2.1` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A dictionary is valid for one dataset version and silently wrong for another. |
+| `collection_instrument` | string | `PHQ-9` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which instrument produced the variable, where one did. Shared with res.survey-instrument. |
 
 **Recognition**
 
@@ -586,10 +586,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | §3.11 literal in both the Research and the Code row — the one field the two domains share, which is why they collide so cleanly. |
 | `repository` | string | `pva-analysis` | `direct` | §3.11 Code row, literal. Detected from a repository marker (deferred catalogue 05), which is a structural observation, not an inference. |
-| `programming language` | string | `R` | `direct` | §3.11 Code row, literal. From the detected format and the file's own import or shebang lines. |
-| `artifact type` | string | `analysis script` | `validated` | §3.11 literal in both rows. |
-| `analysis step` | string | `Figure 3 regression` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. What a script is for is stated in a comment header or a README sentence, not in a slot. |
-| `input dataset` | string | `cohort2_normalised.csv` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Read from a load call or a documented path; a path string alone is not evidence the file it names is the corpus's. |
+| `programming_language` | string | `R` | `direct` | §3.11 Code row, literal. From the detected format and the file's own import or shebang lines. |
+| `artifact_type` | string | `analysis script` | `validated` | §3.11 literal in both rows. |
+| `analysis_step` | string | `Figure 3 regression` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. What a script is for is stated in a comment header or a README sentence, not in a slot. |
+| `input_dataset` | string | `cohort2_normalised.csv` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Read from a load call or a documented path; a path string alone is not evidence the file it names is the corpus's. |
 
 **Recognition**
 
@@ -635,11 +635,11 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
-| `notebook kernel` | string | `R 4.4` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “notebook cell types, package manifests, schema keys, repository markers, and project-root signals” — the kernel is declared in the notebook's own metadata, a labelled slot. |
-| `analysis step` | string | `cohort 2 normalisation` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in a markdown cell, which is prose. |
-| `execution date` | date | `2026-03-02` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From execution metadata only. A notebook's saved outputs and its code can be from different days, which is precisely why this field exists here and not in res.analysis-code. |
-| `input dataset` | string | `cohort2_raw.csv` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Read from a load cell. |
-| `output figure` | string | `Figure 3` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which figure a notebook draws is stated in a caption cell; it is the link to res.figure-and-source. |
+| `notebook_kernel` | string | `R 4.4` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “notebook cell types, package manifests, schema keys, repository markers, and project-root signals” — the kernel is declared in the notebook's own metadata, a labelled slot. |
+| `analysis_step` | string | `cohort 2 normalisation` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in a markdown cell, which is prose. |
+| `execution_date` | date | `2026-03-02` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From execution metadata only. A notebook's saved outputs and its code can be from different days, which is precisely why this field exists here and not in res.analysis-code. |
+| `input_dataset` | string | `cohort2_raw.csv` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Read from a load cell. |
+| `output_figure` | string | `Figure 3` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which figure a notebook draws is stated in a caption cell; it is the link to res.figure-and-source. |
 
 **Recognition**
 
@@ -681,11 +681,11 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
-| `analysis step` | string | `primary outcome model` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Named in the output's own header line or the script that wrote it. |
-| `model specification` | string | `mixed-effects, random intercept by site` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A model is described in prose or in a formula line; it is the fact that makes one estimates table distinguishable from another. |
+| `analysis_step` | string | `primary outcome model` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Named in the output's own header line or the script that wrote it. |
+| `model_specification` | string | `mixed-effects, random intercept by site` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A model is described in prose or in a formula line; it is the fact that makes one estimates table distinguishable from another. |
 | `software` | string | `Stata 18` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the package's own banner line, which is a labelled slot — distinct from the producer/creator metadata P6's discount rule suppresses, because the banner is content, not file metadata. |
-| `output type` | string | `regression table` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Estimates table, log, diagnostic set and power analysis are recognisable from structure. |
-| `input dataset` | string | `cohort2_analysis.dta` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Named in a use or load line. |
+| `output_type` | string | `regression table` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Estimates table, log, diagnostic set and power analysis are recognisable from structure. |
+| `input_dataset` | string | `cohort2_analysis.dta` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Named in a use or load line. |
 
 **Recognition**
 
@@ -728,10 +728,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|---|---|
 | `lab` | string | `Chen Lab` | `validated` | **§3.11 literal.** The notebook belongs to a lab, which is why §3.11's `lab` field is a real dimension here and metadata almost everywhere else. |
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
-| `experiment id` | string | `EXP-2026-014` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The entry's own handle, and the thing that links a page to its instrument runs and samples. |
-| `entry date` | date | `2026-03-04` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the entry's own dated header. A lab notebook is a chronological instrument by construction — see the open question. |
-| `protocol reference` | string | `SOP-CELL-07 v3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which protocol the entry followed. It is the join to res.protocol-sop and the reason a notebook entry is reproducible at all. |
-| `witness signature` | string | `Countersigned R.O. 2026-03-05` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled countersignature slot. It exists because a countersigned notebook is the evidentiary artifact in a patent dispute — see the collision with res.patent-disclosure. |
+| `experiment_id` | string | `EXP-2026-014` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The entry's own handle, and the thing that links a page to its instrument runs and samples. |
+| `entry_date` | date | `2026-03-04` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the entry's own dated header. A lab notebook is a chronological instrument by construction — see the open question. |
+| `protocol_reference` | string | `SOP-CELL-07 v3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which protocol the entry followed. It is the join to res.protocol-sop and the reason a notebook entry is reproducible at all. |
+| `witness_signature` | string | `Countersigned R.O. 2026-03-05` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled countersignature slot. It exists because a countersigned notebook is the evidentiary artifact in a patent dispute — see the collision with res.patent-disclosure. |
 
 **Recognition**
 
@@ -777,12 +777,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `protocol title` | string | `Live-cell photoactivation imaging` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'. |
-| `protocol version` | string | `v3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A protocol is only safe to follow at a stated version; running an old version is a deviation. Only asserted when a version or effective-date line corroborates it. |
+| `protocol_title` | string | `Live-cell photoactivation imaging` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'. |
+| `protocol_version` | string | `v3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A protocol is only safe to follow at a stated version; running an old version is a deviation. Only asserted when a version or effective-date line corroborates it. |
 | `lab` | string | `Chen Lab` | `validated` | **§3.11 literal.**  |
-| `approving body` | string | `IACUC 2026-0088` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which committee cleared the procedure, where one did. It is the join to res.irb-ethics and is absent for most bench SOPs. |
-| `effective date` | date | `2026-01-15` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled effective-date or revision slot (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
-| `equipment and reagents` | string | `NovaSeq 6000; Hoechst 33342` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Listed in prose or a materials table; extracting it is language work. |
+| `approving_body` | string | `IACUC 2026-0088` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which committee cleared the procedure, where one did. It is the join to res.irb-ethics and is absent for most bench SOPs. |
+| `effective_date` | date | `2026-01-15` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled effective-date or revision slot (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
+| `equipment_and_reagents` | string | `NovaSeq 6000; Hoechst 33342` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Listed in prose or a materials table; extracting it is language work. |
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.** Often absent: a good SOP outlives the project that wrote it. |
 
 **Recognition**
@@ -826,10 +826,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `instrument` | string | `Zeiss LSM 980` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Model identity from a vendor metadata slot or a run manifest. Shared with res.dataset and res.facility-booking. |
-| `run id` | string | `RUN-20260304-002` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the acquisition software's own labelled field. |
-| `acquisition date` | date | `2026-03-04` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From acquisition metadata. This is the one research domain where the date is intrinsic to the artifact rather than descriptive of it. |
-| `sample id` | string | `PVA-C2-014` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. What was on the stage. The join to res.sample-specimen. |
-| `acquisition parameters` | string | `63x/1.4 oil, 405/488 nm` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the vendor metadata block, a labelled slot. It is the field that makes a run re-interpretable years later. |
+| `run_id` | string | `RUN-20260304-002` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the acquisition software's own labelled field. |
+| `acquisition_date` | date | `2026-03-04` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From acquisition metadata. This is the one research domain where the date is intrinsic to the artifact rather than descriptive of it. |
+| `sample_id` | string | `PVA-C2-014` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. What was on the stage. The join to res.sample-specimen. |
+| `acquisition_parameters` | string | `63x/1.4 oil, 405/488 nm` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the vendor metadata block, a labelled slot. It is the field that makes a run re-interpretable years later. |
 | `facility` | string | `Imaging Core` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Where the run happened; the join to res.facility-booking and to recharge records. |
 | `operator` | string | `J. Chen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension. |
 
@@ -877,13 +877,13 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `sample id` | string | `PVA-C2-014-A3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The physical item's handle. Aliquots extend it, which is why lineage is its own field. |
-| `specimen type` | string | `cryopreserved PBMC` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in prose or a free-text column; there is no standard slot. |
-| `collection date` | date | `2026-01-22` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled column (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
-| `storage location` | string | `Freezer B / Rack 3 / Box 12` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled column. It is the field the record exists to hold and the one that goes stale fastest. |
+| `sample_id` | string | `PVA-C2-014-A3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The physical item's handle. Aliquots extend it, which is why lineage is its own field. |
+| `specimen_type` | string | `cryopreserved PBMC` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in prose or a free-text column; there is no standard slot. |
+| `collection_date` | date | `2026-01-22` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled column (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
+| `storage_location` | string | `Freezer B / Rack 3 / Box 12` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled column. It is the field the record exists to hold and the one that goes stale fastest. |
 | `study` | string | `PVA cohort 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which study the material belongs to; shared with res.dataset. |
-| `subject code` | string | `C2-014` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A de-identified participant key from a labelled column. It is still a key to a person, which is why this domain is marked below. |
-| `aliquot lineage` | string | `derived from PVA-C2-014` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Parent-child relationships between physical items are described, not encoded. |
+| `subject_code` | string | `C2-014` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A de-identified participant key from a labelled column. It is still a key to a person, which is why this domain is marked below. |
+| `aliquot_lineage` | string | `derived from PVA-C2-014` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Parent-child relationships between physical items are described, not encoded. |
 
 **Recognition**
 
@@ -925,13 +925,13 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `funder` | string | `NIH / NIGMS` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The body being asked. It is the root of the whole branch and the one value that is stable across a decade of resubmissions. |
-| `opportunity number` | string | `PA-24-247` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The funder's call identifier — distinct from the award number, which only exists after success. |
+| `opportunity_number` | string | `PA-24-247` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The funder's call identifier — distinct from the award number, which only exists after success. |
 | `programme` | string | `R01` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The scheme applied to; it determines the entire document set. |
 | `period` | string | `2027-2030` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The proposed period of performance, from a labelled slot. Not a date fact: it is a span the funder defines (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
-| `proposal stage` | string | `full proposal` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Letter of intent, full proposal, resubmission and just-in-time are different document sets under one identity. |
-| `host institution` | string | `Columbia University` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The applicant institution — §3.8's role split: this is not the funder and not the collaborator. |
-| `principal investigator` | string | `J. Chen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension. |
-| `submission deadline` | date | `2026-10-05` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot in the call. |
+| `proposal_stage` | string | `full proposal` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Letter of intent, full proposal, resubmission and just-in-time are different document sets under one identity. |
+| `host_institution` | string | `Columbia University` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The applicant institution — §3.8's role split: this is not the funder and not the collaborator. |
+| `principal_investigator` | string | `J. Chen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension. |
+| `submission_deadline` | date | `2026-10-05` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot in the call. |
 
 **Recognition**
 
@@ -978,11 +978,11 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `funder` | string | `NIH / NIGMS` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Shared with res.grant-proposal. |
-| `award number` | string | `R01GM123456` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Exists only after success, which is exactly what separates this domain from the proposal one. |
-| `reporting period` | string | `2028-04-01 to 2029-03-31` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled budget-period or reporting-period slot. |
-| `report type` | string | `annual progress report` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Progress, financial, final and closeout reports have different recipients and different retention. |
-| `compliance requirement` | string | `public access deposit within twelve months` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Requirements are stated in prose in award terms; extracting one is language work. |
-| `personnel effort` | string | `2.4 calendar months, J. Chen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled effort column. §3.8 role data; never a destination dimension. |
+| `award_number` | string | `R01GM123456` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Exists only after success, which is exactly what separates this domain from the proposal one. |
+| `reporting_period` | string | `2028-04-01 to 2029-03-31` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled budget-period or reporting-period slot. |
+| `report_type` | string | `annual progress report` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Progress, financial, final and closeout reports have different recipients and different retention. |
+| `compliance_requirement` | string | `public access deposit within twelve months` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Requirements are stated in prose in award terms; extracting one is language work. |
+| `personnel_effort` | string | `2.4 calendar months, J. Chen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled effort column. §3.8 role data; never a destination dimension. |
 
 **Recognition**
 
@@ -1023,12 +1023,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `protocol number` | string | `IRB-2026-0412` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The committee's handle. Every document in the file carries it, which makes it the group's anchor in §4.2's sense. |
-| `review body` | string | `IACUC` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. IRB, IACUC, IBC and external ethics committees have different scopes and different documents. |
-| `review type` | string | `expedited` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Exempt, expedited and full-board determine what else must exist. |
-| `approval date` | date | `2026-02-11` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled approval slot. |
-| `expiry date` | date | `2027-02-10` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot. An expired approval is the single most consequential stale fact in a research corpus. |
-| `amendment number` | string | `Amendment 3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Approvals accrete amendments; each is a version of the approved protocol. |
+| `protocol_number` | string | `IRB-2026-0412` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The committee's handle. Every document in the file carries it, which makes it the group's anchor in §4.2's sense. |
+| `review_body` | string | `IACUC` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. IRB, IACUC, IBC and external ethics committees have different scopes and different documents. |
+| `review_type` | string | `expedited` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Exempt, expedited and full-board determine what else must exist. |
+| `approval_date` | date | `2026-02-11` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled approval slot. |
+| `expiry_date` | date | `2027-02-10` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot. An expired approval is the single most consequential stale fact in a research corpus. |
+| `amendment_number` | string | `Amendment 3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Approvals accrete amendments; each is a version of the approved protocol. |
 | `study` | string | `PVA cohort 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.dataset and res.human-subjects-consent. |
 
 **Recognition**
@@ -1075,12 +1075,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `study` | string | `PVA cohort 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.irb-ethics and res.dataset. |
-| `consent version` | string | `v4 2026-02-11` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Only the IRB-approved version may be used; the version is the compliance fact. |
-| `consent type` | string | `re-consent` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Consent, assent, broad consent, re-consent and HIPAA authorization are different instruments. |
-| `irb protocol number` | string | `IRB-2026-0412` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Carried on the approved form's footer; the join to res.irb-ethics. |
-| `language version` | string | `Simplified Chinese` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.11's universal `language` fact says what a file is written in; this field says which approved translation it is, which is a different claim. |
-| `participant code` | string | `C2-014` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Present on executed forms only. It is the field that flips the whole record's character. |
-| `signature date` | date | `2026-03-01` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the signature block. |
+| `consent_version` | string | `v4 2026-02-11` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Only the IRB-approved version may be used; the version is the compliance fact. |
+| `consent_type` | string | `re-consent` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Consent, assent, broad consent, re-consent and HIPAA authorization are different instruments. |
+| `irb_protocol_number` | string | `IRB-2026-0412` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Carried on the approved form's footer; the join to res.irb-ethics. |
+| `language_version` | string | `Simplified Chinese` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.11's universal `language` fact says what a file is written in; this field says which approved translation it is, which is a different claim. |
+| `participant_code` | string | `C2-014` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Present on executed forms only. It is the field that flips the whole record's character. |
+| `signature_date` | date | `2026-03-01` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the signature block. |
 
 **Recognition**
 
@@ -1125,13 +1125,13 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `trial registration id` | string | `NCT01234567` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The trial's public identity. It anchors the entire document set. |
+| `trial_registration_id` | string | `NCT01234567` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The trial's public identity. It anchors the entire document set. |
 | `sponsor` | string | `Columbia University` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role split: the sponsor is not the site and not the funder, even when one organisation is all three. |
-| `protocol version` | string | `v6.0 2026-04-18` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A trial protocol amendment changes what may lawfully be done; the version is a regulatory fact. |
+| `protocol_version` | string | `v6.0 2026-04-18` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A trial protocol amendment changes what may lawfully be done; the version is a regulatory fact. |
 | `site` | string | `Site 004 — Presbyterian` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Multi-site trials duplicate every document per site. |
 | `phase` | string | `Phase II` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot; determines the required document set. |
 | `indication` | string | `type 2 diabetes` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in prose in the protocol synopsis. |
-| `monitoring visit` | string | `interim monitoring visit 2` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the visit report's own labelled header. |
+| `monitoring_visit` | string | `interim monitoring visit 2` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the visit report's own labelled header. |
 
 **Recognition**
 
@@ -1173,13 +1173,13 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `counterparty institution` | string | `Broad Institute` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8's rule applied literally: 'authored_by and target_school, or our_firm and client' — an agreement has two institutions in two roles and they must be two fields. |
-| `our institution` | string | `Columbia University` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The other half of the §3.8 role split. |
-| `agreement type` | string | `MTA` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. MTA, DUA, CDA, subaward and authorship agreement carry different obligations. |
-| `agreement reference` | string | `MTA-2026-0119` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The office's handle for the instrument. |
-| `effective date` | date | `2026-05-01` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled 'Effective Date' slot. |
-| `expiry date` | date | `2029-04-30` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot. An expired DUA makes continued data use a breach, which is why it is a fact and not a note. |
-| `material or data described` | string | `de-identified cohort 2 genotypes` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Described in a schedule or exhibit in prose. |
+| `counterparty_institution` | string | `Broad Institute` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8's rule applied literally: 'authored_by and target_school, or our_firm and client' — an agreement has two institutions in two roles and they must be two fields. |
+| `our_institution` | string | `Columbia University` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The other half of the §3.8 role split. |
+| `agreement_type` | string | `MTA` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. MTA, DUA, CDA, subaward and authorship agreement carry different obligations. |
+| `agreement_reference` | string | `MTA-2026-0119` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The office's handle for the instrument. |
+| `effective_date` | date | `2026-05-01` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled 'Effective Date' slot. |
+| `expiry_date` | date | `2029-04-30` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot. An expired DUA makes continued data use a breach, which is why it is a fact and not a note. |
+| `material_or_data_described` | string | `de-identified cohort 2 genotypes` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Described in a schedule or exhibit in prose. |
 
 **Recognition**
 
@@ -1222,11 +1222,11 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
 | `venue` | string | `ASCB Cell Bio 2026` | `validated` | **§3.11 literal.** A meeting is a venue in §3.11's sense; §4.9's 'research venue' role is the design's acknowledgement that the same name can be several things. |
-| `abstract id` | string | `ABS-2026-1184` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The meeting's submission handle. |
-| `presentation type` | string | `poster` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Oral, poster and late-breaking are decided by the meeting and determine what artifact follows. |
-| `session or track` | string | `Organelle Dynamics II` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Where the work was programmed; often the only topical label a meeting produces. |
-| `submission deadline` | date | `2026-06-15` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot in the call (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
-| `presenting author` | string | `J. Chen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension. |
+| `abstract_id` | string | `ABS-2026-1184` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The meeting's submission handle. |
+| `presentation_type` | string | `poster` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Oral, poster and late-breaking are decided by the meeting and determine what artifact follows. |
+| `session_or_track` | string | `Organelle Dynamics II` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Where the work was programmed; often the only topical label a meeting produces. |
+| `submission_deadline` | date | `2026-06-15` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled slot in the call (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
+| `presenting_author` | string | `J. Chen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension. |
 
 **Recognition**
 
@@ -1261,7 +1261,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 > The large-format artifact presented at a meeting, and the files it is built from.
 
-**provenance**: `inference` — Extends §3.11's Research `artifact type` with a presentation form the design does not name. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” supplies the format evidence.
+**provenance**: `inference` — Extends §3.11's Research `artifact_type` with a presentation form the design does not name. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” supplies the format evidence.
 
 **Schema** — the fields this domain, and only this domain, legitimises.
 
@@ -1269,10 +1269,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
 | `venue` | string | `ASCB Cell Bio 2026` | `validated` | **§3.11 literal.**  |
-| `presentation date` | date | `2026-12-08` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the meeting programme or the poster's own footer. |
-| `board or session` | string | `Board B-142` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The meeting's physical handle for the poster; the join back to the abstract. |
-| `poster format` | string | `A0 portrait` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” — canvas properties are a direct observation and are what identify a poster file among ordinary decks. |
-| `co-presenters` | string | `J. Chen; R. Okonkwo` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Read from the author band. §3.8 role data; never a destination dimension. |
+| `presentation_date` | date | `2026-12-08` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the meeting programme or the poster's own footer. |
+| `board_or_session` | string | `Board B-142` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The meeting's physical handle for the poster; the join back to the abstract. |
+| `poster_format` | string | `A0 portrait` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties” — canvas properties are a direct observation and are what identify a poster file among ordinary decks. |
+| `co_presenters` | string | `J. Chen; R. Okonkwo` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Read from the author band. §3.8 role data; never a destination dimension. |
 
 **Recognition**
 
@@ -1311,7 +1311,7 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 > Spoken presentations of research and the material prepared for them.
 
-**provenance**: `inference` — Extends §3.11's Research `artifact type` with a presentation form the design does not name. §2.9: “Presentations such as PPTX, PPT, ODP, and PDF slide decks should yield slide titles, text boxes, speaker notes where available” supplies the structural evidence.
+**provenance**: `inference` — Extends §3.11's Research `artifact_type` with a presentation form the design does not name. §2.9: “Presentations such as PPTX, PPT, ODP, and PDF slide decks should yield slide titles, text boxes, speaker notes where available” supplies the structural evidence.
 
 **Schema** — the fields this domain, and only this domain, legitimises.
 
@@ -1319,10 +1319,10 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|---|---|
 | `project` | string | `PVA/RDP` | `validated` | **§3.11 literal.**  |
 | `venue` | string | `Gordon Research Conference — Photobiology` | `validated` | **§3.11 literal.**  |
-| `talk title` | string | `Watching RDP switch in real time` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title', usually the first slide. |
-| `talk type` | string | `invited seminar` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Invited seminar, contributed talk, job talk and lab meeting have completely different audiences and reuse patterns. |
-| `presentation date` | date | `2026-07-22` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the title slide or the invitation (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
-| `host institution` | string | `EMBL Heidelberg` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role split: the host is not the author's institution and not the venue's owner. |
+| `talk_title` | string | `Watching RDP switch in real time` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title', usually the first slide. |
+| `talk_type` | string | `invited seminar` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Invited seminar, contributed talk, job talk and lab meeting have completely different audiences and reuse patterns. |
+| `presentation_date` | date | `2026-07-22` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the title slide or the invitation (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
+| `host_institution` | string | `EMBL Heidelberg` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role split: the host is not the author's institution and not the venue's owner. |
 
 **Recognition**
 
@@ -1363,12 +1363,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `cited work title` | string | `Mitochondrial dynamics under hypoxia` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'. |
-| `cited authors` | string | `Okonkwo, R.; Larsen, M.` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field. Present because it is how people search a library, and explicitly never a destination dimension (§3.8: “It should avoid using authorship or creator identity as a destination dimension.”). |
-| `publication venue` | string | `Journal of Cell Biology` | `validated` | **§3.11 literal.** §3.11's `venue` in the reading role rather than the publishing role. |
+| `cited_work_title` | string | `Mitochondrial dynamics under hypoxia` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'. |
+| `cited_authors` | string | `Okonkwo, R.; Larsen, M.` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field. Present because it is how people search a library, and explicitly never a destination dimension (§3.8: “It should avoid using authorship or creator identity as a destination dimension.”). |
+| `publication_venue` | string | `Journal of Cell Biology` | `validated` | **§3.11 literal.** §3.11's `venue` in the reading role rather than the publishing role. |
 | `doi` | string | `10.1083/jcb.202301045` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` or `cid-pmid` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) in the title or page-one zone, corroborated by publisher furniture. |
-| `reading topic` | string | `organelle contact sites` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Why the user keeps it is not stated anywhere in the file; only interpretation reaches it. |
-| `annotation state` | string | `annotated` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Whether the PDF carries the user's own highlights is a structural observation, and it is the single best signal that the file was actually read. |
+| `reading_topic` | string | `organelle contact sites` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Why the user keeps it is not stated anywhere in the file; only interpretation reaches it. |
+| `annotation_state` | string | `annotated` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Whether the PDF carries the user's own highlights is a structural observation, and it is the single best signal that the file was actually read. |
 
 **Recognition**
 
@@ -1413,11 +1413,11 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `library name` | string | `PVA-RDP library` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the export's own header or the manager's collection metadata. |
-| `reference manager` | string | `Zotero` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From format markers in the file itself, a structural observation. |
-| `export format` | string | `BibTeX` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The detected format (§2.9: “inspect the real MIME type or file signature where possible”). It determines what can be recovered and is therefore a fact, not a note. |
-| `collection or tag` | string | `to-read / methods` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From labelled collection fields in the export. |
-| `linked manuscript` | string | `Photoactivatable RDP reporters in live cells` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which manuscript a .bib serves is inferred from co-location and citation overlap, not stated. |
+| `library_name` | string | `PVA-RDP library` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the export's own header or the manager's collection metadata. |
+| `reference_manager` | string | `Zotero` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From format markers in the file itself, a structural observation. |
+| `export_format` | string | `BibTeX` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The detected format (§2.9: “inspect the real MIME type or file signature where possible”). It determines what can be recovered and is therefore a fact, not a note. |
+| `collection_or_tag` | string | `to-read / methods` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From labelled collection fields in the export. |
+| `linked_manuscript` | string | `Photoactivatable RDP reporters in live cells` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which manuscript a .bib serves is inferred from co-location and citation overlap, not stated. |
 
 **Recognition**
 
@@ -1457,13 +1457,13 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `review question` | string | `effect of X on Y in adults` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in a protocol narrative; there is no slot. |
-| `registration id` | string | `CRD42026000123` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A registered review protocol's public identity, corroborated by registry context. |
-| `search database` | string | `Embase` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which database a strategy was run against. Reproducibility of the whole review depends on it. |
-| `search date` | date | `2026-05-09` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the strategy's own labelled run-date line. A search is only valid as of a date, which is why this is a fact. |
-| `screening stage` | string | `full text` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Title/abstract and full-text screening produce different files with the same names. |
-| `reviewer designation` | string | `Reviewer B` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A positional label, deliberately not a person, matching res.peer-review-author's treatment (§3.8: “authored_by and target_school, or our_firm and client”). |
-| `inclusion criteria` | string | `adults, randomised, English` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in a protocol narrative. |
+| `review_question` | string | `effect of X on Y in adults` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in a protocol narrative; there is no slot. |
+| `registration_id` | string | `CRD42026000123` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A registered review protocol's public identity, corroborated by registry context. |
+| `search_database` | string | `Embase` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which database a strategy was run against. Reproducibility of the whole review depends on it. |
+| `search_date` | date | `2026-05-09` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the strategy's own labelled run-date line. A search is only valid as of a date, which is why this is a fact. |
+| `screening_stage` | string | `full text` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Title/abstract and full-text screening produce different files with the same names. |
+| `reviewer_designation` | string | `Reviewer B` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A positional label, deliberately not a person, matching res.peer-review-author's treatment (§3.8: “authored_by and target_school, or our_firm and client”). |
+| `inclusion_criteria` | string | `adults, randomised, English` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in a protocol narrative. |
 
 **Recognition**
 
@@ -1505,12 +1505,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `student` | string | `M. Larsen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field. The person supervised is not the author of the supervisor's corpus and never a destination dimension (§3.8: “It should avoid using authorship or creator identity as a destination dimension.”). |
-| `degree programme` | string | `PhD Biological Sciences` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The programme determines the milestone set and the deadlines. |
-| `thesis title` | string | `Photoswitchable probes for organelle contact sites` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'. |
+| `degree_programme` | string | `PhD Biological Sciences` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The programme determines the milestone set and the deadlines. |
+| `thesis_title` | string | `Photoswitchable probes for organelle contact sites` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.13's 'document title'. |
 | `milestone` | string | `candidacy exam` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Proposal defense, candidacy, committee meeting and final defense are the skeleton of the whole relationship. |
-| `committee member` | string | `R. Okonkwo (external)` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field. |
-| `supervision role` | string | `primary supervisor` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Primary, co-supervisor and committee member produce different documents and different obligations. |
-| `submission deadline` | date | `2027-05-30` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled programme slot. |
+| `committee_member` | string | `R. Okonkwo (external)` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field. |
+| `supervision_role` | string | `primary supervisor` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Primary, co-supervisor and committee member produce different documents and different obligations. |
+| `submission_deadline` | date | `2027-05-30` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled programme slot. |
 
 **Recognition**
 
@@ -1555,14 +1555,14 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `docket number` | string | `CU-2026-041` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The technology-transfer office's handle, present from disclosure onward. |
-| `application number` | string | `63/512,904` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled filing receipt slot. Distinct from the docket: one docket can carry several applications. |
-| `filing date` | date | `2026-06-30` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the filing receipt. |
-| `priority date` | date | `2026-06-30` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The date that decides validity, and often the only reason a countersigned notebook page matters. |
+| `docket_number` | string | `CU-2026-041` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The technology-transfer office's handle, present from disclosure onward. |
+| `application_number` | string | `63/512,904` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled filing receipt slot. Distinct from the docket: one docket can carry several applications. |
+| `filing_date` | date | `2026-06-30` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the filing receipt. |
+| `priority_date` | date | `2026-06-30` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The date that decides validity, and often the only reason a countersigned notebook page matters. |
 | `jurisdiction` | string | `US; EP` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Each jurisdiction runs its own prosecution with its own deadlines. |
-| `patent status` | string | `provisional filed` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Disclosed, provisional, national phase, office action, granted, abandoned. |
+| `patent_status` | string | `provisional filed` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Disclosed, provisional, national phase, office action, granted, abandoned. |
 | `inventor` | string | `J. Chen; M. Larsen` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension. |
-| `assignee institution` | string | `Columbia University` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Who owns it, which is usually not the inventor. |
+| `assignee_institution` | string | `Columbia University` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Who owns it, which is usually not the inventor. |
 
 **Recognition**
 
@@ -1605,12 +1605,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|---|---|
 | `project` | string | `pvatools` | `validated` | §3.11 literal in both the Research and the Code row. |
 | `repository` | string | `chen-lab/pvatools` | `direct` | §3.11 Code row, literal. From a repository marker (deferred catalogue 05). |
-| `programming language` | string | `Python` | `direct` | §3.11 Code row, literal. |
-| `artifact type` | string | `tagged release` | `validated` | §3.11 literal in both rows. |
-| `release version` | string | `v1.4.0` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A release is defined by its tag; without one there is no release, only code. |
-| `software doi` | string | `10.5281/zenodo.1234567` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by archive-deposit context. It is what makes the software citable and is the join to res.repository-deposit. |
+| `programming_language` | string | `Python` | `direct` | §3.11 Code row, literal. |
+| `artifact_type` | string | `tagged release` | `validated` | §3.11 literal in both rows. |
+| `release_version` | string | `v1.4.0` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A release is defined by its tag; without one there is no release, only code. |
+| `software_doi` | string | `10.5281/zenodo.1234567` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by archive-deposit context. It is what makes the software citable and is the join to res.repository-deposit. |
 | `licence` | string | `MIT` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a licence file, a labelled slot. |
-| `citation file` | string | `CITATION.cff` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Its presence is a structural observation and is the clearest single signal that code was released rather than merely written. |
+| `citation_file` | string | `CITATION.cff` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Its presence is a structural observation and is the clearest single signal that code was released rather than merely written. |
 
 **Recognition**
 
@@ -1651,13 +1651,13 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `linked publication` | string | `10.1038/s41586-021-03819-2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by package README context. The package exists for exactly one publication. |
-| `package version` | string | `v1.0.1` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Packages are corrected after publication, which is why the version is a fact and not a filename. |
-| `environment specification` | string | `renv.lock` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The lockfile's presence and name are structural observations, and its absence is the commonest reason a package fails to run. |
-| `execution entry point` | string | `run_all.R` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Named in the README's own labelled instruction. |
-| `included dataset` | string | `cohort2_analysis.dta` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Described in the README; a directory listing alone does not say which files are the data. |
-| `included code` | string | `analysis/` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Same reasoning. |
-| `verification badge` | string | `AEA Data Editor — reproduced` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a verification report's labelled verdict, where a journal ran one. |
+| `linked_publication` | string | `10.1038/s41586-021-03819-2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by package README context. The package exists for exactly one publication. |
+| `package_version` | string | `v1.0.1` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Packages are corrected after publication, which is why the version is a fact and not a filename. |
+| `environment_specification` | string | `renv.lock` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The lockfile's presence and name are structural observations, and its absence is the commonest reason a package fails to run. |
+| `execution_entry_point` | string | `run_all.R` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Named in the README's own labelled instruction. |
+| `included_dataset` | string | `cohort2_analysis.dta` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Described in the README; a directory listing alone does not say which files are the data. |
+| `included_code` | string | `analysis/` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Same reasoning. |
+| `verification_badge` | string | `AEA Data Editor — reproduced` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a verification report's labelled verdict, where a journal ran one. |
 
 **Recognition**
 
@@ -1699,12 +1699,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `funder` | string | `NIH` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A DMP is written to a funder's template and is unusable against another's. |
-| `opportunity or award number` | string | `PA-24-247` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join back to res.grant-proposal and res.grant-reporting. |
-| `plan version` | string | `v2 (just-in-time)` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Plans are revised at award and at renewal; the version says which promise is binding. |
-| `data types described` | string | `de-identified genotypes; imaging` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Described in prose. |
-| `retention period` | string | `ten years after study close` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled retention slot. It is the field that eventually authorises deleting something. |
-| `repository named` | string | `dbGaP` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which repository was promised; the join to res.repository-deposit and the thing compliance is measured against. |
-| `sharing condition` | string | `controlled access via DAC` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in prose and governs whether a DUA is needed. |
+| `opportunity_or_award_number` | string | `PA-24-247` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join back to res.grant-proposal and res.grant-reporting. |
+| `plan_version` | string | `v2 (just-in-time)` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Plans are revised at award and at renewal; the version says which promise is binding. |
+| `data_types_described` | string | `de-identified genotypes; imaging` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Described in prose. |
+| `retention_period` | string | `ten years after study close` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled retention slot. It is the field that eventually authorises deleting something. |
+| `repository_named` | string | `dbGaP` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which repository was promised; the join to res.repository-deposit and the thing compliance is measured against. |
+| `sharing_condition` | string | `controlled access via DAC` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Stated in prose and governs whether a DUA is needed. |
 
 **Recognition**
 
@@ -1746,12 +1746,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `repository` | string | `Zenodo` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which archive holds it. Institutional, disciplinary and general repositories have different terms. |
-| `accession or deposit id` | string | `10.5281/zenodo.1234567` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi`, `cid-handle` or accession hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by deposit context. |
-| `deposit date` | date | `2026-08-04` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the receipt's labelled slot. |
-| `embargo end date` | date | `2027-08-04` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The date the deposit becomes public. Acting on it early is a breach, which is why it is a fact. |
+| `accession_or_deposit_id` | string | `10.5281/zenodo.1234567` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi`, `cid-handle` or accession hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by deposit context. |
+| `deposit_date` | date | `2026-08-04` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the receipt's labelled slot. |
+| `embargo_end_date` | date | `2027-08-04` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The date the deposit becomes public. Acting on it early is a breach, which is why it is a fact. |
 | `licence` | string | `CC BY 4.0` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the deposit's labelled licence field. |
-| `deposited artifact` | string | `cohort2 dataset v2.1` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which corpus object was deposited is stated in the receipt's free-text title. |
-| `linked publication` | string | `10.1038/s41586-021-03819-2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The related-identifier field, corroborated by publication context. |
+| `deposited_artifact` | string | `cohort2 dataset v2.1` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which corpus object was deposited is stated in the receipt's free-text title. |
+| `linked_publication` | string | `10.1038/s41586-021-03819-2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The related-identifier field, corroborated by publication context. |
 
 **Recognition**
 
@@ -1795,11 +1795,11 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 |---|---|---|---|---|
 | `facility` | string | `Imaging Core` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The shared resource; the join to res.instrument-output. |
 | `instrument` | string | `Zeiss LSM 980` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. What was booked. |
-| `booking id` | string | `BK-2026-3391` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the confirmation's labelled slot. |
-| `session start` | date | `2026-03-04T09:00` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” — start and end are labelled ICS fields, which is why they are direct here and nowhere else in this catalogue. |
-| `session end` | date | `2026-03-04T13:00` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Same source. The pair is what a recharge invoice is computed from. |
-| `charge code` | string | `R01GM123456-2028` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled account field. It is the join to res.grant-reporting and the reason a booking is a research fact and not a diary entry. |
-| `authorisation status` | string | `trained, independent user` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the facility's labelled training record. |
+| `booking_id` | string | `BK-2026-3391` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the confirmation's labelled slot. |
+| `session_start` | date | `2026-03-04T09:00` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §2.9: “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” — start and end are labelled ICS fields, which is why they are direct here and nowhere else in this catalogue. |
+| `session_end` | date | `2026-03-04T13:00` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Same source. The pair is what a recharge invoice is computed from. |
+| `charge_code` | string | `R01GM123456-2028` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled account field. It is the join to res.grant-reporting and the reason a booking is a research fact and not a diary entry. |
+| `authorisation_status` | string | `trained, independent user` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the facility's labelled training record. |
 
 **Recognition**
 
@@ -1841,12 +1841,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `site` | string | `Tanjung Puting — Plot 4` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Where the work happened. It is the field-work analogue of `lab` and the root of the branch. |
-| `site coordinates` | string | `-2.7361, 111.9214` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From GPS metadata or a labelled datasheet column (§2.6). See the open question before treating this like an ordinary value. |
+| `site_coordinates` | string | `-2.7361, 111.9214` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From GPS metadata or a labelled datasheet column (§2.6). See the open question before treating this like an ordinary value. |
 | `campaign` | string | `2026 wet season` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Field work happens in discrete campaigns, and a campaign is the unit everyone remembers. |
-| `collection date` | date | `2026-02-14` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled datasheet column (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
-| `permit number` | string | `SIP-2026-0117` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the permit's labelled slot. Working without one is unlawful, so its presence is a compliance fact. |
-| `field team` | string | `J. Chen; local guide M. S.` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension. |
-| `sample id` | string | `TP-P4-0093` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.sample-specimen. |
+| `collection_date` | date | `2026-02-14` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled datasheet column (§3.10: “The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”). |
+| `permit_number` | string | `SIP-2026-0117` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the permit's labelled slot. Working without one is unlawful, so its presence is a compliance fact. |
+| `field_team` | string | `J. Chen; local guide M. S.` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. §3.8 role field, never a destination dimension. |
+| `sample_id` | string | `TP-P4-0093` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.sample-specimen. |
 | `conditions` | string | `overcast, 27 C, post-rain` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Recorded in free-text field notes. |
 
 **Recognition**
@@ -1894,12 +1894,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `study` | string | `PVA cohort 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.dataset and res.irb-ethics. |
-| `instrument name` | string | `PHQ-9` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Validated scales are reused across studies and licensed by name; the name is the fact, not the filename. |
-| `instrument version` | string | `2026 revision` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A modified scale is not the validated scale, which is why the version is a compliance fact. |
-| `fielding wave` | string | `wave 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Longitudinal studies field the same instrument repeatedly; the wave is what distinguishes otherwise identical exports. |
+| `instrument_name` | string | `PHQ-9` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Validated scales are reused across studies and licensed by name; the name is the fact, not the filename. |
+| `instrument_version` | string | `2026 revision` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A modified scale is not the validated scale, which is why the version is a compliance fact. |
+| `fielding_wave` | string | `wave 2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Longitudinal studies field the same instrument repeatedly; the wave is what distinguishes otherwise identical exports. |
 | `platform` | string | `Qualtrics` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the export's own format markers. |
-| `language version` | string | `Spanish (Mexico)` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which approved translation this is — a different claim from §3.11's universal `language` fact. |
-| `licence or permission` | string | `licensed, per-use` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled permission slot. Some validated scales may not be redistributed at all. |
+| `language_version` | string | `Spanish (Mexico)` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which approved translation this is — a different claim from §3.11's universal `language` fact. |
+| `licence_or_permission` | string | `licensed, per-use` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From a labelled permission slot. Some validated scales may not be redistributed at all. |
 
 **Recognition**
 
@@ -1941,13 +1941,13 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `study` | string | `PVA lived-experience study` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. The join to res.irb-ethics and res.human-subjects-consent. |
-| `participant code` | string | `P-014` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the transcript's labelled header. A de-identified code is still a key to a person. |
-| `session date` | date | `2026-04-11` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the transcript header. |
-| `transcript stage` | string | `de-identified` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Verbatim and de-identified transcripts are the same interview with opposite handling, and they routinely share a filename stem. This is the most consequential field in the domain. |
-| `codebook version` | string | `v3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Codes are revised mid-analysis and a coded extract is only interpretable against its codebook version. |
-| `code or theme` | string | `navigating gatekeepers` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Themes are named in analytic memos and are irreducibly interpretive. |
-| `analysis software` | string | `NVivo` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the project file's format markers. |
-| `coder designation` | string | `Coder B` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A positional label, deliberately not a person (§3.8: “authored_by and target_school, or our_firm and client”). |
+| `participant_code` | string | `P-014` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the transcript's labelled header. A de-identified code is still a key to a person. |
+| `session_date` | date | `2026-04-11` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the transcript header. |
+| `transcript_stage` | string | `de-identified` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Verbatim and de-identified transcripts are the same interview with opposite handling, and they routinely share a filename stem. This is the most consequential field in the domain. |
+| `codebook_version` | string | `v3` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Codes are revised mid-analysis and a coded extract is only interpretable against its codebook version. |
+| `code_or_theme` | string | `navigating gatekeepers` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Themes are named in analytic memos and are irreducibly interpretive. |
+| `analysis_software` | string | `NVivo` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the project file's format markers. |
+| `coder_designation` | string | `Coder B` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A positional label, deliberately not a person (§3.8: “authored_by and target_school, or our_firm and client”). |
 
 **Recognition**
 
@@ -1988,12 +1988,12 @@ Counts by provenance: **design** 4, **inference** 12, **proposal** 24. Marked `p
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `corrected publication doi` | string | `10.1038/s41586-021-03819-2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by notice vocabulary. The notice has no identity of its own without it. |
-| `notice type` | string | `expression of concern` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Correction, erratum, corrigendum, expression of concern and retraction are legally and reputationally distinct. |
-| `notice date` | date | `2027-01-19` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the notice's labelled publication slot. |
+| `corrected_publication_doi` | string | `10.1038/s41586-021-03819-2` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. A `cid-doi` hit (planning/deferred-catalogues/06-citation-identifier-patterns.json) corroborated by notice vocabulary. The notice has no identity of its own without it. |
+| `notice_type` | string | `expression of concern` | `validated` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Correction, erratum, corrigendum, expression of concern and retraction are legally and reputationally distinct. |
+| `notice_date` | date | `2027-01-19` | `direct` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. From the notice's labelled publication slot. |
 | `venue` | string | `Nature` | `validated` | **§3.11 literal.** The journal issues the notice, which is why the venue is settled here even when the underlying paper's was contested. |
-| `reason stated` | string | `figure panel duplication` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Notices state reasons in prose, deliberately briefly. |
-| `affected artifact` | string | `Figure 3b` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which figure, table or dataset is affected is named in the notice text; it is the join to res.figure-and-source. |
+| `reason_stated` | string | `figure panel duplication` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Notices state reasons in prose, deliberately briefly. |
+| `affected_artifact` | string | `Figure 3b` | `llm_supported` | **Added field** — beyond §3.11's literal Research row, authored here and not quoted. Which figure, table or dataset is affected is named in the notice text; it is the join to res.figure-and-source. |
 
 **Recognition**
 

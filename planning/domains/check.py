@@ -35,6 +35,15 @@ NUMBER_OK = re.compile(r"§|section |P\d\b|D\d\b|OQ\d|\bM\d\b|20\d\d|B\d\b|C\d\b
 INNER_QUOTE = re.compile(r'“([^”]{25,})”|\'\'([^\']{25,})\'\'')
 
 
+def snake(key: str) -> str:
+    """D6's spelling. Lowercase, word breaks folded to `_`.
+
+    The same fold `extractors.ocr.extractor_name_for` applies to a provider name, and
+    for the same reason: two spellings of one key are two join handles.
+    """
+    return re.sub(r"[ \-]+", "_", key.strip().lower())
+
+
 def cited_quotes(entry):
     """Every design quotation an entry actually makes."""
     out = []
@@ -109,6 +118,37 @@ def check_file(path):
             problems.append(f"{tag}: template has no dimension_order")
         if not isinstance(tmpl.get("time_first"), bool):
             problems.append(f"{tag}: template.time_first is not a bool")
+
+        # D6, ratified 2026-08-21: one spelling for a stored field key.
+        #
+        # This catalogue shipped with 966 spaced keys and 959 snake_case ones side by
+        # side -- 131 of them the SAME key spelled two ways, which is one concept in
+        # two vocabularies, the most expensive defect on this project's own list. The
+        # key is a stored join handle: it lands in a fact row, in §3.4's cache key and
+        # in a template's branch order, so two spellings are two columns.
+        declared = set()
+        for field in e.get("schema") or []:
+            key = field.get("field")
+            if not isinstance(key, str) or key != snake(key):
+                problems.append(f"{tag}: field key {key!r} is not snake_case (D6)")
+            declared.add(key)
+
+        # A template dimension MUST be a field the same domain's schema declares.
+        #
+        # A domain is a schema plus a template -- the allow-list §3.6 validates
+        # against and the menu §5.3 draws branches from. A dimension naming a field
+        # the schema does not legitimise opens a tree level no fact can ever fill:
+        # §3.6's validator rejects the value, so the branch is empty by construction.
+        # This check did not exist and 566 of 1,648 dimensions failed it on the day
+        # it was added -- every one of them in a catalogue this same gate had just
+        # called "0 problems". The gate only ever asked whether the template EXISTED.
+        for dim in tmpl.get("dimension_order") or []:
+            if not isinstance(dim, str) or dim != snake(dim):
+                problems.append(f"{tag}: dimension {dim!r} is not snake_case (D6)")
+            elif dim not in declared:
+                problems.append(
+                    f"{tag}: template branches on {dim!r}, which this domain's "
+                    "schema does not declare — §3.6 would reject every value for it")
         # No held THRESHOLDS. A number written as a JSON number is a value the
         # catalogue holds; a number inside a string is an EXAMPLE, and examples are
         # required -- `BUSIB 4300` is §3.2's own. The first version of this check

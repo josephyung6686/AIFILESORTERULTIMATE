@@ -89,7 +89,7 @@
       "template": {
         "dimension_order": [
           "institution",
-          "account type",
+          "account_type",
           "year"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\" — an account type is only meaningful once the institution is known, and a period is only meaningful once the account is. §5.5 also: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\", which keeps the year last",
@@ -572,10 +572,10 @@
       ],
       "template": {
         "dimension_order": [
-          "filing entity",
+          "filing_entity",
           "jurisdiction",
-          "tax year",
-          "document type"
+          "tax_year",
+          "document_type"
         ],
         "why": "§5.5's ordering rule reads \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\", and a tax return looks like the counter-example because its year is constitutive rather than incidental. It is still not the root dimension: the same year exists for every entity and every jurisdiction the user files in, so a year-first tree merges unrelated filings. Placing the year INSIDE entity and jurisdiction satisfies §5.5's other rule, \"a parent dimension should provide the context required to understand the child\" — a tax year is only interpretable once you know whose filing and whose tax system it belongs to. `time_first` is therefore false, but only just, and a single-entity single-jurisdiction user should be offered the flattened tax-year-first variant; §5.9 requires the interface to show what each split would create.",
         "time_first": false
@@ -682,9 +682,9 @@
       ],
       "template": {
         "dimension_order": [
-          "filing entity",
-          "tax year",
-          "document category"
+          "filing_entity",
+          "tax_year",
+          "document_category"
         ],
         "why": "the packet is purpose-defined — §3.9: \"The documents are content-incoherent but purpose-coherent.\" — so it follows the filing's own dimensions rather than the issuers'. §3.8's \"A folder should not become a collection point for everything produced by the same person or organization\" is why the issuing institution is not the first level",
         "time_first": false
@@ -1053,7 +1053,7 @@
         "dimension_order": [
           "counterparty",
           "year",
-          "document type"
+          "document_type"
         ],
         "why": "§3.8 forbids authorship as a dimension but the counterparty is not authorship — it is the client role, the analogue of §5.4's target institution and of \"authored_by and target_school\". §5.4's Career row establishes the precedent that an organisation may lead a branch: \"a Career template may define company → role or recruiting cycle → document type\". §5.5 then keeps the year second: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\"",
         "time_first": false
@@ -1189,7 +1189,7 @@
         "dimension_order": [
           "counterparty",
           "year",
-          "document type"
+          "document_type"
         ],
         "why": "mirror of biz.invoice-issued and for the same reasons: §5.4's \"a Career template may define company → role or recruiting cycle → document type\" licenses the organisation-led order and §5.5's \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" keeps the year second",
         "time_first": false
@@ -1310,9 +1310,9 @@
       ],
       "template": {
         "dimension_order": [
-          "business entity",
-          "accounting period",
-          "report type"
+          "business_entity",
+          "accounting_period",
+          "report_type"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A trial balance is only interpretable once the entity and the period are known. §5.5's \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" argues for entity before period, which is what this order does",
         "time_first": false
@@ -1436,8 +1436,8 @@
       ],
       "template": {
         "dimension_order": [
-          "employer entity",
-          "payroll year",
+          "employer_entity",
+          "payroll_year",
           "period"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A pay period is meaningless before the employer is known. Payroll is the one sub-domain here where periods genuinely nest inside a year",
@@ -1562,7 +1562,7 @@
       "template": {
         "dimension_order": [
           "entity",
-          "document type",
+          "document_type",
           "year"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A resolution is only meaningful once the entity is known, and constitutional documents are consulted by kind rather than by year — §5.5's \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" applies with unusual force here",
@@ -1679,7 +1679,7 @@
       "template": {
         "dimension_order": [
           "entity",
-          "security class",
+          "security_class",
           "year"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A certificate is meaningless before the entity is known, and a class before the entity. §3.8's \"A folder should not become a collection point for everything produced by the same person or organization\" is why the holder is not a level — a folder per shareholder is exactly the collector pattern the design forbids",
@@ -1803,7 +1803,7 @@
         "dimension_order": [
           "entity",
           "round",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A term sheet is meaningless before the round, and the round before the entity. The round is this domain's project dimension, which is what §5.5's \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" asks for",
         "time_first": false
@@ -2172,9 +2172,9 @@
       ],
       "template": {
         "dimension_order": [
-          "cover type",
+          "cover_type",
           "insurer",
-          "policy year"
+          "policy_year"
         ],
         "why": "cover type leads rather than insurer because users change insurer and keep the cover: §5.5 asks for \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" and the subject of an insurance file is what is covered, not who underwrote it that year. §3.8's \"A folder should not become a collection point for everything produced by the same person or organization\" points the same way.",
         "time_first": false
@@ -2434,7 +2434,7 @@
         "dimension_order": [
           "property",
           "tenancy",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A renewal is meaningless before the tenancy, and the tenancy before the property. Property leads rather than landlord because landlords change and the property does not — §3.8's \"A folder should not become a collection point for everything produced by the same person or organization\" points the same way",
         "time_first": false
@@ -2565,7 +2565,7 @@
         "dimension_order": [
           "matter",
           "stage",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A witness statement is meaningless before the matter. Matter is this domain's project dimension, which is exactly what §5.5's \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" asks a record domain to lead with",
         "time_first": false
@@ -2687,7 +2687,7 @@
       ],
       "template": {
         "dimension_order": [
-          "estate or trust",
+          "estate_or_trust",
           "instrument",
           "version"
         ],
@@ -2810,7 +2810,7 @@
       "template": {
         "dimension_order": [
           "donor",
-          "authority scope",
+          "authority_scope",
           "version"
         ],
         "why": "the donor leads because the instrument is about them, not because they authored it — §3.8's \"It should avoid using authorship or creator identity as a destination dimension.\" is about creator identity, and a donor is the subject role. §5.5's \"a parent dimension should provide the context required to understand the child\" makes a registration meaningless before the instrument it registers.",
@@ -2932,9 +2932,9 @@
       ],
       "template": {
         "dimension_order": [
-          "filing entity",
+          "filing_entity",
           "authority",
-          "filing period"
+          "filing_period"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A period is meaningless before the authority whose calendar it belongs to, and the authority before the entity that files. §5.5's \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" keeps the period last",
         "time_first": false
@@ -3056,8 +3056,8 @@
       "template": {
         "dimension_order": [
           "framework",
-          "audit cycle",
-          "document type"
+          "audit_cycle",
+          "document_type"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A finding is meaningless before the cycle, and the cycle before the framework. Framework is this domain's subject dimension, which §5.5's \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" asks to lead",
         "time_first": false
@@ -3184,8 +3184,8 @@
       ],
       "template": {
         "dimension_order": [
-          "licensed subject",
-          "licence type",
+          "licensed_subject",
+          "licence_type",
           "year"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A renewal is meaningless before the permission, and the permission before what it permits. Subject leads rather than authority because authorities are reorganised and the licensed thing is not",
@@ -3324,7 +3324,7 @@
         "dimension_order": [
           "right",
           "territory",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". An office action is meaningless before the right it concerns. Territory second because one right becomes many national registrations and each has its own file",
         "time_first": false
@@ -3453,9 +3453,9 @@
       "template": {
         "dimension_order": [
           "applicant",
-          "destination jurisdiction",
+          "destination_jurisdiction",
           "application",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". Evidence is meaningless before the application, and the application before the destination whose rules define it. The parallel with §5.6's application packets is exact",
         "time_first": false
@@ -3576,7 +3576,7 @@
       "template": {
         "dimension_order": [
           "case",
-          "document type",
+          "document_type",
           "date"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". An order is meaningless before the case. Date last within a document type because a court record is consulted chronologically inside a case, never across cases",
@@ -3697,7 +3697,7 @@
       ],
       "template": {
         "dimension_order": [
-          "underlying domain",
+          "underlying_domain",
           "document",
           "attestation"
         ],
@@ -3836,7 +3836,7 @@
       ],
       "template": {
         "dimension_order": [
-          "debt or account",
+          "debt_or_account",
           "stage",
           "date"
         ],
@@ -3972,7 +3972,7 @@
       "template": {
         "dimension_order": [
           "proceeding",
-          "document type",
+          "document_type",
           "date"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A proof of debt is meaningless before the proceeding it is lodged in",
@@ -4092,7 +4092,7 @@
       ],
       "template": {
         "dimension_order": [
-          "tax year",
+          "tax_year",
           "recipient"
         ],
         "why": "the second exception to §5.5's usual order in this slice, and for the same reason as receipts: the documents exist to serve a yearly claim, so the year is the function rather than incidental time. §3.8's \"A folder should not become a collection point for everything produced by the same person or organization\" independently forbids leading with the charity.",
@@ -4210,7 +4210,7 @@
         "dimension_order": [
           "funder",
           "award",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A report is meaningless before the award, and the award before the funder whose scheme defines it. The award is this domain's project dimension",
         "time_first": false
@@ -4446,7 +4446,7 @@
       "template": {
         "dimension_order": [
           "item",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: \"a parent dimension should provide the context required to understand the child\". A claim is meaningless before the item. Shallow because most items generate two or three documents and §5.9 warns against a level that creates a large number of tiny folders",
         "time_first": false
@@ -4701,7 +4701,7 @@
         "dimension_order": [
           "category",
           "vendor",
-          "document type"
+          "document_type"
         ],
         "why": "category leads rather than vendor because a vendor list is long and flat, and §5.9 warns against a level that creates a large number of tiny folders. §3.8's \"A folder should not become a collection point for everything produced by the same person or organization\" applies to the vendor level too: one folder per supplier is a collector unless the relationship genuinely has substance.",
         "time_first": false

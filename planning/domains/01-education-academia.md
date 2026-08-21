@@ -38,46 +38,46 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | # | id | name | prov. | sensitivity | recommended dimension order |
 |---|---|---|---|---|---|
-| 1 | `acad.course-enrollment` | Course enrollment and coursework | design | — | school → term → course → work type |
-| 2 | `acad.course-instruction` | Teaching a course | inference | sensitive | school → course → term → instruction work type |
-| 3 | `acad.k12-schooling` | K-12 schooling records | proposal | sensitive | student → school year → record type |
-| 4 | `acad.undergraduate-program` | Undergraduate degree programme | inference | — | school → programme → programme record type |
+| 1 | `acad.course-enrollment` | Course enrollment and coursework | design | — | school → term → subject → work_type |
+| 2 | `acad.course-instruction` | Teaching a course | inference | sensitive | school → subject → term → instruction_work_type |
+| 3 | `acad.k12-schooling` | K-12 schooling records | proposal | sensitive | student → school_year → record_type |
+| 4 | `acad.undergraduate-program` | Undergraduate degree programme | inference | — | school → programme → programme_record_type |
 | 5 | `acad.graduate-program` | Graduate programme milestones | inference | — | school → programme → milestone |
-| 6 | `acad.professional-school` | Professional degree programme | proposal | — | school → programme → programme stage |
-| 7 | `acad.continuing-education` | Continuing education and professional development | proposal | — | credential → reporting period → activity |
+| 6 | `acad.professional-school` | Professional degree programme | proposal | — | school → programme → programme_stage |
+| 7 | `acad.continuing-education` | Continuing education and professional development | proposal | — | credential → reporting_period → activity |
 | 8 | `acad.bootcamp-cohort` | Bootcamp or intensive cohort programme | proposal | — | provider → programme → module |
-| 9 | `acad.self-study` | Self-directed study | proposal | — | subject → source → study artifact type |
-| 10 | `acad.lab-course` | Laboratory course work | inference | — | school → term → course → experiment |
-| 11 | `acad.teaching-assistantship` | Teaching assistantship | proposal | sensitive | school → term → course → assistantship duty type |
+| 9 | `acad.self-study` | Self-directed study | proposal | — | subject → source → study_artifact_type |
+| 10 | `acad.lab-course` | Laboratory course work | inference | — | school → term → subject → experiment |
+| 11 | `acad.teaching-assistantship` | Teaching assistantship | proposal | sensitive | school → term → subject → assistantship_duty_type |
 | 12 | `acad.tutoring` | Tutoring engagements | proposal | sensitive | subject → engagement → session |
-| 13 | `acad.curriculum-development` | Curriculum and programme development | proposal | — | school → programme → curriculum unit |
-| 14 | `acad.college-application` | College application packet | design | sensitive | target institution → application cycle → application document type |
-| 15 | `acad.k12-school-admission` | K-12 and secondary school admission | inference | sensitive | applicant → target school → admission document type |
-| 16 | `acad.grad-school-application` | Graduate and professional school application | inference | — | target institution → target programme → application cycle → application document type |
-| 17 | `acad.standardized-testing` | Standardised testing | proposal | — | test → test sitting → testing record type |
-| 18 | `acad.recommendation-letter` | Letters and forms of recommendation | inference | sensitive | target → cycle → letter direction |
-| 19 | `acad.transcript-record` | Transcripts and official academic records | inference | sensitive | issuing school → record type → issue date |
-| 20 | `acad.transfer-credit` | Transfer credit and credit by examination | proposal | — | receiving institution → sending institution → credit basis |
-| 21 | `acad.financial-aid` | Financial aid and student loans | proposal | sensitive | awarding body → award year → aid type |
-| 22 | `acad.scholarship-fellowship` | Scholarship and fellowship applications | proposal | — | funder → award → competition cycle |
-| 23 | `acad.tuition-billing` | Tuition billing and the student account | proposal | sensitive | institution → term billed → account record type |
-| 24 | `acad.campus-employment` | Campus employment | proposal | sensitive | institution → department or unit → position |
-| 25 | `acad.thesis-dissertation` | Thesis or dissertation | inference | — | degree → thesis stage → chapter |
-| 26 | `acad.undergrad-research` | Undergraduate research placement | inference | — | lab → placement period → placement artifact type |
-| 27 | `acad.conference-travel-student` | Student conference travel and presentation | inference | — | venue → edition → conference artifact type |
-| 28 | `acad.study-abroad` | Study abroad and exchange | proposal | sensitive | host institution → term abroad → mobility document type |
-| 29 | `acad.clinical-rotation` | Clinical rotation and supervised practicum | proposal | sensitive | programme → service or specialty → site |
-| 30 | `acad.internship-for-credit` | Internship or co-op taken for credit | proposal | sensitive | host organisation → term → credit requirement type |
-| 31 | `acad.language-study` | Language study and proficiency certification | proposal | — | language → level → language study artifact type |
-| 32 | `acad.arts-jury-portfolio` | Music and arts juries, recitals and portfolio review | proposal | — | discipline → assessment event → arts artifact type |
-| 33 | `acad.athletics-eligibility` | Athletics eligibility and student-athlete compliance | proposal | sensitive | sport → season → compliance record type |
-| 34 | `acad.advising` | Academic advising and registration planning | proposal | — | school → advising term → advising record type |
-| 35 | `acad.accommodations` | Disability accommodations and access services | proposal | sensitive | institution → approval period → access record type |
-| 36 | `acad.integrity-case` | Academic integrity and conduct cases | proposal | sensitive | institution → case reference → process stage |
-| 37 | `acad.student-organization` | Student organisations and clubs | proposal | sensitive | organisation → activity year → organisation record type |
-| 38 | `acad.accreditation-institutional` | Accreditation and institutional assessment | proposal | sensitive | accreditor → review cycle → standard |
-| 39 | `acad.alumni-record` | Alumni relations and post-graduation records | proposal | — | institution → alumni record type → engagement |
-| 40 | `acad.credential-certificate` | Diplomas, certificates and verifiable credentials | inference | sensitive | awarding body → credential → credential form |
+| 13 | `acad.curriculum-development` | Curriculum and programme development | proposal | — | school → programme → curriculum_unit |
+| 14 | `acad.college-application` | College application packet | design | sensitive | target_institution → application_cycle → application_document_type |
+| 15 | `acad.k12-school-admission` | K-12 and secondary school admission | inference | sensitive | applicant → target_school → admission_document_type |
+| 16 | `acad.grad-school-application` | Graduate and professional school application | inference | — | target_institution → target_programme → application_cycle → application_document_type |
+| 17 | `acad.standardized-testing` | Standardised testing | proposal | — | test → test_sitting → testing_record_type |
+| 18 | `acad.recommendation-letter` | Letters and forms of recommendation | inference | sensitive | target → cycle → letter_direction |
+| 19 | `acad.transcript-record` | Transcripts and official academic records | inference | sensitive | issuing_school → record_type → issue_date |
+| 20 | `acad.transfer-credit` | Transfer credit and credit by examination | proposal | — | receiving_institution → sending_institution → credit_basis |
+| 21 | `acad.financial-aid` | Financial aid and student loans | proposal | sensitive | awarding_body → award_year → aid_type |
+| 22 | `acad.scholarship-fellowship` | Scholarship and fellowship applications | proposal | — | funder → award → competition_cycle |
+| 23 | `acad.tuition-billing` | Tuition billing and the student account | proposal | sensitive | institution → term_billed → account_record_type |
+| 24 | `acad.campus-employment` | Campus employment | proposal | sensitive | institution → department_or_unit → position |
+| 25 | `acad.thesis-dissertation` | Thesis or dissertation | inference | — | degree → thesis_stage → chapter |
+| 26 | `acad.undergrad-research` | Undergraduate research placement | inference | — | lab → placement_period → placement_artifact_type |
+| 27 | `acad.conference-travel-student` | Student conference travel and presentation | inference | — | venue → edition → conference_artifact_type |
+| 28 | `acad.study-abroad` | Study abroad and exchange | proposal | sensitive | host_institution → term_abroad → mobility_document_type |
+| 29 | `acad.clinical-rotation` | Clinical rotation and supervised practicum | proposal | sensitive | programme → service_or_specialty → site |
+| 30 | `acad.internship-for-credit` | Internship or co-op taken for credit | proposal | sensitive | host_organisation → term → credit_requirement_type |
+| 31 | `acad.language-study` | Language study and proficiency certification | proposal | — | language → level → language_study_artifact_type |
+| 32 | `acad.arts-jury-portfolio` | Music and arts juries, recitals and portfolio review | proposal | — | discipline → assessment_event → arts_artifact_type |
+| 33 | `acad.athletics-eligibility` | Athletics eligibility and student-athlete compliance | proposal | sensitive | sport → season → compliance_record_type |
+| 34 | `acad.advising` | Academic advising and registration planning | proposal | — | school → advising_term → advising_record_type |
+| 35 | `acad.accommodations` | Disability accommodations and access services | proposal | sensitive | institution → approval_period → access_record_type |
+| 36 | `acad.integrity-case` | Academic integrity and conduct cases | proposal | sensitive | institution → case_reference → process_stage |
+| 37 | `acad.student-organization` | Student organisations and clubs | proposal | sensitive | organisation → activity_year → organisation_record_type |
+| 38 | `acad.accreditation-institutional` | Accreditation and institutional assessment | proposal | sensitive | accreditor → review_cycle → standard |
+| 39 | `acad.alumni-record` | Alumni relations and post-graduation records | proposal | — | institution → alumni_record_type → engagement |
+| 40 | `acad.credential-certificate` | Diplomas, certificates and verifiable credentials | inference | sensitive | awarding_body → credential → credential_form |
 
 `time_first` is `false` on every entry in this slice. That is not an oversight: §5.5 says "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders", and names photos and capture-based media as the exception. Nothing in education is capture-based media. Where a period does sit high in an order — a continuing-education reporting period, a bursar term, an aid award year — it is because that period is a compliance or reconciliation boundary, not a calendar, and the reason is stated in that entry's template note.
 
@@ -99,9 +99,9 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `school` | string | Columbia | `validated` | Named in §3.11 'Academic files may use school, term, course, instructor, and work type.'. A school name only reaches validated through a gazetteer match at a word boundary, because §3.7 'names such as MIT can be found inside "submit,"'. |
 | `term` | string | Spring 2026 | `validated` | §3.1 'term = Spring 2026', and §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
-| `course` | string | BUSIB 4300 | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. The five context terms in that sentence are the only ones the design states literally. |
+| `subject` | string | BUSIB 4300 | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. The five context terms in that sentence are the only ones the design states literally. |
 | `instructor` | string | the name on a syllabus line labelled Instructor | `direct` | Named in §3.11 'Academic files may use school, term, course, instructor, and work type.'. Read from a labelled slot, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is a role, not authorship: §3.8 'It should avoid using authorship or creator identity as a destination dimension.', so it is metadata here and is not in the dimension order. |
-| `work type` | string | syllabus | `validated` | §3.1 'work type = syllabus', and it is the leaf of the design's own Academic template: §5.5 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.'. |
+| `work_type` | string | syllabus | `validated` | §3.1 'work type = syllabus', and it is the leaf of the design's own Academic template: §5.5 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.'. |
 
 **Recognition**
 
@@ -140,7 +140,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| school → term → course → work type | no | §5.4 'An Academic template may define school → term → course → work type'. The order follows §5.5 'a parent dimension should provide the context required to understand the child' and §5.5 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.'. |
+| school → term → subject → work_type | no | §5.4 'An Academic template may define school → term → course → work type'. The order follows §5.5 'a parent dimension should provide the context required to understand the child' and §5.5 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.'. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -174,10 +174,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `school` | string | Columbia | `validated` | Shared with the Academic schema, §3.11 'Academic files may use school, term, course, instructor, and work type.'. |
 | `term` | string | Spring 2026 | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
-| `course` | string | BUSIB 4300 | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. |
+| `subject` | string | BUSIB 4300 | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. |
 | `offering` | string | the section or offering identifier the school issues for one delivery of the course | `validated` | Inference. Teaching material is versioned per delivery: two years of the same course are different corpora. Reaches validated only through the same rule shape as course — a section-code pattern beside a validated course code. |
-| `teaching role` | enum | instructor of record | `llm_supported` | Inference. Whether the holder taught, assisted, or guest-lectured is stated in prose far more often than in a labelled field, so it needs §3.5 'The LLM creates LLM-supported facts only when a file requires language interpretation that rules cannot resolve safely.'. |
-| `instruction work type` | string | grading rubric | `validated` | Inference. The teaching-side work types are disjoint from the student-side ones (an answer key and a roster have no student-side counterpart); recognised the same way, by a work-type term beside a validated course code. |
+| `teaching_role` | enum | instructor of record | `llm_supported` | Inference. Whether the holder taught, assisted, or guest-lectured is stated in prose far more often than in a labelled field, so it needs §3.5 'The LLM creates LLM-supported facts only when a file requires language interpretation that rules cannot resolve safely.'. |
+| `instruction_work_type` | string | grading rubric | `validated` | Inference. The teaching-side work types are disjoint from the student-side ones (an answer key and a roster have no student-side counterpart); recognised the same way, by a work-type term beside a validated course code. |
 
 **Recognition**
 
@@ -212,7 +212,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| school → course → term → instruction work type | no | Inference, and deliberately not the Academic order. A teacher returns to the same course across years, so the course is the stable parent and the term is the child that varies — the reverse of a student's single-term view. §5.5 'a parent dimension should provide the context required to understand the child' supports either reading, so the divergence is flagged in the open question. |
+| school → subject → term → instruction_work_type | no | Inference, and deliberately not the Academic order. A teacher returns to the same course across years, so the course is the stable parent and the term is the child that varies — the reverse of a student's single-term view. §5.5 'a parent dimension should provide the context required to understand the child' supports either reading, so the divergence is flagged in the open question. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -244,10 +244,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
 | `school` | string | Georgetown Prep | `validated` | A gazetteer school name at a word boundary. The design's own worked example uses a secondary school by name under Academics, but names no K-12 domain. |
-| `school year` | string | 2025-26 | `validated` | A K-12 year is a hyphenated span, not a semester; it needs its own pattern for the same reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
-| `grade level` | string | Grade 7 | `validated` | A grade-level pattern beside a school name or school-year span. The primary organising fact for a family: a parent thinks in years of a child's schooling, not in courses. |
+| `school_year` | string | 2025-26 | `validated` | A K-12 year is a hyphenated span, not a semester; it needs its own pattern for the same reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
+| `grade_level` | string | Grade 7 | `validated` | A grade-level pattern beside a school name or school-year span. The primary organising fact for a family: a parent thinks in years of a child's schooling, not in courses. |
 | `student` | string | the child the record is about | `user_confirmed` | The child is the subject of the record, not its author, so §3.8 'It should avoid using authorship or creator identity as a destination dimension.' does not bar it — but a person's name is exactly the value that must not be guessed, so only the user establishes it. |
-| `record type` | string | report card | `validated` | A record-type term beside a school name and a school-year span. K-12 record types are administrative (report card, permission slip, immunisation form) and barely overlap the higher-education work types. |
+| `record_type` | string | report card | `validated` | A record-type term beside a school name and a school-year span. K-12 record types are administrative (report card, permission slip, immunisation form) and barely overlap the higher-education work types. |
 | `subject` | string | Mathematics | `llm_supported` | K-12 subjects are named in prose, not as codes, so no course-code rule reaches them. |
 
 **Recognition**
@@ -282,7 +282,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| student → school year → record type | no | Proposal. A family corpus is organised per child first, because the child is the retrieval key a parent actually uses; the school is often constant for years and makes a poor top level. This departs from §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' and is the reason for the open question. |
+| student → school_year → record_type | no | Proposal. A family corpus is organised per child first, because the child is the retrieval key a parent actually uses; the school is often constant for years and makes a poor top level. This departs from §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' and is the reason for the open question. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -315,9 +315,9 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `school` | string | Columbia | `validated` | Shared with §3.11 'Academic files may use school, term, course, instructor, and work type.'. |
 | `programme` | string | the degree programme as the school names it | `validated` | A degree-name pattern ('BA', 'BSc', 'Bachelor of') beside a validated school name. This is the fact that binds several years of courses into one thing. |
-| `major or concentration` | string | the declared field of study | `validated` | A declaration or major term beside a school name and a degree name. It is not the course subject: a single course belongs to a department, a major is a commitment. |
-| `catalogue year` | string | the requirement year the degree is audited against | `validated` | Inference. Requirements are frozen per catalogue year, so two students in the same major graduate under different rules; a bare year would be ambiguous, so it needs the same dedicated-pattern discipline as §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
-| `programme record type` | string | degree audit | `validated` | A programme record-type term beside a school and a degree name. |
+| `major_or_concentration` | string | the declared field of study | `validated` | A declaration or major term beside a school name and a degree name. It is not the course subject: a single course belongs to a department, a major is a commitment. |
+| `catalogue_year` | string | the requirement year the degree is audited against | `validated` | Inference. Requirements are frozen per catalogue year, so two students in the same major graduate under different rules; a bare year would be ambiguous, so it needs the same dedicated-pattern discipline as §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
+| `programme_record_type` | string | degree audit | `validated` | A programme record-type term beside a school and a degree name. |
 | `standing` | enum | the enrolment standing the record asserts | `llm_supported` | Standing is stated in prose in letters ('good standing', 'academic probation', 'leave of absence') and rarely in a labelled field. |
 
 **Recognition**
@@ -352,7 +352,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| school → programme → programme record type | no | Inference. Programme records are few and durable; a term level would scatter a handful of files across years, which is exactly what §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' warns against. |
+| school → programme → programme_record_type | no | Inference. Programme records are few and durable; a term level would scatter a handful of files across years, which is exactly what §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' warns against. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -383,8 +383,8 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `programme` | string | the graduate programme or department | `validated` | A graduate-degree pattern ('PhD', 'MSc', 'Master of') beside a validated school name. |
 | `milestone` | enum | qualifying exam | `validated` | Inference, and the field that makes this domain distinct from the undergraduate one: a graduate degree is a sequence of named gates, and the milestone is the retrieval key. A milestone term beside a graduate-degree name is a strong, checkable pair. |
 | `advisor` | string | the faculty member supervising the degree | `direct` | Read from a labelled slot on a form. It is a role, not authorship — the same distinction §3.8 'such as authored_by and target_school' draws — and it is not a folder dimension. |
-| `milestone outcome` | enum | the recorded result of a gate | `user_confirmed` | A pass, fail, revise or defer outcome changes what a person keeps and how they feel about it; inferring it from prose would be both unreliable and intrusive, so only the user establishes it. |
-| `milestone date` | date | the date a gate was held | `validated` | Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. |
+| `milestone_outcome` | enum | the recorded result of a gate | `user_confirmed` | A pass, fail, revise or defer outcome changes what a person keeps and how they feel about it; inferring it from prose would be both unreliable and intrusive, so only the user establishes it. |
+| `milestone_date` | date | the date a gate was held | `validated` | Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. |
 
 **Recognition**
 
@@ -452,9 +452,9 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `school` | string | the professional school | `validated` | A gazetteer school name at a word boundary. |
 | `programme` | string | the professional degree | `validated` | A professional-degree pattern ('JD', 'MD', 'MBA', 'DDS', 'PharmD') beside a validated school name. |
 | `cohort` | string | the entering class the holder belongs to | `validated` | Proposal. Professional programmes are lock-step: the cohort, not the term, is what a person's material belongs to, and classmates share an identical course sequence. |
-| `licensing body` | string | the board that credentials the degree | `validated` | Proposal, and the field that separates this domain from a generic graduate programme: the external body's requirements are a parallel record the school does not own. |
-| `board exam` | string | the licensure examination the programme prepares for | `validated` | A board-exam name beside a professional-degree name. It anchors a large body of preparation material that has no course code and would otherwise be unfilable. |
-| `programme stage` | enum | the year or phase of the programme | `llm_supported` | Stages are named locally and inconsistently ('1L', 'preclinical', 'core year'), so a rule cannot enumerate them safely. |
+| `licensing_body` | string | the board that credentials the degree | `validated` | Proposal, and the field that separates this domain from a generic graduate programme: the external body's requirements are a parallel record the school does not own. |
+| `board_exam` | string | the licensure examination the programme prepares for | `validated` | A board-exam name beside a professional-degree name. It anchors a large body of preparation material that has no course code and would otherwise be unfilable. |
+| `programme_stage` | enum | the year or phase of the programme | `llm_supported` | Stages are named locally and inconsistently ('1L', 'preclinical', 'core year'), so a rule cannot enumerate them safely. |
 
 **Recognition**
 
@@ -489,7 +489,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| school → programme → programme stage | no | Proposal. School and programme are the durable parents; stage is the leaf people navigate by. The licensing body and board exam are metadata rather than levels, because a person holds few of each and a level with one child is the case §5.9 'It should also support a scoped General or Other branch within a meaningful parent.' context warns about. |
+| school → programme → programme_stage | no | Proposal. School and programme are the durable parents; stage is the leaf people navigate by. The licensing body and board exam are metadata rather than levels, because a person holds few of each and a level with one child is the case §5.9 'It should also support a scoped General or Other branch within a meaningful parent.' context warns about. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -516,9 +516,9 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `credentialing body` | string | the body that requires the units | `validated` | Proposal, and the organising fact: this material exists because a body demands it, and the same course can satisfy two bodies with different reporting. |
+| `credentialing_body` | string | the body that requires the units | `validated` | Proposal, and the organising fact: this material exists because a body demands it, and the same course can satisfy two bodies with different reporting. |
 | `credential` | string | the licence or certification being maintained | `validated` | A credential name or number pattern beside a credentialing-body name. |
-| `reporting period` | string | the renewal cycle the units count toward | `validated` | Proposal. A renewal cycle is a span, not a semester; it needs its own pattern for the reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.' gives for academic terms. |
+| `reporting_period` | string | the renewal cycle the units count toward | `validated` | Proposal. A renewal cycle is a span, not a semester; it needs its own pattern for the reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.' gives for academic terms. |
 | `activity` | string | the course, seminar or webinar attended | `validated` | A provider or activity title beside a unit term ('CEU', 'CPD', 'contact hours'). |
 | `units` | string | the unit type the certificate records | `direct` | Read from a labelled slot on a completion certificate. The unit type is recorded; no count is asserted here. |
 | `provider` | string | the organisation that delivered the activity | `validated` | A provider name beside an activity title and a unit term. It is a role, not authorship. |
@@ -556,7 +556,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| credential → reporting period → activity | no | Proposal. The credential is what a person is maintaining and is the durable parent; the reporting period is the audit unit and must be enumerable, because renewal is checked per cycle. This is the one shape in this file where a period sits above the individual item, and it does so because the period is a compliance boundary rather than a calendar. |
+| credential → reporting_period → activity | no | Proposal. The credential is what a person is maintaining and is the durable parent; the reporting period is the audit unit and must be enumerable, because renewal is checked per cycle. This is the one shape in this file where a period sits above the individual item, and it does so because the period is a compliance boundary rather than a calendar. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -591,7 +591,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `programme` | string | the track or curriculum name | `validated` | A track name beside a provider name at a word boundary. |
 | `cohort` | string | the batch identifier | `validated` | Proposal. Cohorts are the native unit ('Cohort 14', a start month), they replace the term entirely, and a bare cohort number is exactly the kind of value §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' warns not to read as a date. |
 | `module` | string | the unit of curriculum | `validated` | A module or week term beside a provider or track name. Modules substitute for courses and carry no institutional code. |
-| `deliverable type` | string | the kind of work produced | `validated` | A deliverable term beside a module or track name. Bootcamp output is disproportionately project and portfolio work rather than exams. |
+| `deliverable_type` | string | the kind of work produced | `validated` | A deliverable term beside a module or track name. Bootcamp output is disproportionately project and portfolio work rather than exams. |
 
 **Recognition**
 
@@ -655,9 +655,9 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `subject` | string | the field being studied | `llm_supported` | Proposal. With no institution and no code, the subject is only recoverable by reading, which is exactly the case §3.5 'The LLM creates LLM-supported facts only when a file requires language interpretation that rules cannot resolve safely.' describes. |
 | `source` | string | the platform, textbook or series being worked through | `validated` | A platform or publisher name beside a lesson, chapter or module term. The source is the strongest available anchor and the only one likely to be explicit. |
-| `course title` | string | the title of the online course or book | `direct` | Read from a document title, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is not a course in the Academic sense: no institution issued it. |
-| `progress unit` | string | the chapter, lesson or problem number | `validated` | A chapter or lesson pattern beside a source or title. It is the sequence a person navigates by. |
-| `study artifact type` | string | the kind of material | `validated` | An artifact term beside a source name. Self-study output is notes, exercises and solutions, not graded work. |
+| `course_title` | string | the title of the online course or book | `direct` | Read from a document title, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is not a course in the Academic sense: no institution issued it. |
+| `progress_unit` | string | the chapter, lesson or problem number | `validated` | A chapter or lesson pattern beside a source or title. It is the sequence a person navigates by. |
+| `study_artifact_type` | string | the kind of material | `validated` | An artifact term beside a source name. Self-study output is notes, exercises and solutions, not graded work. |
 
 **Recognition**
 
@@ -691,7 +691,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| subject → source → study artifact type | no | Proposal. Subject leads because a self-studier returns by topic, not by platform; the source is the concrete container beneath it. This follows §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' directly — no time level at all, because self-study has no period. |
+| subject → source → study_artifact_type | no | Proposal. Subject leads because a self-studier returns by topic, not by platform; the source is the concrete container beneath it. This follows §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' directly — no time level at all, because self-study has no period. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -724,10 +724,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `school` | string | Columbia | `validated` | Shared with §3.11 'Academic files may use school, term, course, instructor, and work type.'. |
 | `term` | string | Spring 2026 | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
-| `course` | string | the parent course code | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. |
-| `lab section` | string | the section identifier for the lab meeting | `validated` | Inference. A lab section is a separate meeting from the lecture, with its own instructor and schedule; a section pattern beside a validated course code is checkable. |
+| `subject` | string | the parent course code | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. |
+| `lab_section` | string | the section identifier for the lab meeting | `validated` | Inference. A lab section is a separate meeting from the lecture, with its own instructor and schedule; a section pattern beside a validated course code is checkable. |
 | `experiment` | string | the experiment or lab number the work belongs to | `validated` | Inference, and the field that makes this domain distinct: reports, data and pre-labs cluster by experiment, not by week. An experiment pattern beside a validated course code is the same rule shape as the course rule itself. |
-| `lab artifact type` | string | the kind of lab material | `validated` | An artifact term ('pre-lab', 'protocol', 'lab report', 'raw data') beside a validated course code or experiment identifier. |
+| `lab_artifact_type` | string | the kind of lab material | `validated` | An artifact term ('pre-lab', 'protocol', 'lab report', 'raw data') beside a validated course code or experiment identifier. |
 
 **Recognition**
 
@@ -762,7 +762,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| school → term → course → experiment | no | Inference, and a deliberate substitution: it is the Academic template of §5.4 'An Academic template may define school → term → course → work type' with experiment replacing work type as the leaf, because in a lab course the experiment is what makes the report findable — which is the same argument §5.5 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.' makes for work type in a lecture course. |
+| school → term → subject → experiment | no | Inference, and a deliberate substitution: it is the Academic template of §5.4 'An Academic template may define school → term → course → work type' with experiment replacing work type as the leaf, because in a lab course the experiment is what makes the report findable — which is the same argument §5.5 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.' makes for work type in a lecture course. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -791,10 +791,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `school` | string | the appointing institution | `validated` | A gazetteer school name at a word boundary. |
 | `term` | string | the term of the appointment | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
-| `course` | string | the course assisted | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. |
+| `subject` | string | the course assisted | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. |
 | `appointment` | string | the appointment title the school issues | `direct` | Read from a labelled slot on an appointment letter, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is the fact that separates this from simply taking the course. |
-| `supervising instructor` | string | the faculty member the assistant reports to | `direct` | Read from a labelled slot. A role, not authorship: §3.8 'such as authored_by and target_school'. |
-| `assistantship duty type` | string | the kind of duty the file records | `validated` | A duty term ('section', 'grading', 'office hours', 'lab supervision') beside a validated course code. |
+| `supervising_instructor` | string | the faculty member the assistant reports to | `direct` | Read from a labelled slot. A role, not authorship: §3.8 'such as authored_by and target_school'. |
+| `assistantship_duty_type` | string | the kind of duty the file records | `validated` | A duty term ('section', 'grading', 'office hours', 'lab supervision') beside a validated course code. |
 
 **Recognition**
 
@@ -828,7 +828,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| school → term → course → assistantship duty type | no | Proposal. It follows the Academic order of §5.4 'An Academic template may define school → term → course → work type' because the appointment is scoped to one course in one term, and the duty type is the leaf that satisfies §5.5 'a parent dimension should provide the context required to understand the child'. |
+| school → term → subject → assistantship_duty_type | no | Proposal. It follows the Academic order of §5.4 'An Academic template may define school → term → course → work type' because the appointment is scoped to one course in one term, and the duty type is the leaf that satisfies §5.5 'a parent dimension should provide the context required to understand the child'. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -861,7 +861,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `subject` | string | the subject tutored | `llm_supported` | Proposal. Tutoring material rarely names a code; the subject is usually recoverable only by reading the material, which is §3.5 'The LLM creates LLM-supported facts only when a file requires language interpretation that rules cannot resolve safely.'. |
 | `engagement` | string | the named tutoring relationship or client | `user_confirmed` | The engagement is identified by a person's name in almost every real case, and a person's name must not be guessed onto a file. Only the user establishes it. |
-| `tutoring role` | enum | whether the holder tutored or was tutored | `llm_supported` | Proposal, and the field the whole domain turns on: the same worksheet means opposite things in the two directions, and only prose distinguishes them. |
+| `tutoring_role` | enum | whether the holder tutored or was tutored | `llm_supported` | Proposal, and the field the whole domain turns on: the same worksheet means opposite things in the two directions, and only prose distinguishes them. |
 | `session` | string | the session the material belongs to | `validated` | A session or date pattern beside a subject or engagement term — narrow date extraction only, per §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. |
 | `provider` | string | the tutoring service, when one is involved | `validated` | A service name beside a tutoring term at a word boundary. |
 
@@ -930,10 +930,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `school` | string | the institution the curriculum is for | `validated` | A gazetteer school name at a word boundary. |
 | `programme` | string | the programme or department the work sits under | `validated` | A programme or department name beside a curriculum term. |
-| `curriculum unit` | string | the course or module being designed | `validated` | Proposal. The unit may not have a code yet — that is exactly what distinguishes design work from delivery — so it is recognised by a proposal or draft term beside a programme name. |
-| `learning outcome` | string | a stated outcome the unit must meet | `llm_supported` | Outcomes are prose statements, not labelled fields; extracting one requires reading. |
-| `approval stage` | enum | where the proposal sits in governance | `validated` | An approval term ('proposal', 'committee review', 'approved', 'catalogue copy') beside a curriculum unit or programme name. |
-| `development artifact type` | string | the kind of design document | `validated` | An artifact term beside a curriculum or programme name. |
+| `curriculum_unit` | string | the course or module being designed | `validated` | Proposal. The unit may not have a code yet — that is exactly what distinguishes design work from delivery — so it is recognised by a proposal or draft term beside a programme name. |
+| `learning_outcome` | string | a stated outcome the unit must meet | `llm_supported` | Outcomes are prose statements, not labelled fields; extracting one requires reading. |
+| `approval_stage` | enum | where the proposal sits in governance | `validated` | An approval term ('proposal', 'committee review', 'approved', 'catalogue copy') beside a curriculum unit or programme name. |
+| `development_artifact_type` | string | the kind of design document | `validated` | An artifact term beside a curriculum or programme name. |
 
 **Recognition**
 
@@ -967,7 +967,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| school → programme → curriculum unit | no | Proposal. No term level, because design work is not scoped to a delivery period — this is a document domain of the kind §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' describes. |
+| school → programme → curriculum_unit | no | Proposal. No term level, because design work is not scoped to a delivery period — this is a document domain of the kind §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' describes. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -994,9 +994,9 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `target university` | string | UChicago | `validated` | Named in §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. It is a role distinct from the school the applicant attends: §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.'. Reaches validated only through a gazetteer match at a word boundary together with admissions context, because §4.9 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.'. |
-| `application cycle` | string | the admissions cycle applied in | `validated` | Named in §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. The design's own worked case is a document that has the institution but not the cycle: §4.1 'a document called Columbia Essay.docx may identify a target university but omit the admissions cycle'. |
-| `application document type` | string | supplemental essay | `validated` | Named in §3.11 'College application files may use target university, application cycle, application document type, and purpose.', and it is the leaf of the design's own template, §5.4 'an Applications template may define target institution → application cycle → document type'. |
+| `target_university` | string | UChicago | `validated` | Named in §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. It is a role distinct from the school the applicant attends: §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.'. Reaches validated only through a gazetteer match at a word boundary together with admissions context, because §4.9 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.'. |
+| `application_cycle` | string | the admissions cycle applied in | `validated` | Named in §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. The design's own worked case is a document that has the institution but not the cycle: §4.1 'a document called Columbia Essay.docx may identify a target university but omit the admissions cycle'. |
+| `application_document_type` | string | supplemental essay | `validated` | Named in §3.11 'College application files may use target university, application cycle, application document type, and purpose.', and it is the leaf of the design's own template, §5.4 'an Applications template may define target institution → application cycle → document type'. |
 | `purpose` | string | university application | `validated` | Named in §3.11 'College application files may use target university, application cycle, application document type, and purpose.' and made first-class by §3.9 'Topic answers what a file is about, while purpose answers what the file was for.'. It reaches validated by rule only on the strong support the design names: §3.9 'Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.'. The packet-level conclusion is a different route: §4.7 'The LLM may return purpose = university application submission only if the dossier includes direct application evidence, such as admissions language, a portal, a checklist, or a clearly targeted essay.'. |
 
 **Recognition**
@@ -1036,7 +1036,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| target institution → application cycle → application document type | no | §5.4 'an Applications template may define target institution → application cycle → document type', restated in §5.6 'It may propose target institution → cycle → document type' with the example path §5.6 'Applications/UChicago/2026/Supplemental Essays'. The design explicitly refuses to make this order binding: a purpose-defined packet may stay whole — §5.6 'The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design' — and §5.6 'The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.'. |
+| target_institution → application_cycle → application_document_type | no | §5.4 'an Applications template may define target institution → application cycle → document type', restated in §5.6 'It may propose target institution → cycle → document type' with the example path §5.6 'Applications/UChicago/2026/Supplemental Essays'. The design explicitly refuses to make this order binding: a purpose-defined packet may stay whole — §5.6 'The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design' — and §5.6 'The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.'. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1069,11 +1069,11 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `target school` | string | the school applied to | `validated` | The same role as target university in §3.11 'College application files may use target university, application cycle, application document type, and purpose.', at a different level. A gazetteer school name at a word boundary together with admissions context. |
-| `entry year` | string | the year of intended entry | `validated` | The cycle equivalent. It is an entry year rather than an admissions cycle because secondary admission is stated as the year a child would start. |
+| `target_school` | string | the school applied to | `validated` | The same role as target university in §3.11 'College application files may use target university, application cycle, application document type, and purpose.', at a different level. A gazetteer school name at a word boundary together with admissions context. |
+| `entry_year` | string | the year of intended entry | `validated` | The cycle equivalent. It is an entry year rather than an admissions cycle because secondary admission is stated as the year a child would start. |
 | `applicant` | string | the child applying | `user_confirmed` | The applicant is a minor and is not the corpus holder; a child's name must not be attached to a file by inference. |
-| `entry grade` | string | the grade applied for | `validated` | A grade-level pattern beside a target-school name and an admissions term. It is the field with no higher-education counterpart. |
-| `admission document type` | string | the kind of application document | `validated` | An admission-document term beside a target-school name. |
+| `entry_grade` | string | the grade applied for | `validated` | A grade-level pattern beside a target-school name and an admissions term. It is the field with no higher-education counterpart. |
+| `admission_document_type` | string | the kind of application document | `validated` | An admission-document term beside a target-school name. |
 | `decision` | enum | the outcome recorded | `user_confirmed` | An outcome about a child, frequently a painful one; the design's discipline against unsupported conclusions applies with extra force. §3.6 'A model that cannot cite sufficient evidence must return unknown.' |
 
 **Recognition**
@@ -1108,7 +1108,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| applicant → target school → admission document type | no | Inference. It mirrors §5.4 'an Applications template may define target institution → application cycle → document type' with an applicant level added first, because a family applying for two children has two disjoint corpora that share every school name. Whether a child's name may be a folder level is the open question on the K-12 schooling entry. |
+| applicant → target_school → admission_document_type | no | Inference. It mirrors §5.4 'an Applications template may define target institution → application cycle → document type' with an applicant level added first, because a family applying for two children has two disjoint corpora that share every school name. Whether a child's name may be a folder level is the open question on the K-12 schooling entry. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1135,11 +1135,11 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `target university` | string | the institution applied to | `validated` | Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'; the same gazetteer-plus-context rule. |
-| `target programme` | string | the specific programme or department applied to | `validated` | Inference, and the field that makes this domain distinct: two applications to the same university for different programmes are different applications, and the university alone cannot separate them. |
-| `application cycle` | string | the admissions cycle applied in | `validated` | Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. |
-| `application document type` | string | the kind of application document | `validated` | Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. The graduate document types differ in kind: a statement of purpose and a writing sample have no undergraduate counterpart. |
-| `faculty of interest` | string | a named potential supervisor | `llm_supported` | Inference. Naming a prospective advisor is a graduate-specific move, stated in prose inside a statement of purpose; it is a role, never a destination dimension — §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
+| `target_university` | string | the institution applied to | `validated` | Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'; the same gazetteer-plus-context rule. |
+| `target_programme` | string | the specific programme or department applied to | `validated` | Inference, and the field that makes this domain distinct: two applications to the same university for different programmes are different applications, and the university alone cannot separate them. |
+| `application_cycle` | string | the admissions cycle applied in | `validated` | Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. |
+| `application_document_type` | string | the kind of application document | `validated` | Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. The graduate document types differ in kind: a statement of purpose and a writing sample have no undergraduate counterpart. |
+| `faculty_of_interest` | string | a named potential supervisor | `llm_supported` | Inference. Naming a prospective advisor is a graduate-specific move, stated in prose inside a statement of purpose; it is a role, never a destination dimension — §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
 | `purpose` | string | graduate application | `validated` | Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.' on the strong support named by §3.9 'Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.'. |
 
 **Recognition**
@@ -1175,7 +1175,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| target institution → target programme → application cycle → application document type | no | Inference. It is §5.4 'an Applications template may define target institution → application cycle → document type' with a programme level inserted, because §5.5 'a parent dimension should provide the context required to understand the child': a statement of purpose is only interpretable once the programme it targets is known. |
+| target_institution → target_programme → application_cycle → application_document_type | no | Inference. It is §5.4 'an Applications template may define target institution → application cycle → document type' with a programme level inserted, because §5.5 'a parent dimension should provide the context required to understand the child': a statement of purpose is only interpretable once the programme it targets is known. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1207,10 +1207,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
 | `test` | string | the test taken | `validated` | Proposal, and the anchor: a test name is a closed, well-known vocabulary and matches cleanly at a word boundary, which §3.7 'It should use word-boundary matching rather than substring matching.' requires. |
-| `test sitting` | string | the administration the record belongs to | `validated` | Proposal. A person may sit the same test several times; the sitting is what separates two otherwise identical score reports, and merging them would be the conflicting-fact failure of §4.9 'members carry irreconcilable course, institution, project, term, or purpose facts'. |
-| `testing body` | string | the organisation that administers the test | `validated` | A testing-body name beside a test name. |
-| `score recipient` | string | an institution the scores were sent to | `validated` | Proposal. It is the link into an application, and it is a distinct role from the target university: sending a score is not applying. |
-| `testing record type` | string | the kind of testing document | `validated` | A record-type term ('registration', 'admission ticket', 'score report') beside a test name. |
+| `test_sitting` | string | the administration the record belongs to | `validated` | Proposal. A person may sit the same test several times; the sitting is what separates two otherwise identical score reports, and merging them would be the conflicting-fact failure of §4.9 'members carry irreconcilable course, institution, project, term, or purpose facts'. |
+| `testing_body` | string | the organisation that administers the test | `validated` | A testing-body name beside a test name. |
+| `score_recipient` | string | an institution the scores were sent to | `validated` | Proposal. It is the link into an application, and it is a distinct role from the target university: sending a score is not applying. |
+| `testing_record_type` | string | the kind of testing document | `validated` | A record-type term ('registration', 'admission ticket', 'score report') beside a test name. |
 
 **Recognition**
 
@@ -1244,7 +1244,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| test → test sitting → testing record type | no | Proposal. The test is the durable parent, the sitting is the enumerable child, and the record type is the leaf — the same shape as §5.4 'an Applications template may define target institution → application cycle → document type' with the cycle replaced by a sitting. |
+| test → test_sitting → testing_record_type | no | Proposal. The test is the durable parent, the sitting is the enumerable child, and the record type is the leaf — the same shape as §5.4 'an Applications template may define target institution → application cycle → document type' with the cycle replaced by a sitting. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1271,11 +1271,11 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `subject of letter` | string | the person the letter is about | `user_confirmed` | Inference. The subject is a named person and the letter's whole meaning; attaching a person's name by inference is precisely what must not happen, so only the user establishes it. |
+| `subject_of_letter` | string | the person the letter is about | `user_confirmed` | Inference. The subject is a named person and the letter's whole meaning; attaching a person's name by inference is precisely what must not happen, so only the user establishes it. |
 | `recommender` | string | the person writing the letter | `direct` | Read from a signature block or labelled slot, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. Never a folder dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
 | `target` | string | the institution, programme or employer the letter was written for | `validated` | Inference, and the field that makes a letter filable: a gazetteer institution name beside recommendation language. It is the same target role as in §3.11 'College application files may use target university, application cycle, application document type, and purpose.'. |
-| `relationship basis` | string | the course, lab or job that gave rise to the letter | `llm_supported` | Inference. The basis is stated in the letter's opening prose and is what links a letter to a course or a lab; it is recoverable only by reading. |
-| `letter direction` | enum | whether the holder wrote the letter or is its subject | `llm_supported` | Inference, and the field that decides which corpus the file belongs to. The same PDF means opposite things in the two directions. |
+| `relationship_basis` | string | the course, lab or job that gave rise to the letter | `llm_supported` | Inference. The basis is stated in the letter's opening prose and is what links a letter to a course or a lab; it is recoverable only by reading. |
+| `letter_direction` | enum | whether the holder wrote the letter or is its subject | `llm_supported` | Inference, and the field that decides which corpus the file belongs to. The same PDF means opposite things in the two directions. |
 | `cycle` | string | the application cycle the letter was written for | `validated` | Shared with §3.11 'College application files may use target university, application cycle, application document type, and purpose.'; a letter is written for one cycle and is often re-requested in the next. |
 
 **Recognition**
@@ -1310,7 +1310,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| target → cycle → letter direction | no | Inference. It deliberately does not lead with the person: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. The target and cycle place a letter beside the application it supports, which is where a person looks for it. |
+| target → cycle → letter_direction | no | Inference. It deliberately does not lead with the person: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. The target and cycle place a letter beside the application it supports, which is where a person looks for it. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1341,10 +1341,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `issuing school` | string | the institution that issued the record | `validated` | Inference, and a distinct role from the target of an application: the issuer is where the person studied. A gazetteer school name beside registrar language. |
-| `record type` | enum | official transcript | `validated` | A registrar record-type term beside an issuing-school name. The design uses the noun for exactly this artifact in §3.9 'A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract.'. |
-| `issue date` | date | the date the record was issued | `validated` | Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. A transcript's issue date is what separates two otherwise identical copies. |
-| `official status` | enum | whether the copy is official or unofficial | `validated` | Inference, and the field a person actually searches by, because an unofficial copy cannot be submitted. The words 'official' and 'unofficial' appear literally on the artifact beside registrar language. |
+| `issuing_school` | string | the institution that issued the record | `validated` | Inference, and a distinct role from the target of an application: the issuer is where the person studied. A gazetteer school name beside registrar language. |
+| `record_type` | enum | official transcript | `validated` | A registrar record-type term beside an issuing-school name. The design uses the noun for exactly this artifact in §3.9 'A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract.'. |
+| `issue_date` | date | the date the record was issued | `validated` | Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. A transcript's issue date is what separates two otherwise identical copies. |
+| `official_status` | enum | whether the copy is official or unofficial | `validated` | Inference, and the field a person actually searches by, because an unofficial copy cannot be submitted. The words 'official' and 'unofficial' appear literally on the artifact beside registrar language. |
 | `coverage` | string | the period or programme the record covers | `llm_supported` | Inference. Coverage is implied by the table of terms inside the document rather than stated in a field. |
 | `recipient` | string | the institution the record was sent to | `validated` | Inference. A send-to institution is a distinct role from the issuer, and confusing them is exactly the failure §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' describes. |
 
@@ -1381,7 +1381,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| issuing school → record type → issue date | no | Inference. The issuing school is the durable parent; the issue date sits last because a person looks for a transcript by school and kind first, which is the ordering §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' prescribes. |
+| issuing_school → record_type → issue_date | no | Inference. The issuing school is the durable parent; the issue date sits last because a person looks for a transcript by school and kind first, which is the ordering §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' prescribes. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1413,12 +1413,12 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `sending institution` | string | where the credit was earned | `validated` | Proposal. Two school roles in one record is the case §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' is about; conflating them silently merges two schools' material. |
-| `receiving institution` | string | the school being asked to recognise the credit | `validated` | The counterpart role. The evaluation is issued by the receiving school and is about the sending school's work. |
-| `source course` | string | the course as the sending institution named it | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."' applies to both course fields; they are different values of the same field kind and must not be merged. |
-| `equivalent course` | string | the course the receiving institution maps it to | `validated` | The mapping is the whole point of the record and is stated as an explicit pair on an evaluation. |
-| `credit basis` | enum | how the credit was earned | `validated` | A basis term ('transfer', 'advanced placement', 'credit by examination', 'study abroad', 'dual enrolment') beside an evaluation term. |
-| `evaluation outcome` | enum | whether the credit was granted | `validated` | An outcome term beside an equivalence statement. The outcome is printed on the evaluation, not inferred. |
+| `sending_institution` | string | where the credit was earned | `validated` | Proposal. Two school roles in one record is the case §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' is about; conflating them silently merges two schools' material. |
+| `receiving_institution` | string | the school being asked to recognise the credit | `validated` | The counterpart role. The evaluation is issued by the receiving school and is about the sending school's work. |
+| `source_course` | string | the course as the sending institution named it | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."' applies to both course fields; they are different values of the same field kind and must not be merged. |
+| `equivalent_course` | string | the course the receiving institution maps it to | `validated` | The mapping is the whole point of the record and is stated as an explicit pair on an evaluation. |
+| `credit_basis` | enum | how the credit was earned | `validated` | A basis term ('transfer', 'advanced placement', 'credit by examination', 'study abroad', 'dual enrolment') beside an evaluation term. |
+| `evaluation_outcome` | enum | whether the credit was granted | `validated` | An outcome term beside an equivalence statement. The outcome is printed on the evaluation, not inferred. |
 
 **Recognition**
 
@@ -1453,7 +1453,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| receiving institution → sending institution → credit basis | no | Proposal. The receiving institution leads because it owns the decision and is where the record matters; the sending institution beneath it satisfies §5.5 'a parent dimension should provide the context required to understand the child', since an equivalence is meaningless without knowing what is being equated to what. |
+| receiving_institution → sending_institution → credit_basis | no | Proposal. The receiving institution leads because it owns the decision and is where the record matters; the sending institution beneath it satisfies §5.5 'a parent dimension should provide the context required to understand the child', since an equivalence is meaningless without knowing what is being equated to what. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1480,12 +1480,12 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `award year` | string | the aid year the award applies to | `validated` | Proposal. An aid year is a named span that does not align with a semester or a tax year, so it needs its own pattern for the reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.' gives for academic terms. |
-| `aid type` | enum | grant | `validated` | Proposal, and the field the whole domain turns on: a grant, a loan and a work-study allocation have different consequences and different paperwork, and they arrive in one letter. |
-| `awarding body` | string | the institution or agency making the award | `validated` | A school or agency name beside aid language. Distinct from the servicer role below — the same failure §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' describes. |
-| `aid document type` | string | the kind of aid document | `validated` | An aid document-type term beside an award-year pattern or an awarding-body name. |
+| `award_year` | string | the aid year the award applies to | `validated` | Proposal. An aid year is a named span that does not align with a semester or a tax year, so it needs its own pattern for the reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.' gives for academic terms. |
+| `aid_type` | enum | grant | `validated` | Proposal, and the field the whole domain turns on: a grant, a loan and a work-study allocation have different consequences and different paperwork, and they arrive in one letter. |
+| `awarding_body` | string | the institution or agency making the award | `validated` | A school or agency name beside aid language. Distinct from the servicer role below — the same failure §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' describes. |
+| `aid_document_type` | string | the kind of aid document | `validated` | An aid document-type term beside an award-year pattern or an awarding-body name. |
 | `servicer` | string | the organisation administering a loan after disbursement | `validated` | Proposal. The servicer is a different party from the awarding body and often changes during repayment; treating them as one field would merge a decade of correspondence with the original award. |
-| `aid application record` | enum | the aid application the record belongs to | `validated` | An aid-application term beside an award-year pattern. The application, the award and the disbursement are three stages of one year and are frequently confused. |
+| `aid_application_record` | enum | the aid application the record belongs to | `validated` | An aid-application term beside an award-year pattern. The application, the award and the disbursement are three stages of one year and are frequently confused. |
 
 **Recognition**
 
@@ -1520,7 +1520,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| awarding body → award year → aid type | no | Proposal. The awarding body is the durable parent because a person's aid history usually spans one institution; the award year is the audit unit beneath it and must be enumerable, since aid is decided and reconciled per year. |
+| awarding_body → award_year → aid_type | no | Proposal. The awarding body is the durable parent because a person's aid history usually spans one institution; the award year is the audit unit beneath it and must be enumerable, since aid is decided and reconciled per year. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1553,10 +1553,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `funder` | string | the organisation offering the award | `validated` | Proposal. The funder is a distinct role from the school: a national fellowship is administered by a body that is not the applicant's institution, and merging them is the failure §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' describes. |
 | `award` | string | the named scholarship or fellowship | `validated` | A named award beside application or funder language. Named awards are proper nouns and match cleanly at a word boundary, which §3.7 'It should use word-boundary matching rather than substring matching.' requires. |
-| `competition cycle` | string | the cycle applied in | `validated` | The same role as application cycle in §3.11 'College application files may use target university, application cycle, application document type, and purpose.': the cycle separates a failed attempt from a later successful one. |
-| `application stage` | enum | where the application sits | `validated` | A stage term ('nomination', 'submitted', 'shortlisted', 'awarded', 'declined', 'report due') beside an award name. Reapplication makes stage the field people navigate by. |
-| `award document type` | string | the kind of document | `validated` | A document-type term beside an award or funder name. |
-| `reporting obligation` | string | a report the award requires after it is made | `llm_supported` | Proposal. Obligations are stated in prose inside award terms, and they are the reason a fellowship corpus keeps growing after the application closes. |
+| `competition_cycle` | string | the cycle applied in | `validated` | The same role as application cycle in §3.11 'College application files may use target university, application cycle, application document type, and purpose.': the cycle separates a failed attempt from a later successful one. |
+| `application_stage` | enum | where the application sits | `validated` | A stage term ('nomination', 'submitted', 'shortlisted', 'awarded', 'declined', 'report due') beside an award name. Reapplication makes stage the field people navigate by. |
+| `award_document_type` | string | the kind of document | `validated` | A document-type term beside an award or funder name. |
+| `reporting_obligation` | string | a report the award requires after it is made | `llm_supported` | Proposal. Obligations are stated in prose inside award terms, and they are the reason a fellowship corpus keeps growing after the application closes. |
 
 **Recognition**
 
@@ -1592,7 +1592,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| funder → award → competition cycle | no | Proposal. It mirrors §5.4 'an Applications template may define target institution → application cycle → document type' with the funder in the institution position, because a person reapplies to the same funder across cycles and expects those attempts side by side. |
+| funder → award → competition_cycle | no | Proposal. It mirrors §5.4 'an Applications template may define target institution → application cycle → document type' with the funder in the institution position, because a person reapplies to the same funder across cycles and expects those attempts side by side. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1620,11 +1620,11 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
 | `institution` | string | the school billing the account | `validated` | The same role the design gives finance in §3.11 'Finance files may use institution, account type, tax year, and record type.', applied to a school. |
-| `term billed` | string | the term the charges belong to | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. A bursar account is reconciled per term, which is what makes the term the audit unit here. |
-| `account record type` | enum | the kind of account document | `validated` | The same field name the design gives finance in §3.11 'Finance files may use institution, account type, tax year, and record type.', with school-specific values (statement, payment receipt, refund, hold notice, payment plan). |
-| `charge category` | string | what the charge is for | `validated` | Proposal. Tuition, housing, fees and health insurance appear as separate lines and are separately disputed; treating a bill as one undifferentiated thing loses the fact people search by. |
+| `term_billed` | string | the term the charges belong to | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. A bursar account is reconciled per term, which is what makes the term the audit unit here. |
+| `account_record_type` | enum | the kind of account document | `validated` | The same field name the design gives finance in §3.11 'Finance files may use institution, account type, tax year, and record type.', with school-specific values (statement, payment receipt, refund, hold notice, payment plan). |
+| `charge_category` | string | what the charge is for | `validated` | Proposal. Tuition, housing, fees and health insurance appear as separate lines and are separately disputed; treating a bill as one undifferentiated thing loses the fact people search by. |
 | `payer` | string | who paid | `user_confirmed` | Proposal. A parent, an employer or a sponsor may pay, and the payer's identity must not be inferred from a name appearing on a statement. |
-| `hold status` | enum | an account hold blocking registration | `validated` | A hold term beside an institution name. A hold is the thing a person urgently searches for, and it is printed rather than inferred. |
+| `hold_status` | enum | an account hold blocking registration | `validated` | A hold term beside an institution name. A hold is the thing a person urgently searches for, and it is printed rather than inferred. |
 
 **Recognition**
 
@@ -1659,7 +1659,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| institution → term billed → account record type | no | Proposal. Institution leads per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'; the term sits second because a bursar account genuinely reconciles per term, and the record type is the leaf. |
+| institution → term_billed → account_record_type | no | Proposal. Institution leads per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'; the term sits second because a bursar account genuinely reconciles per term, and the record type is the leaf. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1687,11 +1687,11 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
 | `institution` | string | the employing school | `validated` | A gazetteer school name beside employment language. Employer and school are the same entity here, which is exactly why the roles must stay separate fields per §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.'. |
-| `department or unit` | string | the hiring unit | `validated` | Proposal. A student may hold three jobs at one school; the unit is what separates them, and the school alone cannot. |
+| `department_or_unit` | string | the hiring unit | `validated` | Proposal. A student may hold three jobs at one school; the unit is what separates them, and the school alone cannot. |
 | `position` | string | the job title | `direct` | Read from a labelled slot on an offer or timesheet, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. |
-| `employment period` | string | the period worked | `validated` | Narrow date extraction only, per §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. Campus jobs are bounded by terms and by funding, not by calendar years. |
-| `employment record type` | string | the kind of employment document | `validated` | An employment record-type term beside an institution name. |
-| `funding source` | enum | whether the position is work-study or departmentally funded | `validated` | Proposal. Work-study funding carries an aid consequence that a departmental wage does not, and the distinction is printed on the authorisation. |
+| `employment_period` | string | the period worked | `validated` | Narrow date extraction only, per §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. Campus jobs are bounded by terms and by funding, not by calendar years. |
+| `employment_record_type` | string | the kind of employment document | `validated` | An employment record-type term beside an institution name. |
+| `funding_source` | enum | whether the position is work-study or departmentally funded | `validated` | Proposal. Work-study funding carries an aid consequence that a departmental wage does not, and the distinction is printed on the authorisation. |
 
 **Recognition**
 
@@ -1725,7 +1725,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| institution → department or unit → position | no | Proposal. It follows §5.4 'a Career template may define company → role or recruiting cycle → document type''s shape — organisation, then role — with the unit standing in for the company, because at one school the unit is what distinguishes two jobs. |
+| institution → department_or_unit → position | no | Proposal. It follows §5.4 'a Career template may define company → role or recruiting cycle → document type''s shape — organisation, then role — with the unit standing in for the company, because at one school the unit is what distinguishes two jobs. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1755,8 +1755,8 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | `degree` | string | the degree the work is submitted for | `validated` | Inference. A thesis exists only in relation to a degree; a degree-name pattern beside a thesis term is checkable and is what separates a dissertation from a manuscript. |
 | `advisor` | string | the supervising faculty member | `direct` | Read from a labelled slot on a title page or committee form, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. A role, not authorship, and never a dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
 | `committee` | string | a committee member | `direct` | Read from a signature page. Plainly multi-valued, which is the multiplicity question the fact layer already carries; recorded as metadata, never as a level. |
-| `defense date` | date | the date of the defence | `validated` | Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. The defence date is the fixed point a whole corpus is organised around. |
-| `thesis stage` | enum | the stage the artifact belongs to | `validated` | A stage term ('proposal', 'draft', 'defence copy', 'revision', 'final deposit') beside a thesis term. Borrowed from the design's Research template, §5.4 'a Research template may define project → stage → artifact type'. |
+| `defense_date` | date | the date of the defence | `validated` | Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. The defence date is the fixed point a whole corpus is organised around. |
+| `thesis_stage` | enum | the stage the artifact belongs to | `validated` | A stage term ('proposal', 'draft', 'defence copy', 'revision', 'final deposit') beside a thesis term. Borrowed from the design's Research template, §5.4 'a Research template may define project → stage → artifact type'. |
 | `chapter` | string | the chapter or section | `validated` | A chapter pattern beside a thesis or degree term. Chapters are the unit a thesis corpus is actually navigated by, and a bare chapter number is exactly the value §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' warns not to read as a date. |
 
 **Recognition**
@@ -1793,7 +1793,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| degree → thesis stage → chapter | no | Inference. Stage before chapter because a person looks for 'the defence copy' as a whole far more often than for 'chapter 3 of the defence copy'; both satisfy §5.5 'a parent dimension should provide the context required to understand the child'. No time level, per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'. |
+| degree → thesis_stage → chapter | no | Inference. Stage before chapter because a person looks for 'the defence copy' as a whole far more often than for 'chapter 3 of the defence copy'; both satisfy §5.5 'a parent dimension should provide the context required to understand the child'. No time level, per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1824,12 +1824,12 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `host institution` | string | the institution hosting the placement | `validated` | Inference. The host is frequently not the student's own school, and confusing the two is the role failure §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' describes. |
+| `host_institution` | string | the institution hosting the placement | `validated` | Inference. The host is frequently not the student's own school, and confusing the two is the role failure §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' describes. |
 | `lab` | string | the research group | `validated` | Named in §3.11 'Research files may use project, stage, artifact type, lab, and venue.'. A lab or group name beside a research term at a word boundary. |
 | `supervisor` | string | the principal investigator or mentor | `direct` | Read from a labelled slot on a placement agreement. A role, not authorship: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
-| `placement period` | string | the period of the placement | `validated` | Inference. A summer placement is bounded by dates rather than by a term, so it needs a date pattern rather than the academic-term patterns of §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
+| `placement_period` | string | the period of the placement | `validated` | Inference. A summer placement is bounded by dates rather than by a term, so it needs a date pattern rather than the academic-term patterns of §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
 | `programme` | string | the funded programme the placement runs under | `validated` | A named programme beside a research and application term. It is the fact that makes an otherwise anonymous summer findable years later. |
-| `placement artifact type` | string | the kind of placement document | `validated` | An artifact term beside a lab or programme name. |
+| `placement_artifact_type` | string | the kind of placement document | `validated` | An artifact term beside a lab or programme name. |
 
 **Recognition**
 
@@ -1864,7 +1864,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| lab → placement period → placement artifact type | no | Inference. The lab leads because it is the durable name a person remembers; the period sits second because a student may return to the same lab across several summers and needs them separated. It is §5.4 'a Research template may define project → stage → artifact type' with the placement period standing in for stage. |
+| lab → placement_period → placement_artifact_type | no | Inference. The lab leads because it is the durable name a person remembers; the period sits second because a student may return to the same lab across several summers and needs them separated. It is §5.4 'a Research template may define project → stage → artifact type' with the placement period standing in for stage. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1893,10 +1893,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `venue` | string | the conference | `validated` | Named in §3.11 'Research files may use project, stage, artifact type, lab, and venue.'. A conference name beside a conference term at a word boundary. |
 | `edition` | string | the specific instance of a recurring conference | `validated` | Inference. Conferences recur annually under one name; the edition is what separates two submissions to the same venue, and merging them would be the conflicting-fact failure of §4.9 'members carry irreconcilable course, institution, project, term, or purpose facts'. |
-| `submission type` | enum | poster | `validated` | A submission-type term beside a conference name. It determines what artifacts exist at all — a poster corpus and a talk corpus look nothing alike. |
-| `submission status` | enum | the outcome of the submission | `validated` | A status term ('submitted', 'accepted', 'rejected', 'withdrawn') beside a conference name and an edition. |
-| `travel funding source` | string | the body funding the trip | `validated` | Inference. Student travel is funded by a grant or a department, and the reimbursement paperwork is a large part of the corpus. |
-| `conference artifact type` | string | the kind of conference document | `validated` | An artifact term beside a conference name. |
+| `submission_type` | enum | poster | `validated` | A submission-type term beside a conference name. It determines what artifacts exist at all — a poster corpus and a talk corpus look nothing alike. |
+| `submission_status` | enum | the outcome of the submission | `validated` | A status term ('submitted', 'accepted', 'rejected', 'withdrawn') beside a conference name and an edition. |
+| `travel_funding_source` | string | the body funding the trip | `validated` | Inference. Student travel is funded by a grant or a department, and the reimbursement paperwork is a large part of the corpus. |
+| `conference_artifact_type` | string | the kind of conference document | `validated` | An artifact term beside a conference name. |
 
 **Recognition**
 
@@ -1930,7 +1930,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| venue → edition → conference artifact type | no | Inference. The venue is the durable name and the edition is the enumerable child, satisfying §5.5 'a parent dimension should provide the context required to understand the child': 'poster' means nothing until the conference and year are known. |
+| venue → edition → conference_artifact_type | no | Inference. The venue is the durable name and the edition is the enumerable child, satisfying §5.5 'a parent dimension should provide the context required to understand the child': 'poster' means nothing until the conference and year are known. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -1961,12 +1961,12 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `home institution` | string | the school the student remains enrolled at | `validated` | Proposal. Two school roles in one record, and keeping them apart is exactly what §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' requires; a merged school field would file a year abroad under the wrong university. |
-| `host institution` | string | the school attended abroad | `validated` | The counterpart role. |
-| `programme provider` | string | the third party running the exchange, when there is one | `validated` | Proposal. A provider is neither school and owns much of the paperwork. |
-| `term abroad` | string | the term or year spent away | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
-| `host country` | string | the country studied in | `validated` | A gazetteer country name at a word boundary beside study-abroad language. It is the fact a person actually remembers a year abroad by. |
-| `mobility document type` | string | the kind of study-abroad document | `validated` | A document-type term beside a host-institution or provider name. Visa and enrolment paperwork dominate this corpus and have no domestic counterpart. |
+| `home_institution` | string | the school the student remains enrolled at | `validated` | Proposal. Two school roles in one record, and keeping them apart is exactly what §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' requires; a merged school field would file a year abroad under the wrong university. |
+| `host_institution` | string | the school attended abroad | `validated` | The counterpart role. |
+| `programme_provider` | string | the third party running the exchange, when there is one | `validated` | Proposal. A provider is neither school and owns much of the paperwork. |
+| `term_abroad` | string | the term or year spent away | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
+| `host_country` | string | the country studied in | `validated` | A gazetteer country name at a word boundary beside study-abroad language. It is the fact a person actually remembers a year abroad by. |
+| `mobility_document_type` | string | the kind of study-abroad document | `validated` | A document-type term beside a host-institution or provider name. Visa and enrolment paperwork dominate this corpus and have no domestic counterpart. |
 
 **Recognition**
 
@@ -2001,7 +2001,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| host institution → term abroad → mobility document type | no | Proposal. The host leads because the year abroad is remembered by where it was; the home institution stays metadata so a year abroad does not fragment across two school branches. |
+| host_institution → term_abroad → mobility_document_type | no | Proposal. The host leads because the year abroad is remembered by where it was; the home institution stays metadata so a year abroad does not fragment across two school branches. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2030,10 +2030,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `programme` | string | the professional programme requiring the rotation | `validated` | A professional-degree name beside rotation language. |
 | `site` | string | the hospital, clinic, school or agency the placement is at | `validated` | Proposal. The site is neither the school nor an employer; it is a third party with its own onboarding, and it is the fact a person remembers a rotation by. |
-| `service or specialty` | string | the service the block was on | `validated` | A specialty term beside a rotation term. It is the field that makes a rotation corpus navigable, because the site repeats across services. |
+| `service_or_specialty` | string | the service the block was on | `validated` | A specialty term beside a rotation term. It is the field that makes a rotation corpus navigable, because the site repeats across services. |
 | `block` | string | the scheduled block the placement occupied | `validated` | Proposal. Rotations are scheduled in named blocks rather than terms, and a bare block number is exactly the value §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' warns not to read as a date. |
 | `preceptor` | string | the supervising practitioner | `direct` | Read from a labelled slot on an evaluation form. A role, not authorship: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
-| `rotation record type` | string | the kind of rotation document | `validated` | A record-type term beside a site or specialty name. |
+| `rotation_record_type` | string | the kind of rotation document | `validated` | A record-type term beside a site or specialty name. |
 
 **Recognition**
 
@@ -2068,7 +2068,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| programme → service or specialty → site | no | Proposal. Specialty above site because the specialty is what a person is trying to recall; the site beneath it satisfies §5.5 'a parent dimension should provide the context required to understand the child'. Block stays metadata because block labels are opaque a year later. |
+| programme → service_or_specialty → site | no | Proposal. Specialty above site because the specialty is what a person is trying to recall; the site beneath it satisfies §5.5 'a parent dimension should provide the context required to understand the child'. Block stays metadata because block labels are opaque a year later. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2099,12 +2099,12 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `host organisation` | string | the employer hosting the placement | `validated` | Proposal. The host is an employer, which is the role the design gives the Career template's company: §5.4 'a Career template may define company → role or recruiting cycle → document type'. |
-| `course` | string | the course code the placement is registered under | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. This field is what makes the placement academic rather than purely employment, and it is the discriminator against a plain internship. |
+| `host_organisation` | string | the employer hosting the placement | `validated` | Proposal. The host is an employer, which is the role the design gives the Career template's company: §5.4 'a Career template may define company → role or recruiting cycle → document type'. |
+| `subject` | string | the course code the placement is registered under | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. This field is what makes the placement academic rather than purely employment, and it is the discriminator against a plain internship. |
 | `term` | string | the term the credit is registered in | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. |
-| `faculty sponsor` | string | the faculty member supervising the credit | `direct` | Read from a labelled slot on a learning agreement. A role, not authorship: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
-| `site supervisor` | string | the manager at the host organisation | `direct` | Read from a labelled slot. A second, distinct supervisory role — the pair is the same separation §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' demands. |
-| `credit requirement type` | string | the kind of academic deliverable the credit requires | `validated` | A requirement term ('learning agreement', 'hours log', 'reflection', 'final report', 'employer evaluation') beside a validated course code or a host name. |
+| `faculty_sponsor` | string | the faculty member supervising the credit | `direct` | Read from a labelled slot on a learning agreement. A role, not authorship: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
+| `site_supervisor` | string | the manager at the host organisation | `direct` | Read from a labelled slot. A second, distinct supervisory role — the pair is the same separation §3.8 'An application essay can mention the author's current school and the university to which the essay is addressed.' demands. |
+| `credit_requirement_type` | string | the kind of academic deliverable the credit requires | `validated` | A requirement term ('learning agreement', 'hours log', 'reflection', 'final report', 'employer evaluation') beside a validated course code or a host name. |
 
 **Recognition**
 
@@ -2138,7 +2138,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| host organisation → term → credit requirement type | no | Proposal. The host leads because it is what a person and a future employer both recognise, which follows §5.4 'a Career template may define company → role or recruiting cycle → document type' rather than the Academic template; the course registration stays metadata because it is an administrative wrapper, not how anyone searches. |
+| host_organisation → term → credit_requirement_type | no | Proposal. The host leads because it is what a person and a future employer both recognise, which follows §5.4 'a Career template may define company → role or recruiting cycle → document type' rather than the Academic template; the course registration stays metadata because it is an administrative wrapper, not how anyone searches. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2166,11 +2166,11 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
 | `language` | string | the language studied | `validated` | Proposal. A language name is a closed vocabulary and matches at a word boundary, which §3.7 'It should use word-boundary matching rather than substring matching.' requires; several language names are also common words and must not match as substrings. |
-| `proficiency framework` | string | the scale the level is expressed on | `validated` | Proposal, and load-bearing: a level is meaningless without its framework, and two frameworks' levels are not comparable. Recognised by a framework name beside a level pattern. |
+| `proficiency_framework` | string | the scale the level is expressed on | `validated` | Proposal, and load-bearing: a level is meaningless without its framework, and two frameworks' levels are not comparable. Recognised by a framework name beside a level pattern. |
 | `level` | string | the level within that framework | `validated` | A level pattern beside a framework name. It is the field a person navigates by and the field that changes over years. |
 | `certification` | string | the proficiency examination or certificate | `validated` | A certification name beside a language name at a word boundary. |
-| `language study artifact type` | string | the kind of study material | `validated` | An artifact term beside a language or framework name. |
-| `target requirement` | string | the institution or programme requiring the proficiency | `validated` | Proposal. A proficiency test is usually taken because something demands it, and the requirement is what links this domain to an application. |
+| `language_study_artifact_type` | string | the kind of study material | `validated` | An artifact term beside a language or framework name. |
+| `target_requirement` | string | the institution or programme requiring the proficiency | `validated` | Proposal. A proficiency test is usually taken because something demands it, and the requirement is what links this domain to an application. |
 
 **Recognition**
 
@@ -2205,7 +2205,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| language → level → language study artifact type | no | Proposal. Language then level is the natural progression and satisfies §5.5 'a parent dimension should provide the context required to understand the child': a level is uninterpretable without its language and framework. No time level, per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'. |
+| language → level → language_study_artifact_type | no | Proposal. Language then level is the natural progression and satisfies §5.5 'a parent dimension should provide the context required to understand the child': a level is uninterpretable without its language and framework. No time level, per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2234,10 +2234,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `school` | string | the conservatory, school or department | `validated` | A gazetteer school name at a word boundary. |
 | `discipline` | string | the instrument, medium or studio | `validated` | Proposal. The instrument or medium is the organising fact of an arts corpus in the way a course code is for a lecture corpus, and a person may study two. |
-| `assessment event` | string | the jury, recital or review the work was presented at | `validated` | Proposal, and the anchor: an arts corpus clusters around dated events rather than around assignments. An event term beside a discipline or school name. |
-| `repertoire or work` | string | the piece or work presented | `user_confirmed` | Proposal. Titles of works are ambiguous with filenames, performers, and everything else in a media corpus; asserting one by inference would be unreliable, so only the user establishes it. |
-| `panel member` | string | a member of the jury or review panel | `direct` | Read from a labelled slot on an evaluation sheet. A role, never a dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
-| `arts artifact type` | string | the kind of material | `validated` | An artifact term beside an assessment-event or discipline term. Recordings and scores dominate and have no counterpart in a document corpus. |
+| `assessment_event` | string | the jury, recital or review the work was presented at | `validated` | Proposal, and the anchor: an arts corpus clusters around dated events rather than around assignments. An event term beside a discipline or school name. |
+| `repertoire_or_work` | string | the piece or work presented | `user_confirmed` | Proposal. Titles of works are ambiguous with filenames, performers, and everything else in a media corpus; asserting one by inference would be unreliable, so only the user establishes it. |
+| `panel_member` | string | a member of the jury or review panel | `direct` | Read from a labelled slot on an evaluation sheet. A role, never a dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
+| `arts_artifact_type` | string | the kind of material | `validated` | An artifact term beside an assessment-event or discipline term. Recordings and scores dominate and have no counterpart in a document corpus. |
 
 **Recognition**
 
@@ -2271,7 +2271,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| discipline → assessment event → arts artifact type | no | Proposal. Discipline leads because a musician who also paints has two disjoint bodies of work; the assessment event is the enumerable child and satisfies §5.5 'a parent dimension should provide the context required to understand the child'. |
+| discipline → assessment_event → arts_artifact_type | no | Proposal. Discipline leads because a musician who also paints has two disjoint bodies of work; the assessment event is the enumerable child and satisfies §5.5 'a parent dimension should provide the context required to understand the child'. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2303,11 +2303,11 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
 | `institution` | string | the school competed for | `validated` | A gazetteer school name beside athletics language. |
-| `governing body` | string | the association setting the eligibility rules | `validated` | Proposal. The rules come from a body that is not the school, and its correspondence is a separate stream; conflating them loses who decided what. |
+| `governing_body` | string | the association setting the eligibility rules | `validated` | Proposal. The rules come from a body that is not the school, and its correspondence is a separate stream; conflating them loses who decided what. |
 | `sport` | string | the sport | `validated` | A sport name beside an eligibility or roster term at a word boundary. |
 | `season` | string | the competition season | `validated` | Proposal. A season is a named span that does not align with an academic term, so it needs its own pattern for the reason §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.' gives. |
-| `eligibility status` | enum | the certification status recorded | `validated` | A status term ('certified', 'pending', 'ineligible', 'medical hardship', 'redshirt') beside a governing-body or institution name. It is printed on the determination, not inferred. |
-| `compliance record type` | string | the kind of compliance document | `validated` | A record-type term beside an athletics or governing-body term. |
+| `eligibility_status` | enum | the certification status recorded | `validated` | A status term ('certified', 'pending', 'ineligible', 'medical hardship', 'redshirt') beside a governing-body or institution name. It is printed on the determination, not inferred. |
+| `compliance_record_type` | string | the kind of compliance document | `validated` | A record-type term beside an athletics or governing-body term. |
 
 **Recognition**
 
@@ -2341,7 +2341,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| sport → season → compliance record type | no | Proposal. Sport then season is how an athlete's material is remembered; the institution stays metadata because a transferring athlete would otherwise have their career split across two branches. |
+| sport → season → compliance_record_type | no | Proposal. Sport then season is how an athlete's material is remembered; the institution stays metadata because a transferring athlete would otherwise have their career split across two branches. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2370,10 +2370,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `school` | string | the institution advising takes place at | `validated` | A gazetteer school name at a word boundary. |
 | `advisor` | string | the advisor | `direct` | Read from a labelled slot on an advising record, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. A role, never a dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
-| `advising term` | string | the term being planned for | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. Advising is forward-looking: the term named is usually the next one, not the current one, which is a real source of misfiling. |
-| `plan of study` | string | the plan the record belongs to | `validated` | Proposal. A plan is revised repeatedly and its versions are the point; a plan term beside a school or programme name anchors it. |
-| `advising record type` | string | the kind of advising document | `validated` | A record-type term beside an advising or registration term. |
-| `registration outcome` | enum | what actually happened at registration | `validated` | An outcome term ('registered', 'waitlisted', 'closed', 'hold', 'dropped', 'swapped') beside a term pattern. It is printed on a registration confirmation. |
+| `advising_term` | string | the term being planned for | `validated` | §3.10 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'. Advising is forward-looking: the term named is usually the next one, not the current one, which is a real source of misfiling. |
+| `plan_of_study` | string | the plan the record belongs to | `validated` | Proposal. A plan is revised repeatedly and its versions are the point; a plan term beside a school or programme name anchors it. |
+| `advising_record_type` | string | the kind of advising document | `validated` | A record-type term beside an advising or registration term. |
+| `registration_outcome` | enum | what actually happened at registration | `validated` | An outcome term ('registered', 'waitlisted', 'closed', 'hold', 'dropped', 'swapped') beside a term pattern. It is printed on a registration confirmation. |
 
 **Recognition**
 
@@ -2407,7 +2407,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| school → advising term → advising record type | no | Proposal. The term is the organising fact because advising is intrinsically per-registration-cycle, but the school still leads, per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'. |
+| school → advising_term → advising_record_type | no | Proposal. The term is the organising fact because advising is intrinsically per-registration-cycle, but the school still leads, per §5.5 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2435,11 +2435,11 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
 | `institution` | string | the school granting the accommodation | `validated` | A gazetteer school name beside accommodations language. |
-| `accommodation type` | string | the accommodation granted or requested | `validated` | Proposal, and the field the domain turns on. An accommodation-type term beside an access-services term is checkable; the underlying condition is deliberately not a field here. |
-| `approval period` | string | the period the approval covers | `validated` | Proposal. Approvals are renewed per term or per year and lapse; the period is what distinguishes a current letter from a stale one. |
-| `access record type` | string | the kind of accommodations document | `validated` | A record-type term beside an access-services or accommodation term. |
-| `supporting documentation` | enum | that a medical or psychological report supports the request | `user_confirmed` | Proposal, and deliberately a flag rather than a content field: the system records that supporting documentation exists, never what it says. §3.6 'A model that cannot cite sufficient evidence must return unknown.' |
-| `implementing course` | string | the course an accommodation letter was issued for | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. Letters are issued per course and per term, which is why an accommodation record lands inside a coursework corpus. |
+| `accommodation_type` | string | the accommodation granted or requested | `validated` | Proposal, and the field the domain turns on. An accommodation-type term beside an access-services term is checkable; the underlying condition is deliberately not a field here. |
+| `approval_period` | string | the period the approval covers | `validated` | Proposal. Approvals are renewed per term or per year and lapse; the period is what distinguishes a current letter from a stale one. |
+| `access_record_type` | string | the kind of accommodations document | `validated` | A record-type term beside an access-services or accommodation term. |
+| `supporting_documentation` | enum | that a medical or psychological report supports the request | `user_confirmed` | Proposal, and deliberately a flag rather than a content field: the system records that supporting documentation exists, never what it says. §3.6 'A model that cannot cite sufficient evidence must return unknown.' |
+| `implementing_course` | string | the course an accommodation letter was issued for | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. Letters are issued per course and per term, which is why an accommodation record lands inside a coursework corpus. |
 
 **Recognition**
 
@@ -2474,7 +2474,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| institution → approval period → access record type | no | Proposal. Deliberately no accommodation-type or condition level: a folder path is visible to anyone who sees the screen, and a path naming a disability discloses it. The period is the enumerable child because approvals lapse. |
+| institution → approval_period → access_record_type | no | Proposal. Deliberately no accommodation-type or condition level: a folder path is visible to anyone who sees the screen, and a path naming a disability discloses it. The period is the enumerable child because approvals lapse. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2506,10 +2506,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
 | `institution` | string | the institution running the process | `validated` | A gazetteer school name beside conduct-process language. |
-| `case reference` | string | the case identifier the office issues | `validated` | Proposal. A case reference is the only unambiguous handle on a process whose documents otherwise share vocabulary with ordinary coursework, and a bare reference-shaped token is exactly what §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' warns against reading alone. |
-| `case role` | enum | whether the holder is the respondent, the reporter, or a panel member | `user_confirmed` | Proposal, and the field that decides everything: the same file means opposite things in the three directions, and getting it wrong by inference would be a serious harm. Only the user establishes it. |
-| `process stage` | enum | the stage the document belongs to | `validated` | A stage term ('notice', 'meeting', 'hearing', 'finding', 'sanction', 'appeal') beside a case-process term. |
-| `related course` | string | the course the allegation concerns | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. This is what pulls case material into a coursework branch, which is exactly what must not happen silently. |
+| `case_reference` | string | the case identifier the office issues | `validated` | Proposal. A case reference is the only unambiguous handle on a process whose documents otherwise share vocabulary with ordinary coursework, and a bare reference-shaped token is exactly what §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' warns against reading alone. |
+| `case_role` | enum | whether the holder is the respondent, the reporter, or a panel member | `user_confirmed` | Proposal, and the field that decides everything: the same file means opposite things in the three directions, and getting it wrong by inference would be a serious harm. Only the user establishes it. |
+| `process_stage` | enum | the stage the document belongs to | `validated` | A stage term ('notice', 'meeting', 'hearing', 'finding', 'sanction', 'appeal') beside a case-process term. |
+| `related_course` | string | the course the allegation concerns | `validated` | §3.5 'BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as "syllabus," "lecture," "credits," "instructor," or "semester."'. This is what pulls case material into a coursework branch, which is exactly what must not happen silently. |
 | `outcome` | enum | the finding recorded | `user_confirmed` | Proposal. A finding must never be inferred from prose; §3.6 'A model that cannot cite sufficient evidence must return unknown.' applies with full force. |
 
 **Recognition**
@@ -2546,7 +2546,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| institution → case reference → process stage | no | Proposal. Deliberately keyed on the case reference rather than on the course or the person: a path naming a course and 'misconduct' discloses the allegation to anyone who sees the screen. Stage is the leaf because a process is navigated chronologically. |
+| institution → case_reference → process_stage | no | Proposal. Deliberately keyed on the case reference rather than on the course or the person: a path naming a course and 'misconduct' discloses the allegation to anyone who sees the screen. Stage is the leaf because a process is navigated chronologically. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2579,9 +2579,9 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `organisation` | string | the club or society | `validated` | Proposal, and the anchor: the organisation name is a proper noun that matches at a word boundary, which §3.7 'It should use word-boundary matching rather than substring matching.' requires. |
 | `institution` | string | the school the organisation is recognised at | `validated` | A gazetteer school name beside a recognition or student-activities term. |
-| `holder role` | string | the office or membership the holder held | `validated` | Proposal. Officer material and member material are different corpora, and the role is what separates them. It is a role, never a dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
-| `activity year` | string | the year of activity | `validated` | Proposal. Organisations turn over annually and their records are archived per year of leadership. |
-| `organisation record type` | string | the kind of organisation document | `validated` | A record-type term beside an organisation name. |
+| `holder_role` | string | the office or membership the holder held | `validated` | Proposal. Officer material and member material are different corpora, and the role is what separates them. It is a role, never a dimension: §3.8 'It should avoid using authorship or creator identity as a destination dimension.'. |
+| `activity_year` | string | the year of activity | `validated` | Proposal. Organisations turn over annually and their records are archived per year of leadership. |
+| `organisation_record_type` | string | the kind of organisation document | `validated` | A record-type term beside an organisation name. |
 | `event` | string | a specific event the organisation ran | `validated` | An event name beside an organisation name. Events are the unit most of the material actually belongs to. |
 
 **Recognition**
@@ -2618,7 +2618,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| organisation → activity year → organisation record type | no | Proposal. The organisation leads and the activity year sits beneath it because leadership turns over annually and each year's records are handed on as a set — a period that is an organisational boundary, not a calendar. |
+| organisation → activity_year → organisation_record_type | no | Proposal. The organisation leads and the activity year sits beneath it because leadership turns over annually and each year's records are handed on as a set — a period that is an organisational boundary, not a calendar. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2647,10 +2647,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 |---|---|---|---|---|
 | `institution` | string | the institution under review | `validated` | A gazetteer institution name beside accreditation language. |
 | `accreditor` | string | the accrediting or reviewing body | `validated` | Proposal. The accreditor is a distinct party whose correspondence and standards are separate from the institution's response; conflating them loses who is asserting what. |
-| `review cycle` | string | the review the material belongs to | `validated` | Proposal. Cycles run over years and overlap; the cycle is the only thing that keeps two self-studies apart. |
+| `review_cycle` | string | the review the material belongs to | `validated` | Proposal. Cycles run over years and overlap; the cycle is the only thing that keeps two self-studies apart. |
 | `standard` | string | the standard or criterion the evidence addresses | `validated` | Proposal, and the field that makes this domain distinct: the entire corpus is organised as evidence mapped to numbered standards, and a bare standard number is exactly the token §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' warns against. |
-| `unit under review` | string | the programme, department or school being reviewed | `validated` | A unit name beside a review or accreditation term. Programmatic and institutional accreditation are different scopes and produce different corpora. |
-| `accreditation record type` | string | the kind of accreditation document | `validated` | A record-type term beside an accreditor name or a review term. |
+| `unit_under_review` | string | the programme, department or school being reviewed | `validated` | A unit name beside a review or accreditation term. Programmatic and institutional accreditation are different scopes and produce different corpora. |
+| `accreditation_record_type` | string | the kind of accreditation document | `validated` | A record-type term beside an accreditor name or a review term. |
 
 **Recognition**
 
@@ -2684,7 +2684,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| accreditor → review cycle → standard | no | Proposal. The accreditor and cycle bound the work; the standard is the leaf because the corpus is genuinely indexed by standard, which satisfies §5.5 'a parent dimension should provide the context required to understand the child' — a standard number means nothing without its accreditor. |
+| accreditor → review_cycle → standard | no | Proposal. The accreditor and cycle bound the work; the standard is the leaf because the corpus is genuinely indexed by standard, which satisfies §5.5 'a parent dimension should provide the context required to understand the child' — a standard number means nothing without its accreditor. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2716,10 +2716,10 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
 | `institution` | string | the school the holder graduated from | `validated` | A gazetteer school name beside alumni language. |
-| `graduation year` | string | the class year | `validated` | Proposal. The class year is the primary alumni identifier and appears beside the school in almost every alumni communication; alone it is only a year, which §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' forbids relying on. |
-| `alumni record type` | string | the kind of alumni document | `validated` | A record-type term beside an alumni or institution term. |
+| `graduation_year` | string | the class year | `validated` | Proposal. The class year is the primary alumni identifier and appears beside the school in almost every alumni communication; alone it is only a year, which §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' forbids relying on. |
+| `alumni_record_type` | string | the kind of alumni document | `validated` | A record-type term beside an alumni or institution term. |
 | `engagement` | string | the reunion, chapter or programme engaged with | `validated` | An engagement name beside an alumni term. Reunions and regional chapters are the concrete events the material belongs to. |
-| `giving designation` | string | the fund or purpose a gift was directed to | `validated` | Proposal. Gift records carry a designation that determines the receipting and the acknowledgement chain. |
+| `giving_designation` | string | the fund or purpose a gift was directed to | `validated` | Proposal. Gift records carry a designation that determines the receipting and the acknowledgement chain. |
 
 **Recognition**
 
@@ -2753,7 +2753,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| institution → alumni record type → engagement | no | Proposal. No year level: alumni material accumulates thinly over decades and a year split would produce exactly the many-tiny-folders outcome the design warns designers about. |
+| institution → alumni_record_type → engagement | no | Proposal. No year level: alumni material accumulates thinly over decades and a year split would produce exactly the many-tiny-folders outcome the design warns designers about. |
 
 **Collides with** — where this domain and another will fight over the same file
 
@@ -2780,12 +2780,12 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | field | type | example | reliability ceiling | why this field exists and why that ceiling |
 |---|---|---|---|---|
-| `awarding body` | string | the institution or body that granted it | `validated` | Inference. A gazetteer institution or body name beside award language; the awarding body is what makes a credential mean anything. |
+| `awarding_body` | string | the institution or body that granted it | `validated` | Inference. A gazetteer institution or body name beside award language; the awarding body is what makes a credential mean anything. |
 | `credential` | string | the qualification awarded | `validated` | A degree, certificate or licence name beside an awarding-body name at a word boundary. |
-| `award date` | date | the date of conferral | `validated` | Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. |
-| `verification handle` | string | the credential identifier or verification reference printed on it | `direct` | Read from a labelled slot on the artifact, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is what separates a credential from a decorative certificate. |
-| `credential status` | enum | current, expired, or superseded | `validated` | Inference. An expiry or renewal term beside a credential name. Whether a credential is still current is the question people actually have. |
-| `credential form` | enum | the physical or digital form the artifact takes | `validated` | Inference. A scan, a PDF and a digital badge are the same credential in three forms, which is a version family, not three credentials. |
+| `award_date` | date | the date of conferral | `validated` | Narrow date extraction only: §3.10 'file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. |
+| `verification_handle` | string | the credential identifier or verification reference printed on it | `direct` | Read from a labelled slot on the artifact, which §3.5 'such as a content hash, EXIF timestamp, a document title, or a labeled form field' makes direct. It is what separates a credential from a decorative certificate. |
+| `credential_status` | enum | current, expired, or superseded | `validated` | Inference. An expiry or renewal term beside a credential name. Whether a credential is still current is the question people actually have. |
+| `credential_form` | enum | the physical or digital form the artifact takes | `validated` | Inference. A scan, a PDF and a digital badge are the same credential in three forms, which is a version family, not three credentials. |
 
 **Recognition**
 
@@ -2821,7 +2821,7 @@ collides_with.domain ids beginning acad. resolve inside this file. Ids beginning
 
 | dimension order | time first | why |
 |---|---|---|
-| awarding body → credential → credential form | no | Inference. Awarding body then credential satisfies §5.5 'a parent dimension should provide the context required to understand the child': a certificate name is uninterpretable without knowing who issued it. No date level, because a person holds few credentials and a date split would leave one-child folders. |
+| awarding_body → credential → credential_form | no | Inference. Awarding body then credential satisfies §5.5 'a parent dimension should provide the context required to understand the child': a certificate name is uninterpretable without knowing who issued it. No date level, because a person holds few credentials and a date split would leave one-child folders. |
 
 **Collides with** — where this domain and another will fight over the same file
 

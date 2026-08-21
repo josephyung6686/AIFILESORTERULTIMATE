@@ -53,7 +53,7 @@ Code corpora are mostly not authored. A template that files generated, vendored 
 | **1. Scan-time directory exclusion (P3)** | §1.1 "The engine should ignore node_modules, .git, venv, build, dist, target, vendor, Pods, site-packages, Library, __pycache__, build artifacts, caches, auto-save folders, previews, and generated dependency trees." | The bulk of dependency and build output, WHERE it sits under one of those literal names. Those files never become file records at all, so no domain can file them. | Generated files that sit beside authored ones rather than in a directory of their own: notebook stored outputs, database schema snapshots, infrastructure state files, game-engine per-asset import metadata, generated API reference markdown, vendored manufacturer SDKs. |
 | **2. Scan-time project-root exclusion (P3)** | §1.1 "It should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod. This prevents the proposal engine from mistaking a dependency subdirectory for a meaningful personal destination." | Everything below a root marked by one of those four names. | Every other ecosystem. Catalogue 05 deliberately refused to extend the list - `unc-pyproject-as-exclusion` ("the default answer this file ships with is no"), `unc-lockfiles-as-exclusion`, `unc-other-ecosystems-as-exclusion`. **This is the asymmetry that shapes the whole slice:** a Node, pip, Cargo or Go project enters the corpus as a thin shell of root-level documents, while a pyproject-only Python project, a Gradle or Maven project, or a Ruby, PHP, Elixir or Dart project enters WHOLE. Two projects of the same kind can therefore be visible to completely different degrees, and no template can assume either case. |
 | **3. Root-anchored recognition (this catalogue)** | §2.4 "Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text." | A file does not activate a software domain on its own extension. It inherits membership from a marker-bearing root above it. A stray generated file with no marker root in its ancestry activates nothing, which is the correct outcome. This is why every `never_alone` list in this file begins with bare extensions. | Generated files INSIDE an admitted project tree, which do have a marker root above them and therefore do inherit membership. |
-| **4. Project-scale dimensions (this catalogue)** | Every template here uses project-scale dimensions - `project` then `artifact type` - and never a per-file or per-run dimension. Branch count therefore tracks the number of PROJECTS, not the number of files. A generated file inside an admitted tree lands as a member under its project's branch, which is right, rather than creating a branch of its own, which would not be. The fields that would fragment a tree - `run`, `release version`, `interface version`, `environment` - are held as metadata, which §5.4 "It defines the dimensions that are meaningful for one type of material, their recommended order, which dimensions are optional, which ones are metadata only, and what safety or usability constraints apply." explicitly provides for. | The layer-2 gap. It is the only layer that works on a fully admitted tree. | It bounds the number of branches, not the number of files inside one. A project branch can still contain an enormous generated subtree; it just does not shatter the tree. |
+| **4. Project-scale dimensions (this catalogue)** | Every template here uses project-scale dimensions - `project` then `artifact_type` - and never a per-file or per-run dimension. Branch count therefore tracks the number of PROJECTS, not the number of files. A generated file inside an admitted tree lands as a member under its project's branch, which is right, rather than creating a branch of its own, which would not be. The fields that would fragment a tree - `run`, `release_version`, `interface_version`, `environment` - are held as metadata, which §5.4 "It defines the dimensions that are meaningful for one type of material, their recommended order, which dimensions are optional, which ones are metadata only, and what safety or usability constraints apply." explicitly provides for. | The layer-2 gap. It is the only layer that works on a fully admitted tree. | It bounds the number of branches, not the number of files inside one. A project branch can still contain an enormous generated subtree; it just does not shatter the tree. |
 | **5. Template-time and canvas-time validation (P10)** | §5.7 "The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group." and, before the user commits, §5.9 "Before the user chooses a split, the system should show the resulting number of child branches, the number of files under each child, example members, unresolved files, and any evidence gaps." with §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." | The user sees what a split would cost before choosing it, and after freeze §5.11's tree health shows where files are unresolved. | It is a review surface, not a filter. It makes a bad template visible; it does not make a good one. |
 | **6. Anchor discipline (P9)** | §4.9 "Sparse groups with no anchor should be shown only as tentative discovery candidates, if at all." -- a generated file may join a group but must never be the anchor that creates one. Stated per entry wherever a domain has a high-volume generated class (ML run records, eval scored outputs, performance result sets, pipeline run logs, automated dependency alerts, notification messages). | Prevents a branch existing BECAUSE of generated bulk. | Nothing about where those files then go. |
 
@@ -85,7 +85,7 @@ Copy these into `NEEDS-JOSEPH.md` unresolved.
 6. Should `soft.configuration-and-secrets` record even the SHAPE observation that a file appears to hold credential material? §8.4 "Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local." -- and a domain whose content is secrets is exactly where §8.4's gate matters. The gate is P7's; whether the observation may be made at all is prior to it.
 7. Three cross-slice ownership questions this file records and does not resolve: analysis code and notebooks that are also research artifacts (research slice); notebooks that are also coursework (academic slice); compliance evidence, IT asset inventories and helpdesk tickets that may belong under an administrative, legal or career branch rather than a software one. §5.1 "a typical initial canvas might include Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material."
 8. Are `soft.design-doc-rfc` and `soft.technical-specification` one domain? They share every field and differ only in the document's intent, which is prose. Same question for `soft.security-finding-report` and `soft.vulnerability-disclosure`, which differ only in whose system the weakness is in - a role distinction §3.8 "The system must separate roles that happen to contain the same entity type." supports, but a thin one.
-9. Is `soft.sdk-integration` a domain at all, or a VALUE of `artifact type` inside `soft.source-project`? Its discriminating field, `integration direction`, has an `llm_supported` ceiling, which means the domain has almost no deterministic existence.
+9. Is `soft.sdk-integration` a domain at all, or a VALUE of `artifact_type` inside `soft.source-project`? Its discriminating field, `integration_direction`, has an `llm_supported` ceiling, which means the domain has almost no deterministic existence.
 10. Should a personal dotfiles directory be organised by this product at all? §1.1 "The system should also know that existing folder structures should mainly be preserved. For example, if a folder called AIKonic Project has a lot of files such as JSON and other software material, those are probably not supposed to be touched." and §5.10 "A carefully curated existing folder should be treated as a strong expression of user intent." both point toward recognising it and leaving it untouched. That is a decision about someone's real working setup.
 
 ---
@@ -94,46 +94,46 @@ Copy these into `NEEDS-JOSEPH.md` unresolved.
 
 | # | id | name | provenance | sensitivity | template | open question? |
 |---|---|---|---|---|---|---|
-| 1 | `soft.source-project` | Application source project | `design` | `none` | `project` → `artifact type` | yes |
-| 2 | `soft.library-package` | Library or package intended for distribution | `inference` | `none` | `project` → `artifact type` | — |
-| 3 | `soft.infrastructure-as-code` | Infrastructure as code | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 4 | `soft.configuration-and-secrets` | Configuration and secrets management | `inference` | `potentially_sensitive` | `project` → `artifact type` | yes |
-| 5 | `soft.ci-cd-definition` | Continuous integration and delivery definitions | `inference` | `none` | `project` → `artifact type` | — |
-| 6 | `soft.container-deployment` | Container and deployment artifacts | `inference` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 7 | `soft.database-schema-migration` | Database schemas and migrations | `inference` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 8 | `soft.api-specification` | API specifications and interface contracts | `proposal` | `none` | `project` → `artifact type` | — |
-| 9 | `soft.sdk-integration` | SDK and third-party integration work | `proposal` | `none` | `project` → `artifact type` | yes |
-| 10 | `soft.data-pipeline` | Data pipelines and scheduled jobs | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 11 | `soft.notebook-analysis` | Computational notebooks and exploratory analysis | `design` | `potentially_sensitive` | `project` → `artifact type` | — |
+| 1 | `soft.source-project` | Application source project | `design` | `none` | `project` → `artifact_type` | yes |
+| 2 | `soft.library-package` | Library or package intended for distribution | `inference` | `none` | `project` → `artifact_type` | — |
+| 3 | `soft.infrastructure-as-code` | Infrastructure as code | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 4 | `soft.configuration-and-secrets` | Configuration and secrets management | `inference` | `potentially_sensitive` | `project` → `artifact_type` | yes |
+| 5 | `soft.ci-cd-definition` | Continuous integration and delivery definitions | `inference` | `none` | `project` → `artifact_type` | — |
+| 6 | `soft.container-deployment` | Container and deployment artifacts | `inference` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 7 | `soft.database-schema-migration` | Database schemas and migrations | `inference` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 8 | `soft.api-specification` | API specifications and interface contracts | `proposal` | `none` | `project` → `artifact_type` | — |
+| 9 | `soft.sdk-integration` | SDK and third-party integration work | `proposal` | `none` | `project` → `artifact_type` | yes |
+| 10 | `soft.data-pipeline` | Data pipelines and scheduled jobs | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 11 | `soft.notebook-analysis` | Computational notebooks and exploratory analysis | `design` | `potentially_sensitive` | `project` → `artifact_type` | — |
 | 12 | `soft.ml-experiment` | Machine-learning experiments and runs | `proposal` | `potentially_sensitive` | `project` → `experiment` | yes |
-| 13 | `soft.dataset-artifact` | Datasets held as files | `inference` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 14 | `soft.model-artifact` | Trained model files and checkpoints | `proposal` | `none` | `project` → `artifact type` | yes |
-| 15 | `soft.prompt-eval-asset` | Prompt and evaluation assets | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 16 | `soft.design-doc-rfc` | Design documents and RFCs | `proposal` | `none` | `project` → `artifact type` | yes |
-| 17 | `soft.architecture-decision-record` | Architecture decision records | `proposal` | `none` | `project` → `artifact type` | — |
-| 18 | `soft.technical-specification` | Technical specifications | `proposal` | `none` | `project` → `artifact type` | — |
-| 19 | `soft.issue-ticket-export` | Issue and ticket exports | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 20 | `soft.code-review-artifact` | Code review artifacts | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 21 | `soft.release-notes-changelog` | Release notes and changelogs | `inference` | `none` | `project` → `artifact type` | — |
-| 22 | `soft.incident-postmortem` | Incident and postmortem records | `proposal` | `potentially_sensitive` | `project` → `artifact type` | yes |
-| 23 | `soft.runbook-operational-doc` | Runbooks and operational documentation | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 24 | `soft.monitoring-log-export` | Monitoring and log exports | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 25 | `soft.performance-load-test` | Performance and load testing | `proposal` | `none` | `project` → `artifact type` | — |
-| 26 | `soft.security-finding-report` | Security findings and penetration test reports | `proposal` | `potentially_sensitive` | `project` → `artifact type` | yes |
-| 27 | `soft.vulnerability-disclosure` | Vulnerability disclosures and advisories | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 28 | `soft.tech-compliance-evidence` | Compliance evidence for technical controls | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 29 | `soft.licence-oss-compliance` | Licences and open-source compliance | `inference` | `none` | `project` → `artifact type` | — |
-| 30 | `soft.dev-environment-setup` | Developer environment setup | `inference` | `none` | `project` → `artifact type` | — |
-| 31 | `soft.personal-dotfiles` | Personal dotfiles and shell configuration | `proposal` | `potentially_sensitive` | `project` → `artifact type` | yes |
-| 32 | `soft.scratch-prototype` | Scratch and prototype work | `proposal` | `none` | `project` → `artifact type` | — |
-| 33 | `soft.game-development-asset` | Game development projects and assets | `proposal` | `none` | `project` → `artifact type` | yes |
-| 34 | `soft.embedded-firmware` | Embedded and firmware projects | `proposal` | `none` | `project` → `artifact type` | — |
-| 35 | `soft.hardware-design-file` | Hardware design files | `inference` | `none` | `project` → `artifact type` | — |
-| 36 | `soft.network-diagram` | Network and system diagrams | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 37 | `soft.it-asset-inventory` | IT asset and inventory records | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 38 | `soft.helpdesk-ticket` | Helpdesk and support tickets | `proposal` | `potentially_sensitive` | `project` → `artifact type` | — |
-| 39 | `soft.user-documentation` | User-facing documentation | `inference` | `none` | `project` → `artifact type` | — |
-| 40 | `soft.training-material` | Technical training and teaching material | `proposal` | `none` | `project` → `artifact type` | — |
+| 13 | `soft.dataset-artifact` | Datasets held as files | `inference` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 14 | `soft.model-artifact` | Trained model files and checkpoints | `proposal` | `none` | `project` → `artifact_type` | yes |
+| 15 | `soft.prompt-eval-asset` | Prompt and evaluation assets | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 16 | `soft.design-doc-rfc` | Design documents and RFCs | `proposal` | `none` | `project` → `artifact_type` | yes |
+| 17 | `soft.architecture-decision-record` | Architecture decision records | `proposal` | `none` | `project` → `artifact_type` | — |
+| 18 | `soft.technical-specification` | Technical specifications | `proposal` | `none` | `project` → `artifact_type` | — |
+| 19 | `soft.issue-ticket-export` | Issue and ticket exports | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 20 | `soft.code-review-artifact` | Code review artifacts | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 21 | `soft.release-notes-changelog` | Release notes and changelogs | `inference` | `none` | `project` → `artifact_type` | — |
+| 22 | `soft.incident-postmortem` | Incident and postmortem records | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | yes |
+| 23 | `soft.runbook-operational-doc` | Runbooks and operational documentation | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 24 | `soft.monitoring-log-export` | Monitoring and log exports | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 25 | `soft.performance-load-test` | Performance and load testing | `proposal` | `none` | `project` → `artifact_type` | — |
+| 26 | `soft.security-finding-report` | Security findings and penetration test reports | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | yes |
+| 27 | `soft.vulnerability-disclosure` | Vulnerability disclosures and advisories | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 28 | `soft.tech-compliance-evidence` | Compliance evidence for technical controls | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 29 | `soft.licence-oss-compliance` | Licences and open-source compliance | `inference` | `none` | `project` → `artifact_type` | — |
+| 30 | `soft.dev-environment-setup` | Developer environment setup | `inference` | `none` | `project` → `artifact_type` | — |
+| 31 | `soft.personal-dotfiles` | Personal dotfiles and shell configuration | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | yes |
+| 32 | `soft.scratch-prototype` | Scratch and prototype work | `proposal` | `none` | `project` → `artifact_type` | — |
+| 33 | `soft.game-development-asset` | Game development projects and assets | `proposal` | `none` | `project` → `artifact_type` | yes |
+| 34 | `soft.embedded-firmware` | Embedded and firmware projects | `proposal` | `none` | `project` → `artifact_type` | — |
+| 35 | `soft.hardware-design-file` | Hardware design files | `inference` | `none` | `project` → `artifact_type` | — |
+| 36 | `soft.network-diagram` | Network and system diagrams | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 37 | `soft.it-asset-inventory` | IT asset and inventory records | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 38 | `soft.helpdesk-ticket` | Helpdesk and support tickets | `proposal` | `potentially_sensitive` | `project` → `artifact_type` | — |
+| 39 | `soft.user-documentation` | User-facing documentation | `inference` | `none` | `project` → `artifact_type` | — |
+| 40 | `soft.training-material` | Technical training and teaching material | `proposal` | `none` | `project` → `artifact_type` | — |
 
 ---
 
@@ -153,8 +153,8 @@ A directory a person authored as one piece of running software, marked as a proj
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `repository` | string | AIFILESORTERULTIMATE | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `repository` is literal. Populated from the directory name that carries the version-control marker (catalogue 05 `p5r-git`, `p5r-hg`, `p5r-svn`), not from any string inside a source file. |
-| `programming language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
-| `artifact type` | string | application | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `programming_language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming_language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
+| `artifact_type` | string | application | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 | `component` | string | extractors | `possible` | NO design sentence names a `component` field. It is a PROPOSED authored schema addition; §3.12 "The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically." -- so it can only ever arrive as an authored or user-approved schema change, never at runtime. Ceiling `possible` and not higher for a reason specific to this slice: a component lives in a SUBDIRECTORY, and §1.1 "It should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod. This prevents the proposal engine from mistaking a dependency subdirectory for a meaningful personal destination." means that for a project marked by one of those four names the subdirectories are never scanned, so the field is unpopulated exactly where the domain is strongest. See `open_question`. |
 
 **Recognition**
@@ -169,7 +169,7 @@ A directory a person authored as one piece of running software, marked as a proj
 
 **Grouping reasons**: one project across its files; one project across its versions and forks; a project and the archive that contains a snapshot of it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > §5.5 "a parent dimension should provide the context required to understand the child" -- an artifact type such as a test suite is meaningless until the project is known. §5.5 "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders." so no year level. The order is a PROPOSAL, not a design statement: §5.4 lists Academic, Applications, Research, Career and Photos templates and gives no Code row, so the Code template's dimensions are unauthored. See the supercategory open question.
 
@@ -179,7 +179,7 @@ A directory a person authored as one piece of running software, marked as a proj
 |---|---|
 | **authored** (this domain's material) | • source files the person typed<br>• the README they wrote<br>• the manifest they hand-edited (dependency names and version constraints are a human choice)<br>• build scripts<br>• tests<br>• the changelog |
 | **generated / not authored** | • everything under §1.1's eleven literal directory names - §1.1 "The engine should ignore node_modules, .git, venv, build, dist, target, vendor, Pods, site-packages, Library, __pycache__, build artifacts, caches, auto-save folders, previews, and generated dependency trees."<br>• lock files, which catalogue 05 itself calls machine-generated and never hand-authored<br>• compiled output, minified bundles, generated API clients, generated migrations and snapshot fixtures that happen to sit OUTSIDE a directory §1.1 names<br>• vendored third-party source copied into the tree under a name §1.1 does not list |
-| **template guard** | Three layers, in order. (a) §1.1 "It should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod. This prevents the proposal engine from mistaking a dependency subdirectory for a meaningful personal destination." removes the dependency bulk before scanning, but ONLY for those four marker names - catalogue 05's `unc-pyproject-as-exclusion`, `unc-lockfiles-as-exclusion` and `unc-other-ecosystems-as-exclusion` deliberately refused to extend the list, so a pyproject-only Python project, a Gradle project or a Ruby project enters WHOLE. (b) For those, the guard is that this template's dimensions are `project` and `artifact type` only - both project-scale - so the branch count tracks the number of projects, not the number of files. A generated file inside an admitted tree lands under its project's branch as a member, which is correct, rather than creating a branch of its own, which would not be. (c) §5.9 "Before the user chooses a split, the system should show the resulting number of child branches, the number of files under each child, example members, unresolved files, and any evidence gaps." and §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." - the user sees what the split would cost before committing to it. |
+| **template guard** | Three layers, in order. (a) §1.1 "It should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod. This prevents the proposal engine from mistaking a dependency subdirectory for a meaningful personal destination." removes the dependency bulk before scanning, but ONLY for those four marker names - catalogue 05's `unc-pyproject-as-exclusion`, `unc-lockfiles-as-exclusion` and `unc-other-ecosystems-as-exclusion` deliberately refused to extend the list, so a pyproject-only Python project, a Gradle project or a Ruby project enters WHOLE. (b) For those, the guard is that this template's dimensions are `project` and `artifact_type` only - both project-scale - so the branch count tracks the number of projects, not the number of files. A generated file inside an admitted tree lands under its project's branch as a member, which is correct, rather than creating a branch of its own, which would not be. (c) §5.9 "Before the user chooses a split, the system should show the resulting number of child branches, the number of files under each child, example members, unresolved files, and any evidence gaps." and §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." - the user sees what the split would cost before committing to it. |
 
 **Collides with**
 
@@ -200,7 +200,7 @@ A directory a person authored as one piece of running software, marked as a proj
 Code authored to be consumed by other code, declaring itself publishable to a package registry.
 
 - **provenance**: `inference`
-- **design cite**: Extends §3.11 "Code files may use project, repository, programming language, and artifact type." -- a library is a value of the literal `artifact type` field, not a new domain's worth of fields. No design sentence distinguishes a library from an application; the split is proposed here because their templates differ (a library has a version series a user may want as a level, an application does not).
+- **design cite**: Extends §3.11 "Code files may use project, repository, programming language, and artifact type." -- a library is a value of the literal `artifact_type` field, not a new domain's worth of fields. No design sentence distinguishes a library from an application; the split is proposed here because their templates differ (a library has a version series a user may want as a level, an application does not).
 - **sensitivity**: `none` — No §2.9 sensitivity phrase applies.
 
 **Schema** — the fields this domain and only this domain legitimises.
@@ -209,10 +209,10 @@ Code authored to be consumed by other code, declaring itself publishable to a pa
 |---|---|---|---|---|
 | `project` | string | plasmole-sdk | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `repository` | string | AIFILESORTERULTIMATE | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `repository` is literal. Populated from the directory name that carries the version-control marker (catalogue 05 `p5r-git`, `p5r-hg`, `p5r-svn`), not from any string inside a source file. |
-| `programming language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
-| `artifact type` | string | library | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
-| `distribution name` | string | plasmole-sdk | `validated` | NO design sentence names this field. Proposed. Validated is claimable because the value is read from a named key in a manifest catalogue 05 already recognises - a labelled field in a structured file, which is §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." territory; it is kept at `validated` rather than `direct` because the RULE that the manifest is a manifest is what licenses it. |
-| `release version` | string | v2.1.0 | `possible` | NO design sentence names this field, and §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." is the reason its ceiling is `possible`: a version-shaped string is the exact class of token that rule refuses to trust alone. Metadata only - see the template note. |
+| `programming_language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming_language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
+| `artifact_type` | string | library | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `distribution_name` | string | plasmole-sdk | `validated` | NO design sentence names this field. Proposed. Validated is claimable because the value is read from a named key in a manifest catalogue 05 already recognises - a labelled field in a structured file, which is §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." territory; it is kept at `validated` rather than `direct` because the RULE that the manifest is a manifest is what licenses it. |
+| `release_version` | string | v2.1.0 | `possible` | NO design sentence names this field, and §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." is the reason its ceiling is `possible`: a version-shaped string is the exact class of token that rule refuses to trust alone. Metadata only - see the template note. |
 
 **Recognition**
 
@@ -226,9 +226,9 @@ Code authored to be consumed by other code, declaring itself publishable to a pa
 
 **Grouping reasons**: one library across its released versions; a library and the applications that vendor it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
-> Same order and same reasoning as `soft.source-project`. `release version` is deliberately NOT a dimension: a version level is the textbook case of §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." -- it produces a large number of tiny folders. It stays metadata, which §5.4 "It defines the dimensions that are meaningful for one type of material, their recommended order, which dimensions are optional, which ones are metadata only, and what safety or usability constraints apply." explicitly provides for. PROPOSED, not design.
+> Same order and same reasoning as `soft.source-project`. `release_version` is deliberately NOT a dimension: a version level is the textbook case of §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." -- it produces a large number of tiny folders. It stays metadata, which §5.4 "It defines the dimensions that are meaningful for one type of material, their recommended order, which dimensions are optional, which ones are metadata only, and what safety or usability constraints apply." explicitly provides for. PROPOSED, not design.
 
 **Authored vs. generated**
 
@@ -262,7 +262,7 @@ Declarative files that describe cloud or server infrastructure so it can be crea
 | `project` | string | prod-platform | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `environment` | string | staging | `possible` | NO design sentence names this field. Proposed. `possible` because an environment name is a bare ordinary word (`prod`, `staging`, `dev`) and §3.7 "It should use word-boundary matching rather than substring matching." is precisely the hazard: `dev` is a substring of a great many things. |
 | `provider` | string | AWS | `possible` | NO design sentence names this field. Proposed. A provider name is an ORGANISATION name, and §3.8 "It should avoid using authorship or creator identity as a destination dimension." - it is metadata here and never a folder level. |
-| `artifact type` | string | infrastructure module | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- reusing the literal Code field rather than minting a parallel one. |
+| `artifact_type` | string | infrastructure module | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- reusing the literal Code field rather than minting a parallel one. |
 
 **Recognition**
 
@@ -276,7 +276,7 @@ Declarative files that describe cloud or server infrastructure so it can be crea
 
 **Grouping reasons**: one platform across its environments; one migration of infrastructure across its files
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. `environment` is deliberately not a dimension: environment names are few and repeat across every project, so leading with them is the §5.7 "The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group." failure mode of using a shared label as a collector. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -310,9 +310,9 @@ Files whose job is to hold settings or credentials for software - recognised by 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `config scope` | string | application settings | `possible` | NO design sentence names this field. Proposed. `possible` and no higher: distinguishing application settings from tool settings from machine settings requires reading keys, and this entry's whole discipline is that it recognises shape and stops. |
+| `config_scope` | string | application settings | `possible` | NO design sentence names this field. Proposed. `possible` and no higher: distinguishing application settings from tool settings from machine settings requires reading keys, and this entry's whole discipline is that it recognises shape and stops. |
 | `format` | string | TOML | `direct` | §2.9 "Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals." names the formats literally. `direct` because the format is read from the file signature or extension route, which §2.9 "The engine should treat the file extension as a routing signal rather than an assumption about meaning" |
-| `holds credential material` | boolean | true | `possible` | NO design sentence names this field, and it is the only one in the catalogue that must NEVER record what it found. It records THAT credential-shaped material is present, never the value. §8.4 "Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local." Ceiling `possible` deliberately: a stronger state would license the product to act on a claim it can only make by reading the secret. See `open_question`. |
+| `holds_credential_material` | boolean | true | `possible` | NO design sentence names this field, and it is the only one in the catalogue that must NEVER record what it found. It records THAT credential-shaped material is present, never the value. §8.4 "Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local." Ceiling `possible` deliberately: a stronger state would license the product to act on a claim it can only make by reading the secret. See `open_question`. |
 
 **Recognition**
 
@@ -326,7 +326,7 @@ Files whose job is to hold settings or credentials for software - recognised by 
 
 **Grouping reasons**: one project's configuration across its environments; configuration that travels with a project rather than with a machine
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. Configuration is a leaf under its project, never a top-level area, because a configuration branch collects files that share a FORM rather than a purpose - §5.7 "The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group." §3.9 "Purpose must be a first-class facet."
 
@@ -365,8 +365,8 @@ Files that tell an automation service what to run when a repository changes.
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `repository` | string | AIFILESORTERULTIMATE | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `repository` is literal. Populated from the directory name that carries the version-control marker (catalogue 05 `p5r-git`, `p5r-hg`, `p5r-svn`), not from any string inside a source file. |
-| `automation service` | string | GitHub Actions | `validated` | NO design sentence names this field. Proposed. `validated` is claimable because the value follows deterministically from WHICH catalogue-05 marker matched - the marker names the service - which is a rule passing a contextual check, §3.13 "A validated fact was found by a deterministic rule and passed contextual checks" |
-| `artifact type` | string | pipeline definition | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `automation_service` | string | GitHub Actions | `validated` | NO design sentence names this field. Proposed. `validated` is claimable because the value follows deterministically from WHICH catalogue-05 marker matched - the marker names the service - which is a rule passing a contextual check, §3.13 "A validated fact was found by a deterministic rule and passed contextual checks" |
+| `artifact_type` | string | pipeline definition | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -380,7 +380,7 @@ Files that tell an automation service what to run when a repository changes.
 
 **Grouping reasons**: one project's pipelines across its services
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. CI definitions are leaves under their project. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -413,9 +413,9 @@ Files that describe how software is packaged into an image and placed onto a run
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `deployment target` | string | Kubernetes | `validated` | NO design sentence names this field. Proposed. `validated` because it follows from which catalogue-05 marker matched, §3.13 "A validated fact was found by a deterministic rule and passed contextual checks" |
-| `image name` | string | graphify-api | `possible` | NO design sentence names this field. Proposed. `possible`: an image name is a bare identifier token and §3.7 "It should use word-boundary matching rather than substring matching." |
-| `artifact type` | string | container definition | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `deployment_target` | string | Kubernetes | `validated` | NO design sentence names this field. Proposed. `validated` because it follows from which catalogue-05 marker matched, §3.13 "A validated fact was found by a deterministic rule and passed contextual checks" |
+| `image_name` | string | graphify-api | `possible` | NO design sentence names this field. Proposed. `possible`: an image name is a bare identifier token and §3.7 "It should use word-boundary matching rather than substring matching." |
+| `artifact_type` | string | container definition | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -429,7 +429,7 @@ Files that describe how software is packaged into an image and placed onto a run
 
 **Grouping reasons**: one service across its deployment artifacts; one stack across its component services
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -462,9 +462,9 @@ Files that define a database's structure and the ordered steps that changed it.
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `database system` | string | PostgreSQL | `possible` | NO design sentence names this field. Proposed. `possible`: dialect is inferred from syntax, which is semantic analysis of code text - the thing §2.4 "Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text." |
-| `schema object` | string | file_facts | `possible` | NO design sentence names this field. Proposed. `possible`: a table name is a bare identifier and §3.7 "It should use word-boundary matching rather than substring matching." |
-| `artifact type` | string | migration | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `database_system` | string | PostgreSQL | `possible` | NO design sentence names this field. Proposed. `possible`: dialect is inferred from syntax, which is semantic analysis of code text - the thing §2.4 "Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text." |
+| `schema_object` | string | file_facts | `possible` | NO design sentence names this field. Proposed. `possible`: a table name is a bare identifier and §3.7 "It should use word-boundary matching rather than substring matching." |
+| `artifact_type` | string | migration | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -478,7 +478,7 @@ Files that define a database's structure and the ordered steps that changed it.
 
 **Grouping reasons**: one migration series in order; one schema across its versions
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. Migrations are ordered but the order is INSIDE the branch, not a folder level: a level per migration is §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." 'a large number of tiny folders' exactly.
 
@@ -511,10 +511,10 @@ A machine-readable description of an interface that other software is expected t
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `interface name` | string | Placement API | `possible` | NO design sentence names this field. Proposed. `possible`. |
-| `specification format` | string | OpenAPI | `validated` | NO design sentence names this field. Proposed. `validated` is claimable because a specification declares its own format in a named top-level key, and a rule reading a declared key with the surrounding document present is §3.13 "A validated fact was found by a deterministic rule and passed contextual checks" |
-| `interface version` | string | v3 | `possible` | NO design sentence names this field. Proposed. §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
-| `artifact type` | string | interface specification | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `interface_name` | string | Placement API | `possible` | NO design sentence names this field. Proposed. `possible`. |
+| `specification_format` | string | OpenAPI | `validated` | NO design sentence names this field. Proposed. `validated` is claimable because a specification declares its own format in a named top-level key, and a rule reading a declared key with the surrounding document present is §3.13 "A validated fact was found by a deterministic rule and passed contextual checks" |
+| `interface_version` | string | v3 | `possible` | NO design sentence names this field. Proposed. §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
+| `artifact_type` | string | interface specification | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -528,9 +528,9 @@ A machine-readable description of an interface that other software is expected t
 
 **Grouping reasons**: one interface across its versions; a specification and the implementation that serves it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
-> PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child" `interface version` stays metadata for the same reason `release version` does in `soft.library-package`.
+> PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child" `interface_version` stays metadata for the same reason `release_version` does in `soft.library-package`.
 
 **Authored vs. generated**
 
@@ -538,7 +538,7 @@ A machine-readable description of an interface that other software is expected t
 |---|---|
 | **authored** (this domain's material) | • the interface a person designed<br>• the descriptions and examples they wrote |
 | **generated / not authored** | • generated client and server stubs, which are the largest generated file class in this domain<br>• specifications emitted from code annotations at build time<br>• generated documentation sites |
-| **template guard** | Standard supercategory guard, stated in full at `authored_vs_generated_policy` and not repeated per entry: §1.1 removes the named directories and the four marker-rooted subtrees before scanning; this template's dimensions are project-scale so branch count tracks projects and not files; §5.9 "Before the user chooses a split, the system should show the resulting number of child branches, the number of files under each child, example members, unresolved files, and any evidence gaps." and §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." show the cost of a split before the user commits. Generated clients are the specific hazard and they are usually LARGE: one specification can emit many stub files in many languages. They must not each carry a `programming language` fact that fragments the project - the language field is metadata here, never a dimension, which §5.4 "It defines the dimensions that are meaningful for one type of material, their recommended order, which dimensions are optional, which ones are metadata only, and what safety or usability constraints apply." provides for. |
+| **template guard** | Standard supercategory guard, stated in full at `authored_vs_generated_policy` and not repeated per entry: §1.1 removes the named directories and the four marker-rooted subtrees before scanning; this template's dimensions are project-scale so branch count tracks projects and not files; §5.9 "Before the user chooses a split, the system should show the resulting number of child branches, the number of files under each child, example members, unresolved files, and any evidence gaps." and §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." show the cost of a split before the user commits. Generated clients are the specific hazard and they are usually LARGE: one specification can emit many stub files in many languages. They must not each carry a `programming_language` fact that fragments the project - the language field is metadata here, never a dimension, which §5.4 "It defines the dimensions that are meaningful for one type of material, their recommended order, which dimensions are optional, which ones are metadata only, and what safety or usability constraints apply." provides for. |
 
 **Collides with**
 
@@ -562,9 +562,9 @@ Code and notes produced while wiring someone else's service into the user's own 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `integrated service` | string | Snowflake | `possible` | NO design sentence names this field, and the value is an ORGANISATION name, so two design rules bear on it: §3.8 "It should avoid using authorship or creator identity as a destination dimension." keeps it out of the dimension order, and §3.7 "It should use word-boundary matching rather than substring matching." keeps a vendor name from being found inside ordinary words. |
-| `integration direction` | string | consuming | `llm_supported` | NO design sentence names this field. Proposed, and it is the field that MAKES this domain: whether the user publishes or consumes the interface. Structure cannot settle it - the same manifest keys appear either way - so the ceiling is `llm_supported`, which per §3.6 "The validator checks that the proposed field exists in the relevant domain schema" still requires validation and per §3.6 "A model that cannot cite sufficient evidence must return unknown." |
-| `artifact type` | string | integration | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `integrated_service` | string | Snowflake | `possible` | NO design sentence names this field, and the value is an ORGANISATION name, so two design rules bear on it: §3.8 "It should avoid using authorship or creator identity as a destination dimension." keeps it out of the dimension order, and §3.7 "It should use word-boundary matching rather than substring matching." keeps a vendor name from being found inside ordinary words. |
+| `integration_direction` | string | consuming | `llm_supported` | NO design sentence names this field. Proposed, and it is the field that MAKES this domain: whether the user publishes or consumes the interface. Structure cannot settle it - the same manifest keys appear either way - so the ceiling is `llm_supported`, which per §3.6 "The validator checks that the proposed field exists in the relevant domain schema" still requires validation and per §3.6 "A model that cannot cite sufficient evidence must return unknown." |
+| `artifact_type` | string | integration | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -578,7 +578,7 @@ Code and notes produced while wiring someone else's service into the user's own 
 
 **Grouping reasons**: one integration across its code and notes
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED, and deliberately NOT `service -> project`: leading with the vendor is §5.7 "The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group." using an organisation merely as a collector, which the template validator refuses. §3.8 "It should avoid using authorship or creator identity as a destination dimension."
 
@@ -599,7 +599,7 @@ Code and notes produced while wiring someone else's service into the user's own 
 
 **Open question** — Joseph's, unresolved.
 
-> This is the weakest entry in the slice and is recorded as such. Its discriminating field, `integration direction`, has an `llm_supported` ceiling, which means the domain barely exists deterministically. Should it be a domain at all, or a VALUE of `artifact type` inside `soft.source-project`? Joseph's call.
+> This is the weakest entry in the slice and is recorded as such. Its discriminating field, `integration_direction`, has an `llm_supported` ceiling, which means the domain barely exists deterministically. Should it be a domain at all, or a VALUE of `artifact_type` inside `soft.source-project`? Joseph's call.
 
 ---
 
@@ -616,10 +616,10 @@ Code that moves and reshapes data on a schedule rather than serving a user reque
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | etl-nightly | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `programming language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
-| `pipeline name` | string | nightly-facts-load | `possible` | NO design sentence names this field. Proposed. `possible`: a pipeline name is a bare identifier token, §3.7 "It should use word-boundary matching rather than substring matching." |
-| `data source` | string | Snowflake | `possible` | NO design sentence names this field. Proposed. An organisation or system name, so §3.8 "It should avoid using authorship or creator identity as a destination dimension." keeps it out of the dimension order. |
-| `artifact type` | string | pipeline | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `programming_language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming_language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
+| `pipeline_name` | string | nightly-facts-load | `possible` | NO design sentence names this field. Proposed. `possible`: a pipeline name is a bare identifier token, §3.7 "It should use word-boundary matching rather than substring matching." |
+| `data_source` | string | Snowflake | `possible` | NO design sentence names this field. Proposed. An organisation or system name, so §3.8 "It should avoid using authorship or creator identity as a destination dimension." keeps it out of the dimension order. |
+| `artifact_type` | string | pipeline | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -633,7 +633,7 @@ Code that moves and reshapes data on a schedule rather than serving a user reque
 
 **Grouping reasons**: one pipeline across its tasks; one data platform across its pipelines
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -667,10 +667,10 @@ A notebook whose cells are the record of someone working a problem out, not a pr
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | PVA/RDP | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `programming language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
-| `analysis question` | string | does marker density predict retention | `llm_supported` | NO design sentence names this field. Proposed. A notebook's subject lives in its markdown cells as prose, which is exactly what §3.3 "have multiple plausible domains" sends to the model, and §3.6 "A model that cannot cite sufficient evidence must return unknown." |
-| `notebook state` | string | has stored outputs | `direct` | NO design sentence names this field, but the VALUE is read from the notebook's own top-level keys, which catalogue 05 already recognises, so §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." It exists to serve the authored-versus-generated split: stored outputs are machine-written, the cells are not. |
-| `artifact type` | string | notebook | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `programming_language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming_language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
+| `analysis_question` | string | does marker density predict retention | `llm_supported` | NO design sentence names this field. Proposed. A notebook's subject lives in its markdown cells as prose, which is exactly what §3.3 "have multiple plausible domains" sends to the model, and §3.6 "A model that cannot cite sufficient evidence must return unknown." |
+| `notebook_state` | string | has stored outputs | `direct` | NO design sentence names this field, but the VALUE is read from the notebook's own top-level keys, which catalogue 05 already recognises, so §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." It exists to serve the authored-versus-generated split: stored outputs are machine-written, the cells are not. |
+| `artifact_type` | string | notebook | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -684,7 +684,7 @@ A notebook whose cells are the record of someone working a problem out, not a pr
 
 **Grouping reasons**: one analysis across its notebook versions; a notebook and the dataset it reads; a notebook and the figures it produced
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders." -- so no year level even though notebooks carry strong dates. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -694,7 +694,7 @@ A notebook whose cells are the record of someone working a problem out, not a pr
 |---|---|
 | **authored** (this domain's material) | • the code cells a person wrote<br>• the markdown narrative they wrote around them<br>• the order they arranged the cells in |
 | **generated / not authored** | • stored cell outputs, including embedded images and printed tables<br>• execution counts and kernel state<br>• checkpoint copies written automatically beside the notebook - and note that auto-save folders are named in §1.1 "The engine should ignore node_modules, .git, venv, build, dist, target, vendor, Pods, site-packages, Library, __pycache__, build artifacts, caches, auto-save folders, previews, and generated dependency trees." |
-| **template guard** | Standard supercategory guard, stated in full at `authored_vs_generated_policy` and not repeated per entry: §1.1 removes the named directories and the four marker-rooted subtrees before scanning; this template's dimensions are project-scale so branch count tracks projects and not files; §5.9 "Before the user chooses a split, the system should show the resulting number of child branches, the number of files under each child, example members, unresolved files, and any evidence gaps." and §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." show the cost of a split before the user commits. Notebooks are the one place in this slice where authored and generated content sit INSIDE the same file rather than in different files. The `notebook state` field exists so that split is recorded rather than assumed, and so an output-heavy notebook is not mistaken for a richly authored one on size alone. |
+| **template guard** | Standard supercategory guard, stated in full at `authored_vs_generated_policy` and not repeated per entry: §1.1 removes the named directories and the four marker-rooted subtrees before scanning; this template's dimensions are project-scale so branch count tracks projects and not files; §5.9 "Before the user chooses a split, the system should show the resulting number of child branches, the number of files under each child, example members, unresolved files, and any evidence gaps." and §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." show the cost of a split before the user commits. Notebooks are the one place in this slice where authored and generated content sit INSIDE the same file rather than in different files. The `notebook_state` field exists so that split is recorded rather than assumed, and so an output-heavy notebook is not mistaken for a richly authored one on size alone. |
 
 **Collides with**
 
@@ -722,7 +722,7 @@ The record of training a model - what was tried, on what data, and what came out
 | `dataset` | string | corpus-v3 | `possible` | NO design sentence names this field. Proposed. Note the deliberate reuse of the WORD across this entry and `soft.dataset-artifact`: the same value names a thing in one domain and a reference in the other, which is §3.8 "The system must separate roles that happen to contain the same entity type." |
 | `model` | string | gbm-depth-six | `possible` | NO design sentence names this field. Proposed. |
 | `run` | string | a run identifier | `possible` | NO design sentence names this field. Proposed, and it is the field that must NEVER become a folder level: a run per training attempt is §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders." 'a large number of tiny folders' by construction. |
-| `artifact type` | string | experiment | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `artifact_type` | string | experiment | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -738,7 +738,7 @@ The record of training a model - what was tried, on what data, and what came out
 
 **Template**: `project` → `experiment` — time first: `false`
 
-> PROPOSED, and the one entry in the slice whose second dimension is not `artifact type`, because an experiment IS the organising unit here. `run` is metadata only - §5.4 "It defines the dimensions that are meaningful for one type of material, their recommended order, which dimensions are optional, which ones are metadata only, and what safety or usability constraints apply." provides for metadata-only dimensions and §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders."
+> PROPOSED, and the one entry in the slice whose second dimension is not `artifact_type`, because an experiment IS the organising unit here. `run` is metadata only - §5.4 "It defines the dimensions that are meaningful for one type of material, their recommended order, which dimensions are optional, which ones are metadata only, and what safety or usability constraints apply." provides for metadata-only dimensions and §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders."
 
 **Authored vs. generated**
 
@@ -775,8 +775,8 @@ A file whose content is rows of data the user keeps as data, rather than as a do
 |---|---|---|---|---|
 | `dataset` | string | corpus-v3 | `possible` | NO design sentence names this field. Proposed. `possible`. |
 | `format` | string | CSV | `direct` | §2.9 "Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals." names CSV literally; the value is read from the routing decision, §2.9 "The engine should treat the file extension as a routing signal rather than an assumption about meaning" |
-| `column labels` | string list | file_id, extractor, zone | `direct` | NO design sentence names this field for a DATASET, but the design names the equivalent for spreadsheets - 'sheet names, visible cell text' in §2.4 - and a header row is a labelled field, so §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." This is the field that makes the domain useful: column labels are what a person can actually search a forgotten dataset by. |
-| `artifact type` | string | dataset | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `column_labels` | string list | file_id, extractor, zone | `direct` | NO design sentence names this field for a DATASET, but the design names the equivalent for spreadsheets - 'sheet names, visible cell text' in §2.4 - and a header row is a labelled field, so §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." This is the field that makes the domain useful: column labels are what a person can actually search a forgotten dataset by. |
+| `artifact_type` | string | dataset | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -790,7 +790,7 @@ A file whose content is rows of data the user keeps as data, rather than as a do
 
 **Grouping reasons**: one dataset across its versions; a dataset and the code that reads it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. A dataset is a leaf under the project that uses it; a top-level data branch collects files that share a FORM, which §5.7 "The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group."
 
@@ -826,7 +826,7 @@ The binary output of training - a file that is the model rather than the code th
 | `model` | string | gbm-depth-six | `possible` | NO design sentence names this field. Proposed. |
 | `experiment` | string | retention-baseline | `possible` | NO design sentence names this field. Proposed; shared vocabulary with `soft.ml-experiment` on purpose. |
 | `format` | string | safetensors | `direct` | Read from the file signature, which §2.9 "The engine should treat the file extension as a routing signal rather than an assumption about meaning" and §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
-| `artifact type` | string | model artifact | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `artifact_type` | string | model artifact | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -840,7 +840,7 @@ The binary output of training - a file that is the model rather than the code th
 
 **Grouping reasons**: one model across its checkpoints; a model and the experiment that produced it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -877,10 +877,10 @@ The prompts, fixtures and scored outputs that make a language-model feature test
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `prompt name` | string | grouping-dossier | `possible` | NO design sentence names this field. Proposed. |
-| `eval set` | string | ambiguous-notebooks | `possible` | NO design sentence names this field. Proposed. |
-| `model identifier` | string | a model name string | `direct` | The design names this exact value in §3.4's cache key and in §8.4's audit record. Here it is read from a labelled key in an eval configuration, so §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." -- but it is the design's own vocabulary being reused, not a new coinage. |
-| `artifact type` | string | prompt asset | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `prompt_name` | string | grouping-dossier | `possible` | NO design sentence names this field. Proposed. |
+| `eval_set` | string | ambiguous-notebooks | `possible` | NO design sentence names this field. Proposed. |
+| `model_identifier` | string | a model name string | `direct` | The design names this exact value in §3.4's cache key and in §8.4's audit record. Here it is read from a labelled key in an eval configuration, so §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." -- but it is the design's own vocabulary being reused, not a new coinage. |
+| `artifact_type` | string | prompt asset | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -890,11 +890,11 @@ The prompts, fixtures and scored outputs that make a language-model feature test
 | **needs LLM** | • whether a markdown file is a prompt, documentation, or a draft of something else - a prompt is prose and looks like prose<br><br>• whether scored outputs are an evaluation or ordinary logs |
 | **never alone** | • a `.md` or `.txt` file containing instruction-shaped language<br><br>• the word `prompt` in a filename<br><br>• [universal] a bare file extension - see `never_alone_universal` at the top of this file<br><br>• [universal] a bare camelCase or snake_case identifier token<br><br>• [universal] a bare version-shaped or number-shaped string<br><br>• [universal] a lock file on its own |
 
-**Work types**: `prompt template`, `eval set`, `scored output`, `rubric`, `golden fixture`, `eval report`
+**Work types**: `prompt template`, `eval_set`, `scored output`, `rubric`, `golden fixture`, `eval report`
 
 **Grouping reasons**: one prompt across its versions; a prompt and the eval set that scores it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -928,9 +928,9 @@ A prose document written to propose a change and get agreement on it before the 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `proposal title` | string | Deterministic validation of LLM facts | `direct` | The value is the document's own title, and §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." The FIELD is a proposal; the reliability of the value is not. |
-| `decision state` | string | accepted | `possible` | NO design sentence names this field or any state vocabulary for it. Proposed, and marked `possible` because a state word in a document header is an unlabelled convention, not a labelled form field. See `open_question`. |
-| `artifact type` | string | design document | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `proposal_title` | string | Deterministic validation of LLM facts | `direct` | The value is the document's own title, and §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." The FIELD is a proposal; the reliability of the value is not. |
+| `decision_state` | string | accepted | `possible` | NO design sentence names this field or any state vocabulary for it. Proposed, and marked `possible` because a state word in a document header is an unlabelled convention, not a labelled form field. See `open_question`. |
+| `artifact_type` | string | design document | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -944,7 +944,7 @@ A prose document written to propose a change and get agreement on it before the 
 
 **Grouping reasons**: one proposal across its drafts; a proposal and the review comments on it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child" §5.5 "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders."
 
@@ -965,7 +965,7 @@ A prose document written to propose a change and get agreement on it before the 
 
 **Open question** — Joseph's, unresolved.
 
-> This entry and `soft.technical-specification` may be one domain, not two. They share every field and differ only in the document's intent, which is prose. Joseph's call. A second, narrower question rides on it: `decision state` implies a state VOCABULARY (proposed, accepted, superseded) that no design sentence supplies, and §3.12 "The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically." -- so the vocabulary is an authored schema decision, not a runtime one.
+> This entry and `soft.technical-specification` may be one domain, not two. They share every field and differ only in the document's intent, which is prose. Joseph's call. A second, narrower question rides on it: `decision_state` implies a state VOCABULARY (proposed, accepted, superseded) that no design sentence supplies, and §3.12 "The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically." -- so the vocabulary is an authored schema decision, not a runtime one.
 
 ---
 
@@ -982,10 +982,10 @@ A short numbered document recording one decision, its context, and its consequen
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `decision title` | string | Store facts separately from paths | `direct` | The document's own title; §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
-| `decision state` | string | superseded | `possible` | Same field and same caveat as `soft.design-doc-rfc`. NO design vocabulary exists for it. |
+| `decision_title` | string | Store facts separately from paths | `direct` | The document's own title; §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
+| `decision_state` | string | superseded | `possible` | Same field and same caveat as `soft.design-doc-rfc`. NO design vocabulary exists for it. |
 | `supersedes` | string | a prior record's title | `possible` | NO design sentence names this field HERE - but note the design uses the word for facts: §8.2's supersede-rather-than-overwrite rule, which P6 carries as `supersedes` / `superseded_by`. Reusing the product's own word for a document relationship is deliberate; it is still a proposal. |
-| `artifact type` | string | decision record | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `artifact_type` | string | decision record | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -999,7 +999,7 @@ A short numbered document recording one decision, its context, and its consequen
 
 **Grouping reasons**: one decision series in order; a decision and the record that superseded it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1032,9 +1032,9 @@ A document that states precisely what a component does, for someone who has to b
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `specified component` | string | the evidence extractor | `possible` | NO design sentence names this field. Proposed. `possible`: a component name is a bare identifier, §3.7 "It should use word-boundary matching rather than substring matching." |
-| `specification title` | string | Evidence shape | `direct` | The document's own title; §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
-| `artifact type` | string | specification | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `specified_component` | string | the evidence extractor | `possible` | NO design sentence names this field. Proposed. `possible`: a component name is a bare identifier, §3.7 "It should use word-boundary matching rather than substring matching." |
+| `specification_title` | string | Evidence shape | `direct` | The document's own title; §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
+| `artifact_type` | string | specification | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1048,7 +1048,7 @@ A document that states precisely what a component does, for someone who has to b
 
 **Grouping reasons**: one component across its specification versions; a specification and the implementation it governs
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1083,8 +1083,8 @@ A file dumped out of an issue tracker - many tickets in one file, or one ticket 
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `tracker` | string | GitHub Issues | `possible` | NO design sentence names this field. Proposed. An organisation or product name, so §3.8 "It should avoid using authorship or creator identity as a destination dimension." keeps it out of the dimension order. |
-| `ticket identifier` | string | an issue key | `validated` | NO design sentence names this field. Proposed. `validated` is claimable because a tracker key has a distinctive labelled shape AND appears inside a document whose structure is a ticket export - pattern plus corroborating context, §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context". Bare, it is a version string, which §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
-| `artifact type` | string | ticket export | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `ticket_identifier` | string | an issue key | `validated` | NO design sentence names this field. Proposed. `validated` is claimable because a tracker key has a distinctive labelled shape AND appears inside a document whose structure is a ticket export - pattern plus corroborating context, §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context". Bare, it is a version string, which §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
+| `artifact_type` | string | ticket export | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1098,7 +1098,7 @@ A file dumped out of an issue tracker - many tickets in one file, or one ticket 
 
 **Grouping reasons**: one project's tickets; one export across its parts
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1132,9 +1132,9 @@ The record of one change being reviewed - the diff, the comments on it, and the 
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `repository` | string | AIFILESORTERULTIMATE | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `repository` is literal. Populated from the directory name that carries the version-control marker (catalogue 05 `p5r-git`, `p5r-hg`, `p5r-svn`), not from any string inside a source file. |
-| `change identifier` | string | a pull-request number or a commit reference | `validated` | NO design sentence names this field. Proposed. `validated` only with its label present (`PR`, `commit`) inside a review-shaped document; bare it is a number and §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
-| `review outcome` | string | approved | `llm_supported` | NO design sentence names this field or any outcome vocabulary. Proposed. An outcome stated in prose needs interpretation, so §3.6 "A model that cannot cite sufficient evidence must return unknown." |
-| `artifact type` | string | review record | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `change_identifier` | string | a pull-request number or a commit reference | `validated` | NO design sentence names this field. Proposed. `validated` only with its label present (`PR`, `commit`) inside a review-shaped document; bare it is a number and §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
+| `review_outcome` | string | approved | `llm_supported` | NO design sentence names this field or any outcome vocabulary. Proposed. An outcome stated in prose needs interpretation, so §3.6 "A model that cannot cite sufficient evidence must return unknown." |
+| `artifact_type` | string | review record | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1148,7 +1148,7 @@ The record of one change being reviewed - the diff, the comments on it, and the 
 
 **Grouping reasons**: one change across its review artifacts; one project's reviews
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1181,9 +1181,9 @@ The running record of what changed in a piece of software between one release an
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `release version` | string | v2.1.0 | `possible` | NO design sentence names this field. Proposed. §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." -- and a changelog is the densest concentration of version-shaped strings in any corpus, so this ceiling is doing real work. |
-| `release date` | date | a dated heading | `validated` | NO design sentence names this field, but the design DOES govern how it may be found: §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." A dated changelog heading is an explicit labelled position, so a narrow rule can validate it; a date anywhere else in the file cannot. |
-| `artifact type` | string | changelog | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `release_version` | string | v2.1.0 | `possible` | NO design sentence names this field. Proposed. §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." -- and a changelog is the densest concentration of version-shaped strings in any corpus, so this ceiling is doing real work. |
+| `release_date` | date | a dated heading | `validated` | NO design sentence names this field, but the design DOES govern how it may be found: §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." A dated changelog heading is an explicit labelled position, so a narrow rule can validate it; a date anywhere else in the file cannot. |
+| `artifact_type` | string | changelog | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1197,9 +1197,9 @@ The running record of what changed in a piece of software between one release an
 
 **Grouping reasons**: one project's releases in order
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
-> PROPOSED, and `release version` is barred from the dimension order for the same reason as in `soft.library-package`: §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders."
+> PROPOSED, and `release_version` is barred from the dimension order for the same reason as in `soft.library-package`: §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders."
 
 **Authored vs. generated**
 
@@ -1231,8 +1231,8 @@ The record of something breaking in production and what was learned from it.
 |---|---|---|---|---|
 | `incident` | string | an incident identifier or title | `validated` | NO design sentence names this field. Proposed. `validated` only with an incident label present inside a postmortem-shaped document - pattern plus corroborating context, §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" |
 | `service` | string | the placement service | `possible` | NO design sentence names this field. Proposed. `possible`: a service name is a bare identifier, §3.7 "It should use word-boundary matching rather than substring matching." |
-| `occurred at` | datetime | a labelled timestamp in the timeline section | `validated` | NO design sentence names this field, but the design governs how a date may be found: §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." A postmortem timeline is a labelled position, so a narrow rule can validate a timestamp there and nowhere else in the document. |
-| `artifact type` | string | postmortem | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `occurred_at` | datetime | a labelled timestamp in the timeline section | `validated` | NO design sentence names this field, but the design governs how a date may be found: §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." A postmortem timeline is a labelled position, so a narrow rule can validate a timestamp there and nowhere else in the document. |
+| `artifact_type` | string | postmortem | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1246,7 +1246,7 @@ The record of something breaking in production and what was learned from it.
 
 **Grouping reasons**: one incident across its documents; a family of incidents on one service
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders." -- so no year level, even though incidents are strongly dated. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1286,7 +1286,7 @@ Instructions for operating a running system - what to do when, and in what order
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `service` | string | the placement service | `possible` | NO design sentence names this field. Proposed. `possible`, §3.7 "It should use word-boundary matching rather than substring matching." |
 | `procedure` | string | restore from backup | `possible` | NO design sentence names this field. Proposed. |
-| `artifact type` | string | runbook | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `artifact_type` | string | runbook | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1300,7 +1300,7 @@ Instructions for operating a running system - what to do when, and in what order
 
 **Grouping reasons**: one service's operational documents
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1334,8 +1334,8 @@ A file of machine-emitted operational records, saved out of a monitoring system.
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `service` | string | the placement service | `possible` | NO design sentence names this field. Proposed. |
-| `capture window` | string | a labelled from-to range in the export header | `validated` | NO design sentence names this field. Proposed. `validated` ONLY from a labelled export header; §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." forbids reading a range out of the log lines themselves. |
-| `artifact type` | string | log export | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `capture_window` | string | a labelled from-to range in the export header | `validated` | NO design sentence names this field. Proposed. `validated` ONLY from a labelled export header; §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." forbids reading a range out of the log lines themselves. |
+| `artifact_type` | string | log export | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1349,7 +1349,7 @@ A file of machine-emitted operational records, saved out of a monitoring system.
 
 **Grouping reasons**: one export across its parts; logs attached to one incident
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED, and this entry is a strong candidate for a RESIDUAL destination rather than a domain branch: §7.3 "the library must support user-defined residual areas" and §7.3's Unsupported or Encrypted template is the nearest existing home for machine files with no durable purpose. Not decided here - §7 is P11's and the residual library is already authored.
 
@@ -1383,8 +1383,8 @@ The scripts that generate load and the measurements that came back.
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `scenario` | string | sustained write load | `possible` | NO design sentence names this field. Proposed. |
-| `system under test` | string | the placement service | `possible` | NO design sentence names this field. Proposed. §3.8 "The system must separate roles that happen to contain the same entity type." -- the system tested is a different role from the system that ran the test, and conflating them is the error that rule exists to prevent. |
-| `artifact type` | string | performance test | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `system_under_test` | string | the placement service | `possible` | NO design sentence names this field. Proposed. §3.8 "The system must separate roles that happen to contain the same entity type." -- the system tested is a different role from the system that ran the test, and conflating them is the error that rule exists to prevent. |
+| `artifact_type` | string | performance test | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1398,7 +1398,7 @@ The scripts that generate load and the measurements that came back.
 
 **Grouping reasons**: one scenario across its runs; one system across its benchmarks
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1431,9 +1431,9 @@ A report describing weaknesses found in the user's own systems.
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `engagement` | string | an engagement or assessment name | `possible` | NO design sentence names this field. Proposed. |
-| `assessed system` | string | the placement service | `possible` | NO design sentence names this field. Proposed. §3.8 "The system must separate roles that happen to contain the same entity type." |
-| `assessing party` | string | an organisation name | `possible` | NO design sentence names this field. Proposed, and it is metadata ONLY: §3.8 "It should avoid using authorship or creator identity as a destination dimension." -- filing security reports by the firm that wrote them is precisely the collector anti-pattern §5.7 "The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group." refuses. |
-| `artifact type` | string | security report | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `assessed_system` | string | the placement service | `possible` | NO design sentence names this field. Proposed. §3.8 "The system must separate roles that happen to contain the same entity type." |
+| `assessing_party` | string | an organisation name | `possible` | NO design sentence names this field. Proposed, and it is metadata ONLY: §3.8 "It should avoid using authorship or creator identity as a destination dimension." -- filing security reports by the firm that wrote them is precisely the collector anti-pattern §5.7 "The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group." refuses. |
+| `artifact_type` | string | security report | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1447,7 +1447,7 @@ A report describing weaknesses found in the user's own systems.
 
 **Grouping reasons**: one engagement across its documents; findings on one system
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. Deliberately NOT `assessing party -> ...`: §3.8 "It should avoid using authorship or creator identity as a destination dimension."
 
@@ -1484,10 +1484,10 @@ A published notice that a named piece of software has a named weakness.
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `advisory identifier` | string | a labelled advisory reference | `validated` | NO design sentence names this field. Proposed. `validated` requires the label present with the reference - the same discipline catalogue 06 applies to `cid-pmid`, where 'a bare number is never an identifier'. Cited from catalogue 06, not re-derived. |
-| `affected package` | string | a package name | `possible` | NO design sentence names this field. Proposed. `possible`: a package name is a bare identifier, §3.7 "It should use word-boundary matching rather than substring matching." |
-| `affected version range` | string | a labelled range | `possible` | NO design sentence names this field. Proposed. §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
-| `artifact type` | string | advisory | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `advisory_identifier` | string | a labelled advisory reference | `validated` | NO design sentence names this field. Proposed. `validated` requires the label present with the reference - the same discipline catalogue 06 applies to `cid-pmid`, where 'a bare number is never an identifier'. Cited from catalogue 06, not re-derived. |
+| `affected_package` | string | a package name | `possible` | NO design sentence names this field. Proposed. `possible`: a package name is a bare identifier, §3.7 "It should use word-boundary matching rather than substring matching." |
+| `affected_version_range` | string | a labelled range | `possible` | NO design sentence names this field. Proposed. §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
+| `artifact_type` | string | advisory | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1501,7 +1501,7 @@ A published notice that a named piece of software has a named weakness.
 
 **Grouping reasons**: one advisory across its correspondence; advisories affecting one project
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1534,9 +1534,9 @@ Documents and exports collected to show an auditor that a technical control is a
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `control` | string | a control reference | `possible` | NO design sentence names this field. Proposed. |
-| `audit period` | string | a labelled period in the report header | `validated` | NO design sentence names this field. Proposed. `validated` only from a labelled header; §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
+| `audit_period` | string | a labelled period in the report header | `validated` | NO design sentence names this field. Proposed. `validated` only from a labelled header; §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
 | `framework` | string | a named control framework | `possible` | NO design sentence names this field. Proposed. A framework name is an organisation-adjacent label; §3.8 "It should avoid using authorship or creator identity as a destination dimension." keeps it out of the dimension order. |
-| `artifact type` | string | compliance evidence | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `artifact_type` | string | compliance evidence | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1550,7 +1550,7 @@ Documents and exports collected to show an auditor that a technical control is a
 
 **Grouping reasons**: one audit period's evidence; evidence for one control across periods
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED, and a genuinely uncertain one: compliance evidence may belong under a legal or administrative branch rather than a software one. §3.15 "Finance, identity, medical, and legal material should be implemented first as safety domains" Not decided here - cross-slice, and §5.1 "a typical initial canvas might include Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material." lists both Code and Projects and Personal Records as candidate top-level areas.
 
@@ -1584,8 +1584,8 @@ The licence a project is released under and the record of what it depends on and
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `licence identifier` | string | a licence short name | `validated` | NO design sentence names this field. Proposed. `validated` because the value is read from a licence header inside a file catalogue 05 already recognises by name - marker plus content position, which is §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context". A licence name in ordinary prose is not. |
-| `artifact type` | string | licence | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `licence_identifier` | string | a licence short name | `validated` | NO design sentence names this field. Proposed. `validated` because the value is read from a licence header inside a file catalogue 05 already recognises by name - marker plus content position, which is §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context". A licence name in ordinary prose is not. |
+| `artifact_type` | string | licence | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1599,7 +1599,7 @@ The licence a project is released under and the record of what it depends on and
 
 **Grouping reasons**: one project's licence and its attributions
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1633,7 +1633,7 @@ The files and instructions that get a machine ready to work on a project.
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `toolchain` | string | a named toolchain or runtime | `possible` | NO design sentence names this field. Proposed. |
-| `artifact type` | string | environment setup | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `artifact_type` | string | environment setup | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1647,7 +1647,7 @@ The files and instructions that get a machine ready to work on a project.
 
 **Grouping reasons**: one project's environment files
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1681,8 +1681,8 @@ The configuration a person carries between machines because it is how THEY like 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `tool` | string | a named tool | `possible` | NO design sentence names this field. Proposed. |
-| `machine scope` | string | personal | `possible` | NO design sentence names this field. Proposed, and it is the field that separates this domain from `soft.configuration-and-secrets` - which makes it the whole entry and also its weakest point, since it is inferred from LOCATION rather than content. |
-| `artifact type` | string | dotfile | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `machine_scope` | string | personal | `possible` | NO design sentence names this field. Proposed, and it is the field that separates this domain from `soft.configuration-and-secrets` - which makes it the whole entry and also its weakest point, since it is inferred from LOCATION rather than content. |
+| `artifact_type` | string | dotfile | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1696,7 +1696,7 @@ The configuration a person carries between machines because it is how THEY like 
 
 **Grouping reasons**: one person's configuration across their tools
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED, and flagged: a dotfiles collection is very often ALREADY a curated folder the user maintains, and §5.10 "A carefully curated existing folder should be treated as a strong expression of user intent." together with §1.1 "The system should also know that existing folder structures should mainly be preserved. For example, if a folder called AIKonic Project has a lot of files such as JSON and other software material, those are probably not supposed to be touched." point the same way - the right default may be to leave it alone entirely rather than to propose a structure for it. See `open_question`.
 
@@ -1732,9 +1732,9 @@ Code someone wrote to find something out, with no intention of keeping it.
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `programming language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
-| `prototype subject` | string | what was being tried | `llm_supported` | NO design sentence names this field. Proposed, and it can only ever be `llm_supported`: scratch code by definition carries no structural evidence of its purpose, which is the case §3.3 "have multiple plausible domains" describes. §3.6 "A model that cannot cite sufficient evidence must return unknown." |
-| `artifact type` | string | prototype | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `programming_language` | string | Python | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming_language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
+| `prototype_subject` | string | what was being tried | `llm_supported` | NO design sentence names this field. Proposed, and it can only ever be `llm_supported`: scratch code by definition carries no structural evidence of its purpose, which is the case §3.3 "have multiple plausible domains" describes. §3.6 "A model that cannot cite sufficient evidence must return unknown." |
+| `artifact_type` | string | prototype | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1748,7 +1748,7 @@ Code someone wrote to find something out, with no intention of keeping it.
 
 **Grouping reasons**: files written in one bounded working session - and note the ceiling: §3.13 "A possible fact is a useful but insufficient clue, such as membership in a short download session or a low-confidence semantic match."
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED, and the recommendation is the shallow one. §5.9 "It should also support a scoped General or Other branch within a meaningful parent." -- scratch work belongs in a scoped General folder under a meaningful parent, not in a deep structure of its own, and §7.2 "The library prevents the LLM from creating arbitrary folders" is the general warning against inventing plausible-sounding homes for material that has none.
 
@@ -1783,8 +1783,8 @@ A game project, where the authored work is as much art, audio and level data as 
 |---|---|---|---|---|
 | `project` | string | orbit-runner | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
 | `engine` | string | a named engine | `validated` | NO design sentence names this field. Proposed. `validated` because a game engine writes a distinctive project file at the root, and matching it TOGETHER WITH the engine's own asset directory layout is pattern plus corroborating context, §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context". This catalogue names no engine file - that would be a marker list, and marker lists live in catalogue 05. |
-| `asset class` | string | level data | `possible` | NO design sentence names this field. Proposed. |
-| `artifact type` | string | game project | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `asset_class` | string | level data | `possible` | NO design sentence names this field. Proposed. |
+| `artifact_type` | string | game project | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1798,9 +1798,9 @@ A game project, where the authored work is as much art, audio and level data as 
 
 **Grouping reasons**: one game across its assets and code; one game across its builds
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
-> PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child" -- and note that `asset class` is a strong candidate for a THIRD level here, which most entries in this slice do not warrant. Not asserted: §5.7 "The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group."
+> PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child" -- and note that `asset_class` is a strong candidate for a THIRD level here, which most entries in this slice do not warrant. Not asserted: §5.7 "The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group."
 
 **Authored vs. generated**
 
@@ -1836,9 +1836,9 @@ Software written to run on a specific piece of hardware rather than on a general
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `programming language` | string | C | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
-| `target hardware` | string | a named board or microcontroller | `possible` | NO design sentence names this field. Proposed. `possible`: a part number is exactly the class of token §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." warns about - it looks like a version and is not. |
-| `artifact type` | string | firmware | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `programming_language` | string | C | `direct` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `programming_language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." Inferred from an extension it is `possible`, never `direct`. |
+| `target_hardware` | string | a named board or microcontroller | `possible` | NO design sentence names this field. Proposed. `possible`: a part number is exactly the class of token §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." warns about - it looks like a version and is not. |
+| `artifact_type` | string | firmware | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1852,7 +1852,7 @@ Software written to run on a specific piece of hardware rather than on a general
 
 **Grouping reasons**: one device across its firmware versions; firmware and the hardware design it runs on
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1885,10 +1885,10 @@ Schematics, board layouts and mechanical models - the drawings a physical thing 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `design name` | string | a board or part name | `possible` | NO design sentence names this field. Proposed. |
-| `design revision` | string | a labelled revision | `possible` | NO design sentence names this field. Proposed. §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
+| `design_name` | string | a board or part name | `possible` | NO design sentence names this field. Proposed. |
+| `design_revision` | string | a labelled revision | `possible` | NO design sentence names this field. Proposed. §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
 | `format` | string | a CAD format | `direct` | §2.9 "Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty." -- the design requires format to be yielded at minimum even where the content cannot be read, and §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
-| `artifact type` | string | hardware design | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `artifact_type` | string | hardware design | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1902,7 +1902,7 @@ Schematics, board layouts and mechanical models - the drawings a physical thing 
 
 **Grouping reasons**: one board across its revisions; a board and the firmware that runs on it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -1936,8 +1936,8 @@ A drawing of how systems connect, kept as the reference for how the estate is la
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `estate` | string | a network or environment name | `possible` | NO design sentence names this field. Proposed. |
-| `diagram format` | string | a diagram format | `direct` | Read from the file signature; §2.9 "The engine should treat the file extension as a routing signal rather than an assumption about meaning" and §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
-| `artifact type` | string | diagram | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `diagram_format` | string | a diagram format | `direct` | Read from the file signature; §2.9 "The engine should treat the file extension as a routing signal rather than an assumption about meaning" and §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
+| `artifact_type` | string | diagram | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -1951,7 +1951,7 @@ A drawing of how systems connect, kept as the reference for how the estate is la
 
 **Grouping reasons**: one estate across its diagrams; a diagram and the document that embeds it
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED, and shallow: diagrams are few and belong beside the documents they illustrate. §5.9 "It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders."
 
@@ -1984,10 +1984,10 @@ The list of what hardware and software exists, who has it, and what it is licens
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `asset class` | string | laptop | `possible` | NO design sentence names this field. Proposed. |
-| `inventory scope` | string | an organisation or site name | `possible` | NO design sentence names this field. Proposed. §3.8 "It should avoid using authorship or creator identity as a destination dimension." keeps an organisation name out of the dimension order. |
-| `as-of date` | date | a labelled date in the export header | `validated` | NO design sentence names this field. Proposed. `validated` only from a labelled header; §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
-| `artifact type` | string | inventory | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `asset_class` | string | laptop | `possible` | NO design sentence names this field. Proposed. |
+| `inventory_scope` | string | an organisation or site name | `possible` | NO design sentence names this field. Proposed. §3.8 "It should avoid using authorship or creator identity as a destination dimension." keeps an organisation name out of the dimension order. |
+| `as_of_date` | date | a labelled date in the export header | `validated` | NO design sentence names this field. Proposed. `validated` only from a labelled header; §3.10 "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values." |
+| `artifact_type` | string | inventory | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -2001,7 +2001,7 @@ The list of what hardware and software exists, who has it, and what it is licens
 
 **Grouping reasons**: one inventory across its exports; one site's assets
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED, and uncertain: an asset inventory may belong under an administrative or work branch rather than a software one. §5.1 "a typical initial canvas might include Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material." lists Personal Records alongside Code and Projects and this entry could sit under either.
 
@@ -2034,9 +2034,9 @@ The record of someone asking for help and someone answering.
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `support queue` | string | a queue or desk name | `possible` | NO design sentence names this field. Proposed. |
-| `ticket identifier` | string | a labelled ticket reference | `validated` | NO design sentence names this field. Proposed. `validated` requires the label with the reference, per catalogue 06's rule that 'a bare number is never an identifier'. |
-| `artifact type` | string | support ticket | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `support_queue` | string | a queue or desk name | `possible` | NO design sentence names this field. Proposed. |
+| `ticket_identifier` | string | a labelled ticket reference | `validated` | NO design sentence names this field. Proposed. `validated` requires the label with the reference, per catalogue 06's rule that 'a bare number is never an identifier'. |
+| `artifact_type` | string | support ticket | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -2050,7 +2050,7 @@ The record of someone asking for help and someone answering.
 
 **Grouping reasons**: one ticket across its messages; one queue's tickets
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED, and uncertain in the same way as `soft.it-asset-inventory`: support tickets may belong under a work or career branch rather than a software one.
 
@@ -2084,9 +2084,9 @@ Documentation written for the people who use the software, not the people who bu
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | graphify | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `project` is literal. Validated because the rule is the root signal: §3.5 "becomes a course fact only when the engine finds a course-code pattern together with academic context" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension. |
-| `documented product` | string | a product name | `possible` | NO design sentence names this field. Proposed. |
-| `document title` | string | the document's own title | `direct` | The document's own title, which §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." names as a direct source. |
-| `artifact type` | string | user documentation | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `documented_product` | string | a product name | `possible` | NO design sentence names this field. Proposed. |
+| `document_title` | string | the document's own title | `direct` | The document's own title, which §3.13 "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." names as a direct source. |
+| `artifact_type` | string | user documentation | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -2100,7 +2100,7 @@ Documentation written for the people who use the software, not the people who bu
 
 **Grouping reasons**: one product's documentation set; one document across its versions
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "a parent dimension should provide the context required to understand the child"
 
@@ -2133,9 +2133,9 @@ Material prepared to teach a technical subject to other people.
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `subject taught` | string | a technical subject | `llm_supported` | NO design sentence names this field. Proposed. A subject stated in prose needs interpretation; §3.6 "A model that cannot cite sufficient evidence must return unknown." |
+| `subject_taught` | string | a technical subject | `llm_supported` | NO design sentence names this field. Proposed. A subject stated in prose needs interpretation; §3.6 "A model that cannot cite sufficient evidence must return unknown." |
 | `audience` | string | new engineers | `llm_supported` | NO design sentence names this field. Proposed, and it is the field that separates teaching material from documentation. It is prose-only, which is why this entry is weak. |
-| `artifact type` | string | training material | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
+| `artifact_type` | string | training material | `validated` | §3.11 "Code files may use project, repository, programming language, and artifact type." -- `artifact_type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count. |
 
 **Recognition**
 
@@ -2149,7 +2149,7 @@ Material prepared to teach a technical subject to other people.
 
 **Grouping reasons**: one course across its sessions; one session across its materials
 
-**Template**: `project` → `artifact type` — time first: `false`
+**Template**: `project` → `artifact_type` — time first: `false`
 
 > PROPOSED. §5.5 "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders." -- so subject before any delivery date.
 

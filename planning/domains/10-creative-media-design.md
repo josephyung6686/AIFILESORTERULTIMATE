@@ -19,7 +19,7 @@ Contract: [`_CONTRACT.md`](_CONTRACT.md) · Source of truth: [`00-database-agent
 
 **2 — Every recognition rule keyed on metadata *presence* fails on precisely the professional's files.** §2.6: "the system must not mistake the absence of EXIF for proof that an image is a screenshot" and "Messaging platforms and downloaded web images often strip metadata from real photographs." A professional creative corpus is overwhelmingly exports: delivered JPEGs, Figma PNGs, re-encoded MP4s, platform round-trips, flattened PDFs. All of them are stripped, and several of them land on exactly the dimensions and formats a screenshot hypothesis looks for. The consequence is structural rather than incidental — a stripped-plus-PNG test would classify a working photographer's entire delivered output, a product designer's whole board export, and every social asset ever re-downloaded as screenshots. Worse, the test *inverts* inside single domains: a scanned drawing carries camera EXIF while an exported digital painting carries none; site photographs carry EXIF while supplier-sent swatches do not; install shots carry EXIF while gallery-supplied artwork images do not. Every entry below therefore carries the absence of metadata in `never_alone`, and recognition rests on **positive structure** instead — layer names, linked-asset manifests, sidecar pairs, shared stems, contiguous frame runs, timecode, perceptual-hash variant sets. §2.6's own instruction governs the residue: "conflicting signals should lead to abstention rather than an invented classification".
 
-**3 — Version families are the organising problem of this slice, and the design defines them only as a universal fact.** §3.1 makes "a member of a version family" a fact about a file; §3.11 lists it among "a small shared set of universal file facts, such as file type, creation date, language, duplicate family, version family, and sensitivity status"; §4.1 gives the rules engine "version stems" to work from. That is the whole of it. So this catalogue does **not** re-declare version family as a domain field. What each domain declares instead is its own **named iteration unit** — `round` in client work, `draft` and `revision colour` in writing, `cut` and `cut version` in post, `mix version` in music, `edition` and `state or proof` in printmaking, `revision` in drawing sets, `asset variant` in social. Two consequences are carried consistently: (a) **no entry lets a rule or a model decide which member is current.** `is current`, `is approved`, `is master` and `clearance state` are all capped at `user_confirmed`, because 'final' is a word rather than an ordinal, the highest version number is routinely an abandoned branch, and modification time is rewritten by a re-export of an *older* file. (b) **Cross-format exports are treated as derivatives, not siblings** — grouped with their source, kept out of the round history — which is a holding position and is raised as an open question on `studio.deliverable-handoff`.
+**3 — Version families are the organising problem of this slice, and the design defines them only as a universal fact.** §3.1 makes "a member of a version family" a fact about a file; §3.11 lists it among "a small shared set of universal file facts, such as file type, creation date, language, duplicate family, version family, and sensitivity status"; §4.1 gives the rules engine "version stems" to work from. That is the whole of it. So this catalogue does **not** re-declare version family as a domain field. What each domain declares instead is its own **named iteration unit** — `round` in client work, `draft` and `revision_colour` in writing, `cut` and `cut_version` in post, `mix_version` in music, `edition` and `state_or_proof` in printmaking, `revision` in drawing sets, `asset_variant` in social. Two consequences are carried consistently: (a) **no entry lets a rule or a model decide which member is current.** `is_current`, `is_approved`, `is_master` and `clearance_state` are all capped at `user_confirmed`, because 'final' is a word rather than an ordinal, the highest version number is routinely an abandoned branch, and modification time is rewritten by a re-export of an *older* file. (b) **Cross-format exports are treated as derivatives, not siblings** — grouped with their source, kept out of the round history — which is a holding position and is raised as an open question on `studio.deliverable-handoff`.
 
 **4 — This slice sits on both sides of §5.5's ordering boundary, and the split runs through single professions.** §5.5: "For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders. Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material." Three entries take the exception (`photo.raw-catalogue`, `film.shoot-day-media`, `perf.performing-artist`) and forty-three do not, and the interesting cases are where one person's work lands on both sides: a photographer's RAW archive is time-first while their commissioned shoots are client-first; a production is project-first while its shoot-day media is day-first. Two near-misses are called out explicitly because they *look* temporal and are not — a fashion season code (`AW26`) is a collection label, and a podcast season and episode are an ordered sequence, so §3.10's warning about date-shaped strings applies rather than §5.5's exception.
 
@@ -94,8 +94,8 @@ Creative work made for a paying client under a brief, where the client and the j
 | `engagement` | string | MSA 2026 — SOW 3 | `validated` | The contractual container a project sits in. It is the fact that distinguishes two projects for the same client that were sold separately, and it is read from a labeled agreement reference rather than inferred |
 | `deliverable` | string | Key visual | `llm_supported` | The named thing being handed over. It is the work-type analogue for this branch and the level at which a version family is actually anchored |
 | `round` | string | R2 | `validated` | The feedback iteration. A labeled round marker in a filename or a presentation title is a pattern plus a context check, so §3.13's "A validated fact was found by a deterministic rule and passed contextual checks" is reachable; a bare number is not |
-| `engagement status` | string | delivered | `llm_supported` | Live, delivered, archived or abandoned. A search and explanation field rather than a folder dimension — §3.11 allows "Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review." |
-| `embargo state` | string | unreleased | `user_confirmed` | Whether the work has been made public. Only a person knows; nothing in the file says it. It is carried as a fact so the sensitivity question can be asked, and no handling class is set here — that is P7's |
+| `engagement_status` | string | delivered | `llm_supported` | Live, delivered, archived or abandoned. A search and explanation field rather than a folder dimension — §3.11 allows "Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review." |
+| `embargo_state` | string | unreleased | `user_confirmed` | Whether the work has been made public. Only a person knows; nothing in the file says it. It is carried as a fact so the sensitivity question can be asked, and no handling class is set here — that is P7's |
 
 ### Recognition
 
@@ -168,12 +168,12 @@ The document that starts a piece of creative work and states what it must do, fo
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `client` | string | Acme Foods | `validated` | §3.8's client role, read here from a labeled 'Client' or 'Prepared for' field, which is §3.13's "A validated fact was found by a deterministic rule and passed contextual checks" |
-| `brief type` | string | creative brief | `validated` | Creative brief, design brief, commission agreement, art-direction note, request for proposal. A document-title match, which §3.13 makes "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." when it is the title itself |
-| `deliverable list` | list of strings | logo; stationery; brand guidelines | `llm_supported` | The brief's own enumeration of what is owed. It is the field that lets a later folder be checked against what was actually commissioned, and it needs prose interpretation because briefs enumerate in sentences as often as in bullets |
+| `brief_type` | string | creative brief | `validated` | Creative brief, design brief, commission agreement, art-direction note, request for proposal. A document-title match, which §3.13 makes "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." when it is the title itself |
+| `deliverable_list` | list of strings | logo; stationery; brand guidelines | `llm_supported` | The brief's own enumeration of what is owed. It is the field that lets a later folder be checked against what was actually commissioned, and it needs prose interpretation because briefs enumerate in sentences as often as in bullets |
 | `deadline` | date | 2026-04-30 | `direct` | §3.10 requires the explicit-regex path and forbids fuzzy parsing, because filenames and documents "frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values". A labeled 'Due' or 'Deadline' field is §3.13's "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
-| `commissioner role` | string | art director | `llm_supported` | §3.8 requires roles that share an entity type to be separate facets. The person who commissions, the person who approves and the person who pays are frequently three people and one organisation |
-| `fee basis` | string | fixed fee | `llm_supported` | Fixed fee, day rate, licence-only, royalty. A search and explanation field; the money record itself belongs to the finance catalogue |
-| `usage scope` | string | UK, digital, one year | `llm_supported` | What the client is buying the right to do. It is stated in the brief long before any licence document exists, and it is the field that makes `studio.licensing-rights` reachable from a brief |
+| `commissioner_role` | string | art director | `llm_supported` | §3.8 requires roles that share an entity type to be separate facets. The person who commissions, the person who approves and the person who pays are frequently three people and one organisation |
+| `fee_basis` | string | fixed fee | `llm_supported` | Fixed fee, day rate, licence-only, royalty. A search and explanation field; the money record itself belongs to the finance catalogue |
+| `usage_scope` | string | UK, digital, one year | `llm_supported` | What the client is buying the right to do. It is stated in the brief long before any licence document exists, and it is the field that makes `studio.licensing-rights` reachable from a brief |
 
 ### Recognition
 
@@ -238,10 +238,10 @@ The iteration record of one piece of creative work — what was shown, what came
 |---|---|---|---|---|
 | `round` | string | R2 | `validated` | The iteration label. A round marker beside a deliverable term is a pattern plus a context check, which is §3.13's "A validated fact was found by a deterministic rule and passed contextual checks". A bare digit is not, and §3.10 explains why |
 | `deliverable` | string | Homepage | `llm_supported` | The thing being revised. A round attaches to a deliverable, never to a project as a whole — two deliverables in one project are on different rounds at the same time |
-| `feedback source` | string | client | `llm_supported` | §3.8's role separation. Client feedback, internal critique, art-director notes and peer review are the same document type from four different parties, and they are not interchangeable |
+| `feedback_source` | string | client | `llm_supported` | §3.8's role separation. Client feedback, internal critique, art-director notes and peer review are the same document type from four different parties, and they are not interchangeable |
 | `decision` | string | approved with changes | `llm_supported` | Approved, approved with changes, rejected, superseded. It is the field that answers which member of a version family is current, and it can only come from language |
-| `round date` | date | 2026-03-11 | `direct` | When the round was presented. Read from a labeled date on the presentation or the feedback document, never from mtime, which a re-export rewrites |
-| `is current` | boolean-like string | superseded | `user_confirmed` | Deliberately capped at §3.13's "A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user.". No rule and no model can establish which member of a version family is current: 'final' is a word rather than an ordinal, a later mtime often belongs to an older re-export, and the highest version number is frequently an abandoned branch |
+| `round_date` | date | 2026-03-11 | `direct` | When the round was presented. Read from a labeled date on the presentation or the feedback document, never from mtime, which a re-export rewrites |
+| `is_current` | boolean-like string | superseded | `user_confirmed` | Deliberately capped at §3.13's "A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user.". No rule and no model can establish which member of a version family is current: 'final' is a word rather than an ordinal, a later mtime often belongs to an older re-export, and the highest version number is frequently an abandoned branch |
 
 ### Recognition
 
@@ -309,11 +309,11 @@ The exported, packaged, format-specified files actually given to a client, and t
 |---|---|---|---|---|
 | `deliverable` | string | Logo suite | `llm_supported` | The named thing handed over. It is the anchor the exports hang from and is usually stated only in the handover note |
 | `client` | string | Acme Foods | `validated` | §3.8's client role, inherited from the engagement and confirmed by a labeled recipient field on the handover note |
-| `export format set` | list of strings | AI; EPS; SVG; PNG; PDF | `direct` | §2.9 makes format a directly observed property: "The engine should treat the file extension as a routing signal rather than an assumption about meaning", and the extension plus the real signature are read, not inferred. The SET is what makes a folder a handoff rather than a working folder |
-| `colour space` | string | CMYK | `direct` | §2.6 has the image extractor store colour information among the properties it records for every supported image, so an embedded ICC profile or a labeled export preset is a direct read. It is the field that separates a print handoff from a screen handoff, and §3.13 makes a labeled metadata slot "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
-| `handoff date` | date | 2026-05-02 | `direct` | Read from a labeled date on the transmittal note. §3.10 forbids fuzzy parsing of any other date-shaped string on the package |
+| `export_format_set` | list of strings | AI; EPS; SVG; PNG; PDF | `direct` | §2.9 makes format a directly observed property: "The engine should treat the file extension as a routing signal rather than an assumption about meaning", and the extension plus the real signature are read, not inferred. The SET is what makes a folder a handoff rather than a working folder |
+| `colour_space` | string | CMYK | `direct` | §2.6 has the image extractor store colour information among the properties it records for every supported image, so an embedded ICC profile or a labeled export preset is a direct read. It is the field that separates a print handoff from a screen handoff, and §3.13 makes a labeled metadata slot "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
+| `handoff_date` | date | 2026-05-02 | `direct` | Read from a labeled date on the transmittal note. §3.10 forbids fuzzy parsing of any other date-shaped string on the package |
 | `recipient` | string | Acme brand team | `llm_supported` | §3.8: the party who receives is not always the party who commissioned or the party who pays. Kept as a fact and never as a folder dimension |
-| `source file reference` | string | acme-logo-master.ai | `possible` | Which working file an export came from. §2.9 has the design extractor yield "linked asset names", but a flattened export usually loses the link entirely, so this is capped at §3.13's "A possible fact is a useful but insufficient clue" |
+| `source_file_reference` | string | acme-logo-master.ai | `possible` | Which working file an export came from. §2.9 has the design extractor yield "linked asset names", but a flattened export usually loses the link entirely, so this is capped at §3.13's "A possible fact is a useful but insufficient clue" |
 
 ### Recognition
 
@@ -382,13 +382,13 @@ The documents that say who may use a piece of creative work, for what, where and
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `licensed work` | string | Untitled No. 4 | `llm_supported` | The work the licence attaches to. It is named in prose in the licence and rarely matches the filename of the artwork it governs |
+| `licensed_work` | string | Untitled No. 4 | `llm_supported` | The work the licence attaches to. It is named in prose in the licence and rarely matches the filename of the artwork it governs |
 | `licensor` | string | Yung Studio | `validated` | §3.8: "The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.". The licensor is the party granting; on a stock purchase it is a company, on a commission it is the creative |
 | `licensee` | string | Acme Foods | `validated` | The party receiving. §3.8 requires it to be a distinct facet from the licensor even though both hold organisation names |
-| `usage scope` | string | worldwide, digital, non-exclusive | `llm_supported` | Territory, media, exclusivity and duration, which arrive as a sentence rather than as fields. It is the fact that decides whether a later reuse is permitted, and it is why the domain exists |
-| `licence term` | date range | 2026-01-01 to 2027-12-31 | `direct` | Read from labeled term fields. §3.10 requires explicit patterns; a term stated as 'two years from first use' is not a date and must stay unresolved rather than being computed |
-| `release type` | string | model release | `validated` | Model release, property release, minor's release, talent agreement. A document-title match with a signature block beside it |
-| `depicted subject` | string |  | `user_confirmed` | §3.8 again: the person depicted is not the author and not the client. §2.9 already requires contact-shaped data to be "but should normally be privacy-protected rather than used to create folder proposals", and this field inherits that restraint — it is carried for search and never becomes a folder level |
+| `usage_scope` | string | worldwide, digital, non-exclusive | `llm_supported` | Territory, media, exclusivity and duration, which arrive as a sentence rather than as fields. It is the fact that decides whether a later reuse is permitted, and it is why the domain exists |
+| `licence_term` | date range | 2026-01-01 to 2027-12-31 | `direct` | Read from labeled term fields. §3.10 requires explicit patterns; a term stated as 'two years from first use' is not a date and must stay unresolved rather than being computed |
+| `release_type` | string | model release | `validated` | Model release, property release, minor's release, talent agreement. A document-title match with a signature block beside it |
+| `depicted_subject` | string |  | `user_confirmed` | §3.8 again: the person depicted is not the author and not the client. §2.9 already requires contact-shaped data to be "but should normally be privacy-protected rather than used to create folder proposals", and this field inherits that restraint — it is carried for search and never becomes a folder level |
 
 ### Recognition
 
@@ -453,12 +453,12 @@ Bought, downloaded or self-made material kept to be used again — textures, foo
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `asset type` | string | texture | `validated` | Texture, mockup, icon set, brush, preset, LUT, sound effect, font, 3D model. It is the only dimension a reusable asset reliably has, confirmed from the real format plus a directory manifest |
+| `asset_type` | string | texture | `validated` | Texture, mockup, icon set, brush, preset, LUT, sound effect, font, 3D model. It is the only dimension a reusable asset reliably has, confirmed from the real format plus a directory manifest |
 | `provider` | string |  | `validated` | Where it came from. §3.8 keeps it distinct from the client and from the author — a stock provider is neither — and it is read from a licence certificate or a provider-shaped directory name |
-| `licence class` | string | royalty-free | `llm_supported` | Royalty-free, rights-managed, editorial-only, personal-use-only, purchased-outright. It determines whether the asset may be used in client work at all, which is the question the library exists to answer |
-| `asset identifier` | string |  | `direct` | The provider's own id, usually embedded in the filename at download. It is the only reliable link back to a licence certificate and is read literally — §2.8: "The system must retain raw evidence separately from normalized values." |
+| `licence_class` | string | royalty-free | `llm_supported` | Royalty-free, rights-managed, editorial-only, personal-use-only, purchased-outright. It determines whether the asset may be used in client work at all, which is the question the library exists to answer |
+| `asset_identifier` | string |  | `direct` | The provider's own id, usually embedded in the filename at download. It is the only reliable link back to a licence certificate and is read literally — §2.8: "The system must retain raw evidence separately from normalized values." |
 | `collection` | string |  | `user_confirmed` | The user's own grouping of a library. Only a person defines it; nothing in the files says which textures belong together |
-| `acquisition date` | date | 2026-02-08 | `possible` | Capped at §3.13's "A possible fact is a useful but insufficient clue" because it is normally filesystem mtime, which a copy or a re-download rewrites; a labeled purchase date on a certificate reaches higher, but the asset file itself does not carry one |
+| `acquisition_date` | date | 2026-02-08 | `possible` | Capped at §3.13's "A possible fact is a useful but insufficient clue" because it is normally filesystem mtime, which a copy or a re-download rewrites; a labeled purchase date on a certificate reaches higher, but the asset file itself does not carry one |
 
 ### Recognition
 
@@ -523,12 +523,12 @@ Copies of finished work assembled to be shown to someone else — a portfolio si
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `portfolio artefact` | string | 2026 folio | `user_confirmed` | Which portfolio this belongs to. A person assembles a portfolio; the corpus contains no statement of it |
-| `showcased work` | string | Acme rebrand | `llm_supported` | The project being shown. It links the portfolio copy back to the engagement, which is the fact that makes a duplicate explainable rather than a mess |
-| `case study role` | string | art direction | `llm_supported` | §3.8: on collaborative work the portfolio claim is a role claim, and the role differs per contributor for one identical artefact |
+| `portfolio_artefact` | string | 2026 folio | `user_confirmed` | Which portfolio this belongs to. A person assembles a portfolio; the corpus contains no statement of it |
+| `showcased_work` | string | Acme rebrand | `llm_supported` | The project being shown. It links the portfolio copy back to the engagement, which is the fact that makes a duplicate explainable rather than a mess |
+| `case_study_role` | string | art direction | `llm_supported` | §3.8: on collaborative work the portfolio claim is a role claim, and the role differs per contributor for one identical artefact |
 | `audience` | string | agency pitch | `llm_supported` | A folio sent for a job, a client pitch, an award entry or a grant application is a different edit of the same material. It is the purpose fact §3.9 makes first-class |
-| `showreel cut` | string | 90s cut | `validated` | Reels exist in several durations at once. §2.9 has audio and video yield "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present", so duration is directly observed and a labeled cut name is a rule-confirmed pattern over it |
-| `clearance state` | string | cleared | `user_confirmed` | Whether the client has permitted the work to be shown. Only a person knows, and it is the single most common reason a portfolio item must be withdrawn |
+| `showreel_cut` | string | 90s cut | `validated` | Reels exist in several durations at once. §2.9 has audio and video yield "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present", so duration is directly observed and a labeled cut name is a rule-confirmed pattern over it |
+| `clearance_state` | string | cleared | `user_confirmed` | Whether the client has permitted the work to be shown. Only a person knows, and it is the single most common reason a portfolio item must be withdrawn |
 
 ### Recognition
 
@@ -597,7 +597,7 @@ Work a professional makes with no client — experiments, personal projects, spe
 | `medium` | string |  | `validated` | Confirmed from the real formats present rather than asserted from a filename. §2.9 makes the format observable: "The engine should treat the file extension as a routing signal rather than an assumption about meaning" |
 | `stage` | string | sketch | `llm_supported` | §3.11 names `stage` in the Research row — "Research files may use project, stage, artifact type, lab, and venue." — and self-initiated creative work has the same shape: sketch, study, work in progress, finished, shown |
 | `intent` | string | speculative client pitch | `user_confirmed` | Practice, portfolio piece, competition entry, product to sell, speculative pitch. It is the purpose fact of §3.9 and the reason this is not simply a hobby |
-| `rights held` | string | sole author | `user_confirmed` | Whether the maker holds the rights outright — usually yes, and usually the reason the work can be shown. Contrast the commissioned case where §3.8's licensor and licensee are different parties |
+| `rights_held` | string | sole author | `user_confirmed` | Whether the maker holds the rights outright — usually yes, and usually the reason the work can be shown. Contrast the commissioned case where §3.8's licensor and licensee are different parties |
 
 ### Recognition
 
@@ -663,9 +663,9 @@ A piece of two-dimensional design work — a poster, a layout, a piece of collat
 |---|---|---|---|---|
 | `project` | string | Spring poster series | `llm_supported` | The design job. §3.11 already uses `project` in the Research row and §3.11 permits one field under several active schemas: "One file may hold facts from more than one domain without losing information." |
 | `artefact` | string | A2 poster | `llm_supported` | The designed thing. It is this domain's work-type analogue and the level a version family anchors on |
-| `output medium` | string | print | `validated` | Print, screen, environmental, packaging. Confirmed by a rule from colour space, bleed marks or pixel dimensions rather than asserted, which is §3.13's "A validated fact was found by a deterministic rule and passed contextual checks" |
-| `canvas dimensions` | string | 420 x 594 mm | `direct` | §2.9 has the design extractor yield "Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text", so canvas properties are directly observed. Kept for search and explanation, never as a folder level |
-| `linked assets` | list of strings | acme-logo.ai; hero-shot.tif | `direct` | §2.9 names "linked asset names" among what a design file yields. It is the strongest structural edge this slice has: a placed-link graph relates a layout to its photography, its logo and its fonts without any language interpretation |
+| `output_medium` | string | print | `validated` | Print, screen, environmental, packaging. Confirmed by a rule from colour space, bleed marks or pixel dimensions rather than asserted, which is §3.13's "A validated fact was found by a deterministic rule and passed contextual checks" |
+| `canvas_dimensions` | string | 420 x 594 mm | `direct` | §2.9 has the design extractor yield "Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text", so canvas properties are directly observed. Kept for search and explanation, never as a folder level |
+| `linked_assets` | list of strings | acme-logo.ai; hero-shot.tif | `direct` | §2.9 names "linked asset names" among what a design file yields. It is the strongest structural edge this slice has: a placed-link graph relates a layout to its photography, its logo and its fonts without any language interpretation |
 | `round` | string | R2 | `validated` | Shared with `studio.revision-round`; carried here so the working file can be ordered inside its family without the round document being present |
 
 ### Recognition
@@ -733,11 +733,11 @@ The mark, the type, the colour and the rules that govern how an organisation is 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `brand` | string | Acme Foods | `validated` | The organisation the identity belongs to. §3.8 keeps it distinct from the client who commissioned it — a holding company frequently commissions an identity for a subsidiary |
-| `identity component` | string | primary logotype | `llm_supported` | Logotype, symbol, lockup, wordmark, colour palette, type system, icon set, guideline document. It is the dimension an identity system is actually navigated by |
+| `identity_component` | string | primary logotype | `llm_supported` | Logotype, symbol, lockup, wordmark, colour palette, type system, icon set, guideline document. It is the dimension an identity system is actually navigated by |
 | `variant` | string | reversed mono | `validated` | Horizontal, stacked, mono, reversed, favicon. It is a labeled token in the filename in nearly every real identity folder, confirmed against a controlled variant vocabulary — §3.13's "A validated fact was found by a deterministic rule and passed contextual checks" |
 | `palette` | list of strings | Acme Red; Bone; Ink | `direct` | Named swatches, read from the file's own swatch table where the format exposes it. §2.8: "The system must retain raw evidence separately from normalized values." — the swatch name is the raw observation and a hex value is a normalisation of it |
-| `guideline version` | string | v2 | `validated` | An identity outlives its designer and its guidelines are versioned deliberately, unlike the accidental version families around them. A labeled version on the guideline document's own cover is rule-confirmable |
-| `is master` | boolean-like string | master | `user_confirmed` | Which file is the authoritative artwork. Capped at §3.13's "A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user." deliberately: this is the domain where the version-family problem is worst, and neither a filename token nor a modification time can answer it |
+| `guideline_version` | string | v2 | `validated` | An identity outlives its designer and its guidelines are versioned deliberately, unlike the accidental version families around them. A labeled version on the guideline document's own cover is rule-confirmable |
+| `is_master` | boolean-like string | master | `user_confirmed` | Which file is the authoritative artwork. Capped at §3.13's "A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user." deliberately: this is the domain where the version-family problem is worst, and neither a filename token nor a modification time can answer it |
 
 ### Recognition
 
@@ -804,10 +804,10 @@ Screen design for a software product — flows, wireframes, prototypes, specs �
 |---|---|---|---|---|
 | `product` | string | Acme app | `llm_supported` | The software being designed. It is the same value the software catalogue holds as `project`, which §3.11 permits: "One file may hold facts from more than one domain without losing information." |
 | `surface` | string | checkout | `llm_supported` | The screen, flow or feature. §5.5's parent-context rule makes this the level a screen name becomes meaningful under |
-| `artefact type` | string | prototype | `validated` | Wireframe, mock-up, prototype, flow diagram, spec, redline, research summary. §3.11 already uses `artifact type` in the Research and Code rows: "Code files may use project, repository, programming language, and artifact type." |
+| `artefact_type` | string | prototype | `validated` | Wireframe, mock-up, prototype, flow diagram, spec, redline, research summary. §3.11 already uses `artifact type` in the Research and Code rows: "Code files may use project, repository, programming language, and artifact type." |
 | `platform` | string | iOS | `validated` | Confirmed from artboard dimensions matching a known device frame plus a platform term in the document, which is a pattern with a context check |
-| `design stage` | string | exploration | `llm_supported` | Exploration, refinement, handoff-ready, shipped. It is the fact that separates three near-identical boards |
-| `source document reference` | string |  | `possible` | The hosted document an export came from. Capped at §3.13's "A possible fact is a useful but insufficient clue" because an exported PNG or PDF usually retains no link at all — the export is an orphan by construction |
+| `design_stage` | string | exploration | `llm_supported` | Exploration, refinement, handoff-ready, shipped. It is the fact that separates three near-identical boards |
+| `source_document_reference` | string |  | `possible` | The hosted document an export came from. Capped at §3.13's "A possible fact is a useful but insufficient clue" because an exported PNG or PDF usually retains no link at all — the export is an orphan by construction |
 
 ### Recognition
 
@@ -874,8 +874,8 @@ The reusable definitions a product's design is assembled from — components, to
 |---|---|---|---|---|
 | `system` | string | Acme Design System | `validated` | The named library. Confirmed from a manifest, a package name or a guideline title rather than inferred |
 | `component` | string | Button | `validated` | The unit of the library, read from a page, frame, directory or token-file name — a structural read with a context check |
-| `token set` | string | colour primitives | `direct` | Colour, spacing, typography and elevation scales, usually held in a structured data file. §2.9 has structured data yield "schema keys", so this is a direct read |
-| `system version` | string | 3.2 | `validated` | A design system is versioned deliberately and semantically, unlike the accidental version families elsewhere in this slice. Read from a manifest or a labeled release note |
+| `token_set` | string | colour primitives | `direct` | Colour, spacing, typography and elevation scales, usually held in a structured data file. §2.9 has structured data yield "schema keys", so this is a direct read |
+| `system_version` | string | 3.2 | `validated` | A design system is versioned deliberately and semantically, unlike the accidental version families elsewhere in this slice. Read from a manifest or a labeled release note |
 | `consumer` | string | Acme app | `llm_supported` | Which products use it. Kept as a fact for retrieval and explicitly not as a folder level — §3.8: "A folder should not become a collection point for everything produced by the same person or organization." |
 
 ### Recognition
@@ -944,9 +944,9 @@ Drawn or painted image-making, commissioned or not, where the working file carri
 | `piece` | string | Cover — issue 12 | `llm_supported` | The illustration itself. It is the anchor of the version family and is usually named only in a brief or a filename |
 | `commission` | string |  | `validated` | The job it was made for, where one exists. §3.8 keeps the commissioner distinct from the publisher and from the depicted subject |
 | `technique` | string | digital ink and wash | `llm_supported` | How it was made. It matters for retrieval and for portfolio assembly, and it is visible in the artwork rather than stated anywhere |
-| `canvas dimensions` | string | 3000 x 4000 px | `direct` | §2.9 has the design extractor yield "dimensions or canvas properties", and §2.6 has the image extractor store pixel dimensions. A direct read either way |
+| `canvas_dimensions` | string | 3000 x 4000 px | `direct` | §2.9 has the design extractor yield "dimensions or canvas properties", and §2.6 has the image extractor store pixel dimensions. A direct read either way |
 | `stage` | string | line art | `llm_supported` | Thumbnail, rough, line art, colour, final. Illustration's stages are unusually well-defined and unusually invisible: they are layers inside one file as often as they are separate files |
-| `usage scope` | string | editorial, one use | `llm_supported` | Illustration is licensed rather than sold more often than any other discipline in this slice, so the usage fact belongs in the schema and links to `studio.licensing-rights` |
+| `usage_scope` | string | editorial, one use | `llm_supported` | Illustration is licensed rather than sold more often than any other discipline in this slice, so the usage fact belongs in the schema and links to `studio.licensing-rights` |
 
 ### Recognition
 
@@ -1012,10 +1012,10 @@ Type as a designed work and type as a licensed asset — the source, the build, 
 |---|---|---|---|---|
 | `typeface` | string | Acme Grotesk | `direct` | The family name, read from the font file's own name table. §3.13: "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." — a font's name table is a labeled metadata slot and one of the most reliable in any creative corpus |
 | `style` | string | Bold Italic | `direct` | Weight, width and slope, read from the same name table rather than parsed from the filename |
-| `font role` | string | licensed | `llm_supported` | Whether this file is a typeface being DESIGNED, a font LICENSED for use, or a font EMBEDDED in a handoff package. The three are the same format and belong in different places; §3.8's "The system must separate roles that happen to contain the same entity type." is the rule that requires the distinction |
-| `licence class` | string | desktop + web | `llm_supported` | Desktop, web, app, broadcast, and the seat or impression limits attached. It is stated in a licence document, never in the font |
+| `font_role` | string | licensed | `llm_supported` | Whether this file is a typeface being DESIGNED, a font LICENSED for use, or a font EMBEDDED in a handoff package. The three are the same format and belong in different places; §3.8's "The system must separate roles that happen to contain the same entity type." is the rule that requires the distinction |
+| `licence_class` | string | desktop + web | `llm_supported` | Desktop, web, app, broadcast, and the seat or impression limits attached. It is stated in a licence document, never in the font |
 | `foundry` | string |  | `direct` | Read from the font's manufacturer or vendor name table entry. §3.8 keeps it distinct from the designer and from the licensee |
-| `source format` | string | UFO source | `validated` | Source, build output or installed binary. It is what distinguishes type design work from a type library, confirmed from the real format signature — §2.9: "The engine should treat the file extension as a routing signal rather than an assumption about meaning" |
+| `source_format` | string | UFO source | `validated` | Source, build output or installed binary. It is what distinguishes type design work from a type library, confirmed from the real format signature — §2.9: "The engine should treat the file extension as a routing signal rather than an assumption about meaning" |
 
 ### Recognition
 
@@ -1082,10 +1082,10 @@ What happens to designed artwork on its way to a press — imposition, proofs, c
 |---|---|---|---|---|
 | `job` | string | Spring poster series | `llm_supported` | The design job going to press. It is the value that links production back to `design.graphic-project` |
 | `printer` | string |  | `validated` | §3.8's supplier role, distinct from the client and from the designer. Read from a labeled quote or docket field |
-| `print job number` | string | J-40218 | `direct` | The printer's own reference, read from a labeled field. It is the key everything at the printer is filed under and the key nothing in the designer's corpus uses |
-| `proof stage` | string | wet proof | `validated` | Soft proof, contract proof, wet proof, press pass. A controlled vocabulary matched with a context check — §3.13's "A validated fact was found by a deterministic rule and passed contextual checks" |
-| `stock and finish` | string | 170gsm uncoated, matt lam | `llm_supported` | Stated in a specification in prose. It is what makes two otherwise identical jobs different objects |
-| `colour space` | string | CMYK + Pantone 485 | `direct` | Read from the embedded profile and spot-colour list. It is the field that separates a production file from the screen artwork it came from |
+| `print_job_number` | string | J-40218 | `direct` | The printer's own reference, read from a labeled field. It is the key everything at the printer is filed under and the key nothing in the designer's corpus uses |
+| `proof_stage` | string | wet proof | `validated` | Soft proof, contract proof, wet proof, press pass. A controlled vocabulary matched with a context check — §3.13's "A validated fact was found by a deterministic rule and passed contextual checks" |
+| `stock_and_finish` | string | 170gsm uncoated, matt lam | `llm_supported` | Stated in a specification in prose. It is what makes two otherwise identical jobs different objects |
+| `colour_space` | string | CMYK + Pantone 485 | `direct` | Read from the embedded profile and spot-colour list. It is the field that separates a production file from the screen artwork it came from |
 
 ### Recognition
 
@@ -1152,9 +1152,9 @@ Slides built to persuade — a new-business pitch, a client presentation, a conf
 | `deck` | string | Acme pitch — round two | `llm_supported` | The presentation itself, named on its own title slide more often than in its filename |
 | `audience` | string | Acme marketing team | `llm_supported` | §3.9's purpose fact. The same slides shown to a client, a jury and an internal team are three different decks with one content |
 | `occasion` | string | pitch meeting | `llm_supported` | Pitch, review, conference talk, internal share. It is the fact that decides which catalogue should own the file |
-| `presented date` | date | 2026-03-11 | `direct` | Read from a labeled date on the title slide. §2.9 has slide extraction yield "Presentations such as PPTX, PPT, ODP, and PDF slide decks should yield slide titles, text boxes, speaker notes where available, hyperlinks, embedded tables, and slide-level page boundaries.", and a title slide is a title, not a body paragraph — §3.7's positional weighting applies |
-| `deck version` | string | v4 | `validated` | Decks are the single most version-proliferated document type in professional corpora, and the version token is nearly always in the filename |
-| `template used` | string | Acme brand template | `validated` | Which brand template a deck was built from, read from the theme or master-slide name. It links a deck to `design.brand-identity` structurally |
+| `presented_date` | date | 2026-03-11 | `direct` | Read from a labeled date on the title slide. §2.9 has slide extraction yield "Presentations such as PPTX, PPT, ODP, and PDF slide decks should yield slide titles, text boxes, speaker notes where available, hyperlinks, embedded tables, and slide-level page boundaries.", and a title slide is a title, not a body paragraph — §3.7's positional weighting applies |
+| `deck_version` | string | v4 | `validated` | Decks are the single most version-proliferated document type in professional corpora, and the version token is nearly always in the filename |
+| `template_used` | string | Acme brand template | `validated` | Which brand template a deck was built from, read from the theme or master-slide name. It links a deck to `design.brand-identity` structurally |
 
 ### Recognition
 
@@ -1221,10 +1221,10 @@ Designing a physical space — drawings, schedules, specifications, samples, sit
 |---|---|---|---|---|
 | `project` | string | Flat 4, Bedford Row | `llm_supported` | The scheme. Interior projects are named for a property, which makes the project name and the location the same string and requires care — §3.8: "The system must separate roles that happen to contain the same entity type." |
 | `space` | string | kitchen | `llm_supported` | The room or zone. It is the natural second dimension and it is stated on drawings rather than in filenames |
-| `drawing type` | string | reflected ceiling plan | `validated` | Plan, elevation, section, detail, reflected ceiling plan, schedule. A controlled vocabulary read from a drawing title block — a labeled field, so §3.13's "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." is reachable where the block is machine-readable and "A validated fact was found by a deterministic rule and passed contextual checks" where it is not |
-| `drawing number` | string | IA-204 | `direct` | Read from a labeled title block. It is the profession's own identifier and the only reliable key across a drawing set |
+| `drawing_type` | string | reflected ceiling plan | `validated` | Plan, elevation, section, detail, reflected ceiling plan, schedule. A controlled vocabulary read from a drawing title block — a labeled field, so §3.13's "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." is reachable where the block is machine-readable and "A validated fact was found by a deterministic rule and passed contextual checks" where it is not |
+| `drawing_number` | string | IA-204 | `direct` | Read from a labeled title block. It is the profession's own identifier and the only reliable key across a drawing set |
 | `revision` | string | Rev C | `validated` | Drawing revisions are lettered, sequential and recorded in a revision table — the one place in this whole slice where a version family is properly documented inside the file |
-| `specification item` | string |  | `llm_supported` | Finishes, fittings and furniture named in a schedule. It is what links a sample photograph and a supplier quote to a drawing |
+| `specification_item` | string |  | `llm_supported` | Finishes, fittings and furniture named in a schedule. It is what links a sample photograph and a supplier quote to a drawing |
 
 ### Recognition
 
@@ -1290,11 +1290,11 @@ The visual side of architecture — drawing sets, renders, models, competition b
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `scheme` | string | Bedford Row infill | `llm_supported` | The building or project. It is the top of everything else in this domain and is stated in a title block |
-| `drawing number` | string | A-1102 | `direct` | Read from a labeled title block, which is the profession's own filing key and one of the few genuinely reliable identifiers in this whole supercategory |
-| `drawing type` | string | section | `validated` | Site plan, floor plan, elevation, section, detail, axonometric. A controlled vocabulary with a context check |
-| `project stage` | string | planning | `llm_supported` | Concept, planning, tender, construction, as-built. It changes what a drawing means and is stated in a title block or a transmittal |
+| `drawing_number` | string | A-1102 | `direct` | Read from a labeled title block, which is the profession's own filing key and one of the few genuinely reliable identifiers in this whole supercategory |
+| `drawing_type` | string | section | `validated` | Site plan, floor plan, elevation, section, detail, axonometric. A controlled vocabulary with a context check |
+| `project_stage` | string | planning | `llm_supported` | Concept, planning, tender, construction, as-built. It changes what a drawing means and is stated in a title block or a transmittal |
 | `revision` | string | Rev B | `validated` | A lettered revision recorded in the drawing's own revision table — a documented version family, unlike the filename-token families elsewhere in this slice |
-| `render view` | string | street approach, dusk | `llm_supported` | Visualisations are made in named views and iterated in passes; the view is the only thing that distinguishes twenty near-identical images |
+| `render_view` | string | street approach, dusk | `llm_supported` | Visualisations are made in named views and iterated in passes; the view is the only thing that distinguishes twenty near-identical images |
 
 ### Recognition
 
@@ -1361,10 +1361,10 @@ Designing garments — sketches, technical drawings, specification packs, patter
 |---|---|---|---|---|
 | `collection` | string | AW26 | `validated` | The season-collection label. It looks like a date and is not: §3.10 requires explicit patterns because documents "frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values", and a season code needs a dedicated pattern exactly as §3.10 says academic terms do |
 | `style` | string | Coat 04 | `validated` | The garment. A style number or name is the profession's key and is carried on every document in the pack |
-| `document role` | string | tech pack | `validated` | Sketch, technical flat, tech pack, pattern, grading, bill of materials, fitting note, lookbook. A controlled vocabulary with a context check |
-| `fabric or component` | string |  | `llm_supported` | Named in a bill of materials. It is what links a supplier record and a swatch photograph to a style |
-| `sample stage` | string | second proto | `llm_supported` | Proto, fit sample, salesman sample, production. It is this domain's round, and it orders the fitting photographs that would otherwise be an undifferentiated pile |
-| `supplier or factory` | string |  | `validated` | §3.8's supplier role, kept distinct from the brand and from the client. A fact, not a folder level |
+| `document_role` | string | tech pack | `validated` | Sketch, technical flat, tech pack, pattern, grading, bill of materials, fitting note, lookbook. A controlled vocabulary with a context check |
+| `fabric_or_component` | string |  | `llm_supported` | Named in a bill of materials. It is what links a supplier record and a swatch photograph to a style |
+| `sample_stage` | string | second proto | `llm_supported` | Proto, fit sample, salesman sample, production. It is this domain's round, and it orders the fitting photographs that would otherwise be an undifferentiated pile |
+| `supplier_or_factory` | string |  | `validated` | §3.8's supplier role, kept distinct from the brand and from the client. A fact, not a folder level |
 
 ### Recognition
 
@@ -1431,10 +1431,10 @@ Photography made as a job — a client, a brief, a shoot, a selection, a deliver
 |---|---|---|---|---|
 | `client` | string | Acme Foods | `validated` | §3.8's client role. It is the fact that makes this domain rather than the personal Photos domain, and it is never in the image — it is read from a brief, a contract or a curated folder |
 | `shoot` | string | Spring product shoot | `llm_supported` | The job. One client shoots several times a year and each shoot is the unit of work, of delivery and of licensing |
-| `capture date` | date | 2026-03-14 | `direct` | §3.2's own worked example of a derived fact, and §3.13's "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." names the EXIF timestamp explicitly. It is direct on camera originals and ABSENT on delivered exports, which is the asymmetry that defines this domain's recognition problem |
-| `shoot stage` | string | selects | `validated` | Camera original, select, retouched, delivered. Confirmed from the real format plus the directory structure rather than from a filename token |
-| `camera information` | string | Canon EOS R5 | `direct` | §3.11 names `camera information` in the Photos row and §2.6 has the extractor store EXIF make and model. A labeled metadata slot, so §3.13's "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
-| `usage scope` | string | UK, digital, one year | `llm_supported` | Commissioned photography is licensed rather than sold. The scope is stated in a brief or a licence and is the fact that makes `studio.licensing-rights` reachable from an image |
+| `capture_date` | date | 2026-03-14 | `direct` | §3.2's own worked example of a derived fact, and §3.13's "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." names the EXIF timestamp explicitly. It is direct on camera originals and ABSENT on delivered exports, which is the asymmetry that defines this domain's recognition problem |
+| `shoot_stage` | string | selects | `validated` | Camera original, select, retouched, delivered. Confirmed from the real format plus the directory structure rather than from a filename token |
+| `camera_information` | string | Canon EOS R5 | `direct` | §3.11 names `camera_information` in the Photos row and §2.6 has the extractor store EXIF make and model. A labeled metadata slot, so §3.13's "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." |
+| `usage_scope` | string | UK, digital, one year | `llm_supported` | Commissioned photography is licensed rather than sold. The scope is stated in a brief or a licence and is the fact that makes `studio.licensing-rights` reachable from an image |
 | `people` | string |  | `user_confirmed` | §3.11 names `people` in the Photos row. Capped at §3.13's "A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user.": the design authorises no automatic producer for it, and on a commissioned shoot the depicted people are also the subjects of the releases held in `studio.licensing-rights` |
 
 ### Recognition
@@ -1506,13 +1506,13 @@ The camera-original archive itself — RAW files, sidecars and the catalogue dat
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `capture date` | date | 2026-03-14 | `direct` | §3.13 names the EXIF timestamp among the sources of a direct fact: "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." On camera originals it is present and correct essentially always, which is why it can carry the template |
-| `capture year` | year | 2026 | `direct` | §3.11 names `capture year` in the Photos row. A projection of the direct capture date rather than a second observation, so it inherits that ceiling and never outlives it |
-| `camera information` | string | Canon EOS R5 | `direct` | §3.11 names `camera information`; §2.6 has the extractor store EXIF camera make and model, lens data, ISO and focal length |
-| `ingest batch` | string | 2026-03-14 card 1 | `validated` | The card or import the files arrived in. It is the archive's real unit, confirmed from a bounded capture window on one body plus a contiguous frame-number run |
-| `media type` | string | RAW | `direct` | §3.11 names `media type` in the Photos row. Read from the real signature — §2.9: "The engine should treat the file extension as a routing signal rather than an assumption about meaning" |
-| `catalogue reference` | string |  | `direct` | The identifier a catalogue database or sidecar holds for an image. It is the only thing that survives an export and links a stripped JPEG back to its RAW |
-| `rating or flag` | string | picked | `direct` | Read from a sidecar's own labeled field. It is the photographer's selection recorded in a machine-readable place, and it is the closest thing this slice has to a documented current-version marker |
+| `capture_date` | date | 2026-03-14 | `direct` | §3.13 names the EXIF timestamp among the sources of a direct fact: "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." On camera originals it is present and correct essentially always, which is why it can carry the template |
+| `capture_year` | year | 2026 | `direct` | §3.11 names `capture_year` in the Photos row. A projection of the direct capture date rather than a second observation, so it inherits that ceiling and never outlives it |
+| `camera_information` | string | Canon EOS R5 | `direct` | §3.11 names `camera_information`; §2.6 has the extractor store EXIF camera make and model, lens data, ISO and focal length |
+| `ingest_batch` | string | 2026-03-14 card 1 | `validated` | The card or import the files arrived in. It is the archive's real unit, confirmed from a bounded capture window on one body plus a contiguous frame-number run |
+| `media_type` | string | RAW | `direct` | §3.11 names `media_type` in the Photos row. Read from the real signature — §2.9: "The engine should treat the file extension as a routing signal rather than an assumption about meaning" |
+| `catalogue_reference` | string |  | `direct` | The identifier a catalogue database or sidecar holds for an image. It is the only thing that survives an export and links a stripped JPEG back to its RAW |
+| `rating_or_flag` | string | picked | `direct` | Read from a sidecar's own labeled field. It is the photographer's selection recorded in a machine-readable place, and it is the closest thing this slice has to a documented current-version marker |
 
 ### Recognition
 
@@ -1578,12 +1578,12 @@ A production as an organising whole — its script, schedule, paperwork, media a
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `production` | string | Acme — Spring film | `llm_supported` | The title. Everything else in this domain is meaningless without it, which is why it heads the template |
-| `production phase` | string | post | `validated` | Development, pre-production, production, post, delivery. A controlled vocabulary confirmed from the document types present rather than asserted |
+| `production_phase` | string | post | `validated` | Development, pre-production, production, post, delivery. A controlled vocabulary confirmed from the document types present rather than asserted |
 | `scene` | string | 14 | `validated` | The script unit. It appears in a slate, a filename, a script heading and a shot list, and a scene-shaped token needs a context check exactly as §3.5's course code does |
 | `take` | string | 14B/3 | `validated` | The capture unit. Scene-slash-take notation is the profession's own and is machine-readable where a slate or a camera-report is present |
-| `shoot date` | date | 2026-04-02 | `direct` | Read from a call sheet or a camera report's labeled field, and directly from media creation time on camera originals. §2.9 has A/V yield "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present" |
-| `role or department` | string | camera | `llm_supported` | §3.8's role separation applied to a crew: the same person is a producer on one production and an editor on another, and no department becomes a folder level |
-| `deliverable spec` | string | ProRes 422 HQ, 1080p | `direct` | §2.9 has A/V yield container and codec metadata directly, so a delivery specification can be checked against the file rather than trusted |
+| `shoot_date` | date | 2026-04-02 | `direct` | Read from a call sheet or a camera report's labeled field, and directly from media creation time on camera originals. §2.9 has A/V yield "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present" |
+| `role_or_department` | string | camera | `llm_supported` | §3.8's role separation applied to a crew: the same person is a producer on one production and an editor on another, and no department becomes a folder level |
+| `deliverable_spec` | string | ProRes 422 HQ, 1080p | `direct` | §2.9 has A/V yield container and codec metadata directly, so a delivery specification can be checked against the file rather than trusted |
 
 ### Recognition
 
@@ -1648,12 +1648,12 @@ Camera originals, sound rolls and dailies as they came off the cards — the one
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `shoot date` | date | 2026-04-02 | `direct` | §2.9 has A/V yield creation time directly and §3.13 makes an explicit metadata slot a "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.". It is the field the whole domain is ordered by |
+| `shoot_date` | date | 2026-04-02 | `direct` | §2.9 has A/V yield creation time directly and §3.13 makes an explicit metadata slot a "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.". It is the field the whole domain is ordered by |
 | `unit` | string | main unit | `llm_supported` | Main, second, splinter, aerial. Two units shooting the same day produce two disjoint media sets that must not merge |
-| `card or roll` | string | A001 | `validated` | The camera's own reel identifier, present in clip filenames and in the camera report. It is the profession's own key and a contiguous run confirms it |
-| `camera or recorder` | string | A-cam | `direct` | Read from container metadata. §2.6's equivalent for stills is EXIF camera make and model, and the reasoning is identical |
-| `media role` | string | camera original | `validated` | Camera original, sound roll, proxy, daily, transcode. Confirmed from the real codec and container rather than from the filename — §2.9 yields "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present" |
-| `timecode start` | string | 10:04:22:11 | `direct` | Read from container metadata. It is what syncs picture to sound and is the strongest structural edge available between two files that share no content |
+| `card_or_roll` | string | A001 | `validated` | The camera's own reel identifier, present in clip filenames and in the camera report. It is the profession's own key and a contiguous run confirms it |
+| `camera_or_recorder` | string | A-cam | `direct` | Read from container metadata. §2.6's equivalent for stills is EXIF camera make and model, and the reasoning is identical |
+| `media_role` | string | camera original | `validated` | Camera original, sound roll, proxy, daily, transcode. Confirmed from the real codec and container rather than from the filename — §2.9 yields "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present" |
+| `timecode_start` | string | 10:04:22:11 | `direct` | Read from container metadata. It is what syncs picture to sound and is the strongest structural edge available between two files that share no content |
 
 ### Recognition
 
@@ -1720,11 +1720,11 @@ The assembly of a production — project files, bins, cuts, grades, mixes, versi
 |---|---|---|---|---|
 | `production` | string | Acme — Spring film | `llm_supported` | Inherited from `film.production`, and the anchor every post artefact hangs from |
 | `cut` | string | director's cut | `llm_supported` | Assembly, rough, fine, picture lock, director's cut, broadcast version. It is the unit a version family anchors on, and it is named in prose |
-| `cut version` | string | v14 | `validated` | A labeled version token beside a cut name. Editing produces more version-family members than any other activity in this slice, and the token is the only ordering signal available |
-| `post stage` | string | grade | `validated` | Offline, online, grade, VFX, sound mix, master. Confirmed from the artefact type and the application signature together |
-| `linked media` | list of strings | A001C003_260402.mov | `direct` | §2.9 names "linked asset names" among what a creative file yields. In post this is the whole content of the project file and the strongest structural edge in the supercategory |
+| `cut_version` | string | v14 | `validated` | A labeled version token beside a cut name. Editing produces more version-family members than any other activity in this slice, and the token is the only ordering signal available |
+| `post_stage` | string | grade | `validated` | Offline, online, grade, VFX, sound mix, master. Confirmed from the artefact type and the application signature together |
+| `linked_media` | list of strings | A001C003_260402.mov | `direct` | §2.9 names "linked asset names" among what a creative file yields. In post this is the whole content of the project file and the strongest structural edge in the supercategory |
 | `duration` | string | 00:02:31:04 | `direct` | §2.9 has A/V yield duration directly. It is what distinguishes a rough cut from a finished one when the filenames do not |
-| `delivery spec` | string | ProRes 422 HQ, 1080p, stereo | `direct` | Read from container and codec metadata rather than from a specification document, so a master can be verified against what was asked for |
+| `delivery_spec` | string | ProRes 422 HQ, 1080p, stereo | `direct` | Read from container and codec metadata rather than from a specification document, so a master can be verified against what was asked for |
 
 ### Recognition
 
@@ -1790,11 +1790,11 @@ Moving image made rather than filmed — titles, explainers, animated identity, 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `project` | string | Acme explainer | `llm_supported` | The animation being made |
-| `sequence or shot` | string | sh020 | `validated` | The unit of animation work. Shot codes are a controlled shape and appear in filenames, render paths and review documents together |
-| `animation stage` | string | animatic | `llm_supported` | Storyboard, animatic, blocking, animation, comp, render. It is what makes twenty near-identical previews legible |
-| `render pass` | string | beauty | `validated` | Beauty, matte, depth, AO. A controlled vocabulary carried in filenames and directory names, confirmed with a context check |
-| `frame range` | string | 1001-1240 | `direct` | Read from an image-sequence filename run rather than parsed as a number. §2.8: "The system must retain raw evidence separately from normalized values." — the padded frame number is the raw observation |
-| `linked assets` | list of strings |  | `direct` | §2.9 names "linked asset names" among what a creative file yields; a comp project is a graph of them |
+| `sequence_or_shot` | string | sh020 | `validated` | The unit of animation work. Shot codes are a controlled shape and appear in filenames, render paths and review documents together |
+| `animation_stage` | string | animatic | `llm_supported` | Storyboard, animatic, blocking, animation, comp, render. It is what makes twenty near-identical previews legible |
+| `render_pass` | string | beauty | `validated` | Beauty, matte, depth, AO. A controlled vocabulary carried in filenames and directory names, confirmed with a context check |
+| `frame_range` | string | 1001-1240 | `direct` | Read from an image-sequence filename run rather than parsed as a number. §2.8: "The system must retain raw evidence separately from normalized values." — the padded frame number is the raw observation |
+| `linked_assets` | list of strings |  | `direct` | §2.9 names "linked asset names" among what a creative file yields; a comp project is a graph of them |
 
 ### Recognition
 
@@ -1817,7 +1817,7 @@ Moving image made rather than filmed — titles, explainers, animated identity, 
 
 ### Work types
 
-`storyboard`, `animatic`, `project file`, `asset`, `render pass`, `image sequence`, `final render`, `style frame`
+`storyboard`, `animatic`, `project file`, `asset`, `render_pass`, `image sequence`, `final render`, `style frame`
 
 ### Grouping reasons (§4)
 
@@ -1860,12 +1860,12 @@ Three-dimensional work — models, textures, rigs, scenes, renders — where the
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `asset` | string | Acme bottle | `llm_supported` | The modelled thing. It is the unit of work, of reuse and of version history |
-| `asset stage` | string | lookdev | `llm_supported` | Block-out, model, UV, texture, lookdev, rig, scene, render. It is what distinguishes near-identical files in one directory |
-| `scene or shot` | string | sh020 | `validated` | Where the asset is used. Kept distinct from the asset itself, because §3.8 requires roles that share an entity type to be separate facets and an asset is not a shot |
-| `geometry format` | string | USD | `direct` | Read from the real signature. §2.9: "The engine should treat the file extension as a routing signal rather than an assumption about meaning", and here the distinction between a readable interchange format and an unreadable application format decides whether the domain is recognisable at all |
-| `texture set` | string |  | `direct` | Texture maps share a stem with a channel suffix, which is a structural family readable without opening anything |
-| `render engine` | string |  | `validated` | Read from a render-settings file or an output naming convention. It is a search and explanation field, not a folder level |
-| `readability state` | string | indexed-but-unreadable | `direct` | §2.9 requires it: "unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty". This domain carries the state as an explicit fact because for most of its files it is the ONLY fact, and a folder built from filenames alone must be marked as such |
+| `asset_stage` | string | lookdev | `llm_supported` | Block-out, model, UV, texture, lookdev, rig, scene, render. It is what distinguishes near-identical files in one directory |
+| `scene_or_shot` | string | sh020 | `validated` | Where the asset is used. Kept distinct from the asset itself, because §3.8 requires roles that share an entity type to be separate facets and an asset is not a shot |
+| `geometry_format` | string | USD | `direct` | Read from the real signature. §2.9: "The engine should treat the file extension as a routing signal rather than an assumption about meaning", and here the distinction between a readable interchange format and an unreadable application format decides whether the domain is recognisable at all |
+| `texture_set` | string |  | `direct` | Texture maps share a stem with a channel suffix, which is a structural family readable without opening anything |
+| `render_engine` | string |  | `validated` | Read from a render-settings file or an output naming convention. It is a search and explanation field, not a folder level |
+| `readability_state` | string | indexed-but-unreadable | `direct` | §2.9 requires it: "unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty". This domain carries the state as an explicit fact because for most of its files it is the ONLY fact, and a folder built from filenames alone must be marked as such |
 
 ### Recognition
 
@@ -1888,7 +1888,7 @@ Three-dimensional work — models, textures, rigs, scenes, renders — where the
 
 ### Work types
 
-`model`, `texture set`, `material`, `rig`, `scene file`, `render output`, `turntable`, `interchange export`
+`model`, `texture_set`, `material`, `rig`, `scene file`, `render output`, `turntable`, `interchange export`
 
 ### Grouping reasons (§4)
 
@@ -1918,7 +1918,7 @@ Time first: **no**
 
 ### Open question — Joseph's call, unresolved
 
-> Can a domain legitimately be recognised when §2.9 requires its central file to be recorded as indexed-but-unreadable? §2.9 is explicit that "unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty", but for 3D, CAD and several proprietary design and audio formats the unreadable file IS the work; everything readable around it is a derivative. That leaves recognition resting on filename and parent-folder context alone, which §4.9 warns against — "Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone.". So either this catalogue may build a domain on filename-plus-folder evidence, marking every resulting fact as weak, or these domains can only ever be created by the user by hand. This catalogue takes the first position and carries an explicit `readability state` field to make it auditable, but which of the two the product intends is Joseph's call and it applies well beyond this slice.
+> Can a domain legitimately be recognised when §2.9 requires its central file to be recorded as indexed-but-unreadable? §2.9 is explicit that "unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty", but for 3D, CAD and several proprietary design and audio formats the unreadable file IS the work; everything readable around it is a derivative. That leaves recognition resting on filename and parent-folder context alone, which §4.9 warns against — "Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone.". So either this catalogue may build a domain on filename-plus-folder evidence, marking every resulting fact as weak, or these domains can only ever be created by the user by hand. This catalogue takes the first position and carries an explicit `readability_state` field to make it auditable, but which of the two the product intends is Joseph's call and it applies well beyond this slice.
 
 ---
 
@@ -1935,11 +1935,11 @@ Art authored to be consumed by a game engine — sprites, models, animations, au
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `game` | string |  | `llm_supported` | The title. It is usually the repository or project directory name and is rarely inside any art file |
-| `asset class` | string | character | `llm_supported` | Character, environment, prop, UI, effect, audio. It is the dimension a game's art directory is actually navigated by |
+| `asset_class` | string | character | `llm_supported` | Character, environment, prop, UI, effect, audio. It is the dimension a game's art directory is actually navigated by |
 | `asset` | string |  | `validated` | The named thing, confirmed from a shared stem across a source file, its texture set and its imported copy |
-| `pipeline state` | string | source | `validated` | Source, exported, imported, packed. It is the fact that explains why the same asset exists three times, confirmed from the format and the directory position together |
-| `engine reference` | string |  | `direct` | An engine's own metadata or import file, which is structured data §2.9 has yield schema keys. It links an imported copy to its source deterministically |
-| `platform target` | string |  | `validated` | Compressed variants are produced per platform and are duplicates that must not be merged. A search and explanation field, not a folder level |
+| `pipeline_state` | string | source | `validated` | Source, exported, imported, packed. It is the fact that explains why the same asset exists three times, confirmed from the format and the directory position together |
+| `engine_reference` | string |  | `direct` | An engine's own metadata or import file, which is structured data §2.9 has yield schema keys. It links an imported copy to its source deterministically |
+| `platform_target` | string |  | `validated` | Compressed variants are produced per platform and are duplicates that must not be merged. A search and explanation field, not a folder level |
 
 ### Recognition
 
@@ -2004,13 +2004,13 @@ A song being made — session files, takes, stems, mixes, masters — where the 
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `project or artist` | string |  | `llm_supported` | The record, the release or the artist. It is the top of the tree and is almost never inside an audio file |
+| `project_or_artist` | string |  | `llm_supported` | The record, the release or the artist. It is the top of the tree and is almost never inside an audio file |
 | `song` | string |  | `llm_supported` | The unit everything else attaches to. §5.5's parent-context rule makes it the level a take number becomes meaningful under |
-| `session date` | date | 2026-03-14 | `direct` | §2.9 has audio yield creation time directly. It is a fact and deliberately not the first template level — see the template rationale |
+| `session_date` | date | 2026-03-14 | `direct` | §2.9 has audio yield creation time directly. It is a fact and deliberately not the first template level — see the template rationale |
 | `take` | string |  | `validated` | The capture unit. A take number is meaningless without the song, which is §5.5's parent-context rule stated as a field constraint |
-| `audio role` | string | stem | `validated` | Raw take, comp, stem, rough mix, mix, master, instrumental. Confirmed from duration, channel count and directory position together — §2.9 yields "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present" |
-| `mix version` | string | mix 7 | `validated` | Mixes are numbered, numerous and dated, and the number is the only ordering signal. It never establishes which is approved — that is `is approved` |
-| `is approved` | boolean-like string | approved | `user_confirmed` | Capped at §3.13's "A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user." for the same reason as `studio.revision-round`: nothing in an audio file says which mix was accepted, and the most recently modified is routinely a later re-bounce of an older one |
+| `audio_role` | string | stem | `validated` | Raw take, comp, stem, rough mix, mix, master, instrumental. Confirmed from duration, channel count and directory position together — §2.9 yields "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present" |
+| `mix_version` | string | mix 7 | `validated` | Mixes are numbered, numerous and dated, and the number is the only ordering signal. It never establishes which is approved — that is `is_approved` |
+| `is_approved` | boolean-like string | approved | `user_confirmed` | Capped at §3.13's "A user confirmed fact has been explicitly accepted, entered, renamed, merged, or corrected by the user." for the same reason as `studio.revision-round`: nothing in an audio file says which mix was accepted, and the most recently modified is routinely a later re-bounce of an older one |
 
 ### Recognition
 
@@ -2077,11 +2077,11 @@ An episode of a show — the recording, the edit, the transcript, the artwork, t
 |---|---|---|---|---|
 | `show` | string |  | `validated` | The series. Read from embedded tags or a feed record, which are labeled fields |
 | `episode` | string | S3E12 | `validated` | The unit. A season-episode token is a controlled shape and appears in filenames, tags and feed records alike |
-| `episode title` | string |  | `direct` | Read from embedded tags or a feed entry. §2.9 has audio yield "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present" |
+| `episode_title` | string |  | `direct` | Read from embedded tags or a feed entry. §2.9 has audio yield "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present" |
 | `guest` | string |  | `llm_supported` | §3.8's role separation: a guest is not the host and not the producer, and none of the three becomes a folder level |
-| `audio role` | string | host track | `validated` | Host track, guest track, edited episode, published master, promo. Multi-track remote recordings produce one file per participant and they must not merge |
-| `publish date` | date | 2026-04-09 | `direct` | Read from a feed record's labeled field. §3.10 forbids fuzzy parsing of any other date-shaped string on the file |
-| `transcript state` | string | not transcribed | `direct` | Whether a transcript exists and where it came from. §2.9 makes transcription conditional — "and—only under an explicit privacy and compute policy—speech-to-text transcripts" — so the state must be a recorded fact rather than an assumption |
+| `audio_role` | string | host track | `validated` | Host track, guest track, edited episode, published master, promo. Multi-track remote recordings produce one file per participant and they must not merge |
+| `publish_date` | date | 2026-04-09 | `direct` | Read from a feed record's labeled field. §3.10 forbids fuzzy parsing of any other date-shaped string on the file |
+| `transcript_state` | string | not transcribed | `direct` | Whether a transcript exists and where it came from. §2.9 makes transcription conditional — "and—only under an explicit privacy and compute policy—speech-to-text transcripts" — so the state must be a recorded fact rather than an assumption |
 
 ### Recognition
 
@@ -2147,11 +2147,11 @@ Audio made to sit under something else — effects, foley, atmospheres, score, t
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `production` | string | Acme — Spring film | `llm_supported` | The picture being scored or mixed. It is the parent this domain has no meaning without |
-| `reel or sequence` | string | reel 2 | `validated` | The unit audio post works in, carried in filenames and conform lists |
-| `audio element` | string | atmosphere | `validated` | Dialogue, foley, effects, atmosphere, music, mix stem. It is the controlled vocabulary the whole discipline files by |
-| `mix format` | string | 5.1 | `direct` | Read from channel count and container metadata. §2.9 has A/V yield "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present", and the channel layout distinguishes deliverables that share every other property |
-| `sync reference` | string | 01:00:00:00 | `direct` | Timecode start, read from metadata. It is what relates an audio file to a picture file that shares none of its content |
-| `library source` | string |  | `validated` | Whether an element came from a licensed effects library or was recorded for this job. §3.8 keeps the library provider distinct from the sound designer |
+| `reel_or_sequence` | string | reel 2 | `validated` | The unit audio post works in, carried in filenames and conform lists |
+| `audio_element` | string | atmosphere | `validated` | Dialogue, foley, effects, atmosphere, music, mix stem. It is the controlled vocabulary the whole discipline files by |
+| `mix_format` | string | 5.1 | `direct` | Read from channel count and container metadata. §2.9 has A/V yield "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present", and the channel layout distinguishes deliverables that share every other property |
+| `sync_reference` | string | 01:00:00:00 | `direct` | Timecode start, read from metadata. It is what relates an audio file to a picture file that shares none of its content |
+| `library_source` | string |  | `validated` | Whether an element came from a licensed effects library or was recorded for this job. §3.8 keeps the library provider distinct from the sound designer |
 
 ### Recognition
 
@@ -2218,10 +2218,10 @@ A book being written — fiction or non-fiction — through its drafts, its stru
 |---|---|---|---|---|
 | `work` | string |  | `llm_supported` | The book. A working title changes repeatedly during writing, which is why the version family cannot be keyed on the filename stem in this domain |
 | `draft` | string | third draft | `validated` | The named revision. Writers number drafts deliberately and the token is usually in the filename, so a controlled pattern with a context check reaches §3.13's "A validated fact was found by a deterministic rule and passed contextual checks" |
-| `structural unit` | string | Chapter 9 | `validated` | Chapter, part, section. Read from document headings — §2.9: "Text documents such as PDF, DOCX, RTF, TXT, Markdown, HTML, EPUB, and OpenDocument files should yield full text, headings, metadata, links, and structural information." makes headings a structural read rather than a prose one |
-| `genre or form` | string | literary fiction | `llm_supported` | It changes nothing about the files and everything about where they belong; it is a search and explanation field |
-| `word count state` | string | complete draft | `llm_supported` | Outline, partial, complete draft, revised, submitted. Deliberately expressed as a state rather than a number, because §3.11's universal facts hold no counts and a catalogue holds no numbers |
-| `collaborator role` | string | editor | `user_confirmed` | §3.8: author, co-author, ghostwriter, editor and agent are distinct roles over one manuscript, and "It should avoid using authorship or creator identity as a destination dimension." |
+| `structural_unit` | string | Chapter 9 | `validated` | Chapter, part, section. Read from document headings — §2.9: "Text documents such as PDF, DOCX, RTF, TXT, Markdown, HTML, EPUB, and OpenDocument files should yield full text, headings, metadata, links, and structural information." makes headings a structural read rather than a prose one |
+| `genre_or_form` | string | literary fiction | `llm_supported` | It changes nothing about the files and everything about where they belong; it is a search and explanation field |
+| `word_count_state` | string | complete draft | `llm_supported` | Outline, partial, complete draft, revised, submitted. Deliberately expressed as a state rather than a number, because §3.11's universal facts hold no counts and a catalogue holds no numbers |
+| `collaborator_role` | string | editor | `user_confirmed` | §3.8: author, co-author, ghostwriter, editor and agent are distinct roles over one manuscript, and "It should avoid using authorship or creator identity as a destination dimension." |
 
 ### Recognition
 
@@ -2290,8 +2290,8 @@ Essays, short stories, poems, columns and criticism — many small works by one 
 | `form` | string | essay | `llm_supported` | Essay, short story, poem, column, review, flash. It is the closest thing this domain has to a second dimension and it cannot be read from structure |
 | `collection` | string |  | `user_confirmed` | Where a writer has grouped pieces into a book, a pamphlet or a sequence. Only a person defines it |
 | `draft` | string |  | `validated` | Short work is redrafted as heavily as long work and with far weaker filename discipline |
-| `submission state` | string | under submission | `llm_supported` | Unsubmitted, under submission, accepted, published, withdrawn. It is the fact that makes a folder of small documents navigable and it links to `pub.submission-query` |
-| `published venue` | string |  | `llm_supported` | §3.8's role separation: the venue that published a piece is not its author and not its commissioner. Kept as a fact and not made a folder level |
+| `submission_state` | string | under submission | `llm_supported` | Unsubmitted, under submission, accepted, published, withdrawn. It is the fact that makes a folder of small documents navigable and it links to `pub.submission-query` |
+| `published_venue` | string |  | `llm_supported` | §3.8's role separation: the venue that published a piece is not its author and not its commissioner. Kept as a fact and not made a folder level |
 
 ### Recognition
 
@@ -2358,10 +2358,10 @@ A script for screen or stage — the one document type in this slice with a stri
 |---|---|---|---|---|
 | `script` | string |  | `llm_supported` | The title. Read from the title page, which §2.9: "Text documents such as PDF, DOCX, RTF, TXT, Markdown, HTML, EPUB, and OpenDocument files should yield full text, headings, metadata, links, and structural information." makes a structural read where the document is not flattened |
 | `draft` | string | shooting draft | `validated` | First draft, revised, production draft, shooting draft, and the coloured revision pages that follow it. Screenwriting has the most formal draft vocabulary of any writing discipline and it is printed on the title page |
-| `revision colour` | string | blue | `validated` | The industry's own version-family marker, in a fixed order, printed on the page. It is the only version scheme in this whole slice that is both standardised and self-describing |
+| `revision_colour` | string | blue | `validated` | The industry's own version-family marker, in a fixed order, printed on the page. It is the only version scheme in this whole slice that is both standardised and self-describing |
 | `scene` | string | 14 | `direct` | Read from numbered scene headings, which are a labeled structure rather than prose. §3.13's "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field." applies where the heading grammar is intact |
 | `format` | string | feature screenplay | `validated` | Feature, television episode, short, stage play, radio. Each has a different heading grammar and the grammar identifies it |
-| `writer role` | string | co-writer | `user_confirmed` | §3.8: written by, story by, rewrite, polish. Credit is contested, contractual and never a folder level — "It should avoid using authorship or creator identity as a destination dimension." |
+| `writer_role` | string | co-writer | `user_confirmed` | §3.8: written by, story by, rewrite, polish. Credit is contested, contractual and never a folder level — "It should avoid using authorship or creator identity as a destination dimension." |
 
 ### Recognition
 
@@ -2426,12 +2426,12 @@ Work done ON someone else's text — structural, line, copy and proof passes —
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `edited work` | string |  | `llm_supported` | The text being edited. §3.8 keeps it distinct from the editor: the work belongs to its author |
+| `edited_work` | string |  | `llm_supported` | The text being edited. §3.8 keeps it distinct from the editor: the work belongs to its author |
 | `author` | string |  | `validated` | §3.8's authored_by role. A fact and explicitly not a folder level — "A folder should not become a collection point for everything produced by the same person or organization." |
-| `pass type` | string | copy edit | `validated` | Developmental, structural, line, copy, proof, fact-check. A controlled vocabulary; each pass is a distinct engagement with a distinct deliverable |
-| `markup state` | string | tracked changes | `direct` | Clean, tracked, marked-up, queried, accepted. Tracked changes are a labeled structure inside the document and a direct read where the format exposes them |
-| `query state` | string | queries outstanding | `llm_supported` | Whether author queries remain open. It is what makes one of six near-identical files the current one, and it is only in the comments |
-| `style authority` | string |  | `llm_supported` | The style guide or house rules governing the pass. It is the fact that explains a change and it lives in a separate document entirely |
+| `pass_type` | string | copy edit | `validated` | Developmental, structural, line, copy, proof, fact-check. A controlled vocabulary; each pass is a distinct engagement with a distinct deliverable |
+| `markup_state` | string | tracked changes | `direct` | Clean, tracked, marked-up, queried, accepted. Tracked changes are a labeled structure inside the document and a direct read where the format exposes them |
+| `query_state` | string | queries outstanding | `llm_supported` | Whether author queries remain open. It is what makes one of six near-identical files the current one, and it is only in the comments |
+| `style_authority` | string |  | `llm_supported` | The style guide or house rules governing the pass. It is the fact that explains a change and it lives in a separate document entirely |
 
 ### Recognition
 
@@ -2497,11 +2497,11 @@ One text existing in two or more languages — source, target, glossary, memory 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `work` | string |  | `llm_supported` | The text being translated. It is the parent of both language versions and belongs to neither |
-| `source language` | string | ja | `validated` | §3.11 names `language` as a universal fact; this domain requires the PAIR, and the source half is confirmed from the source document's own detected language |
-| `target language` | string | en | `validated` | The other half. §3.8's role logic applies exactly: two values of one entity type that are not interchangeable and must be separate facets |
-| `translation stage` | string | revised | `validated` | Draft, revised, reviewed, proofed, delivered. Professional translation has a defined stage sequence and a distinct deliverable at each |
-| `terminology resource` | string |  | `direct` | Glossaries and translation memories are structured data files. §2.9 has structured data yield schema keys, so they are read rather than interpreted |
-| `segment alignment` | string |  | `direct` | A bilingual file's own alignment structure, which is the strongest possible link between two documents that share no characters |
+| `source_language` | string | ja | `validated` | §3.11 names `language` as a universal fact; this domain requires the PAIR, and the source half is confirmed from the source document's own detected language |
+| `target_language` | string | en | `validated` | The other half. §3.8's role logic applies exactly: two values of one entity type that are not interchangeable and must be separate facets |
+| `translation_stage` | string | revised | `validated` | Draft, revised, reviewed, proofed, delivered. Professional translation has a defined stage sequence and a distinct deliverable at each |
+| `terminology_resource` | string |  | `direct` | Glossaries and translation memories are structured data files. §2.9 has structured data yield schema keys, so they are read rather than interpreted |
+| `segment_alignment` | string |  | `direct` | A bilingual file's own alignment structure, which is the strongest possible link between two documents that share no characters |
 
 ### Recognition
 
@@ -2567,11 +2567,11 @@ A reported story — the assignment, the notes, the recordings, the documents, t
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
 | `story` | string |  | `llm_supported` | The piece being reported. It is the only thing the notes, recordings, documents and drafts have in common |
-| `beat or desk` | string |  | `llm_supported` | The standing subject area a story sits in. It is the closest thing to a project dimension in a domain that otherwise has none |
-| `material role` | string | interview recording | `validated` | Assignment, interview, document, data, draft, published piece. It is the fact that decides whether a file may leave the device at all |
+| `beat_or_desk` | string |  | `llm_supported` | The standing subject area a story sits in. It is the closest thing to a project dimension in a domain that otherwise has none |
+| `material_role` | string | interview recording | `validated` | Assignment, interview, document, data, draft, published piece. It is the fact that decides whether a file may leave the device at all |
 | `publication` | string |  | `llm_supported` | §3.8: the outlet that published is not the reporter and not the source. A fact and not a folder level |
-| `publish date` | date | 2026-04-09 | `direct` | Read from a labeled field on the published piece. §3.10 forbids fuzzy parsing of the many other date-shaped strings a reported story contains |
-| `source protection state` | string | protected | `user_confirmed` | Whether the material identifies a source who must not be identified. Only a person knows, and it is the fact the whole domain's restraint depends on. No handling class is set here; the class is P7's |
+| `publish_date` | date | 2026-04-09 | `direct` | Read from a labeled field on the published piece. §3.10 forbids fuzzy parsing of the many other date-shaped strings a reported story contains |
+| `source_protection_state` | string | protected | `user_confirmed` | Whether the material identifies a source who must not be identified. Only a person knows, and it is the fact the whole domain's restraint depends on. No handling class is set here; the class is P7's |
 
 ### Recognition
 
@@ -2637,10 +2637,10 @@ A book moving through a publisher — manuscript to typeset pages to printed edi
 |---|---|---|---|---|
 | `title` | string |  | `llm_supported` | The book. It is the top of everything and outlives every file below it |
 | `edition` | string | first edition | `validated` | Editions are a deliberate, documented version family — the only one in this slice with an external authority behind it |
-| `production stage` | string | first pages | `validated` | Manuscript, copy-edit, typesetting, first pages, revised pages, press-ready, printed. A controlled vocabulary, confirmed from the artefact type |
+| `production_stage` | string | first pages | `validated` | Manuscript, copy-edit, typesetting, first pages, revised pages, press-ready, printed. A controlled vocabulary, confirmed from the artefact type |
 | `format` | string | paperback | `validated` | Hardback, paperback, ebook, audiobook. Each is a distinct product with distinct files and they are routinely merged by mistake |
-| `product identifier` | string |  | `direct` | Read from a labeled field on a metadata sheet. §2.8: "The system must retain raw evidence separately from normalized values." — it is stored as observed, and §3.10's warning about digit strings that look like other digit strings applies to it directly |
-| `contributor role` | string | cover designer | `llm_supported` | §3.8: author, translator, editor, designer, illustrator over one title. None becomes a folder level |
+| `product_identifier` | string |  | `direct` | Read from a labeled field on a metadata sheet. §2.8: "The system must retain raw evidence separately from normalized values." — it is stored as observed, and §3.10's warning about digit strings that look like other digit strings applies to it directly |
+| `contributor_role` | string | cover designer | `llm_supported` | §3.8: author, translator, editor, designer, illustrator over one title. None becomes a folder level |
 
 ### Recognition
 
@@ -2705,11 +2705,11 @@ Sending work out — queries, submission packets, agent correspondence, response
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `submitted work` | string |  | `llm_supported` | What is being sent. It links the packet back to the manuscript or piece and is the only shared fact across the packet |
+| `submitted_work` | string |  | `llm_supported` | What is being sent. It links the packet back to the manuscript or piece and is the only shared fact across the packet |
 | `recipient` | string |  | `validated` | Agent, publisher, magazine, competition, prize. §3.8 keeps it distinct from the eventual publisher and from the author |
-| `submission round` | string |  | `llm_supported` | Work is submitted in batches to many recipients at once, and the round is what makes twenty near-identical letters legible |
-| `packet component` | string | synopsis | `validated` | Query letter, synopsis, sample chapters, biography, full manuscript. A controlled vocabulary and the level a packet is navigated by |
-| `submission date` | date | 2026-02-20 | `direct` | Read from a labeled date on the letter. §3.10 requires the explicit-regex path |
+| `submission_round` | string |  | `llm_supported` | Work is submitted in batches to many recipients at once, and the round is what makes twenty near-identical letters legible |
+| `packet_component` | string | synopsis | `validated` | Query letter, synopsis, sample chapters, biography, full manuscript. A controlled vocabulary and the level a packet is navigated by |
+| `submission_date` | date | 2026-02-20 | `direct` | Read from a labeled date on the letter. §3.10 requires the explicit-regex path |
 | `outcome` | string |  | `llm_supported` | No response, rejection, request for full, offer. It is what closes the group, and it arrives as an email rather than as a field |
 
 ### Recognition
@@ -2778,8 +2778,8 @@ A magazine, journal or newspaper issue — many independent pieces assembled int
 | `issue` | string | March 2026 | `validated` | The container. It is a label that happens to be date-shaped, which §3.10's warning about date-looking strings makes a hazard rather than a convenience |
 | `section` | string | features | `llm_supported` | Front, features, reviews, back. It is how an issue is actually assembled and how a flat-plan is read |
 | `article` | string |  | `llm_supported` | The individual piece. §3.8 keeps its author distinct from the publication and from the commissioning editor |
-| `issue artefact` | string | flat-plan | `validated` | Flat-plan, page layout, proof, press file, cover. It is the vocabulary an issue's production files carry |
-| `cover date` | date | 2026-03-01 | `direct` | Read from a labeled field and deliberately kept distinct from the publication date, which differs — §3.8's principle applied to two dates rather than two organisations |
+| `issue_artefact` | string | flat-plan | `validated` | Flat-plan, page layout, proof, press file, cover. It is the vocabulary an issue's production files carry |
+| `cover_date` | date | 2026-03-01 | `direct` | Read from a labeled field and deliberately kept distinct from the publication date, which differs — §3.8's principle applied to two dates rather than two organisations |
 
 ### Recognition
 
@@ -2846,10 +2846,10 @@ Written and visual material made to be published by a brand — articles, guides
 |---|---|---|---|---|
 | `brand` | string | Acme Foods | `validated` | Whose marketing this is. §3.8 keeps it distinct from the agency producing it and from the publisher hosting it |
 | `programme` | string |  | `llm_supported` | The standing content effort a piece belongs to. It is the project dimension, and it is named nowhere in the assets themselves |
-| `asset type` | string | landing page | `validated` | Article, guide, case study, email, landing page, whitepaper. A controlled vocabulary confirmed from structure and format together |
+| `asset_type` | string | landing page | `validated` | Article, guide, case study, email, landing page, whitepaper. A controlled vocabulary confirmed from structure and format together |
 | `channel` | string | email | `validated` | Where it is published. It determines the format and the size constraints and is confirmed from those rather than asserted |
-| `publish state` | string | scheduled | `llm_supported` | Draft, approved, scheduled, live, retired. Marketing corpora accumulate retired assets that are indistinguishable from current ones |
-| `campaign reference` | string |  | `llm_supported` | Where a piece belongs to an advertising campaign as well as to a content programme, which links to `media.ad-campaign` |
+| `publish_state` | string | scheduled | `llm_supported` | Draft, approved, scheduled, live, retired. Marketing corpora accumulate retired assets that are indistinguishable from current ones |
+| `campaign_reference` | string |  | `llm_supported` | Where a piece belongs to an advertising campaign as well as to a content programme, which links to `media.ad-campaign` |
 
 ### Recognition
 
@@ -2913,12 +2913,12 @@ Small, numerous, channel-shaped exports of the same artwork — the domain most 
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `account or brand` | string | Acme Foods | `validated` | Whose feed this is for. §3.8 keeps it distinct from the agency and from the platform |
-| `campaign or series` | string |  | `llm_supported` | The grouping an asset belongs to. Where none exists the asset is always-on content and this field is legitimately empty |
+| `account_or_brand` | string | Acme Foods | `validated` | Whose feed this is for. §3.8 keeps it distinct from the agency and from the platform |
+| `campaign_or_series` | string |  | `llm_supported` | The grouping an asset belongs to. Where none exists the asset is always-on content and this field is legitimately empty |
 | `channel` | string |  | `validated` | Confirmed from the asset's aspect ratio and duration against channel conventions, which is a pattern with a context check rather than a filename read |
-| `asset variant` | string | square | `validated` | Square, portrait, story, banner. It is the fact that explains why one image exists six times and prevents the set being collapsed as duplicates |
-| `scheduled date` | date | 2026-04-11 | `llm_supported` | Read from a content calendar rather than from the asset, which carries no date at all |
-| `copy text` | string |  | `llm_supported` | The caption that goes with the asset, which lives in a separate document and is the only searchable content the asset has |
+| `asset_variant` | string | square | `validated` | Square, portrait, story, banner. It is the fact that explains why one image exists six times and prevents the set being collapsed as duplicates |
+| `scheduled_date` | date | 2026-04-11 | `llm_supported` | Read from a content calendar rather than from the asset, which carries no date at all |
+| `copy_text` | string |  | `llm_supported` | The caption that goes with the asset, which lives in a separate document and is the only searchable content the asset has |
 
 ### Recognition
 
@@ -2986,10 +2986,10 @@ A campaign as a whole — the idea, the executions, the media formats, the versi
 | `brand` | string | Acme Foods | `validated` | §3.8's client role. Kept distinct from the agency, which is `our_firm` |
 | `campaign` | string |  | `llm_supported` | The named idea. It is the only thing hundreds of otherwise unrelated files have in common |
 | `execution` | string |  | `llm_supported` | One idea's individual expression. It is the level a version family anchors on, not the campaign |
-| `media format` | string | 6-sheet | `validated` | Out-of-home size, print size, broadcast duration, digital unit. Confirmed from dimensions and duration, which §2.6 and §2.9 both make direct reads |
+| `media_format` | string | 6-sheet | `validated` | Out-of-home size, print size, broadcast duration, digital unit. Confirmed from dimensions and duration, which §2.6 and §2.9 both make direct reads |
 | `market` | string |  | `validated` | Territory and language variant. It is what makes a set of near-identical files legitimately distinct rather than duplicates to resolve |
-| `clearance state` | string |  | `user_confirmed` | Whether an execution has been approved to run — legal, compliance, rights. Only a person knows and it decides which of many versions is usable |
-| `flight period` | date range | 2026-05-01 to 2026-06-15 | `llm_supported` | When the campaign ran, read from a media plan rather than from any asset |
+| `clearance_state` | string |  | `user_confirmed` | Whether an execution has been approved to run — legal, compliance, rights. Only a person knows and it decides which of many versions is usable |
+| `flight_period` | date range | 2026-05-01 to 2026-06-15 | `llm_supported` | When the campaign ran, read from a media plan rather than from any asset |
 
 ### Recognition
 
@@ -3056,10 +3056,10 @@ Showing work in a space — the show, the works in it, the documentation, the te
 |---|---|---|---|---|
 | `exhibition` | string |  | `llm_supported` | The show. It is the purpose that assembles otherwise unrelated documents |
 | `venue` | string |  | `validated` | §3.8: the gallery is not the artist and not the buyer. A fact and not a folder level |
-| `work shown` | string |  | `llm_supported` | The individual artwork. It has its own life before and after the show, which is why the exhibition cannot own it outright |
-| `exhibition artefact` | string | install shot | `validated` | Floor plan, hang list, price list, wall text, invitation, install shot, catalogue. A controlled vocabulary and the level the show is navigated by |
-| `exhibition dates` | date range | 2026-09-04 to 2026-10-18 | `direct` | Read from labeled fields on an invitation or a press release. §3.10 requires explicit patterns |
-| `work status` | string | sold | `user_confirmed` | Available, reserved, sold, on loan. It changes nothing in any file and is the fact a gallery actually retrieves by |
+| `work_shown` | string |  | `llm_supported` | The individual artwork. It has its own life before and after the show, which is why the exhibition cannot own it outright |
+| `exhibition_artefact` | string | install shot | `validated` | Floor plan, hang list, price list, wall text, invitation, install shot, catalogue. A controlled vocabulary and the level the show is navigated by |
+| `exhibition_dates` | date range | 2026-09-04 to 2026-10-18 | `direct` | Read from labeled fields on an invitation or a press release. §3.10 requires explicit patterns |
+| `work_status` | string | sold | `user_confirmed` | Available, reserved, sold, on loan. It changes nothing in any file and is the fact a gallery actually retrieves by |
 
 ### Recognition
 
@@ -3127,9 +3127,9 @@ Work whose output is a physical object made in a numbered edition — prints, ce
 | `work` | string |  | `user_confirmed` | The physical piece. Only the maker names it; no file contains it |
 | `edition` | string | edition of 30 | `llm_supported` | The run. It is the field that makes prints a documented version family rather than an accidental one, and it is expressed as a run description rather than a count because a catalogue holds no numbers |
 | `process` | string | screenprint | `llm_supported` | Screenprint, etching, letterpress, risograph, throwing, weaving, binding. It determines what the intermediate files are and is visible only in the work |
-| `matrix or plate` | string |  | `llm_supported` | The physical thing the edition is pulled from — a plate, a screen, a mould, a block. It is reused across works and is the strongest real-world grouping this domain has |
-| `state or proof` | string | artist's proof | `llm_supported` | State proofs, artist's proofs and the edition itself. It is printmaking's own version-family vocabulary and it is centuries older than the filename problem |
-| `documentation role` | string | artwork shot | `validated` | Artwork shot, process photograph, plan, separation file, edition record. It is the fact that keeps a photograph OF the work separate from the file that MADE it |
+| `matrix_or_plate` | string |  | `llm_supported` | The physical thing the edition is pulled from — a plate, a screen, a mould, a block. It is reused across works and is the strongest real-world grouping this domain has |
+| `state_or_proof` | string | artist's proof | `llm_supported` | State proofs, artist's proofs and the edition itself. It is printmaking's own version-family vocabulary and it is centuries older than the filename problem |
+| `documentation_role` | string | artwork shot | `validated` | Artwork shot, process photograph, plan, separation file, edition record. It is the fact that keeps a photograph OF the work separate from the file that MADE it |
 
 ### Recognition
 
@@ -3196,9 +3196,9 @@ Mounting a show — script, design, rehearsal, technical, run — where the pape
 |---|---|---|---|---|
 | `production` | string |  | `llm_supported` | The show as mounted. The same play produced twice is two productions with two sets of everything |
 | `department` | string | lighting | `validated` | Direction, design, lighting, sound, costume, stage management, production. It is how theatre paperwork is actually organised and the vocabulary is standard |
-| `production document` | string | lighting plot | `validated` | Plot, plan, cue sheet, prompt copy, rehearsal note, running order, risk assessment. A controlled vocabulary with a context check |
-| `production phase` | string | technical | `llm_supported` | Pre-production, rehearsal, technical, run, archive. It changes what a document means: a rehearsal cue sheet and a running cue sheet are different objects |
-| `performance date` | date | 2026-11-14 | `direct` | Read from a labeled field on a running order or a programme. §3.10 requires the explicit-regex path |
+| `production_document` | string | lighting plot | `validated` | Plot, plan, cue sheet, prompt copy, rehearsal note, running order, risk assessment. A controlled vocabulary with a context check |
+| `production_phase` | string | technical | `llm_supported` | Pre-production, rehearsal, technical, run, archive. It changes what a document means: a rehearsal cue sheet and a running cue sheet are different objects |
+| `performance_date` | date | 2026-11-14 | `direct` | Read from a labeled field on a running order or a programme. §3.10 requires the explicit-regex path |
 | `venue` | string |  | `validated` | §3.8: the venue is not the company and not the producer. A fact and not a folder level |
 
 ### Recognition
@@ -3264,11 +3264,11 @@ What a musician, dancer or actor accumulates across a career of dated performanc
 
 | field | type | example | reliability ceiling | why |
 |---|---|---|---|---|
-| `performance date` | date | 2026-11-14 | `direct` | §2.9 has A/V yield creation time directly and a programme carries a labeled date. It is the field the whole archive is ordered by and the one every artefact shares |
+| `performance_date` | date | 2026-11-14 | `direct` | §2.9 has A/V yield creation time directly and a programme carries a labeled date. It is the field the whole archive is ordered by and the one every artefact shares |
 | `performance` | string |  | `llm_supported` | The named event — a recital, a concert, a run, an audition. It is the unit, and the date is its most reliable label |
 | `repertoire` | string |  | `llm_supported` | What was performed. It recurs across a career and is the second axis a performer retrieves by, which is why it is a fact and an alternate view rather than the spine |
-| `performer role` | string | soloist | `llm_supported` | §3.8: soloist, ensemble member, understudy, deputy. The same person in the same repertoire in different roles has different materials |
-| `artefact role` | string | performance recording | `validated` | Part or score, programme, rehearsal recording, performance recording, review, photograph. It is the vocabulary the archive is navigated by within a performance |
+| `performer_role` | string | soloist | `llm_supported` | §3.8: soloist, ensemble member, understudy, deputy. The same person in the same repertoire in different roles has different materials |
+| `artefact_role` | string | performance recording | `validated` | Part or score, programme, rehearsal recording, performance recording, review, photograph. It is the vocabulary the archive is navigated by within a performance |
 | `venue` | string |  | `validated` | §3.8: kept distinct from the ensemble and from the promoter. A fact and not a folder level |
 
 ### Recognition

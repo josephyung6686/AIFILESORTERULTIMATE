@@ -109,11 +109,11 @@ A person's own consolidated medical record as they hold it: patient-portal expor
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | Whose record this is, read from a labeled patient-identity field. §3.8: 'The system must separate roles that happen to contain the same entity type.' A caregiver's corpus contains records about several people and the holder is not the subject. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `record source` | string | a named patient-portal or EHR system | `direct` | The producing system, read from the export's own manifest or producer metadata rather than from its prose. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `subject_person` | string | self | `direct` | Whose record this is, read from a labeled patient-identity field. §3.8: 'The system must separate roles that happen to contain the same entity type.' A caregiver's corpus contains records about several people and the holder is not the subject. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `record_source` | string | a named patient-portal or EHR system | `direct` | The producing system, read from the export's own manifest or producer metadata rather than from its prose. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `facility` | string | the health system that holds the record | `direct` | Organisation role, distinct from the treating clinician. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `record date` | date | the export or summary date | `direct` | A labeled date field only; no fuzzy parsing. §3.10: 'The product must not use fuzzy date parsing' |
-| `document type` | string | after-visit summary | `validated` | Confirmed by the document-structure rule below, not by the filename. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `record_date` | date | the export or summary date | `direct` | A labeled date field only; no fuzzy parsing. §3.10: 'The product must not use fuzzy date parsing' |
+| `document_type` | string | after-visit summary | `validated` | Confirmed by the document-structure rule below, not by the filename. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 
 **Recognition**
 
@@ -142,7 +142,7 @@ A person's own consolidated medical record as they hold it: patient-portal expor
 
 **Template:** `subject person → facility → record type → year`
 
-> §5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Facility gives the context needed to read a record type. §5.5: 'a parent dimension should provide the context required to understand the child' `subject person` is optional and must be dropped when it would produce a single child. §5.9: 'It should warn when a level produces only one child'
+> §5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Facility gives the context needed to read a record type. §5.5: 'a parent dimension should provide the context required to understand the child' `subject_person` is optional and must be dropped when it would produce a single child. §5.9: 'It should warn when a level produces only one child'
 
 **Collides with**
 
@@ -156,7 +156,7 @@ A person's own consolidated medical record as they hold it: patient-portal expor
 
 **Open question**
 
-> Should a person's own records and a dependant's records share one branch with `subject person` as the first dimension, or should each subject person get their own top-level branch? For a single-person corpus `subject person` produces exactly the one-child level §5.9 tells the product to warn about; for a caregiver it is the only sane first split. This is a default folder shape for someone's real family and is Joseph's call, not the catalogue's.
+> Should a person's own records and a dependant's records share one branch with `subject_person` as the first dimension, or should each subject person get their own top-level branch? For a single-person corpus `subject_person` produces exactly the one-child level §5.9 tells the product to warn about; for a caregiver it is the only sane first split. This is a default folder shape for someone's real family and is Joseph's call, not the catalogue's.
 
 
 ### 2. `med.lab-result` — Laboratory and diagnostic test results
@@ -169,14 +169,14 @@ Results of a laboratory or point-of-care test performed on a person's specimen, 
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | Whose specimen. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | Whose specimen. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `test` | string | the named panel or analyte reported | `validated` | The test identity is confirmed only when the result-table rule below fires; a drug or analyte name in prose is not a test fact. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `collection date` | date | the labeled specimen collection date | `direct` | A labeled collection-date field, distinct from the report date and from the file's own timestamps. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `report date` | date | the labeled date the result was issued | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `ordering provider` | string | the clinician who ordered the test | `direct` | A role distinct from the laboratory that performed it and from the subject person. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `performing laboratory` | string | the laboratory that ran and reported the specimen | `direct` | Organisation role. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `specimen type` | string | the labeled specimen descriptor | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `result status` | string | preliminary or final, where the report labels it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `collection_date` | date | the labeled specimen collection date | `direct` | A labeled collection-date field, distinct from the report date and from the file's own timestamps. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `report_date` | date | the labeled date the result was issued | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `ordering_provider` | string | the clinician who ordered the test | `direct` | A role distinct from the laboratory that performed it and from the subject person. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `performing_laboratory` | string | the laboratory that ran and reported the specimen | `direct` | Organisation role. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `specimen_type` | string | the labeled specimen descriptor | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `result_status` | string | preliminary or final, where the report labels it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -214,7 +214,7 @@ Results of a laboratory or point-of-care test performed on a person's specimen, 
 | `acad.lab-course` | a chemistry or biology lab report carries analytes and units and the word 'lab'; it carries no reference range, no specimen collection date, and no performing laboratory. Where an academic anchor co-occurs the file has two plausible domains and belongs to the model, not to either rule. | §3.3: the LLM handles files that 'have multiple plausible domains' |
 | `res.dataset` | research assay output carries analytes, units and often reference values, but names a protocol and a study rather than an ordering provider and a subject person. | — |
 | `med.genetic-testing-report` | a genetic report is a laboratory report; it is separated because its schema legitimises gene and variant-interpretation fields that an ordinary panel must not be allowed to claim. | §4.8: 'each fact or label belongs to an allowed domain schema' |
-| `med.occupational-health-screening` | an employment drug screen or pre-placement physical is a lab result whose recipient is an employer; the employer role belongs to the career slice and must not be written as `ordering provider`. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `med.occupational-health-screening` | an employment drug screen or pre-placement physical is a lab result whose recipient is an employer; the employer role belongs to the career slice and must not be written as `ordering_provider`. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Sensitivity:** `potentially_sensitive` — Test results about a named person — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
@@ -233,14 +233,14 @@ Diagnostic imaging performed on a person: the image data and the radiologist's r
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | Whose study. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | Whose study. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `modality` | string | the labeled imaging modality | `direct` | Read from a populated DICOM modality header tag or a labeled report field, not inferred from the word appearing in prose. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `body region` | string | the labeled examined region | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `study date` | date | the labeled acquisition date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `referring clinician` | string | the clinician who requested the study | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `reporting radiologist` | string | the clinician who authored the report | `direct` | A role distinct from the referrer; and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' neither may become a folder level. |
-| `imaging facility` | string | the site that acquired the study | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `accession identifier` | string | the study's own labeled identifier | `direct` | A labeled identifier field, never a bare numeric string found in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `body_region` | string | the labeled examined region | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `study_date` | date | the labeled acquisition date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `referring_clinician` | string | the clinician who requested the study | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `reporting_radiologist` | string | the clinician who authored the report | `direct` | A role distinct from the referrer; and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' neither may become a folder level. |
+| `imaging_facility` | string | the site that acquired the study | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `accession_identifier` | string | the study's own labeled identifier | `direct` | A labeled identifier field, never a bare numeric string found in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -292,14 +292,14 @@ What a person has been prescribed or dispensed, and the list they maintain of it
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `medication` | string | the prescribed product as written on the prescription | `validated` | A medication fact only where the dispensing structure below fires; a drug name in prose is not one. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 | `prescriber` | string | the clinician who wrote it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `dispensing pharmacy` | string | the pharmacy that filled it | `direct` | An organisation role distinct from the prescriber and from the manufacturer. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `fill date` | date | the labeled date dispensed | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `dispensing_pharmacy` | string | the pharmacy that filled it | `direct` | An organisation role distinct from the prescriber and from the manufacturer. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `fill_date` | date | the labeled date dispensed | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
 | `directions` | string | the labeled directions-for-use line | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `refills remaining` | string | the labeled refills field as written | `direct` | Stored as the label's own value; the catalogue sets no numbers of its own. |
-| `prescription identifier` | string | the pharmacy's own labeled identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `refills_remaining` | string | the labeled refills field as written | `direct` | Stored as the label's own value; the catalogue sets no numbers of its own. |
+| `prescription_identifier` | string | the pharmacy's own labeled identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -352,13 +352,13 @@ A person's record of vaccines administered, and the certificates issued from it.
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `vaccine` | string | the administered product as recorded | `validated` | Confirmed only by the administration-row rule below. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `administration date` | date | the labeled date given | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `dose in series` | string | the labeled dose or series position as written | `direct` | Stored as the label's own value; no numbering is invented here. |
-| `administering provider` | string | the clinic, pharmacy or site that gave it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `lot identifier` | string | the labeled lot field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `issuing authority` | string | the body that issued a certificate, where one exists | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `administration_date` | date | the labeled date given | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `dose_in_series` | string | the labeled dose or series position as written | `direct` | Stored as the label's own value; no numbering is invented here. |
+| `administering_provider` | string | the clinic, pharmacy or site that gave it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `lot_identifier` | string | the labeled lot field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `issuing_authority` | string | the body that issued a certificate, where one exists | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
 
@@ -408,14 +408,14 @@ A referral into specialist care as the person holds it, including a second-opini
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `referring clinician` | string | the clinician sending the referral | `direct` | Distinct from the receiving clinician; the same person-entity type in two different roles. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `receiving clinician` | string | the specialist or service receiving it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `referring_clinician` | string | the clinician sending the referral | `direct` | Distinct from the receiving clinician; the same person-entity type in two different roles. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `receiving_clinician` | string | the specialist or service receiving it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `specialty` | string | the service referred to | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `referral date` | date | the labeled date issued | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `reason for referral` | string | the labeled reason field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `referral status` | string | accepted, pending or declined where the document labels it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `records released` | string | the labeled list of records enclosed or authorised | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `referral_date` | date | the labeled date issued | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `reason_for_referral` | string | the labeled reason field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `referral_status` | string | accepted, pending or declined where the document labels it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `records_released` | string | the labeled list of records enclosed or authorised | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -469,14 +469,14 @@ An episode of inpatient, emergency or urgent care as the person holds it, from a
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `facility` | string | the admitting hospital or unit | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `admission date` | date | the labeled admission date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `discharge date` | date | the labeled discharge date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `attending clinician` | string | the clinician of record for the episode | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `encounter type` | string | inpatient, emergency or observation as the record labels it | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `discharge disposition` | string | the labeled disposition field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `account identifier` | string | the facility's own labeled encounter identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `admission_date` | date | the labeled admission date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `discharge_date` | date | the labeled discharge date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `attending_clinician` | string | the clinician of record for the episode | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `encounter_type` | string | inpatient, emergency or observation as the record labels it | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `discharge_disposition` | string | the labeled disposition field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `account_identifier` | string | the facility's own labeled encounter identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -527,15 +527,15 @@ A specific operation or invasive procedure: consent, operative report, implant d
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `procedure` | string | the labeled procedure-performed field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `procedure date` | date | the labeled date of operation | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `procedure_date` | date | the labeled date of operation | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
 | `surgeon` | string | the operating clinician | `direct` | A role, and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' it is not a folder dimension. |
 | `facility` | string | the operating hospital or surgical centre | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `pre-operative diagnosis` | string | the labeled pre-operative diagnosis field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `post-operative diagnosis` | string | the labeled post-operative diagnosis field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `anaesthesia type` | string | the labeled anaesthesia field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `implanted device` | string | the device recorded as implanted, where one is | `validated` | Confirmed by the implant-documentation rule; a device name in prose is not an implant fact. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `pre_operative_diagnosis` | string | the labeled pre-operative diagnosis field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `post_operative_diagnosis` | string | the labeled post-operative diagnosis field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `anaesthesia_type` | string | the labeled anaesthesia field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `implanted_device` | string | the device recorded as implanted, where one is | `validated` | Confirmed by the implant-documentation rule; a device name in prose is not an implant fact. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 
 **Recognition**
 
@@ -587,13 +587,13 @@ A course of physical, occupational, or speech therapy: the plan of care, the pre
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `therapist` | string | the treating therapist and their discipline | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `treating diagnosis` | string | the labeled referring or treating diagnosis | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `plan of care period` | string | the labeled authorisation or certification period as written | `direct` | Stored as the label's own value. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `treating_diagnosis` | string | the labeled referring or treating diagnosis | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `plan_of_care_period` | string | the labeled authorisation or certification period as written | `direct` | Stored as the label's own value. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `discipline` | string | physical, occupational or speech therapy as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `visit date` | date | the labeled date of a session | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `home programme` | string | the prescribed exercise set as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `visit_date` | date | the labeled date of a session | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `home_programme` | string | the prescribed exercise set as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 
 **Recognition**
 
@@ -644,12 +644,12 @@ A person's own therapy, counselling, or psychiatric records and the administrati
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `treating clinician` | string | the therapist, counsellor or psychiatrist | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `service type` | string | the labeled service or modality as the document names it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `session date` | date | the labeled session or service date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `treating_clinician` | string | the therapist, counsellor or psychiatrist | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `service_type` | string | the labeled service or modality as the document names it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `session_date` | date | the labeled session or service date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
 | `practice` | string | the practice or clinic providing the service | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `authorisation reference` | string | the labeled payer authorisation identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `authorisation_reference` | string | the labeled payer authorisation identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -704,13 +704,13 @@ A person's dental care: charting, treatment plans, radiographs, and dental claim
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `dental practice` | string | the practice providing care | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `treating dentist` | string | the dentist or hygienist of record | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `tooth or quadrant` | string | the labeled tooth or quadrant notation | `direct` | Read from the labeled notation. The charting-grid rule activates the domain; it does not confirm this value. a tooth number in prose is not a dental fact. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `dental_practice` | string | the practice providing care | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `treating_dentist` | string | the dentist or hygienist of record | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `tooth_or_quadrant` | string | the labeled tooth or quadrant notation | `direct` | Read from the labeled notation. The charting-grid rule activates the domain; it does not confirm this value. a tooth number in prose is not a dental fact. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `procedure` | string | the labeled procedure as recorded or claimed | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `service date` | date | the labeled date of service | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `treatment plan phase` | string | the labeled phase or stage of a proposed plan | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `service_date` | date | the labeled date of service | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `treatment_plan_phase` | string | the labeled phase or stage of a proposed plan | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -761,13 +761,13 @@ Eye examinations, spectacle and contact-lens prescriptions, and ophthalmic treat
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `prescribing clinician` | string | the optometrist or ophthalmologist | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `prescribing_clinician` | string | the optometrist or ophthalmologist | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `practice` | string | the eye-care practice or dispensary | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `exam date` | date | the labeled examination date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `prescription expiry` | date | the labeled expiry date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `correction type` | string | spectacle, contact lens, or both as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `refraction values` | string | the per-eye refraction row as written | `direct` | Read from the labeled table, stored as written. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `exam_date` | date | the labeled examination date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `prescription_expiry` | date | the labeled expiry date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `correction_type` | string | spectacle, contact lens, or both as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `refraction_values` | string | the per-eye refraction row as written | `direct` | Read from the labeled table, stored as written. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -816,12 +816,12 @@ Documented allergies, intolerances, and the testing and emergency planning aroun
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `allergen` | string | the substance recorded, as labeled | `validated` | Confirmed by the allergy-list rule; a food or drug name in prose is not an allergy fact. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 | `reaction` | string | the labeled reaction field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `documenting clinician` | string | the clinician who recorded it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `onset or documented date` | date | the labeled date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `emergency plan` | string | the labeled action-plan document, where one exists | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `documenting_clinician` | string | the clinician who recorded it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `onset_or_documented_date` | date | the labeled date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `emergency_plan` | string | the labeled action-plan document, where one exists | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -871,12 +871,12 @@ The ongoing self-management of a diagnosed long-term condition: care plans, moni
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `condition` | string | the diagnosed condition the plan addresses, as labeled | `validated` | A condition fact only where a clinician-issued plan names it in a labeled field. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `care plan issuer` | string | the clinician or service that issued the plan | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `monitoring measure` | string | the labeled measure the log records | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `review date` | date | the labeled review or recall date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `plan period` | string | the labeled period the plan covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `care_plan_issuer` | string | the clinician or service that issued the plan | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `monitoring_measure` | string | the labeled measure the log records | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `review_date` | date | the labeled review or recall date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `plan_period` | string | the labeled period the plan covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -931,12 +931,12 @@ Antenatal, birth, and postnatal care records for one pregnancy.
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `care provider` | string | the obstetric practice, midwifery service or clinician | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `visit date` | date | the labeled appointment or scan date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `gestational dating` | string | the labeled dating or gestation field, stored as written | `direct` | Read from a labeled field only; the catalogue computes nothing and asserts no timeline. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `care setting` | string | the planned or actual place of birth, where labeled | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `record type` | string | antenatal, intrapartum or postnatal as the record labels it | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `care_provider` | string | the obstetric practice, midwifery service or clinician | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `visit_date` | date | the labeled appointment or scan date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `gestational_dating` | string | the labeled dating or gestation field, stored as written | `direct` | Read from a labeled field only; the catalogue computes nothing and asserts no timeline. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `care_setting` | string | the planned or actual place of birth, where labeled | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `record_type` | string | antenatal, intrapartum or postnatal as the record labels it | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 
 **Recognition**
 
@@ -978,7 +978,7 @@ Antenatal, birth, and postnatal care records for one pregnancy.
 
 **Open question**
 
-> This domain must not be given a default folder shape by the catalogue. A branch keyed on a due date, a child's name, or a pregnancy count encodes an assumption about an outcome — a pregnancy may have ended, may be one of several, or may be one the person does not want surfaced. The catalogue therefore proposes only `subject person` and `record type` and states plainly that any deeper default is Joseph's decision to make deliberately, not the catalogue's to assume.
+> This domain must not be given a default folder shape by the catalogue. A branch keyed on a due date, a child's name, or a pregnancy count encodes an assumption about an outcome — a pregnancy may have ended, may be one of several, or may be one the person does not want surfaced. The catalogue therefore proposes only `subject_person` and `record_type` and states plainly that any deeper default is Joseph's decision to make deliberately, not the catalogue's to assume.
 
 
 ### 16. `med.paediatric-child-health` — A child's health records held by a parent or guardian
@@ -991,12 +991,12 @@ Health records whose subject is a dependent child and whose holder is the parent
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the named child | `direct` | The subject is not the holder. This is the clearest case of §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | the named child | `direct` | The subject is not the holder. This is the clearest case of §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `guardian` | string | the parent or guardian named on the record | `direct` | A distinct role from the subject; it is also authorship-like and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' must not become a folder level on its own. |
-| `paediatric practice` | string | the practice or service providing care | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `visit date` | date | the labeled visit date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `record type` | string | well-child check, growth record, screening or referral as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `school or programme requirement` | string | the institution the record was produced for, where labeled | `direct` | An organisation role that belongs to the requesting institution, not to the clinical provider. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `paediatric_practice` | string | the practice or service providing care | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `visit_date` | date | the labeled visit date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `record_type` | string | well-child check, growth record, screening or referral as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `school_or_programme_requirement` | string | the institution the record was produced for, where labeled | `direct` | An organisation role that belongs to the requesting institution, not to the clinical provider. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
 
@@ -1047,12 +1047,12 @@ Records held by a carer about another adult's health and care: care coordination
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the person being cared for | `direct` | The holder is not the subject and is not the patient. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | the person being cared for | `direct` | The holder is not the subject and is not the patient. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `carer` | string | the person holding and acting on the record | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `authority instrument` | string | the named instrument granting authority to act, where one exists | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `care service` | string | the agency, facility or programme providing care | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `care period` | string | the labeled period a placement or package covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `coordination contact` | string | the named case manager or coordinator | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `authority_instrument` | string | the named instrument granting authority to act, where one exists | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `care_service` | string | the agency, facility or programme providing care | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `care_period` | string | the labeled period a placement or package covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `coordination_contact` | string | the named case manager or coordinator | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
 
@@ -1087,13 +1087,13 @@ Records held by a carer about another adult's health and care: care coordination
 |---|---|---|
 | `med.advance-directive` | a health power of attorney is both the authority a carer acts under and the cared-for person's own directive. | — |
 | `legal.power-of-attorney` | powers of attorney, guardianship and deputyship are legal instruments whose subject matter is health. | — |
-| `med.personal-health-record` | the carer's own records and the cared-for person's records sit in the same corpus and are separated only by `subject person`. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `med.personal-health-record` | the carer's own records and the cared-for person's records sit in the same corpus and are separated only by `subject_person`. | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Sensitivity:** `potentially_sensitive` — Another person's health and care arrangements — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
 
 **Open question**
 
-> When a corpus contains records for several people, does `subject person` become a top-level branch, a dimension inside a single medical branch, or a facet that is never a folder at all? §3.8 forbids using authorship or creator identity as a destination dimension, but the cared-for person is a subject, not an author, and for a carer it is the only structure that works. The catalogue proposes it as the first dimension and flags that the decision is Joseph's.
+> When a corpus contains records for several people, does `subject_person` become a top-level branch, a dimension inside a single medical branch, or a facet that is never a folder at all? §3.8 forbids using authorship or creator identity as a destination dimension, but the cared-for person is a subject, not an author, and for a carer it is the only structure that works. The catalogue proposes it as the first dimension and flags that the decision is Joseph's.
 
 
 ### 18. `med.advance-directive` — Advance directives and end-of-life instructions
@@ -1106,13 +1106,13 @@ Instruments stating a person's wishes for care and who may decide for them.
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the principal | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `instrument type` | string | the named instrument as titled | `validated` | Confirmed from the document's own title or heading, not from a mention elsewhere. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `designated agent` | string | the named health agent or proxy | `direct` | A role distinct from the principal and from any witness. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `execution date` | date | the labeled date executed | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `subject_person` | string | the principal | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `instrument_type` | string | the named instrument as titled | `validated` | Confirmed from the document's own title or heading, not from a mention elsewhere. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `designated_agent` | string | the named health agent or proxy | `direct` | A role distinct from the principal and from any witness. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `execution_date` | date | the labeled date executed | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
 | `jurisdiction` | string | the jurisdiction whose form is used, where the form states it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `witness or notary` | string | the attestation block as recorded | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `registered with` | string | any registry or facility holding a filed copy, where labeled | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `witness_or_notary` | string | the attestation block as recorded | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `registered_with` | string | any registry or facility holding a filed copy, where labeled | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
 
@@ -1163,14 +1163,14 @@ Clinical genetic results and consumer genomics exports about a person, and the f
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `test` | string | the named panel or assay | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `gene or region` | string | the gene or region reported on, as labeled | `validated` | Legal only inside this domain; an ordinary panel result must not be able to claim it. §4.8: 'each fact or label belongs to an allowed domain schema' |
+| `gene_or_region` | string | the gene or region reported on, as labeled | `validated` | Legal only inside this domain; an ordinary panel result must not be able to claim it. §4.8: 'each fact or label belongs to an allowed domain schema' |
 | `interpretation` | string | the report's own labeled classification or interpretation | `direct` | Stored as the report states it; the catalogue supplies no clinical meaning of its own. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `reporting laboratory` | string | the laboratory issuing the report | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `ordering provider` | string | the clinician or genetic counsellor who ordered it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `collection date` | date | the labeled specimen collection date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `export source` | string | the consumer platform that produced a raw-data export | `direct` | Read from the export's own header or manifest. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `reporting_laboratory` | string | the laboratory issuing the report | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `ordering_provider` | string | the clinician or genetic counsellor who ordered it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `collection_date` | date | the labeled specimen collection date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `export_source` | string | the consumer platform that produced a raw-data export | `direct` | Read from the export's own header or manifest. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -1221,15 +1221,15 @@ A person's own record of taking part in a study: consent, visit schedules, subje
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `trial` | string | the study as titled or registered | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `registration identifier` | string | the trial's labeled registry identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `registration_identifier` | string | the trial's labeled registry identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `sponsor` | string | the study sponsor | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `principal investigator` | string | the investigator named on the consent | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `principal_investigator` | string | the investigator named on the consent | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `site` | string | the participating site | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `subject identifier` | string | the participant identifier assigned to the person | `direct` | A labeled field, never a bare code found in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `consent version` | string | the labeled consent document version as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `visit date` | date | the labeled study visit date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `subject_identifier` | string | the participant identifier assigned to the person | `direct` | A labeled field, never a bare code found in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `consent_version` | string | the labeled consent document version as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `visit_date` | date | the labeled study visit date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
 
 **Recognition**
 
@@ -1281,13 +1281,13 @@ A trip taken to receive treatment: the clinical arrangements and the travel arra
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `treating facility` | string | the facility abroad or away from home | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `procedure or treatment` | string | the treatment the trip is for, as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `travel dates` | date | the labeled departure and return dates | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `treating_facility` | string | the facility abroad or away from home | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `procedure_or_treatment` | string | the treatment the trip is for, as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `travel_dates` | date | the labeled departure and return dates | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
 | `destination` | string | the place of treatment | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `purpose` | string | medical travel | `llm_supported` | Purpose is what holds the packet together, and it is exactly what rules cannot see. §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
-| `coordinating service` | string | any facilitator or medical-travel agency | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `coordinating_service` | string | any facilitator or medical-travel agency | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
 
@@ -1336,11 +1336,11 @@ Bulk exports from a consumer health platform, fitness tracker, or home monitorin
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `export source` | string | the platform or device that produced the export | `direct` | Read from the export container's own manifest or schema markers, not from its contents. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `export date` | date | the labeled export date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `coverage period` | string | the labeled period the export covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `measure set` | string | the measures the export contains, as the schema names them | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `subject_person` | string | self | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `export_source` | string | the platform or device that produced the export | `direct` | Read from the export container's own manifest or schema markers, not from its contents. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `export_date` | date | the labeled export date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `coverage_period` | string | the labeled period the export covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `measure_set` | string | the measures the export contains, as the schema names them | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 | `device` | string | the recording device, where the export names it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
@@ -1392,13 +1392,13 @@ A clinician's letter written for a third party: fitness for work or study, absen
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the person the letter is about | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `issuing clinician` | string | the clinician who signed it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `recipient organisation` | string | the employer, school, agency or insurer it is addressed to | `direct` | A third role again, and the one that decides which other slice also claims the file. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `certification purpose` | string | the labeled purpose the letter serves | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `certification period` | string | the labeled period certified, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `issue date` | date | the labeled date of the letter | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `restriction or accommodation` | string | the labeled restriction or accommodation stated | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `subject_person` | string | the person the letter is about | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `issuing_clinician` | string | the clinician who signed it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `recipient_organisation` | string | the employer, school, agency or insurer it is addressed to | `direct` | A third role again, and the one that decides which other slice also claims the file. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `certification_purpose` | string | the labeled purpose the letter serves | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `certification_period` | string | the labeled period certified, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `issue_date` | date | the labeled date of the letter | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `restriction_or_accommodation` | string | the labeled restriction or accommodation stated | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -1449,13 +1449,13 @@ Health assessment carried out because of a job: pre-placement examinations, expo
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the employee or candidate assessed | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | the employee or candidate assessed | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `employer` | string | the organisation requiring the assessment | `direct` | A third role, distinct from the assessing clinician and from the subject; it is also the role that hands the file to the career slice. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `assessing service` | string | the occupational health provider | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `assessment type` | string | the labeled assessment as the form names it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `exposure agent` | string | the hazard monitored, where the record labels one | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `assessing_service` | string | the occupational health provider | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `assessment_type` | string | the labeled assessment as the form names it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `exposure_agent` | string | the hazard monitored, where the record labels one | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 | `determination` | string | the labeled outcome or clearance statement | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `assessment date` | date | the labeled assessment date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `assessment_date` | date | the labeled assessment date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
 
 **Recognition**
 
@@ -1490,7 +1490,7 @@ Health assessment carried out because of a job: pre-placement examinations, expo
 | Domain | Signal that separates them | Design cite |
 |---|---|---|
 | `hr.health-safety` | the employer holds a copy and files it with employment records; the same document is a career artifact and a medical one. | §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.' |
-| `med.lab-result` | a workplace drug screen or bloodwork is a laboratory report whose recipient is an employer; `employer` must not be written into the lab schema as `ordering provider`. | §4.8: 'each fact or label belongs to an allowed domain schema' |
+| `med.lab-result` | a workplace drug screen or bloodwork is a laboratory report whose recipient is an employer; `employer` must not be written into the lab schema as `ordering_provider`. | §4.8: 'each fact or label belongs to an allowed domain schema' |
 | `med.medical-certification-letter` | a fitness determination is often issued as a letter, and the two domains overlap almost entirely for that work type. | — |
 
 **Sensitivity:** `potentially_sensitive` — Health assessment of a named person disclosed to their employer — 'potentially sensitive', which is §2.9's own phrase and the whole of what this field asserts. No handling class is set here; classification is P7's (§8.4).
@@ -1509,14 +1509,14 @@ What a person is covered for: the plan, its benefits schedule, its formulary, an
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the member or dependant covered | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | the member or dependant covered | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `payer` | string | the insurer or scheme | `direct` | Corresponds to the `institution` field §3.11 grants finance files, in a payer role. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `plan` | string | the named plan or product | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `member identifier` | string | the labeled member or subscriber identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `plan year` | string | the labeled plan or coverage year, as written | `direct` | The health analogue of the `tax year` field §3.11 grants finance files; read from a labeled field, never parsed loosely. §3.10: 'The product must not use fuzzy date parsing' |
-| `coverage period` | string | the labeled effective and termination dates, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `record type` | string | enrolment, benefits schedule, formulary or card as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `group or sponsor` | string | the employer or scheme sponsoring the plan | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `member_identifier` | string | the labeled member or subscriber identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `plan_year` | string | the labeled plan or coverage year, as written | `direct` | The health analogue of the `tax year` field §3.11 grants finance files; read from a labeled field, never parsed loosely. §3.10: 'The product must not use fuzzy date parsing' |
+| `coverage_period` | string | the labeled effective and termination dates, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `record_type` | string | enrolment, benefits schedule, formulary or card as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `group_or_sponsor` | string | the employer or scheme sponsoring the plan | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
 
@@ -1568,14 +1568,14 @@ What was claimed from a payer for a service and what the payer decided about it.
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the patient the service was for | `direct` | Distinct from the subscriber, who may be a different person on the same plan. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `claim number` | string | the payer's labeled claim identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `subject_person` | string | the patient the service was for | `direct` | Distinct from the subscriber, who may be a different person on the same plan. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `claim_number` | string | the payer's labeled claim identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `payer` | string | the insurer or scheme processing the claim | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `member identifier` | string | the labeled member or subscriber identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `service date` | date | the labeled date of service | `direct` | Distinct from the claim date, the statement date and the file's own timestamps. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `servicing provider` | string | the clinician or facility that delivered the service | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `claim status` | string | the labeled adjudication outcome as stated | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `service coding system` | string | the coding system the claim states it uses | `direct` | The system is named as a system. The catalogue lists no codes and asserts nothing about any code's meaning. |
+| `member_identifier` | string | the labeled member or subscriber identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `service_date` | date | the labeled date of service | `direct` | Distinct from the claim date, the statement date and the file's own timestamps. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `servicing_provider` | string | the clinician or facility that delivered the service | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `claim_status` | string | the labeled adjudication outcome as stated | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `service_coding_system` | string | the coding system the claim states it uses | `direct` | The system is named as a system. The catalogue lists no codes and asserts nothing about any code's meaning. |
 
 **Recognition**
 
@@ -1628,13 +1628,13 @@ What a clinician or facility charged a person, and the correspondence when that 
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the patient billed for | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `billing provider` | string | the clinician, practice or facility charging | `direct` | The provider role; distinct from the payer, who appears on the same page. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `patient account identifier` | string | the provider's labeled account or guarantor identifier | `direct` | The provider's own identifier, not the payer's claim number. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `service date` | date | the labeled date of service | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `statement date` | date | the labeled statement date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `patient responsibility` | string | the labeled amount-due field as written | `direct` | Stored as the document's own labeled value; no arithmetic is done here. |
-| `dispute status` | string | the labeled stage of a contested account | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `subject_person` | string | the patient billed for | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `billing_provider` | string | the clinician, practice or facility charging | `direct` | The provider role; distinct from the payer, who appears on the same page. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `patient_account_identifier` | string | the provider's labeled account or guarantor identifier | `direct` | The provider's own identifier, not the payer's claim number. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `service_date` | date | the labeled date of service | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `statement_date` | date | the labeled statement date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `patient_responsibility` | string | the labeled amount-due field as written | `direct` | Stored as the document's own labeled value; no arithmetic is done here. |
+| `dispute_status` | string | the labeled stage of a contested account | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -1687,12 +1687,12 @@ The longitudinal record a practice keeps about a patient, as a working file in t
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the patient | `direct` | Here the subject is never the holder, and a corpus holds many. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | the patient | `direct` | Here the subject is never the holder, and a corpus holds many. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `practice` | string | the practice or service holding the chart | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `chart identifier` | string | the practice's labeled record identifier | `direct` | A labeled field in an export, never a bare numeric string in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `record source` | string | the EHR or practice-management system that produced the file | `direct` | Provenance from the export's own producer metadata; this is what separates a clinician's chart from a student's exercise. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `chart period` | string | the labeled period the export covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `responsible clinician` | string | the clinician of record | `direct` | A role, and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' not a folder dimension. |
+| `chart_identifier` | string | the practice's labeled record identifier | `direct` | A labeled field in an export, never a bare numeric string in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `record_source` | string | the EHR or practice-management system that produced the file | `direct` | Provenance from the export's own producer metadata; this is what separates a clinician's chart from a student's exercise. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `chart_period` | string | the labeled period the export covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `responsible_clinician` | string | the clinician of record | `direct` | A role, and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' not a folder dimension. |
 
 **Recognition**
 
@@ -1747,12 +1747,12 @@ The record of one encounter, written by the clinician who conducted it.
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the patient seen | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `encounter date` | date | the labeled date of the encounter | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `authoring clinician` | string | the clinician who wrote and signed it | `direct` | Authorship, which per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' must not become a folder level. |
-| `note type` | string | the labeled note type as the template names it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `subject_person` | string | the patient seen | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `encounter_date` | date | the labeled date of the encounter | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `authoring_clinician` | string | the clinician who wrote and signed it | `direct` | Authorship, which per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' must not become a folder level. |
+| `note_type` | string | the labeled note type as the template names it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `practice` | string | the practice or service the encounter belongs to | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `record source` | string | the EHR that produced it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `record_source` | string | the EHR that produced it | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `attestation` | string | the labeled signature or attestation block as recorded | `direct` | The presence of a real attestation block is the only thing that reliably separates a working clinical note from an exercise that reproduces its structure. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
@@ -1805,13 +1805,13 @@ The clinician's stated plan of management for a patient, distinct from the note 
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the patient the plan is for | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `authoring clinician` | string | the clinician responsible for the plan | `direct` | §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' |
-| `condition addressed` | string | the labeled indication or problem | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `plan period` | string | the labeled period or review interval, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `plan status` | string | the labeled status as recorded | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `subject_person` | string | the patient the plan is for | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `authoring_clinician` | string | the clinician responsible for the plan | `direct` | §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' |
+| `condition_addressed` | string | the labeled indication or problem | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `plan_period` | string | the labeled period or review interval, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `plan_status` | string | the labeled status as recorded | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `practice` | string | the service delivering the plan | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `multidisciplinary participants` | string | other services named as contributing | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `multidisciplinary_participants` | string | other services named as contributing | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
 
@@ -1862,11 +1862,11 @@ Material prepared for or produced by a meeting at which specific cases are discu
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
 | `meeting` | string | the named board, conference or meeting series | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `meeting date` | date | the labeled date of the meeting | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `convening service` | string | the service or facility convening it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `case list` | string | the labeled list of cases scheduled | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `subject person` | string | a patient discussed, where the material names them | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `outcome or recommendation` | string | the labeled recorded outcome | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `meeting_date` | date | the labeled date of the meeting | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `convening_service` | string | the service or facility convening it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `case_list` | string | the labeled list of cases scheduled | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `subject_person` | string | a patient discussed, where the material names them | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `outcome_or_recommendation` | string | the labeled recorded outcome | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -1917,12 +1917,12 @@ A practitioner's authority to practise and the packets assembled to prove it to 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
 | `practitioner` | string | the licensed person | `direct` | The subject of the record is the holder here, which is the reverse of every patient-side domain. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `issuing board` | string | the licensing board, registrar or certifying body | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `licence type` | string | the named licence, registration or certification | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `licence identifier` | string | the labeled licence or registration number | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `licence status` | string | the labeled status as stated | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `expiration date` | date | the labeled expiry or renewal date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `credentialing organisation` | string | the hospital, network or payer requesting the packet | `direct` | A third role: who is asking, as opposed to who issued. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `issuing_board` | string | the licensing board, registrar or certifying body | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `licence_type` | string | the named licence, registration or certification | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `licence_identifier` | string | the labeled licence or registration number | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `licence_status` | string | the labeled status as stated | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `expiration_date` | date | the labeled expiry or renewal date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `credentialing_organisation` | string | the hospital, network or payer requesting the packet | `direct` | A third role: who is asking, as opposed to who issued. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `jurisdiction` | string | the jurisdiction the licence is valid in | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
@@ -1976,10 +1976,10 @@ Accredited learning a practitioner completes to maintain licensure or certificat
 |---|---|---|---|---|
 | `practitioner` | string | the participant | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `activity` | string | the named accredited activity | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `accrediting body` | string | the body accrediting the activity | `direct` | Distinct from the provider that ran it and from the board that requires it. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `credit designation` | string | the labeled credit type and amount as the certificate states it | `direct` | Stored exactly as designated; the catalogue asserts no credit values of its own. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `activity date` | date | the labeled completion date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `reporting cycle` | string | the labeled cycle the credit counts toward, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `accrediting_body` | string | the body accrediting the activity | `direct` | Distinct from the provider that ran it and from the board that requires it. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `credit_designation` | string | the labeled credit type and amount as the certificate states it | `direct` | Stored exactly as designated; the catalogue asserts no credit values of its own. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `activity_date` | date | the labeled completion date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `reporting_cycle` | string | the labeled cycle the credit counts toward, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `provider` | string | the organisation delivering the activity | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
@@ -2031,14 +2031,14 @@ Professional liability cover and the records of adverse events, complaints, and 
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `practitioner or facility` | string | the named insured or the service involved | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `practitioner_or_facility` | string | the named insured or the service involved | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `carrier` | string | the liability insurer | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `policy identifier` | string | the labeled policy number | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `coverage period` | string | the labeled policy period, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `incident identifier` | string | the labeled occurrence or incident reference | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `event date` | date | the labeled date of the occurrence | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `matter status` | string | the labeled stage of a claim or investigation | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `reporting body` | string | the regulator or programme the event was reported to | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `policy_identifier` | string | the labeled policy number | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `coverage_period` | string | the labeled policy period, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `incident_identifier` | string | the labeled occurrence or incident reference | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `event_date` | date | the labeled date of the occurrence | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `matter_status` | string | the labeled stage of a claim or investigation | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `reporting_body` | string | the regulator or programme the event was reported to | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
 
@@ -2089,12 +2089,12 @@ Outgoing letters a clinician writes about their patients, kept as the practice's
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `subject person` | string | the patient referred | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `referring clinician` | string | the clinician sending — here, the corpus owner | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `receiving service` | string | the service or clinician addressed | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `subject_person` | string | the patient referred | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `referring_clinician` | string | the clinician sending — here, the corpus owner | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `receiving_service` | string | the service or clinician addressed | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `specialty` | string | the service referred to | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `sent date` | date | the labeled date sent | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `reason for referral` | string | the labeled reason field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `sent_date` | date | the labeled date sent | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `reason_for_referral` | string | the labeled reason field | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `urgency` | string | the labeled urgency or pathway as stated | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `practice` | string | the sending practice | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
@@ -2148,12 +2148,12 @@ Institutional or published instructions for how a class of patients should be ma
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
 | `protocol` | string | the named protocol, pathway or guideline | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `issuing body` | string | the committee, society or institution issuing it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `issuing_body` | string | the committee, society or institution issuing it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `version` | string | the labeled version or revision as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `approval date` | date | the labeled approval or effective date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `review date` | date | the labeled scheduled review date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `approval_date` | date | the labeled approval or effective date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `review_date` | date | the labeled scheduled review date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `scope` | string | the population or setting the protocol applies to, as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `clinical area` | string | the service or specialty it governs | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `clinical_area` | string | the service or specialty it governs | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 
 **Recognition**
 
@@ -2204,14 +2204,14 @@ Material a clinician prepares to teach: lectures, case presentations, rounds dec
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `series or programme` | string | the named rounds series, course or teaching programme | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `presenting clinician` | string | the clinician delivering it | `direct` | §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' |
-| `session date` | date | the labeled date delivered | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `host institution` | string | the department or institution hosting it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `series_or_programme` | string | the named rounds series, course or teaching programme | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `presenting_clinician` | string | the clinician delivering it | `direct` | §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' |
+| `session_date` | date | the labeled date delivered | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `host_institution` | string | the department or institution hosting it | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `audience` | string | the labeled learner group | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `clinical topic` | string | the subject taught, as titled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `clinical_topic` | string | the subject taught, as titled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 | `accreditation` | string | any credit accreditation footer, where present | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `de-identification status` | string | whether the material states that case content is de-identified | `direct` | Recorded because case material may carry patient content whether or not it says so. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `de_identification_status` | string | whether the material states that case content is de-identified | `direct` | Recorded because case material may carry patient content whether or not it says so. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -2263,12 +2263,12 @@ Running a clinical practice as a business: staffing, rotas, contracts, complianc
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
 | `practice` | string | the practice or service | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `administrative function` | string | the labeled function the document serves | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `administrative_function` | string | the labeled function the document serves | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `counterparty` | string | the vendor, payer, landlord or contractor named | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `effective period` | string | the labeled period a contract, rota or policy covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `staff member` | string | the employee a record concerns | `direct` | A subject role, not authorship; and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' it is not a folder dimension. |
-| `service line` | string | the clinical service or site a rota or policy applies to | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `compliance regime` | string | the accreditation, inspection or regulatory scheme named | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `effective_period` | string | the labeled period a contract, rota or policy covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `staff_member` | string | the employee a record concerns | `direct` | A subject role, not authorship; and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' it is not a folder dimension. |
+| `service_line` | string | the clinical service or site a rota or policy applies to | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `compliance_regime` | string | the accreditation, inspection or regulatory scheme named | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
 
@@ -2321,12 +2321,12 @@ A specific device: what it is, who holds or received it, and its service or reca
 |---|---|---|---|---|
 | `device` | string | the device model as named on the record | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 | `manufacturer` | string | the manufacturer | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `device identifier` | string | the labeled unique-device or serial identifier | `direct` | A labeled identifier field, never a bare serial-shaped string found in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `subject person` | string | the recipient, where the device was implanted or issued | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `implant or issue date` | date | the labeled date placed or issued | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `holding facility` | string | the facility owning or servicing the device | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `service event` | string | the labeled maintenance, calibration or recall event | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `regulatory notice` | string | the labeled safety notice or field action, where one exists | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `device_identifier` | string | the labeled unique-device or serial identifier | `direct` | A labeled identifier field, never a bare serial-shaped string found in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `subject_person` | string | the recipient, where the device was implanted or issued | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `implant_or_issue_date` | date | the labeled date placed or issued | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `holding_facility` | string | the facility owning or servicing the device | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `service_event` | string | the labeled maintenance, calibration or recall event | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `regulatory_notice` | string | the labeled safety notice or field action, where one exists | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
 
@@ -2380,9 +2380,9 @@ Running a pharmacy: dispensing records, inventory, controlled-substance accounta
 | `pharmacy` | string | the dispensing pharmacy or department | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `registrant` | string | the registered pharmacist or registration holder | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `product` | string | the dispensed or stocked product as the record names it | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `product coding system` | string | the product coding system the record states it uses | `direct` | Named as a system only. The catalogue enumerates no codes. |
-| `record type` | string | dispensing, inventory, accountability or formulary as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `record period` | string | the labeled period the ledger covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `product_coding_system` | string | the product coding system the record states it uses | `direct` | Named as a system only. The catalogue enumerates no codes. |
+| `record_type` | string | dispensing, inventory, accountability or formulary as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `record_period` | string | the labeled period the ledger covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `supplier` | string | the wholesaler or supplier named | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 
 **Recognition**
@@ -2434,13 +2434,13 @@ Reports a clinician or facility is required to make to a health authority or reg
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `reporting facility` | string | the practice or facility making the report | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `receiving authority` | string | the health department, agency or registry receiving it | `direct` | A distinct role from the reporter; the direction of the report is the domain's whole shape. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `report type` | string | the labeled report or submission type | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `reportable condition or event` | string | the condition or event the report concerns, as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `report identifier` | string | the labeled case or submission reference | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `report date` | date | the labeled date submitted | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `reporting period` | string | the labeled period a batch submission covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `reporting_facility` | string | the practice or facility making the report | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `receiving_authority` | string | the health department, agency or registry receiving it | `direct` | A distinct role from the reporter; the direction of the report is the domain's whole shape. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `report_type` | string | the labeled report or submission type | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `reportable_condition_or_event` | string | the condition or event the report concerns, as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `report_identifier` | string | the labeled case or submission reference | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
+| `report_date` | date | the labeled date submitted | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `reporting_period` | string | the labeled period a batch submission covers, as written | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `jurisdiction` | string | the jurisdiction whose requirement is being met | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 
 **Recognition**
@@ -2492,14 +2492,14 @@ A veterinary clinician's working files: animal patient records, practice operati
 
 | Field | Type | Example | Ceiling | Why |
 |---|---|---|---|---|
-| `animal patient` | string | the animal seen | `direct` | The patient here is not a person, which is the field that keeps this domain out of the human ones. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `animal_patient` | string | the animal seen | `direct` | The patient here is not a person, which is the field that keeps this domain out of the human ones. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `species` | string | the labeled species | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `breed` | string | the labeled breed, where recorded | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
 | `owner` | string | the client responsible for the animal | `direct` | A person role distinct from the animal patient and from the attending veterinarian. §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `attending veterinarian` | string | the treating clinician | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
+| `attending_veterinarian` | string | the treating clinician | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `clinic` | string | the practice | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
-| `visit date` | date | the labeled visit date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
-| `record type` | string | consultation, procedure, vaccination or certificate as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `visit_date` | date | the labeled visit date | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `record_type` | string | consultation, procedure, vaccination or certificate as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
 
 **Recognition**
 
@@ -2555,8 +2555,8 @@ What a pet or livestock owner keeps: vaccination certificates, treatment records
 | `owner` | string | the holder of the records | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `clinic` | string | the veterinary practice providing care | `direct` | §3.8: 'The system must separate roles that happen to contain the same entity type.' |
 | `identifier` | string | the labeled microchip, tag or registration identifier | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' |
-| `record type` | string | vaccination, treatment, insurance or travel as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
-| `record date` | date | the labeled date on the record | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
+| `record_type` | string | vaccination, treatment, insurance or travel as labeled | `validated` | §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”' |
+| `record_date` | date | the labeled date on the record | `direct` | §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing' |
 
 **Recognition**
 
@@ -2655,7 +2655,7 @@ gets shaped into folders, which the contract puts outside this catalogue's autho
 
 **`med.personal-health-record`**
 
-> Should a person's own records and a dependant's records share one branch with `subject person` as the first dimension, or should each subject person get their own top-level branch? For a single-person corpus `subject person` produces exactly the one-child level §5.9 tells the product to warn about; for a caregiver it is the only sane first split. This is a default folder shape for someone's real family and is Joseph's call, not the catalogue's.
+> Should a person's own records and a dependant's records share one branch with `subject_person` as the first dimension, or should each subject person get their own top-level branch? For a single-person corpus `subject_person` produces exactly the one-child level §5.9 tells the product to warn about; for a caregiver it is the only sane first split. This is a default folder shape for someone's real family and is Joseph's call, not the catalogue's.
 
 **`med.lab-result`**
 
@@ -2675,11 +2675,11 @@ gets shaped into folders, which the contract puts outside this catalogue's autho
 
 **`med.pregnancy-maternity-record`**
 
-> This domain must not be given a default folder shape by the catalogue. A branch keyed on a due date, a child's name, or a pregnancy count encodes an assumption about an outcome — a pregnancy may have ended, may be one of several, or may be one the person does not want surfaced. The catalogue therefore proposes only `subject person` and `record type` and states plainly that any deeper default is Joseph's decision to make deliberately, not the catalogue's to assume.
+> This domain must not be given a default folder shape by the catalogue. A branch keyed on a due date, a child's name, or a pregnancy count encodes an assumption about an outcome — a pregnancy may have ended, may be one of several, or may be one the person does not want surfaced. The catalogue therefore proposes only `subject_person` and `record_type` and states plainly that any deeper default is Joseph's decision to make deliberately, not the catalogue's to assume.
 
 **`med.caregiving-dependant`**
 
-> When a corpus contains records for several people, does `subject person` become a top-level branch, a dimension inside a single medical branch, or a facet that is never a folder at all? §3.8 forbids using authorship or creator identity as a destination dimension, but the cared-for person is a subject, not an author, and for a carer it is the only structure that works. The catalogue proposes it as the first dimension and flags that the decision is Joseph's.
+> When a corpus contains records for several people, does `subject_person` become a top-level branch, a dimension inside a single medical branch, or a facet that is never a folder at all? §3.8 forbids using authorship or creator identity as a destination dimension, but the cared-for person is a subject, not an author, and for a carer it is the only structure that works. The catalogue proposes it as the first dimension and flags that the decision is Joseph's.
 
 **`med.clinician-patient-chart`**
 

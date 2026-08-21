@@ -11,42 +11,42 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "search cycle",
+          "field": "search_cycle",
           "type": "string",
           "example": "2026 spring search",
           "reliability_ceiling": "user_confirmed",
           "why": "No document states the boundaries of a search. Only the corpus owner can name the period; the engine may group by it but may not assert it."
         },
         {
-          "field": "target role family",
+          "field": "target_role_family",
           "type": "string",
           "example": "Product Manager",
           "reliability_ceiling": "llm_supported",
           "why": "A search plan states an intent in prose. There is no labeled field and no pattern; this is exactly the interpretation case."
         },
         {
-          "field": "target sector",
+          "field": "target_sector",
           "type": "string",
           "example": "Healthcare",
           "reliability_ceiling": "llm_supported",
           "why": "Same as target role family — stated as prose intent, not as a labeled value."
         },
         {
-          "field": "search document type",
+          "field": "search_document_type",
           "type": "enum-like",
           "example": "application tracker",
           "reliability_ceiling": "validated",
           "why": "A tracker is recognisable from co-occurring column headers, which is a deterministic rule passing a context check."
         },
         {
-          "field": "search channel",
+          "field": "search_channel",
           "type": "enum-like",
           "example": "referral",
           "reliability_ceiling": "validated",
           "why": "A channel word is only meaningful beside application-tracking headers; alone it is an ordinary English word."
         },
         {
-          "field": "tracked employer",
+          "field": "tracked_employer",
           "type": "string",
           "example": "Stripe",
           "reliability_ceiling": "possible",
@@ -82,8 +82,8 @@
       ],
       "template": {
         "dimension_order": [
-          "search cycle",
-          "search document type"
+          "search_cycle",
+          "search_document_type"
         ],
         "why": "A document type is only interpretable once the search period is known — §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ Time is not first: this is a record domain, and §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’",
         "time_first": false
@@ -120,42 +120,42 @@
           "why": "A gazetteer company name is only an employer when posting language surrounds it; that is the §3.5 ‘For example, BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”’ shape applied to a company name."
         },
         {
-          "field": "role title",
+          "field": "role_title",
           "type": "string",
           "example": "Senior Backend Engineer",
           "reliability_ceiling": "direct",
           "why": "On a saved posting the role title is the document title or the page heading — §3.5 ‘Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.’"
         },
         {
-          "field": "requisition id",
+          "field": "requisition_id",
           "type": "string",
           "example": "REQ-48213",
           "reliability_ceiling": "direct",
           "why": "Public postings carry a labeled ‘Job ID’ or ‘Requisition’ field, which is a labeled form field."
         },
         {
-          "field": "posting source",
+          "field": "posting_source",
           "type": "string",
           "example": "LinkedIn",
           "reliability_ceiling": "validated",
           "why": "A job-board host name is only a posting source when posting language is present; the same host name appears in unrelated saved pages."
         },
         {
-          "field": "work mode",
+          "field": "work_mode",
           "type": "string",
           "example": "Remote — US",
           "reliability_ceiling": "llm_supported",
           "why": "Work mode is stated in prose (‘this role may be performed remotely from any US state’) far more often than in a labeled field."
         },
         {
-          "field": "posted compensation range",
+          "field": "posted_compensation_range",
           "type": "string",
           "example": "$150,000 – $190,000",
           "reliability_ceiling": "direct",
           "why": "Where present it sits under a labeled ‘Base pay range’ or ‘Compensation’ heading; where absent it must stay unknown rather than be inferred from a level."
         },
         {
-          "field": "posting date",
+          "field": "posting_date",
           "type": "date",
           "example": "2026-03-04",
           "reliability_ceiling": "direct",
@@ -191,9 +191,9 @@
       ],
       "template": {
         "dimension_order": [
-          "search cycle",
+          "search_cycle",
           "employer",
-          "role title"
+          "role_title"
         ],
         "why": "Employer supplies the context that makes a role title readable — §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ Postings collected but never applied to have no cycle of their own, so §5.8 ‘One branch may require four levels, while another should remain flat.’",
         "time_first": false
@@ -230,49 +230,49 @@
           "why": "§5.4's ‘company’ dimension. A gazetteer name plus application language; a company name alone is never enough — §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’"
         },
         {
-          "field": "role title",
+          "field": "role_title",
           "type": "string",
           "example": "Assurance Staff",
           "reliability_ceiling": "validated",
           "why": "§5.4's ‘role’. Recognisable from a labeled position line in a confirmation or a cover-letter salutation line, both of which are context checks rather than bare patterns."
         },
         {
-          "field": "requisition id",
+          "field": "requisition_id",
           "type": "string",
           "example": "R-1049283",
           "reliability_ceiling": "direct",
           "why": "Application confirmations carry it as a labeled field, and it is the only value in this schema that identifies the application uniquely."
         },
         {
-          "field": "recruiting cycle",
+          "field": "recruiting_cycle",
           "type": "string",
           "example": "2026 Campus",
           "reliability_ceiling": "validated",
           "why": "§5.4's ‘recruiting cycle’. A cycle name is a term-shaped or season-shaped value that only means a cycle when employment language surrounds it."
         },
         {
-          "field": "application document type",
+          "field": "application_document_type",
           "type": "enum-like",
           "example": "cover letter",
           "reliability_ceiling": "validated",
           "why": "§5.4's ‘document type’. Recognisable from document structure; the enum itself is deferred — §3.11 ‘Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review.’"
         },
         {
-          "field": "application channel",
+          "field": "application_channel",
           "type": "string",
           "example": "Workday portal",
           "reliability_ceiling": "llm_supported",
           "why": "A portal is usually identified only by the visual chrome of a screenshot or by prose in a confirmation email."
         },
         {
-          "field": "submission date",
+          "field": "submission_date",
           "type": "date",
           "example": "2026-01-15",
           "reliability_ceiling": "direct",
           "why": "A labeled ‘Submitted’ or ‘Date received’ line on a confirmation. No other date on the packet may fill it."
         },
         {
-          "field": "application status",
+          "field": "application_status",
           "type": "enum-like",
           "example": "submitted",
           "reliability_ceiling": "llm_supported",
@@ -322,9 +322,9 @@
       "template": {
         "dimension_order": [
           "employer",
-          "recruiting cycle",
-          "role title",
-          "application document type"
+          "recruiting_cycle",
+          "role_title",
+          "application_document_type"
         ],
         "why": "§5.4 gives the Career template as §5.4 ‘a Career template may define company → role or recruiting cycle → document type’ and §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ The order below reads the ‘or’ as cycle-then-role; see the open question, because the design does not settle it. §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’",
         "time_first": false
@@ -371,14 +371,14 @@
           "why": "The design's own worked label is a career packet named for its employer; a gazetteer name plus internship language establishes it."
         },
         {
-          "field": "programme name",
+          "field": "programme_name",
           "type": "string",
           "example": "Summer Analyst Program",
           "reliability_ceiling": "direct",
           "why": "Campus programmes are named in the document title or the offer heading, which is a document-title source."
         },
         {
-          "field": "cohort term",
+          "field": "cohort_term",
           "type": "string",
           "example": "Summer 2026",
           "reliability_ceiling": "validated",
@@ -392,21 +392,21 @@
           "why": "A university name here is the candidate's own school, not a target — a role distinction §3.8 requires and §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’"
         },
         {
-          "field": "class year",
+          "field": "class_year",
           "type": "string",
           "example": "2027",
           "reliability_ceiling": "possible",
           "why": "A class year is a year-shaped value that appears on resumes, transcripts and postings alike. It is a clue for cohort grouping, never an asserted fact on its own."
         },
         {
-          "field": "application round",
+          "field": "application_round",
           "type": "enum-like",
           "example": "first-round deadline",
           "reliability_ceiling": "llm_supported",
           "why": "Rounds are described in prose deadlines and portal copy rather than as labeled fields."
         },
         {
-          "field": "application document type",
+          "field": "application_document_type",
           "type": "enum-like",
           "example": "campus resume",
           "reliability_ceiling": "validated",
@@ -444,8 +444,8 @@
       "template": {
         "dimension_order": [
           "employer",
-          "cohort term",
-          "application document type"
+          "cohort_term",
+          "application_document_type"
         ],
         "why": "Employer before cohort term, because a cohort term is ambiguous without it — §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’ even though the cohort term looks temporal: it names a programme intake, not a calendar.",
         "time_first": false
@@ -494,28 +494,28 @@
           "why": "A department name is only a hiring unit when faculty-search language surrounds it; otherwise it is an affiliation on a paper."
         },
         {
-          "field": "position type",
+          "field": "position_type",
           "type": "enum-like",
           "example": "tenure-track assistant professor",
           "reliability_ceiling": "validated",
           "why": "Recognisable from a closed vocabulary of rank terms co-occurring with search language."
         },
         {
-          "field": "search cycle",
+          "field": "search_cycle",
           "type": "string",
           "example": "AY 2026-27",
           "reliability_ceiling": "validated",
           "why": "An academic-year pattern is one §3.10 names explicitly, and it means a search only beside faculty-search language."
         },
         {
-          "field": "job ad number",
+          "field": "job_ad_number",
           "type": "string",
           "example": "F-2291",
           "reliability_ceiling": "direct",
           "why": "Faculty adverts carry a labeled posting number, and application systems echo it."
         },
         {
-          "field": "packet document type",
+          "field": "packet_document_type",
           "type": "enum-like",
           "example": "research statement",
           "reliability_ceiling": "validated",
@@ -561,9 +561,9 @@
       ],
       "template": {
         "dimension_order": [
-          "search cycle",
+          "search_cycle",
           "institution",
-          "packet document type"
+          "packet_document_type"
         ],
         "why": "Season before institution here, unusually: an academic job market is run as one bulk annual campaign and the statements are shared across institutions, so institution-first would duplicate near-identical files. §5.5 ‘The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.’",
         "time_first": false
@@ -603,42 +603,42 @@
       "design_cite": "§6.9 ‘A transcript may be part of several application packets; a resume may support multiple recruiting processes; a research abstract may belong to a research project and be attached to a university application.’",
       "schema": [
         {
-          "field": "document variant",
+          "field": "document_variant",
           "type": "enum-like",
           "example": "resume",
           "reliability_ceiling": "validated",
           "why": "Recognisable from co-occurring section headings, which is a rule passing a context check rather than a filename match."
         },
         {
-          "field": "tailored for employer",
+          "field": "tailored_for_employer",
           "type": "string",
           "example": "Deloitte",
           "reliability_ceiling": "validated",
           "why": "A gazetteer employer name in the filename or headline zone of a document whose body carries resume headings. Positional weighting is doing the work — §3.7 ‘It should use word-boundary matching rather than substring matching. Without this rule, names such as MIT can be found inside “submit,” and UNC can be found inside “uncertainty,” producing polished but completely false filing paths.’"
         },
         {
-          "field": "tailored for role",
+          "field": "tailored_for_role",
           "type": "string",
           "example": "Data Analyst",
           "reliability_ceiling": "llm_supported",
           "why": "Tailoring to a role usually shows only as a rewritten summary paragraph, which is interpretation."
         },
         {
-          "field": "resume version label",
+          "field": "resume_version_label",
           "type": "string",
           "example": "v4",
           "reliability_ceiling": "possible",
           "why": "A filename suffix is never sufficient on its own to establish version-family membership; it is a clue for review."
         },
         {
-          "field": "format variant",
+          "field": "format_variant",
           "type": "enum-like",
           "example": "ATS plain text",
           "reliability_ceiling": "validated",
           "why": "Distinguishable structurally — a single-column, table-free layout versus a designed multi-column one."
         },
         {
-          "field": "contains personal contact block",
+          "field": "contains_personal_contact_block",
           "type": "boolean",
           "example": "true",
           "reliability_ceiling": "direct",
@@ -677,8 +677,8 @@
       ],
       "template": {
         "dimension_order": [
-          "document variant",
-          "recruiting cycle"
+          "document_variant",
+          "recruiting_cycle"
         ],
         "why": "Shallow on purpose. A resume set is small and heavily interlinked, and §5.8 ‘One branch may require four levels, while another should remain flat.’ Forcing employer levels here would scatter a version family across branches.",
         "time_first": false
@@ -718,7 +718,7 @@
       "design_cite": "§6.9 ‘A transcript may be part of several application packets; a resume may support multiple recruiting processes; a research abstract may belong to a research project and be attached to a university application.’",
       "schema": [
         {
-          "field": "cv section",
+          "field": "cv_section",
           "type": "enum-like",
           "example": "Publications",
           "reliability_ceiling": "validated",
@@ -732,28 +732,28 @@
           "why": "Discipline is inferred from the content of the publication and teaching lists, never stated as a field."
         },
         {
-          "field": "academic rank",
+          "field": "academic_rank",
           "type": "string",
           "example": "Postdoctoral Fellow",
           "reliability_ceiling": "validated",
           "why": "A closed rank vocabulary co-occurring with an institutional affiliation line."
         },
         {
-          "field": "cv variant",
+          "field": "cv_variant",
           "type": "enum-like",
           "example": "NIH biosketch",
           "reliability_ceiling": "validated",
           "why": "Funder-mandated variants carry fixed mandatory headings that identify them exactly."
         },
         {
-          "field": "institutional affiliation",
+          "field": "institutional_affiliation",
           "type": "string",
           "example": "Rockefeller University",
           "reliability_ceiling": "validated",
           "why": "Here a university name is the author's own affiliation — a third distinct role beyond target and employer. §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’"
         },
         {
-          "field": "contains personal contact block",
+          "field": "contains_personal_contact_block",
           "type": "boolean",
           "example": "true",
           "reliability_ceiling": "direct",
@@ -791,8 +791,8 @@
       ],
       "template": {
         "dimension_order": [
-          "cv variant",
-          "search cycle"
+          "cv_variant",
+          "search_cycle"
         ],
         "why": "Variant first, because a biosketch and a full CV are different documents rather than versions of one. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
         "time_first": false
@@ -834,7 +834,7 @@
           "why": "A gazetteer name in the addressee block of a document with letter structure. The addressee block is a positional signal — §3.7 ‘It should use word-boundary matching rather than substring matching. Without this rule, names such as MIT can be found inside “submit,” and UNC can be found inside “uncertainty,” producing polished but completely false filing paths.’"
         },
         {
-          "field": "role title",
+          "field": "role_title",
           "type": "string",
           "example": "Trainee Solicitor",
           "reliability_ceiling": "llm_supported",
@@ -848,21 +848,21 @@
           "why": "A letter's salutation and address block are a labeled structural region."
         },
         {
-          "field": "letter date",
+          "field": "letter_date",
           "type": "date",
           "example": "2026-02-11",
           "reliability_ceiling": "direct",
           "why": "A letter carries its date in a fixed position; this is not the file's creation date."
         },
         {
-          "field": "letter type",
+          "field": "letter_type",
           "type": "enum-like",
           "example": "speculative letter of interest",
           "reliability_ceiling": "llm_supported",
           "why": "Whether a letter answers a posting or is unsolicited is only visible in its prose."
         },
         {
-          "field": "source template",
+          "field": "source_template",
           "type": "string",
           "example": "generic-consulting-v2",
           "reliability_ceiling": "possible",
@@ -898,7 +898,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "recruiting cycle"
+          "recruiting_cycle"
         ],
         "why": "Employer first, because a letter is meaningless without its addressee. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
         "time_first": false
@@ -933,7 +933,7 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "portfolio piece type",
+          "field": "portfolio_piece_type",
           "type": "enum-like",
           "example": "case study",
           "reliability_ceiling": "validated",
@@ -947,28 +947,28 @@
           "why": "Discipline is read from the content of the work itself."
         },
         {
-          "field": "subject organisation",
+          "field": "subject_organisation",
           "type": "string",
           "example": "Monzo",
           "reliability_ceiling": "validated",
           "why": "The organisation the work was done for. This is neither employer nor client in the recruiting sense — it is the subject of a shown artifact, a fourth role."
         },
         {
-          "field": "showing permission",
+          "field": "showing_permission",
           "type": "enum-like",
           "example": "public case study",
           "reliability_ceiling": "llm_supported",
           "why": "Permission is stated in prose or implied by an accompanying agreement; it is exactly the field that must never be guessed."
         },
         {
-          "field": "target audience",
+          "field": "target_audience",
           "type": "string",
           "example": "design hiring managers",
           "reliability_ceiling": "llm_supported",
           "why": "Stated only in framing prose where stated at all."
         },
         {
-          "field": "presentation format",
+          "field": "presentation_format",
           "type": "enum-like",
           "example": "PDF deck",
           "reliability_ceiling": "direct",
@@ -1007,8 +1007,8 @@
       "template": {
         "dimension_order": [
           "discipline",
-          "subject organisation",
-          "portfolio piece type"
+          "subject_organisation",
+          "portfolio_piece_type"
         ],
         "why": "Subject organisation supplies the context a piece type needs — §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ Not authored by employer: §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’",
         "time_first": false
@@ -1050,14 +1050,14 @@
           "why": "A gazetteer name plus interview language. §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’"
         },
         {
-          "field": "role title",
+          "field": "role_title",
           "type": "string",
           "example": "Staff Engineer",
           "reliability_ceiling": "llm_supported",
           "why": "Interview correspondence names the role in prose far more often than in a field."
         },
         {
-          "field": "recruiting cycle",
+          "field": "recruiting_cycle",
           "type": "string",
           "example": "2026 H1",
           "reliability_ceiling": "validated",
@@ -1071,7 +1071,7 @@
           "why": "Stage vocabulary — screen, phone, loop, panel, final — is closed and recognisable beside scheduling language."
         },
         {
-          "field": "interview date",
+          "field": "interview_date",
           "type": "date",
           "example": "2026-04-09",
           "reliability_ceiling": "direct",
@@ -1085,7 +1085,7 @@
           "why": "Names appear in invitations and schedules but a name alone establishes nothing."
         },
         {
-          "field": "interview format",
+          "field": "interview_format",
           "type": "enum-like",
           "example": "system design",
           "reliability_ceiling": "llm_supported",
@@ -1125,7 +1125,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "recruiting cycle",
+          "recruiting_cycle",
           "stage"
         ],
         "why": "Stage is unreadable without the employer and cycle that contain it — §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’ even though every stage carries a date.",
@@ -1168,28 +1168,28 @@
           "why": "A gazetteer name inside an assessment brief; the brief is the only place it appears."
         },
         {
-          "field": "role title",
+          "field": "role_title",
           "type": "string",
           "example": "Data Scientist",
           "reliability_ceiling": "llm_supported",
           "why": "Named in the brief's prose framing."
         },
         {
-          "field": "assessment type",
+          "field": "assessment_type",
           "type": "enum-like",
           "example": "take-home exercise",
           "reliability_ceiling": "validated",
           "why": "A closed vocabulary — take-home, online assessment, case study, work sample, live exercise — beside assessment language."
         },
         {
-          "field": "assessment platform",
+          "field": "assessment_platform",
           "type": "string",
           "example": "HackerRank",
           "reliability_ceiling": "validated",
           "why": "A platform host name co-occurring with assessment language; the same host name in a bookmark means nothing."
         },
         {
-          "field": "brief or submission",
+          "field": "brief_or_submission",
           "type": "enum-like",
           "example": "submission",
           "reliability_ceiling": "validated",
@@ -1203,7 +1203,7 @@
           "why": "Briefs carry a labeled due date."
         },
         {
-          "field": "stack or language",
+          "field": "stack_or_language",
           "type": "string",
           "example": "Python",
           "reliability_ceiling": "validated",
@@ -1241,8 +1241,8 @@
       "template": {
         "dimension_order": [
           "employer",
-          "recruiting cycle",
-          "assessment type"
+          "recruiting_cycle",
+          "assessment_type"
         ],
         "why": "Employer first: an exercise divorced from its employer is indistinguishable from a personal project. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
         "time_first": false
@@ -1284,49 +1284,49 @@
           "why": "A gazetteer name on a document carrying offer language; the letterhead position adds weight — §3.7 ‘It should use word-boundary matching rather than substring matching. Without this rule, names such as MIT can be found inside “submit,” and UNC can be found inside “uncertainty,” producing polished but completely false filing paths.’"
         },
         {
-          "field": "role title",
+          "field": "role_title",
           "type": "string",
           "example": "Regulatory Affairs Manager",
           "reliability_ceiling": "validated",
           "why": "Offer letters state the position on a labeled line beside offer language."
         },
         {
-          "field": "start date",
+          "field": "start_date",
           "type": "date",
           "example": "2026-09-01",
           "reliability_ceiling": "direct",
           "why": "A labeled ‘start date’ or ‘commencement date’ line. It is not the letter's date and not the file's creation date."
         },
         {
-          "field": "offer date",
+          "field": "offer_date",
           "type": "date",
           "example": "2026-06-14",
           "reliability_ceiling": "direct",
           "why": "The letter's own labeled date."
         },
         {
-          "field": "compensation component",
+          "field": "compensation_component",
           "type": "enum-like",
           "example": "base salary",
           "reliability_ceiling": "validated",
           "why": "Components — base, bonus, signing, relocation, equity — appear as labeled lines in a compensation table."
         },
         {
-          "field": "offer status",
+          "field": "offer_status",
           "type": "enum-like",
           "example": "accepted",
           "reliability_ceiling": "llm_supported",
           "why": "Status lives in correspondence prose and countersignature, not in a field."
         },
         {
-          "field": "offer expiry",
+          "field": "offer_expiry",
           "type": "date",
           "example": "2026-06-21",
           "reliability_ceiling": "direct",
           "why": "Stated as a labeled response-by line where present."
         },
         {
-          "field": "competing employer",
+          "field": "competing_employer",
           "type": "string",
           "example": "Roche",
           "reliability_ceiling": "possible",
@@ -1366,8 +1366,8 @@
       "template": {
         "dimension_order": [
           "employer",
-          "recruiting cycle",
-          "offer status"
+          "recruiting_cycle",
+          "offer_status"
         ],
         "why": "Employer first — an offer is only interpretable against the employer making it. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ Revisions of one offer are a version family, not separate branches.",
         "time_first": false
@@ -1407,7 +1407,7 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "subject of reference",
+          "field": "subject_of_reference",
           "type": "string",
           "example": "the corpus owner",
           "reliability_ceiling": "llm_supported",
@@ -1421,14 +1421,14 @@
           "why": "The author of the statement; a signature block is structural but attributing it needs interpretation."
         },
         {
-          "field": "referee organisation",
+          "field": "referee_organisation",
           "type": "string",
           "example": "Kings College Hospital",
           "reliability_ceiling": "validated",
           "why": "A gazetteer organisation name inside a signature block or letterhead."
         },
         {
-          "field": "relationship to subject",
+          "field": "relationship_to_subject",
           "type": "string",
           "example": "former line manager",
           "reliability_ceiling": "llm_supported",
@@ -1442,14 +1442,14 @@
           "why": "The letter's address block."
         },
         {
-          "field": "reference type",
+          "field": "reference_type",
           "type": "enum-like",
           "example": "employment reference",
           "reliability_ceiling": "validated",
           "why": "Employment references, academic recommendations, character references and reference-check forms are structurally distinguishable."
         },
         {
-          "field": "letter date",
+          "field": "letter_date",
           "type": "date",
           "example": "2026-03-02",
           "reliability_ceiling": "direct",
@@ -1486,9 +1486,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject of reference",
-          "reference type",
-          "recruiting cycle"
+          "subject_of_reference",
+          "reference_type",
+          "recruiting_cycle"
         ],
         "why": "Subject before everything, because a letter about the owner and a letter the owner wrote about someone else must never share a branch. Not referee-first: §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’",
         "time_first": false
@@ -1530,35 +1530,35 @@
           "why": "A gazetteer name beside onboarding language; forms carry it in a labeled employer field."
         },
         {
-          "field": "form type",
+          "field": "form_type",
           "type": "enum-like",
           "example": "tax withholding form",
           "reliability_ceiling": "validated",
           "why": "Intake forms are named documents with fixed titles and fixed labeled fields."
         },
         {
-          "field": "tax jurisdiction",
+          "field": "tax_jurisdiction",
           "type": "string",
           "example": "California",
           "reliability_ceiling": "direct",
           "why": "A labeled jurisdiction field on the form itself."
         },
         {
-          "field": "effective date",
+          "field": "effective_date",
           "type": "date",
           "example": "2026-09-01",
           "reliability_ceiling": "direct",
           "why": "A labeled effective or start line."
         },
         {
-          "field": "submission status",
+          "field": "submission_status",
           "type": "enum-like",
           "example": "signed and returned",
           "reliability_ceiling": "llm_supported",
           "why": "Whether a form was completed is visible from signature presence and correspondence, not from a field."
         },
         {
-          "field": "carries government identifier",
+          "field": "carries_government_identifier",
           "type": "boolean",
           "example": "true",
           "reliability_ceiling": "direct",
@@ -1597,7 +1597,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "form type"
+          "form_type"
         ],
         "why": "Two levels only: an intake pack is small and arrives once. §5.8 ‘One branch may require four levels, while another should remain flat.’",
         "time_first": false
@@ -1639,42 +1639,42 @@
           "why": "The contracting party, named in the parties clause — a labeled structural region."
         },
         {
-          "field": "contract type",
+          "field": "contract_type",
           "type": "enum-like",
           "example": "fixed-term",
           "reliability_ceiling": "validated",
           "why": "A closed vocabulary — permanent, fixed-term, at-will, zero-hours, secondment — recognisable beside contract language."
         },
         {
-          "field": "effective date",
+          "field": "effective_date",
           "type": "date",
           "example": "2026-09-01",
           "reliability_ceiling": "direct",
           "why": "A labeled commencement clause."
         },
         {
-          "field": "term end date",
+          "field": "term_end_date",
           "type": "date",
           "example": "2028-08-31",
           "reliability_ceiling": "possible",
           "why": "Present only in fixed-term contracts, and often expressed as a duration rather than a date; a duration must not be turned into a date."
         },
         {
-          "field": "governing law",
+          "field": "governing_law",
           "type": "string",
           "example": "England and Wales",
           "reliability_ceiling": "direct",
           "why": "A labeled governing-law clause. This is the field that most cleanly separates a contract from an offer."
         },
         {
-          "field": "clause type",
+          "field": "clause_type",
           "type": "enum-like",
           "example": "notice period",
           "reliability_ceiling": "validated",
           "why": "Clause headings are structural and closed enough to enumerate."
         },
         {
-          "field": "amendment of",
+          "field": "amendment_of",
           "type": "string",
           "example": "the 2026 contract",
           "reliability_ceiling": "possible",
@@ -1712,7 +1712,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "contract type"
+          "contract_type"
         ],
         "why": "Employer first — a contract is defined by its counterparty. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ Amendments belong beside their parent rather than under a date.",
         "time_first": false
@@ -1759,42 +1759,42 @@
           "why": "The organisation the obligation runs to. It may be an employer, a client, or a company the owner merely interviewed with — three roles, one field, which is why the counterparty role must be recorded separately."
         },
         {
-          "field": "counterparty role",
+          "field": "counterparty_role",
           "type": "enum-like",
           "example": "prospective employer",
           "reliability_ceiling": "llm_supported",
           "why": "Only the surrounding correspondence says whether the NDA was signed as an employee, a contractor, or a candidate."
         },
         {
-          "field": "agreement type",
+          "field": "agreement_type",
           "type": "enum-like",
           "example": "invention assignment",
           "reliability_ceiling": "validated",
           "why": "A closed vocabulary with distinctive clause headings."
         },
         {
-          "field": "effective date",
+          "field": "effective_date",
           "type": "date",
           "example": "2026-08-19",
           "reliability_ceiling": "direct",
           "why": "A labeled effective-date clause."
         },
         {
-          "field": "restriction duration",
+          "field": "restriction_duration",
           "type": "string",
           "example": "twelve months from termination",
           "reliability_ceiling": "direct",
           "why": "Stated as a labeled term clause. Recorded as its stated text; converting a duration into a date would invent a fact."
         },
         {
-          "field": "restriction scope",
+          "field": "restriction_scope",
           "type": "string",
           "example": "the United Kingdom",
           "reliability_ceiling": "llm_supported",
           "why": "Geographic and field-of-work scope is defined in prose that has to be read."
         },
         {
-          "field": "assignment scope",
+          "field": "assignment_scope",
           "type": "string",
           "example": "inventions arising from the work",
           "reliability_ceiling": "llm_supported",
@@ -1833,7 +1833,7 @@
       "template": {
         "dimension_order": [
           "counterparty",
-          "agreement type"
+          "agreement_type"
         ],
         "why": "Counterparty first, because the whole value of the record is knowing who an obligation is owed to. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
         "time_first": false
@@ -1868,49 +1868,49 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "sponsoring employer",
+          "field": "sponsoring_employer",
           "type": "string",
           "example": "Infosys",
           "reliability_ceiling": "validated",
           "why": "The petitioner. A gazetteer name inside a petition's labeled petitioner field."
         },
         {
-          "field": "authorisation category",
+          "field": "authorisation_category",
           "type": "string",
           "example": "H-1B",
           "reliability_ceiling": "validated",
           "why": "Category codes are a closed, jurisdiction-specific vocabulary that only means status beside immigration language."
         },
         {
-          "field": "issuing country",
+          "field": "issuing_country",
           "type": "string",
           "example": "United States",
           "reliability_ceiling": "direct",
           "why": "A labeled issuing-authority field."
         },
         {
-          "field": "case or receipt number",
+          "field": "case_or_receipt_number",
           "type": "string",
           "example": "EAC2690123456",
           "reliability_ceiling": "direct",
           "why": "A labeled receipt or case-number field on the notice itself."
         },
         {
-          "field": "validity start",
+          "field": "validity_start",
           "type": "date",
           "example": "2026-10-01",
           "reliability_ceiling": "direct",
           "why": "A labeled validity-from line."
         },
         {
-          "field": "validity end",
+          "field": "validity_end",
           "type": "date",
           "example": "2029-09-30",
           "reliability_ceiling": "direct",
           "why": "A labeled validity-to line. This is the one date in the slice whose expiry actually matters to the owner."
         },
         {
-          "field": "beneficiary relationship",
+          "field": "beneficiary_relationship",
           "type": "enum-like",
           "example": "self",
           "reliability_ceiling": "llm_supported",
@@ -1950,8 +1950,8 @@
       ],
       "template": {
         "dimension_order": [
-          "sponsoring employer",
-          "authorisation category"
+          "sponsoring_employer",
+          "authorisation_category"
         ],
         "why": "Employer first where the authorisation is employer-tied; where it is not, the branch flattens to category alone — §5.8 ‘One branch may require four levels, while another should remain flat.’",
         "time_first": false
@@ -1998,35 +1998,35 @@
           "why": "The paying entity, in the payslip's labeled employer field. It is the employer role, not an account holder — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’"
         },
         {
-          "field": "payroll document type",
+          "field": "payroll_document_type",
           "type": "enum-like",
           "example": "payslip",
           "reliability_ceiling": "validated",
           "why": "Payslips, year-end summaries and adjustment statements have fixed labeled layouts."
         },
         {
-          "field": "pay period",
+          "field": "pay_period",
           "type": "string",
           "example": "2026-03",
           "reliability_ceiling": "direct",
           "why": "A labeled pay-period field."
         },
         {
-          "field": "pay date",
+          "field": "pay_date",
           "type": "date",
           "example": "2026-03-27",
           "reliability_ceiling": "direct",
           "why": "A labeled payment-date field, distinct from the period."
         },
         {
-          "field": "tax year",
+          "field": "tax_year",
           "type": "string",
           "example": "2026-27",
           "reliability_ceiling": "direct",
           "why": "A labeled tax-year field. §3.11 gives Finance a ‘tax year’ field; this is the same concept reached from the employment side, and the two must resolve to one value, not two."
         },
         {
-          "field": "employee identifier",
+          "field": "employee_identifier",
           "type": "string",
           "example": "EMP-88213",
           "reliability_ceiling": "direct",
@@ -2072,8 +2072,8 @@
       "template": {
         "dimension_order": [
           "employer",
-          "tax year",
-          "payroll document type"
+          "tax_year",
+          "payroll_document_type"
         ],
         "why": "Employer before year: §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’ and §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ A person with two employers in one year needs the employer level to keep the two series apart.",
         "time_first": false
@@ -2115,14 +2115,14 @@
           "why": "The sponsoring employer, in a labeled sponsor field."
         },
         {
-          "field": "benefit type",
+          "field": "benefit_type",
           "type": "enum-like",
           "example": "dental",
           "reliability_ceiling": "validated",
           "why": "A closed vocabulary of benefit lines recognisable beside enrolment language."
         },
         {
-          "field": "plan year",
+          "field": "plan_year",
           "type": "string",
           "example": "2027",
           "reliability_ceiling": "direct",
@@ -2136,21 +2136,21 @@
           "why": "The insurer is a different organisation from the employer — two organisation roles on one document."
         },
         {
-          "field": "plan name",
+          "field": "plan_name",
           "type": "string",
           "example": "PPO Choice Plus",
           "reliability_ceiling": "direct",
           "why": "A labeled plan-name field."
         },
         {
-          "field": "enrolment status",
+          "field": "enrolment_status",
           "type": "enum-like",
           "example": "elected",
           "reliability_ceiling": "llm_supported",
           "why": "Whether an election was completed is stated in confirmation prose."
         },
         {
-          "field": "covers dependants",
+          "field": "covers_dependants",
           "type": "boolean",
           "example": "true",
           "reliability_ceiling": "direct",
@@ -2189,8 +2189,8 @@
       "template": {
         "dimension_order": [
           "employer",
-          "plan year",
-          "benefit type"
+          "plan_year",
+          "benefit_type"
         ],
         "why": "Employer then plan year: benefits reset annually but belong to the employment that sponsors them. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
         "time_first": false
@@ -2232,42 +2232,42 @@
           "why": "The granting company, in the grant agreement's parties clause."
         },
         {
-          "field": "grant type",
+          "field": "grant_type",
           "type": "enum-like",
           "example": "RSU",
           "reliability_ceiling": "validated",
           "why": "A closed vocabulary — ISO, NSO, RSU, RSA, SAR, phantom — recognisable beside equity language."
         },
         {
-          "field": "grant identifier",
+          "field": "grant_identifier",
           "type": "string",
           "example": "GR-2026-0417",
           "reliability_ceiling": "direct",
           "why": "A labeled grant-number field."
         },
         {
-          "field": "grant date",
+          "field": "grant_date",
           "type": "date",
           "example": "2026-02-15",
           "reliability_ceiling": "direct",
           "why": "A labeled grant-date field."
         },
         {
-          "field": "vesting start",
+          "field": "vesting_start",
           "type": "date",
           "example": "2026-03-01",
           "reliability_ceiling": "direct",
           "why": "A labeled vesting-commencement field, routinely different from the grant date."
         },
         {
-          "field": "plan name",
+          "field": "plan_name",
           "type": "string",
           "example": "2021 Equity Incentive Plan",
           "reliability_ceiling": "direct",
           "why": "A labeled plan-name reference."
         },
         {
-          "field": "equity document type",
+          "field": "equity_document_type",
           "type": "enum-like",
           "example": "exercise notice",
           "reliability_ceiling": "validated",
@@ -2306,8 +2306,8 @@
       "template": {
         "dimension_order": [
           "employer",
-          "grant identifier",
-          "equity document type"
+          "grant_identifier",
+          "equity_document_type"
         ],
         "why": "Grant identifier, not year, is the organising middle level: a grant is a long-lived object whose documents span years. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
         "time_first": false
@@ -2349,28 +2349,28 @@
           "why": "The issuing employer, on letterhead beside compensation language."
         },
         {
-          "field": "compensation cycle",
+          "field": "compensation_cycle",
           "type": "string",
           "example": "2026 merit review",
           "reliability_ceiling": "validated",
           "why": "Cycle names appear beside review language; they are the link between a review and the money it produced."
         },
         {
-          "field": "effective date",
+          "field": "effective_date",
           "type": "date",
           "example": "2026-04-01",
           "reliability_ceiling": "direct",
           "why": "A labeled effective-from line."
         },
         {
-          "field": "compensation component",
+          "field": "compensation_component",
           "type": "enum-like",
           "example": "annual bonus",
           "reliability_ceiling": "validated",
           "why": "Same closed component vocabulary as the offer domain, which is why the two collide."
         },
         {
-          "field": "change reason",
+          "field": "change_reason",
           "type": "enum-like",
           "example": "promotion",
           "reliability_ceiling": "llm_supported",
@@ -2384,7 +2384,7 @@
           "why": "A labeled currency indicator."
         },
         {
-          "field": "statement type",
+          "field": "statement_type",
           "type": "enum-like",
           "example": "total reward statement",
           "reliability_ceiling": "validated",
@@ -2422,7 +2422,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "compensation cycle"
+          "compensation_cycle"
         ],
         "why": "Employer then cycle. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’",
         "time_first": false
@@ -2464,21 +2464,21 @@
           "why": "The employing organisation, from form headers and system exports."
         },
         {
-          "field": "review cycle",
+          "field": "review_cycle",
           "type": "string",
           "example": "H2 2026",
           "reliability_ceiling": "validated",
           "why": "Cycle names are half-year or quarter-shaped values that only mean a review beside review language."
         },
         {
-          "field": "review document type",
+          "field": "review_document_type",
           "type": "enum-like",
           "example": "self-assessment",
           "reliability_ceiling": "validated",
           "why": "Self-assessment, manager review, peer feedback, calibration note and improvement plan are structurally distinct."
         },
         {
-          "field": "subject of review",
+          "field": "subject_of_review",
           "type": "string",
           "example": "the corpus owner",
           "reliability_ceiling": "llm_supported",
@@ -2492,14 +2492,14 @@
           "why": "Named in prose or in a system export field."
         },
         {
-          "field": "competency area",
+          "field": "competency_area",
           "type": "enum-like",
           "example": "technical judgement",
           "reliability_ceiling": "validated",
           "why": "Competency frameworks are enumerated headings inside the form."
         },
         {
-          "field": "outcome statement",
+          "field": "outcome_statement",
           "type": "string",
           "example": "exceeds expectations",
           "reliability_ceiling": "llm_supported",
@@ -2538,8 +2538,8 @@
       "template": {
         "dimension_order": [
           "employer",
-          "subject of review",
-          "review cycle"
+          "subject_of_review",
+          "review_cycle"
         ],
         "why": "Subject sits above cycle, because a manager's corpus holds reviews of many people in one cycle and mixing them is the failure that matters. §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ forbids collecting by reviewer instead.",
         "time_first": false
@@ -2581,28 +2581,28 @@
           "why": "The employing organisation, from packet framing."
         },
         {
-          "field": "promotion cycle",
+          "field": "promotion_cycle",
           "type": "string",
           "example": "2026 autumn promo",
           "reliability_ceiling": "validated",
           "why": "A cycle value beside promotion language; the same cycle name also names the review it draws on."
         },
         {
-          "field": "current level",
+          "field": "current_level",
           "type": "string",
           "example": "L4",
           "reliability_ceiling": "validated",
           "why": "Level codes are employer-specific patterns that mean nothing without promotion language beside them — the same shape as §3.5 ‘For example, BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”’"
         },
         {
-          "field": "target level",
+          "field": "target_level",
           "type": "string",
           "example": "L5",
           "reliability_ceiling": "validated",
           "why": "Same recognition, opposite field; the pair is what makes the packet a promotion case."
         },
         {
-          "field": "packet document type",
+          "field": "packet_document_type",
           "type": "enum-like",
           "example": "sponsor statement",
           "reliability_ceiling": "validated",
@@ -2654,7 +2654,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "promotion cycle"
+          "promotion_cycle"
         ],
         "why": "Kept shallow deliberately: the packet's members mostly live in other domains and are referenced, not moved. §6.9 ‘The user’s frozen tree should therefore include a policy for shared material: a shared branch, a primary-home convention, a reference or alias convention, or mandatory review.’",
         "time_first": false
@@ -2696,42 +2696,42 @@
           "why": "The attesting employer, on letterhead beside verification language."
         },
         {
-          "field": "verification purpose",
+          "field": "verification_purpose",
           "type": "enum-like",
           "example": "tenancy reference",
           "reliability_ceiling": "llm_supported",
           "why": "Purpose is stated in the letter's opening prose and is the whole reason the document exists — §3.9 ‘Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.’"
         },
         {
-          "field": "requesting party",
+          "field": "requesting_party",
           "type": "string",
           "example": "Foxtons Lettings",
           "reliability_ceiling": "validated",
           "why": "A third organisation named as addressee — a role distinct from both employer and owner."
         },
         {
-          "field": "issue date",
+          "field": "issue_date",
           "type": "date",
           "example": "2026-05-20",
           "reliability_ceiling": "direct",
           "why": "The letter's labeled date."
         },
         {
-          "field": "verified role title",
+          "field": "verified_role_title",
           "type": "string",
           "example": "Vice President",
           "reliability_ceiling": "direct",
           "why": "A labeled position line inside the attestation."
         },
         {
-          "field": "verified period",
+          "field": "verified_period",
           "type": "string",
           "example": "since 2023-06-01",
           "reliability_ceiling": "direct",
           "why": "A labeled service-dates line."
         },
         {
-          "field": "states income",
+          "field": "states_income",
           "type": "boolean",
           "example": "true",
           "reliability_ceiling": "direct",
@@ -2767,7 +2767,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "verification purpose"
+          "verification_purpose"
         ],
         "why": "Purpose is the second level because the same letter is reissued for different recipients. §3.9 ‘Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.’",
         "time_first": false
@@ -2809,42 +2809,42 @@
           "why": "The employing organisation, from form headers."
         },
         {
-          "field": "leave type",
+          "field": "leave_type",
           "type": "enum-like",
           "example": "parental leave",
           "reliability_ceiling": "validated",
           "why": "A closed, jurisdiction-flavoured vocabulary recognisable beside leave language."
         },
         {
-          "field": "leave start",
+          "field": "leave_start",
           "type": "date",
           "example": "2026-11-02",
           "reliability_ceiling": "direct",
           "why": "A labeled leave-from field."
         },
         {
-          "field": "leave end",
+          "field": "leave_end",
           "type": "date",
           "example": "2027-05-01",
           "reliability_ceiling": "direct",
           "why": "A labeled leave-to or expected-return field."
         },
         {
-          "field": "approval status",
+          "field": "approval_status",
           "type": "enum-like",
           "example": "approved",
           "reliability_ceiling": "llm_supported",
           "why": "Stated in correspondence rather than as a field."
         },
         {
-          "field": "return-to-work date",
+          "field": "return_to_work_date",
           "type": "date",
           "example": "2027-05-04",
           "reliability_ceiling": "direct",
           "why": "A labeled return date, distinct from the leave end."
         },
         {
-          "field": "carries medical documentation",
+          "field": "carries_medical_documentation",
           "type": "boolean",
           "example": "true",
           "reliability_ceiling": "direct",
@@ -2883,7 +2883,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "leave type"
+          "leave_type"
         ],
         "why": "Two levels only: leave records are few and episodic. §5.8 ‘One branch may require four levels, while another should remain flat.’",
         "time_first": false
@@ -2925,42 +2925,42 @@
           "why": "The terminating employer, in the notice's parties or letterhead position."
         },
         {
-          "field": "separation type",
+          "field": "separation_type",
           "type": "enum-like",
           "example": "redundancy",
           "reliability_ceiling": "validated",
           "why": "A closed vocabulary — redundancy, reduction in force, dismissal, non-renewal, mutual termination — beside separation language."
         },
         {
-          "field": "notice date",
+          "field": "notice_date",
           "type": "date",
           "example": "2026-07-08",
           "reliability_ceiling": "direct",
           "why": "A labeled notice-date line."
         },
         {
-          "field": "separation date",
+          "field": "separation_date",
           "type": "date",
           "example": "2026-09-30",
           "reliability_ceiling": "direct",
           "why": "A labeled last-day line, routinely months after the notice date; conflating the two would misstate the record."
         },
         {
-          "field": "severance component",
+          "field": "severance_component",
           "type": "enum-like",
           "example": "notice pay in lieu",
           "reliability_ceiling": "validated",
           "why": "Components appear as labeled lines in a settlement schedule."
         },
         {
-          "field": "release status",
+          "field": "release_status",
           "type": "enum-like",
           "example": "signed",
           "reliability_ceiling": "llm_supported",
           "why": "Whether a release of claims was executed is visible only from signature and correspondence."
         },
         {
-          "field": "consultation reference",
+          "field": "consultation_reference",
           "type": "string",
           "example": "collective consultation 2026-07",
           "reliability_ceiling": "possible",
@@ -3000,7 +3000,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "separation type"
+          "separation_type"
         ],
         "why": "Employer first and shallow. §5.8 ‘One branch may require four levels, while another should remain flat.’ A separation produces a small dense set, not a deep tree.",
         "time_first": false
@@ -3042,42 +3042,42 @@
           "why": "The employer being left."
         },
         {
-          "field": "resignation date",
+          "field": "resignation_date",
           "type": "date",
           "example": "2026-06-02",
           "reliability_ceiling": "direct",
           "why": "The labeled date on the resignation letter."
         },
         {
-          "field": "last working day",
+          "field": "last_working_day",
           "type": "date",
           "example": "2026-07-31",
           "reliability_ceiling": "direct",
           "why": "A labeled final-day line, distinct from the resignation date."
         },
         {
-          "field": "exit document type",
+          "field": "exit_document_type",
           "type": "enum-like",
           "example": "exit interview",
           "reliability_ceiling": "validated",
           "why": "Resignation letter, acceptance, exit interview, asset return and handover note are structurally distinct."
         },
         {
-          "field": "separation reason",
+          "field": "separation_reason",
           "type": "string",
           "example": "new role elsewhere",
           "reliability_ceiling": "llm_supported",
           "why": "Stated in prose where stated at all, and the field most likely to be over-read from a polite letter."
         },
         {
-          "field": "asset return item",
+          "field": "asset_return_item",
           "type": "string",
           "example": "laptop",
           "reliability_ceiling": "validated",
           "why": "Asset lists are enumerated in a labeled return form."
         },
         {
-          "field": "benefits continuation",
+          "field": "benefits_continuation",
           "type": "enum-like",
           "example": "elected",
           "reliability_ceiling": "llm_supported",
@@ -3117,7 +3117,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "exit document type"
+          "exit_document_type"
         ],
         "why": "Employer first, shallow. §5.8 ‘One branch may require four levels, while another should remain flat.’",
         "time_first": false
@@ -3152,49 +3152,49 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "plan administrator",
+          "field": "plan_administrator",
           "type": "string",
           "example": "Fidelity",
           "reliability_ceiling": "validated",
           "why": "The administrator is a different organisation from the sponsoring employer — the account-holder and issuing-institution split §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’"
         },
         {
-          "field": "employer sponsor",
+          "field": "employer_sponsor",
           "type": "string",
           "example": "IBM",
           "reliability_ceiling": "validated",
           "why": "The employment the plan came from, often an employer the owner left years earlier."
         },
         {
-          "field": "plan name",
+          "field": "plan_name",
           "type": "string",
           "example": "IBM 401(k) Plus Plan",
           "reliability_ceiling": "direct",
           "why": "A labeled plan-name field."
         },
         {
-          "field": "plan type",
+          "field": "plan_type",
           "type": "enum-like",
           "example": "defined contribution",
           "reliability_ceiling": "validated",
           "why": "A closed vocabulary recognisable beside pension language."
         },
         {
-          "field": "statement period",
+          "field": "statement_period",
           "type": "string",
           "example": "2026 Q2",
           "reliability_ceiling": "direct",
           "why": "A labeled statement-period field."
         },
         {
-          "field": "vesting status",
+          "field": "vesting_status",
           "type": "enum-like",
           "example": "fully vested",
           "reliability_ceiling": "llm_supported",
           "why": "Stated in summary prose on the statement."
         },
         {
-          "field": "retirement document type",
+          "field": "retirement_document_type",
           "type": "enum-like",
           "example": "rollover confirmation",
           "reliability_ceiling": "validated",
@@ -3232,9 +3232,9 @@
       ],
       "template": {
         "dimension_order": [
-          "employer sponsor",
-          "plan name",
-          "statement period"
+          "employer_sponsor",
+          "plan_name",
+          "statement_period"
         ],
         "why": "Sponsor above plan above period: a person accumulates several plans across employers and the sponsor is what makes an old plan identifiable. §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’",
         "time_first": false
@@ -3269,21 +3269,21 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "licensing body",
+          "field": "licensing_body",
           "type": "string",
           "example": "California Board of Accountancy",
           "reliability_ceiling": "validated",
           "why": "A regulator name from a gazetteer, beside licensure language. A regulator is not an employer and not an issuer of certificates — a third organisation role."
         },
         {
-          "field": "licence type",
+          "field": "licence_type",
           "type": "enum-like",
           "example": "Certified Public Accountant",
           "reliability_ceiling": "validated",
           "why": "A closed, jurisdiction-specific vocabulary recognisable beside licensure language."
         },
         {
-          "field": "licence number",
+          "field": "licence_number",
           "type": "string",
           "example": "CPA-118422",
           "reliability_ceiling": "direct",
@@ -3297,21 +3297,21 @@
           "why": "A labeled jurisdiction field. Jurisdiction is what separates a licence from a certification, and a person may hold the same licence in several."
         },
         {
-          "field": "issue date",
+          "field": "issue_date",
           "type": "date",
           "example": "2024-01-18",
           "reliability_ceiling": "direct",
           "why": "A labeled issue-date field."
         },
         {
-          "field": "expiry date",
+          "field": "expiry_date",
           "type": "date",
           "example": "2027-01-31",
           "reliability_ceiling": "direct",
           "why": "A labeled expiry or renewal-due field."
         },
         {
-          "field": "licence status",
+          "field": "licence_status",
           "type": "enum-like",
           "example": "active",
           "reliability_ceiling": "llm_supported",
@@ -3349,7 +3349,7 @@
       ],
       "template": {
         "dimension_order": [
-          "licence type",
+          "licence_type",
           "jurisdiction"
         ],
         "why": "Type above jurisdiction, because a professional holds one profession in several places rather than several professions in one. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
@@ -3390,49 +3390,49 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "issuing body",
+          "field": "issuing_body",
           "type": "string",
           "example": "Amazon Web Services",
           "reliability_ceiling": "validated",
           "why": "A certifying organisation from a gazetteer, beside certification language."
         },
         {
-          "field": "certification name",
+          "field": "certification_name",
           "type": "string",
           "example": "Solutions Architect – Associate",
           "reliability_ceiling": "direct",
           "why": "Stated as the certificate's own title."
         },
         {
-          "field": "credential identifier",
+          "field": "credential_identifier",
           "type": "string",
           "example": "AWS-04-1188223",
           "reliability_ceiling": "direct",
           "why": "A labeled credential-id or verification-code field."
         },
         {
-          "field": "issue date",
+          "field": "issue_date",
           "type": "date",
           "example": "2026-02-04",
           "reliability_ceiling": "direct",
           "why": "A labeled issue-date field."
         },
         {
-          "field": "expiry date",
+          "field": "expiry_date",
           "type": "date",
           "example": "2029-02-04",
           "reliability_ceiling": "possible",
           "why": "Many certifications never expire and many certificates state a recommended rather than binding renewal; the value must not be manufactured from a validity period described in marketing text."
         },
         {
-          "field": "exam or version",
+          "field": "exam_or_version",
           "type": "string",
           "example": "SAA-C03",
           "reliability_ceiling": "direct",
           "why": "A labeled exam-code field where the body uses one."
         },
         {
-          "field": "certification document type",
+          "field": "certification_document_type",
           "type": "enum-like",
           "example": "score report",
           "reliability_ceiling": "validated",
@@ -3469,8 +3469,8 @@
       ],
       "template": {
         "dimension_order": [
-          "issuing body",
-          "certification name"
+          "issuing_body",
+          "certification_name"
         ],
         "why": "Issuing body first, because certification names collide across bodies. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
         "time_first": false
@@ -3505,7 +3505,7 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "accrediting body",
+          "field": "accrediting_body",
           "type": "string",
           "example": "State Bar of Texas",
           "reliability_ceiling": "validated",
@@ -3519,35 +3519,35 @@
           "why": "The organisation that delivered the activity — the second organisation role on the same document."
         },
         {
-          "field": "credit type",
+          "field": "credit_type",
           "type": "enum-like",
           "example": "CLE ethics",
           "reliability_ceiling": "validated",
           "why": "Credit-type codes are a closed, profession-specific vocabulary."
         },
         {
-          "field": "reporting period",
+          "field": "reporting_period",
           "type": "string",
           "example": "2026 compliance year",
           "reliability_ceiling": "direct",
           "why": "A labeled reporting-period field on the transcript."
         },
         {
-          "field": "activity title",
+          "field": "activity_title",
           "type": "string",
           "example": "Recent Developments in Data Privacy",
           "reliability_ceiling": "direct",
           "why": "The activity's own title on the completion record."
         },
         {
-          "field": "linked licence",
+          "field": "linked_licence",
           "type": "string",
           "example": "CPA-118422",
           "reliability_ceiling": "possible",
           "why": "Transcripts quote a licence number, but a quoted identifier is a reference, not a licence fact for this file."
         },
         {
-          "field": "credit record type",
+          "field": "credit_record_type",
           "type": "enum-like",
           "example": "compliance transcript",
           "reliability_ceiling": "validated",
@@ -3584,8 +3584,8 @@
       ],
       "template": {
         "dimension_order": [
-          "linked licence",
-          "reporting period"
+          "linked_licence",
+          "reporting_period"
         ],
         "why": "The licence gives the reporting period its meaning — §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ Where no licence is linked the branch flattens to period alone.",
         "time_first": false
@@ -3632,42 +3632,42 @@
           "why": "The body, from a gazetteer, beside membership language."
         },
         {
-          "field": "membership grade",
+          "field": "membership_grade",
           "type": "string",
           "example": "Chartered Member",
           "reliability_ceiling": "validated",
           "why": "Grade vocabularies are closed per body and are the substance of the record."
         },
         {
-          "field": "member identifier",
+          "field": "member_identifier",
           "type": "string",
           "example": "ICE-442901",
           "reliability_ceiling": "direct",
           "why": "A labeled membership-number field."
         },
         {
-          "field": "membership year",
+          "field": "membership_year",
           "type": "string",
           "example": "2026",
           "reliability_ceiling": "direct",
           "why": "A labeled subscription-year field on the receipt or card."
         },
         {
-          "field": "dues status",
+          "field": "dues_status",
           "type": "enum-like",
           "example": "paid",
           "reliability_ceiling": "llm_supported",
           "why": "Stated in renewal correspondence."
         },
         {
-          "field": "chapter or section",
+          "field": "chapter_or_section",
           "type": "string",
           "example": "London Region",
           "reliability_ceiling": "validated",
           "why": "Sub-body names are meaningful only beside the parent association."
         },
         {
-          "field": "membership document type",
+          "field": "membership_document_type",
           "type": "enum-like",
           "example": "renewal receipt",
           "reliability_ceiling": "validated",
@@ -3706,7 +3706,7 @@
       "template": {
         "dimension_order": [
           "association",
-          "membership year"
+          "membership_year"
         ],
         "why": "Association first — the year means nothing without it. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’",
         "time_first": false
@@ -3741,28 +3741,28 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "event name",
+          "field": "event_name",
           "type": "string",
           "example": "NeurIPS",
           "reliability_ceiling": "validated",
           "why": "An event name from a gazetteer, beside event language. This is §3.11's Research ‘venue’ reached from the career side."
         },
         {
-          "field": "event edition",
+          "field": "event_edition",
           "type": "string",
           "example": "2026",
           "reliability_ceiling": "validated",
           "why": "The year only names an edition beside the event name; alone it is §3.10 ‘file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values’"
         },
         {
-          "field": "event location",
+          "field": "event_location",
           "type": "string",
           "example": "Vancouver",
           "reliability_ceiling": "validated",
           "why": "A place name beside event language. It is also the trip's destination, which is why this domain collides with travel."
         },
         {
-          "field": "registration type",
+          "field": "registration_type",
           "type": "enum-like",
           "example": "early-bird academic",
           "reliability_ceiling": "direct",
@@ -3783,7 +3783,7 @@
           "why": "The organising body, distinct from the venue and from the owner's employer."
         },
         {
-          "field": "attendance document type",
+          "field": "attendance_document_type",
           "type": "enum-like",
           "example": "registration confirmation",
           "reliability_ceiling": "validated",
@@ -3821,8 +3821,8 @@
       ],
       "template": {
         "dimension_order": [
-          "event name",
-          "event edition"
+          "event_name",
+          "event_edition"
         ],
         "why": "Event above edition. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ The user may reasonably reverse this to year-first if events are one-offs — §5.5 ‘The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.’",
         "time_first": false
@@ -3857,49 +3857,49 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "event name",
+          "field": "event_name",
           "type": "string",
           "example": "PyCon US",
           "reliability_ceiling": "validated",
           "why": "Same gazetteer recognition as attendance, different role."
         },
         {
-          "field": "event edition",
+          "field": "event_edition",
           "type": "string",
           "example": "2026",
           "reliability_ceiling": "validated",
           "why": "Meaningful only beside the event name."
         },
         {
-          "field": "talk title",
+          "field": "talk_title",
           "type": "string",
           "example": "What Import Actually Does",
           "reliability_ceiling": "direct",
           "why": "The submission's or slide deck's own title."
         },
         {
-          "field": "speaking role",
+          "field": "speaking_role",
           "type": "enum-like",
           "example": "panellist",
           "reliability_ceiling": "validated",
           "why": "A closed vocabulary — speaker, keynote, panellist, workshop lead, session chair — beside contribution language."
         },
         {
-          "field": "submission status",
+          "field": "submission_status",
           "type": "enum-like",
           "example": "accepted",
           "reliability_ceiling": "llm_supported",
           "why": "Stated in acceptance or rejection correspondence prose."
         },
         {
-          "field": "agreement type",
+          "field": "agreement_type",
           "type": "enum-like",
           "example": "speaker agreement",
           "reliability_ceiling": "validated",
           "why": "Speaker agreements, release forms and honorarium paperwork are named documents."
         },
         {
-          "field": "honorarium arrangement",
+          "field": "honorarium_arrangement",
           "type": "string",
           "example": "travel covered, no fee",
           "reliability_ceiling": "llm_supported",
@@ -3938,9 +3938,9 @@
       ],
       "template": {
         "dimension_order": [
-          "event name",
-          "event edition",
-          "talk title"
+          "event_name",
+          "event_edition",
+          "talk_title"
         ],
         "why": "Talk title only makes sense inside its event edition. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
         "time_first": false
@@ -3975,49 +3975,49 @@
       "design_cite": null,
       "schema": [
         {
-          "field": "contact person",
+          "field": "contact_person",
           "type": "string",
           "example": "S. Adeyemi",
           "reliability_ceiling": "llm_supported",
           "why": "A name in an outreach record. It must never become a folder level — §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’"
         },
         {
-          "field": "contact organisation",
+          "field": "contact_organisation",
           "type": "string",
           "example": "Klarna",
           "reliability_ceiling": "validated",
           "why": "The organisation a contact sits in, which is what makes a referral useful; distinct from an employer of the owner."
         },
         {
-          "field": "relationship type",
+          "field": "relationship_type",
           "type": "string",
           "example": "former colleague",
           "reliability_ceiling": "llm_supported",
           "why": "Stated in prose in the outreach itself."
         },
         {
-          "field": "outreach purpose",
+          "field": "outreach_purpose",
           "type": "enum-like",
           "example": "referral request",
           "reliability_ceiling": "llm_supported",
           "why": "Purpose is the point of the record — §3.9 ‘Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.’ — and is only ever prose."
         },
         {
-          "field": "referral target employer",
+          "field": "referral_target_employer",
           "type": "string",
           "example": "Klarna",
           "reliability_ceiling": "validated",
           "why": "The employer the referral is into, which links this record to an application."
         },
         {
-          "field": "outreach date",
+          "field": "outreach_date",
           "type": "date",
           "example": "2026-01-22",
           "reliability_ceiling": "direct",
           "why": "A message's labeled sent date."
         },
         {
-          "field": "contact data source",
+          "field": "contact_data_source",
           "type": "enum-like",
           "example": "exported address book",
           "reliability_ceiling": "direct",
@@ -4055,8 +4055,8 @@
       ],
       "template": {
         "dimension_order": [
-          "search cycle",
-          "referral target employer"
+          "search_cycle",
+          "referral_target_employer"
         ],
         "why": "Never by contact: §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ Target employer is the dimension that links outreach to the application it produced.",
         "time_first": false
@@ -4098,42 +4098,42 @@
           "why": "§3.8 names this field. A gazetteer organisation name in a client position beside engagement language — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’"
         },
         {
-          "field": "our firm",
+          "field": "our_firm",
           "type": "string",
           "example": "Bain & Company",
           "reliability_ceiling": "validated",
           "why": "§3.8 names this field too, and the two must never collapse into one organisation facet."
         },
         {
-          "field": "engagement name or code",
+          "field": "engagement_name_or_code",
           "type": "string",
           "example": "NDA-2026-Ops",
           "reliability_ceiling": "direct",
           "why": "Engagement codes appear as labeled references in headers and footers of every deliverable."
         },
         {
-          "field": "engagement phase",
+          "field": "engagement_phase",
           "type": "enum-like",
           "example": "diagnostic",
           "reliability_ceiling": "validated",
           "why": "Phase vocabulary is closed per methodology and appears in deliverable headers."
         },
         {
-          "field": "deliverable type",
+          "field": "deliverable_type",
           "type": "enum-like",
           "example": "steering committee deck",
           "reliability_ceiling": "validated",
           "why": "Deliverable types are structurally distinct and are §5.4's ‘document type’ reached from the client side."
         },
         {
-          "field": "engagement lead",
+          "field": "engagement_lead",
           "type": "string",
           "example": "the owner's partner",
           "reliability_ceiling": "llm_supported",
           "why": "Named in prose; must not become a folder level — §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’"
         },
         {
-          "field": "engagement period",
+          "field": "engagement_period",
           "type": "string",
           "example": "2026-04 to 2026-09",
           "reliability_ceiling": "direct",
@@ -4173,8 +4173,8 @@
       "template": {
         "dimension_order": [
           "client",
-          "engagement name or code",
-          "deliverable type"
+          "engagement_name_or_code",
+          "deliverable_type"
         ],
         "why": "Client above engagement above deliverable — §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ Never our-firm-first: §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’",
         "time_first": false
@@ -4221,42 +4221,42 @@
           "why": "The prospective client, in an addressee or issuer position beside procurement language."
         },
         {
-          "field": "our firm",
+          "field": "our_firm",
           "type": "string",
           "example": "Arup",
           "reliability_ceiling": "validated",
           "why": "The bidding party; §3.8's second organisation role."
         },
         {
-          "field": "solicitation reference",
+          "field": "solicitation_reference",
           "type": "string",
           "example": "ITT-2026-0912",
           "reliability_ceiling": "direct",
           "why": "Procurement documents carry a labeled tender or RFP reference, which is the strongest identifier in this domain."
         },
         {
-          "field": "submission deadline",
+          "field": "submission_deadline",
           "type": "date",
           "example": "2026-04-30",
           "reliability_ceiling": "direct",
           "why": "A labeled submission-deadline field."
         },
         {
-          "field": "proposed engagement type",
+          "field": "proposed_engagement_type",
           "type": "enum-like",
           "example": "fixed-price delivery",
           "reliability_ceiling": "llm_supported",
           "why": "Described in the commercial narrative rather than as a field."
         },
         {
-          "field": "pricing model",
+          "field": "pricing_model",
           "type": "enum-like",
           "example": "day rate",
           "reliability_ceiling": "validated",
           "why": "Pricing structures appear as labeled schedule headings."
         },
         {
-          "field": "bid status",
+          "field": "bid_status",
           "type": "enum-like",
           "example": "shortlisted",
           "reliability_ceiling": "llm_supported",
@@ -4295,7 +4295,7 @@
       "template": {
         "dimension_order": [
           "client",
-          "solicitation reference"
+          "solicitation_reference"
         ],
         "why": "Client first; the reference distinguishes repeat opportunities with the same client. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’",
         "time_first": false
@@ -4337,7 +4337,7 @@
           "why": "The engaging party, in a client position beside contractor language."
         },
         {
-          "field": "gig or project",
+          "field": "gig_or_project",
           "type": "string",
           "example": "Cover illustration, autumn list",
           "reliability_ceiling": "direct",
@@ -4351,14 +4351,14 @@
           "why": "A marketplace host name beside engagement language; a platform is neither client nor employer."
         },
         {
-          "field": "worker classification",
+          "field": "worker_classification",
           "type": "enum-like",
           "example": "self-employed contractor",
           "reliability_ceiling": "validated",
           "why": "Classification language — contractor, self-employed, umbrella, inside or outside a status rule — is closed and jurisdictional, and is the whole legal point of the record."
         },
         {
-          "field": "rate basis",
+          "field": "rate_basis",
           "type": "enum-like",
           "example": "day rate",
           "reliability_ceiling": "validated",
@@ -4372,7 +4372,7 @@
           "why": "Described in the brief's prose."
         },
         {
-          "field": "project period",
+          "field": "project_period",
           "type": "string",
           "example": "2026-05 to 2026-06",
           "reliability_ceiling": "direct",
@@ -4411,7 +4411,7 @@
       "template": {
         "dimension_order": [
           "client",
-          "gig or project"
+          "gig_or_project"
         ],
         "why": "Client above project. §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ Not platform-first: the platform is an intermediary, not the relationship.",
         "time_first": false
@@ -4453,42 +4453,42 @@
           "why": "The billed party. The owner is the issuer here, which reverses every role a payslip assigns — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’"
         },
         {
-          "field": "invoice number",
+          "field": "invoice_number",
           "type": "string",
           "example": "2026-014",
           "reliability_ceiling": "direct",
           "why": "A labeled invoice-number field issued by the owner's own sequence. It is the field that proves the owner is the vendor."
         },
         {
-          "field": "invoice date",
+          "field": "invoice_date",
           "type": "date",
           "example": "2026-06-03",
           "reliability_ceiling": "direct",
           "why": "A labeled invoice-date field."
         },
         {
-          "field": "period covered",
+          "field": "period_covered",
           "type": "string",
           "example": "May 2026",
           "reliability_ceiling": "direct",
           "why": "A labeled service-period line."
         },
         {
-          "field": "engagement reference",
+          "field": "engagement_reference",
           "type": "string",
           "example": "Cover illustration, autumn list",
           "reliability_ceiling": "possible",
           "why": "Invoices cite the work loosely; the citation links records for review but does not establish an engagement fact."
         },
         {
-          "field": "payment status",
+          "field": "payment_status",
           "type": "enum-like",
           "example": "paid",
           "reliability_ceiling": "llm_supported",
           "why": "Established from remittance correspondence rather than from the invoice."
         },
         {
-          "field": "tax treatment",
+          "field": "tax_treatment",
           "type": "string",
           "example": "VAT at standard rate",
           "reliability_ceiling": "direct",
@@ -4527,7 +4527,7 @@
       "template": {
         "dimension_order": [
           "client",
-          "tax year"
+          "tax_year"
         ],
         "why": "Client above year because a freelancer chases payment by client and reports by year. §5.5 ‘For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.’",
         "time_first": false
@@ -4562,56 +4562,56 @@
       "design_cite": "§5.4 ‘a Career template may define company → role or recruiting cycle → document type’ §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’",
       "schema": [
         {
-          "field": "hiring organisation",
+          "field": "hiring_organisation",
           "type": "string",
           "example": "the owner's employer",
           "reliability_ceiling": "validated",
           "why": "The organisation doing the hiring. This is the same entity type as ‘employer’ in a candidate packet and the opposite role — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’"
         },
         {
-          "field": "requisition id",
+          "field": "requisition_id",
           "type": "string",
           "example": "REQ-48213",
           "reliability_ceiling": "direct",
           "why": "A labeled requisition-number field in the applicant-tracking export."
         },
         {
-          "field": "role title",
+          "field": "role_title",
           "type": "string",
           "example": "Senior Backend Engineer",
           "reliability_ceiling": "direct",
           "why": "A labeled title field."
         },
         {
-          "field": "internal level",
+          "field": "internal_level",
           "type": "string",
           "example": "P4",
           "reliability_ceiling": "validated",
           "why": "A level pattern beside requisition language; the same pattern in a promotion packet means something else."
         },
         {
-          "field": "hiring manager",
+          "field": "hiring_manager",
           "type": "string",
           "example": "the owner",
           "reliability_ceiling": "llm_supported",
           "why": "Named in prose or in a system field; never a folder level — §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’"
         },
         {
-          "field": "department or team",
+          "field": "department_or_team",
           "type": "string",
           "example": "Payments Platform",
           "reliability_ceiling": "direct",
           "why": "A labeled team field."
         },
         {
-          "field": "requisition status",
+          "field": "requisition_status",
           "type": "enum-like",
           "example": "open",
           "reliability_ceiling": "direct",
           "why": "A labeled status field in the tracking export."
         },
         {
-          "field": "approval state",
+          "field": "approval_state",
           "type": "enum-like",
           "example": "headcount approved",
           "reliability_ceiling": "llm_supported",
@@ -4649,8 +4649,8 @@
       ],
       "template": {
         "dimension_order": [
-          "department or team",
-          "requisition id"
+          "department_or_team",
+          "requisition_id"
         ],
         "why": "Team above requisition — §5.5 ‘The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.’ Never hiring-manager-first: §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’",
         "time_first": false
@@ -4692,35 +4692,35 @@
           "why": "The subject of the packet, and the field that makes this domain the mirror image of the resume domain — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’"
         },
         {
-          "field": "requisition id",
+          "field": "requisition_id",
           "type": "string",
           "example": "REQ-48213",
           "reliability_ceiling": "direct",
           "why": "A labeled requisition reference in the tracking export."
         },
         {
-          "field": "role title",
+          "field": "role_title",
           "type": "string",
           "example": "Senior Backend Engineer",
           "reliability_ceiling": "direct",
           "why": "A labeled title field."
         },
         {
-          "field": "candidate source",
+          "field": "candidate_source",
           "type": "enum-like",
           "example": "agency submission",
           "reliability_ceiling": "direct",
           "why": "A labeled source field in the tracking export."
         },
         {
-          "field": "pipeline stage",
+          "field": "pipeline_stage",
           "type": "enum-like",
           "example": "onsite scheduled",
           "reliability_ceiling": "direct",
           "why": "A labeled stage field."
         },
         {
-          "field": "application received date",
+          "field": "application_received_date",
           "type": "date",
           "example": "2026-03-18",
           "reliability_ceiling": "direct",
@@ -4734,7 +4734,7 @@
           "why": "Named in prose or a system field; never a folder level."
         },
         {
-          "field": "carries third-party personal data",
+          "field": "carries_third_party_personal_data",
           "type": "boolean",
           "example": "true",
           "reliability_ceiling": "direct",
@@ -4772,8 +4772,8 @@
       ],
       "template": {
         "dimension_order": [
-          "requisition id",
-          "pipeline stage"
+          "requisition_id",
+          "pipeline_stage"
         ],
         "why": "Requisition above stage, and deliberately not candidate-first: §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ A branch per named applicant would make the tree a directory of people.",
         "time_first": false
@@ -4815,14 +4815,14 @@
           "why": "The subject of the assessment."
         },
         {
-          "field": "requisition id",
+          "field": "requisition_id",
           "type": "string",
           "example": "REQ-48213",
           "reliability_ceiling": "direct",
           "why": "A labeled requisition reference."
         },
         {
-          "field": "interview stage",
+          "field": "interview_stage",
           "type": "enum-like",
           "example": "onsite loop",
           "reliability_ceiling": "direct",
@@ -4836,7 +4836,7 @@
           "why": "The assessor; distinct from both candidate and recruiter."
         },
         {
-          "field": "competency area",
+          "field": "competency_area",
           "type": "enum-like",
           "example": "system design",
           "reliability_ceiling": "validated",
@@ -4850,7 +4850,7 @@
           "why": "A labeled recommendation field in the form."
         },
         {
-          "field": "debrief date",
+          "field": "debrief_date",
           "type": "date",
           "example": "2026-04-10",
           "reliability_ceiling": "direct",
@@ -4887,8 +4887,8 @@
       ],
       "template": {
         "dimension_order": [
-          "requisition id",
-          "interview stage"
+          "requisition_id",
+          "interview_stage"
         ],
         "why": "Requisition above stage; never candidate-first, for the same reason as the candidate packet. §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’",
         "time_first": false
@@ -4930,14 +4930,14 @@
           "why": "The person the offer is for."
         },
         {
-          "field": "requisition id",
+          "field": "requisition_id",
           "type": "string",
           "example": "REQ-48213",
           "reliability_ceiling": "direct",
           "why": "A labeled requisition reference."
         },
         {
-          "field": "approved level",
+          "field": "approved_level",
           "type": "string",
           "example": "P4",
           "reliability_ceiling": "direct",
@@ -4951,21 +4951,21 @@
           "why": "Named in workflow correspondence."
         },
         {
-          "field": "approval date",
+          "field": "approval_date",
           "type": "date",
           "example": "2026-05-06",
           "reliability_ceiling": "direct",
           "why": "A labeled approval-date field."
         },
         {
-          "field": "compensation band reference",
+          "field": "compensation_band_reference",
           "type": "string",
           "example": "P4 band, EMEA",
           "reliability_ceiling": "validated",
           "why": "Band references only mean a band beside compensation-approval language."
         },
         {
-          "field": "offer outcome",
+          "field": "offer_outcome",
           "type": "enum-like",
           "example": "accepted",
           "reliability_ceiling": "llm_supported",
@@ -5003,8 +5003,8 @@
       ],
       "template": {
         "dimension_order": [
-          "requisition id",
-          "offer outcome"
+          "requisition_id",
+          "offer_outcome"
         ],
         "why": "Requisition above outcome; never candidate-first. §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’",
         "time_first": false

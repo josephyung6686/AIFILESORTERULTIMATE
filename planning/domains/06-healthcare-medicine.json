@@ -9,14 +9,14 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
           "why": "Whose record this is, read from a labeled patient-identity field. §3.8: 'The system must separate roles that happen to contain the same entity type.' A caregiver's corpus contains records about several people and the holder is not the subject. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "record source",
+          "field": "record_source",
           "type": "string",
           "example": "a named patient-portal or EHR system",
           "reliability_ceiling": "direct",
@@ -30,14 +30,14 @@
           "why": "Organisation role, distinct from the treating clinician. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "record date",
+          "field": "record_date",
           "type": "date",
           "example": "the export or summary date",
           "reliability_ceiling": "direct",
           "why": "A labeled date field only; no fuzzy parsing. §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "document type",
+          "field": "document_type",
           "type": "string",
           "example": "after-visit summary",
           "reliability_ceiling": "validated",
@@ -77,9 +77,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
+          "subject_person",
           "facility",
-          "record type",
+          "record_type",
           "year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Facility gives the context needed to read a record type. §5.5: 'a parent dimension should provide the context required to understand the child' `subject person` is optional and must be dropped when it would produce a single child. §5.9: 'It should warn when a level produces only one child'",
@@ -115,7 +115,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -129,42 +129,42 @@
           "why": "The test identity is confirmed only when the result-table rule below fires; a drug or analyte name in prose is not a test fact. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "collection date",
+          "field": "collection_date",
           "type": "date",
           "example": "the labeled specimen collection date",
           "reliability_ceiling": "direct",
           "why": "A labeled collection-date field, distinct from the report date and from the file's own timestamps. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "report date",
+          "field": "report_date",
           "type": "date",
           "example": "the labeled date the result was issued",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "ordering provider",
+          "field": "ordering_provider",
           "type": "string",
           "example": "the clinician who ordered the test",
           "reliability_ceiling": "direct",
           "why": "A role distinct from the laboratory that performed it and from the subject person. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "performing laboratory",
+          "field": "performing_laboratory",
           "type": "string",
           "example": "the laboratory that ran and reported the specimen",
           "reliability_ceiling": "direct",
           "why": "Organisation role. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "specimen type",
+          "field": "specimen_type",
           "type": "string",
           "example": "the labeled specimen descriptor",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "result status",
+          "field": "result_status",
           "type": "string",
           "example": "preliminary or final, where the report labels it",
           "reliability_ceiling": "direct",
@@ -204,9 +204,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "test category",
-          "collection year"
+          "subject_person",
+          "test_category",
+          "collection_year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Test category gives the context needed to read a single result. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -246,7 +246,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -260,42 +260,42 @@
           "why": "Read from a populated DICOM modality header tag or a labeled report field, not inferred from the word appearing in prose. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "body region",
+          "field": "body_region",
           "type": "string",
           "example": "the labeled examined region",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "study date",
+          "field": "study_date",
           "type": "date",
           "example": "the labeled acquisition date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "referring clinician",
+          "field": "referring_clinician",
           "type": "string",
           "example": "the clinician who requested the study",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "reporting radiologist",
+          "field": "reporting_radiologist",
           "type": "string",
           "example": "the clinician who authored the report",
           "reliability_ceiling": "direct",
           "why": "A role distinct from the referrer; and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' neither may become a folder level."
         },
         {
-          "field": "imaging facility",
+          "field": "imaging_facility",
           "type": "string",
           "example": "the site that acquired the study",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "accession identifier",
+          "field": "accession_identifier",
           "type": "string",
           "example": "the study's own labeled identifier",
           "reliability_ceiling": "direct",
@@ -335,10 +335,10 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "body region",
+          "subject_person",
+          "body_region",
           "modality",
-          "study year"
+          "study_year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Body region gives the context that makes a modality meaningful. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -373,7 +373,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -394,14 +394,14 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "dispensing pharmacy",
+          "field": "dispensing_pharmacy",
           "type": "string",
           "example": "the pharmacy that filled it",
           "reliability_ceiling": "direct",
           "why": "An organisation role distinct from the prescriber and from the manufacturer. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "fill date",
+          "field": "fill_date",
           "type": "date",
           "example": "the labeled date dispensed",
           "reliability_ceiling": "direct",
@@ -415,14 +415,14 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "refills remaining",
+          "field": "refills_remaining",
           "type": "string",
           "example": "the labeled refills field as written",
           "reliability_ceiling": "direct",
           "why": "Stored as the label's own value; the catalogue sets no numbers of its own."
         },
         {
-          "field": "prescription identifier",
+          "field": "prescription_identifier",
           "type": "string",
           "example": "the pharmacy's own labeled identifier",
           "reliability_ceiling": "direct",
@@ -463,8 +463,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "medication or regimen",
+          "subject_person",
+          "medication_or_regimen",
           "year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'",
@@ -500,7 +500,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -514,35 +514,35 @@
           "why": "Confirmed only by the administration-row rule below. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "administration date",
+          "field": "administration_date",
           "type": "date",
           "example": "the labeled date given",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "dose in series",
+          "field": "dose_in_series",
           "type": "string",
           "example": "the labeled dose or series position as written",
           "reliability_ceiling": "direct",
           "why": "Stored as the label's own value; no numbering is invented here."
         },
         {
-          "field": "administering provider",
+          "field": "administering_provider",
           "type": "string",
           "example": "the clinic, pharmacy or site that gave it",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "lot identifier",
+          "field": "lot_identifier",
           "type": "string",
           "example": "the labeled lot field",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "issuing authority",
+          "field": "issuing_authority",
           "type": "string",
           "example": "the body that issued a certificate, where one exists",
           "reliability_ceiling": "direct",
@@ -578,8 +578,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "record type",
+          "subject_person",
+          "record_type",
           "year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'",
@@ -615,21 +615,21 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "referring clinician",
+          "field": "referring_clinician",
           "type": "string",
           "example": "the clinician sending the referral",
           "reliability_ceiling": "direct",
           "why": "Distinct from the receiving clinician; the same person-entity type in two different roles. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "receiving clinician",
+          "field": "receiving_clinician",
           "type": "string",
           "example": "the specialist or service receiving it",
           "reliability_ceiling": "direct",
@@ -643,28 +643,28 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "referral date",
+          "field": "referral_date",
           "type": "date",
           "example": "the labeled date issued",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "reason for referral",
+          "field": "reason_for_referral",
           "type": "string",
           "example": "the labeled reason field",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "referral status",
+          "field": "referral_status",
           "type": "string",
           "example": "accepted, pending or declined where the document labels it",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "records released",
+          "field": "records_released",
           "type": "string",
           "example": "the labeled list of records enclosed or authorised",
           "reliability_ceiling": "direct",
@@ -702,7 +702,7 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
+          "subject_person",
           "specialty",
           "year"
         ],
@@ -734,7 +734,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -748,42 +748,42 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "admission date",
+          "field": "admission_date",
           "type": "date",
           "example": "the labeled admission date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "discharge date",
+          "field": "discharge_date",
           "type": "date",
           "example": "the labeled discharge date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "attending clinician",
+          "field": "attending_clinician",
           "type": "string",
           "example": "the clinician of record for the episode",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "encounter type",
+          "field": "encounter_type",
           "type": "string",
           "example": "inpatient, emergency or observation as the record labels it",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "discharge disposition",
+          "field": "discharge_disposition",
           "type": "string",
           "example": "the labeled disposition field",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "account identifier",
+          "field": "account_identifier",
           "type": "string",
           "example": "the facility's own labeled encounter identifier",
           "reliability_ceiling": "direct",
@@ -822,10 +822,10 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
+          "subject_person",
           "facility",
           "episode",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The episode is the unit people actually retrieve; a discharge instruction is meaningless without knowing which stay it belongs to. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -860,7 +860,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -874,7 +874,7 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "procedure date",
+          "field": "procedure_date",
           "type": "date",
           "example": "the labeled date of operation",
           "reliability_ceiling": "direct",
@@ -895,28 +895,28 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "pre-operative diagnosis",
+          "field": "pre_operative_diagnosis",
           "type": "string",
           "example": "the labeled pre-operative diagnosis field",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "post-operative diagnosis",
+          "field": "post_operative_diagnosis",
           "type": "string",
           "example": "the labeled post-operative diagnosis field",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "anaesthesia type",
+          "field": "anaesthesia_type",
           "type": "string",
           "example": "the labeled anaesthesia field",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "implanted device",
+          "field": "implanted_device",
           "type": "string",
           "example": "the device recorded as implanted, where one is",
           "reliability_ceiling": "validated",
@@ -956,9 +956,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
+          "subject_person",
           "procedure",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The procedure is the context that makes a consent or an instruction sheet interpretable. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -993,7 +993,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -1007,14 +1007,14 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "treating diagnosis",
+          "field": "treating_diagnosis",
           "type": "string",
           "example": "the labeled referring or treating diagnosis",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "plan of care period",
+          "field": "plan_of_care_period",
           "type": "string",
           "example": "the labeled authorisation or certification period as written",
           "reliability_ceiling": "direct",
@@ -1028,14 +1028,14 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "visit date",
+          "field": "visit_date",
           "type": "date",
           "example": "the labeled date of a session",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "home programme",
+          "field": "home_programme",
           "type": "string",
           "example": "the prescribed exercise set as labeled",
           "reliability_ceiling": "validated",
@@ -1073,9 +1073,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "condition or injury",
-          "document type"
+          "subject_person",
+          "condition_or_injury",
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The condition is what makes a progress note or an exercise sheet retrievable years later. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -1110,28 +1110,28 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "treating clinician",
+          "field": "treating_clinician",
           "type": "string",
           "example": "the therapist, counsellor or psychiatrist",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "service type",
+          "field": "service_type",
           "type": "string",
           "example": "the labeled service or modality as the document names it",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "session date",
+          "field": "session_date",
           "type": "date",
           "example": "the labeled session or service date",
           "reliability_ceiling": "direct",
@@ -1145,7 +1145,7 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "authorisation reference",
+          "field": "authorisation_reference",
           "type": "string",
           "example": "the labeled payer authorisation identifier",
           "reliability_ceiling": "direct",
@@ -1183,8 +1183,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "practice or provider",
+          "subject_person",
+          "practice_or_provider",
           "year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'",
@@ -1220,28 +1220,28 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "dental practice",
+          "field": "dental_practice",
           "type": "string",
           "example": "the practice providing care",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "treating dentist",
+          "field": "treating_dentist",
           "type": "string",
           "example": "the dentist or hygienist of record",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "tooth or quadrant",
+          "field": "tooth_or_quadrant",
           "type": "string",
           "example": "the labeled tooth or quadrant notation",
           "reliability_ceiling": "direct",
@@ -1255,14 +1255,14 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "service date",
+          "field": "service_date",
           "type": "date",
           "example": "the labeled date of service",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "treatment plan phase",
+          "field": "treatment_plan_phase",
           "type": "string",
           "example": "the labeled phase or stage of a proposed plan",
           "reliability_ceiling": "direct",
@@ -1301,9 +1301,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
+          "subject_person",
           "practice",
-          "treatment plan or year"
+          "treatment_plan_or_year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'",
         "time_first": false
@@ -1338,14 +1338,14 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "prescribing clinician",
+          "field": "prescribing_clinician",
           "type": "string",
           "example": "the optometrist or ophthalmologist",
           "reliability_ceiling": "direct",
@@ -1359,28 +1359,28 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "exam date",
+          "field": "exam_date",
           "type": "date",
           "example": "the labeled examination date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "prescription expiry",
+          "field": "prescription_expiry",
           "type": "date",
           "example": "the labeled expiry date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "correction type",
+          "field": "correction_type",
           "type": "string",
           "example": "spectacle, contact lens, or both as labeled",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "refraction values",
+          "field": "refraction_values",
           "type": "string",
           "example": "the per-eye refraction row as written",
           "reliability_ceiling": "direct",
@@ -1417,9 +1417,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "record type",
-          "exam year"
+          "subject_person",
+          "record_type",
+          "exam_year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'",
         "time_first": false
@@ -1449,7 +1449,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -1470,21 +1470,21 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "documenting clinician",
+          "field": "documenting_clinician",
           "type": "string",
           "example": "the clinician who recorded it",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "onset or documented date",
+          "field": "onset_or_documented_date",
           "type": "date",
           "example": "the labeled date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "emergency plan",
+          "field": "emergency_plan",
           "type": "string",
           "example": "the labeled action-plan document, where one exists",
           "reliability_ceiling": "direct",
@@ -1520,8 +1520,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "record type"
+          "subject_person",
+          "record_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The set is small; depth beyond the subject person usually produces the single-child level §5.9 warns about. §5.9: 'It should warn when a level produces only one child'",
         "time_first": false
@@ -1556,7 +1556,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -1570,28 +1570,28 @@
           "why": "A condition fact only where a clinician-issued plan names it in a labeled field. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "care plan issuer",
+          "field": "care_plan_issuer",
           "type": "string",
           "example": "the clinician or service that issued the plan",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "monitoring measure",
+          "field": "monitoring_measure",
           "type": "string",
           "example": "the labeled measure the log records",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "review date",
+          "field": "review_date",
           "type": "date",
           "example": "the labeled review or recall date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "plan period",
+          "field": "plan_period",
           "type": "string",
           "example": "the labeled period the plan covers, as written",
           "reliability_ceiling": "direct",
@@ -1629,9 +1629,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
+          "subject_person",
           "condition",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The condition is the retrieval key; a log is meaningless without it. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -1666,42 +1666,42 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "care provider",
+          "field": "care_provider",
           "type": "string",
           "example": "the obstetric practice, midwifery service or clinician",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "visit date",
+          "field": "visit_date",
           "type": "date",
           "example": "the labeled appointment or scan date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "gestational dating",
+          "field": "gestational_dating",
           "type": "string",
           "example": "the labeled dating or gestation field, stored as written",
           "reliability_ceiling": "direct",
           "why": "Read from a labeled field only; the catalogue computes nothing and asserts no timeline. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "care setting",
+          "field": "care_setting",
           "type": "string",
           "example": "the planned or actual place of birth, where labeled",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "antenatal, intrapartum or postnatal as the record labels it",
           "reliability_ceiling": "validated",
@@ -1739,8 +1739,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "record type"
+          "subject_person",
+          "record_type"
         ],
         "why": "Deliberately shallow. §5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' applies, but any deeper default here would encode an assumption about an outcome the files do not state.",
         "time_first": false
@@ -1775,7 +1775,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the named child",
           "reliability_ceiling": "direct",
@@ -1789,28 +1789,28 @@
           "why": "A distinct role from the subject; it is also authorship-like and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' must not become a folder level on its own."
         },
         {
-          "field": "paediatric practice",
+          "field": "paediatric_practice",
           "type": "string",
           "example": "the practice or service providing care",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "visit date",
+          "field": "visit_date",
           "type": "date",
           "example": "the labeled visit date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "well-child check, growth record, screening or referral as labeled",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "school or programme requirement",
+          "field": "school_or_programme_requirement",
           "type": "string",
           "example": "the institution the record was produced for, where labeled",
           "reliability_ceiling": "direct",
@@ -1848,8 +1848,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "record type",
+          "subject_person",
+          "record_type",
           "year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The child is the only dimension that makes the rest legible in a household with more than one. §5.5: 'a parent dimension should provide the context required to understand the child'",
@@ -1885,7 +1885,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the person being cared for",
           "reliability_ceiling": "direct",
@@ -1899,28 +1899,28 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "authority instrument",
+          "field": "authority_instrument",
           "type": "string",
           "example": "the named instrument granting authority to act, where one exists",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "care service",
+          "field": "care_service",
           "type": "string",
           "example": "the agency, facility or programme providing care",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "care period",
+          "field": "care_period",
           "type": "string",
           "example": "the labeled period a placement or package covers, as written",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "coordination contact",
+          "field": "coordination_contact",
           "type": "string",
           "example": "the named case manager or coordinator",
           "reliability_ceiling": "direct",
@@ -1957,8 +1957,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "record type"
+          "subject_person",
+          "record_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The cared-for person is the only workable first dimension, because every other dimension repeats across the people a carer looks after. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -1993,28 +1993,28 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the principal",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "instrument type",
+          "field": "instrument_type",
           "type": "string",
           "example": "the named instrument as titled",
           "reliability_ceiling": "validated",
           "why": "Confirmed from the document's own title or heading, not from a mention elsewhere. §3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "designated agent",
+          "field": "designated_agent",
           "type": "string",
           "example": "the named health agent or proxy",
           "reliability_ceiling": "direct",
           "why": "A role distinct from the principal and from any witness. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "execution date",
+          "field": "execution_date",
           "type": "date",
           "example": "the labeled date executed",
           "reliability_ceiling": "direct",
@@ -2028,14 +2028,14 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "witness or notary",
+          "field": "witness_or_notary",
           "type": "string",
           "example": "the attestation block as recorded",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "registered with",
+          "field": "registered_with",
           "type": "string",
           "example": "any registry or facility holding a filed copy, where labeled",
           "reliability_ceiling": "direct",
@@ -2073,8 +2073,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "instrument type",
+          "subject_person",
+          "instrument_type",
           "version"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Which instrument it is governs everything else, and superseded versions must remain distinguishable from the current one. §5.5: 'a parent dimension should provide the context required to understand the child'",
@@ -2110,7 +2110,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -2124,7 +2124,7 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "gene or region",
+          "field": "gene_or_region",
           "type": "string",
           "example": "the gene or region reported on, as labeled",
           "reliability_ceiling": "validated",
@@ -2138,28 +2138,28 @@
           "why": "Stored as the report states it; the catalogue supplies no clinical meaning of its own. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "reporting laboratory",
+          "field": "reporting_laboratory",
           "type": "string",
           "example": "the laboratory issuing the report",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "ordering provider",
+          "field": "ordering_provider",
           "type": "string",
           "example": "the clinician or genetic counsellor who ordered it",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "collection date",
+          "field": "collection_date",
           "type": "date",
           "example": "the labeled specimen collection date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "export source",
+          "field": "export_source",
           "type": "string",
           "example": "the consumer platform that produced a raw-data export",
           "reliability_ceiling": "direct",
@@ -2197,9 +2197,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
+          "subject_person",
           "test",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'",
         "time_first": false
@@ -2234,7 +2234,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
@@ -2248,7 +2248,7 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "registration identifier",
+          "field": "registration_identifier",
           "type": "string",
           "example": "the trial's labeled registry identifier",
           "reliability_ceiling": "direct",
@@ -2262,7 +2262,7 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "principal investigator",
+          "field": "principal_investigator",
           "type": "string",
           "example": "the investigator named on the consent",
           "reliability_ceiling": "direct",
@@ -2276,21 +2276,21 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "subject identifier",
+          "field": "subject_identifier",
           "type": "string",
           "example": "the participant identifier assigned to the person",
           "reliability_ceiling": "direct",
           "why": "A labeled field, never a bare code found in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "consent version",
+          "field": "consent_version",
           "type": "string",
           "example": "the labeled consent document version as written",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "visit date",
+          "field": "visit_date",
           "type": "date",
           "example": "the labeled study visit date",
           "reliability_ceiling": "direct",
@@ -2329,9 +2329,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
+          "subject_person",
           "trial",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The trial is the packet identity; a visit schedule is unreadable without it. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -2367,28 +2367,28 @@
       "design_cite": "§3.3 names 'travel record' among the domains the LLM may recognise; §3.9 supplies the packet mechanism: 'The documents are content-incoherent but purpose-coherent.' This entry extends those two named things to a medical purpose; the design names no medical-travel domain.",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "treating facility",
+          "field": "treating_facility",
           "type": "string",
           "example": "the facility abroad or away from home",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "procedure or treatment",
+          "field": "procedure_or_treatment",
           "type": "string",
           "example": "the treatment the trip is for, as labeled",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "travel dates",
+          "field": "travel_dates",
           "type": "date",
           "example": "the labeled departure and return dates",
           "reliability_ceiling": "direct",
@@ -2409,7 +2409,7 @@
           "why": "Purpose is what holds the packet together, and it is exactly what rules cannot see. §3.9: 'Topic answers what a file is about, while purpose answers what the file was for.'"
         },
         {
-          "field": "coordinating service",
+          "field": "coordinating_service",
           "type": "string",
           "example": "any facilitator or medical-travel agency",
           "reliability_ceiling": "direct",
@@ -2445,8 +2445,8 @@
       ],
       "template": {
         "dimension_order": [
-          "trip or treatment",
-          "document type"
+          "trip_or_treatment",
+          "document_type"
         ],
         "why": "This is a purpose-defined packet rather than a dimension stack; §5.6 says of exactly this shape that 'The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.'",
         "time_first": false
@@ -2480,35 +2480,35 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "self",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "export source",
+          "field": "export_source",
           "type": "string",
           "example": "the platform or device that produced the export",
           "reliability_ceiling": "direct",
           "why": "Read from the export container's own manifest or schema markers, not from its contents. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "export date",
+          "field": "export_date",
           "type": "date",
           "example": "the labeled export date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "coverage period",
+          "field": "coverage_period",
           "type": "string",
           "example": "the labeled period the export covers, as written",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "measure set",
+          "field": "measure_set",
           "type": "string",
           "example": "the measures the export contains, as the schema names them",
           "reliability_ceiling": "validated",
@@ -2552,8 +2552,8 @@
       ],
       "template": {
         "dimension_order": [
-          "export source",
-          "coverage period"
+          "export_source",
+          "coverage_period"
         ],
         "why": "The exception §5.5 states for capture-based material applies: 'Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.' An export is defined by the window it covers, and the source is what makes two overlapping windows distinguishable.",
         "time_first": true
@@ -2588,49 +2588,49 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the person the letter is about",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "issuing clinician",
+          "field": "issuing_clinician",
           "type": "string",
           "example": "the clinician who signed it",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "recipient organisation",
+          "field": "recipient_organisation",
           "type": "string",
           "example": "the employer, school, agency or insurer it is addressed to",
           "reliability_ceiling": "direct",
           "why": "A third role again, and the one that decides which other slice also claims the file. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "certification purpose",
+          "field": "certification_purpose",
           "type": "string",
           "example": "the labeled purpose the letter serves",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "certification period",
+          "field": "certification_period",
           "type": "string",
           "example": "the labeled period certified, as written",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "issue date",
+          "field": "issue_date",
           "type": "date",
           "example": "the labeled date of the letter",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "restriction or accommodation",
+          "field": "restriction_or_accommodation",
           "type": "string",
           "example": "the labeled restriction or accommodation stated",
           "reliability_ceiling": "direct",
@@ -2668,8 +2668,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
-          "recipient organisation",
+          "subject_person",
+          "recipient_organisation",
           "year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The recipient organisation is what the person will search for, because that is why the letter exists. §5.5: 'a parent dimension should provide the context required to understand the child'",
@@ -2705,7 +2705,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the employee or candidate assessed",
           "reliability_ceiling": "direct",
@@ -2719,21 +2719,21 @@
           "why": "A third role, distinct from the assessing clinician and from the subject; it is also the role that hands the file to the career slice. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "assessing service",
+          "field": "assessing_service",
           "type": "string",
           "example": "the occupational health provider",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "assessment type",
+          "field": "assessment_type",
           "type": "string",
           "example": "the labeled assessment as the form names it",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "exposure agent",
+          "field": "exposure_agent",
           "type": "string",
           "example": "the hazard monitored, where the record labels one",
           "reliability_ceiling": "validated",
@@ -2747,7 +2747,7 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "assessment date",
+          "field": "assessment_date",
           "type": "date",
           "example": "the labeled assessment date",
           "reliability_ceiling": "direct",
@@ -2785,9 +2785,9 @@
       ],
       "template": {
         "dimension_order": [
-          "subject person",
+          "subject_person",
           "employer",
-          "assessment type"
+          "assessment_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The employer is the reason the record exists and is how it will be retrieved. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -2823,7 +2823,7 @@
       "design_cite": "Extends §3.11's finance field set — 'Finance files may use institution, account type, tax year, and record type.' — to a health payer. The design names no health-plan domain and no health-plan field.",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the member or dependant covered",
           "reliability_ceiling": "direct",
@@ -2844,35 +2844,35 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "member identifier",
+          "field": "member_identifier",
           "type": "string",
           "example": "the labeled member or subscriber identifier",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "plan year",
+          "field": "plan_year",
           "type": "string",
           "example": "the labeled plan or coverage year, as written",
           "reliability_ceiling": "direct",
           "why": "The health analogue of the `tax year` field §3.11 grants finance files; read from a labeled field, never parsed loosely. §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "coverage period",
+          "field": "coverage_period",
           "type": "string",
           "example": "the labeled effective and termination dates, as written",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "enrolment, benefits schedule, formulary or card as labeled",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "group or sponsor",
+          "field": "group_or_sponsor",
           "type": "string",
           "example": "the employer or scheme sponsoring the plan",
           "reliability_ceiling": "direct",
@@ -2912,8 +2912,8 @@
       "template": {
         "dimension_order": [
           "payer",
-          "plan year",
-          "document type"
+          "plan_year",
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The payer is the stable entity; the plan year is what changes. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -2948,14 +2948,14 @@
       "design_cite": "Extends §3.11's finance field set — 'Finance files may use institution, account type, tax year, and record type.' — to a health claim. The design names no claim domain and no claim field.",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the patient the service was for",
           "reliability_ceiling": "direct",
           "why": "Distinct from the subscriber, who may be a different person on the same plan. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "claim number",
+          "field": "claim_number",
           "type": "string",
           "example": "the payer's labeled claim identifier",
           "reliability_ceiling": "direct",
@@ -2969,35 +2969,35 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "member identifier",
+          "field": "member_identifier",
           "type": "string",
           "example": "the labeled member or subscriber identifier",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "service date",
+          "field": "service_date",
           "type": "date",
           "example": "the labeled date of service",
           "reliability_ceiling": "direct",
           "why": "Distinct from the claim date, the statement date and the file's own timestamps. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "servicing provider",
+          "field": "servicing_provider",
           "type": "string",
           "example": "the clinician or facility that delivered the service",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "claim status",
+          "field": "claim_status",
           "type": "string",
           "example": "the labeled adjudication outcome as stated",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "service coding system",
+          "field": "service_coding_system",
           "type": "string",
           "example": "the coding system the claim states it uses",
           "reliability_ceiling": "direct",
@@ -3039,8 +3039,8 @@
       "template": {
         "dimension_order": [
           "payer",
-          "plan year",
-          "document type"
+          "plan_year",
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' A claim is retrieved by who decided it and when it fell, not by which body part it concerned. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -3075,49 +3075,49 @@
       "design_cite": "Extends §3.11's finance field set — 'Finance files may use institution, account type, tax year, and record type.' — to a provider bill. The design names no medical-billing domain.",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the patient billed for",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "billing provider",
+          "field": "billing_provider",
           "type": "string",
           "example": "the clinician, practice or facility charging",
           "reliability_ceiling": "direct",
           "why": "The provider role; distinct from the payer, who appears on the same page. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "patient account identifier",
+          "field": "patient_account_identifier",
           "type": "string",
           "example": "the provider's labeled account or guarantor identifier",
           "reliability_ceiling": "direct",
           "why": "The provider's own identifier, not the payer's claim number. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "service date",
+          "field": "service_date",
           "type": "date",
           "example": "the labeled date of service",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "statement date",
+          "field": "statement_date",
           "type": "date",
           "example": "the labeled statement date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "patient responsibility",
+          "field": "patient_responsibility",
           "type": "string",
           "example": "the labeled amount-due field as written",
           "reliability_ceiling": "direct",
           "why": "Stored as the document's own labeled value; no arithmetic is done here."
         },
         {
-          "field": "dispute status",
+          "field": "dispute_status",
           "type": "string",
           "example": "the labeled stage of a contested account",
           "reliability_ceiling": "direct",
@@ -3156,9 +3156,9 @@
       ],
       "template": {
         "dimension_order": [
-          "billing provider",
-          "episode or year",
-          "document type"
+          "billing_provider",
+          "episode_or_year",
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The provider is what a person searches for when a bill is contested. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -3192,7 +3192,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the patient",
           "reliability_ceiling": "direct",
@@ -3206,28 +3206,28 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "chart identifier",
+          "field": "chart_identifier",
           "type": "string",
           "example": "the practice's labeled record identifier",
           "reliability_ceiling": "direct",
           "why": "A labeled field in an export, never a bare numeric string in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "record source",
+          "field": "record_source",
           "type": "string",
           "example": "the EHR or practice-management system that produced the file",
           "reliability_ceiling": "direct",
           "why": "Provenance from the export's own producer metadata; this is what separates a clinician's chart from a student's exercise. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "chart period",
+          "field": "chart_period",
           "type": "string",
           "example": "the labeled period the export covers, as written",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "responsible clinician",
+          "field": "responsible_clinician",
           "type": "string",
           "example": "the clinician of record",
           "reliability_ceiling": "direct",
@@ -3266,8 +3266,8 @@
       "template": {
         "dimension_order": [
           "practice",
-          "subject person",
-          "document type"
+          "subject_person",
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The practice is the stable context; a chart identifier means nothing without it. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -3302,28 +3302,28 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the patient seen",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "encounter date",
+          "field": "encounter_date",
           "type": "date",
           "example": "the labeled date of the encounter",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "authoring clinician",
+          "field": "authoring_clinician",
           "type": "string",
           "example": "the clinician who wrote and signed it",
           "reliability_ceiling": "direct",
           "why": "Authorship, which per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' must not become a folder level."
         },
         {
-          "field": "note type",
+          "field": "note_type",
           "type": "string",
           "example": "the labeled note type as the template names it",
           "reliability_ceiling": "direct",
@@ -3337,7 +3337,7 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "record source",
+          "field": "record_source",
           "type": "string",
           "example": "the EHR that produced it",
           "reliability_ceiling": "direct",
@@ -3384,7 +3384,7 @@
       "template": {
         "dimension_order": [
           "practice",
-          "subject person",
+          "subject_person",
           "encounter"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The patient is the context that makes a single encounter legible. §5.5: 'a parent dimension should provide the context required to understand the child'",
@@ -3420,35 +3420,35 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the patient the plan is for",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "authoring clinician",
+          "field": "authoring_clinician",
           "type": "string",
           "example": "the clinician responsible for the plan",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'It should avoid using authorship or creator identity as a destination dimension.'"
         },
         {
-          "field": "condition addressed",
+          "field": "condition_addressed",
           "type": "string",
           "example": "the labeled indication or problem",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "plan period",
+          "field": "plan_period",
           "type": "string",
           "example": "the labeled period or review interval, as written",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "plan status",
+          "field": "plan_status",
           "type": "string",
           "example": "the labeled status as recorded",
           "reliability_ceiling": "direct",
@@ -3462,7 +3462,7 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "multidisciplinary participants",
+          "field": "multidisciplinary_participants",
           "type": "string",
           "example": "other services named as contributing",
           "reliability_ceiling": "direct",
@@ -3499,8 +3499,8 @@
       "template": {
         "dimension_order": [
           "practice",
-          "subject person",
-          "condition addressed"
+          "subject_person",
+          "condition_addressed"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.'",
         "time_first": false
@@ -3542,35 +3542,35 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "meeting date",
+          "field": "meeting_date",
           "type": "date",
           "example": "the labeled date of the meeting",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "convening service",
+          "field": "convening_service",
           "type": "string",
           "example": "the service or facility convening it",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "case list",
+          "field": "case_list",
           "type": "string",
           "example": "the labeled list of cases scheduled",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "a patient discussed, where the material names them",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "outcome or recommendation",
+          "field": "outcome_or_recommendation",
           "type": "string",
           "example": "the labeled recorded outcome",
           "reliability_ceiling": "direct",
@@ -3608,8 +3608,8 @@
       "template": {
         "dimension_order": [
           "meeting",
-          "meeting date",
-          "document type"
+          "meeting_date",
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The meeting series is the stable identity; a single agenda is unreadable without it. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -3651,42 +3651,42 @@
           "why": "The subject of the record is the holder here, which is the reverse of every patient-side domain. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "issuing board",
+          "field": "issuing_board",
           "type": "string",
           "example": "the licensing board, registrar or certifying body",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "licence type",
+          "field": "licence_type",
           "type": "string",
           "example": "the named licence, registration or certification",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "licence identifier",
+          "field": "licence_identifier",
           "type": "string",
           "example": "the labeled licence or registration number",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "licence status",
+          "field": "licence_status",
           "type": "string",
           "example": "the labeled status as stated",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "expiration date",
+          "field": "expiration_date",
           "type": "date",
           "example": "the labeled expiry or renewal date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "credentialing organisation",
+          "field": "credentialing_organisation",
           "type": "string",
           "example": "the hospital, network or payer requesting the packet",
           "reliability_ceiling": "direct",
@@ -3733,8 +3733,8 @@
       "template": {
         "dimension_order": [
           "practitioner",
-          "licence type",
-          "issuing board or jurisdiction"
+          "licence_type",
+          "issuing_board_or_jurisdiction"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The licence type is what a practitioner searches for; the issuing body disambiguates identically-named licences across jurisdictions. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -3783,28 +3783,28 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "accrediting body",
+          "field": "accrediting_body",
           "type": "string",
           "example": "the body accrediting the activity",
           "reliability_ceiling": "direct",
           "why": "Distinct from the provider that ran it and from the board that requires it. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "credit designation",
+          "field": "credit_designation",
           "type": "string",
           "example": "the labeled credit type and amount as the certificate states it",
           "reliability_ceiling": "direct",
           "why": "Stored exactly as designated; the catalogue asserts no credit values of its own. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "activity date",
+          "field": "activity_date",
           "type": "date",
           "example": "the labeled completion date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "reporting cycle",
+          "field": "reporting_cycle",
           "type": "string",
           "example": "the labeled cycle the credit counts toward, as written",
           "reliability_ceiling": "direct",
@@ -3850,7 +3850,7 @@
       "template": {
         "dimension_order": [
           "practitioner",
-          "reporting cycle",
+          "reporting_cycle",
           "activity"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The reporting cycle is the unit a practitioner is actually audited on, which makes it the useful parent for an activity. §5.5: 'a parent dimension should provide the context required to understand the child'",
@@ -3886,7 +3886,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "practitioner or facility",
+          "field": "practitioner_or_facility",
           "type": "string",
           "example": "the named insured or the service involved",
           "reliability_ceiling": "direct",
@@ -3900,42 +3900,42 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "policy identifier",
+          "field": "policy_identifier",
           "type": "string",
           "example": "the labeled policy number",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "coverage period",
+          "field": "coverage_period",
           "type": "string",
           "example": "the labeled policy period, as written",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "incident identifier",
+          "field": "incident_identifier",
           "type": "string",
           "example": "the labeled occurrence or incident reference",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "event date",
+          "field": "event_date",
           "type": "date",
           "example": "the labeled date of the occurrence",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "matter status",
+          "field": "matter_status",
           "type": "string",
           "example": "the labeled stage of a claim or investigation",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "reporting body",
+          "field": "reporting_body",
           "type": "string",
           "example": "the regulator or programme the event was reported to",
           "reliability_ceiling": "direct",
@@ -3974,9 +3974,9 @@
       ],
       "template": {
         "dimension_order": [
-          "practitioner or facility",
-          "matter or policy",
-          "document type"
+          "practitioner_or_facility",
+          "matter_or_policy",
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' A single correspondence item is unreadable without the matter it belongs to. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -4011,21 +4011,21 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the patient referred",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "referring clinician",
+          "field": "referring_clinician",
           "type": "string",
           "example": "the clinician sending — here, the corpus owner",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "receiving service",
+          "field": "receiving_service",
           "type": "string",
           "example": "the service or clinician addressed",
           "reliability_ceiling": "direct",
@@ -4039,14 +4039,14 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "sent date",
+          "field": "sent_date",
           "type": "date",
           "example": "the labeled date sent",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "reason for referral",
+          "field": "reason_for_referral",
           "type": "string",
           "example": "the labeled reason field",
           "reliability_ceiling": "direct",
@@ -4099,7 +4099,7 @@
       "template": {
         "dimension_order": [
           "practice",
-          "specialty or service",
+          "specialty_or_service",
           "year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Correspondence is retrieved by where it went. §5.5: 'a parent dimension should provide the context required to understand the child'",
@@ -4142,7 +4142,7 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "issuing body",
+          "field": "issuing_body",
           "type": "string",
           "example": "the committee, society or institution issuing it",
           "reliability_ceiling": "direct",
@@ -4156,14 +4156,14 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "approval date",
+          "field": "approval_date",
           "type": "date",
           "example": "the labeled approval or effective date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "review date",
+          "field": "review_date",
           "type": "date",
           "example": "the labeled scheduled review date",
           "reliability_ceiling": "direct",
@@ -4177,7 +4177,7 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "clinical area",
+          "field": "clinical_area",
           "type": "string",
           "example": "the service or specialty it governs",
           "reliability_ceiling": "validated",
@@ -4216,7 +4216,7 @@
       ],
       "template": {
         "dimension_order": [
-          "clinical area",
+          "clinical_area",
           "protocol",
           "version"
         ],
@@ -4253,28 +4253,28 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "series or programme",
+          "field": "series_or_programme",
           "type": "string",
           "example": "the named rounds series, course or teaching programme",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "presenting clinician",
+          "field": "presenting_clinician",
           "type": "string",
           "example": "the clinician delivering it",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'It should avoid using authorship or creator identity as a destination dimension.'"
         },
         {
-          "field": "session date",
+          "field": "session_date",
           "type": "date",
           "example": "the labeled date delivered",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "host institution",
+          "field": "host_institution",
           "type": "string",
           "example": "the department or institution hosting it",
           "reliability_ceiling": "direct",
@@ -4288,7 +4288,7 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "clinical topic",
+          "field": "clinical_topic",
           "type": "string",
           "example": "the subject taught, as titled",
           "reliability_ceiling": "validated",
@@ -4302,7 +4302,7 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "de-identification status",
+          "field": "de_identification_status",
           "type": "string",
           "example": "whether the material states that case content is de-identified",
           "reliability_ceiling": "direct",
@@ -4340,9 +4340,9 @@
       ],
       "template": {
         "dimension_order": [
-          "series or programme",
-          "session or topic",
-          "document type"
+          "series_or_programme",
+          "session_or_topic",
+          "document_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The series is what makes a single deck retrievable years later. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -4384,7 +4384,7 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "administrative function",
+          "field": "administrative_function",
           "type": "string",
           "example": "the labeled function the document serves",
           "reliability_ceiling": "direct",
@@ -4398,28 +4398,28 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "effective period",
+          "field": "effective_period",
           "type": "string",
           "example": "the labeled period a contract, rota or policy covers, as written",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "staff member",
+          "field": "staff_member",
           "type": "string",
           "example": "the employee a record concerns",
           "reliability_ceiling": "direct",
           "why": "A subject role, not authorship; and per §3.8: 'It should avoid using authorship or creator identity as a destination dimension.' it is not a folder dimension."
         },
         {
-          "field": "service line",
+          "field": "service_line",
           "type": "string",
           "example": "the clinical service or site a rota or policy applies to",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "compliance regime",
+          "field": "compliance_regime",
           "type": "string",
           "example": "the accreditation, inspection or regulatory scheme named",
           "reliability_ceiling": "direct",
@@ -4462,8 +4462,8 @@
       "template": {
         "dimension_order": [
           "practice",
-          "administrative function",
-          "effective period"
+          "administrative_function",
+          "effective_period"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Function before period, because a rota and a contract for the same year are unrelated. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -4512,42 +4512,42 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "device identifier",
+          "field": "device_identifier",
           "type": "string",
           "example": "the labeled unique-device or serial identifier",
           "reliability_ceiling": "direct",
           "why": "A labeled identifier field, never a bare serial-shaped string found in text. §3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "subject person",
+          "field": "subject_person",
           "type": "string",
           "example": "the recipient, where the device was implanted or issued",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "implant or issue date",
+          "field": "implant_or_issue_date",
           "type": "date",
           "example": "the labeled date placed or issued",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "holding facility",
+          "field": "holding_facility",
           "type": "string",
           "example": "the facility owning or servicing the device",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "service event",
+          "field": "service_event",
           "type": "string",
           "example": "the labeled maintenance, calibration or recall event",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "regulatory notice",
+          "field": "regulatory_notice",
           "type": "string",
           "example": "the labeled safety notice or field action, where one exists",
           "reliability_ceiling": "direct",
@@ -4586,9 +4586,9 @@
       ],
       "template": {
         "dimension_order": [
-          "holding facility or subject person",
+          "holding_facility_or_subject_person",
           "device",
-          "record type"
+          "record_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The device is the identity; a calibration log is meaningless without knowing which unit it belongs to. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -4644,21 +4644,21 @@
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "product coding system",
+          "field": "product_coding_system",
           "type": "string",
           "example": "the product coding system the record states it uses",
           "reliability_ceiling": "direct",
           "why": "Named as a system only. The catalogue enumerates no codes."
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "dispensing, inventory, accountability or formulary as labeled",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "record period",
+          "field": "record_period",
           "type": "string",
           "example": "the labeled period the ledger covers, as written",
           "reliability_ceiling": "direct",
@@ -4705,8 +4705,8 @@
       "template": {
         "dimension_order": [
           "pharmacy",
-          "record type",
-          "record period"
+          "record_type",
+          "record_period"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Record type before period, because a dispensing log and an inventory count for the same month are different things. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -4741,49 +4741,49 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "reporting facility",
+          "field": "reporting_facility",
           "type": "string",
           "example": "the practice or facility making the report",
           "reliability_ceiling": "direct",
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "receiving authority",
+          "field": "receiving_authority",
           "type": "string",
           "example": "the health department, agency or registry receiving it",
           "reliability_ceiling": "direct",
           "why": "A distinct role from the reporter; the direction of the report is the domain's whole shape. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "report type",
+          "field": "report_type",
           "type": "string",
           "example": "the labeled report or submission type",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "reportable condition or event",
+          "field": "reportable_condition_or_event",
           "type": "string",
           "example": "the condition or event the report concerns, as labeled",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "report identifier",
+          "field": "report_identifier",
           "type": "string",
           "example": "the labeled case or submission reference",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "report date",
+          "field": "report_date",
           "type": "date",
           "example": "the labeled date submitted",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "reporting period",
+          "field": "reporting_period",
           "type": "string",
           "example": "the labeled period a batch submission covers, as written",
           "reliability_ceiling": "direct",
@@ -4828,9 +4828,9 @@
       ],
       "template": {
         "dimension_order": [
-          "receiving authority",
-          "report type",
-          "reporting period"
+          "receiving_authority",
+          "report_type",
+          "reporting_period"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The authority is who the obligation runs to and is how a submission is found again. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -4865,7 +4865,7 @@
       "provenance": "proposal",
       "schema": [
         {
-          "field": "animal patient",
+          "field": "animal_patient",
           "type": "string",
           "example": "the animal seen",
           "reliability_ceiling": "direct",
@@ -4893,7 +4893,7 @@
           "why": "A person role distinct from the animal patient and from the attending veterinarian. §3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "attending veterinarian",
+          "field": "attending_veterinarian",
           "type": "string",
           "example": "the treating clinician",
           "reliability_ceiling": "direct",
@@ -4907,14 +4907,14 @@
           "why": "§3.8: 'The system must separate roles that happen to contain the same entity type.'"
         },
         {
-          "field": "visit date",
+          "field": "visit_date",
           "type": "date",
           "example": "the labeled visit date",
           "reliability_ceiling": "direct",
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' §3.10: 'The product must not use fuzzy date parsing'"
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "consultation, procedure, vaccination or certificate as labeled",
           "reliability_ceiling": "validated",
@@ -4955,8 +4955,8 @@
       "template": {
         "dimension_order": [
           "clinic",
-          "animal patient",
-          "record type"
+          "animal_patient",
+          "record_type"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The animal is the record identity. §5.5: 'a parent dimension should provide the context required to understand the child'",
         "time_first": false
@@ -5026,14 +5026,14 @@
           "why": "§3.5: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'"
         },
         {
-          "field": "record type",
+          "field": "record_type",
           "type": "string",
           "example": "vaccination, treatment, insurance or travel as labeled",
           "reliability_ceiling": "validated",
           "why": "§3.13: 'A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”'"
         },
         {
-          "field": "record date",
+          "field": "record_date",
           "type": "date",
           "example": "the labeled date on the record",
           "reliability_ceiling": "direct",
@@ -5073,7 +5073,7 @@
       "template": {
         "dimension_order": [
           "animal",
-          "record type",
+          "record_type",
           "year"
         ],
         "why": "§5.5: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The animal is the only sensible first dimension in a household with more than one. §5.5: 'a parent dimension should provide the context required to understand the child'",

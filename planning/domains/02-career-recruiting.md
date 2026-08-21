@@ -74,12 +74,12 @@ Files that describe or track one person's search for work as a whole, rather tha
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `search cycle` | string | 2026 spring search | `user_confirmed` | No document states the boundaries of a search. Only the corpus owner can name the period; the engine may group by it but may not assert it. |
-| `target role family` | string | Product Manager | `llm_supported` | A search plan states an intent in prose. There is no labeled field and no pattern; this is exactly the interpretation case. |
-| `target sector` | string | Healthcare | `llm_supported` | Same as target role family — stated as prose intent, not as a labeled value. |
-| `search document type` | enum-like | application tracker | `validated` | A tracker is recognisable from co-occurring column headers, which is a deterministic rule passing a context check. |
-| `search channel` | enum-like | referral | `validated` | A channel word is only meaningful beside application-tracking headers; alone it is an ordinary English word. |
-| `tracked employer` | string | Stripe | `possible` | A company name in a tracker cell records a target considered, not an application made. It is a clue for retrieval and must not become an application fact. |
+| `search_cycle` | string | 2026 spring search | `user_confirmed` | No document states the boundaries of a search. Only the corpus owner can name the period; the engine may group by it but may not assert it. |
+| `target_role_family` | string | Product Manager | `llm_supported` | A search plan states an intent in prose. There is no labeled field and no pattern; this is exactly the interpretation case. |
+| `target_sector` | string | Healthcare | `llm_supported` | Same as target role family — stated as prose intent, not as a labeled value. |
+| `search_document_type` | enum-like | application tracker | `validated` | A tracker is recognisable from co-occurring column headers, which is a deterministic rule passing a context check. |
+| `search_channel` | enum-like | referral | `validated` | A channel word is only meaningful beside application-tracking headers; alone it is an ordinary English word. |
+| `tracked_employer` | string | Stripe | `possible` | A company name in a tracker cell records a target considered, not an application made. It is a clue for retrieval and must not become an application fact. |
 
 **Recognition**
 
@@ -125,12 +125,12 @@ A job advertisement or description saved by a candidate, independently of whethe
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Stripe | `validated` | A gazetteer company name is only an employer when posting language surrounds it; that is the §3.5 ‘For example, BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”’ shape applied to a company name. |
-| `role title` | string | Senior Backend Engineer | `direct` | On a saved posting the role title is the document title or the page heading — §3.5 ‘Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.’ |
-| `requisition id` | string | REQ-48213 | `direct` | Public postings carry a labeled ‘Job ID’ or ‘Requisition’ field, which is a labeled form field. |
-| `posting source` | string | LinkedIn | `validated` | A job-board host name is only a posting source when posting language is present; the same host name appears in unrelated saved pages. |
-| `work mode` | string | Remote — US | `llm_supported` | Work mode is stated in prose (‘this role may be performed remotely from any US state’) far more often than in a labeled field. |
-| `posted compensation range` | string | $150,000 – $190,000 | `direct` | Where present it sits under a labeled ‘Base pay range’ or ‘Compensation’ heading; where absent it must stay unknown rather than be inferred from a level. |
-| `posting date` | date | 2026-03-04 | `direct` | A labeled ‘Posted’ field. Any other date on the page is not the posting date. |
+| `role_title` | string | Senior Backend Engineer | `direct` | On a saved posting the role title is the document title or the page heading — §3.5 ‘Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.’ |
+| `requisition_id` | string | REQ-48213 | `direct` | Public postings carry a labeled ‘Job ID’ or ‘Requisition’ field, which is a labeled form field. |
+| `posting_source` | string | LinkedIn | `validated` | A job-board host name is only a posting source when posting language is present; the same host name appears in unrelated saved pages. |
+| `work_mode` | string | Remote — US | `llm_supported` | Work mode is stated in prose (‘this role may be performed remotely from any US state’) far more often than in a labeled field. |
+| `posted_compensation_range` | string | $150,000 – $190,000 | `direct` | Where present it sits under a labeled ‘Base pay range’ or ‘Compensation’ heading; where absent it must stay unknown rather than be inferred from a level. |
+| `posting_date` | date | 2026-03-04 | `direct` | A labeled ‘Posted’ field. Any other date on the page is not the posting date. |
 
 **Recognition**
 
@@ -172,13 +172,13 @@ Everything submitted to one employer for one role in one recruiting cycle, held 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | EY | `validated` | §5.4's ‘company’ dimension. A gazetteer name plus application language; a company name alone is never enough — §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’ |
-| `role title` | string | Assurance Staff | `validated` | §5.4's ‘role’. Recognisable from a labeled position line in a confirmation or a cover-letter salutation line, both of which are context checks rather than bare patterns. |
-| `requisition id` | string | R-1049283 | `direct` | Application confirmations carry it as a labeled field, and it is the only value in this schema that identifies the application uniquely. |
-| `recruiting cycle` | string | 2026 Campus | `validated` | §5.4's ‘recruiting cycle’. A cycle name is a term-shaped or season-shaped value that only means a cycle when employment language surrounds it. |
-| `application document type` | enum-like | cover letter | `validated` | §5.4's ‘document type’. Recognisable from document structure; the enum itself is deferred — §3.11 ‘Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review.’ |
-| `application channel` | string | Workday portal | `llm_supported` | A portal is usually identified only by the visual chrome of a screenshot or by prose in a confirmation email. |
-| `submission date` | date | 2026-01-15 | `direct` | A labeled ‘Submitted’ or ‘Date received’ line on a confirmation. No other date on the packet may fill it. |
-| `application status` | enum-like | submitted | `llm_supported` | Status is stated in correspondence prose (‘we are moving forward with other candidates’) and almost never as a field. |
+| `role_title` | string | Assurance Staff | `validated` | §5.4's ‘role’. Recognisable from a labeled position line in a confirmation or a cover-letter salutation line, both of which are context checks rather than bare patterns. |
+| `requisition_id` | string | R-1049283 | `direct` | Application confirmations carry it as a labeled field, and it is the only value in this schema that identifies the application uniquely. |
+| `recruiting_cycle` | string | 2026 Campus | `validated` | §5.4's ‘recruiting cycle’. A cycle name is a term-shaped or season-shaped value that only means a cycle when employment language surrounds it. |
+| `application_document_type` | enum-like | cover letter | `validated` | §5.4's ‘document type’. Recognisable from document structure; the enum itself is deferred — §3.11 ‘Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review.’ |
+| `application_channel` | string | Workday portal | `llm_supported` | A portal is usually identified only by the visual chrome of a screenshot or by prose in a confirmation email. |
+| `submission_date` | date | 2026-01-15 | `direct` | A labeled ‘Submitted’ or ‘Date received’ line on a confirmation. No other date on the packet may fill it. |
+| `application_status` | enum-like | submitted | `llm_supported` | Status is stated in correspondence prose (‘we are moving forward with other candidates’) and almost never as a field. |
 | `purpose` | string | job application | `llm_supported` | The field that holds a content-incoherent packet together — §3.9 ‘Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.’ §3.9 ‘A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract. The documents are content-incoherent but purpose-coherent.’ It is listed here as a College-applications field in §3.11; see the open question. |
 
 **Recognition**
@@ -227,12 +227,12 @@ An application to a term-bounded internship or campus programme, whose identity 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | EY | `validated` | The design's own worked label is a career packet named for its employer; a gazetteer name plus internship language establishes it. |
-| `programme name` | string | Summer Analyst Program | `direct` | Campus programmes are named in the document title or the offer heading, which is a document-title source. |
-| `cohort term` | string | Summer 2026 | `validated` | A term-shaped value is only a cohort when internship language surrounds it. §3.10 ‘file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values’ and the identical pattern is claimed by coursework. |
+| `programme_name` | string | Summer Analyst Program | `direct` | Campus programmes are named in the document title or the offer heading, which is a document-title source. |
+| `cohort_term` | string | Summer 2026 | `validated` | A term-shaped value is only a cohort when internship language surrounds it. §3.10 ‘file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values’ and the identical pattern is claimed by coursework. |
 | `campus` | string | Columbia | `validated` | A university name here is the candidate's own school, not a target — a role distinction §3.8 requires and §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’ |
-| `class year` | string | 2027 | `possible` | A class year is a year-shaped value that appears on resumes, transcripts and postings alike. It is a clue for cohort grouping, never an asserted fact on its own. |
-| `application round` | enum-like | first-round deadline | `llm_supported` | Rounds are described in prose deadlines and portal copy rather than as labeled fields. |
-| `application document type` | enum-like | campus resume | `validated` | Same structural recognition as the general packet. |
+| `class_year` | string | 2027 | `possible` | A class year is a year-shaped value that appears on resumes, transcripts and postings alike. It is a clue for cohort grouping, never an asserted fact on its own. |
+| `application_round` | enum-like | first-round deadline | `llm_supported` | Rounds are described in prose deadlines and portal copy rather than as labeled fields. |
+| `application_document_type` | enum-like | campus resume | `validated` | Same structural recognition as the general packet. |
 
 **Recognition**
 
@@ -280,10 +280,10 @@ An application for a faculty, postdoctoral or research position, whose packet ha
 |---|---|---|---|---|
 | `institution` | string | University of Michigan | `validated` | Here the university is the employer, one of the six roles §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’ |
 | `department` | string | Department of Statistics | `validated` | A department name is only a hiring unit when faculty-search language surrounds it; otherwise it is an affiliation on a paper. |
-| `position type` | enum-like | tenure-track assistant professor | `validated` | Recognisable from a closed vocabulary of rank terms co-occurring with search language. |
-| `search cycle` | string | AY 2026-27 | `validated` | An academic-year pattern is one §3.10 names explicitly, and it means a search only beside faculty-search language. |
-| `job ad number` | string | F-2291 | `direct` | Faculty adverts carry a labeled posting number, and application systems echo it. |
-| `packet document type` | enum-like | research statement | `validated` | The document set — research statement, teaching statement, diversity statement, writing sample — is recognisable structurally and exists in no corporate packet. |
+| `position_type` | enum-like | tenure-track assistant professor | `validated` | Recognisable from a closed vocabulary of rank terms co-occurring with search language. |
+| `search_cycle` | string | AY 2026-27 | `validated` | An academic-year pattern is one §3.10 names explicitly, and it means a search only beside faculty-search language. |
+| `job_ad_number` | string | F-2291 | `direct` | Faculty adverts carry a labeled posting number, and application systems echo it. |
+| `packet_document_type` | enum-like | research statement | `validated` | The document set — research statement, teaching statement, diversity statement, writing sample — is recognisable structurally and exists in no corporate packet. |
 | `referee` | string | Prof. A. Okonkwo | `llm_supported` | Referees appear in prose lists and in letter signatures; a person's name alone establishes nothing. |
 
 **Recognition**
@@ -327,12 +327,12 @@ The corpus owner's own targeted career summary, and the family of variants tailo
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `document variant` | enum-like | resume | `validated` | Recognisable from co-occurring section headings, which is a rule passing a context check rather than a filename match. |
-| `tailored for employer` | string | Deloitte | `validated` | A gazetteer employer name in the filename or headline zone of a document whose body carries resume headings. Positional weighting is doing the work — §3.7 ‘It should use word-boundary matching rather than substring matching. Without this rule, names such as MIT can be found inside “submit,” and UNC can be found inside “uncertainty,” producing polished but completely false filing paths.’ |
-| `tailored for role` | string | Data Analyst | `llm_supported` | Tailoring to a role usually shows only as a rewritten summary paragraph, which is interpretation. |
-| `resume version label` | string | v4 | `possible` | A filename suffix is never sufficient on its own to establish version-family membership; it is a clue for review. |
-| `format variant` | enum-like | ATS plain text | `validated` | Distinguishable structurally — a single-column, table-free layout versus a designed multi-column one. |
-| `contains personal contact block` | boolean | true | `direct` | A labeled phone or email in the header zone. This is one of §3.11's fields ‘used only for search, privacy protection, explanation, or later review’ — §3.11 ‘Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review.’ |
+| `document_variant` | enum-like | resume | `validated` | Recognisable from co-occurring section headings, which is a rule passing a context check rather than a filename match. |
+| `tailored_for_employer` | string | Deloitte | `validated` | A gazetteer employer name in the filename or headline zone of a document whose body carries resume headings. Positional weighting is doing the work — §3.7 ‘It should use word-boundary matching rather than substring matching. Without this rule, names such as MIT can be found inside “submit,” and UNC can be found inside “uncertainty,” producing polished but completely false filing paths.’ |
+| `tailored_for_role` | string | Data Analyst | `llm_supported` | Tailoring to a role usually shows only as a rewritten summary paragraph, which is interpretation. |
+| `resume_version_label` | string | v4 | `possible` | A filename suffix is never sufficient on its own to establish version-family membership; it is a clue for review. |
+| `format_variant` | enum-like | ATS plain text | `validated` | Distinguishable structurally — a single-column, table-free layout versus a designed multi-column one. |
+| `contains_personal_contact_block` | boolean | true | `direct` | A labeled phone or email in the header zone. This is one of §3.11's fields ‘used only for search, privacy protection, explanation, or later review’ — §3.11 ‘Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review.’ |
 
 **Recognition**
 
@@ -379,12 +379,12 @@ The long-form scholarly record — publications, grants, teaching, service — a
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `cv section` | enum-like | Publications | `validated` | The section vocabulary is closed and structurally recognisable, unlike resume prose. |
+| `cv_section` | enum-like | Publications | `validated` | The section vocabulary is closed and structurally recognisable, unlike resume prose. |
 | `discipline` | string | Molecular Biology | `llm_supported` | Discipline is inferred from the content of the publication and teaching lists, never stated as a field. |
-| `academic rank` | string | Postdoctoral Fellow | `validated` | A closed rank vocabulary co-occurring with an institutional affiliation line. |
-| `cv variant` | enum-like | NIH biosketch | `validated` | Funder-mandated variants carry fixed mandatory headings that identify them exactly. |
-| `institutional affiliation` | string | Rockefeller University | `validated` | Here a university name is the author's own affiliation — a third distinct role beyond target and employer. §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’ |
-| `contains personal contact block` | boolean | true | `direct` | Same privacy-only field as the resume; a labeled contact line in the header zone. |
+| `academic_rank` | string | Postdoctoral Fellow | `validated` | A closed rank vocabulary co-occurring with an institutional affiliation line. |
+| `cv_variant` | enum-like | NIH biosketch | `validated` | Funder-mandated variants carry fixed mandatory headings that identify them exactly. |
+| `institutional_affiliation` | string | Rockefeller University | `validated` | Here a university name is the author's own affiliation — a third distinct role beyond target and employer. §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’ |
+| `contains_personal_contact_block` | boolean | true | `direct` | Same privacy-only field as the resume; a labeled contact line in the header zone. |
 
 **Recognition**
 
@@ -427,11 +427,11 @@ A letter written to one named recipient at one employer in support of one applic
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Baker McKenzie | `validated` | A gazetteer name in the addressee block of a document with letter structure. The addressee block is a positional signal — §3.7 ‘It should use word-boundary matching rather than substring matching. Without this rule, names such as MIT can be found inside “submit,” and UNC can be found inside “uncertainty,” producing polished but completely false filing paths.’ |
-| `role title` | string | Trainee Solicitor | `llm_supported` | The role is stated inside the first sentence in prose (‘I am writing to apply for the position of…’), not as a field. |
+| `role_title` | string | Trainee Solicitor | `llm_supported` | The role is stated inside the first sentence in prose (‘I am writing to apply for the position of…’), not as a field. |
 | `addressee` | string | Ms J. Whitfield, Hiring Manager | `direct` | A letter's salutation and address block are a labeled structural region. |
-| `letter date` | date | 2026-02-11 | `direct` | A letter carries its date in a fixed position; this is not the file's creation date. |
-| `letter type` | enum-like | speculative letter of interest | `llm_supported` | Whether a letter answers a posting or is unsolicited is only visible in its prose. |
-| `source template` | string | generic-consulting-v2 | `possible` | Shared boilerplate across letters is a clue that they belong to one tailoring family; it is never asserted as a fact. |
+| `letter_date` | date | 2026-02-11 | `direct` | A letter carries its date in a fixed position; this is not the file's creation date. |
+| `letter_type` | enum-like | speculative letter of interest | `llm_supported` | Whether a letter answers a posting or is unsolicited is only visible in its prose. |
+| `source_template` | string | generic-consulting-v2 | `possible` | Shared boilerplate across letters is a clue that they belong to one tailoring family; it is never asserted as a fact. |
 
 **Recognition**
 
@@ -473,12 +473,12 @@ Work the owner shows to prove capability — case studies, samples, showreels �
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `portfolio piece type` | enum-like | case study | `validated` | Recognisable from the structural shape of the artifact plus portfolio framing language. |
+| `portfolio_piece_type` | enum-like | case study | `validated` | Recognisable from the structural shape of the artifact plus portfolio framing language. |
 | `discipline` | string | Product Design | `llm_supported` | Discipline is read from the content of the work itself. |
-| `subject organisation` | string | Monzo | `validated` | The organisation the work was done for. This is neither employer nor client in the recruiting sense — it is the subject of a shown artifact, a fourth role. |
-| `showing permission` | enum-like | public case study | `llm_supported` | Permission is stated in prose or implied by an accompanying agreement; it is exactly the field that must never be guessed. |
-| `target audience` | string | design hiring managers | `llm_supported` | Stated only in framing prose where stated at all. |
-| `presentation format` | enum-like | PDF deck | `direct` | Read from format and structure metadata. |
+| `subject_organisation` | string | Monzo | `validated` | The organisation the work was done for. This is neither employer nor client in the recruiting sense — it is the subject of a shown artifact, a fourth role. |
+| `showing_permission` | enum-like | public case study | `llm_supported` | Permission is stated in prose or implied by an accompanying agreement; it is exactly the field that must never be guessed. |
+| `target_audience` | string | design hiring managers | `llm_supported` | Stated only in framing prose where stated at all. |
+| `presentation_format` | enum-like | PDF deck | `direct` | Read from format and structure metadata. |
 
 **Recognition**
 
@@ -521,12 +521,12 @@ The staged process one candidate runs with one employer for one role, and the ar
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Stripe | `validated` | A gazetteer name plus interview language. §4.9 ‘A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.’ |
-| `role title` | string | Staff Engineer | `llm_supported` | Interview correspondence names the role in prose far more often than in a field. |
-| `recruiting cycle` | string | 2026 H1 | `validated` | §5.4's ‘recruiting cycle’ — the container that lets two attempts at the same employer stay apart. |
+| `role_title` | string | Staff Engineer | `llm_supported` | Interview correspondence names the role in prose far more often than in a field. |
+| `recruiting_cycle` | string | 2026 H1 | `validated` | §5.4's ‘recruiting cycle’ — the container that lets two attempts at the same employer stay apart. |
 | `stage` | enum-like | onsite loop | `validated` | Stage vocabulary — screen, phone, loop, panel, final — is closed and recognisable beside scheduling language. |
-| `interview date` | date | 2026-04-09 | `direct` | A calendar invitation carries a labeled start time; §2.9 makes ICS a first-class extractor output. |
+| `interview_date` | date | 2026-04-09 | `direct` | A calendar invitation carries a labeled start time; §2.9 makes ICS a first-class extractor output. |
 | `interviewer` | string | R. Devi, Engineering Manager | `llm_supported` | Names appear in invitations and schedules but a name alone establishes nothing. |
-| `interview format` | enum-like | system design | `llm_supported` | Format is described in prep prose (‘this session will focus on system design’). |
+| `interview_format` | enum-like | system design | `llm_supported` | Format is described in prep prose (‘this session will focus on system design’). |
 
 **Recognition**
 
@@ -569,12 +569,12 @@ Work produced for an employer as a test rather than as employment, together with
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Palantir | `validated` | A gazetteer name inside an assessment brief; the brief is the only place it appears. |
-| `role title` | string | Data Scientist | `llm_supported` | Named in the brief's prose framing. |
-| `assessment type` | enum-like | take-home exercise | `validated` | A closed vocabulary — take-home, online assessment, case study, work sample, live exercise — beside assessment language. |
-| `assessment platform` | string | HackerRank | `validated` | A platform host name co-occurring with assessment language; the same host name in a bookmark means nothing. |
-| `brief or submission` | enum-like | submission | `validated` | Structurally separable: a brief states requirements and a deadline, a submission answers them. |
+| `role_title` | string | Data Scientist | `llm_supported` | Named in the brief's prose framing. |
+| `assessment_type` | enum-like | take-home exercise | `validated` | A closed vocabulary — take-home, online assessment, case study, work sample, live exercise — beside assessment language. |
+| `assessment_platform` | string | HackerRank | `validated` | A platform host name co-occurring with assessment language; the same host name in a bookmark means nothing. |
+| `brief_or_submission` | enum-like | submission | `validated` | Structurally separable: a brief states requirements and a deadline, a submission answers them. |
 | `deadline` | date | 2026-05-02 | `direct` | Briefs carry a labeled due date. |
-| `stack or language` | string | Python | `validated` | Recognisable from repository markers and file extensions; this is §3.11's Code vocabulary borrowed, not redefined. |
+| `stack_or_language` | string | Python | `validated` | Recognisable from repository markers and file extensions; this is §3.11's Code vocabulary borrowed, not redefined. |
 
 **Recognition**
 
@@ -621,13 +621,13 @@ An employer's proposal of employment, everything exchanged while it is negotiate
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Novartis | `validated` | A gazetteer name on a document carrying offer language; the letterhead position adds weight — §3.7 ‘It should use word-boundary matching rather than substring matching. Without this rule, names such as MIT can be found inside “submit,” and UNC can be found inside “uncertainty,” producing polished but completely false filing paths.’ |
-| `role title` | string | Regulatory Affairs Manager | `validated` | Offer letters state the position on a labeled line beside offer language. |
-| `start date` | date | 2026-09-01 | `direct` | A labeled ‘start date’ or ‘commencement date’ line. It is not the letter's date and not the file's creation date. |
-| `offer date` | date | 2026-06-14 | `direct` | The letter's own labeled date. |
-| `compensation component` | enum-like | base salary | `validated` | Components — base, bonus, signing, relocation, equity — appear as labeled lines in a compensation table. |
-| `offer status` | enum-like | accepted | `llm_supported` | Status lives in correspondence prose and countersignature, not in a field. |
-| `offer expiry` | date | 2026-06-21 | `direct` | Stated as a labeled response-by line where present. |
-| `competing employer` | string | Roche | `possible` | A second employer named inside a negotiation thread is a leverage mention, not a second offer. It must never create an offer fact for that employer. |
+| `role_title` | string | Regulatory Affairs Manager | `validated` | Offer letters state the position on a labeled line beside offer language. |
+| `start_date` | date | 2026-09-01 | `direct` | A labeled ‘start date’ or ‘commencement date’ line. It is not the letter's date and not the file's creation date. |
+| `offer_date` | date | 2026-06-14 | `direct` | The letter's own labeled date. |
+| `compensation_component` | enum-like | base salary | `validated` | Components — base, bonus, signing, relocation, equity — appear as labeled lines in a compensation table. |
+| `offer_status` | enum-like | accepted | `llm_supported` | Status lives in correspondence prose and countersignature, not in a field. |
+| `offer_expiry` | date | 2026-06-21 | `direct` | Stated as a labeled response-by line where present. |
+| `competing_employer` | string | Roche | `possible` | A second employer named inside a negotiation thread is a leverage mention, not a second offer. It must never create an offer fact for that employer. |
 
 **Recognition**
 
@@ -670,13 +670,13 @@ Statements one person makes about another's work — written by the owner, writt
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `subject of reference` | string | the corpus owner | `llm_supported` | Who the letter is about. This is the field the whole domain turns on, and §3.8 requires it to be distinct from authorship — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
+| `subject_of_reference` | string | the corpus owner | `llm_supported` | Who the letter is about. This is the field the whole domain turns on, and §3.8 requires it to be distinct from authorship — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
 | `referee` | string | Dr M. Halvorsen | `llm_supported` | The author of the statement; a signature block is structural but attributing it needs interpretation. |
-| `referee organisation` | string | Kings College Hospital | `validated` | A gazetteer organisation name inside a signature block or letterhead. |
-| `relationship to subject` | string | former line manager | `llm_supported` | Stated in the opening sentence in prose (‘I managed X for three years’). |
+| `referee_organisation` | string | Kings College Hospital | `validated` | A gazetteer organisation name inside a signature block or letterhead. |
+| `relationship_to_subject` | string | former line manager | `llm_supported` | Stated in the opening sentence in prose (‘I managed X for three years’). |
 | `addressee` | string | The Admissions Committee | `direct` | The letter's address block. |
-| `reference type` | enum-like | employment reference | `validated` | Employment references, academic recommendations, character references and reference-check forms are structurally distinguishable. |
-| `letter date` | date | 2026-03-02 | `direct` | The letter's own labeled date. |
+| `reference_type` | enum-like | employment reference | `validated` | Employment references, academic recommendations, character references and reference-check forms are structurally distinguishable. |
+| `letter_date` | date | 2026-03-02 | `direct` | The letter's own labeled date. |
 
 **Recognition**
 
@@ -719,11 +719,11 @@ The one-time intake forms an employer requires before or at the start of employm
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Kaiser Permanente | `validated` | A gazetteer name beside onboarding language; forms carry it in a labeled employer field. |
-| `form type` | enum-like | tax withholding form | `validated` | Intake forms are named documents with fixed titles and fixed labeled fields. |
-| `tax jurisdiction` | string | California | `direct` | A labeled jurisdiction field on the form itself. |
-| `effective date` | date | 2026-09-01 | `direct` | A labeled effective or start line. |
-| `submission status` | enum-like | signed and returned | `llm_supported` | Whether a form was completed is visible from signature presence and correspondence, not from a field. |
-| `carries government identifier` | boolean | true | `direct` | A labeled national-insurance, social-security or tax-number field is present. A privacy-and-explanation field in §3.11's sense — §3.11 ‘Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review.’ |
+| `form_type` | enum-like | tax withholding form | `validated` | Intake forms are named documents with fixed titles and fixed labeled fields. |
+| `tax_jurisdiction` | string | California | `direct` | A labeled jurisdiction field on the form itself. |
+| `effective_date` | date | 2026-09-01 | `direct` | A labeled effective or start line. |
+| `submission_status` | enum-like | signed and returned | `llm_supported` | Whether a form was completed is visible from signature presence and correspondence, not from a field. |
+| `carries_government_identifier` | boolean | true | `direct` | A labeled national-insurance, social-security or tax-number field is present. A privacy-and-explanation field in §3.11's sense — §3.11 ‘Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review.’ |
 
 **Recognition**
 
@@ -766,12 +766,12 @@ The executed agreement that governs an employment, and the amendments that chang
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Siemens AG | `validated` | The contracting party, named in the parties clause — a labeled structural region. |
-| `contract type` | enum-like | fixed-term | `validated` | A closed vocabulary — permanent, fixed-term, at-will, zero-hours, secondment — recognisable beside contract language. |
-| `effective date` | date | 2026-09-01 | `direct` | A labeled commencement clause. |
-| `term end date` | date | 2028-08-31 | `possible` | Present only in fixed-term contracts, and often expressed as a duration rather than a date; a duration must not be turned into a date. |
-| `governing law` | string | England and Wales | `direct` | A labeled governing-law clause. This is the field that most cleanly separates a contract from an offer. |
-| `clause type` | enum-like | notice period | `validated` | Clause headings are structural and closed enough to enumerate. |
-| `amendment of` | string | the 2026 contract | `possible` | An amendment names its parent in prose; the link is a clue for version-family review, not an asserted relation. |
+| `contract_type` | enum-like | fixed-term | `validated` | A closed vocabulary — permanent, fixed-term, at-will, zero-hours, secondment — recognisable beside contract language. |
+| `effective_date` | date | 2026-09-01 | `direct` | A labeled commencement clause. |
+| `term_end_date` | date | 2028-08-31 | `possible` | Present only in fixed-term contracts, and often expressed as a duration rather than a date; a duration must not be turned into a date. |
+| `governing_law` | string | England and Wales | `direct` | A labeled governing-law clause. This is the field that most cleanly separates a contract from an offer. |
+| `clause_type` | enum-like | notice period | `validated` | Clause headings are structural and closed enough to enumerate. |
+| `amendment_of` | string | the 2026 contract | `possible` | An amendment names its parent in prose; the link is a clue for version-family review, not an asserted relation. |
 
 **Recognition**
 
@@ -815,12 +815,12 @@ Standalone agreements that constrain what the owner may do or own — confidenti
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `counterparty` | string | Anthem Health | `validated` | The organisation the obligation runs to. It may be an employer, a client, or a company the owner merely interviewed with — three roles, one field, which is why the counterparty role must be recorded separately. |
-| `counterparty role` | enum-like | prospective employer | `llm_supported` | Only the surrounding correspondence says whether the NDA was signed as an employee, a contractor, or a candidate. |
-| `agreement type` | enum-like | invention assignment | `validated` | A closed vocabulary with distinctive clause headings. |
-| `effective date` | date | 2026-08-19 | `direct` | A labeled effective-date clause. |
-| `restriction duration` | string | twelve months from termination | `direct` | Stated as a labeled term clause. Recorded as its stated text; converting a duration into a date would invent a fact. |
-| `restriction scope` | string | the United Kingdom | `llm_supported` | Geographic and field-of-work scope is defined in prose that has to be read. |
-| `assignment scope` | string | inventions arising from the work | `llm_supported` | The carve-outs are the whole content and are always prose. |
+| `counterparty_role` | enum-like | prospective employer | `llm_supported` | Only the surrounding correspondence says whether the NDA was signed as an employee, a contractor, or a candidate. |
+| `agreement_type` | enum-like | invention assignment | `validated` | A closed vocabulary with distinctive clause headings. |
+| `effective_date` | date | 2026-08-19 | `direct` | A labeled effective-date clause. |
+| `restriction_duration` | string | twelve months from termination | `direct` | Stated as a labeled term clause. Recorded as its stated text; converting a duration into a date would invent a fact. |
+| `restriction_scope` | string | the United Kingdom | `llm_supported` | Geographic and field-of-work scope is defined in prose that has to be read. |
+| `assignment_scope` | string | inventions arising from the work | `llm_supported` | The carve-outs are the whole content and are always prose. |
 
 **Recognition**
 
@@ -862,13 +862,13 @@ Documents that establish or evidence the right to work — petitions, permits, s
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `sponsoring employer` | string | Infosys | `validated` | The petitioner. A gazetteer name inside a petition's labeled petitioner field. |
-| `authorisation category` | string | H-1B | `validated` | Category codes are a closed, jurisdiction-specific vocabulary that only means status beside immigration language. |
-| `issuing country` | string | United States | `direct` | A labeled issuing-authority field. |
-| `case or receipt number` | string | EAC2690123456 | `direct` | A labeled receipt or case-number field on the notice itself. |
-| `validity start` | date | 2026-10-01 | `direct` | A labeled validity-from line. |
-| `validity end` | date | 2029-09-30 | `direct` | A labeled validity-to line. This is the one date in the slice whose expiry actually matters to the owner. |
-| `beneficiary relationship` | enum-like | self | `llm_supported` | Petitions for a spouse or dependant look identical to petitions for the owner. |
+| `sponsoring_employer` | string | Infosys | `validated` | The petitioner. A gazetteer name inside a petition's labeled petitioner field. |
+| `authorisation_category` | string | H-1B | `validated` | Category codes are a closed, jurisdiction-specific vocabulary that only means status beside immigration language. |
+| `issuing_country` | string | United States | `direct` | A labeled issuing-authority field. |
+| `case_or_receipt_number` | string | EAC2690123456 | `direct` | A labeled receipt or case-number field on the notice itself. |
+| `validity_start` | date | 2026-10-01 | `direct` | A labeled validity-from line. |
+| `validity_end` | date | 2029-09-30 | `direct` | A labeled validity-to line. This is the one date in the slice whose expiry actually matters to the owner. |
+| `beneficiary_relationship` | enum-like | self | `llm_supported` | Petitions for a spouse or dependant look identical to petitions for the owner. |
 
 **Recognition**
 
@@ -916,11 +916,11 @@ The recurring statements an employer issues to an employee about pay actually ma
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Deloitte LLP | `validated` | The paying entity, in the payslip's labeled employer field. It is the employer role, not an account holder — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
-| `payroll document type` | enum-like | payslip | `validated` | Payslips, year-end summaries and adjustment statements have fixed labeled layouts. |
-| `pay period` | string | 2026-03 | `direct` | A labeled pay-period field. |
-| `pay date` | date | 2026-03-27 | `direct` | A labeled payment-date field, distinct from the period. |
-| `tax year` | string | 2026-27 | `direct` | A labeled tax-year field. §3.11 gives Finance a ‘tax year’ field; this is the same concept reached from the employment side, and the two must resolve to one value, not two. |
-| `employee identifier` | string | EMP-88213 | `direct` | A labeled employee-number field; a privacy-relevant identifier in §3.11's sense. |
+| `payroll_document_type` | enum-like | payslip | `validated` | Payslips, year-end summaries and adjustment statements have fixed labeled layouts. |
+| `pay_period` | string | 2026-03 | `direct` | A labeled pay-period field. |
+| `pay_date` | date | 2026-03-27 | `direct` | A labeled payment-date field, distinct from the period. |
+| `tax_year` | string | 2026-27 | `direct` | A labeled tax-year field. §3.11 gives Finance a ‘tax year’ field; this is the same concept reached from the employment side, and the two must resolve to one value, not two. |
+| `employee_identifier` | string | EMP-88213 | `direct` | A labeled employee-number field; a privacy-relevant identifier in §3.11's sense. |
 | `currency` | string | GBP | `direct` | A labeled currency indicator on the pay lines. |
 
 **Recognition**
@@ -968,12 +968,12 @@ Elections and confirmations for employer-provided health, insurance and welfare 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Target Corporation | `validated` | The sponsoring employer, in a labeled sponsor field. |
-| `benefit type` | enum-like | dental | `validated` | A closed vocabulary of benefit lines recognisable beside enrolment language. |
-| `plan year` | string | 2027 | `direct` | A labeled plan-year field, which is not the calendar year of the file. |
+| `benefit_type` | enum-like | dental | `validated` | A closed vocabulary of benefit lines recognisable beside enrolment language. |
+| `plan_year` | string | 2027 | `direct` | A labeled plan-year field, which is not the calendar year of the file. |
 | `carrier` | string | Aetna | `validated` | The insurer is a different organisation from the employer — two organisation roles on one document. |
-| `plan name` | string | PPO Choice Plus | `direct` | A labeled plan-name field. |
-| `enrolment status` | enum-like | elected | `llm_supported` | Whether an election was completed is stated in confirmation prose. |
-| `covers dependants` | boolean | true | `direct` | A labeled dependant section is present. A privacy-relevant field: dependants are third parties. |
+| `plan_name` | string | PPO Choice Plus | `direct` | A labeled plan-name field. |
+| `enrolment_status` | enum-like | elected | `llm_supported` | Whether an election was completed is stated in confirmation prose. |
+| `covers_dependants` | boolean | true | `direct` | A labeled dependant section is present. A privacy-relevant field: dependants are third parties. |
 
 **Recognition**
 
@@ -1016,12 +1016,12 @@ Grants of stock, options or units, the plans that govern them, and the events th
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Datadog | `validated` | The granting company, in the grant agreement's parties clause. |
-| `grant type` | enum-like | RSU | `validated` | A closed vocabulary — ISO, NSO, RSU, RSA, SAR, phantom — recognisable beside equity language. |
-| `grant identifier` | string | GR-2026-0417 | `direct` | A labeled grant-number field. |
-| `grant date` | date | 2026-02-15 | `direct` | A labeled grant-date field. |
-| `vesting start` | date | 2026-03-01 | `direct` | A labeled vesting-commencement field, routinely different from the grant date. |
-| `plan name` | string | 2021 Equity Incentive Plan | `direct` | A labeled plan-name reference. |
-| `equity document type` | enum-like | exercise notice | `validated` | Grant notices, plan documents, exercise notices, vesting statements and tax elections are structurally distinct. |
+| `grant_type` | enum-like | RSU | `validated` | A closed vocabulary — ISO, NSO, RSU, RSA, SAR, phantom — recognisable beside equity language. |
+| `grant_identifier` | string | GR-2026-0417 | `direct` | A labeled grant-number field. |
+| `grant_date` | date | 2026-02-15 | `direct` | A labeled grant-date field. |
+| `vesting_start` | date | 2026-03-01 | `direct` | A labeled vesting-commencement field, routinely different from the grant date. |
+| `plan_name` | string | 2021 Equity Incentive Plan | `direct` | A labeled plan-name reference. |
+| `equity_document_type` | enum-like | exercise notice | `validated` | Grant notices, plan documents, exercise notices, vesting statements and tax elections are structurally distinct. |
 
 **Recognition**
 
@@ -1064,12 +1064,12 @@ Letters and statements that change or state pay during an employment, as distinc
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Unilever | `validated` | The issuing employer, on letterhead beside compensation language. |
-| `compensation cycle` | string | 2026 merit review | `validated` | Cycle names appear beside review language; they are the link between a review and the money it produced. |
-| `effective date` | date | 2026-04-01 | `direct` | A labeled effective-from line. |
-| `compensation component` | enum-like | annual bonus | `validated` | Same closed component vocabulary as the offer domain, which is why the two collide. |
-| `change reason` | enum-like | promotion | `llm_supported` | The reason is prose (‘in recognition of your promotion to…’) and is the field a summary would most readily invent. |
+| `compensation_cycle` | string | 2026 merit review | `validated` | Cycle names appear beside review language; they are the link between a review and the money it produced. |
+| `effective_date` | date | 2026-04-01 | `direct` | A labeled effective-from line. |
+| `compensation_component` | enum-like | annual bonus | `validated` | Same closed component vocabulary as the offer domain, which is why the two collide. |
+| `change_reason` | enum-like | promotion | `llm_supported` | The reason is prose (‘in recognition of your promotion to…’) and is the field a summary would most readily invent. |
 | `currency` | string | EUR | `direct` | A labeled currency indicator. |
-| `statement type` | enum-like | total reward statement | `validated` | Merit letters, bonus letters, band documents and total-reward statements are structurally distinct. |
+| `statement_type` | enum-like | total reward statement | `validated` | Merit letters, bonus letters, band documents and total-reward statements are structurally distinct. |
 
 **Recognition**
 
@@ -1112,12 +1112,12 @@ The periodic assessment of one employee's work, from every side that contributes
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Atlassian | `validated` | The employing organisation, from form headers and system exports. |
-| `review cycle` | string | H2 2026 | `validated` | Cycle names are half-year or quarter-shaped values that only mean a review beside review language. |
-| `review document type` | enum-like | self-assessment | `validated` | Self-assessment, manager review, peer feedback, calibration note and improvement plan are structurally distinct. |
-| `subject of review` | string | the corpus owner | `llm_supported` | A manager's corpus contains reviews of other people in the identical form. §3.8's role separation is the only defence — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
+| `review_cycle` | string | H2 2026 | `validated` | Cycle names are half-year or quarter-shaped values that only mean a review beside review language. |
+| `review_document_type` | enum-like | self-assessment | `validated` | Self-assessment, manager review, peer feedback, calibration note and improvement plan are structurally distinct. |
+| `subject_of_review` | string | the corpus owner | `llm_supported` | A manager's corpus contains reviews of other people in the identical form. §3.8's role separation is the only defence — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
 | `reviewer` | string | P. Nakamura | `llm_supported` | Named in prose or in a system export field. |
-| `competency area` | enum-like | technical judgement | `validated` | Competency frameworks are enumerated headings inside the form. |
-| `outcome statement` | string | exceeds expectations | `llm_supported` | Ratings are stated in the employer's own vocabulary, which varies per employer and must not be normalised across them. |
+| `competency_area` | enum-like | technical judgement | `validated` | Competency frameworks are enumerated headings inside the form. |
+| `outcome_statement` | string | exceeds expectations | `llm_supported` | Ratings are stated in the employer's own vocabulary, which varies per employer and must not be normalised across them. |
 
 **Recognition**
 
@@ -1160,10 +1160,10 @@ A purpose-defined case for advancement, assembled from documents that individual
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Google | `validated` | The employing organisation, from packet framing. |
-| `promotion cycle` | string | 2026 autumn promo | `validated` | A cycle value beside promotion language; the same cycle name also names the review it draws on. |
-| `current level` | string | L4 | `validated` | Level codes are employer-specific patterns that mean nothing without promotion language beside them — the same shape as §3.5 ‘For example, BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”’ |
-| `target level` | string | L5 | `validated` | Same recognition, opposite field; the pair is what makes the packet a promotion case. |
-| `packet document type` | enum-like | sponsor statement | `validated` | Case document, artifact index, sponsor statement and committee outcome are structurally distinct. |
+| `promotion_cycle` | string | 2026 autumn promo | `validated` | A cycle value beside promotion language; the same cycle name also names the review it draws on. |
+| `current_level` | string | L4 | `validated` | Level codes are employer-specific patterns that mean nothing without promotion language beside them — the same shape as §3.5 ‘For example, BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”’ |
+| `target_level` | string | L5 | `validated` | Same recognition, opposite field; the pair is what makes the packet a promotion case. |
+| `packet_document_type` | enum-like | sponsor statement | `validated` | Case document, artifact index, sponsor statement and committee outcome are structurally distinct. |
 | `sponsor` | string | the owner's skip-level manager | `llm_supported` | Named in prose. |
 | `purpose` | string | promotion case | `llm_supported` | The field that holds heterogeneous evidence together — §3.9 ‘Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.’ This packet is the career analogue of §3.9 ‘A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract. The documents are content-incoherent but purpose-coherent.’ |
 
@@ -1208,12 +1208,12 @@ Letters an employer issues to a third party attesting that the owner works there
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | BNP Paribas | `validated` | The attesting employer, on letterhead beside verification language. |
-| `verification purpose` | enum-like | tenancy reference | `llm_supported` | Purpose is stated in the letter's opening prose and is the whole reason the document exists — §3.9 ‘Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.’ |
-| `requesting party` | string | Foxtons Lettings | `validated` | A third organisation named as addressee — a role distinct from both employer and owner. |
-| `issue date` | date | 2026-05-20 | `direct` | The letter's labeled date. |
-| `verified role title` | string | Vice President | `direct` | A labeled position line inside the attestation. |
-| `verified period` | string | since 2023-06-01 | `direct` | A labeled service-dates line. |
-| `states income` | boolean | true | `direct` | Whether the letter discloses pay. A privacy-relevant field, because the same letter type exists with and without figures. |
+| `verification_purpose` | enum-like | tenancy reference | `llm_supported` | Purpose is stated in the letter's opening prose and is the whole reason the document exists — §3.9 ‘Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.’ |
+| `requesting_party` | string | Foxtons Lettings | `validated` | A third organisation named as addressee — a role distinct from both employer and owner. |
+| `issue_date` | date | 2026-05-20 | `direct` | The letter's labeled date. |
+| `verified_role_title` | string | Vice President | `direct` | A labeled position line inside the attestation. |
+| `verified_period` | string | since 2023-06-01 | `direct` | A labeled service-dates line. |
+| `states_income` | boolean | true | `direct` | Whether the letter discloses pay. A privacy-relevant field, because the same letter type exists with and without figures. |
 
 **Recognition**
 
@@ -1256,12 +1256,12 @@ Records of an authorised absence from work, and of adjustments made to how work 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | NHS Trust | `validated` | The employing organisation, from form headers. |
-| `leave type` | enum-like | parental leave | `validated` | A closed, jurisdiction-flavoured vocabulary recognisable beside leave language. |
-| `leave start` | date | 2026-11-02 | `direct` | A labeled leave-from field. |
-| `leave end` | date | 2027-05-01 | `direct` | A labeled leave-to or expected-return field. |
-| `approval status` | enum-like | approved | `llm_supported` | Stated in correspondence rather than as a field. |
-| `return-to-work date` | date | 2027-05-04 | `direct` | A labeled return date, distinct from the leave end. |
-| `carries medical documentation` | boolean | true | `direct` | Whether a certificate or occupational-health report is attached. A privacy-relevant field, not a judgement about the leave. |
+| `leave_type` | enum-like | parental leave | `validated` | A closed, jurisdiction-flavoured vocabulary recognisable beside leave language. |
+| `leave_start` | date | 2026-11-02 | `direct` | A labeled leave-from field. |
+| `leave_end` | date | 2027-05-01 | `direct` | A labeled leave-to or expected-return field. |
+| `approval_status` | enum-like | approved | `llm_supported` | Stated in correspondence rather than as a field. |
+| `return_to_work_date` | date | 2027-05-04 | `direct` | A labeled return date, distinct from the leave end. |
+| `carries_medical_documentation` | boolean | true | `direct` | Whether a certificate or occupational-health report is attached. A privacy-relevant field, not a judgement about the leave. |
 
 **Recognition**
 
@@ -1304,12 +1304,12 @@ Documents of an involuntary end to employment and the settlement that accompanie
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Meta Platforms | `validated` | The terminating employer, in the notice's parties or letterhead position. |
-| `separation type` | enum-like | redundancy | `validated` | A closed vocabulary — redundancy, reduction in force, dismissal, non-renewal, mutual termination — beside separation language. |
-| `notice date` | date | 2026-07-08 | `direct` | A labeled notice-date line. |
-| `separation date` | date | 2026-09-30 | `direct` | A labeled last-day line, routinely months after the notice date; conflating the two would misstate the record. |
-| `severance component` | enum-like | notice pay in lieu | `validated` | Components appear as labeled lines in a settlement schedule. |
-| `release status` | enum-like | signed | `llm_supported` | Whether a release of claims was executed is visible only from signature and correspondence. |
-| `consultation reference` | string | collective consultation 2026-07 | `possible` | Group processes are referenced in prose; a reference in one letter must not create a group fact for other files. |
+| `separation_type` | enum-like | redundancy | `validated` | A closed vocabulary — redundancy, reduction in force, dismissal, non-renewal, mutual termination — beside separation language. |
+| `notice_date` | date | 2026-07-08 | `direct` | A labeled notice-date line. |
+| `separation_date` | date | 2026-09-30 | `direct` | A labeled last-day line, routinely months after the notice date; conflating the two would misstate the record. |
+| `severance_component` | enum-like | notice pay in lieu | `validated` | Components appear as labeled lines in a settlement schedule. |
+| `release_status` | enum-like | signed | `llm_supported` | Whether a release of claims was executed is visible only from signature and correspondence. |
+| `consultation_reference` | string | collective consultation 2026-07 | `possible` | Group processes are referenced in prose; a reference in one letter must not create a group fact for other files. |
 
 **Recognition**
 
@@ -1352,12 +1352,12 @@ The voluntary end of an employment and the administrative closure that follows i
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `employer` | string | Shopify | `validated` | The employer being left. |
-| `resignation date` | date | 2026-06-02 | `direct` | The labeled date on the resignation letter. |
-| `last working day` | date | 2026-07-31 | `direct` | A labeled final-day line, distinct from the resignation date. |
-| `exit document type` | enum-like | exit interview | `validated` | Resignation letter, acceptance, exit interview, asset return and handover note are structurally distinct. |
-| `separation reason` | string | new role elsewhere | `llm_supported` | Stated in prose where stated at all, and the field most likely to be over-read from a polite letter. |
-| `asset return item` | string | laptop | `validated` | Asset lists are enumerated in a labeled return form. |
-| `benefits continuation` | enum-like | elected | `llm_supported` | Continuation elections are described in correspondence. |
+| `resignation_date` | date | 2026-06-02 | `direct` | The labeled date on the resignation letter. |
+| `last_working_day` | date | 2026-07-31 | `direct` | A labeled final-day line, distinct from the resignation date. |
+| `exit_document_type` | enum-like | exit interview | `validated` | Resignation letter, acceptance, exit interview, asset return and handover note are structurally distinct. |
+| `separation_reason` | string | new role elsewhere | `llm_supported` | Stated in prose where stated at all, and the field most likely to be over-read from a polite letter. |
+| `asset_return_item` | string | laptop | `validated` | Asset lists are enumerated in a labeled return form. |
+| `benefits_continuation` | enum-like | elected | `llm_supported` | Continuation elections are described in correspondence. |
 
 **Recognition**
 
@@ -1399,13 +1399,13 @@ Long-lived records of retirement savings attached to one or more past employment
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `plan administrator` | string | Fidelity | `validated` | The administrator is a different organisation from the sponsoring employer — the account-holder and issuing-institution split §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
-| `employer sponsor` | string | IBM | `validated` | The employment the plan came from, often an employer the owner left years earlier. |
-| `plan name` | string | IBM 401(k) Plus Plan | `direct` | A labeled plan-name field. |
-| `plan type` | enum-like | defined contribution | `validated` | A closed vocabulary recognisable beside pension language. |
-| `statement period` | string | 2026 Q2 | `direct` | A labeled statement-period field. |
-| `vesting status` | enum-like | fully vested | `llm_supported` | Stated in summary prose on the statement. |
-| `retirement document type` | enum-like | rollover confirmation | `validated` | Statements, elections, rollovers, beneficiary forms and annuity quotes are structurally distinct. |
+| `plan_administrator` | string | Fidelity | `validated` | The administrator is a different organisation from the sponsoring employer — the account-holder and issuing-institution split §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
+| `employer_sponsor` | string | IBM | `validated` | The employment the plan came from, often an employer the owner left years earlier. |
+| `plan_name` | string | IBM 401(k) Plus Plan | `direct` | A labeled plan-name field. |
+| `plan_type` | enum-like | defined contribution | `validated` | A closed vocabulary recognisable beside pension language. |
+| `statement_period` | string | 2026 Q2 | `direct` | A labeled statement-period field. |
+| `vesting_status` | enum-like | fully vested | `llm_supported` | Stated in summary prose on the statement. |
+| `retirement_document_type` | enum-like | rollover confirmation | `validated` | Statements, elections, rollovers, beneficiary forms and annuity quotes are structurally distinct. |
 
 **Recognition**
 
@@ -1447,13 +1447,13 @@ Authority granted by a jurisdiction to practise a regulated profession, and the 
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `licensing body` | string | California Board of Accountancy | `validated` | A regulator name from a gazetteer, beside licensure language. A regulator is not an employer and not an issuer of certificates — a third organisation role. |
-| `licence type` | enum-like | Certified Public Accountant | `validated` | A closed, jurisdiction-specific vocabulary recognisable beside licensure language. |
-| `licence number` | string | CPA-118422 | `direct` | A labeled licence-number field on the certificate itself. |
+| `licensing_body` | string | California Board of Accountancy | `validated` | A regulator name from a gazetteer, beside licensure language. A regulator is not an employer and not an issuer of certificates — a third organisation role. |
+| `licence_type` | enum-like | Certified Public Accountant | `validated` | A closed, jurisdiction-specific vocabulary recognisable beside licensure language. |
+| `licence_number` | string | CPA-118422 | `direct` | A labeled licence-number field on the certificate itself. |
 | `jurisdiction` | string | California | `direct` | A labeled jurisdiction field. Jurisdiction is what separates a licence from a certification, and a person may hold the same licence in several. |
-| `issue date` | date | 2024-01-18 | `direct` | A labeled issue-date field. |
-| `expiry date` | date | 2027-01-31 | `direct` | A labeled expiry or renewal-due field. |
-| `licence status` | enum-like | active | `llm_supported` | Status is stated in renewal correspondence and verification pages rather than on the certificate. |
+| `issue_date` | date | 2024-01-18 | `direct` | A labeled issue-date field. |
+| `expiry_date` | date | 2027-01-31 | `direct` | A labeled expiry or renewal-due field. |
+| `licence_status` | enum-like | active | `llm_supported` | Status is stated in renewal correspondence and verification pages rather than on the certificate. |
 
 **Recognition**
 
@@ -1496,13 +1496,13 @@ Credentials granted by a vendor, association or examining body on the strength o
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `issuing body` | string | Amazon Web Services | `validated` | A certifying organisation from a gazetteer, beside certification language. |
-| `certification name` | string | Solutions Architect – Associate | `direct` | Stated as the certificate's own title. |
-| `credential identifier` | string | AWS-04-1188223 | `direct` | A labeled credential-id or verification-code field. |
-| `issue date` | date | 2026-02-04 | `direct` | A labeled issue-date field. |
-| `expiry date` | date | 2029-02-04 | `possible` | Many certifications never expire and many certificates state a recommended rather than binding renewal; the value must not be manufactured from a validity period described in marketing text. |
-| `exam or version` | string | SAA-C03 | `direct` | A labeled exam-code field where the body uses one. |
-| `certification document type` | enum-like | score report | `validated` | Certificates, score reports, digital badges and renewal confirmations are structurally distinct. |
+| `issuing_body` | string | Amazon Web Services | `validated` | A certifying organisation from a gazetteer, beside certification language. |
+| `certification_name` | string | Solutions Architect – Associate | `direct` | Stated as the certificate's own title. |
+| `credential_identifier` | string | AWS-04-1188223 | `direct` | A labeled credential-id or verification-code field. |
+| `issue_date` | date | 2026-02-04 | `direct` | A labeled issue-date field. |
+| `expiry_date` | date | 2029-02-04 | `possible` | Many certifications never expire and many certificates state a recommended rather than binding renewal; the value must not be manufactured from a validity period described in marketing text. |
+| `exam_or_version` | string | SAA-C03 | `direct` | A labeled exam-code field where the body uses one. |
+| `certification_document_type` | enum-like | score report | `validated` | Certificates, score reports, digital badges and renewal confirmations are structurally distinct. |
 
 **Recognition**
 
@@ -1544,13 +1544,13 @@ Records of the education a professional must keep accumulating to remain in good
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `accrediting body` | string | State Bar of Texas | `validated` | The body that recognises the credit, beside credit language. Often a different organisation from the provider. |
+| `accrediting_body` | string | State Bar of Texas | `validated` | The body that recognises the credit, beside credit language. Often a different organisation from the provider. |
 | `provider` | string | Practising Law Institute | `validated` | The organisation that delivered the activity — the second organisation role on the same document. |
-| `credit type` | enum-like | CLE ethics | `validated` | Credit-type codes are a closed, profession-specific vocabulary. |
-| `reporting period` | string | 2026 compliance year | `direct` | A labeled reporting-period field on the transcript. |
-| `activity title` | string | Recent Developments in Data Privacy | `direct` | The activity's own title on the completion record. |
-| `linked licence` | string | CPA-118422 | `possible` | Transcripts quote a licence number, but a quoted identifier is a reference, not a licence fact for this file. |
-| `credit record type` | enum-like | compliance transcript | `validated` | Attendance records, completion certificates and compliance transcripts are structurally distinct. |
+| `credit_type` | enum-like | CLE ethics | `validated` | Credit-type codes are a closed, profession-specific vocabulary. |
+| `reporting_period` | string | 2026 compliance year | `direct` | A labeled reporting-period field on the transcript. |
+| `activity_title` | string | Recent Developments in Data Privacy | `direct` | The activity's own title on the completion record. |
+| `linked_licence` | string | CPA-118422 | `possible` | Transcripts quote a licence number, but a quoted identifier is a reference, not a licence fact for this file. |
+| `credit_record_type` | enum-like | compliance transcript | `validated` | Attendance records, completion certificates and compliance transcripts are structurally distinct. |
 
 **Recognition**
 
@@ -1594,12 +1594,12 @@ Standing in a professional body or association, and the dues and grades that mai
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `association` | string | Institution of Civil Engineers | `validated` | The body, from a gazetteer, beside membership language. |
-| `membership grade` | string | Chartered Member | `validated` | Grade vocabularies are closed per body and are the substance of the record. |
-| `member identifier` | string | ICE-442901 | `direct` | A labeled membership-number field. |
-| `membership year` | string | 2026 | `direct` | A labeled subscription-year field on the receipt or card. |
-| `dues status` | enum-like | paid | `llm_supported` | Stated in renewal correspondence. |
-| `chapter or section` | string | London Region | `validated` | Sub-body names are meaningful only beside the parent association. |
-| `membership document type` | enum-like | renewal receipt | `validated` | Cards, receipts, grade certificates and election letters are structurally distinct. |
+| `membership_grade` | string | Chartered Member | `validated` | Grade vocabularies are closed per body and are the substance of the record. |
+| `member_identifier` | string | ICE-442901 | `direct` | A labeled membership-number field. |
+| `membership_year` | string | 2026 | `direct` | A labeled subscription-year field on the receipt or card. |
+| `dues_status` | enum-like | paid | `llm_supported` | Stated in renewal correspondence. |
+| `chapter_or_section` | string | London Region | `validated` | Sub-body names are meaningful only beside the parent association. |
+| `membership_document_type` | enum-like | renewal receipt | `validated` | Cards, receipts, grade certificates and election letters are structurally distinct. |
 
 **Recognition**
 
@@ -1641,13 +1641,13 @@ Files produced by going to a professional event as a participant rather than a c
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `event name` | string | NeurIPS | `validated` | An event name from a gazetteer, beside event language. This is §3.11's Research ‘venue’ reached from the career side. |
-| `event edition` | string | 2026 | `validated` | The year only names an edition beside the event name; alone it is §3.10 ‘file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values’ |
-| `event location` | string | Vancouver | `validated` | A place name beside event language. It is also the trip's destination, which is why this domain collides with travel. |
-| `registration type` | enum-like | early-bird academic | `direct` | A labeled registration-category field. |
+| `event_name` | string | NeurIPS | `validated` | An event name from a gazetteer, beside event language. This is §3.11's Research ‘venue’ reached from the career side. |
+| `event_edition` | string | 2026 | `validated` | The year only names an edition beside the event name; alone it is §3.10 ‘file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values’ |
+| `event_location` | string | Vancouver | `validated` | A place name beside event language. It is also the trip's destination, which is why this domain collides with travel. |
+| `registration_type` | enum-like | early-bird academic | `direct` | A labeled registration-category field. |
 | `session` | string | Workshop on Efficient Inference | `direct` | Session titles are enumerated in the agenda. |
 | `organiser` | string | Neural Information Processing Systems Foundation | `validated` | The organising body, distinct from the venue and from the owner's employer. |
-| `attendance document type` | enum-like | registration confirmation | `validated` | Registrations, badges, agendas, receipts and session notes are structurally distinct. |
+| `attendance_document_type` | enum-like | registration confirmation | `validated` | Registrations, badges, agendas, receipts and session notes are structurally distinct. |
 
 **Recognition**
 
@@ -1693,13 +1693,13 @@ Files produced by contributing to a professional event — proposing, being acce
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `event name` | string | PyCon US | `validated` | Same gazetteer recognition as attendance, different role. |
-| `event edition` | string | 2026 | `validated` | Meaningful only beside the event name. |
-| `talk title` | string | What Import Actually Does | `direct` | The submission's or slide deck's own title. |
-| `speaking role` | enum-like | panellist | `validated` | A closed vocabulary — speaker, keynote, panellist, workshop lead, session chair — beside contribution language. |
-| `submission status` | enum-like | accepted | `llm_supported` | Stated in acceptance or rejection correspondence prose. |
-| `agreement type` | enum-like | speaker agreement | `validated` | Speaker agreements, release forms and honorarium paperwork are named documents. |
-| `honorarium arrangement` | string | travel covered, no fee | `llm_supported` | Described in prose in the invitation; the absence of a figure must not be read as an absence of an arrangement. |
+| `event_name` | string | PyCon US | `validated` | Same gazetteer recognition as attendance, different role. |
+| `event_edition` | string | 2026 | `validated` | Meaningful only beside the event name. |
+| `talk_title` | string | What Import Actually Does | `direct` | The submission's or slide deck's own title. |
+| `speaking_role` | enum-like | panellist | `validated` | A closed vocabulary — speaker, keynote, panellist, workshop lead, session chair — beside contribution language. |
+| `submission_status` | enum-like | accepted | `llm_supported` | Stated in acceptance or rejection correspondence prose. |
+| `agreement_type` | enum-like | speaker agreement | `validated` | Speaker agreements, release forms and honorarium paperwork are named documents. |
+| `honorarium_arrangement` | string | travel covered, no fee | `llm_supported` | Described in prose in the invitation; the absence of a figure must not be read as an absence of an arrangement. |
 
 **Recognition**
 
@@ -1741,13 +1741,13 @@ Records of professional relationships used to find work — outreach, introducti
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `contact person` | string | S. Adeyemi | `llm_supported` | A name in an outreach record. It must never become a folder level — §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ |
-| `contact organisation` | string | Klarna | `validated` | The organisation a contact sits in, which is what makes a referral useful; distinct from an employer of the owner. |
-| `relationship type` | string | former colleague | `llm_supported` | Stated in prose in the outreach itself. |
-| `outreach purpose` | enum-like | referral request | `llm_supported` | Purpose is the point of the record — §3.9 ‘Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.’ — and is only ever prose. |
-| `referral target employer` | string | Klarna | `validated` | The employer the referral is into, which links this record to an application. |
-| `outreach date` | date | 2026-01-22 | `direct` | A message's labeled sent date. |
-| `contact data source` | enum-like | exported address book | `direct` | Whether the record came from a contacts export. §2.9 ‘Contact formats such as VCF should yield names, organizations, email addresses, phone numbers, and address-book metadata, but should normally be privacy-protected rather than used to create folder proposals.’ |
+| `contact_person` | string | S. Adeyemi | `llm_supported` | A name in an outreach record. It must never become a folder level — §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ |
+| `contact_organisation` | string | Klarna | `validated` | The organisation a contact sits in, which is what makes a referral useful; distinct from an employer of the owner. |
+| `relationship_type` | string | former colleague | `llm_supported` | Stated in prose in the outreach itself. |
+| `outreach_purpose` | enum-like | referral request | `llm_supported` | Purpose is the point of the record — §3.9 ‘Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.’ — and is only ever prose. |
+| `referral_target_employer` | string | Klarna | `validated` | The employer the referral is into, which links this record to an application. |
+| `outreach_date` | date | 2026-01-22 | `direct` | A message's labeled sent date. |
+| `contact_data_source` | enum-like | exported address book | `direct` | Whether the record came from a contacts export. §2.9 ‘Contact formats such as VCF should yield names, organizations, email addresses, phone numbers, and address-book metadata, but should normally be privacy-protected rather than used to create folder proposals.’ |
 
 **Recognition**
 
@@ -1790,12 +1790,12 @@ A delivered piece of work for a client organisation, where the owner's firm and 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `client` | string | Nordea Bank | `validated` | §3.8 names this field. A gazetteer organisation name in a client position beside engagement language — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
-| `our firm` | string | Bain & Company | `validated` | §3.8 names this field too, and the two must never collapse into one organisation facet. |
-| `engagement name or code` | string | NDA-2026-Ops | `direct` | Engagement codes appear as labeled references in headers and footers of every deliverable. |
-| `engagement phase` | enum-like | diagnostic | `validated` | Phase vocabulary is closed per methodology and appears in deliverable headers. |
-| `deliverable type` | enum-like | steering committee deck | `validated` | Deliverable types are structurally distinct and are §5.4's ‘document type’ reached from the client side. |
-| `engagement lead` | string | the owner's partner | `llm_supported` | Named in prose; must not become a folder level — §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ |
-| `engagement period` | string | 2026-04 to 2026-09 | `direct` | Stated as a labeled period in the engagement letter. |
+| `our_firm` | string | Bain & Company | `validated` | §3.8 names this field too, and the two must never collapse into one organisation facet. |
+| `engagement_name_or_code` | string | NDA-2026-Ops | `direct` | Engagement codes appear as labeled references in headers and footers of every deliverable. |
+| `engagement_phase` | enum-like | diagnostic | `validated` | Phase vocabulary is closed per methodology and appears in deliverable headers. |
+| `deliverable_type` | enum-like | steering committee deck | `validated` | Deliverable types are structurally distinct and are §5.4's ‘document type’ reached from the client side. |
+| `engagement_lead` | string | the owner's partner | `llm_supported` | Named in prose; must not become a folder level — §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ |
+| `engagement_period` | string | 2026-04 to 2026-09 | `direct` | Stated as a labeled period in the engagement letter. |
 
 **Recognition**
 
@@ -1839,12 +1839,12 @@ Everything produced to win work that has not been awarded yet.
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `client` | string | Transport for London | `validated` | The prospective client, in an addressee or issuer position beside procurement language. |
-| `our firm` | string | Arup | `validated` | The bidding party; §3.8's second organisation role. |
-| `solicitation reference` | string | ITT-2026-0912 | `direct` | Procurement documents carry a labeled tender or RFP reference, which is the strongest identifier in this domain. |
-| `submission deadline` | date | 2026-04-30 | `direct` | A labeled submission-deadline field. |
-| `proposed engagement type` | enum-like | fixed-price delivery | `llm_supported` | Described in the commercial narrative rather than as a field. |
-| `pricing model` | enum-like | day rate | `validated` | Pricing structures appear as labeled schedule headings. |
-| `bid status` | enum-like | shortlisted | `llm_supported` | Stated in award or regret correspondence. |
+| `our_firm` | string | Arup | `validated` | The bidding party; §3.8's second organisation role. |
+| `solicitation_reference` | string | ITT-2026-0912 | `direct` | Procurement documents carry a labeled tender or RFP reference, which is the strongest identifier in this domain. |
+| `submission_deadline` | date | 2026-04-30 | `direct` | A labeled submission-deadline field. |
+| `proposed_engagement_type` | enum-like | fixed-price delivery | `llm_supported` | Described in the commercial narrative rather than as a field. |
+| `pricing_model` | enum-like | day rate | `validated` | Pricing structures appear as labeled schedule headings. |
+| `bid_status` | enum-like | shortlisted | `llm_supported` | Stated in award or regret correspondence. |
 
 **Recognition**
 
@@ -1887,12 +1887,12 @@ Work done as an independent supplier rather than an employee, where worker class
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `client` | string | Penguin Random House | `validated` | The engaging party, in a client position beside contractor language. |
-| `gig or project` | string | Cover illustration, autumn list | `direct` | Named in the brief's own title. |
+| `gig_or_project` | string | Cover illustration, autumn list | `direct` | Named in the brief's own title. |
 | `platform` | string | Upwork | `validated` | A marketplace host name beside engagement language; a platform is neither client nor employer. |
-| `worker classification` | enum-like | self-employed contractor | `validated` | Classification language — contractor, self-employed, umbrella, inside or outside a status rule — is closed and jurisdictional, and is the whole legal point of the record. |
-| `rate basis` | enum-like | day rate | `validated` | A labeled rate line in the contract or brief. |
+| `worker_classification` | enum-like | self-employed contractor | `validated` | Classification language — contractor, self-employed, umbrella, inside or outside a status rule — is closed and jurisdictional, and is the whole legal point of the record. |
+| `rate_basis` | enum-like | day rate | `validated` | A labeled rate line in the contract or brief. |
 | `deliverable` | string | final artwork files | `llm_supported` | Described in the brief's prose. |
-| `project period` | string | 2026-05 to 2026-06 | `direct` | A labeled period in the contract. |
+| `project_period` | string | 2026-05 to 2026-06 | `direct` | A labeled period in the contract. |
 
 **Recognition**
 
@@ -1935,12 +1935,12 @@ Invoices the owner issues and the payments received against them.
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `client` | string | Penguin Random House | `validated` | The billed party. The owner is the issuer here, which reverses every role a payslip assigns — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
-| `invoice number` | string | 2026-014 | `direct` | A labeled invoice-number field issued by the owner's own sequence. It is the field that proves the owner is the vendor. |
-| `invoice date` | date | 2026-06-03 | `direct` | A labeled invoice-date field. |
-| `period covered` | string | May 2026 | `direct` | A labeled service-period line. |
-| `engagement reference` | string | Cover illustration, autumn list | `possible` | Invoices cite the work loosely; the citation links records for review but does not establish an engagement fact. |
-| `payment status` | enum-like | paid | `llm_supported` | Established from remittance correspondence rather than from the invoice. |
-| `tax treatment` | string | VAT at standard rate | `direct` | A labeled tax line, which differs structurally from a payslip's withholding line. |
+| `invoice_number` | string | 2026-014 | `direct` | A labeled invoice-number field issued by the owner's own sequence. It is the field that proves the owner is the vendor. |
+| `invoice_date` | date | 2026-06-03 | `direct` | A labeled invoice-date field. |
+| `period_covered` | string | May 2026 | `direct` | A labeled service-period line. |
+| `engagement_reference` | string | Cover illustration, autumn list | `possible` | Invoices cite the work loosely; the citation links records for review but does not establish an engagement fact. |
+| `payment_status` | enum-like | paid | `llm_supported` | Established from remittance correspondence rather than from the invoice. |
+| `tax_treatment` | string | VAT at standard rate | `direct` | A labeled tax line, which differs structurally from a payslip's withholding line. |
 
 **Recognition**
 
@@ -1982,14 +1982,14 @@ An organisation's internal record of a role it is opening, before and while it i
 
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
-| `hiring organisation` | string | the owner's employer | `validated` | The organisation doing the hiring. This is the same entity type as ‘employer’ in a candidate packet and the opposite role — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
-| `requisition id` | string | REQ-48213 | `direct` | A labeled requisition-number field in the applicant-tracking export. |
-| `role title` | string | Senior Backend Engineer | `direct` | A labeled title field. |
-| `internal level` | string | P4 | `validated` | A level pattern beside requisition language; the same pattern in a promotion packet means something else. |
-| `hiring manager` | string | the owner | `llm_supported` | Named in prose or in a system field; never a folder level — §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ |
-| `department or team` | string | Payments Platform | `direct` | A labeled team field. |
-| `requisition status` | enum-like | open | `direct` | A labeled status field in the tracking export. |
-| `approval state` | enum-like | headcount approved | `llm_supported` | Approval history lives in correspondence and workflow exports. |
+| `hiring_organisation` | string | the owner's employer | `validated` | The organisation doing the hiring. This is the same entity type as ‘employer’ in a candidate packet and the opposite role — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
+| `requisition_id` | string | REQ-48213 | `direct` | A labeled requisition-number field in the applicant-tracking export. |
+| `role_title` | string | Senior Backend Engineer | `direct` | A labeled title field. |
+| `internal_level` | string | P4 | `validated` | A level pattern beside requisition language; the same pattern in a promotion packet means something else. |
+| `hiring_manager` | string | the owner | `llm_supported` | Named in prose or in a system field; never a folder level — §3.8 ‘It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization.’ |
+| `department_or_team` | string | Payments Platform | `direct` | A labeled team field. |
+| `requisition_status` | enum-like | open | `direct` | A labeled status field in the tracking export. |
+| `approval_state` | enum-like | headcount approved | `llm_supported` | Approval history lives in correspondence and workflow exports. |
 
 **Recognition**
 
@@ -2032,13 +2032,13 @@ Applications received about other people, held by whoever is hiring.
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `candidate` | string | an applicant | `llm_supported` | The subject of the packet, and the field that makes this domain the mirror image of the resume domain — §3.8 ‘A consulting document may mention the author’s firm and the client organization. A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.’ |
-| `requisition id` | string | REQ-48213 | `direct` | A labeled requisition reference in the tracking export. |
-| `role title` | string | Senior Backend Engineer | `direct` | A labeled title field. |
-| `candidate source` | enum-like | agency submission | `direct` | A labeled source field in the tracking export. |
-| `pipeline stage` | enum-like | onsite scheduled | `direct` | A labeled stage field. |
-| `application received date` | date | 2026-03-18 | `direct` | A labeled received-date field. |
+| `requisition_id` | string | REQ-48213 | `direct` | A labeled requisition reference in the tracking export. |
+| `role_title` | string | Senior Backend Engineer | `direct` | A labeled title field. |
+| `candidate_source` | enum-like | agency submission | `direct` | A labeled source field in the tracking export. |
+| `pipeline_stage` | enum-like | onsite scheduled | `direct` | A labeled stage field. |
+| `application_received_date` | date | 2026-03-18 | `direct` | A labeled received-date field. |
 | `recruiter` | string | the owner | `llm_supported` | Named in prose or a system field; never a folder level. |
-| `carries third-party personal data` | boolean | true | `direct` | A resume header belonging to someone other than the owner is present. A privacy-and-explanation field in §3.11's sense. |
+| `carries_third_party_personal_data` | boolean | true | `direct` | A resume header belonging to someone other than the owner is present. A privacy-and-explanation field in §3.11's sense. |
 
 **Recognition**
 
@@ -2085,12 +2085,12 @@ Structured assessments of named candidates produced by the people interviewing t
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `candidate` | string | an applicant | `llm_supported` | The subject of the assessment. |
-| `requisition id` | string | REQ-48213 | `direct` | A labeled requisition reference. |
-| `interview stage` | enum-like | onsite loop | `direct` | A labeled stage field. |
+| `requisition_id` | string | REQ-48213 | `direct` | A labeled requisition reference. |
+| `interview_stage` | enum-like | onsite loop | `direct` | A labeled stage field. |
 | `interviewer` | string | the owner | `llm_supported` | The assessor; distinct from both candidate and recruiter. |
-| `competency area` | enum-like | system design | `validated` | Rubric headings are enumerated inside the scorecard form. |
+| `competency_area` | enum-like | system design | `validated` | Rubric headings are enumerated inside the scorecard form. |
 | `recommendation` | enum-like | hire | `direct` | A labeled recommendation field in the form. |
-| `debrief date` | date | 2026-04-10 | `direct` | A labeled date field. |
+| `debrief_date` | date | 2026-04-10 | `direct` | A labeled date field. |
 
 **Recognition**
 
@@ -2137,12 +2137,12 @@ An organisation's internal decision to extend an offer, and the paperwork that i
 | field | type | example | ceiling | why |
 |---|---|---|---|---|
 | `candidate` | string | an applicant | `llm_supported` | The person the offer is for. |
-| `requisition id` | string | REQ-48213 | `direct` | A labeled requisition reference. |
-| `approved level` | string | P4 | `direct` | A labeled level field in the approval record. |
+| `requisition_id` | string | REQ-48213 | `direct` | A labeled requisition reference. |
+| `approved_level` | string | P4 | `direct` | A labeled level field in the approval record. |
 | `approver` | string | the owner's director | `llm_supported` | Named in workflow correspondence. |
-| `approval date` | date | 2026-05-06 | `direct` | A labeled approval-date field. |
-| `compensation band reference` | string | P4 band, EMEA | `validated` | Band references only mean a band beside compensation-approval language. |
-| `offer outcome` | enum-like | accepted | `llm_supported` | Established from candidate correspondence. |
+| `approval_date` | date | 2026-05-06 | `direct` | A labeled approval-date field. |
+| `compensation_band_reference` | string | P4 band, EMEA | `validated` | Band references only mean a band beside compensation-approval language. |
+| `offer_outcome` | enum-like | accepted | `llm_supported` | Established from candidate correspondence. |
 
 **Recognition**
 

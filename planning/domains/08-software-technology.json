@@ -118,14 +118,14 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `repository` is literal. Populated from the directory name that carries the version-control marker (catalogue 05 `p5r-git`, `p5r-hg`, `p5r-svn`), not from any string inside a source file."
         },
         {
-          "field": "programming language",
+          "field": "programming_language",
           "type": "string",
           "example": "Python",
           "reliability_ceiling": "direct",
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" Inferred from an extension it is `possible`, never `direct`."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "application",
           "reliability_ceiling": "validated",
@@ -176,7 +176,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" -- an artifact type such as a test suite is meaningless until the project is known. §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" so no year level. The order is a PROPOSAL, not a design statement: §5.4 lists Academic, Applications, Research, Career and Photos templates and gives no Code row, so the Code template's dimensions are unauthored. See the supercategory open question.",
         "time_first": false
@@ -242,28 +242,28 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `repository` is literal. Populated from the directory name that carries the version-control marker (catalogue 05 `p5r-git`, `p5r-hg`, `p5r-svn`), not from any string inside a source file."
         },
         {
-          "field": "programming language",
+          "field": "programming_language",
           "type": "string",
           "example": "Python",
           "reliability_ceiling": "direct",
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" Inferred from an extension it is `possible`, never `direct`."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "library",
           "reliability_ceiling": "validated",
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `artifact type` is literal, and it is the field that carries this whole supercategory. It is a SMALL controlled vocabulary at project scale, not a per-file type: it answers what kind of thing the project is, so the branch count is bounded by project count and not by file count."
         },
         {
-          "field": "distribution name",
+          "field": "distribution_name",
           "type": "string",
           "example": "plasmole-sdk",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. Validated is claimable because the value is read from a named key in a manifest catalogue 05 already recognises - a labelled field in a structured file, which is §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" territory; it is kept at `validated` rather than `direct` because the RULE that the manifest is a manifest is what licenses it."
         },
         {
-          "field": "release version",
+          "field": "release_version",
           "type": "string",
           "example": "v2.1.0",
           "reliability_ceiling": "possible",
@@ -301,7 +301,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "Same order and same reasoning as `soft.source-project`. `release version` is deliberately NOT a dimension: a version level is the textbook case of §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" -- it produces a large number of tiny folders. It stays metadata, which §5.4 \"It defines the dimensions that are meaningful for one type of material, their recommended order, which dimensions are optional, which ones are metadata only, and what safety or usability constraints apply.\" explicitly provides for. PROPOSED, not design.",
         "time_first": false
@@ -366,7 +366,7 @@
           "why": "NO design sentence names this field. Proposed. A provider name is an ORGANISATION name, and §3.8 \"It should avoid using authorship or creator identity as a destination dimension.\" - it is metadata here and never a folder level."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "infrastructure module",
           "reliability_ceiling": "validated",
@@ -405,7 +405,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. `environment` is deliberately not a dimension: environment names are few and repeat across every project, so leading with them is the §5.7 \"The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.\" failure mode of using a shared label as a collector. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -455,7 +455,7 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "config scope",
+          "field": "config_scope",
           "type": "string",
           "example": "application settings",
           "reliability_ceiling": "possible",
@@ -469,7 +469,7 @@
           "why": "§2.9 \"Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals.\" names the formats literally. `direct` because the format is read from the file signature or extension route, which §2.9 \"The engine should treat the file extension as a routing signal rather than an assumption about meaning\""
         },
         {
-          "field": "holds credential material",
+          "field": "holds_credential_material",
           "type": "boolean",
           "example": "true",
           "reliability_ceiling": "possible",
@@ -509,7 +509,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. Configuration is a leaf under its project, never a top-level area, because a configuration branch collects files that share a FORM rather than a purpose - §5.7 \"The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.\" §3.9 \"Purpose must be a first-class facet.\"",
         "time_first": false
@@ -566,14 +566,14 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `repository` is literal. Populated from the directory name that carries the version-control marker (catalogue 05 `p5r-git`, `p5r-hg`, `p5r-svn`), not from any string inside a source file."
         },
         {
-          "field": "automation service",
+          "field": "automation_service",
           "type": "string",
           "example": "GitHub Actions",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` is claimable because the value follows deterministically from WHICH catalogue-05 marker matched - the marker names the service - which is a rule passing a contextual check, §3.13 \"A validated fact was found by a deterministic rule and passed contextual checks\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "pipeline definition",
           "reliability_ceiling": "validated",
@@ -608,7 +608,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. CI definitions are leaves under their project. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -652,21 +652,21 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "deployment target",
+          "field": "deployment_target",
           "type": "string",
           "example": "Kubernetes",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` because it follows from which catalogue-05 marker matched, §3.13 \"A validated fact was found by a deterministic rule and passed contextual checks\""
         },
         {
-          "field": "image name",
+          "field": "image_name",
           "type": "string",
           "example": "graphify-api",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. `possible`: an image name is a bare identifier token and §3.7 \"It should use word-boundary matching rather than substring matching.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "container definition",
           "reliability_ceiling": "validated",
@@ -704,7 +704,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -748,21 +748,21 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "database system",
+          "field": "database_system",
           "type": "string",
           "example": "PostgreSQL",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. `possible`: dialect is inferred from syntax, which is semantic analysis of code text - the thing §2.4 \"Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text.\""
         },
         {
-          "field": "schema object",
+          "field": "schema_object",
           "type": "string",
           "example": "file_facts",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. `possible`: a table name is a bare identifier and §3.7 \"It should use word-boundary matching rather than substring matching.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "migration",
           "reliability_ceiling": "validated",
@@ -801,7 +801,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. Migrations are ordered but the order is INSIDE the branch, not a folder level: a level per migration is §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" 'a large number of tiny folders' exactly.",
         "time_first": false
@@ -846,28 +846,28 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "interface name",
+          "field": "interface_name",
           "type": "string",
           "example": "Placement API",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. `possible`."
         },
         {
-          "field": "specification format",
+          "field": "specification_format",
           "type": "string",
           "example": "OpenAPI",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` is claimable because a specification declares its own format in a named top-level key, and a rule reading a declared key with the surrounding document present is §3.13 \"A validated fact was found by a deterministic rule and passed contextual checks\""
         },
         {
-          "field": "interface version",
+          "field": "interface_version",
           "type": "string",
           "example": "v3",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "interface specification",
           "reliability_ceiling": "validated",
@@ -905,7 +905,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\" `interface version` stays metadata for the same reason `release version` does in `soft.library-package`.",
         "time_first": false
@@ -954,21 +954,21 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "integrated service",
+          "field": "integrated_service",
           "type": "string",
           "example": "Snowflake",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field, and the value is an ORGANISATION name, so two design rules bear on it: §3.8 \"It should avoid using authorship or creator identity as a destination dimension.\" keeps it out of the dimension order, and §3.7 \"It should use word-boundary matching rather than substring matching.\" keeps a vendor name from being found inside ordinary words."
         },
         {
-          "field": "integration direction",
+          "field": "integration_direction",
           "type": "string",
           "example": "consuming",
           "reliability_ceiling": "llm_supported",
           "why": "NO design sentence names this field. Proposed, and it is the field that MAKES this domain: whether the user publishes or consumes the interface. Structure cannot settle it - the same manifest keys appear either way - so the ceiling is `llm_supported`, which per §3.6 \"The validator checks that the proposed field exists in the relevant domain schema\" still requires validation and per §3.6 \"A model that cannot cite sufficient evidence must return unknown.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "integration",
           "reliability_ceiling": "validated",
@@ -1005,7 +1005,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED, and deliberately NOT `service -> project`: leading with the vendor is §5.7 \"The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.\" using an organisation merely as a collector, which the template validator refuses. §3.8 \"It should avoid using authorship or creator identity as a destination dimension.\"",
         "time_first": false
@@ -1055,28 +1055,28 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "programming language",
+          "field": "programming_language",
           "type": "string",
           "example": "Python",
           "reliability_ceiling": "direct",
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" Inferred from an extension it is `possible`, never `direct`."
         },
         {
-          "field": "pipeline name",
+          "field": "pipeline_name",
           "type": "string",
           "example": "nightly-facts-load",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. `possible`: a pipeline name is a bare identifier token, §3.7 \"It should use word-boundary matching rather than substring matching.\""
         },
         {
-          "field": "data source",
+          "field": "data_source",
           "type": "string",
           "example": "Snowflake",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. An organisation or system name, so §3.8 \"It should avoid using authorship or creator identity as a destination dimension.\" keeps it out of the dimension order."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "pipeline",
           "reliability_ceiling": "validated",
@@ -1112,7 +1112,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1162,28 +1162,28 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "programming language",
+          "field": "programming_language",
           "type": "string",
           "example": "Python",
           "reliability_ceiling": "direct",
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" Inferred from an extension it is `possible`, never `direct`."
         },
         {
-          "field": "analysis question",
+          "field": "analysis_question",
           "type": "string",
           "example": "does marker density predict retention",
           "reliability_ceiling": "llm_supported",
           "why": "NO design sentence names this field. Proposed. A notebook's subject lives in its markdown cells as prose, which is exactly what §3.3 \"have multiple plausible domains\" sends to the model, and §3.6 \"A model that cannot cite sufficient evidence must return unknown.\""
         },
         {
-          "field": "notebook state",
+          "field": "notebook_state",
           "type": "string",
           "example": "has stored outputs",
           "reliability_ceiling": "direct",
           "why": "NO design sentence names this field, but the VALUE is read from the notebook's own top-level keys, which catalogue 05 already recognises, so §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" It exists to serve the authored-versus-generated split: stored outputs are machine-written, the cells are not."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "notebook",
           "reliability_ceiling": "validated",
@@ -1223,7 +1223,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" -- so no year level even though notebooks carry strong dates. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1299,7 +1299,7 @@
           "why": "NO design sentence names this field. Proposed, and it is the field that must NEVER become a folder level: a run per training attempt is §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" 'a large number of tiny folders' by construction."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "experiment",
           "reliability_ceiling": "validated",
@@ -1398,14 +1398,14 @@
           "why": "§2.9 \"Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals.\" names CSV literally; the value is read from the routing decision, §2.9 \"The engine should treat the file extension as a routing signal rather than an assumption about meaning\""
         },
         {
-          "field": "column labels",
+          "field": "column_labels",
           "type": "string list",
           "example": "file_id, extractor, zone",
           "reliability_ceiling": "direct",
           "why": "NO design sentence names this field for a DATASET, but the design names the equivalent for spreadsheets - 'sheet names, visible cell text' in §2.4 - and a header row is a labelled field, so §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" This is the field that makes the domain useful: column labels are what a person can actually search a forgotten dataset by."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "dataset",
           "reliability_ceiling": "validated",
@@ -1443,7 +1443,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. A dataset is a leaf under the project that uses it; a top-level data branch collects files that share a FORM, which §5.7 \"The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.\"",
         "time_first": false
@@ -1507,7 +1507,7 @@
           "why": "Read from the file signature, which §2.9 \"The engine should treat the file extension as a routing signal rather than an assumption about meaning\" and §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "model artifact",
           "reliability_ceiling": "validated",
@@ -1544,7 +1544,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1588,28 +1588,28 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "prompt name",
+          "field": "prompt_name",
           "type": "string",
           "example": "grouping-dossier",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "eval set",
+          "field": "eval_set",
           "type": "string",
           "example": "ambiguous-notebooks",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "model identifier",
+          "field": "model_identifier",
           "type": "string",
           "example": "a model name string",
           "reliability_ceiling": "direct",
           "why": "The design names this exact value in §3.4's cache key and in §8.4's audit record. Here it is read from a labelled key in an eval configuration, so §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" -- but it is the design's own vocabulary being reused, not a new coinage."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "prompt asset",
           "reliability_ceiling": "validated",
@@ -1648,7 +1648,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1698,21 +1698,21 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "proposal title",
+          "field": "proposal_title",
           "type": "string",
           "example": "Deterministic validation of LLM facts",
           "reliability_ceiling": "direct",
           "why": "The value is the document's own title, and §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" The FIELD is a proposal; the reliability of the value is not."
         },
         {
-          "field": "decision state",
+          "field": "decision_state",
           "type": "string",
           "example": "accepted",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field or any state vocabulary for it. Proposed, and marked `possible` because a state word in a document header is an unlabelled convention, not a labelled form field. See `open_question`."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "design document",
           "reliability_ceiling": "validated",
@@ -1750,7 +1750,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\" §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\"",
         "time_first": false
@@ -1797,14 +1797,14 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "decision title",
+          "field": "decision_title",
           "type": "string",
           "example": "Store facts separately from paths",
           "reliability_ceiling": "direct",
           "why": "The document's own title; §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\""
         },
         {
-          "field": "decision state",
+          "field": "decision_state",
           "type": "string",
           "example": "superseded",
           "reliability_ceiling": "possible",
@@ -1818,7 +1818,7 @@
           "why": "NO design sentence names this field HERE - but note the design uses the word for facts: §8.2's supersede-rather-than-overwrite rule, which P6 carries as `supersedes` / `superseded_by`. Reusing the product's own word for a document relationship is deliberate; it is still a proposal."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "decision record",
           "reliability_ceiling": "validated",
@@ -1853,7 +1853,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1894,21 +1894,21 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "specified component",
+          "field": "specified_component",
           "type": "string",
           "example": "the evidence extractor",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. `possible`: a component name is a bare identifier, §3.7 \"It should use word-boundary matching rather than substring matching.\""
         },
         {
-          "field": "specification title",
+          "field": "specification_title",
           "type": "string",
           "example": "Evidence shape",
           "reliability_ceiling": "direct",
           "why": "The document's own title; §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "specification",
           "reliability_ceiling": "validated",
@@ -1944,7 +1944,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1997,14 +1997,14 @@
           "why": "NO design sentence names this field. Proposed. An organisation or product name, so §3.8 \"It should avoid using authorship or creator identity as a destination dimension.\" keeps it out of the dimension order."
         },
         {
-          "field": "ticket identifier",
+          "field": "ticket_identifier",
           "type": "string",
           "example": "an issue key",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` is claimable because a tracker key has a distinctive labelled shape AND appears inside a document whose structure is a ticket export - pattern plus corroborating context, §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\". Bare, it is a version string, which §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "ticket export",
           "reliability_ceiling": "validated",
@@ -2041,7 +2041,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2090,21 +2090,21 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `repository` is literal. Populated from the directory name that carries the version-control marker (catalogue 05 `p5r-git`, `p5r-hg`, `p5r-svn`), not from any string inside a source file."
         },
         {
-          "field": "change identifier",
+          "field": "change_identifier",
           "type": "string",
           "example": "a pull-request number or a commit reference",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` only with its label present (`PR`, `commit`) inside a review-shaped document; bare it is a number and §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\""
         },
         {
-          "field": "review outcome",
+          "field": "review_outcome",
           "type": "string",
           "example": "approved",
           "reliability_ceiling": "llm_supported",
           "why": "NO design sentence names this field or any outcome vocabulary. Proposed. An outcome stated in prose needs interpretation, so §3.6 \"A model that cannot cite sufficient evidence must return unknown.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "review record",
           "reliability_ceiling": "validated",
@@ -2143,7 +2143,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2186,21 +2186,21 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "release version",
+          "field": "release_version",
           "type": "string",
           "example": "v2.1.0",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\" -- and a changelog is the densest concentration of version-shaped strings in any corpus, so this ceiling is doing real work."
         },
         {
-          "field": "release date",
+          "field": "release_date",
           "type": "date",
           "example": "a dated heading",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field, but the design DOES govern how it may be found: §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\" A dated changelog heading is an explicit labelled position, so a narrow rule can validate it; a date anywhere else in the file cannot."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "changelog",
           "reliability_ceiling": "validated",
@@ -2236,7 +2236,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED, and `release version` is barred from the dimension order for the same reason as in `soft.library-package`: §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\"",
         "time_first": false
@@ -2284,14 +2284,14 @@
           "why": "NO design sentence names this field. Proposed. `possible`: a service name is a bare identifier, §3.7 \"It should use word-boundary matching rather than substring matching.\""
         },
         {
-          "field": "occurred at",
+          "field": "occurred_at",
           "type": "datetime",
           "example": "a labelled timestamp in the timeline section",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field, but the design governs how a date may be found: §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\" A postmortem timeline is a labelled position, so a narrow rule can validate a timestamp there and nowhere else in the document."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "postmortem",
           "reliability_ceiling": "validated",
@@ -2329,7 +2329,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" -- so no year level, even though incidents are strongly dated. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2391,7 +2391,7 @@
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "runbook",
           "reliability_ceiling": "validated",
@@ -2426,7 +2426,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2472,14 +2472,14 @@
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "capture window",
+          "field": "capture_window",
           "type": "string",
           "example": "a labelled from-to range in the export header",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` ONLY from a labelled export header; §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\" forbids reading a range out of the log lines themselves."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "log export",
           "reliability_ceiling": "validated",
@@ -2516,7 +2516,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED, and this entry is a strong candidate for a RESIDUAL destination rather than a domain branch: §7.3 \"the library must support user-defined residual areas\" and §7.3's Unsupported or Encrypted template is the nearest existing home for machine files with no durable purpose. Not decided here - §7 is P11's and the residual library is already authored.",
         "time_first": false
@@ -2564,14 +2564,14 @@
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "system under test",
+          "field": "system_under_test",
           "type": "string",
           "example": "the placement service",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. §3.8 \"The system must separate roles that happen to contain the same entity type.\" -- the system tested is a different role from the system that ran the test, and conflating them is the error that rule exists to prevent."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "performance test",
           "reliability_ceiling": "validated",
@@ -2609,7 +2609,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2652,21 +2652,21 @@
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "assessed system",
+          "field": "assessed_system",
           "type": "string",
           "example": "the placement service",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. §3.8 \"The system must separate roles that happen to contain the same entity type.\""
         },
         {
-          "field": "assessing party",
+          "field": "assessing_party",
           "type": "string",
           "example": "an organisation name",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed, and it is metadata ONLY: §3.8 \"It should avoid using authorship or creator identity as a destination dimension.\" -- filing security reports by the firm that wrote them is precisely the collector anti-pattern §5.7 \"The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.\" refuses."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "security report",
           "reliability_ceiling": "validated",
@@ -2704,7 +2704,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. Deliberately NOT `assessing party -> ...`: §3.8 \"It should avoid using authorship or creator identity as a destination dimension.\"",
         "time_first": false
@@ -2744,28 +2744,28 @@
       "design_cite": "NO design sentence names this domain. Proposed.",
       "schema": [
         {
-          "field": "advisory identifier",
+          "field": "advisory_identifier",
           "type": "string",
           "example": "a labelled advisory reference",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` requires the label present with the reference - the same discipline catalogue 06 applies to `cid-pmid`, where 'a bare number is never an identifier'. Cited from catalogue 06, not re-derived."
         },
         {
-          "field": "affected package",
+          "field": "affected_package",
           "type": "string",
           "example": "a package name",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. `possible`: a package name is a bare identifier, §3.7 \"It should use word-boundary matching rather than substring matching.\""
         },
         {
-          "field": "affected version range",
+          "field": "affected_version_range",
           "type": "string",
           "example": "a labelled range",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "advisory",
           "reliability_ceiling": "validated",
@@ -2802,7 +2802,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2843,7 +2843,7 @@
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "audit period",
+          "field": "audit_period",
           "type": "string",
           "example": "a labelled period in the report header",
           "reliability_ceiling": "validated",
@@ -2857,7 +2857,7 @@
           "why": "NO design sentence names this field. Proposed. A framework name is an organisation-adjacent label; §3.8 \"It should avoid using authorship or creator identity as a destination dimension.\" keeps it out of the dimension order."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "compliance evidence",
           "reliability_ceiling": "validated",
@@ -2895,7 +2895,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED, and a genuinely uncertain one: compliance evidence may belong under a legal or administrative branch rather than a software one. §3.15 \"Finance, identity, medical, and legal material should be implemented first as safety domains\" Not decided here - cross-slice, and §5.1 \"a typical initial canvas might include Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material.\" lists both Code and Projects and Personal Records as candidate top-level areas.",
         "time_first": false
@@ -2943,14 +2943,14 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "licence identifier",
+          "field": "licence_identifier",
           "type": "string",
           "example": "a licence short name",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` because the value is read from a licence header inside a file catalogue 05 already recognises by name - marker plus content position, which is §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\". A licence name in ordinary prose is not."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "licence",
           "reliability_ceiling": "validated",
@@ -2988,7 +2988,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -3038,7 +3038,7 @@
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "environment setup",
           "reliability_ceiling": "validated",
@@ -3074,7 +3074,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -3122,14 +3122,14 @@
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "machine scope",
+          "field": "machine_scope",
           "type": "string",
           "example": "personal",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed, and it is the field that separates this domain from `soft.configuration-and-secrets` - which makes it the whole entry and also its weakest point, since it is inferred from LOCATION rather than content."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "dotfile",
           "reliability_ceiling": "validated",
@@ -3165,7 +3165,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED, and flagged: a dotfiles collection is very often ALREADY a curated folder the user maintains, and §5.10 \"A carefully curated existing folder should be treated as a strong expression of user intent.\" together with §1.1 \"The system should also know that existing folder structures should mainly be preserved. For example, if a folder called AIKonic Project has a lot of files such as JSON and other software material, those are probably not supposed to be touched.\" point the same way - the right default may be to leave it alone entirely rather than to propose a structure for it. See `open_question`.",
         "time_first": false
@@ -3201,21 +3201,21 @@
       "design_cite": "NO design sentence names this domain. Proposed. The design's relevant provision is a destination one: §5.9 \"It should also support a scoped General or Other branch within a meaningful parent.\"",
       "schema": [
         {
-          "field": "programming language",
+          "field": "programming_language",
           "type": "string",
           "example": "Python",
           "reliability_ceiling": "direct",
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" Inferred from an extension it is `possible`, never `direct`."
         },
         {
-          "field": "prototype subject",
+          "field": "prototype_subject",
           "type": "string",
           "example": "what was being tried",
           "reliability_ceiling": "llm_supported",
           "why": "NO design sentence names this field. Proposed, and it can only ever be `llm_supported`: scratch code by definition carries no structural evidence of its purpose, which is the case §3.3 \"have multiple plausible domains\" describes. §3.6 \"A model that cannot cite sufficient evidence must return unknown.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "prototype",
           "reliability_ceiling": "validated",
@@ -3250,7 +3250,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED, and the recommendation is the shallow one. §5.9 \"It should also support a scoped General or Other branch within a meaningful parent.\" -- scratch work belongs in a scoped General folder under a meaningful parent, not in a deep structure of its own, and §7.2 \"The library prevents the LLM from creating arbitrary folders\" is the general warning against inventing plausible-sounding homes for material that has none.",
         "time_first": false
@@ -3303,14 +3303,14 @@
           "why": "NO design sentence names this field. Proposed. `validated` because a game engine writes a distinctive project file at the root, and matching it TOGETHER WITH the engine's own asset directory layout is pattern plus corroborating context, §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\". This catalogue names no engine file - that would be a marker list, and marker lists live in catalogue 05."
         },
         {
-          "field": "asset class",
+          "field": "asset_class",
           "type": "string",
           "example": "level data",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "game project",
           "reliability_ceiling": "validated",
@@ -3349,7 +3349,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\" -- and note that `asset class` is a strong candidate for a THIRD level here, which most entries in this slice do not warrant. Not asserted: §5.7 \"The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.\"",
         "time_first": false
@@ -3397,21 +3397,21 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "programming language",
+          "field": "programming_language",
           "type": "string",
           "example": "C",
           "reliability_ceiling": "direct",
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `programming language` is literal. `direct` ONLY where the value is read from a labelled metadata field - a notebook's `language_info` / `kernelspec` (catalogue 05 `p5n-language-info`, `p5n-kernelspec`), or a manifest's own language declaration. §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" Inferred from an extension it is `possible`, never `direct`."
         },
         {
-          "field": "target hardware",
+          "field": "target_hardware",
           "type": "string",
           "example": "a named board or microcontroller",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. `possible`: a part number is exactly the class of token §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\" warns about - it looks like a version and is not."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "firmware",
           "reliability_ceiling": "validated",
@@ -3449,7 +3449,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -3493,14 +3493,14 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "design name",
+          "field": "design_name",
           "type": "string",
           "example": "a board or part name",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "design revision",
+          "field": "design_revision",
           "type": "string",
           "example": "a labelled revision",
           "reliability_ceiling": "possible",
@@ -3514,7 +3514,7 @@
           "why": "§2.9 \"Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.\" -- the design requires format to be yielded at minimum even where the content cannot be read, and §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "hardware design",
           "reliability_ceiling": "validated",
@@ -3552,7 +3552,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -3601,14 +3601,14 @@
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "diagram format",
+          "field": "diagram_format",
           "type": "string",
           "example": "a diagram format",
           "reliability_ceiling": "direct",
           "why": "Read from the file signature; §2.9 \"The engine should treat the file extension as a routing signal rather than an assumption about meaning\" and §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "diagram",
           "reliability_ceiling": "validated",
@@ -3645,7 +3645,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED, and shallow: diagrams are few and belong beside the documents they illustrate. §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\"",
         "time_first": false
@@ -3685,28 +3685,28 @@
       "design_cite": "NO design sentence names this domain. Proposed.",
       "schema": [
         {
-          "field": "asset class",
+          "field": "asset_class",
           "type": "string",
           "example": "laptop",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "inventory scope",
+          "field": "inventory_scope",
           "type": "string",
           "example": "an organisation or site name",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed. §3.8 \"It should avoid using authorship or creator identity as a destination dimension.\" keeps an organisation name out of the dimension order."
         },
         {
-          "field": "as-of date",
+          "field": "as_of_date",
           "type": "date",
           "example": "a labelled date in the export header",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` only from a labelled header; §3.10 \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.\""
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "inventory",
           "reliability_ceiling": "validated",
@@ -3744,7 +3744,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED, and uncertain: an asset inventory may belong under an administrative or work branch rather than a software one. §5.1 \"a typical initial canvas might include Academics, Applications, Research, Career, Personal Records, Finance and Administration, Photos and Captures, Code and Projects, and Media or Miscellaneous Personal Material.\" lists Personal Records alongside Code and Projects and this entry could sit under either.",
         "time_first": false
@@ -3783,21 +3783,21 @@
       "design_cite": "NO design sentence names this domain. Proposed.",
       "schema": [
         {
-          "field": "support queue",
+          "field": "support_queue",
           "type": "string",
           "example": "a queue or desk name",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "ticket identifier",
+          "field": "ticket_identifier",
           "type": "string",
           "example": "a labelled ticket reference",
           "reliability_ceiling": "validated",
           "why": "NO design sentence names this field. Proposed. `validated` requires the label with the reference, per catalogue 06's rule that 'a bare number is never an identifier'."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "support ticket",
           "reliability_ceiling": "validated",
@@ -3835,7 +3835,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED, and uncertain in the same way as `soft.it-asset-inventory`: support tickets may belong under a work or career branch rather than a software one.",
         "time_first": false
@@ -3883,21 +3883,21 @@
           "why": "§3.11 \"Code files may use project, repository, programming language, and artifact type.\" -- `project` is literal. Validated because the rule is the root signal: §3.5 \"becomes a course fact only when the engine finds a course-code pattern together with academic context\" is the model - pattern plus corroborating context, and the corroborating context here is the marker-bearing root, not the file's own extension."
         },
         {
-          "field": "documented product",
+          "field": "documented_product",
           "type": "string",
           "example": "a product name",
           "reliability_ceiling": "possible",
           "why": "NO design sentence names this field. Proposed."
         },
         {
-          "field": "document title",
+          "field": "document_title",
           "type": "string",
           "example": "the document's own title",
           "reliability_ceiling": "direct",
           "why": "The document's own title, which §3.13 \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.\" names as a direct source."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "user documentation",
           "reliability_ceiling": "validated",
@@ -3936,7 +3936,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -3977,7 +3977,7 @@
       "design_cite": "NO design sentence names this domain. Proposed. Adjacent design provision, which is why the collision below matters: §3.15 \"The initial release should fully support only the domains required to validate the product on real heterogeneous corpora: academic coursework, college applications, research and lab work, career and recruiting, photos and captures, and code projects.\" makes academic coursework a launch domain, and teaching material produced BY the user is a different role from coursework produced FOR a course.",
       "schema": [
         {
-          "field": "subject taught",
+          "field": "subject_taught",
           "type": "string",
           "example": "a technical subject",
           "reliability_ceiling": "llm_supported",
@@ -3991,7 +3991,7 @@
           "why": "NO design sentence names this field. Proposed, and it is the field that separates teaching material from documentation. It is prose-only, which is why this entry is weak."
         },
         {
-          "field": "artifact type",
+          "field": "artifact_type",
           "type": "string",
           "example": "training material",
           "reliability_ceiling": "validated",
@@ -4030,7 +4030,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "PROPOSED. §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" -- so subject before any delivery date.",
         "time_first": false

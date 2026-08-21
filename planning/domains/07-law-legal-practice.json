@@ -128,8 +128,8 @@
         "dimension_order": [
           "client",
           "matter",
-          "work phase",
-          "document type"
+          "work_phase",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A document type such as a witness statement is meaningless until the matter is known, and a matter number is ambiguous until the client is known. §5.5 also: “putting year first scatters related work across calendar folders”.",
         "time_first": false
@@ -229,8 +229,8 @@
       "template": {
         "dimension_order": [
           "client",
-          "intake episode",
-          "document type"
+          "intake_episode",
+          "document_type"
         ],
         "why": "§5.5's rule — a document type such as 'proof of address' is meaningless until the person it belongs to is known. Depth stops at three: §5.9 warns against a level that 'produces only one child'.",
         "time_first": false
@@ -318,7 +318,7 @@
         "dimension_order": [
           "client",
           "matter",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule: a waiver letter is only interpretable once the matter it waives for is known.",
         "time_first": false
@@ -409,7 +409,7 @@
         "dimension_order": [
           "client",
           "matter",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. A scope variation is only readable against the matter it varies. §5.8 applies: a single-letter engagement should stay flat rather than acquire the full depth.",
         "time_first": false
@@ -509,8 +509,8 @@
         "dimension_order": [
           "client",
           "matter",
-          "billing period",
-          "document type"
+          "billing_period",
+          "document_type"
         ],
         "why": "§5.5: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Period sits third — below the matter, above the document type — because a bill is only comparable within its matter.",
         "time_first": false
@@ -602,8 +602,8 @@
         "dimension_order": [
           "client",
           "matter",
-          "correspondent role",
-          "document type"
+          "correspondent_role",
+          "document_type"
         ],
         "why": "§5.5's context rule. Correspondent role is worth a level only when a matter has several sides; §5.9 requires warning 'when a level produces only one child', so a two-party matter should stay flatter.",
         "time_first": false
@@ -693,7 +693,7 @@
         "dimension_order": [
           "client",
           "matter",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's rule against time-first for record domains applies with unusual force here: a folder tree keyed on due dates would scatter one matter's obligations across the calendar and would go stale the moment a date moved.",
         "time_first": false
@@ -799,7 +799,7 @@
           "client",
           "matter",
           "proceeding",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. A 'proceeding' level is only worth creating when one matter carries more than one proceeding; §5.9 requires the interface to warn when 'a level produces only one child', so most matters should collapse it.",
         "time_first": false
@@ -905,7 +905,7 @@
           "client",
           "matter",
           "proceeding",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule; a receipt is meaningless away from what it evidences. Deliberately the same order as law.pleadings so a filed document and its receipt land adjacent rather than in parallel trees.",
         "time_first": false
@@ -1008,7 +1008,7 @@
           "matter",
           "proceeding",
           "application",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule; a responding submission is unreadable except against the application it answers. §5.8 applies — 'The product should not force every branch to use the full template' — so a matter with one application should collapse the application level.",
         "time_first": false
@@ -1111,7 +1111,7 @@
           "client",
           "matter",
           "proceeding",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. Consciously NOT keyed on decision date despite these being the most date-defined documents in the supercategory — §5.5: 'putting year first scatters related work across calendar folders', and one proceeding's orders belong together.",
         "time_first": false
@@ -1216,7 +1216,7 @@
           "client",
           "matter",
           "appeal",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. The appeal sits UNDER the matter rather than beside it, because the design's principle is that a parent supplies the context to read the child, and an appeal is unreadable without the dispute it comes from.",
         "time_first": false
@@ -1317,8 +1317,8 @@
           "client",
           "matter",
           "proceeding",
-          "party direction",
-          "document type"
+          "party_direction",
+          "document_type"
         ],
         "why": "§5.5's context rule, with one addition specific to this domain: 'party direction' — requests we made versus requests made of us — is the dimension practitioners actually navigate by, and without it a folder mixes the two sides of every exchange. §5.9's warning applies where a matter has only one direction.",
         "time_first": false
@@ -1422,8 +1422,8 @@
         "dimension_order": [
           "client",
           "matter",
-          "review population",
-          "document type"
+          "review_population",
+          "document_type"
         ],
         "why": "§5.5's context rule. A coding export is meaningless outside the population it codes, and populations rarely span matters.",
         "time_first": false
@@ -1523,9 +1523,9 @@
         "dimension_order": [
           "client",
           "matter",
-          "party direction",
+          "party_direction",
           "production",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. Direction before production, because an inbound and an outbound set with adjacent identifiers must never sit in one folder. §5.9's live feedback matters here: a production can hold very large numbers of files and a per-document level would create “a large number of tiny folders”.",
         "time_first": false
@@ -1626,7 +1626,7 @@
           "client",
           "matter",
           "proceeding",
-          "tendering party",
+          "tendering_party",
           "exhibit"
         ],
         "why": "§5.5's context rule; an exhibit label is meaningless outside its proceeding and its side. §5.9 governs the last level — an exhibit-per-folder split creates 'a large number of tiny folders' and should usually be flattened.",
@@ -1736,7 +1736,7 @@
           "matter",
           "proceeding",
           "deponent",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule, with deponent as the natural spine: an errata sheet and an exhibit set are only interpretable against the witness they belong to. Volume is ordering within the document type, not a folder level — §5.9 warns against levels that produce one child.",
         "time_first": false
@@ -1840,7 +1840,7 @@
           "matter",
           "proceeding",
           "witness",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule with witness as the spine, matching law.depositions so that one witness's statement and examination sit adjacent rather than in parallel trees.",
         "time_first": false
@@ -1949,7 +1949,7 @@
           "matter",
           "proceeding",
           "expert",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule with the expert as spine, because instructions, report and working papers are one body of work by one person and separating them by document type first would scatter it.",
         "time_first": false
@@ -2059,7 +2059,7 @@
           "matter",
           "proceeding",
           "hearing",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule; an opening note is meaningless except against the hearing it opens. Hearing is the level that matters most here and the one most often missing from a naive tree.",
         "time_first": false
@@ -2155,7 +2155,7 @@
           "matter",
           "proceeding",
           "hearing",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule, and deliberately identical to law.trial-preparation so that a user who never separates jury material from the rest of trial prep gets one coherent branch rather than two half-filled ones (§5.9's warning about levels that produce one child).",
         "time_first": false
@@ -2253,7 +2253,7 @@
           "matter",
           "proceeding",
           "hearing",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule; matches law.trial-preparation so a hearing's bundle and its transcript live under the same hearing node. Day is ordering within the type, not a level — §5.9 warns against levels that create many tiny folders.",
         "time_first": false
@@ -2355,7 +2355,7 @@
         "dimension_order": [
           "client",
           "matter",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. Deliberately shallower than the litigation domains: a settlement is a single episode of a matter and §5.8's uneven-depth allowance applies — “The product should not force every branch to use the full template”.",
         "time_first": false
@@ -2465,7 +2465,7 @@
           "client",
           "matter",
           "reference",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. 'Reference“ rather than ”proceeding' because the identifier and forum differ from the court family, and a matter can run a court proceeding and an arbitration at the same time — which the tree must keep apart.",
         "time_first": false
@@ -2566,8 +2566,8 @@
         "dimension_order": [
           "client",
           "matter",
-          "legal topic",
-          "document type"
+          "legal_topic",
+          "document_type"
         ],
         "why": "§5.5's context rule. Topic sits below matter because research is done FOR a matter; the know-how domain inverts this deliberately, which is the clearest structural difference between the two.",
         "time_first": false
@@ -2673,7 +2673,7 @@
         "dimension_order": [
           "client",
           "matter",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule; kept shallow because an opinion is a small, discrete deliverable and §5.8 allows a branch to stay flat where the extra levels would each hold one file.",
         "time_first": false
@@ -2773,9 +2773,9 @@
       ],
       "template": {
         "dimension_order": [
-          "legal topic",
-          "precedent type",
-          "document type"
+          "legal_topic",
+          "precedent_type",
+          "document_type"
         ],
         "why": "The one domain in this slice with NO client and NO matter level, which is the whole point of it. §5.5's rule still governs — topic is the context that makes a clause bank interpretable — but the spine is subject rather than engagement.",
         "time_first": false
@@ -2891,7 +2891,7 @@
           "client",
           "deal",
           "workstream",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule with 'deal' where the litigation domains have 'proceeding'. §5.5's second rule is what rules out a date-first tree — 'putting year first scatters related work across calendar folders' — and a deal's drafts span months.",
         "time_first": false
@@ -2996,8 +2996,8 @@
         "dimension_order": [
           "client",
           "deal",
-          "diligence workstream",
-          "document type"
+          "diligence_workstream",
+          "document_type"
         ],
         "why": "§5.5's context rule; a finding is unreadable outside its workstream and its deal. Matches law.transactional-deal's first two levels deliberately so diligence sits inside the deal rather than beside it.",
         "time_first": false
@@ -3103,7 +3103,7 @@
         "dimension_order": [
           "client",
           "deal",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule, kept shallow because the binder's own index already supplies the internal ordering and reproducing it as folders would create exactly the “large number of tiny folders” §5.9 warns about.",
         "time_first": false
@@ -3213,7 +3213,7 @@
         "dimension_order": [
           "counterparty",
           "contract",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule with counterparty as the spine, because in-house contract work is not organised by matter and often has no matter at all. Round is ordering within the contract, not a level: §5.9 warns against 'a large number of tiny folders'.",
         "time_first": false
@@ -3315,8 +3315,8 @@
       "template": {
         "dimension_order": [
           "entity",
-          "record type",
-          "document type"
+          "record_type",
+          "document_type"
         ],
         "why": "§5.5's context rule with entity as the spine and NO client level, because corporate secretarial work is organised by the entity whose record it is even when a practice keeps it for a client. §5.5's rule against time-first applies with full force — a constitutional record is a continuous history, not a series of years.",
         "time_first": false
@@ -3421,7 +3421,7 @@
           "entity",
           "regulator",
           "submission",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. Regulator before submission because a regime's vocabulary only makes sense once the authority is known. §5.8's uneven depth applies — a single-submission matter should collapse the last two levels.",
         "time_first": false
@@ -3527,8 +3527,8 @@
       "template": {
         "dimension_order": [
           "entity",
-          "programme area",
-          "material type"
+          "programme_area",
+          "material_type"
         ],
         "why": "§5.5's context rule with no client or matter level, because a compliance programme is a standing function rather than an engagement. Where an external practice advises ON a programme, that advice belongs to law.opinions or law.matter-file instead.",
         "time_first": false
@@ -3642,7 +3642,7 @@
           "client",
           "investigation",
           "workstream",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. Workstream before document type because an interview memorandum and a forensic report belong to different strands and mixing them destroys the enquiry's shape.",
         "time_first": false
@@ -3751,9 +3751,9 @@
       "template": {
         "dimension_order": [
           "client",
-          "right family",
-          "ip office",
-          "document type"
+          "right_family",
+          "ip_office",
+          "document_type"
         ],
         "why": "§5.5's context rule with the family above the office, so one invention's national filings stay together rather than being scattered across office folders — the same reasoning §5.5 gives for keeping a course above its work types.",
         "time_first": false
@@ -3861,7 +3861,7 @@
           "client",
           "applicant",
           "application",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. Applicant sits above application because one person may make several over years and their history is the useful unit. Note the tension with §3.8's rule against person-as-collector: this is a case where the person IS the subject rather than the author, which §3.8's own wording distinguishes.",
         "time_first": false
@@ -3968,8 +3968,8 @@
         "dimension_order": [
           "client",
           "matter",
-          "issue strand",
-          "document type"
+          "issue_strand",
+          "document_type"
         ],
         "why": "§5.5's context rule, with 'issue strand' rather than any person-based level — see the `child_subject` field's reasoning. §5.9's scoped General branch is the right fallback for uncategorised material here rather than any label naming an individual.",
         "time_first": false
@@ -4078,8 +4078,8 @@
         "dimension_order": [
           "client",
           "matter",
-          "procedural stage",
-          "document type"
+          "procedural_stage",
+          "document_type"
         ],
         "why": "§5.5's context rule, with stage rather than any person-based level for the reason given under `accused`. Stage is genuinely how criminal files are worked, which makes the safer choice also the better one.",
         "time_first": false
@@ -4186,8 +4186,8 @@
         "dimension_order": [
           "client",
           "estate",
-          "estate stage",
-          "document type"
+          "estate_stage",
+          "document_type"
         ],
         "why": "§5.5's context rule. Stage rather than asset class at the third level because an administration is worked as a sequence and stage is the dimension that stays meaningful when a file is reopened years later.",
         "time_first": false
@@ -4291,8 +4291,8 @@
         "dimension_order": [
           "client",
           "property",
-          "conveyancing stage",
-          "document type"
+          "conveyancing_stage",
+          "document_type"
         ],
         "why": "§5.5's context rule with the property as the spine, because one client may transact several properties and one property may be transacted repeatedly. §5.5's rule against time-first applies: completion dates would scatter a chain.",
         "time_first": false
@@ -4392,10 +4392,10 @@
       ],
       "template": {
         "dimension_order": [
-          "admitting authority",
-          "credential type",
-          "compliance period",
-          "document type"
+          "admitting_authority",
+          "credential_type",
+          "compliance_period",
+          "document_type"
         ],
         "why": "§5.5's context rule. This is the one entry in the slice where a period level is clearly right — the obligation IS periodic — but it still sits third, under the authority and the credential, because §5.5 keeps time below function for record domains.",
         "time_first": false
@@ -4499,10 +4499,10 @@
       ],
       "template": {
         "dimension_order": [
-          "funding basis",
+          "funding_basis",
           "client",
           "matter",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5's context rule. The dimension order is deliberately unusual — funding basis first — because that is the only arrangement under which this domain is distinguishable in a tree from law.matter-file, and seeing it written out is what makes the open_question below concrete.",
         "time_first": false

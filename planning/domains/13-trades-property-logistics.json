@@ -96,7 +96,7 @@
         "dimension_order": [
           "client",
           "job",
-          "work type"
+          "work_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a work type such as a certificate is meaningless until the job is known, and a job reference is ambiguous until the client or site is. §5.5 also keeps time out of the lead for a record domain: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A single-site trade business may collapse the client level entirely; §5.8 expects that — “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.”",
         "time_first": false
@@ -220,7 +220,7 @@
       "template": {
         "dimension_order": [
           "client",
-          "enquiry or job",
+          "enquiry_or_job",
           "revision"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a revision number means nothing without the enquiry it revises. An unconverted quote has no job to live under, which is why this is a domain and not merely a work type. §5.9 warns against the alternative of a per-quote folder: “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.”",
@@ -345,8 +345,8 @@
       "template": {
         "dimension_order": [
           "site",
-          "survey date",
-          "survey type"
+          "survey_date",
+          "survey_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a survey type is only interpretable once the site is known. The date sits above the type rather than below it because a site is surveyed repeatedly and two survey types on one visit belong together. Time does not lead: §5.5's capture exception is granted for a reason that does not apply, because the survey's subject is the site and the photographs are its evidence rather than its point — “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.”",
         "time_first": false
@@ -467,8 +467,8 @@
       "template": {
         "dimension_order": [
           "project",
-          "work package",
-          "document type"
+          "work_package",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a drawing number, an instruction number and a valuation number are all meaningless outside their project, and a document type is only navigable once the package narrows it. Time is deliberately absent: a project spans years and “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” §5.8 allows a small project to collapse the package level — “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.”",
         "time_first": false
@@ -593,7 +593,7 @@
         "dimension_order": [
           "project",
           "discipline",
-          "drawing status"
+          "drawing_status"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a discipline is meaningless outside its project and a status is meaningless outside its discipline. Revision is deliberately not a folder level: it is a version family, and making it a level would produce exactly what §5.9 warns against — “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.”. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -718,7 +718,7 @@
         "dimension_order": [
           "project",
           "subcontractor",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a payment application number is meaningless without the subcontractor, and the subcontractor is meaningless without the project. The compliance pack is the exception that §5.8's uneven depth handles: it belongs to the firm across projects, not to any one project — “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.”. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -959,7 +959,7 @@
       ],
       "template": {
         "dimension_order": [
-          "capture date",
+          "capture_date",
           "area"
         ],
         "why": "TIME FIRST, and this is §5.5's exception used exactly as written: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.”. A progress photograph exists to say what the site looked like on a date; strip the date and the file has no content left. The project is NOT listed as a dimension because it is the branch this template is applied inside rather than a level the template creates — §5.4: “The product opens an accepted branch and proposes one or more domain templates based on the groups and facts that already belong inside it.” That is exactly why the flag is true: every dimension this domain itself contributes is subordinate to the capture date. §5.5's “a parent dimension should provide the context required to understand the child” still governs the branch above, so two sites' photographs never merge on a shared day. §2.6 supplies the capture date as a direct fact, so the leading dimension is one the engine can actually populate.",
@@ -1083,7 +1083,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "unit or location",
+          "unit_or_location",
           "status"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a defect reference is only unique inside a project and only navigable inside a unit. Status sits last because it changes: making it a higher level would move files as they close, which §8.3 treats as a filesystem mutation rather than as a filing decision. Time does not lead — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” — even though every snag list has an inspection date, because the unit is what anyone searching actually knows.",
@@ -1209,7 +1209,7 @@
         "dimension_order": [
           "property",
           "application",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a decision notice is meaningless without its application and an application is meaningless without its property. The property leads rather than the project because statutory records outlive the project and transfer with the building; this is one of the few domains in this slice where the address genuinely is the subject. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -1332,8 +1332,8 @@
       "template": {
         "dimension_order": [
           "property",
-          "installation type",
-          "issue date"
+          "installation_type",
+          "issue_date"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — an issue date is only meaningful once the installation is known, and the installation only once the property is. The property leads rather than the job because certificates are produced on sale, on letting and on inspection, long after the job file is closed. Time is last: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and putting the year first here would scatter one property's safety history across a decade of folders, which is precisely the failure that sentence describes.",
         "time_first": false
@@ -1453,7 +1453,7 @@
         "dimension_order": [
           "project",
           "activity",
-          "document class"
+          "document_class"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a control measure is only interpretable once the activity is known. Generic assessments that belong to the firm rather than to any project are the uneven case §5.8 anticipates: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.”. Time does not lead: a live safety document is current until its review date, so filing it by year would bury the version in force — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -1821,7 +1821,7 @@
       "template": {
         "dimension_order": [
           "employer",
-          "pay period",
+          "pay_period",
           "project"
         ],
         "why": "Deliberately NOT worker-first. §3.8: “It should avoid using authorship or creator identity as a destination dimension.” and “A folder should not become a collection point for everything produced by the same person or organization.” — a folder per person is the exact anti-pattern that sentence describes, and it is also the arrangement that spreads employment data across the widest surface. The pay period leads inside the employer because that is the batch the records are produced, approved and paid in; this is the one record domain in the slice where time genuinely sits high, and it still is not first. “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” is honoured by keeping the employer above it.",
@@ -1941,7 +1941,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "change type",
+          "change_type",
           "instruction"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — an instruction number is unique only within a project, and a claim is only readable once its type is known. Time does not lead: a claim reaches back across the whole contract period and filing it by year would separate it from the events it argues about — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
@@ -2061,7 +2061,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "account stage",
+          "account_stage",
           "valuation"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a valuation number is meaningless outside its project. Stage sits above the number because interim and final material are consulted for different reasons years apart. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and a contract's valuations must stay in one run rather than split across calendar years.",
@@ -2183,7 +2183,7 @@
         "dimension_order": [
           "property",
           "transaction",
-          "document class"
+          "document_class"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a search result is meaningless without the transaction and a transaction without the property. Property leads rather than date because a house is bought and sold decades apart and the address is what anyone remembers. §3.9 is the reason document class sits last and not first: “The documents are content-incoherent but purpose-coherent.”, so splitting the pack by content before the transaction is known would destroy exactly the coherence that makes it a pack. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -2309,7 +2309,7 @@
         "dimension_order": [
           "property",
           "tenancy",
-          "document class"
+          "document_class"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a notice is meaningless without the tenancy and a tenancy without the property. Property leads rather than tenant because §3.8 warns against making a person a collector: “A folder should not become a collection point for everything produced by the same person or organization.” — and because a landlord's file is organised by what they own. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -2429,7 +2429,7 @@
         "dimension_order": [
           "property",
           "tenancy",
-          "inspection date"
+          "inspection_date"
         ],
         "why": "NOT time-first, and the reason is worth stating because this domain is capture-based. §5.5's exception is conditional on its own premise — “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” — and here the capture date is defining only in relation to a tenancy: a check-out photograph proves nothing until you know which tenancy ended. The property is the durable subject and the tenancy is what makes the date legible, so both outrank it. §5.5's “a parent dimension should provide the context required to understand the child” decides it.",
         "time_first": false
@@ -2553,8 +2553,8 @@
       "template": {
         "dimension_order": [
           "building",
-          "charge year",
-          "document type"
+          "charge_year",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a balancing statement is meaningless without its year and a year without its building. This is the one property domain where a year sits second rather than last, because the service-charge year is a closed accounting cycle rather than a filing convenience: every document in a year answers the others. It still is not first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” — because two buildings' charge years must never merge.",
         "time_first": false
@@ -2795,7 +2795,7 @@
         "dimension_order": [
           "premises",
           "lease",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a break notice is meaningless without its lease and a lease without its premises. Time is deliberately absent from the folder path even though the domain is entirely about dates: a lease spans a decade and its events must sit in one place, which is precisely what “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” protects.",
         "time_first": false
@@ -2915,7 +2915,7 @@
         "dimension_order": [
           "site",
           "scheme",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a cashflow is meaningless without the scheme and a scheme without the site. Version is a family rather than a level, because a folder per version is exactly what §5.9 warns against: “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.”. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -3033,8 +3033,8 @@
       "template": {
         "dimension_order": [
           "property",
-          "report type",
-          "valuation date"
+          "report_type",
+          "valuation_date"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a valuation figure is meaningless without the property and a report type is what makes two reports on one property distinguishable. Date sits last despite being what a valuation speaks as at, because a property is valued rarely and the address is the retrieval key: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -3155,7 +3155,7 @@
         "dimension_order": [
           "property",
           "campaign",
-          "media or document type"
+          "media_or_document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a photograph set is only navigable once the campaign is known, and a campaign once the property is. Time does not lead even though a campaign is a period: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and one property's marketing history should stay together.",
         "time_first": false
@@ -3281,7 +3281,7 @@
         "dimension_order": [
           "client",
           "case",
-          "evidence class"
+          "evidence_class"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — income evidence is meaningless outside the case it supports. Client leads here, unusually for this slice, because the adviser's duty and file run to the person rather than to the property; §3.8's warning against a person as a collector is about authorship, not about a client whose file this genuinely is. §3.9 is why evidence class sits last: “The documents are content-incoherent but purpose-coherent.”. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -3400,7 +3400,7 @@
       ],
       "template": {
         "dimension_order": [
-          "range or season",
+          "range_or_season",
           "category",
           "product"
         ],
@@ -3520,8 +3520,8 @@
       "template": {
         "dimension_order": [
           "location",
-          "count date",
-          "document type"
+          "count_date",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a variance report is meaningless without the location and the location's counts are only distinguishable by date. Time therefore sits second, not first: this is not capture-based media, and “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” means one location's count history stays together rather than being cut across year folders. A single-site retailer collapses the location level, which §5.8 expects: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.”",
         "time_first": false
@@ -3640,7 +3640,7 @@
       "template": {
         "dimension_order": [
           "supplier",
-          "season or period",
+          "season_or_period",
           "order"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — an order reference is only unique inside a supplier and only findable once the buying period narrows it. Supplier leads rather than season because a chase, a dispute or a rebate conversation is always about one supplier. “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” keeps the period second and names it as a buying season rather than a calendar year where one exists.",
@@ -3760,8 +3760,8 @@
       "template": {
         "dimension_order": [
           "location",
-          "trading period",
-          "report type"
+          "trading_period",
+          "report_type"
         ],
         "why": "NOT time-first, and the reason matters because the domain is a daily series. §5.5's exception is granted to capture-based media and these are generated reports, not captures: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” does not reach them. §5.5's “a parent dimension should provide the context required to understand the child” puts location above period because two stores' figures must never merge, and the period is named in the trading calendar rather than the calendar year. A single-site retailer collapses the location level — §5.8: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.”",
         "time_first": false
@@ -3881,7 +3881,7 @@
       "template": {
         "dimension_order": [
           "channel",
-          "export type",
+          "export_type",
           "period"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — an orders export is meaningless without the channel that produced it, and periods only sort within a type. Period sits last: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”. This domain touches the software slice's territory at the technical-artefact level, where §1.5's exclusion rules already apply before any of this does.",
@@ -4000,9 +4000,9 @@
       ],
       "template": {
         "dimension_order": [
-          "claim route",
+          "claim_route",
           "case",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — the route decides what evidence a case needs, so it is the level that makes a case folder legible. A per-case folder is only worth creating where a case has several documents; a one-document case belongs in the parent, which is §5.9's warning applied: “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.”. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -4121,7 +4121,7 @@
       "template": {
         "dimension_order": [
           "location",
-          "record class",
+          "record_class",
           "period"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a checklist is meaningless without the site and periods only sort within a class. Location leads because that is the only question anyone asks of this material. Period sits last: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”. §3.8 is why the person is not a level: “A folder should not become a collection point for everything produced by the same person or organization.”",
@@ -4247,7 +4247,7 @@
         "dimension_order": [
           "venue",
           "menu",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a costing sheet is meaningless without the dish's menu and the menu without the venue. Venue leads because a group operates several and their menus differ; a single-site operator collapses it, which §5.8 expects: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.”. Time does not lead: menus are named seasons rather than dates, and “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” applies.",
         "time_first": false
@@ -4367,7 +4367,7 @@
       "template": {
         "dimension_order": [
           "site",
-          "record class",
+          "record_class",
           "period"
         ],
         "why": "NOT time-first, and this is the closest call in the slice. Every record here is a statement about a day, which pulls toward §5.5's exception — but that exception is granted to capture-based media because “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.”, and a temperature log is a generated record whose date is an attribute rather than its content. §5.5's “a parent dimension should provide the context required to understand the child” settles it: an inspector asks for one site's logs for a period, so the site leads and the class makes the period legible. Where the log IS a photograph of a paper sheet, the capture date and the recorded date can differ and the recorded date governs.",
@@ -4493,8 +4493,8 @@
       "template": {
         "dimension_order": [
           "premises",
-          "licence type",
-          "document type"
+          "licence_type",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a conditions schedule is meaningless without its licence and a licence without its premises. Premises leads because licences run with the building and outlast their holders. Time does not lead: a licence in force may be decades old and filing by year would bury the current grant beneath its own history — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -4621,7 +4621,7 @@
         "dimension_order": [
           "event",
           "edition",
-          "document class"
+          "document_class"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a run sheet is meaningless without the edition and an edition without the event. This is the domain where §4.9's warning is most load-bearing: “A course code alone should not merge different semesters; course packet identity should include a term when it is available.” — the same words with 'edition' for 'term'. Time is second rather than first because the event name is what anyone searches; the edition disambiguates it. Photographs of the event are capture-based and belong to the capture question raised on cons.progress-photos.",
         "time_first": false
@@ -4862,7 +4862,7 @@
         "dimension_order": [
           "client",
           "function",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a function sheet is meaningless without the function and a function without the client. Client leads because repeat business is the caterer's economics and a client's history is what anyone opens the folder for. Time does not lead even though every function is a date: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -4981,7 +4981,7 @@
       "template": {
         "dimension_order": [
           "venue",
-          "feedback type",
+          "feedback_type",
           "period"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — feedback is only actionable per venue, and complaints and reviews are consulted for different reasons. Period sits last: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”. §7.7's caution applies to the screenshot case that dominates this domain: “An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path.”",
@@ -5101,9 +5101,9 @@
       ],
       "template": {
         "dimension_order": [
-          "carrier or route",
+          "carrier_or_route",
           "shipment",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a packing list is meaningless without its consignment, and consignment references are only unique within a carrier. Time does not lead even though shipments are dated events: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and a consignment that crosses a year boundary would otherwise be split from its own arrival documents.",
         "time_first": false
@@ -5221,9 +5221,9 @@
       ],
       "template": {
         "dimension_order": [
-          "jurisdiction or route",
+          "jurisdiction_or_route",
           "shipment",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a certificate of origin is meaningless without the shipment and a declaration reference is only interpretable inside its jurisdiction. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and a retrospective duty query reaches back across years to one shipment.",
         "time_first": false
@@ -5343,7 +5343,7 @@
       "template": {
         "dimension_order": [
           "vehicle",
-          "record class",
+          "record_class",
           "date"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a service record is meaningless without the vehicle. This is one of the few domains in the slice where the leading dimension is an asset identifier rather than a person or a place, and it works because the identifier is printed on the object and on every document about it. Time sits last: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, so a vehicle's history stays in one place.",
@@ -5475,7 +5475,7 @@
         "dimension_order": [
           "operator",
           "driver",
-          "record class"
+          "record_class"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — an hours record is meaningless without the driver. The driver IS a level here, which is the exception §3.8 permits: “It should avoid using authorship or creator identity as a destination dimension.” forbids a folder of everything a person produced, not a folder of the records held about a person because the law requires them. Operator sits above the driver so that the file can be produced per operating entity. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -5594,7 +5594,7 @@
       "template": {
         "dimension_order": [
           "depot",
-          "operating date",
+          "operating_date",
           "route"
         ],
         "why": "NOT time-first, and it is a close call because the whole domain is a daily series. §5.5's exception belongs to capture-based media and these are generated operational records: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” does not reach them. “a parent dimension should provide the context required to understand the child” puts the depot first because two depots' days must not merge, and the date second because a route name means nothing without it. A single-depot operator collapses the top level — §5.8: “The canvas must support uneven depth because real file trees are not and should not be perfectly symmetrical.”",
@@ -5715,7 +5715,7 @@
       "template": {
         "dimension_order": [
           "facility",
-          "operation class",
+          "operation_class",
           "period"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a pick list is meaningless without the facility and periods only sort within a class. Time sits last: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”. §5.9's warning is live here because the natural instinct is a folder per day, which would produce exactly what it describes: “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.”",
@@ -5833,7 +5833,7 @@
       ],
       "template": {
         "dimension_order": [
-          "capture date",
+          "capture_date",
           "route",
           "consignment"
         ],
@@ -5954,8 +5954,8 @@
       "template": {
         "dimension_order": [
           "premises",
-          "supply point",
-          "billing period"
+          "supply_point",
+          "billing_period"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a reading is meaningless without the meter and a meter without the premises. Premises leads rather than supplier because suppliers change and the metered building does not, which is the same reasoning that puts property above tenancy elsewhere in this slice. Period sits last: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -6079,8 +6079,8 @@
       "template": {
         "dimension_order": [
           "installation",
-          "record class",
-          "reporting period"
+          "record_class",
+          "reporting_period"
         ],
         "why": "NOT time-first despite being a time-series domain, because the series is generated data and not capture-based media: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” does not reach it. §5.5's “a parent dimension should provide the context required to understand the child” puts the installation first, since a yield figure means nothing without the asset that produced it, and the period last so that one array's history stays in one place — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -6201,7 +6201,7 @@
         "dimension_order": [
           "site",
           "connection",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a technical schedule is meaningless without the connection and a connection without the site. Time does not lead even though offers expire: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and a connection's whole chain must sit together to be usable.",
         "time_first": false
@@ -6319,9 +6319,9 @@
       ],
       "template": {
         "dimension_order": [
-          "asset or field",
-          "well or facility",
-          "report class"
+          "asset_or_field",
+          "well_or_facility",
+          "report_class"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a daily report is meaningless without the well and a well without the field. Time does not lead despite the daily reporting cadence, because a well's whole record must sit together to be usable: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
         "time_first": false
@@ -6445,8 +6445,8 @@
       "template": {
         "dimension_order": [
           "site",
-          "record class",
-          "reporting period"
+          "record_class",
+          "reporting_period"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a haulage record is meaningless without the site and periods only sort within a class. Time does not lead: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and a site's permitted life spans decades.",
         "time_first": false
@@ -6687,7 +6687,7 @@
         "dimension_order": [
           "vessel",
           "trip",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a landing declaration is meaningless without the trip and a trip without the vessel. The trip level is time-derived but is not a date: it is a named operational event, which is how §3.11's Photos schema treats an event too. Time therefore never leads, and “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” is satisfied because the trip carries the time without the calendar fragmenting the vessel's record.",
         "time_first": false
@@ -6807,7 +6807,7 @@
         "dimension_order": [
           "woodland",
           "compartment",
-          "operation class"
+          "operation_class"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a restocking record is meaningless without the compartment and a compartment without the woodland. Time never leads and this is the clearest case in the slice: forestry's cycles are measured in decades and a permission granted in one year is discharged in another, so “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” applies with unusual force.",
         "time_first": false

@@ -95,7 +95,7 @@
         "dimension_order": [
           "organisation",
           "function",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A function is only meaningful once the organisation is known. §5.5 also: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — this branch is the record case, so no time level appears at all. §5.9 warns that a level should not be added when “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders”, and for a single-employer corpus the organisation level is exactly that; it should collapse.",
         "time_first": false
@@ -218,8 +218,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "planning cycle",
-          "document type"
+          "planning_cycle",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A planning cycle label such as an annual plan is only meaningful once the organisation is known, and a document type is only meaningful once the cycle is. The cycle level is time-shaped but it is a named round rather than a calendar year, so §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” is respected rather than broken: nothing here is filed by capture date.",
         "time_first": false
@@ -351,8 +351,8 @@
       "template": {
         "dimension_order": [
           "body",
-          "meeting date",
-          "document type"
+          "meeting_date",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A paper is meaningless without its meeting and a meeting is meaningless without its body. This is one of the few entries in the slice where a date level is right and yet “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” is still honoured — the date sits under the body, not above it, because a user looks for the March board meeting, never for March.",
         "time_first": false
@@ -473,9 +473,9 @@
       ],
       "template": {
         "dimension_order": [
-          "org unit",
-          "goal period",
-          "document type"
+          "org_unit",
+          "goal_period",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A period is only meaningful once you know whose goals they are — every unit has a Q3. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” puts the unit above the period rather than the reverse.",
         "time_first": false
@@ -598,8 +598,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "budget period",
-          "cost centre"
+          "budget_period",
+          "cost_centre"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A cost centre is meaningless outside its organisation and a budget line is meaningless outside its period. This entry is one of the few where the period must sit above the unit rather than below it, because budget files are consulted period-first — the exception is stated rather than assumed, since §5.5's default is “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders”.",
         "time_first": false
@@ -724,7 +724,7 @@
         "dimension_order": [
           "organisation",
           "proposal",
-          "case stage"
+          "case_stage"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A stage label such as 'full' is meaningless without knowing which proposal it is a stage of. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps any year out of the upper levels, because a case's documents span the decision period and splitting them by calendar year would break the one grouping that matters.",
         "time_first": false
@@ -849,8 +849,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "meeting series",
-          "meeting date"
+          "meeting_series",
+          "meeting_date"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A date is meaningless without the series and a series is meaningless without the organisation. This is one of the two entries in the slice where a date is a legitimate leaf, because a meeting genuinely IS its date — but §5.9's warning against a level that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders” applies hard: a monthly series produces a folder per meeting, most holding one file, and the date level should usually be dropped.",
         "time_first": false
@@ -972,7 +972,7 @@
       ],
       "template": {
         "dimension_order": [
-          "reporting object",
+          "reporting_object",
           "cadence",
           "period"
         ],
@@ -1098,7 +1098,7 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "communication type",
+          "communication_type",
           "year"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A communication type is meaningful only once the organisation is known. This is one of the few entries where a year is a reasonable leaf, because internal comms have no other durable grouping — a campaign is usually short-lived and §5.9 would flag a per-campaign level as one that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders”.",
@@ -1228,7 +1228,7 @@
         "dimension_order": [
           "project",
           "phase",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — a phase label is meaningless without the project. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” names project first explicitly, which makes this the design's own recommended order rather than a choice made here. §5.8's “The product should not force every branch to use the full template or have the same number of levels” matters particularly: a small project should stay a single folder.",
         "time_first": false
@@ -1362,8 +1362,8 @@
       "template": {
         "dimension_order": [
           "programme",
-          "portfolio cycle",
-          "document type"
+          "portfolio_cycle",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A cycle is meaningless without the programme. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the cycle below the programme, so a programme's history stays together.",
         "time_first": false
@@ -1485,8 +1485,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject of review",
-          "review type",
+          "subject_of_review",
+          "review_type",
           "date"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A retrospective is only findable through the thing it reviews. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the date last, and §5.9's warning about a level that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders” means the review-type level should usually collapse — most subjects have exactly one retrospective.",
@@ -1615,9 +1615,9 @@
       ],
       "template": {
         "dimension_order": [
-          "risk scope",
-          "register version",
-          "document type"
+          "risk_scope",
+          "register_version",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A version is meaningless without knowing whose register it versions. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the cycle below the scope so a register's history reads as one thing.",
         "time_first": false
@@ -1747,8 +1747,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "business function",
-          "document type"
+          "business_function",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A plan is only meaningful once the function it protects is known. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the revision year out of the upper levels, because a continuity plan is consulted by function under pressure and never by year.",
         "time_first": false
@@ -1874,8 +1874,8 @@
       ],
       "template": {
         "dimension_order": [
-          "issuing organisation",
-          "policy subject",
+          "issuing_organisation",
+          "policy_subject",
           "version"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A version is meaningless without the policy subject. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” is why the effective year is not a level: a user looks for the remote-working policy and then for the current version of it, never for 2024's policies.",
@@ -2010,9 +2010,9 @@
       ],
       "template": {
         "dimension_order": [
-          "owning function",
+          "owning_function",
           "process",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A procedure is found through the process and the process is found through the function that owns it. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps versions and dates out of the folder structure entirely, which is right here because only the current version is normally wanted.",
         "time_first": false
@@ -2149,7 +2149,7 @@
       "template": {
         "dimension_order": [
           "site",
-          "facility service",
+          "facility_service",
           "year"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A service record is meaningless without knowing which site it is for. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” puts the year last, and here it genuinely earns a level because service records recur annually and accumulate; §5.9's warning about a level that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders” applies to the site level for a single-site organisation.",
@@ -2399,7 +2399,7 @@
       ],
       "template": {
         "dimension_order": [
-          "sourcing event",
+          "sourcing_event",
           "stage",
           "bidder"
         ],
@@ -2537,7 +2537,7 @@
         "dimension_order": [
           "counterparty",
           "contract",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A notice letter is meaningless without knowing which contract it serves. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps years out, because a contract's administrative history is one thread and a calendar split would cut it. §5.7 requires the engine to validate that a proposed template “does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector” — a live risk here: the counterparty level must be the contracting party, not merely every company that appears",
         "time_first": false
@@ -2664,7 +2664,7 @@
         "dimension_order": [
           "client",
           "engagement",
-          "deliverable type"
+          "deliverable_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child” — an engagement is meaningless without its client and a deliverable is meaningless without its engagement. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” puts the client first and no year anywhere, which matters more here than anywhere else in the slice: a client's material must stay together, and a calendar split would scatter one engagement across two folders. §5.4 supplies the precedent for an organisation leading a branch — “a Career template may define company → role or recruiting cycle → document type”.",
         "time_first": false
@@ -2805,7 +2805,7 @@
         "dimension_order": [
           "account",
           "year",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. Everything here is meaningless outside its account. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” puts the account first; the year earns a level below it only because account material recurs on a cadence and accumulates for years. §5.9's warning about a level that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders” means the year should collapse for a short relationship.",
         "time_first": false
@@ -2930,8 +2930,8 @@
       ],
       "template": {
         "dimension_order": [
-          "product or service",
-          "document type",
+          "product_or_service",
+          "document_type",
           "period"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. Individual cases are too numerous to be folders — §5.9 warns against a level that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders” and a per-case level is that failure at scale — so the durable dimensions are the product and the artifact type, with exports filed by period. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the period last.",
@@ -3056,9 +3056,9 @@
       ],
       "template": {
         "dimension_order": [
-          "counterparty organisation",
+          "counterparty_organisation",
           "pursuit",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A proposal is meaningless without knowing who it went to. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps years out because a pursuit spans them. §5.7 requires the engine to validate that a proposed template “does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector” — the counterparty level must be a party to a relationship, not every organisation the corpus mentions, which is exactly the trap here.",
         "time_first": false
@@ -3183,7 +3183,7 @@
       "template": {
         "dimension_order": [
           "market",
-          "study type",
+          "study_type",
           "year"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A competitor profile is only meaningful inside its market. The year earns a level here where it does not elsewhere in the slice, because market research is superseded rather than amended and a user genuinely asks how old it is — but §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” still puts it last.",
@@ -3307,8 +3307,8 @@
       "template": {
         "dimension_order": [
           "offering",
-          "price list version",
-          "document type"
+          "price_list_version",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A version is meaningless without knowing what it prices. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the effective year out of the upper levels, because a user looks for an offering's price history as one thread.",
         "time_first": false
@@ -3431,8 +3431,8 @@
       "template": {
         "dimension_order": [
           "product",
-          "roadmap horizon",
-          "document type"
+          "roadmap_horizon",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A horizon is meaningless without the product. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the product first so that its planning history reads as one sequence, which is the whole value of keeping superseded roadmaps at all.",
         "time_first": false
@@ -3556,8 +3556,8 @@
       "template": {
         "dimension_order": [
           "product",
-          "feature or capability",
-          "document type"
+          "feature_or_capability",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A requirement is meaningless outside its feature and a feature outside its product. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps dates out entirely, which is right because a specification is superseded rather than accumulated.",
         "time_first": false
@@ -3691,7 +3691,7 @@
         "dimension_order": [
           "product",
           "study",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A transcript is meaningless outside its study. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps session dates below the study, and §5.9's warning about a level that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders” means a per-participant level should never be created — which also happens to be the privacy-safe choice.",
         "time_first": false
@@ -3815,7 +3815,7 @@
         "dimension_order": [
           "offering",
           "launch",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A readiness checklist is meaningless outside its launch. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the launch date inside the launch's name rather than as a level of its own, which is what keeps one launch's material together.",
         "time_first": false
@@ -3940,8 +3940,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "org unit",
-          "plan effective date"
+          "org_unit",
+          "plan_effective_date"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A structure is meaningless without knowing whose it is. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” puts the effective date last, so a unit's structural history reads in one place rather than being scattered across years.",
         "time_first": false
@@ -4064,9 +4064,9 @@
       ],
       "template": {
         "dimension_order": [
-          "hiring organisation",
+          "hiring_organisation",
           "requisition",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”, and §5.4's own Career row “a Career template may define company → role or recruiting cycle → document type” puts the company first, which this follows. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the opening year out, because a requisition's documents span months and would be cut by a calendar level.",
         "time_first": false
@@ -4194,9 +4194,9 @@
       ],
       "template": {
         "dimension_order": [
-          "hiring organisation",
+          "hiring_organisation",
           "requisition",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. Pipeline material is meaningless outside its requisition. §5.9's warning about a level that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders” is why there is no per-candidate level — which is also the privacy-safe choice, since a folder named after a rejected applicant would be the worst possible output of this product.",
         "time_first": false
@@ -4326,9 +4326,9 @@
       ],
       "template": {
         "dimension_order": [
-          "hiring organisation",
+          "hiring_organisation",
           "requisition",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A scorecard is meaningless outside its requisition. The template deliberately stops above the candidate: §3.8 “It should avoid using authorship or creator identity as a destination dimension” and a folder named after a person who was not hired is the outcome this entry most needs to avoid, which §5.9's warning against a level that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders” independently supports.",
         "time_first": false
@@ -4457,9 +4457,9 @@
       ],
       "template": {
         "dimension_order": [
-          "hiring organisation",
+          "hiring_organisation",
           "requisition",
-          "document type"
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”, and §5.4's Career row “a Career template may define company → role or recruiting cycle → document type” gives the design's own order for this material. The template again stops above the individual, for the reason given on `hr.interview-panel`.",
         "time_first": false
@@ -4588,7 +4588,7 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "programme element",
+          "programme_element",
           "year"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. The template is deliberately built around the PROGRAMME rather than the joiner — §3.8 “It should avoid using authorship or creator identity as a destination dimension”, and a folder per new employee would be both a §5.9 violation (a level that “It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders”) and the least privacy-safe structure available. Individual completion records belong on the person's file, which is the career slice's or the employer's personnel file, not a branch here.",
@@ -4714,7 +4714,7 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "document type",
+          "document_type",
           "year"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. As with onboarding the template deliberately refuses a per-person level: §3.8 “It should avoid using authorship or creator identity as a destination dimension”, and a folder named after someone who was dismissed is the single worst structure this product could propose. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the year last.",
@@ -4762,7 +4762,7 @@
           "why": "who provides or requires the training. §3.8's role discipline separates the employer from an external training provider named on the same certificate"
         },
         {
-          "field": "course",
+          "field": "subject",
           "type": "string",
           "example": "Manual handling refresher",
           "reliability_ceiling": "validated",
@@ -4840,9 +4840,9 @@
       ],
       "template": {
         "dimension_order": [
-          "providing organisation",
-          "course",
-          "document type"
+          "providing_organisation",
+          "subject",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”, and §5.4's own Academic template — school then term then course then work type — is the nearest design precedent. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps completion years out of the upper levels. As elsewhere in this block the template stops above the learner, for the §3.8 reason.",
         "time_first": false
@@ -4972,8 +4972,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "review cycle",
-          "document type"
+          "review_cycle",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A form is meaningless outside its cycle. The template stops above the individual — §3.8 “It should avoid using authorship or creator identity as a destination dimension” — which here is not merely tidy but protective: a per-employee folder of performance ratings is the most damaging structure this catalogue could recommend.",
         "time_first": false
@@ -5097,8 +5097,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "survey wave",
-          "reporting unit"
+          "survey_wave",
+          "reporting_unit"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A unit-level cut is meaningless without its wave. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” puts the organisation first even though the wave is time-shaped, because a wave is a named round rather than a calendar year.",
         "time_first": false
@@ -5224,8 +5224,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "review round",
-          "document type"
+          "review_round",
+          "document_type"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A model is meaningless outside its round. The template again stops above the individual — §3.8 “It should avoid using authorship or creator identity as a destination dimension” — and here that is the difference between a folder of pay policy and a folder of everybody's salary.",
         "time_first": false
@@ -5475,8 +5475,8 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "programme element",
-          "reporting period"
+          "programme_element",
+          "reporting_period"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A report is meaningless without knowing which element of the programme it belongs to. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps the period last. There is deliberately no level below the unit: a folder structure that split by characteristic would be an unacceptable artifact of this product.",
         "time_first": false
@@ -5603,7 +5603,7 @@
       "template": {
         "dimension_order": [
           "organisation",
-          "case type",
+          "case_type",
           "case"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A hearing note is meaningless outside its case. The case level uses the case REFERENCE and never a person's name — §3.8 “It should avoid using authorship or creator identity as a destination dimension” is stated as a template rule elsewhere in this catalogue and is a protection here. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” keeps years out; a case is one thread.",
@@ -5738,7 +5738,7 @@
       "template": {
         "dimension_order": [
           "site",
-          "record type",
+          "record_type",
           "year"
         ],
         "why": "§5.5: “a parent dimension should provide the context required to understand the child”. A risk assessment is meaningful once its site is known. §5.5's “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” puts the year last, and it earns a level because safety records are retained on statutory cycles and accumulate. No per-person level exists, for the §3.8 reason and because injury records attach health data to a name.",

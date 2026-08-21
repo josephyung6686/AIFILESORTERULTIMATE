@@ -85,7 +85,7 @@
         "dimension_order": [
           "project",
           "discipline",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" — a discipline is only meaningful once the project is known, and an artifact type only once the discipline is. §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" keeps time out of the order entirely, which is true of every entry in this slice.",
         "time_first": false
@@ -205,8 +205,8 @@
       "template": {
         "dimension_order": [
           "project",
-          "specified item",
-          "artifact type"
+          "specified_item",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\". §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\"",
         "time_first": false
@@ -320,7 +320,7 @@
         "dimension_order": [
           "project",
           "gate",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" — a gate name means nothing without its programme.",
         "time_first": false
@@ -436,7 +436,7 @@
         "dimension_order": [
           "project",
           "product",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -560,7 +560,7 @@
         "dimension_order": [
           "project",
           "assembly",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" — a part model is meaningful once its assembly is known. Revision is deliberately absent; see `eng.drawing-package`, where the argument is set out in full.",
         "time_first": false
@@ -696,7 +696,7 @@
           "project",
           "discipline",
           "assembly",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "REVISION IS DELIBERATELY ABSENT FROM THIS ORDER, and that is the load-bearing decision in this entry. §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" — a revision level produces exactly one child for every drawing that has had one revision, and a directory of near-identical folders for every drawing that has had many. The principle underneath it is §3.14 \"Facts remain separate from the future destination tree.\" The revision is a fact about a member of a §3.11 version family; the folder holds the family. The design already has its own handling for the superseded member — §8.3 \"retain the newer file while placing an older version into a version family review\" — which is a review state, not a directory, and a domain that invented an `Obsolete/` folder would be creating a destination outside the frozen tree. The rest of the order follows §5.5 \"a parent dimension should provide the context required to understand the child\". See the open question: some regulated industries genuinely do file by revision, and that call is not mine.",
         "time_first": false
@@ -823,7 +823,7 @@
         "dimension_order": [
           "project",
           "assembly",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -939,7 +939,7 @@
         "dimension_order": [
           "project",
           "product",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "the parent part number is the BOM's identity but not a good folder level: one directory per part number is §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\"",
         "time_first": false
@@ -1069,7 +1069,7 @@
       "template": {
         "dimension_order": [
           "project",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "one folder per change number is §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" The change number is a fact and a filename; the folder holds the project's change record. This is the same argument as the revision argument on `eng.drawing-package`.",
         "time_first": false
@@ -1197,8 +1197,8 @@
       "template": {
         "dimension_order": [
           "project",
-          "analysed item",
-          "artifact type"
+          "analysed_item",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1323,7 +1323,7 @@
         "dimension_order": [
           "project",
           "system",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1448,7 +1448,7 @@
         "dimension_order": [
           "project",
           "board",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1582,7 +1582,7 @@
           "project",
           "structure",
           "discipline",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1707,8 +1707,8 @@
       "template": {
         "dimension_order": [
           "project",
-          "plant unit",
-          "artifact type"
+          "plant_unit",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1838,9 +1838,9 @@
       ],
       "template": {
         "dimension_order": [
-          "aircraft type",
+          "aircraft_type",
           "modification",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -1964,7 +1964,7 @@
         "dimension_order": [
           "programme",
           "milestone",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2087,7 +2087,7 @@
         "dimension_order": [
           "category",
           "material",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" — the category level exists precisely because material-first would be a long flat list, and §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\"",
         "time_first": false
@@ -2209,9 +2209,9 @@
       ],
       "template": {
         "dimension_order": [
-          "component type",
+          "component_type",
           "manufacturer",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "manufacturer deliberately does not lead: §3.8 \"A folder should not become a collection point for everything produced by the same person or organization.\" A directory per manufacturer is exactly that. Component type leads instead, which is also how anyone actually looks for a datasheet. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2339,8 +2339,8 @@
       "template": {
         "dimension_order": [
           "project",
-          "analysed item",
-          "artifact type"
+          "analysed_item",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2471,8 +2471,8 @@
       "template": {
         "dimension_order": [
           "project",
-          "build stage",
-          "artifact type"
+          "build_stage",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2608,8 +2608,8 @@
       "template": {
         "dimension_order": [
           "project",
-          "tested item",
-          "artifact type"
+          "tested_item",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2739,7 +2739,7 @@
           "project",
           "site",
           "system",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2864,7 +2864,7 @@
           "project",
           "asset",
           "discipline",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -2993,9 +2993,9 @@
       ],
       "template": {
         "dimension_order": [
-          "technology area",
+          "technology_area",
           "invention",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -3124,8 +3124,8 @@
       "template": {
         "dimension_order": [
           "product",
-          "certification scheme",
-          "artifact type"
+          "certification_scheme",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -3245,8 +3245,8 @@
       ],
       "template": {
         "dimension_order": [
-          "subject area",
-          "issuing body"
+          "subject_area",
+          "issuing_body"
         ],
         "why": "the standard number is the filename, not a folder: one directory per standard is §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" Subject area leads because that is how a standard is looked for, and §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -3369,7 +3369,7 @@
         "dimension_order": [
           "site",
           "product",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\"",
         "time_first": false
@@ -3492,7 +3492,7 @@
         "dimension_order": [
           "product",
           "operation",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -3622,7 +3622,7 @@
       "template": {
         "dimension_order": [
           "product",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "one folder per work order is §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\"",
         "time_first": false
@@ -3744,8 +3744,8 @@
       ],
       "template": {
         "dimension_order": [
-          "tool type",
-          "artifact type"
+          "tool_type",
+          "artifact_type"
         ],
         "why": "the tool number is a fact and a filename; one directory per tool is §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" Where a corpus holds many documents per tool the user can add the tool level, which is §5.8 \"The product should not force every branch to use the full template or have the same number of levels.\"",
         "time_first": false
@@ -3868,8 +3868,8 @@
       ],
       "template": {
         "dimension_order": [
-          "process area",
-          "artifact type"
+          "process_area",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\"",
         "time_first": false
@@ -4000,8 +4000,8 @@
       "template": {
         "dimension_order": [
           "product",
-          "inspection type",
-          "artifact type"
+          "inspection_type",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -4134,7 +4134,7 @@
       ],
       "template": {
         "dimension_order": [
-          "instrument type",
+          "instrument_type",
           "instrument"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" — the instrument folder holds its certificate history, which is how metrology is actually filed. That risks §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" for instruments calibrated once, so the instrument level should be offered rather than imposed: §5.9 \"It should recommend flattening when a dimension does not materially improve retrieval.\"",
@@ -4265,7 +4265,7 @@
       "template": {
         "dimension_order": [
           "product",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "one folder per reference number is §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\"",
         "time_first": false
@@ -4395,7 +4395,7 @@
       "template": {
         "dimension_order": [
           "product",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\"",
         "time_first": false
@@ -4524,9 +4524,9 @@
       ],
       "template": {
         "dimension_order": [
-          "risk category",
+          "risk_category",
           "supplier",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "supplier does not lead: §3.8 \"A folder should not become a collection point for everything produced by the same person or organization.\" A directory per supplier is that, unless the relationship has real substance. Risk category leads, then supplier, then artifact type, which is §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -4656,7 +4656,7 @@
       "template": {
         "dimension_order": [
           "product",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" §5.9 \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\"",
         "time_first": false
@@ -4793,7 +4793,7 @@
       "template": {
         "dimension_order": [
           "site",
-          "asset type",
+          "asset_type",
           "asset"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" — the asset folder is the natural home of everything about one machine. Where a corpus holds one or two documents per asset the asset level should be flattened: §5.9 \"It should recommend flattening when a dimension does not materially improve retrieval.\"",
@@ -4925,7 +4925,7 @@
         "dimension_order": [
           "site",
           "asset",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\" §5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\"",
         "time_first": false
@@ -5061,7 +5061,7 @@
         "dimension_order": [
           "site",
           "asset",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -5192,7 +5192,7 @@
         "dimension_order": [
           "customer",
           "site",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "customer leads here and nowhere else in this slice. §3.8 \"A folder should not become a collection point for everything produced by the same person or organization.\" — the warning is about authorship, and in field service the customer is the SUBJECT of the work rather than its producer, which is precisely the role distinction §3.8 \"The system must separate roles that happen to contain the same entity type.\" §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -5331,7 +5331,7 @@
         "dimension_order": [
           "site",
           "system",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -5462,7 +5462,7 @@
         "dimension_order": [
           "site",
           "year",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" — site leads and the year follows, which is also how incident files are kept. §5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -5601,7 +5601,7 @@
         "dimension_order": [
           "site",
           "permit",
-          "artifact type"
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false
@@ -5730,8 +5730,8 @@
       "template": {
         "dimension_order": [
           "site",
-          "assessed system",
-          "artifact type"
+          "assessed_system",
+          "artifact_type"
         ],
         "why": "§5.5 \"a parent dimension should provide the context required to understand the child\"",
         "time_first": false

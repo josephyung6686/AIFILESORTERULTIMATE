@@ -299,7 +299,7 @@ The record of time recorded against a matter and the bills, narratives and disbu
 | `matter_reference` | string | `validated` | 10432-0007 | A bill or time export without a matter reference cannot be placed; it is the join key for the whole supercategory. |
 | `client` | string | `validated` | the billed party | §3.8's field. Distinct from the payer, who may be a third party — a separate role §3.8 would require as its own field if the corpus shows it. |
 | `billing_period` | string | `validated` | a stated period on the bill | Read from a labeled period line, not parsed from filenames. §3.10: “Date extraction should be deliberately narrow.” |
-| `record_type` | string | `validated` | time entry export \| fee note \| disbursement schedule \| write-off record | Determined by the document's own structure — a time export has fee-earner/date/narrative/units columns; a fee note has a total and a payment instruction. §3.11 already uses `record type` as a Finance field name, deliberately reused rather than renamed. |
+| `record_type` | string | `validated` | time entry export \| fee note \| disbursement schedule \| write-off record | Determined by the document's own structure — a time export has fee-earner/date/narrative/units columns; a fee note has a total and a payment instruction. §3.11 already uses `record_type` as a Finance field name, deliberately reused rather than renamed. |
 | `fee_earner` | string | `possible` | the timekeeper named in an export column | Search and explanation only. §3.8: “It should avoid using authorship or creator identity as a destination dimension.” |
 
 **Recognition**
@@ -1519,7 +1519,7 @@ The constitutional and decision-making record of a legal entity — constitution
 |---|---|---|---|---|
 | `entity` | string | `validated` | the company or other body the record belongs to | The organising spine of the whole domain. A group corpus holds dozens of entities and a minute filed against the wrong one is worse than a lost minute. |
 | `entity_identifier` | string | `validated` | the registration number in the entity's home registry | The only unambiguous entity key, since names repeat and change. Formats are registry-specific and jurisdiction-bound, so the field is neutral and no pattern is authored here. |
-| `record_type` | string | `validated` | the kind of constitutional record | Read from the title block. §3.11 already uses `record type` as a Finance field name and it is reused rather than renamed. |
+| `record_type` | string | `validated` | the kind of constitutional record | Read from the title block. §3.11 already uses `record_type` as a Finance field name and it is reused rather than renamed. |
 | `meeting_date` | date | `direct` | the date of the meeting or resolution | Minutes and resolutions are dated in a labeled header slot. §3.10's narrow parsing applies. |
 | `decision_body` | string | `validated` | the board, a committee, or the members | Different bodies have different powers and their records must not merge. Stated in the header of every minute. |
 
