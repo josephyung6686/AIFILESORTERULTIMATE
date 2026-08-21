@@ -376,3 +376,29 @@ fixture with no producer, in the plan for the part whose guard task exists to ca
 - **`display_label` had no writer** — the SPEC's `values` shape carries it and no published function
   sets it. Same no-producer defect as `sensitivity_status`. A `set_display_label` was added as a
   named addition; its §8.8 plan-version scoping is deliberately NOT built.
+
+---
+
+## 18. Late findings, and a second duplicate
+
+**Tasks 8 and 9 exist twice** — in `PLAN-tasks-07-09.md` and `PLAN-tasks-08-09.md`. Same cause as the
+P7 15–22 overlap: I dispatched from an inventory that was stale because the first author was still
+writing. Reconcile at assembly; neither is wrong.
+
+**Only two of §3.5's four direct slots can reach a fact today.** `extractors.filesystem.METADATA_SLOTS`
+is `("normalized_filename", "extension", "mime_type")` — **no timestamp**, so §3.13's filesystem-timestamp
+slot has no publisher. And §3.5's **content-hash** slot cannot produce a fact at all: M14 admits no
+citation that is not an `observation_key`, and P1's `files.content_hash` is a column, not evidence.
+Consumer with no producer, twice, in the design's own worked list.
+
+**Catalogue 01's `boundary_rule` is English prose with no machine-readable form**, and 102 of its 115
+entries are `prefix` or `regex`. Task 9 correctly takes *compiled predicates* so `facts` holds no
+regex catalogue — which means **something must compile 115 entries and no task in P6's plan does**.
+It belongs with the loader, beside the flattening of `property_names`.
+
+**`target_school` (§3.8) and `target university` (§3.11) are one concept with two keys**, and
+Done-means 2 requires both. That is the `subject`/`course` shape again, unresolved, and it should be
+settled by §17's rule: one stored key per concept, the other word an alias.
+
+**The §3.4 cache-key rule is now copied seven times across sections.** One helper in `facts.cache`
+(Task 6's module) taking `(conn, content_hash, observations)` deletes all seven.
