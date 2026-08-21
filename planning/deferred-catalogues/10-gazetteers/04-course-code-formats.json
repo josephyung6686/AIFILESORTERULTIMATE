@@ -1,0 +1,128 @@
+{
+  "list_id": "gazetteer_course_code_formats",
+  "title": "10/04 — Course-code FORMATS (pattern families, never a list of courses)",
+  "version": "1.0",
+  "authored": "2026-08-21",
+  "owner": "P6 (injected) — never P5",
+  "consumer": "the injected format recognizer P6's fact resolver uses to identify course-code-SHAPED strings as candidates for `subject`. A format hit is constitutionally never_alone: it becomes a fact only through the §3.5 context check.",
+  "status": "seed",
+  "backs_fields": ["subject"],
+  "backs_fields_note": "D6 is ratified: the stored academic key is `subject`; 'course' is the design's prose for the same concept and survives inside quotations only. VERIFIED against planning/domains/canonical_fields.json (R1a landed after this file was first drafted): `subject` resolves; its row carries `gazetteer: null`, consistent with this file being a format recognizer rather than an entity gazetteer — the format route to `subject` is wired through P6's rule injection (R6's 12/02 names `Rule(pattern, required_context_terms, field_key)`), not through the entity-gazetteer tag. A format hit is a candidate VALUE for `subject` (e.g. 'BUSIB 4300'); the format list recognizes shapes, it does not enumerate courses — courses are §3.12 auto-created values.",
+  "universe": "format families the design's own examples exhibit (DEPT NNNN, DEPTNNNN). Not a list of every course on earth, and not a list of every format on earth: families are added when a corpus shows them, not from a catalogue of university handbooks.",
+  "context_requirement": {
+    "rule": "a format hit yields a `subject` fact only when found together with academic context; alone it is at most a possible clue",
+    "cite": {"source": "00", "section": "§3.5", "quote": "BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”"},
+    "context_terms_floor": ["syllabus", "lecture", "credits", "instructor", "semester"],
+    "context_terms_note": "The five literals are the design's floor and are quoted, not re-authored. The extended context-term catalogue is R6's (12-academic-capture-patterns/01-academic-context-terms.json); this file consumes that list by reference and authors no context terms of its own."
+  },
+  "match_rule": {
+    "matching": "word_boundary",
+    "why": {"source": "00", "section": "§3.7", "quote": "It should use word-boundary matching rather than substring matching."},
+    "case_rule": "patterns are case-sensitive by construction ([A-Z]); lowercase forms are deliberately unmatched in v1 (see unc-lowercase-forms)",
+    "cjk_matcher_slot": "not applicable to these families (Latin letters and digits); CJK course-code conventions, if any appear in a corpus, are a new family, not a matcher change"
+  },
+  "injected_slots": {
+    "min_score": null,
+    "min_margin": null,
+    "positional_weight_by_zone": null,
+    "note": "§3.7's thresholds, injected. Digit counts inside patterns are format definitions (as catalogue 06's ISBN digit counts are), not thresholds."
+  },
+  "term_collision_guard": {
+    "excluded_prefixes": ["AY", "FY", "CY", "SY", "WS", "SS",
+                          "FALL", "SPRING", "SUMMER", "WINTER", "AUTUMN",
+                          "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "SEPT", "OCT", "NOV", "DEC",
+                          "MARCH", "APRIL", "JUNE", "JULY", "AUGUST"],
+    "rule": "a candidate whose letter block is one of excluded_prefixes AND whose digit block is year-shaped ((19|20)NN) is academic-term / fiscal-year / date territory and is NOT a course-code format hit. 'AY 2024-25', 'FY2025', 'FALL 2025' and 'MAY 2024' must never reach the subject candidate list.",
+    "cite": {"source": "00", "section": "§3.10", "quote": "Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing."},
+    "note": "The term patterns themselves are R6's (12-academic-capture-patterns/03-academic-term-patterns.json). This guard only keeps the two catalogues from claiming the same strings; the winner on term-shaped strings is R6's dedicated pattern. The season, month and German-semester tokens (WS/SS) were added at re-verification after R6's 12/02 landed with a dept_stoplist covering the same tokens unconditionally: an all-caps heading like 'FALL 2025' or 'MAY 2024' matches DEPT NNNN's shape, and only this guard keeps it out. The two token lists overlap by construction and must be unified when the course-code-format seam gets one owner (unc-r6-merge-owner); the guard's year-shape condition is narrower than R6's stoplist, which also kills non-year forms like 'ROOM 1204' — R6's is the stronger design."
+  },
+  "entries": [
+    {
+      "id": "ccf-dept-space-number",
+      "pattern": "[A-Z]{2,6} [0-9]{3,4}[A-Z]{0,2}",
+      "pattern_label": "DEPT NNNN",
+      "case_sensitive": true,
+      "scripts": ["Latin"],
+      "provenance": "design",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§3.1", "quote": "subject = BUSIB 4300"},
+      "false_positive_risk": "medium",
+      "example_true": "BUSIB 4300",
+      "example_false": "HW 3",
+      "excluded_prefixes_apply": true,
+      "status": "seed",
+      "notes": "The design's worked value. 'HW 3' fails the family twice — two letters is allowed but one digit is not — and is refused by name below because the design makes it a work-type clue. 'MATH 2026' legitimately matches even though its digits are year-shaped; the context requirement, not the format, decides. The optional trailing letters cover section/variant suffixes (e.g. 'CS 106A' shapes)."
+    },
+    {
+      "id": "ccf-dept-number-nospace",
+      "pattern": "[A-Z]{2,6}[0-9]{3,4}[A-Z]{0,2}",
+      "pattern_label": "DEPTNNNN",
+      "case_sensitive": true,
+      "scripts": ["Latin"],
+      "provenance": "design",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§4.1", "quote": "PHYS1401"},
+      "false_positive_risk": "high",
+      "example_true": "PHYS1401",
+      "example_false": "v2024",
+      "excluded_prefixes_apply": true,
+      "status": "seed",
+      "notes": "The design's second worked value ('the missing anchors PHYS1401, Columbia, and Spring 2026'). Risk is high because the shape also fits flight numbers (UA1234 is excluded only by letter-count when the carrier code is 2 letters — UA1234 DOES match this family), standards labels (ISO9001), and part numbers. That over-match is priced in: the family is a candidate recognizer, and §3.5's context requirement plus §3.7's ranking are the containment. 'FY2025' is excluded by the term_collision_guard; 'v2024' fails on the lowercase letter."
+    }
+  ],
+  "refused": [
+    {
+      "id": "ref-hw-worktype",
+      "refuses": "'HW 3' and homework/problem-set numbering as course-code formats",
+      "reason": "The design's own worked sparse file: its name identifies homework (a work-type clue), not a course. A format that matched it would manufacture course facts from every homework filename.",
+      "design_cite": {"source": "00", "section": "§4.1", "quote": "A file named HW 3.pdf may contain only equations and the phrase “Homework 3,”"},
+      "example_false": "HW 3"
+    },
+    {
+      "id": "ref-bare-numbers",
+      "refuses": "bare digit strings (4-digit years, 5-digit ZIPs, any all-digit token) as course-code formats",
+      "reason": "Every family in this file requires a letter block. The design's list of what year-shaped numbers actually are is the reason.",
+      "design_cite": {"source": "00", "section": "§3.10", "quote": "numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values"},
+      "example_false": "90210"
+    },
+    {
+      "id": "ref-course-list",
+      "refuses": "a list of actual course codes (this university's catalogue, that department's offerings)",
+      "reason": "Courses are the design's first example of runtime value auto-creation. The format gazetteer is not a list of every course on earth (dispatch brief, verbatim intent).",
+      "design_cite": {"source": "00", "section": "§3.12", "quote": "The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically."}
+    },
+    {
+      "id": "ref-context-terms",
+      "refuses": "authoring context terms beyond quoting the design's five",
+      "reason": "The context-term catalogue is R6's deferred row ('Rule context-term lists beyond the five literal academic terms'). Two catalogues authoring the same list would drift; this file consumes R6's by reference."
+    }
+  ],
+  "uncertain": [
+    {
+      "id": "unc-number-dot-forms",
+      "question": "Admit number-dot-number course formats (MIT-style '6.006', '18.06')?",
+      "note": "Real at MIT and a few other institutions, but the shape is also every software version ('3.11', '2.0') and every section number in a legal document. The false-friend density is the worst of any candidate family — 'Python 3.11' would become a subject candidate in every changelog. Not admitted in v1; if a corpus shows real MIT coursework, admit with a tightened context rule. R6's landed 12/02 agrees on this shape (its unc-mit-dot-number keeps it uncertain) while admitting the different '1234.DEPT' family (digits-dot-LETTERS, ccf-number-dot-dept) as a live entry this file does not have — one of the concrete deltas unc-r6-merge-owner records."
+    },
+    {
+      "id": "unc-r6-merge-owner",
+      "question": "Two catalogues now author course-code formats — 10/04 (this file) and R6's landed 12-academic-capture-patterns/02-course-code-formats.json. Which is the one owner?",
+      "note": "Both dispatch briefs assigned the content (R4's item 5; R6's output list names 02-course-code-formats.json), and both agents delivered. The files agree on the two core families and on refusing HW/ZIP/year/bare-number shapes; they differ concretely: R6 bounds the department block at [A-Z]{2,5} (this file allows {2,6}, needed for all-caps season words to even be a threat); R6 admits the '1234.DEPT' family (live) where this file leaves dot-forms uncertain; R6 requires a context term on every entry with `context_check_failed` as the unresolved reason and carries a 40+-token unconditional dept_stoplist (standards bodies, months, seasons, camera prefixes, FORM/ROOM/SUITE/UNIT/APT) where this file has the narrower year-shape-conditioned term_collision_guard. R6's stoplist design is stronger (it also refuses non-year collisions like 'ROOM 1204' and 'ISO 9001', which this file's guard does not). Recommendation: R6's 12/02 becomes the owner; this file's residual value is the gazetteer-side framing (backs_fields wiring, injected_slots, refused/uncertain analysis) — fold, do not double-ship, or P6 gets two injected format lists that drift. NEEDS-JOSEPH; mirrored in RESEARCH.md."
+    },
+    {
+      "id": "unc-hyphenated-forms",
+      "question": "Admit hyphenated forms ('CS-101', 'MATH-2210')?",
+      "note": "Common in registrar exports and some LMS filenames. Cheap to add ([A-Z]{2,6}-[0-9]{3,4}); left out of v1 only because no design example shows it — adding on the first real corpus sighting is the intended path."
+    },
+    {
+      "id": "unc-lowercase-forms",
+      "question": "Admit lowercase forms ('cs101', 'phys1401')?",
+      "note": "Real in URLs and casual filenames, but case-insensitive matching multiplies false positives (every short lowercase word followed by digits). v1 is uppercase-only; a corpus measurement should decide, not a guess."
+    },
+    {
+      "id": "unc-uk-module-codes",
+      "question": "Do UK-style module codes need their own family or does DEPTNNNN cover them?",
+      "note": "COMP0034 / 4CCS1FC1 style: the plain forms are covered by ccf-dept-number-nospace; the digit-letter-interleaved forms (King's style '4CCS1FC1') are not. Jurisdiction-shaped (D4) and corpus-driven. Recorded, not guessed."
+    }
+  ],
+  "homonyms": []
+}

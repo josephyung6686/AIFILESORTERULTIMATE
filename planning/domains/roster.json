@@ -1,0 +1,2131 @@
+{
+  "_comment": "R1a spine roster (planning/prompts/01a-spine-roster.md). Two kinds only: schema rows (few - 00's named six plus the four safety domains) and template rows (organizational situations pointing at exactly one schema). Work types, file formats, residual homes, and groups are NOT rows (CONNECTION.md section 2 node test). The template count deliberately stops UNDER 00's roughly-200-300 target: with ten schemas, only this many situations are honest - the arithmetic and the refused holes are in ROSTER.md. parent_id is everywhere null: PR-5 leaves browse shelving to R1c. must_consider_residuals uses section-7.3's nine names, 00's spelling. Every threshold is an injected slot; this file holds no numbers.",
+  "connection_doc": "planning/domains/CONNECTION.md",
+  "canonical_fields": "planning/domains/canonical_fields.json",
+  "schemas": [
+    "academic",
+    "career",
+    "code",
+    "college_applications",
+    "finance",
+    "identity",
+    "legal",
+    "medical",
+    "photos",
+    "research"
+  ],
+  "nodes": [
+    {
+      "kind": "schema",
+      "domain_id": "academic",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Academic",
+      "one_line_hint": "00's Academic fact schema: school, term, subject (D6: the stored key for 00's 'course'), instructor, work_type. Work types (syllabus, homework, lecture) are VALUES of work_type, never nodes.",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "college_applications",
+        "research",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Reading Inbox"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.json",
+      "output_research": "planning/domains/nodes/academic.research.md",
+      "file_kind_owner": [
+        "text_document",
+        "calendar",
+        "presentation"
+      ]
+    },
+    {
+      "kind": "schema",
+      "domain_id": "college_applications",
+      "schema_id": "college_applications",
+      "parent_id": null,
+      "name": "College applications",
+      "one_line_hint": "00's Applications fact schema: target_university, application_cycle, application_document_type, purpose. purpose lives ONLY here (PR-1). Role split: target_university vs school.",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "academic",
+        "career",
+        "identity",
+        "research"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "target_university",
+        "application_cycle",
+        "application_document_type",
+        "purpose"
+      ],
+      "output_json": "planning/domains/nodes/college_applications.json",
+      "output_research": "planning/domains/nodes/college_applications.research.md",
+      "file_kind_owner": [
+        "archive"
+      ]
+    },
+    {
+      "kind": "schema",
+      "domain_id": "research",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Research",
+      "one_line_hint": "00's Research fact schema: project, stage, artifact_type, lab, venue. project and artifact_type are shared with the code schema (shares_field is derived from the shared canonical reference, never authored).",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "academic",
+        "code",
+        "college_applications"
+      ],
+      "must_consider_residuals": [
+        "Reading Inbox",
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.json",
+      "output_research": "planning/domains/nodes/research.research.md"
+    },
+    {
+      "kind": "schema",
+      "domain_id": "career",
+      "schema_id": "career",
+      "parent_id": null,
+      "name": "Career and recruiting",
+      "one_line_hint": "PLACEHOLDER SCHEMA - a launch domain of 00, but its field rows are deferred (S3 / D1 narrowed; owed before P10). Write NO field rows. The recorded dimension recommendation - company, then role or recruiting cycle, then document type - is held as prose until the schema lands.",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "college_applications",
+        "finance",
+        "academic"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Review Later"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/career.json",
+      "output_research": "planning/domains/nodes/career.research.md"
+    },
+    {
+      "kind": "schema",
+      "domain_id": "photos",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Photos and captures",
+      "one_line_hint": "00's Photos fact schema: capture_year, event, location, people, camera_information, media_type. Time-first is the recommended exception for capture media. Camera EXIF is strong photo evidence; absence of EXIF is never proof of a screenshot.",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "identity",
+        "research",
+        "medical"
+      ],
+      "must_consider_residuals": [
+        "Temporary Screenshots",
+        "One-Off Images"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/photos.json",
+      "output_research": "planning/domains/nodes/photos.research.md",
+      "file_kind_owner": [
+        "image"
+      ]
+    },
+    {
+      "kind": "schema",
+      "domain_id": "code",
+      "schema_id": "code",
+      "parent_id": null,
+      "name": "Code projects",
+      "one_line_hint": "00's Code fact schema: project, repository, programming_language, artifact_type. Repository roots and package manifests are the anchor evidence; existing project structure is preserved, not reorganized.",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "research",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Review Later",
+        "Unsupported or Encrypted"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "repository",
+        "programming_language",
+        "artifact_type"
+      ],
+      "output_json": "planning/domains/nodes/code.json",
+      "output_research": "planning/domains/nodes/code.research.md",
+      "file_kind_owner": [
+        "code_structured",
+        "filesystem"
+      ]
+    },
+    {
+      "kind": "schema",
+      "domain_id": "finance",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Finance",
+      "one_line_hint": "00's Finance fact schema: institution, account_type, tax_year, record_type - a SAFETY domain whose four fields extract at launch under local-only rules (PR-2). Detect and protect before any cloud or automated placement decision.",
+      "launch": "safety",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "career",
+        "medical",
+        "legal",
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Receipts and Confirmations",
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.json",
+      "output_research": "planning/domains/nodes/finance.research.md",
+      "is_safety_domain": true
+    },
+    {
+      "kind": "schema",
+      "domain_id": "identity",
+      "schema_id": "identity",
+      "parent_id": null,
+      "name": "Identity",
+      "one_line_hint": "PLACEHOLDER SAFETY SCHEMA - detects and protects identity material (passports, IDs, credentials); writes NO field rows (D1 narrowed / PR-6). Falls through to Protected Records; content never reaches a cloud prompt.",
+      "launch": "safety",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "photos",
+        "legal",
+        "career",
+        "finance"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/identity.json",
+      "output_research": "planning/domains/nodes/identity.research.md",
+      "is_safety_domain": true
+    },
+    {
+      "kind": "schema",
+      "domain_id": "medical",
+      "schema_id": "medical",
+      "parent_id": null,
+      "name": "Medical",
+      "one_line_hint": "PLACEHOLDER SAFETY SCHEMA - detects and protects medical material; writes NO field rows (D1 narrowed / PR-6). Co-activates with finance on healthcare-insurance material via also_holds_with (PR-8).",
+      "launch": "safety",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "finance",
+        "identity",
+        "academic"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/medical.json",
+      "output_research": "planning/domains/nodes/medical.research.md",
+      "is_safety_domain": true
+    },
+    {
+      "kind": "schema",
+      "domain_id": "legal",
+      "schema_id": "legal",
+      "parent_id": null,
+      "name": "Legal",
+      "one_line_hint": "PLACEHOLDER SAFETY SCHEMA - detects and protects legal material; writes NO field rows (D1 narrowed / PR-6). Falls through to Protected Records.",
+      "launch": "safety",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "finance",
+        "identity",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Protected Records",
+        "Independent Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/legal.json",
+      "output_research": "planning/domains/nodes/legal.research.md",
+      "is_safety_domain": true
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.coursework",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Coursework (taking a course)",
+      "one_line_hint": "The Academic schema's default situation: files a student produces or receives by taking one course in one term. Recommended dimensions are 00's own - school, term, subject, work_type. Owns syllabus PDFs, lecture decks, and course .ics invites (calendar is file_kind_plausible only, never sufficient alone).",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "college_applications",
+        "research"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Reading Inbox"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.coursework.json",
+      "output_research": "planning/domains/nodes/academic.coursework.research.md",
+      "file_kind_owner": [
+        "text_document",
+        "calendar",
+        "presentation"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.teaching",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Teaching a course",
+      "one_line_hint": "The instructor's side of one course: teaching materials, rosters (privacy: other people's data), gradebooks. Same schema as coursework - PR-7 forbids a second schema; the differing detection signals and dimension recommendation are what license this row.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "research",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.teaching.json",
+      "output_research": "planning/domains/nodes/academic.teaching.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.k12-schooling",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "K-12 schooling records",
+      "one_line_hint": "Report cards, enrollment forms, school communications for primary and secondary schooling - often held by a parent about a child (subject is not the holder; privacy rules differ from coursework).",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "medical",
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.k12-schooling.json",
+      "output_research": "planning/domains/nodes/academic.k12-schooling.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.iep-accommodation-plans",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "IEP and accommodation plans",
+      "one_line_hint": "Individualized education programs and accommodation records - a coverage gap the overnight pass missed. Sensitive child records crossing education and medical; privacy rules dominate.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "medical",
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.iep-accommodation-plans.json",
+      "output_research": "planning/domains/nodes/academic.iep-accommodation-plans.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.continuing-education",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Continuing education and certification courses",
+      "one_line_hint": "Professional development coursework: provider courses, CE credits, completion certificates. school holds the provider value.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.continuing-education.json",
+      "output_research": "planning/domains/nodes/academic.continuing-education.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.online-course",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Online course (MOOC)",
+      "one_line_hint": "Platform-based self-paced study (a gap the overnight pass missed): downloaded lectures, exercises, completion certificates; often no term. school holds the platform or provider value.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "career",
+        "code"
+      ],
+      "must_consider_residuals": [
+        "Reading Inbox",
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.online-course.json",
+      "output_research": "planning/domains/nodes/academic.online-course.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.homeschool",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Homeschooling",
+      "one_line_hint": "Parent-run schooling (a gap the overnight pass missed): curricula, worksheets, portfolios, assessment records; the holder is teacher and administrator at once.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.homeschool.json",
+      "output_research": "planning/domains/nodes/academic.homeschool.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.study-abroad",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Study abroad term",
+      "one_line_hint": "One term at another institution: two school values in play, travel and visa material nearby (identity neighbors), credit-transfer paperwork.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "identity",
+        "college_applications"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.study-abroad.json",
+      "output_research": "planning/domains/nodes/academic.study-abroad.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.standardized-testing",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Standardized testing",
+      "one_line_hint": "Test prep and score reports (SAT, GRE, TOEFL shapes). subject holds the test name as a value. Score reports also serve application packets - consider also_holds_with college_applications.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "college_applications"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.standardized-testing.json",
+      "output_research": "planning/domains/nodes/academic.standardized-testing.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.transcripts-credentials",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Transcripts, diplomas and credentials",
+      "one_line_hint": "Official academic records: registrar language, seals, verification codes. Grades are sensitive. A transcript may belong to several application packets at once - membership is multi-valued, the fact set is one.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "college_applications",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.transcripts-credentials.json",
+      "output_research": "planning/domains/nodes/academic.transcripts-credentials.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "academic.recommendation-letters-written",
+      "schema_id": "academic",
+      "parent_id": null,
+      "name": "Recommendation letters written",
+      "one_line_hint": "A recommender's own letter files about other people (privacy: subjects are not the holder). Received recommendations live inside application packets as application_document_type values, not here.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "college_applications",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "school",
+        "term",
+        "subject",
+        "instructor",
+        "work_type"
+      ],
+      "output_json": "planning/domains/nodes/academic.recommendation-letters-written.json",
+      "output_research": "planning/domains/nodes/academic.recommendation-letters-written.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "applications.undergraduate-packet",
+      "schema_id": "college_applications",
+      "parent_id": null,
+      "name": "Undergraduate application (institution-first)",
+      "one_line_hint": "00's default Applications situation: target institution, then application cycle, then document type. Essays, portal records, checklists, supporting materials. A conflicting target institution is an outlier, never silently absorbed.",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "academic",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "target_university",
+        "application_cycle",
+        "application_document_type",
+        "purpose"
+      ],
+      "output_json": "planning/domains/nodes/applications.undergraduate-packet.json",
+      "output_research": "planning/domains/nodes/applications.undergraduate-packet.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "applications.purpose-packet",
+      "schema_id": "college_applications",
+      "parent_id": null,
+      "name": "Purpose-defined application packet",
+      "one_line_hint": "00's own second branch pattern: one flat purpose-coherent packet (the Chinese University Application Materials example) - transcript, ID, personal statement, resume, certificate, abstract kept together because they were submitted together. Owns submission-archive evidence (submission.zip is 00's own example).",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "academic",
+        "identity",
+        "research"
+      ],
+      "must_consider_residuals": [
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "target_university",
+        "application_cycle",
+        "application_document_type",
+        "purpose"
+      ],
+      "output_json": "planning/domains/nodes/applications.purpose-packet.json",
+      "output_research": "planning/domains/nodes/applications.purpose-packet.research.md",
+      "file_kind_owner": [
+        "archive"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "applications.graduate-professional",
+      "schema_id": "college_applications",
+      "parent_id": null,
+      "name": "Graduate and professional school application",
+      "one_line_hint": "Same field set as undergraduate, different detection: statements of purpose, CVs, writing samples, program-specific portals, funding questions.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "research",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "target_university",
+        "application_cycle",
+        "application_document_type",
+        "purpose"
+      ],
+      "output_json": "planning/domains/nodes/applications.graduate-professional.json",
+      "output_research": "planning/domains/nodes/applications.graduate-professional.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "applications.k12-admission",
+      "schema_id": "college_applications",
+      "parent_id": null,
+      "name": "K-12 and secondary school admission",
+      "one_line_hint": "School admission packets held by a parent: forms, assessments, interviews. Child data - privacy rules differ from the adult default.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "academic",
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "target_university",
+        "application_cycle",
+        "application_document_type",
+        "purpose"
+      ],
+      "output_json": "planning/domains/nodes/applications.k12-admission.json",
+      "output_research": "planning/domains/nodes/applications.k12-admission.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "applications.scholarship-fellowship",
+      "schema_id": "college_applications",
+      "parent_id": null,
+      "name": "Scholarship and fellowship applications",
+      "one_line_hint": "Application packets addressed to a sponsoring organization. NOTE the field tension: target_university would hold a sponsor that is not a university - recorded in ROSTER.md, do not mint a new field to fix it.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "academic",
+        "finance",
+        "research"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "target_university",
+        "application_cycle",
+        "application_document_type",
+        "purpose"
+      ],
+      "output_json": "planning/domains/nodes/applications.scholarship-fellowship.json",
+      "output_research": "planning/domains/nodes/applications.scholarship-fellowship.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "research.project-workspace",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Research project workspace",
+      "one_line_hint": "The Research schema's default situation: one project's working materials arranged project, then stage, then artifact_type (00's own recommendation).",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "code",
+        "academic"
+      ],
+      "must_consider_residuals": [
+        "Reading Inbox",
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.project-workspace.json",
+      "output_research": "planning/domains/nodes/research.project-workspace.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "research.manuscript-publication",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Manuscript preparation and publication",
+      "one_line_hint": "Drafts, submission packets, referee reports, revision letters, proofs - heavy version families, venue-scoped correspondence.",
+      "launch": "full",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "academic"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.manuscript-publication.json",
+      "output_research": "planning/domains/nodes/research.manuscript-publication.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "research.conference-presentation",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Conference abstracts, posters and talks",
+      "one_line_hint": "Venue-scoped research outputs: abstracts, posters, slide decks, registration and travel context nearby. Owns presentation decks.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "academic",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.conference-presentation.json",
+      "output_research": "planning/domains/nodes/research.conference-presentation.research.md",
+      "file_kind_owner": [
+        "presentation"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "research.lab-notebook-protocols",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Lab notebooks, protocols and experiment records",
+      "one_line_hint": "00's research-and-lab-work launch face: notebooks, SOPs, instrument output, sample records. Detection differs sharply from manuscript material.",
+      "launch": "full",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "medical"
+      ],
+      "must_consider_residuals": [
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.lab-notebook-protocols.json",
+      "output_research": "planning/domains/nodes/research.lab-notebook-protocols.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "research.dataset-analysis",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Datasets and analysis work",
+      "one_line_hint": "Datasets, analysis code, computational notebooks, results tables. Strong also_holds candidate with the code schema (shared project and artifact_type keys). Owns research spreadsheets.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "code"
+      ],
+      "must_consider_residuals": [
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.dataset-analysis.json",
+      "output_research": "planning/domains/nodes/research.dataset-analysis.research.md",
+      "file_kind_owner": [
+        "spreadsheet"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "research.grants-funding",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Grant proposals and funding",
+      "one_line_hint": "Proposals, budgets (finance neighbor), sponsor correspondence, progress reports - deadline-driven packets per sponsor and project.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "finance"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.grants-funding.json",
+      "output_research": "planning/domains/nodes/research.grants-funding.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "research.ethics-compliance",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Ethics, IRB and consent materials",
+      "one_line_hint": "Approvals, consent forms, participant-facing materials. Human-subjects privacy rules dominate; participant data may cross into medical safety territory.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "medical",
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.ethics-compliance.json",
+      "output_research": "planning/domains/nodes/research.ethics-compliance.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "research.reading-library",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Literature and reading library",
+      "one_line_hint": "Papers BY OTHERS collected for reading: DOIs, no authorship link to the holder. The canonical falls-through case: with no active project association the honest home is the Reading Inbox residual.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "academic"
+      ],
+      "must_consider_residuals": [
+        "Reading Inbox"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.reading-library.json",
+      "output_research": "planning/domains/nodes/research.reading-library.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "research.thesis-dissertation",
+      "schema_id": "research",
+      "parent_id": null,
+      "name": "Thesis or dissertation",
+      "one_line_hint": "A degree-defining research project: chapters, committee feedback, defense materials, submission formalities. School context is real but the organizing facts are project ones.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "academic"
+      ],
+      "must_consider_residuals": [
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "stage",
+        "artifact_type",
+        "lab",
+        "venue"
+      ],
+      "output_json": "planning/domains/nodes/research.thesis-dissertation.json",
+      "output_research": "planning/domains/nodes/research.thesis-dissertation.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "career.recruiting",
+      "schema_id": "career",
+      "parent_id": null,
+      "name": "Recruiting and job search",
+      "one_line_hint": "The Career default situation (a 00 launch domain): applications to companies, offer letters, interview prep and scheduling (recruiting email is a real file kind here). Dimension recommendation held as prose until the career schema lands (PR-6): company, then role or recruiting cycle, then document type. Resume is a document/version family, never a template of its own.",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "college_applications",
+        "finance",
+        "academic"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Review Later"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/career.recruiting.json",
+      "output_research": "planning/domains/nodes/career.recruiting.research.md",
+      "file_kind_owner": [
+        "email"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "career.employment-records",
+      "schema_id": "career",
+      "parent_id": null,
+      "name": "Employment records at one employer",
+      "one_line_hint": "Onboarding paperwork, contracts, performance reviews, separation records for a job held. Higher privacy than recruiting; payroll slips belong to the finance neighbor.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "finance",
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/career.employment-records.json",
+      "output_research": "planning/domains/nodes/career.employment-records.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "career.consulting-client-engagement",
+      "schema_id": "career",
+      "parent_id": null,
+      "name": "Consulting and client engagements",
+      "one_line_hint": "00's client-engagements situation: proposals, statements of work, deliverables per client. The our_firm vs client role split is the load-bearing field distinction; invoicing is the finance neighbor.",
+      "launch": "placeholder",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "finance",
+        "code"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Review Later"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/career.consulting-client-engagement.json",
+      "output_research": "planning/domains/nodes/career.consulting-client-engagement.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "career.portfolio-work-samples",
+      "schema_id": "career",
+      "parent_id": null,
+      "name": "Portfolio and work samples",
+      "one_line_hint": "Curated work samples and case studies assembled to showcase - the purpose (showing) differs from the projects the samples came from. Owns design/creative source files (PSD, AI, CAD shapes) until a creative schema exists (refused hole - see ROSTER.md).",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "code",
+        "research"
+      ],
+      "must_consider_residuals": [
+        "Review Later"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/career.portfolio-work-samples.json",
+      "output_research": "planning/domains/nodes/career.portfolio-work-samples.research.md",
+      "file_kind_owner": [
+        "design_creative"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "career.credentials-licenses",
+      "schema_id": "career",
+      "parent_id": null,
+      "name": "Professional licenses, certifications and memberships",
+      "one_line_hint": "Credential records: license certificates, renewal notices, membership confirmations. Distinct from the coursework that earned them (academic.continuing-education neighbor).",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "academic",
+        "finance"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/career.credentials-licenses.json",
+      "output_research": "planning/domains/nodes/career.credentials-licenses.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "career.employer-side-hiring",
+      "schema_id": "career",
+      "parent_id": null,
+      "name": "Hiring as the employer",
+      "one_line_hint": "The other side of recruiting: requisitions, candidate packets, scorecards. Almost entirely OTHER PEOPLE'S data - privacy rules are the point of this row.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "legal",
+        "finance"
+      ],
+      "must_consider_residuals": [
+        "Review Later",
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/career.employer-side-hiring.json",
+      "output_research": "planning/domains/nodes/career.employer-side-hiring.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "photos.camera-events",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Camera photos by event",
+      "one_line_hint": "The Photos schema's default situation and 00's own template: year, then event. Camera EXIF, GPS and capture time drive deterministic event proposals. Owns the image family including HEIC (00: HEIC support is explicit, not optional).",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "identity",
+        "medical"
+      ],
+      "must_consider_residuals": [
+        "One-Off Images"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/photos.camera-events.json",
+      "output_research": "planning/domains/nodes/photos.camera-events.research.md",
+      "file_kind_owner": [
+        "image"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "photos.screenshot-captures",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Screenshots",
+      "one_line_hint": "ALIGNMENT's own second-situation example (photo-event vs screenshot-capture). A screenshot is always a screenshot OF something - OCR is how it becomes legible; absence of EXIF is never proof. Conflicting signals abstain. Falls through to Temporary Screenshots.",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "code",
+        "finance",
+        "college_applications"
+      ],
+      "must_consider_residuals": [
+        "Temporary Screenshots",
+        "One-Off Images"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/photos.screenshot-captures.json",
+      "output_research": "planning/domains/nodes/photos.screenshot-captures.research.md",
+      "file_kind_owner": [
+        "ocr"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "photos.scanned-documents",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Scans and photographed documents",
+      "one_line_hint": "Captures whose content is a document: photographed pages, scanner output, no-text-layer PDFs routed to OCR. Usually re-routes to another domain once OCR yields facts; media_type records the capture nature.",
+      "launch": "full",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "identity",
+        "finance",
+        "academic",
+        "medical"
+      ],
+      "must_consider_residuals": [
+        "One-Off Images",
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/photos.scanned-documents.json",
+      "output_research": "planning/domains/nodes/photos.scanned-documents.research.md",
+      "file_kind_owner": [
+        "ocr"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "photos.family-archive",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Family photo archive",
+      "one_line_hint": "Inherited and re-scanned family photographs: unreliable or absent EXIF, decade-level dating, people-heavy (people stays a search field, not a folder level, pending Joseph).",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "One-Off Images"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/photos.family-archive.json",
+      "output_research": "planning/domains/nodes/photos.family-archive.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "travel.trip-photos",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Trip photographs",
+      "one_line_hint": "Photos of one trip: event holds the trip value (Japan Trip 2025 is 00's own value example), location and capture_year reinforce. The records half of travel lives on the finance schema (travel.bookings-confirmations) - see ROSTER.md NEEDS-JOSEPH on whether travel deserves its own small schema.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "finance",
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "One-Off Images"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/travel.trip-photos.json",
+      "output_research": "planning/domains/nodes/travel.trip-photos.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "photos.home-video",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Personal video and audio recordings",
+      "one_line_hint": "Home movies, voice memos, event recordings: duration and container metadata, capture time when present. Speech-to-text only under an explicit privacy and compute policy (00). Owns the audio_video family.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "medical"
+      ],
+      "must_consider_residuals": [
+        "One-Off Images",
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/photos.home-video.json",
+      "output_research": "planning/domains/nodes/photos.home-video.research.md",
+      "file_kind_owner": [
+        "audio_video"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "photos.drone-captures",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Drone and aerial captures",
+      "one_line_hint": "A coverage gap the overnight pass missed: drone stills and footage with flight-log metadata, aerial GPS tracks; media_type distinguishes them inside photo events.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "research",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "One-Off Images"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/photos.drone-captures.json",
+      "output_research": "planning/domains/nodes/photos.drone-captures.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "photos.social-media-export",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Social platform exports",
+      "one_line_hint": "Takeout-style bundles (a gap the overnight pass missed): platform export structure mixing media with JSON sidecars. Detection is the export layout itself; capture facts come from sidecar metadata, not file timestamps.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "code"
+      ],
+      "must_consider_residuals": [
+        "Review Later",
+        "One-Off Images"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/photos.social-media-export.json",
+      "output_research": "planning/domains/nodes/photos.social-media-export.research.md",
+      "file_kind_owner": [
+        "archive"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "photos.messenger-export",
+      "schema_id": "photos",
+      "parent_id": null,
+      "name": "Messenger and chat exports",
+      "one_line_hint": "iMessage/WhatsApp-shaped exports (a gap the overnight pass missed): conversation archives with embedded media. Correspondence is potentially sensitive; privacy rules dominate; contact identities stay protected.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Protected Records",
+        "One-Off Images"
+      ],
+      "inherited_field_keys": [
+        "capture_year",
+        "event",
+        "location",
+        "people",
+        "camera_information",
+        "media_type"
+      ],
+      "output_json": "planning/domains/nodes/photos.messenger-export.json",
+      "output_research": "planning/domains/nodes/photos.messenger-export.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "code.software-project",
+      "schema_id": "code",
+      "parent_id": null,
+      "name": "Software project",
+      "one_line_hint": "The Code schema's default situation and a 00 launch domain: a repository-rooted project recognized by structural markers (package manifests, repo roots). Existing project structure is preserved - dependency trees are excluded, never proposed as destinations. Owns code_structured, structural filesystem evidence, and source archives.",
+      "launch": "full",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "research",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Review Later",
+        "Unsupported or Encrypted"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "repository",
+        "programming_language",
+        "artifact_type"
+      ],
+      "output_json": "planning/domains/nodes/code.software-project.json",
+      "output_research": "planning/domains/nodes/code.software-project.research.md",
+      "file_kind_owner": [
+        "code_structured",
+        "filesystem",
+        "archive"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "code.notebooks-experiments",
+      "schema_id": "code",
+      "parent_id": null,
+      "name": "Notebooks and ML experiments",
+      "one_line_hint": "Computational notebooks, experiment runs, model and dataset artifacts. The strongest also_holds candidate with research (shared project and artifact_type keys).",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "research"
+      ],
+      "must_consider_residuals": [
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "repository",
+        "programming_language",
+        "artifact_type"
+      ],
+      "output_json": "planning/domains/nodes/code.notebooks-experiments.json",
+      "output_research": "planning/domains/nodes/code.notebooks-experiments.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "code.scratch-prototypes",
+      "schema_id": "code",
+      "parent_id": null,
+      "name": "Scratch scripts and prototypes",
+      "one_line_hint": "Loose code files with no repository root: one-off scripts, downloaded snippets, prototypes. The honest destination is often the Review Later residual, not an invented project.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "research"
+      ],
+      "must_consider_residuals": [
+        "Review Later",
+        "Reference Clips"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "repository",
+        "programming_language",
+        "artifact_type"
+      ],
+      "output_json": "planning/domains/nodes/code.scratch-prototypes.json",
+      "output_research": "planning/domains/nodes/code.scratch-prototypes.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "code.dotfiles-environment",
+      "schema_id": "code",
+      "parent_id": null,
+      "name": "Dotfiles and environment configuration",
+      "one_line_hint": "Shell configs, editor settings, environment files. Configs can embed credentials - privacy rules matter more than folder shape; secrets route to identity safety handling.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "repository",
+        "programming_language",
+        "artifact_type"
+      ],
+      "output_json": "planning/domains/nodes/code.dotfiles-environment.json",
+      "output_research": "planning/domains/nodes/code.dotfiles-environment.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "code.pkm-vault",
+      "schema_id": "code",
+      "parent_id": null,
+      "name": "Personal knowledge vault",
+      "one_line_hint": "Obsidian/Notion-shaped markdown vaults (a gap the overnight pass missed): vault markers and wiki-links are the repo-root analogue. The product's job is to detect and PRESERVE the vault as a structural unit, never to scatter its notes.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "research"
+      ],
+      "must_consider_residuals": [
+        "Review Later"
+      ],
+      "inherited_field_keys": [
+        "project",
+        "repository",
+        "programming_language",
+        "artifact_type"
+      ],
+      "output_json": "planning/domains/nodes/code.pkm-vault.json",
+      "output_research": "planning/domains/nodes/code.pkm-vault.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.personal-records",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Personal financial records",
+      "one_line_hint": "The Finance schema's default situation: statements and account documents arranged institution, then account_type, with tax_year for year-scoped records. Safety domain: local-only extraction, protection before any cloud or placement path.",
+      "launch": "safety",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "career",
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Receipts and Confirmations",
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.personal-records.json",
+      "output_research": "planning/domains/nodes/finance.personal-records.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.tax-filings",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Tax filings by year",
+      "one_line_hint": "Year-first is the honest exception for tax material: tax_year, then record_type. Jurisdiction-specific form NAMES are values (D4, R5's catalogue) - never field names, never dimensions.",
+      "launch": "safety",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "career",
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.tax-filings.json",
+      "output_research": "planning/domains/nodes/finance.tax-filings.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.receipts-expenses",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Receipts and personal expenses",
+      "one_line_hint": "Receipt-shaped records: purchase confirmations, delivery notices, e-receipts arriving by email. Isolated ones fall through to the Receipts and Confirmations residual rather than forcing an account association.",
+      "launch": "safety",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "photos"
+      ],
+      "must_consider_residuals": [
+        "Receipts and Confirmations"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.receipts-expenses.json",
+      "output_research": "planning/domains/nodes/finance.receipts-expenses.research.md",
+      "file_kind_owner": [
+        "email"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.investment-brokerage",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Investment and brokerage accounts",
+      "one_line_hint": "Brokerage statements, trade confirmations, cost-basis and retirement account records - tax_year matters at filing time.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.investment-brokerage.json",
+      "output_research": "planning/domains/nodes/finance.investment-brokerage.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.loans-mortgage",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Loans and mortgages",
+      "one_line_hint": "Loan applications, closing packets (legal neighbor), servicing statements, payoff records.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "legal",
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.loans-mortgage.json",
+      "output_research": "planning/domains/nodes/finance.loans-mortgage.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.insurance-personal",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Personal insurance policies and claims",
+      "one_line_hint": "PR-8: an individual's policies and claims over the Finance vocabulary - institution, then record_type. One of three insurance SITUATIONS on one schema, never three schema slugs.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "legal",
+        "medical"
+      ],
+      "must_consider_residuals": [
+        "Protected Records",
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.insurance-personal.json",
+      "output_research": "planning/domains/nodes/finance.insurance-personal.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.insurance-corporate",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Corporate insurance",
+      "one_line_hint": "PR-8: a firm's coverage, certificates and claims - institution, then record_type, then tax_year.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "legal",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.insurance-corporate.json",
+      "output_research": "planning/domains/nodes/finance.insurance-corporate.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.insurance-healthcare",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Health insurance coverage and claims",
+      "one_line_hint": "PR-8: cards, EOBs, claims over the Finance vocabulary. Where it touches medical material the medical safety placeholder co-activates via also_holds_with - and still writes no fields (PR-6).",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "medical"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.insurance-healthcare.json",
+      "output_research": "planning/domains/nodes/finance.insurance-healthcare.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.crypto-assets",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Cryptocurrency and digital assets",
+      "one_line_hint": "A coverage gap the overnight pass missed: exchange statements, wallet exports, transaction CSVs. Wallet credentials and seed phrases are identity-safety material, never filed as finance records.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.crypto-assets.json",
+      "output_research": "planning/domains/nodes/finance.crypto-assets.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.small-business-bookkeeping",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Small-business bookkeeping",
+      "one_line_hint": "Invoices issued and received, ledgers, expense reports for a person's own small operation. Owns working spreadsheets. Client identity ties to the career consulting neighbor.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "career",
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.small-business-bookkeeping.json",
+      "output_research": "planning/domains/nodes/finance.small-business-bookkeeping.research.md",
+      "file_kind_owner": [
+        "spreadsheet"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.cap-table-equity",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Cap tables and equity paperwork",
+      "one_line_hint": "A coverage gap the overnight pass missed: option grants, SAFEs, valuation reports, equity statements - finance vocabulary with legal neighbors and high sensitivity.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "legal",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.cap-table-equity.json",
+      "output_research": "planning/domains/nodes/finance.cap-table-equity.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.student-financial-aid",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Student financial aid and loans",
+      "one_line_hint": "Aid applications, award letters, loan servicing - finance vocabulary even though the material orbits academic life (academic and college_applications neighbors).",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "academic",
+        "college_applications"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.student-financial-aid.json",
+      "output_research": "planning/domains/nodes/finance.student-financial-aid.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "travel.bookings-confirmations",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Travel bookings and confirmations",
+      "one_line_hint": "Itineraries, boarding passes, reservation confirmations - transactional records with an issuing institution and a record_type. The trip itself is a P9 group or user folder for now: neither photos nor finance can express trip-then-record-type (recorded NEEDS-JOSEPH). Isolated items fall through to Receipts and Confirmations, as 00's own examples do.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "photos",
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Receipts and Confirmations",
+        "Temporary Screenshots"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/travel.bookings-confirmations.json",
+      "output_research": "planning/domains/nodes/travel.bookings-confirmations.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.subscriptions-utilities",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Subscriptions, utilities and recurring bills",
+      "one_line_hint": "00's personal-administration face: utility accounts, subscription confirmations, recurring billing - institution, then record_type.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Receipts and Confirmations",
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.subscriptions-utilities.json",
+      "output_research": "planning/domains/nodes/finance.subscriptions-utilities.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.vehicle-records",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Vehicle ownership and service records",
+      "one_line_hint": "Purchase, registration, service and insurance records for a vehicle - record_type over the finance vocabulary with legal and identity neighbors for titles.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "legal",
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.vehicle-records.json",
+      "output_research": "planning/domains/nodes/finance.vehicle-records.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.household-property",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Home and property records",
+      "one_line_hint": "Purchase or sale packets, tenancy, improvement receipts, warranties - household administration over the finance vocabulary; leases are the legal neighbor's material.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Independent Records",
+        "Receipts and Confirmations"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.household-property.json",
+      "output_research": "planning/domains/nodes/finance.household-property.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.hoa-residents-association",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "HOA and residents' association records",
+      "one_line_hint": "A coverage gap the overnight pass missed: dues, notices, covenants, meeting minutes from a homeowners' or residents' association - institution holds the association value.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Independent Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.hoa-residents-association.json",
+      "output_research": "planning/domains/nodes/finance.hoa-residents-association.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "finance.payroll-received",
+      "schema_id": "finance",
+      "parent_id": null,
+      "name": "Payroll and income records received",
+      "one_line_hint": "Pay stubs, income statements, employer year-end forms (form NAMES are jurisdiction values, D4). Sits between employment (career neighbor) and tax filings.",
+      "launch": "placeholder",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "output_json": "planning/domains/nodes/finance.payroll-received.json",
+      "output_research": "planning/domains/nodes/finance.payroll-received.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "identity.core-documents",
+      "schema_id": "identity",
+      "parent_id": null,
+      "name": "Core identity documents",
+      "one_line_hint": "Passports, national IDs, birth and citizenship certificates - 00's protected-state material: enter protection immediately, never a cloud prompt, fall through to Protected Records when no deeper accepted group exists. Owns contact-file evidence (.vcf): privacy-protected, never a folder proposal.",
+      "launch": "safety",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "photos",
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/identity.core-documents.json",
+      "output_research": "planning/domains/nodes/identity.core-documents.research.md",
+      "file_kind_owner": [
+        "contacts"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "identity.immigration-visa",
+      "schema_id": "identity",
+      "parent_id": null,
+      "name": "Immigration and visa paperwork",
+      "one_line_hint": "Visa applications, permits, entry records - purpose-coherent packets outside admissions (PR-1: no purpose clone; the packet activates on its own evidence or falls through). Crosses identity and legal safety domains.",
+      "launch": "safety",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "legal",
+        "college_applications"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/identity.immigration-visa.json",
+      "output_research": "planning/domains/nodes/identity.immigration-visa.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "identity.credentials-passwords",
+      "schema_id": "identity",
+      "parent_id": null,
+      "name": "Credentials and password-manager exports",
+      "one_line_hint": "A coverage gap the overnight pass missed: password-manager exports, recovery codes, keys, encrypted containers. Maximum sensitivity; owns the opaque_binary family (encrypted or unreadable material is represented, not forced open).",
+      "launch": "safety",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "code",
+        "finance"
+      ],
+      "must_consider_residuals": [
+        "Protected Records",
+        "Unsupported or Encrypted"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/identity.credentials-passwords.json",
+      "output_research": "planning/domains/nodes/identity.credentials-passwords.research.md",
+      "file_kind_owner": [
+        "opaque_binary"
+      ]
+    },
+    {
+      "kind": "template",
+      "domain_id": "medical.personal-health-records",
+      "schema_id": "medical",
+      "parent_id": null,
+      "name": "Personal health records",
+      "one_line_hint": "Portal exports, lab results, prescriptions, visit summaries - 00's protected-state material. The medical schema writes no fields (PR-6); this row's research is detection and protection, not extraction.",
+      "launch": "safety",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "finance",
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/medical.personal-health-records.json",
+      "output_research": "planning/domains/nodes/medical.personal-health-records.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "medical.dependant-child-health",
+      "schema_id": "medical",
+      "parent_id": null,
+      "name": "A dependant's health records",
+      "one_line_hint": "Health records held FOR another person (child or dependant adult): the holder-vs-subject role distinction is the point; consent and privacy rules differ from one's own records.",
+      "launch": "safety",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "academic",
+        "legal"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/medical.dependant-child-health.json",
+      "output_research": "planning/domains/nodes/medical.dependant-child-health.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "medical.wearable-health-exports",
+      "schema_id": "medical",
+      "parent_id": null,
+      "name": "Wearable and health-app exports",
+      "one_line_hint": "Health-app export bundles (a gap the overnight pass missed): structured XML/JSON archives of vitals and activity. Bulk-sensitive even when each datum looks trivial.",
+      "launch": "safety",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "photos"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/medical.wearable-health-exports.json",
+      "output_research": "planning/domains/nodes/medical.wearable-health-exports.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "legal.personal-legal-matters",
+      "schema_id": "legal",
+      "parent_id": null,
+      "name": "Personal legal matters",
+      "one_line_hint": "Disputes, court correspondence, notarized documents held by an individual - 00's protected-state material; the legal schema writes no fields (PR-6).",
+      "launch": "safety",
+      "provenance": "design",
+      "must_consider_neighbors": [
+        "finance",
+        "identity"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/legal.personal-legal-matters.json",
+      "output_research": "planning/domains/nodes/legal.personal-legal-matters.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "legal.estate-planning",
+      "schema_id": "legal",
+      "parent_id": null,
+      "name": "Wills, estate and end-of-life documents",
+      "one_line_hint": "Wills, trusts, powers of attorney, advance directives (medical neighbor). Among the most sensitive material a corpus holds.",
+      "launch": "safety",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "medical",
+        "finance"
+      ],
+      "must_consider_residuals": [
+        "Protected Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/legal.estate-planning.json",
+      "output_research": "planning/domains/nodes/legal.estate-planning.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "legal.leases-agreements",
+      "schema_id": "legal",
+      "parent_id": null,
+      "name": "Leases and signed agreements",
+      "one_line_hint": "Signed contracts an individual is party to: leases, service agreements, employment contracts (career neighbor). Isolated signed PDFs otherwise land in Independent Records.",
+      "launch": "safety",
+      "provenance": "inference",
+      "must_consider_neighbors": [
+        "finance",
+        "career"
+      ],
+      "must_consider_residuals": [
+        "Protected Records",
+        "Independent Records"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/legal.leases-agreements.json",
+      "output_research": "planning/domains/nodes/legal.leases-agreements.research.md"
+    },
+    {
+      "kind": "template",
+      "domain_id": "legal.practice-matter-file",
+      "schema_id": "legal",
+      "parent_id": null,
+      "name": "Law-practice matter file",
+      "one_line_hint": "A practitioner's matter/case files - the professional situation the overnight pass expanded into dozens of sibling schemas. One placeholder row: research detection and privacy; field rows stay unwritten (PR-6). Client-confidential by default.",
+      "launch": "placeholder",
+      "provenance": "proposal",
+      "must_consider_neighbors": [
+        "career",
+        "finance"
+      ],
+      "must_consider_residuals": [
+        "Protected Records",
+        "Review Later"
+      ],
+      "inherited_field_keys": [],
+      "output_json": "planning/domains/nodes/legal.practice-matter-file.json",
+      "output_research": "planning/domains/nodes/legal.practice-matter-file.research.md"
+    }
+  ]
+}

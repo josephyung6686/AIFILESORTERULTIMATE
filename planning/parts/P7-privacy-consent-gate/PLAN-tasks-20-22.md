@@ -28,10 +28,11 @@ facts that most change what these three tasks say:
 - `src/orchestrator.py:402` passes **literal `None`** for `bundle_file_entry.handling_class`, with
   the comment *"The honest value is None because the class is unknown, not because another column
   happened to be empty."* Task 22 asserts that literal stays, and says why below.
-- `database_agent.files_table.record_file(..., materialized: bool, content_hash: str | None = None)`
-  accepts an explicit content hash. That is what makes Task 20's replay possible at all: a fixture
-  seeded at P4's own content hash reproduces P4's own `observation_key`, so the published fixtures
-  and the replayed ones address the same evidence.
+- `database_agent.files_table.record_file` ends `..., scan_state: str, materialized: bool,
+  content_hash: str | None = None) -> str` — it **accepts an explicit content hash**. That is what
+  makes Task 20's replay possible at all: a fixture seeded at P4's own content hash reproduces P4's
+  own `observation_key`, so the published fixtures and the replayed ones address the same evidence
+  and `file_id` is the only field a replay has to substitute.
 - `evidence_shape.fixtures.FIXTURES` holds **nineteen** worked examples; `Observation` carries
   `observation_key` as an attribute, already computed. Fixture 8 is an OCR region — a 43-character
   text unit with an observation spanning `0-24` — and fixture 18 carries `completeness =
@@ -879,11 +880,23 @@ _AUDIT_DEFAULTS: Mapping[str, object] = MappingProxyType({
 
 
 def _audit(**over: object) -> AuditRecord:
+    """Built from `AUDIT_FIELDS`, never from a literal keyword list.
+
+    Task 10 owns SPEC §7's names and asserts they match §7 name for name. Building
+    from the published tuple means a field these sixteen fixtures never vary can be
+    respelled without breaking them, while a field they DO vary disappearing fails
+    here, loudly, at the seam that cares.
+    """
     missing = [name for name in AUDIT_FIELDS if name not in _AUDIT_DEFAULTS]
     if missing:
         raise KeyError(
             f"AUDIT_FIELDS names {missing} and this module has no value for them; "
             "SPEC §7 changed and the fixtures need a value, not a default")
+    unknown = [name for name in over if name not in _AUDIT_DEFAULTS]
+    if unknown:
+        raise KeyError(
+            f"{unknown} is not an audit field this module knows; a silently dropped "
+            "keyword is how a fixture stops carrying the value it claims to carry")
     values = {name: _AUDIT_DEFAULTS[name] for name in AUDIT_FIELDS}
     values.update({name: value for name, value in over.items() if name in values})
     return AuditRecord(**values)
@@ -1391,3 +1404,1391 @@ git commit -m "feat(P7): SPEC 11's sixteen published fixtures, each replayed thr
 ```
 
 ---
+
+### Task 21: The no-invention guard, and every open question held open
+
+**Files:**
+- Modify: `src/privacy/vocabulary.py` (add `HELD_OPEN` — see below)
+- Test: `tests/p7/test_p7_no_invention.py`
+
+**Interfaces:**
+- Consumes: every module under `src/privacy/`, by `importlib` + `vars(module)`; `ast` over the same
+  files for the assertions introspection cannot make; `database_agent.files_table.FILES_COLUMNS`,
+  `.set_sensitivity_state`, `.get_file`, `.record_file`; `privacy.classification.ClassificationRecord`;
+  `privacy.classification_store.ClassificationStore`, `.mirror_state`;
+  `privacy.learning_seam.assign`; `evidence_shape.text_units.raw_value_at`;
+  `evidence_shape.store.text_units_for_run`, `.text_unit_at`, `.unit_for_observation`.
+- Produces (`vocabulary.py`): `HELD_OPEN: Mapping[str, str]` — the three questions held open that are
+  **not** among the SPEC's eleven. `OPEN_QUESTIONS` (the eleven) is Task 2's and is asserted here.
+
+**Done-means:** the guard behind 1, 12, and the whole *Deferred* table.
+
+**One guard INVERTS, and it is the reason this task cannot be written from the skeleton alone.**
+The skeleton's §5 says *"Every open question stays open … Each is held by a guard in Task 21 that
+names it and fails the moment someone answers it"*, and its §4 says the opposite about one of them:
+**P6 OQ11 is CLOSED (D2).** A guard asserting OQ11 is open **fails on the day this plan is
+executed**, because that is the day D2 is applied. Task 21 asserts the **D2 shape** instead, in four
+clauses, each of which is a separate test:
+
+1. `ClassificationRecord` keyed `(file_id, content_hash)` is **authoritative** — the store resolves
+   one current record per pair, and a new content hash inherits nothing.
+2. `files.sensitivity_state` is a **projection**, written through P1's published
+   `set_sensitivity_state`. P7 takes no writer protocol; P1 publishes the setter and P7 calls it.
+3. `src/privacy/` issues **no `UPDATE files`** of its own — asserted over the AST's string literals,
+   so a docstring explaining the rule cannot satisfy it and cannot break it.
+4. **`unclassified` never reaches that column.** It is a gate outcome, not a file fact. Storing it
+   would make *"nothing has looked"* indistinguishable from *"this file carries nothing"*, which is
+   the distinction D2's third clause exists to protect and Task 20's fixtures 2 and 15 exist to
+   demonstrate.
+
+**Two things are genuinely open and are held open BY NAME, because a question nobody names is a
+question that gets answered by accident.**
+
+- **`filename` as a sixth releasable kind.** §8.4 names **five** — *"selected excerpts, redacted
+  identifiers, candidate labels, non-sensitive metadata, and evidence references"* — and puts
+  *paths* in the always-local set. P7's SPEC adds a sixth and **flags it itself**: *"This is the one
+  place where the contract resolves an apparent conflict rather than deferring it, because P8 and
+  P11 cannot build without an answer."* It is SPEC Open question 2, and it is Joseph's call, routed
+  as NEEDS-JOSEPH **B5d** (*"`filename` as a releasable kind — the one P7 open question its own plan
+  left off its list. §8.4's releasable list is five and does not name it"*) and **C9a**
+  (*"Recorded; the design wins. The SPEC flags it itself. **Your call.**"*). The guard asserts the
+  sixth kind exists, that the SPEC's own flag text is carried beside it, and that **nothing in
+  `src/privacy/` treats the conflict as settled** — no module holds a resolution constant, and the
+  `Filename` item is denied for protected files exactly as §7.3 requires, which is the narrow part
+  the design does settle.
+- **Whether P6 keeps a `sensitivity status` field row at all.** P7's SPEC Contract-in says
+  *"**P6 must accept `sensitivity` as a first-class universal field** (§3.11) rather than a
+  domain-scoped one"* while D2 makes P7's own record authoritative. The skeleton states the residue
+  precisely: *"whether P6 keeps a `sensitivity status` row among §3.11's universal fields at all.
+  Round 1's F-2 already found that field has no producer. D2 decided which record is AUTHORITATIVE;
+  it did not decide whether a second, P6-owned field row continues to exist beside it. Until that is
+  answered, P6 should create no such row and P7 should not read one."* **Do not resolve it.** The
+  guard asserts `src/privacy/` reads no P6 surface, holds no `file_facts` table name, and names all
+  three spellings — `sensitivity` (P7 SPEC), `sensitivity status` (§3.11, P6), `sensitivity_state`
+  (P1's column) — as distinct.
+
+**And a third, which is P4's and reaches P7 through redaction.** `Region` is
+`{ x, y, w, h, unit }` with `unit ∈ {px, norm}` and **no document in this repository says which
+corner the origin is**. `evidence_shape.vocabulary.OPEN_QUESTIONS` carries one entry, OQ4, and it is
+not this one; the design says only *"locations or bounding boxes where available"* (§2.7). P7's
+redaction and resolution both touch `Location.region`, so a guard that P7 never assumes an origin is
+cheap now and unbuildable after someone has written `y = height - y` somewhere. The guard asserts
+`src/privacy/` performs **no arithmetic on a region field at all** and holds no origin token.
+
+**`src/privacy/` imports none of `extractors`' refusals, and that list is now THREE names.** The
+skeleton's §1 says *"never imports `ProtectedContainerRefused` or `DatalessRefused`"* and stops at
+two. `extractors.failure.ContractViolation` is the third and it is live —
+`src/orchestrator.py` imports all three side by side. The three refusals in this product are three,
+and P7 owns only the last of them: reading is refused by P3/P5, materialising is refused by P3/P5,
+and **release** is refused by P7. A file that failed either of the first two never acquires the
+`(file_id, content_hash)` pair P7 keys on, so re-deriving the verdict is not merely redundant, it is
+unconstructible. Reported as a correction from two names to three.
+
+**Two corrections to the L2 guard, found by running it against the live repository rather than by
+reading the skeleton.** The skeleton says the set of packages binding a P4 text materialiser is
+*"`{evidence_shape, extractors, privacy}` and nothing else"*. Introspected 2026-08-22, the live set
+is **`{evidence_shape, orchestrator}`**:
+
+- **`extractors` binds none of the four.** P5 emits observations and text units; it never reads one
+  back. The skeleton's set would have been wrong in the permissive direction — it licenses a package
+  that does not need the licence.
+- **`orchestrator` binds `text_units_for_run`**, at `src/orchestrator.py`, to copy units into P2's
+  replay bundle. That is a **local** copy, not an egress — but whether a bundle may carry excerpt
+  text is **P7's own Open question 8**, unanswered, so this guard **records the binder and its reason
+  and does not rule on it**. Writing the guard to exclude `orchestrator` by calling it "not a
+  package" would be hiding a real binder behind a technicality.
+
+The guard is therefore written over **every module under `src/`**, with an allowlist of three
+top-level names and a published reason for each. It passes trivially today and becomes load-bearing
+the moment P8 lands, which is why it is written now rather than by someone who wants it to pass.
+
+**Everything else is runtime introspection, and where it cannot be, it is the AST.** The skeleton is
+emphatic and it is right: *"a source-text guard matches comments and docstrings, which is a failure
+this repository has already recorded more than once."* `tests/p3/test_p3_no_invention.py` documents
+the case where it broke the other way — a comment explaining why a value is absent failed the test
+asserting the value is absent. This task reimplements `code_tokens()` over `src/privacy/` rather
+than importing it, because `tests/` has no `__init__.py` and a cross-directory import there would
+collide on module basenames the way `conftest.py` already has twice on this project.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p7/test_p7_no_invention.py
+"""P7 answers no open question in code, and D2's shape holds.
+
+Two techniques and one rule. The rule: an assertion of the form "this token appears
+nowhere" is made against the AST, never against `read_text()`, because a comment or a
+docstring EXPLAINING why a value is absent matches a text scan for that value. That
+failure is recorded in `tests/p3/test_p3_no_invention.py`, which is where
+`code_tokens()` comes from and why it exists.
+
+The technique for everything else is `vars(module)`: what a module BINDS is what it
+holds, and a number inside a docstring is prose.
+"""
+import ast
+import importlib
+import json
+import pathlib
+
+import pytest
+
+import privacy
+from database_agent.files_table import FILES_COLUMNS, get_file, record_file
+
+from privacy.classification import ClassificationRecord
+from privacy.classification_store import ClassificationStore, mirror_state
+from privacy.learning_seam import assign, reclassify
+from privacy.vocabulary import HELD_OPEN, OPEN_QUESTIONS
+
+COMPONENT = "0.1.0"
+FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
+SOURCE_DIR = pathlib.Path(privacy.__file__).parent
+SRC_ROOT = pathlib.Path(privacy.__file__).parent.parent
+
+#: Module-level names permitted to be bound to a number. It is EMPTY, and adding a
+#: name to it is a P7 contract revision rather than an implementation decision:
+#: SPEC *Deferred* puts "Numeric values for every ceiling" outside this contract --
+#: §8.6 "names the knobs, states they are 'configurable', and gives no values".
+NUMERIC_ALLOWLIST: frozenset[str] = frozenset()
+
+#: Top-level names permitted to bind a P4 text materialiser, each with its reason.
+#: Introspected against the live repository, not copied from the plan skeleton, which
+#: named `extractors` (which binds none) and omitted `orchestrator` (which binds one).
+MATERIALISER_BINDERS = {
+    "evidence_shape": "P4 owns them",
+    "privacy": "L2 -- `resolve.py` is the ONE place a (key, span) becomes text",
+    "orchestrator": (
+        "copies text units into P2's replay bundle (§8.5). A local copy, not an "
+        "egress -- and whether a bundle may carry excerpt text is P7 Open question 8, "
+        "unanswered, so this guard records it and does not rule on it"),
+}
+
+MATERIALISERS = ("raw_value_at", "text_units_for_run", "text_unit_at",
+                 "unit_for_observation")
+
+
+def modules():
+    return sorted(SOURCE_DIR.glob("*.py"))
+
+
+def imported():
+    """Every module under `src/privacy/`, imported, for namespace introspection."""
+    found = []
+    for path in modules():
+        name = path.stem
+        if name == "__init__":
+            found.append(privacy)
+            continue
+        found.append(importlib.import_module(f"privacy.{name}"))
+    return found
+
+
+def _docstrings(tree: ast.AST) -> set[int]:
+    """The id() of every node that is a docstring, so it can be skipped."""
+    found = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef,
+                             ast.AsyncFunctionDef)):
+            body = getattr(node, "body", None)
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                found.add(id(body[0].value))
+    return found
+
+
+def code_strings(path: pathlib.Path) -> set[str]:
+    """String and numeric literals P7's code USES, docstrings excluded."""
+    tree = ast.parse(path.read_text(), filename=str(path))
+    skip = _docstrings(tree)
+    tokens: set[str] = set()
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Constant) and id(node) not in skip
+                and isinstance(node.value, (str, int, float))
+                and not isinstance(node.value, bool)):
+            tokens.add(str(node.value))
+    return tokens
+
+
+def code_names(path: pathlib.Path) -> set[str]:
+    tree = ast.parse(path.read_text(), filename=str(path))
+    tokens: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            tokens.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            tokens.add(node.attr)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            tokens.add(node.name)
+        elif isinstance(node, ast.arg):
+            tokens.add(node.arg)
+        elif isinstance(node, ast.keyword) and node.arg:
+            tokens.add(node.arg)
+        elif isinstance(node, ast.alias):
+            tokens.add(node.name)
+            if node.asname:
+                tokens.add(node.asname)
+    return tokens
+
+
+def code_tokens(path: pathlib.Path) -> set[str]:
+    return code_names(path) | code_strings(path)
+
+
+def imports_of(path: pathlib.Path) -> set[str]:
+    """Every dotted name this module imports, from the AST rather than from text."""
+    tree = ast.parse(path.read_text(), filename=str(path))
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            found.add(module)
+            found.update(f"{module}.{alias.name}" for alias in node.names)
+            found.update(alias.name for alias in node.names)
+    return found
+
+
+def module_numbers(module):
+    return {name: value for name, value in vars(module).items()
+            if not name.startswith("_")
+            and isinstance(value, (int, float)) and not isinstance(value, bool)}
+
+
+# --- the eleven, present with the SPEC's own text ---------------------------
+
+def test_all_eleven_spec_open_questions_are_present():
+    assert set(OPEN_QUESTIONS) == set(range(1, 12))
+    for number, text in OPEN_QUESTIONS.items():
+        assert text.strip(), number
+
+
+def test_open_question_11_names_no_winner_between_the_two_local_modes():
+    # W1 narrowed it and did not close it: "What remains genuinely open is only WHICH
+    # of those two ships, which turns on whether a local model is assumed present."
+    from privacy.defaults import LOCAL_FIRST_MODES
+    assert set(LOCAL_FIRST_MODES) == {"offline", "local_model"}
+    for module in imported():
+        for name, value in vars(module).items():
+            if name.startswith("_") or not isinstance(value, str):
+                continue
+            assert value not in ("offline", "local_model"), (module.__name__, name)
+
+
+def test_no_module_holds_a_bare_hybrid_or_cloud_assisted_default():
+    # Done-means 12's negative half, by introspection rather than by grep: both names
+    # appear legitimately inside `OPERATION_MODES`, inside `MODE_SEMANTICS`, inside
+    # denial messages and inside fixture records, so a text scan either passes
+    # vacuously or fails on a comment.
+    for module in imported():
+        for name, value in vars(module).items():
+            if name.startswith("_") or not isinstance(value, str):
+                continue
+            assert value not in ("hybrid", "cloud_assisted"), (module.__name__, name)
+
+
+def test_open_question_3_defines_no_corpus_area():
+    # "What is a 'corpus area'? ... Consent grants cannot be scoped until this is
+    # named." The gate takes an `area_of` resolver with no default; the only area
+    # STRING in the package is the fixture module's single example.
+    import inspect
+    from privacy.gate import Gate
+    parameters = inspect.signature(Gate.__init__).parameters
+    assert "area_of" in parameters
+    assert parameters["area_of"].default is inspect.Parameter.empty
+    holders = [m.__name__ for m in imported()
+               if any(name.upper().endswith("AREA") or name.upper().endswith("AREAS")
+                      for name in vars(m) if not name.startswith("_"))]
+    assert holders == ["privacy.fixtures"]
+    from privacy.fixtures import FIXTURE_AREA
+    assert isinstance(FIXTURE_AREA, str)
+
+
+def test_open_question_1_never_infers_protected_from_the_handling_class():
+    # SPEC §2: "Neighbouring parts should consume the `protected` flag, not infer it
+    # from the class." Fixture 10 is where that stays true -- a `sensitive_personal`
+    # file that is NOT protected, which is the input §8.4's consent branch needs.
+    from privacy.fixtures import by_number
+    fixture = by_number(10)
+    assert fixture.classification.handling_class == "sensitive_personal"
+    assert fixture.classification.protected is False
+    record = ClassificationRecord(
+        file_id="f", content_hash="sha256:abc", handling_class="public_low",
+        protected=True, basis="user", evidence_refs=(),
+        reliability_state="user_confirmed", observed_at=FIXED_CLOCK)
+    assert record.protected is True
+
+
+def test_open_question_7_counts_no_repetitions():
+    # "Does repeated reclassification generalize?" Nothing counts, so nothing widens.
+    for module in imported():
+        assert not module_numbers(module) - set(NUMERIC_ALLOWLIST), module.__name__
+
+
+def test_open_question_10_states_no_retention_period():
+    # "How long audit records, consent grants, and superseded classifications are
+    # kept. The design states no retention period anywhere."
+    for module in imported():
+        for name in vars(module):
+            upper = name.upper()
+            for token in ("RETENTION", "TTL", "EXPIR", "MAX_AGE", "PURGE", "DAYS"):
+                assert token not in upper, (module.__name__, name)
+
+
+# --- the three held open that are not among the eleven ----------------------
+
+def test_held_open_names_exactly_three_and_each_carries_its_source():
+    assert set(HELD_OPEN) == {"I6", "P6-sensitivity-field-row", "P4-region-origin"}
+    for key, text in HELD_OPEN.items():
+        assert text.strip(), key
+
+
+def test_i6_is_held_by_delete_derived_refusing_and_not_by_a_sentence():
+    from privacy.revocation import DerivedScope, UnratifiedResolution, delete_derived
+    with pytest.raises(UnratifiedResolution) as caught:
+        delete_derived(DerivedScope("text_units", "text"))
+    assert "I6" in str(caught.value)
+
+
+def test_the_p6_field_row_question_stays_open_and_p7_reads_no_p6_surface():
+    # P7's SPEC Contract-in: "P6 must accept `sensitivity` as a first-class universal
+    # field (§3.11) rather than a domain-scoped one." D2 made P7's own record
+    # authoritative and round 1 found that field has no producer. D2 did NOT decide
+    # whether a second P6-owned row exists beside it, so P7 creates none, reads none,
+    # and holds no P6 table name.
+    for path in modules():
+        tokens = code_tokens(path)
+        for forbidden in ("file_facts", "fact_id", "field_id", "value_id"):
+            assert forbidden not in tokens, (path.name, forbidden)
+        assert not [name for name in imports_of(path) if name.startswith("facts")]
+
+
+def test_the_three_spellings_of_sensitivity_stay_three():
+    # `sensitivity` (P7 SPEC), `sensitivity status` (§3.11, P6), `sensitivity_state`
+    # (P1's column). C8 calls this "the defect class that has cost this project the
+    # most, at the largest scale it has appeared." Three names, one concept, and no
+    # code that treats any two as one.
+    assert "sensitivity_state" in FILES_COLUMNS
+    from privacy.classification import CLASSIFICATION_FIELDS
+    assert "handling_class" in CLASSIFICATION_FIELDS
+    assert "sensitivity" not in CLASSIFICATION_FIELDS
+    assert "sensitivity_state" not in CLASSIFICATION_FIELDS
+
+
+def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
+    # §8.4's releasable list is FIVE -- "selected excerpts, redacted identifiers,
+    # candidate labels, non-sensitive metadata, and evidence references" -- and puts
+    # paths in the always-local set. The SPEC adds a sixth and flags it (Open question
+    # 2, NEEDS-JOSEPH B5d / C9a). It is Joseph's call and nothing here decides it.
+    from privacy.items import Filename
+    from privacy.vocabulary import ITEM_KINDS
+    assert ITEM_KINDS[-1] == "filename"
+    assert len(ITEM_KINDS) == 6
+    assert "filename" in OPEN_QUESTIONS[2].lower() or "Filename" in OPEN_QUESTIONS[2]
+    assert {f.name for f in __import__("dataclasses").fields(Filename)} == {"file_id"}
+    for path in modules():
+        tokens = code_tokens(path)
+        for settled in ("filename_resolved", "filename_settled",
+                        "FILENAME_IS_NOT_A_PATH"):
+            assert settled not in tokens, path.name
+
+
+def test_p7_assumes_no_origin_for_a_normalized_bounding_box():
+    # P4's SPEC: "`region` -- `{ x, y, w, h, unit }` where `unit ∈ {px, norm}`", and
+    # §2.7 says only "locations or bounding boxes where available". NO document in
+    # this repository says which corner the origin is. P7's redaction and resolution
+    # both touch `Location.region`, so the guard is that P7 does ARITHMETIC on none of
+    # its fields and holds no origin token.
+    from evidence_shape.location import Region
+    region_fields = {f.name for f in __import__("dataclasses").fields(Region)}
+    assert region_fields == {"x", "y", "w", "h", "unit"}
+    for path in modules():
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.BinOp):
+                continue
+            for side in (node.left, node.right):
+                if isinstance(side, ast.Attribute):
+                    assert side.attr not in region_fields, (path.name, side.attr)
+        tokens = code_tokens(path)
+        for origin in ("top_left", "bottom_left", "top-left", "bottom-left",
+                       "origin"):
+            assert origin not in tokens, (path.name, origin)
+
+
+# --- D2's shape, which is what replaced the OQ11 guard -----------------------
+
+def test_the_classification_record_is_keyed_on_file_id_and_content_hash(
+        p7_conn, tmp_path):
+    # D2 clause 1: "Keyed on the hash because a classification is about BYTES; new
+    # bytes at a path are a new file version and inherit nothing."
+    store = ClassificationStore(p7_conn)
+    document = tmp_path / "doc.pdf"
+    document.write_bytes(b"%PDF-1.4 one")
+    file_id = record_file(
+        p7_conn, document, filename="doc.pdf", normalized_filename="doc.pdf",
+        extension=".pdf", observed_size=document.stat().st_size,
+        observed_timestamps='{"mtime": 1.0}', parent_folder_context=str(tmp_path),
+        mime_type="application/pdf", detected_format="pdf",
+        scan_state="fixture-scan-state", materialized=True)
+    first = ClassificationRecord(
+        file_id=file_id, content_hash=get_file(p7_conn, file_id)["content_hash"],
+        handling_class="sensitive_personal", protected=True, basis="user",
+        evidence_refs=(), reliability_state="user_confirmed", observed_at=FIXED_CLOCK)
+    store.write(first)
+    assert store.current(file_id, first.content_hash) == first
+    assert store.current(file_id, "sha256:different-bytes") is None
+
+
+def test_the_column_is_written_only_through_p1s_published_setter():
+    # D2 clause 2, and the reason there is no `SensitivityStateWriter`: P1 publishes
+    # `set_sensitivity_state`, the twin of `set_extraction_status`. A protocol
+    # wrapping a function that exists is a second write path to a column that spent
+    # the whole project with none.
+    binders = [m.__name__ for m in imported()
+               if "set_sensitivity_state" in vars(m)]
+    assert binders == ["privacy.learning_seam"]
+    for module in imported():
+        for name in vars(module):
+            assert "SensitivityStateWriter" not in name, module.__name__
+
+
+def test_src_privacy_issues_no_update_files_of_its_own():
+    # D2 clause 2's negative half. Over the AST's string literals, so a docstring
+    # explaining the rule neither satisfies it nor breaks it.
+    for path in modules():
+        for literal in code_strings(path):
+            collapsed = " ".join(literal.lower().split())
+            assert "update files" not in collapsed, (path.name, literal[:60])
+            assert "insert into files" not in collapsed, (path.name, literal[:60])
+            assert "delete from files" not in collapsed, (path.name, literal[:60])
+
+
+def test_unclassified_never_reaches_the_projection_column(p7_conn, tmp_path):
+    # D2 clause 3: "`Unreadable or unclassified` is a GATE OUTCOME, not a file fact.
+    # It lives on the release decision and never in that column, so 'nothing has
+    # looked' can never be read as 'this file carries nothing'."
+    store = ClassificationStore(p7_conn)
+    document = tmp_path / "opaque.psd"
+    document.write_bytes(b"8BPS fixture bytes")
+    file_id = record_file(
+        p7_conn, document, filename="opaque.psd", normalized_filename="opaque.psd",
+        extension=".psd", observed_size=document.stat().st_size,
+        observed_timestamps='{"mtime": 1.0}', parent_folder_context=str(tmp_path),
+        mime_type="image/vnd.adobe.photoshop", detected_format="psd",
+        scan_state="fixture-scan-state", materialized=True)
+    content_hash = get_file(p7_conn, file_id)["content_hash"]
+    record = ClassificationRecord(
+        file_id=file_id, content_hash=content_hash,
+        handling_class="unreadable_unclassified", protected=False, basis="detector",
+        evidence_refs=("sha256:" + "0" * 64,), reliability_state="direct",
+        observed_at=FIXED_CLOCK)
+    assign(p7_conn, record, store=store, component_version=COMPONENT)
+    stored = get_file(p7_conn, file_id)["sensitivity_state"]
+    assert stored is not None
+    assert "unclassified" not in json.dumps(json.loads(stored))
+
+
+def test_the_projection_is_not_the_authoritative_record():
+    # `mirror_state` is a PROJECTION: it drops what the column cannot answer. A mirror
+    # that carried every field would invite a reader to treat the column as the
+    # record, which is the shape D2 replaced.
+    record = ClassificationRecord(
+        file_id="f", content_hash="sha256:abc", handling_class="public_low",
+        protected=False, basis="detector", evidence_refs=("sha256:x",),
+        reliability_state="validated", observed_at=FIXED_CLOCK)
+    state = mirror_state(record)
+    assert set(state) < {f for f in vars(record)} | set(state)
+    assert "file_id" not in state
+
+
+# --- the three refusals stay three ------------------------------------------
+
+def test_src_privacy_imports_none_of_extractors_three_refusals():
+    # Reading is refused by P3/P5 (`ProtectedContainerRefused`); materializing is
+    # refused by P3/P5 (`DatalessRefused`); a malformed extraction is refused by P5
+    # (`ContractViolation`). RELEASE is P7's, and only release has a consent branch.
+    # A file that failed either of the first two never acquires the
+    # `(file_id, content_hash)` pair P7 keys on, so re-deriving is unconstructible.
+    refusals = ("ProtectedContainerRefused", "DatalessRefused", "ContractViolation")
+    for path in modules():
+        names = imports_of(path)
+        for refusal in refusals:
+            assert refusal not in names, (path.name, refusal)
+            assert f"extractors.safety.{refusal}" not in names, path.name
+        assert "extractors.safety" not in names, path.name
+        assert "admit" not in names, path.name
+
+
+def test_the_orchestrator_imports_all_three_so_the_list_is_three_and_not_two():
+    # The plan skeleton names two. The live caller names three, side by side, which is
+    # how the omission was found.
+    orchestrator = importlib.import_module("orchestrator")
+    for refusal in ("ProtectedContainerRefused", "DatalessRefused",
+                    "ContractViolation"):
+        assert refusal in vars(orchestrator), refusal
+
+
+# --- L2: one materialisation locus, repo-wide -------------------------------
+
+def test_only_one_module_under_src_privacy_binds_a_p4_text_materialiser():
+    binders = [m.__name__ for m in imported()
+               if any(name in vars(m) for name in MATERIALISERS)]
+    assert binders == ["privacy.resolve"]
+
+
+def test_the_repo_wide_set_of_materialiser_binders_is_the_named_three():
+    # Layer L2 of Done-means 3. This passes trivially today and becomes load-bearing
+    # the moment P8 lands, which is why it is written now rather than later by someone
+    # who wants it to pass.
+    from evidence_shape import store as p4_store
+    from evidence_shape import text_units as p4_text
+    targets = {p4_text.raw_value_at, p4_store.text_units_for_run,
+               p4_store.text_unit_at, p4_store.unit_for_observation}
+    found: set[str] = set()
+    for path in sorted(SRC_ROOT.rglob("*.py")):
+        dotted = str(path.relative_to(SRC_ROOT).with_suffix("")).replace("/", ".")
+        dotted = dotted[:-9] if dotted.endswith(".__init__") else dotted
+        module = importlib.import_module(dotted)
+        if any(value in targets for value in vars(module).values()):
+            found.add(dotted.split(".")[0])
+    assert found == set(MATERIALISER_BINDERS), sorted(found)
+    for binder, reason in MATERIALISER_BINDERS.items():
+        assert reason.strip(), binder
+
+
+# --- P7 invents nothing -----------------------------------------------------
+
+def test_no_module_imports_re_so_p7_holds_no_detection_rule():
+    # SPEC *Deferred*: "The design states *what* is protected and never *how it is
+    # recognised*. The detector rule set, its signals, and its thresholds are
+    # hand-authored. P7 publishes the vocabulary the detectors write into."
+    for path in modules():
+        names = imports_of(path)
+        assert "re" not in names, path.name
+        assert "regex" not in names, path.name
+
+
+def test_no_module_enumerates_an_identifier_class_or_holds_a_transform():
+    # SPEC *Deferred*: "Which identifier classes exist and how each is transformed is
+    # not enumerated anywhere in the design. `redaction_manifest` carries the class as
+    # an opaque string until this is authored."
+    import inspect
+    from privacy import redaction
+    assert not hasattr(redaction, "IDENTIFIER_CLASSES")
+    assert not hasattr(redaction, "TRANSFORMS")
+    parameters = inspect.signature(redaction.apply_redaction).parameters
+    for required in ("classifier", "transform"):
+        assert parameters[required].default is inspect.Parameter.empty
+
+
+def test_the_gate_holds_no_threshold_and_reads_p1s_ceiling():
+    # SPEC *Deferred*: "Numeric values for every ceiling ... Deferred to configuration,
+    # not to this contract." The ceiling is read from `database_agent.budget`; the
+    # request field is the caller's echo of it (M9).
+    from database_agent.budget import CEILING_KEYS
+    assert "model.max_dossier_tokens_per_call" in CEILING_KEYS
+    from privacy.release import REQUEST_FIELDS
+    assert "max_dossier_tokens" in REQUEST_FIELDS
+
+
+def test_the_fixture_module_is_a_leaf_so_its_numbers_reach_no_decision():
+    # The one module holding numbers holds them INSIDE records, and nothing imports
+    # it. A fixture records a value the way a recorded call records one.
+    for path in modules():
+        if path.stem == "fixtures":
+            continue
+        assert "privacy.fixtures" not in imports_of(path), path.name
+        assert "fixtures" not in imports_of(path), path.name
+
+
+def test_subsystem_p7_is_written_in_exactly_one_module():
+    # M8: "the acting part authors, P1 stores." A second place that writes the author
+    # is a second place the two can disagree.
+    holders = [path.name for path in modules() if "P7" in code_strings(path)]
+    assert holders == ["authorship.py"]
+
+
+def test_no_module_holds_a_gazetteer():
+    # §3.7 names "validated gazetteers" as a mechanism and never enumerates contents.
+    for module in imported():
+        for name, value in vars(module).items():
+            if name.startswith("_") or not isinstance(value, (tuple, frozenset)):
+                continue
+            assert len(value) <= 20, (module.__name__, name, len(value))
+
+
+def test_the_retraction_limit_wording_lives_nowhere_in_the_package():
+    # SPEC *Deferred*: "Consent-prompt and retraction-limit wording | §8.4 | UX copy."
+    # Task 15 enforces PRESENCE; the words are P13's. Asserted package-wide here
+    # because the failure mode is a helpful default appearing in a neighbouring module.
+    for path in modules():
+        for literal in code_strings(path):
+            assert "cannot retract" not in literal.lower(), path.name
+```
+
+- [ ] **Step 2: Run the test and watch it fail**
+
+Run: `pytest tests/p7/test_p7_no_invention.py -v`
+Expected: FAIL — `ImportError: cannot import name 'HELD_OPEN' from 'privacy.vocabulary'`.
+Task 2 publishes `OPEN_QUESTIONS` (the SPEC's eleven) and nothing else; the three questions held
+open that are **not** among the eleven have no home until this step adds one.
+
+- [ ] **Step 3: Add `HELD_OPEN` to `src/privacy/vocabulary.py`**
+
+Append to the module, below `OPEN_QUESTIONS`:
+
+```python
+#: The questions held open that are NOT among SPEC Open questions 1-11, each with the
+#: document that states it. They are separate from `OPEN_QUESTIONS` because that
+#: mapping is keyed by the SPEC's own numbering and these three are not in it: one is
+#: a cross-part conflict deferred to this build, one is a residue D2 deliberately left,
+#: and one belongs to P4 and reaches P7 only through redaction.
+#:
+#: Nothing here is answered anywhere under `src/privacy/`, and
+#: `tests/p7/test_p7_no_invention.py` fails the moment one of them is.
+HELD_OPEN: Mapping[str, str] = MappingProxyType({
+    "I6": (
+        "§8.4 gives the user the right to 'review and delete local derived data'; "
+        "§8.2 forbids updating or deleting an event. D3 (2026-08-21) ratified the "
+        "DIRECTION -- events append-only forever, derived projections tombstonable, "
+        "'derived' a literal enumerated list -- and ratified that NOTHING IS BUILT "
+        "until P13 drives it. `delete_derived` therefore refuses on both sides of the "
+        "enumeration and writes nothing. Also open in: P5 OQ6, P13 OQ11, P1 OQ16."
+    ),
+    "P6-sensitivity-field-row": (
+        "P7's SPEC Contract-in requires that 'P6 must accept `sensitivity` as a "
+        "first-class universal field (§3.11) rather than a domain-scoped one', while "
+        "D2 makes P7's `ClassificationRecord` authoritative. D2 decided which record "
+        "is AUTHORITATIVE; it did not decide whether a second, P6-owned field row "
+        "continues to exist beside it, and review round 1 found that field has no "
+        "producer. Until it is answered, P6 creates no such row and P7 reads none."
+    ),
+    "P4-region-origin": (
+        "P4's `Location.region` is `{ x, y, w, h, unit }` with `unit ∈ {px, norm}`, "
+        "and no document in this repository states which corner the origin is; §2.7 "
+        "says only 'locations or bounding boxes where available'. P7 reads bounding "
+        "boxes when it redacts, so it assumes no origin: it performs no arithmetic on "
+        "a region field and holds no origin token. P4's question, held here because "
+        "P7 is the part that would otherwise answer it by accident."
+    ),
+})
+```
+
+- [ ] **Step 4: Run the test and watch it pass**
+
+Run: `pytest tests/p7/test_p7_no_invention.py -v`
+Expected: PASS — 27 passed
+
+- [ ] **Step 5: Run P7's suite so far, and P1–P5**
+
+Run: `pytest tests/p7 -q && pytest tests/ -q`
+Expected: PASS — Tasks 1–21 green, and the 1300 P1–P5 tests still green. This is the run that
+matters most for this task: the L2 guard walks **every module under `src/`** and imports each one, so
+a module that raises at import anywhere in the repository fails here.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/privacy/vocabulary.py tests/p7/test_p7_no_invention.py
+git commit -m "feat(P7): the no-invention guard, D2's shape asserted where OQ11's guard used to be"
+```
+
+---
+
+### Task 22: The walking-skeleton P7 step, and 11 §9's second fixture path
+
+**Files:**
+- Modify: `src/privacy/fixtures.py` (add `SKELETON_FIXTURE` — see below)
+- Test: `tests/p7/test_p7_skeleton_step.py`
+
+**Interfaces:**
+- Consumes: `orchestrator.run_wave2`, `.Wave2`, `.TARGETED_OCR_UNAVAILABLE`;
+  `scan_agent.corpus_source.FilesystemCorpusSource`, `scan_agent.selection.record_selection`,
+  `scan_agent.exclusion.is_protected_container`, `scan_agent.schema.create_scan_schema`;
+  `extractors.safety.SafetyPolicy`, `extractors.dispatch.Readers`, `extractors.schema.create_extraction_schema`;
+  `evidence_shape.store.RunWriter`; `eval_harness.bundle.bundle_files`,
+  `eval_harness.store.create_eval_schema`; `database_agent.files_table.get_file`;
+  `privacy.gate.Gate`, `privacy.release.Denied`, `.NeedsConsent`, `.Released`, `.Target`;
+  `privacy.policy.set_policy`, `.transcription_authorized_for`;
+  `privacy.classification_store.ClassificationStore`; `privacy.learning_seam.assign`;
+  `privacy.consent.record_consent_choice`, `.pending_consent`;
+  `privacy.audit.audit_records_for`; `privacy.transport_guard.assert_single_egress`;
+  `privacy.fixtures.by_number`, `.SKELETON_FIXTURE`, `.FIXTURE_CLOCK`.
+- Produces (`fixtures.py`): `SKELETON_FIXTURE: int = 10` — which published fixture **is** 11 §9's
+  second path, named as data so P8 and P13 can find it without reading this plan.
+
+**Done-means:** 13.
+
+**The `run_wave2` signature is what makes path one assertable, and it was read live.** Eighteen
+parameters, and **none of them is a gate, a classification, a detector or a P7 policy**. So *"`release`
+was called zero times"* is not a discipline the skeleton observes — it is a **structural fact**: the
+caller has nowhere to put a gate, so it cannot have called one. That is the strongest available form
+of the Done-means clause and it is checked with `inspect.signature`, not by counting.
+
+The parameter that **is** called `policy` is P5's `SafetyPolicy` — two fields, `is_protected_container`
+and `is_dataless` — and **not** P7's `Policy`. Two different words one parameter apart is the defect
+class this project has paid for most (`sensitivity` in four homes; `handling_class` fed
+`sensitivity_state`). The test names both types in one assertion so the two cannot be conflated by a
+later author who sees `policy=` and reaches for the gate's.
+
+**The one seam Wave-2 does have is `transcription_authorized`, and P7 fills it.** P5's call site is
+`transcription_authorized()` — a zero-argument predicate, `Callable[[], bool]`,
+`src/extractors/long_tail.py:204`. Task 5 publishes `transcription_authorized_for(scope)` to satisfy
+it. Path one wires the real one in and asserts it answers `False` under a policy with no grant, which
+is the M10 back-edge working end to end. **This is not the gate being exercised**: it is an
+authorization predicate consulted before an extractor runs locally, and no content leaves. The test
+says so, because a reader who saw P7 in the Wave-2 call could otherwise conclude the skeleton
+exercises §8.4's door.
+
+**The bundle assertion INVERTS the skeleton's, and this is the second guard that would fail on day
+one if it were copied.** The skeleton says path one *"must also assert that after classification the
+Wave-2 bundle's `handling_class` is non-null, closing the loop `src/orchestrator.py:259` left open."*
+That is wrong on two counts, and both are quotable:
+
+1. **P7 never reaches the bundle, by its own Open question 8.** *"May a replay bundle carry audit
+   records and excerpt spans? §8.5 allows 'a frozen corpus snapshot or a metadata-safe
+   representation of one' and lists 'policy settings'. Whether a bundle intended to leave the user's
+   machine may carry audit records — which name excerpts — is unstated. Affects P2."* Unanswered. A
+   task that made P7 write into `bundle_file_entry` would answer it in code.
+2. **The value is the Wave-2 caller's, and it is `None` on purpose.** The live comment at the call
+   site — now at `src/orchestrator.py:402`, not 259 — says it in the caller's own words: *"The honest
+   value is None because the class is unknown, not because another column happened to be empty."*
+   That is the standing rule from the connection review: *"a part that does not own the concept
+   passes `None` and says the value is unknown. It never forwards a neighbour's column because the
+   shapes line up."* And it remains true after P7 ships, because **no task in any plan produces a
+   detector** — so on a real corpus there is no class to carry.
+
+So the test asserts the `None` **stays**, asserts `src/privacy/` writes nothing into any `bundle_*`
+table, and names OQ8 as the reason. Reported as a correction to the skeleton's Task 22 block.
+
+**Path two is 11 §9's addendum and P7 owns two of its four clauses.** The addendum, verbatim:
+
+```text
+P7/P8   a dossier that requires sensitive text
+        Gate.release returns NeedsConsent
+        P13 presents the four §8.4 options
+        choosing no_model_use does not become abstain inside P8
+```
+
+11 §9 also states what kind of test it is: *"This is a contract test of B2, not an LLM test. It is
+the minimum that makes the one privacy-failure seam exercisable without waiting for full depth."*
+Clauses one and two are P7's and are asserted here against **fixture 10**, which exists for exactly
+this. Clause three is P13's — its SPEC's routing table gives P7 the `consent` surface and
+`action = select_consent_option`, and P13 is unbuilt. Clause four is P8's Done-means 13 and cannot be
+run without P8. The test names both as deferred **in named tests that assert the parts do not exist**,
+so the limitation lives in the suite rather than in a report nobody rereads. The B2 contract test the
+first path cannot exercise is exactly this: path one never returns a `NeedsConsent`, because under
+`offline` nothing gets far enough to need consent.
+
+**And the honesty clause, which is the point of the whole task.** The detector is unwritten (D2), so
+on a real corpus **every file resolves to `Denied(unclassified)`** — a correct, locked door with
+nobody holding a key. Path one's classification is therefore written **by the test**, standing in for
+the detector and saying so in its docstring, exactly as Task 17's verdict test and Task 20's fixtures
+do. A final named test runs the gate over the actually-scanned file **with no classification** and
+asserts `Denied(unclassified)`, so the plan's honest posture is a passing assertion rather than a
+paragraph. **This step proves the door, not the classification.**
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/p7/test_p7_skeleton_step.py
+"""Done-means 13, and 11 §9's second fixture path.
+
+02-segmentation-map.md's walking skeleton is "One file, one deterministic path, every
+seam touched. No LLM, no cloud, no embeddings -- which also means no privacy gate is
+exercised, because nothing leaves the machine."
+
+Done-means 13 turns that into an obligation: the skeleton "must nonetheless assert:
+the classification exists for the scanned file; the gate is installed on the only
+egress path; `release` was called zero times; the audit log is empty; and a deliberate
+attempted call under `offline` returns `Denied` with reason `mode_forbids_target`.
+That is the seam test -- that the door exists and is shut."
+
+Read the last test in this file before reading the rest of it. The detector is
+unwritten (D2), so the classification path one asserts is written HERE, by the test,
+standing in for a detector that does not exist. On a real corpus every file resolves
+to `Denied(unclassified)`. This step proves the door, not the classification.
+"""
+import dataclasses
+import importlib
+import inspect
+import pathlib
+from typing import Callable
+
+import pytest
+
+from database_agent.files_table import get_file
+
+from eval_harness.bundle import bundle_files
+from eval_harness.store import create_eval_schema
+
+from evidence_shape.store import RunWriter
+
+from extractors.archive import ArchiveManifest
+from extractors.dispatch import Readers
+from extractors.docx import DocxDocument
+from extractors.image import ImageRecord
+from extractors.long_tail import LongTailFile
+from extractors.pdf import PdfDocument, PdfPage
+from extractors.reading import Region
+from extractors.safety import SafetyPolicy
+from extractors.schema import create_extraction_schema
+from extractors.structured_text import TextDocument
+
+from orchestrator import TARGETED_OCR_UNAVAILABLE, Wave2, run_wave2
+
+from scan_agent.corpus_source import FilesystemCorpusSource
+from scan_agent.exclusion import is_protected_container
+from scan_agent.schema import create_scan_schema
+from scan_agent.selection import record_selection
+
+from privacy.audit import audit_records_for
+from privacy.classification import ClassificationRecord
+from privacy.classification_store import ClassificationStore
+from privacy.consent import pending_consent, record_consent_choice
+from privacy.fixtures import FIXTURE_CLOCK, SKELETON_FIXTURE, by_number
+from privacy.gate import Gate
+from privacy.learning_seam import assign
+from privacy.policy import set_policy, transcription_authorized_for
+from privacy.release import Denied, ModelTarget, NeedsConsent, Released, Target
+from privacy.transport_guard import assert_single_egress
+from privacy.vocabulary import CONSENT_OPTIONS
+
+COMPONENT = "0.1.0"
+NEVER: Callable[[], bool] = lambda: False
+SKELETON_CLOCK = "2026-08-22T10:00:00+00:00"
+CLOUD = ModelTarget(locality="cloud", model_id="acme-large", provider="Acme")
+SRC_ROOT = pathlib.Path(importlib.import_module("privacy").__file__).parent.parent
+
+
+@pytest.fixture()
+def skeleton_db(p7_conn):
+    """P1 + P4 + P7 from `p7_conn`, plus the three schemas Wave 2 also needs.
+
+    `tests/wave2/`'s own harness records why all five are created rather than four:
+    "§0's 'each part owns its own tables' cuts both ways, and a harness that creates
+    four parts' tables out of five is testing a database the product never runs on."
+    """
+    create_scan_schema(p7_conn)
+    create_extraction_schema(p7_conn)
+    create_eval_schema(p7_conn)
+    return p7_conn
+
+
+@pytest.fixture()
+def corpus(tmp_path: pathlib.Path) -> pathlib.Path:
+    """02-segmentation-map.md's input: "one PDF whose title carries a course code"."""
+    root = tmp_path / "Documents"
+    root.mkdir()
+    (root / "syllabus.pdf").write_bytes(b"%PDF-1.4 BUSIB 4300")
+    return root
+
+
+def mime_for(path: pathlib.Path) -> str | None:
+    return {".pdf": "application/pdf"}.get(path.suffix)
+
+
+def skeleton_readers() -> Readers:
+    """Deterministic readers. No LLM, no network, no OCR provider."""
+    page = "BUSIB 4300 Course Information"
+    return Readers(
+        read_pdf=lambda p: PdfDocument(
+            metadata={"Title": "BUSIB 4300 Syllabus"}, iso_dates={},
+            pages=(PdfPage(number=1, text=page,
+                           regions=(Region(zone="heading", start=0, end=29,
+                                           ordinal=1, label="Course Information"),)),)),
+        read_docx=lambda p: DocxDocument(core_properties={}),
+        read_text_document=lambda p: TextDocument(text=page),
+        read_long_tail=lambda p, transcribe=False: LongTailFile(),
+        read_manifest=lambda p: ArchiveManifest(archive_type="zip"),
+        read_image=lambda p: ImageRecord(image_format="PNG", dimensions="2880x1800",
+                                         width=2880, height=1800),
+        find_structured_strings=lambda text: (),
+        recognize_markers=lambda names: (),
+        dimension_signal=lambda w, h: None,
+        filename_pattern=lambda name: None)
+
+
+def offline_policy():
+    """W1's floor, and every redaction facet at its more redacting value.
+
+    §8.4's `must`: "The default posture must therefore be local-first and
+    data-minimizing." A skeleton that ran under anything else would be testing a
+    posture the design forbids as a default.
+    """
+    from privacy.policy import Policy
+    return Policy(
+        policy_version="policy-skeleton", operation_mode="offline",
+        consent_grants=(),
+        redaction_settings={"names": "redacted", "previews": "redacted",
+                            "thumbnails": "redacted", "ocr_text": "redacted",
+                            "location_data": "redacted"},
+        automatic_move_permissions={}, plan_version="plan-1",
+        set_at=SKELETON_CLOCK)
+
+
+def walk(conn, corpus_root, *, authorized=None) -> Wave2:
+    """One deterministic pass. Note what is NOT passed: there is no gate parameter."""
+    selection = record_selection(conn, sources=[corpus_root], candidate_roots=[],
+                                 cross_folder_moves=False, selected_by=None)
+    return run_wave2(
+        conn, selection, source=FilesystemCorpusSource(), mime_type_for=mime_for,
+        scan_state="scanned", budget_exhausted=NEVER,
+        detect_format=lambda p: p.suffix.lstrip(".") or None,
+        policy=SafetyPolicy(is_protected_container=is_protected_container,
+                            is_dataless=lambda path: False),
+        readers=skeleton_readers(), sink=RunWriter(conn, author="P5"),
+        now=lambda: SKELETON_CLOCK, context_window=40,
+        no_usable_facts=TARGETED_OCR_UNAVAILABLE,
+        transcription_authorized=authorized or NEVER,
+        corpus_form="snapshot", policy_settings={},
+        file_entry_body=lambda row: {"payload_ref": f"blobs/{row['content_hash']}"})
+
+
+def only_file(conn) -> str:
+    rows = conn.execute("SELECT file_id FROM files").fetchall()
+    assert len(rows) == 1
+    return rows[0]["file_id"]
+
+
+def classify(conn, file_id, handling_class="personal_non_sensitive", *,
+             protected=False) -> ClassificationRecord:
+    """THE DETECTOR THAT DOES NOT EXIST, written by the test and saying so.
+
+    D2 put the rule set behind an injection and no task in any plan produces one.
+    SPEC *Deferred*: "The design states *what* is protected and never *how it is
+    recognised*. The detector rule set, its signals, and its thresholds are
+    hand-authored. P7 publishes the vocabulary the detectors write into."
+
+    Until one is supplied, this is what a classification's arrival looks like: a
+    caller writing through P7's writer. Nothing here is a detection rule; it is the
+    act of recording a decision some other component made.
+    """
+    record = ClassificationRecord(
+        file_id=file_id, content_hash=get_file(conn, file_id)["content_hash"],
+        handling_class=handling_class, protected=protected, basis="user",
+        evidence_refs=(), reliability_state="user_confirmed",
+        observed_at=SKELETON_CLOCK)
+    assign(conn, record, store=ClassificationStore(conn),
+           component_version=COMPONENT)
+    return record
+
+
+def p7_events(conn) -> int:
+    return conn.execute(
+        "SELECT count(*) c FROM events WHERE subsystem = 'P7'").fetchone()["c"]
+
+
+# ===========================================================================
+# Path one -- the deterministic skeleton. The door exists and is shut.
+# ===========================================================================
+
+def test_the_wave_2_caller_has_nowhere_to_put_a_gate():
+    # "`release` was called zero times" as a STRUCTURAL fact rather than a counted one:
+    # eighteen parameters and not one of them is a gate, a classification, a detector
+    # or a P7 policy. A caller that cannot hold a gate cannot have called one.
+    parameters = inspect.signature(run_wave2).parameters
+    assert len(parameters) == 18
+    for forbidden in ("gate", "release", "classifier", "detector", "handling_class",
+                      "privacy_policy", "classification"):
+        assert forbidden not in parameters, forbidden
+
+
+def test_the_policy_parameter_is_p5s_safety_policy_and_not_p7s():
+    # Two different words one parameter apart. `SafetyPolicy` has two fields and
+    # deliberately no third; P7's `Policy` has seven. Conflating them is how a future
+    # author "wires the gate in" and silently disables the container rule instead.
+    assert {f.name for f in dataclasses.fields(SafetyPolicy)} == {
+        "is_protected_container", "is_dataless"}
+    from privacy.policy import Policy
+    assert "operation_mode" in {f.name for f in dataclasses.fields(Policy)}
+    assert "operation_mode" not in {f.name for f in dataclasses.fields(SafetyPolicy)}
+
+
+def test_the_deterministic_path_runs_end_to_end(skeleton_db, corpus):
+    result = walk(skeleton_db, corpus)
+    assert isinstance(result, Wave2)
+    assert skeleton_db.execute(
+        "SELECT count(*) c FROM extraction_runs").fetchone()["c"] > 0
+
+
+def test_the_audit_log_is_empty_after_the_deterministic_path(skeleton_db, corpus):
+    # Done-means 13's fourth clause. Not "P7 wrote few events" -- none, because
+    # nothing asked the gate anything.
+    walk(skeleton_db, corpus)
+    assert p7_events(skeleton_db) == 0
+    assert audit_records_for(skeleton_db,
+                             file_id=only_file(skeleton_db)) == []
+
+
+def test_the_classification_exists_for_the_scanned_file(skeleton_db, corpus):
+    # Done-means 13's first clause. Written by `classify`, which stands in for the
+    # detector and says so; see its docstring.
+    walk(skeleton_db, corpus)
+    file_id = only_file(skeleton_db)
+    record = classify(skeleton_db, file_id)
+    store = ClassificationStore(skeleton_db)
+    assert store.current(file_id, record.content_hash) == record
+    assert get_file(skeleton_db, file_id)["sensitivity_state"] is not None
+
+
+def test_the_gate_is_installed_on_the_only_egress_path(skeleton_db, corpus):
+    # Done-means 13's second clause, in the only form available before P8 exists:
+    # there is no transport, so the property "the transport's only content parameter
+    # is a `Released`" holds over an empty set -- and `assert_single_egress` is proven
+    # correct against a conforming and four non-conforming fixtures in Task 19.
+    walk(skeleton_db, corpus)
+    transports = []
+    for path in sorted(SRC_ROOT.rglob("*.py")):
+        dotted = str(path.relative_to(SRC_ROOT).with_suffix("")).replace("/", ".")
+        dotted = dotted[:-9] if dotted.endswith(".__init__") else dotted
+        module = importlib.import_module(dotted)
+        if getattr(module, "IS_MODEL_TRANSPORT", False):
+            transports.append(module)
+    assert transports == [], "a transport appeared; run assert_single_egress over it"
+    for module in transports:                      # reachable the day P8 lands
+        assert_single_egress(module)
+
+
+def test_release_was_called_zero_times(skeleton_db, corpus):
+    # Done-means 13's third clause, counted as well as proven structurally. A gate is
+    # constructed, handed to nobody, and asked nothing -- which is exactly the
+    # skeleton's shape: the door is installed and never opened.
+    calls: list[object] = []
+
+    class RecordingGate(Gate):
+        def release(self, request):
+            calls.append(request)
+            return super().release(request)
+
+    RecordingGate(skeleton_db, component_version=COMPONENT,
+                  area_of=lambda file_id: None)
+    walk(skeleton_db, corpus)
+    assert calls == []
+
+
+def test_a_deliberate_call_under_offline_is_denied_mode_forbids_target(
+        skeleton_db, corpus):
+    # Done-means 13's fifth clause, and the whole point: the door is SHUT, not absent.
+    # §8.4's fully offline mode: "No content leaves the device; only local rules and
+    # local models may run."
+    walk(skeleton_db, corpus)
+    file_id = only_file(skeleton_db)
+    classify(skeleton_db, file_id)
+    set_policy(skeleton_db, offline_policy(), author="P7",
+               component_version=COMPONENT, user_id="joseph")
+    gate = Gate(skeleton_db, component_version=COMPONENT,
+                area_of=lambda _file_id: None)
+    request = dataclasses.replace(
+        by_number(8).request, target=Target(file_ids=(file_id,), group_id=None))
+    decision = gate.release(request)
+    assert isinstance(decision, Denied)
+    assert decision.reason == "mode_forbids_target"
+    assert decision.explanation
+    assert decision.remedy_options
+
+
+def test_the_deliberate_call_is_audited_even_though_it_was_denied(
+        skeleton_db, corpus):
+    # §8.4: "Every model call should be recorded in a consent-aware audit record", and
+    # §8.2 covers "Every significant event affecting a file". The empty log above is
+    # empty because nothing asked, not because denials go unrecorded.
+    walk(skeleton_db, corpus)
+    file_id = only_file(skeleton_db)
+    classify(skeleton_db, file_id)
+    set_policy(skeleton_db, offline_policy(), author="P7",
+               component_version=COMPONENT, user_id="joseph")
+    before = p7_events(skeleton_db)
+    Gate(skeleton_db, component_version=COMPONENT,
+         area_of=lambda _file_id: None).release(dataclasses.replace(
+             by_number(8).request,
+             target=Target(file_ids=(file_id,), group_id=None)))
+    assert p7_events(skeleton_db) > before
+    assert audit_records_for(skeleton_db, file_id=file_id)
+
+
+def test_the_transcription_back_edge_is_p7s_and_is_not_the_gate(skeleton_db, corpus):
+    # M10's back-edge: P5's call site is `transcription_authorized()`, a zero-argument
+    # predicate at `src/extractors/long_tail.py:204`. P7 fills it. This is an
+    # authorization consulted before a LOCAL extractor runs -- no content leaves, and
+    # it is NOT §8.4's door. A reader who saw P7 in the Wave-2 call could otherwise
+    # conclude the skeleton exercises the gate.
+    set_policy(skeleton_db, offline_policy(), author="P7",
+               component_version=COMPONENT, user_id="joseph")
+    authorized = transcription_authorized_for("Academics")
+    assert inspect.signature(authorized).parameters == {}
+    assert authorized() is False
+    walk(skeleton_db, corpus, authorized=authorized)
+    assert p7_events(skeleton_db) == 1        # the `policy_set` above, and nothing more
+
+
+# ===========================================================================
+# The bundle -- where this task INVERTS the plan skeleton
+# ===========================================================================
+
+def test_the_bundle_handling_class_is_still_none_after_a_classification(
+        skeleton_db, corpus):
+    # The plan skeleton expects this to be non-null "closing the loop
+    # src/orchestrator.py:259 left open". It is NOT, and both reasons are quotable.
+    #
+    # 1. P7 Open question 8 is open: "Whether a bundle intended to leave the user's
+    #    machine may carry audit records -- which name excerpts -- is unstated."
+    #    A P7 that wrote into `bundle_file_entry` would answer it in code.
+    # 2. The value is the Wave-2 caller's and the caller's own comment says why it is
+    #    None: "The honest value is None because the class is unknown, not because
+    #    another column happened to be empty."
+    result = walk(skeleton_db, corpus)
+    file_id = only_file(skeleton_db)
+    classify(skeleton_db, file_id)
+    entries = bundle_files(skeleton_db, result.bundle_id)
+    assert entries
+    for entry in entries:
+        assert entry["handling_class"] is None
+
+
+def test_a_second_pass_after_classification_still_carries_none(skeleton_db, corpus):
+    # The classification is written BEFORE this pass, so "the bundle was built too
+    # early" is not the explanation. The caller passes a literal `None` and P7 has no
+    # seam into it -- which is the honest posture while no detector exists.
+    walk(skeleton_db, corpus)
+    classify(skeleton_db, only_file(skeleton_db))
+    second = walk(skeleton_db, corpus)
+    for entry in bundle_files(skeleton_db, second.bundle_id):
+        assert entry["handling_class"] is None
+
+
+def test_src_privacy_writes_into_no_bundle_table(skeleton_db, corpus):
+    # OQ8 held structurally, not by restraint: P7 imports no P2 writer at all.
+    import ast
+    privacy_dir = SRC_ROOT / "privacy"
+    for path in sorted(privacy_dir.glob("*.py")):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                assert not (node.module or "").startswith("eval_harness"), path.name
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    assert not alias.name.startswith("eval_harness"), path.name
+
+
+# ===========================================================================
+# Path two -- 11 §9's second fixture path, the B2 contract test
+# ===========================================================================
+
+def test_the_skeleton_fixture_is_named_as_data():
+    # So P8 and P13 can find 11 §9's second path without reading this plan.
+    assert SKELETON_FIXTURE == 10
+    assert isinstance(by_number(SKELETON_FIXTURE).decision, NeedsConsent)
+
+
+def test_a_dossier_requiring_sensitive_text_returns_needs_consent(
+        skeleton_db, corpus):
+    # 11 §9, clauses one and two: "a dossier that requires sensitive text /
+    # Gate.release returns NeedsConsent". §8.4: "If a model needs text containing
+    # sensitive content, the user should see that requirement and choose."
+    fixture = by_number(SKELETON_FIXTURE)
+    walk(skeleton_db, corpus)
+    file_id = only_file(skeleton_db)
+    classify(skeleton_db, file_id, handling_class="sensitive_personal",
+             protected=False)
+    set_policy(skeleton_db, fixture.policy, author="P7",
+               component_version=COMPONENT, user_id="joseph")
+    gate = Gate(skeleton_db, component_version=COMPONENT,
+                area_of=lambda _file_id: fixture.area)
+    decision = gate.release(dataclasses.replace(
+        fixture.request, target=Target(file_ids=(file_id,), group_id=None)))
+    assert isinstance(decision, NeedsConsent)
+    assert decision.options == CONSENT_OPTIONS
+    assert decision.consent_request_id
+
+
+def test_path_one_can_never_produce_this_branch(skeleton_db, corpus):
+    # Why 11 §9 exists: "It is the minimum that makes the one privacy-failure seam
+    # exercisable without waiting for full depth." Under `offline` nothing gets far
+    # enough to need consent, so the first path cannot exercise B2 at all.
+    walk(skeleton_db, corpus)
+    file_id = only_file(skeleton_db)
+    classify(skeleton_db, file_id, handling_class="sensitive_personal")
+    set_policy(skeleton_db, offline_policy(), author="P7",
+               component_version=COMPONENT, user_id="joseph")
+    gate = Gate(skeleton_db, component_version=COMPONENT,
+                area_of=lambda _file_id: None)
+    decision = gate.release(dataclasses.replace(
+        by_number(SKELETON_FIXTURE).request,
+        target=Target(file_ids=(file_id,), group_id=None)))
+    assert isinstance(decision, Denied)
+    assert decision.reason == "mode_forbids_target"
+
+
+def test_no_model_release_exists_until_a_choice_is_recorded(skeleton_db, corpus):
+    # Done-means 7's own falsifiable form, and it needs the id Task 14 added.
+    fixture = by_number(SKELETON_FIXTURE)
+    walk(skeleton_db, corpus)
+    file_id = only_file(skeleton_db)
+    classify(skeleton_db, file_id, handling_class="sensitive_personal")
+    set_policy(skeleton_db, fixture.policy, author="P7",
+               component_version=COMPONENT, user_id="joseph")
+    gate = Gate(skeleton_db, component_version=COMPONENT,
+                area_of=lambda _file_id: fixture.area)
+    decision = gate.release(dataclasses.replace(
+        fixture.request, target=Target(file_ids=(file_id,), group_id=None)))
+    records = audit_records_for(skeleton_db,
+                                consent_request_id=decision.consent_request_id)
+    assert [r.outcome for r in records] == ["consent_requested"]
+    assert pending_consent(skeleton_db, decision.consent_request_id) is not None
+
+
+def test_choosing_no_model_use_records_the_choice_and_releases_nothing(
+        skeleton_db, corpus):
+    # 11 §9's third clause is P13's gesture; P7's half is that the recorded choice
+    # closes the request and produces no `model_release`. P13's SPEC: "P13 records the
+    # collection, not the grant."
+    fixture = by_number(SKELETON_FIXTURE)
+    walk(skeleton_db, corpus)
+    file_id = only_file(skeleton_db)
+    classify(skeleton_db, file_id, handling_class="sensitive_personal")
+    set_policy(skeleton_db, fixture.policy, author="P7",
+               component_version=COMPONENT, user_id="joseph")
+    gate = Gate(skeleton_db, component_version=COMPONENT,
+                area_of=lambda _file_id: fixture.area)
+    decision = gate.release(dataclasses.replace(
+        fixture.request, target=Target(file_ids=(file_id,), group_id=None)))
+    record_consent_choice(skeleton_db, decision.consent_request_id, "no_model_use",
+                          user_id="joseph", component_version=COMPONENT,
+                          observed_at=FIXTURE_CLOCK)
+    outcomes = [r.outcome for r in audit_records_for(
+        skeleton_db, consent_request_id=decision.consent_request_id)]
+    assert "released" not in outcomes
+    assert pending_consent(skeleton_db, decision.consent_request_id) is None
+
+
+def test_no_model_use_is_one_of_the_four_and_is_not_a_denial_reason():
+    # The typed half of "does not become abstain": `no_model_use` is a CONSENT OPTION.
+    # It is not in `DENIAL_REASONS`, so a caller cannot map the branch onto a denial by
+    # respelling, and `NeedsConsent` carries no `reason` field to hold one.
+    from privacy.vocabulary import DENIAL_REASONS
+    assert "no_model_use" in CONSENT_OPTIONS
+    assert "no_model_use" not in DENIAL_REASONS
+    fields = {f.name for f in dataclasses.fields(NeedsConsent)}
+    assert fields == {"consent_request_id", "requirement", "options"}
+
+
+def test_clause_four_is_p8s_and_clause_three_is_p13s_and_neither_exists_here():
+    # 11 §9: "choosing no_model_use does not become abstain inside P8." INSIDE P8 --
+    # so the assertion belongs to P8's suite, as its Done-means 13, and to P13's as its
+    # Done-means 16. P7's obligation is to make the absorption UNREPRESENTABLE, which
+    # the test above does at the type level; policing it is not P7's and cannot be.
+    #
+    # This test exists so the limitation lives in the suite rather than in a report
+    # nobody rereads -- the same posture Task 19 takes for Done-means 3 and Task 20
+    # takes for Done-means 11's second clause.
+    for absent in ("llm_harness", "review_surface"):
+        with pytest.raises(ModuleNotFoundError):
+            importlib.import_module(absent)
+    assert by_number(SKELETON_FIXTURE).downstream_obligation == (
+        "so P8 can prove it returns the branch to its caller intact")
+
+
+# ===========================================================================
+# The honesty clause -- read this one first
+# ===========================================================================
+
+def test_with_no_detector_every_real_file_resolves_to_denied_unclassified(
+        skeleton_db, corpus):
+    # The claim the plan skeleton makes in prose, asserted: "Until it is supplied, a
+    # P7 running against a real corpus classifies nothing and every real file resolves
+    # to `Denied(unclassified)` -- a correct, locked door with nobody holding a key."
+    #
+    # Nothing is classified here because nothing in the product classifies. Path one's
+    # `classify()` is the test standing in for a detector; remove it and this is what
+    # the walking skeleton actually produces.
+    walk(skeleton_db, corpus)
+    file_id = only_file(skeleton_db)
+    assert get_file(skeleton_db, file_id)["sensitivity_state"] is None
+    assert ClassificationStore(skeleton_db).history(file_id) == []
+    set_policy(skeleton_db, by_number(9).policy, author="P7",
+               component_version=COMPONENT, user_id="joseph")
+    gate = Gate(skeleton_db, component_version=COMPONENT,
+                area_of=lambda _file_id: "Academics")
+    decision = gate.release(dataclasses.replace(
+        by_number(9).request, target=Target(file_ids=(file_id,), group_id=None)))
+    assert isinstance(decision, Denied)
+    assert decision.reason == "unclassified"
+    assert not isinstance(decision, Released)
+
+
+def test_this_step_proves_the_door_and_not_the_classification():
+    # Said once, in a test, so it survives the plan being archived. "P7 is done" and
+    # "the product classifies files" are different claims and only the first is
+    # deliverable from these twenty-two tasks.
+    detector_producers = []
+    for name in ("privacy.classification", "privacy.classification_store",
+                 "privacy.learning_seam", "privacy.gate"):
+        module = importlib.import_module(name)
+        detector_producers += [
+            attribute for attribute in vars(module)
+            if attribute.lower().startswith("detect")
+            or attribute.upper().startswith("RULE")]
+    assert detector_producers == []
+```
+
+- [ ] **Step 2: Run the test and watch it fail**
+
+Run: `pytest tests/p7/test_p7_skeleton_step.py -v`
+Expected: FAIL — `ImportError: cannot import name 'SKELETON_FIXTURE' from 'privacy.fixtures'`
+(collection fails on the first import; Task 20 published sixteen fixtures and named none of them as
+11 §9's second path).
+
+- [ ] **Step 3: Add `SKELETON_FIXTURE` to `src/privacy/fixtures.py`**
+
+Append to the module, below `MODE_SWEEP`:
+
+```python
+#: 11 §9's second fixture path, named as data rather than left to be rediscovered:
+#:
+#:     P7/P8   a dossier that requires sensitive text
+#:             Gate.release returns NeedsConsent
+#:             P13 presents the four §8.4 options
+#:             choosing no_model_use does not become abstain inside P8
+#:
+#: 11 §9 also says what kind of test that is -- "a contract test of B2, not an LLM
+#: test ... the minimum that makes the one privacy-failure seam exercisable without
+#: waiting for full depth". P7 owns the first two lines; the third is P13's and the
+#: fourth is P8's Done-means 13.
+SKELETON_FIXTURE: int = 10
+```
+
+- [ ] **Step 4: Run the test and watch it pass**
+
+Run: `pytest tests/p7/test_p7_skeleton_step.py -v`
+Expected: PASS — 21 passed
+
+- [ ] **Step 5: Run the whole repository**
+
+Run: `pytest tests/ -q`
+Expected: PASS — P7 complete, and the 1300 P1–P5 tests still green. This task touches
+`src/orchestrator.py`, `tests/wave2/` and `tests/conftest.py` **not at all**: it imports the Wave-2
+caller and asserts against it, and every P7 fixture it needs lives in `tests/p7/`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/privacy/fixtures.py tests/p7/test_p7_skeleton_step.py
+git commit -m "feat(P7): the walking-skeleton gate step, and 11 9's NeedsConsent path"
+```
+
+---
+
+## What these three tasks leave open, and to whom
+
+| Held open | Held by | Whose call |
+|---|---|---|
+| I6 — §8.4's delete versus §8.2's append-only | `vocabulary.HELD_OPEN["I6"]`; `delete_derived` refusing on both sides of D3's enumeration (Task 15) | Joseph — NEEDS-JOSEPH C1. D3 ratified the direction; nothing is built until P13 drives it. |
+| `filename` as a sixth releasable kind | SPEC Open question 2, asserted present and unresolved by Task 21 | Joseph — NEEDS-JOSEPH **B5d** and **C9a**. §8.4 names five kinds and puts *paths* in the always-local set; the SPEC adds a sixth and flags it itself. |
+| Whether P6 keeps a `sensitivity status` field row beside P7's record | `vocabulary.HELD_OPEN["P6-sensitivity-field-row"]`; Task 21 asserts P7 reads no P6 surface | Joseph. D2 settled which record is authoritative and did not settle whether a second row exists; P7's SPEC Contract-in still requires P6 to accept `sensitivity` as a universal field, and round 1 found that field has no producer. |
+| Which corner `norm` measures from | `vocabulary.HELD_OPEN["P4-region-origin"]`; Task 21 asserts P7 does no arithmetic on a region field | P4's, and nobody's yet — no document in the repository states an origin. P7 is the part that would otherwise answer it by accident, when it redacts a bounding box. |
+| What a *corpus area* is (Open question 3) | `Gate(area_of=…)`, a required keyword with no default; Task 20's fixtures carry the answer as data | Joseph — NEEDS-JOSEPH C3. |
+| Whether a replay bundle may carry audit records and excerpt spans (Open question 8) | Task 22 asserting `bundle_file_entry.handling_class` stays `None` and that `src/privacy/` imports no P2 writer | Joseph, and P2's. |
+| Whether the product classifies anything at all | Task 22's last two tests | **The detector.** No task in any plan produces one. Twenty-two tasks deliver a correct, locked door; they do not deliver a key. |

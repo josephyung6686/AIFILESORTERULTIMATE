@@ -1,0 +1,295 @@
+{
+  "catalogue": "09-residual-library/03-falls-through",
+  "date": "2026-08-21",
+  "status": "Residual/domain boundaries: the falls_through_to edges worth authoring, the two reach mechanisms, and 00's worked boundary cases. Consumed by P10 (tree design) and P11 (residual_candidates ordering); R1 output must stay compatible.",
+  "quote_convention": "Every curly-quoted span is verbatim from planning/00-database-agent-product-design.md, verified by check.py.",
+  "adopted_join": {
+    "note": "CONNECTION.md already defines falls_through_to and this file ADOPTS it without competing: an edge from a schema or template to a residual template NAME (one of 00's nine, spelled 00's way); residuals are never roster nodes; the edge is terminal by construction — residual names are never sources. A residual home that shadows a domain template must be connected by falls_through_to from that template or it is a duplicate, not a fallback (CONNECTION.md section 5 and invariant 5, paraphrased). Sources below use CONNECTION.md's illustrative schema ids (academic, college_applications, research, finance, identity, medical, legal, photos, code) — R1a mints the real roster and may rename; the edges and refusals are the binding content, per CONNECTION-EXAMPLES.md's own convention."
+  },
+  "complement_rule": {
+    "statement": "Residual is the complement of reliable domain association, not a parallel taxonomy. When a domain association is reliable, residual must not claim the file — the file goes back to the placement engine. When no association is reliable, the broad home is offered, and the honest empty answer stays legal.",
+    "provenance": "design",
+    "design_cite": "“Residual templates provide safe, intentionally broad destinations for files that have no reliable deeper association.” “If the LLM finds a credible connection to an accepted project, course, application, photo event, or career group, the file should be returned to the standard node-aware placement engine rather than being trapped in a generic residual folder.” And when nothing is reliable: “the correct result is leave in place, Review Later, or abstain” — “The model must be allowed to conclude that no meaningful association exists.”"
+  },
+  "reach_mechanisms": {
+    "note": "Two ways a file reaches residual review; only the first involves an authored edge.",
+    "a_falls_through_to": "A schema (or template) activated or was plausible, but no reliable deeper association landed — no accepted group, no destination clearing margin. The authored edge names the broad home worth offering for that source. P11's residual_candidates reads activation flags plus these edges (CONNECTION.md section 8, paraphrased).",
+    "b_empty_activation": "The activation set is empty (or safety-only): residual_candidate is true with no edge involved (CONNECTION.md section 4 step 7, paraphrased). Review Later, Unsupported or Encrypted, One-Off Images, and Independent Records are reached mostly this way — a file that activated nothing still gets a thoughtful home. An empty set is a correct outcome, not a failure.",
+    "workflow_note": "Which home is offered first when several apply is P11's ordering over these edges plus the review-set decisions; this file authors the edges and boundaries, not the ordering."
+  },
+  "edges": [
+    {
+      "from": "identity",
+      "from_kind": "schema",
+      "to": "Protected Records",
+      "when": "safety activation with no accepted deeper group — the isolated passport scan, visa, ID",
+      "does_not_fire_when": "an accepted packet claims the file: a passport inside an application packet goes with the packet, protection intact",
+      "provenance": "design",
+      "design_cite": "CONNECTION-EXAMPLES.md fixture: the passport scan's falls_through_to edge (paraphrased); 00: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”"
+    },
+    {
+      "from": "medical",
+      "from_kind": "schema",
+      "to": "Protected Records",
+      "when": "safety activation, isolated medical document",
+      "does_not_fire_when": "the document grouped — a medical packet that did group still is not residual; it belongs to its group with protection intact",
+      "provenance": "inference",
+      "design_cite": "00 lists “medical documents” in Protected Records' holds sentence; the edge from the medical safety placeholder is the inference."
+    },
+    {
+      "from": "legal",
+      "from_kind": "schema",
+      "to": "Protected Records",
+      "when": "safety activation, isolated legal form or record",
+      "does_not_fire_when": "an accepted matter or packet group claims it",
+      "provenance": "inference",
+      "design_cite": "00 lists “legal forms” in Protected Records' holds sentence: “passport scans, medical documents, account statements, visas, legal forms, or credentials” (sub-span of the holds sentence)."
+    },
+    {
+      "from": "finance",
+      "from_kind": "schema",
+      "to": "Protected Records",
+      "when": "safety activation, isolated AND P7-protected finance record — the lone account statement",
+      "does_not_fire_when": "finance-domain association is reliable (institution, account or record type, tax-year context) — the finance schema claims it; or an accepted group exists",
+      "provenance": "inference",
+      "design_cite": "00 lists “account statements” in Protected Records' holds sentence; the discriminator between this edge and the next is P7's protected state."
+    },
+    {
+      "from": "finance",
+      "from_kind": "schema",
+      "to": "Receipts and Confirmations",
+      "when": "isolated transactional document, not P7-protected — the lone purchase receipt, invoice, delivery confirmation",
+      "does_not_fire_when": "finance-domain association is reliable (tax records with institution and year context); or P7 protects it (previous edge wins); or an accepted purchase or trip group claims it",
+      "provenance": "inference",
+      "design_cite": "“Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.” — isolation is the edge's condition; reliability of the finance association is its negation."
+    },
+    {
+      "from": "travel",
+      "from_kind": "template",
+      "to": "Receipts and Confirmations",
+      "when": "a transactional travel document (boarding pass, booking, ticket) with no accepted trip group",
+      "does_not_fire_when": "an accepted trip group exists — the boarding pass that IS part of a trip group is travel-domain material, never residual",
+      "provenance": "inference",
+      "design_cite": "00's own boundary pair: the holds sentence names “boarding passes” for the isolated case, and the complement rule returns grouped members: “If the LLM finds a credible connection to an accepted project, course, application, photo event, or career group, the file should be returned to the standard node-aware placement engine rather than being trapped in a generic residual folder.” Travel is a template area in 00's library list; no travel schema exists unless R1a mints one — the source id is illustrative."
+    },
+    {
+      "from": "travel",
+      "from_kind": "template",
+      "to": "Temporary Screenshots",
+      "when": "a travel-shaped screenshot with no trip group and no approved travel branch — 00's Gate B12 case",
+      "does_not_fire_when": "the user approved a travel confirmations branch (the model recommends that broad destination instead); or a trip group claims it",
+      "provenance": "design",
+      "design_cite": "A screenshot reading “Gate B12 — Boarding at 18:20” “may be classified as a travel-related temporary confirmation”. “If the user has approved Personal/Travel/Confirmations, the model may recommend that broad destination and explain that no specific trip group was found.” Otherwise Photos/Temporary Screenshots or leave in place — and “It must not invent a folder called Travel/Flight Gate B12 or assume that a gate number identifies a particular trip.”"
+    },
+    {
+      "from": "research",
+      "from_kind": "schema",
+      "to": "Reading Inbox",
+      "when": "reading material (paper, report) with no active research association — no project, lab, or venue facts, no accepted research group",
+      "does_not_fire_when": "research-domain association is reliable — the paper with a validated project identifier belongs to research",
+      "provenance": "inference",
+      "design_cite": "“Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.” — the absence clause is the edge condition stated by 00; drawing it from the research schema is the inference."
+    },
+    {
+      "from": "academic",
+      "from_kind": "schema",
+      "to": "Reading Inbox",
+      "when": "reading material with no active course association — an article that looks academic but joins no course",
+      "does_not_fire_when": "coursework association is reliable (course code with academic context, accepted course group) — coursework readings are academic-domain material",
+      "provenance": "inference",
+      "design_cite": "same holds sentence, the “course” leg of “no active research, course, or project association”."
+    },
+    {
+      "from": "photos",
+      "from_kind": "schema",
+      "to": "One-Off Images",
+      "when": "an image with photo evidence but no event cluster, no project, no reference collection, no photo family",
+      "does_not_fire_when": "a deterministic photo-event proposal claims it — “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.”",
+      "provenance": "inference",
+      "design_cite": "“One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”"
+    },
+    {
+      "from": "photos",
+      "from_kind": "schema",
+      "to": "Temporary Screenshots",
+      "when": "screenshot-hypothesis signals with no accepted project, trip, application, or event relationship",
+      "does_not_fire_when": "the OCR resolves to a confirmed domain (application confirmation, receipt content routed by its own class); or a group claims it; or P7 protects it",
+      "provenance": "inference",
+      "design_cite": "“Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”"
+    },
+    {
+      "from": "code",
+      "from_kind": "schema",
+      "to": "Reference Clips",
+      "when": "a code snippet not part of any repository or project — a saved fragment, a screenshotted error",
+      "does_not_fire_when": "repository markers or an accepted code project claim the file — a source file inside a repo is code-domain material",
+      "provenance": "inference",
+      "design_cite": "00 lists “code snippets” among Reference Clips' holds: “saved visual inspiration, product references, quotes, recipes, short article captures, code snippets” (sub-span of the holds sentence)."
+    },
+    {
+      "from": "college_applications",
+      "from_kind": "schema",
+      "to": "Independent Records",
+      "when": "a standalone form or certificate with application-shaped language but no accepted packet — durable, isolated, unprotected",
+      "does_not_fire_when": "an accepted application packet claims it; or P7 protects it (Protected Records wins)",
+      "provenance": "inference",
+      "design_cite": "“Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+    }
+  ],
+  "no_edges_authored_for": {
+    "Review Later": "reached from the workflow, not from a schema: multi-plausible placement without a margin winner, the model's own Review Later action, and partial understanding are outcomes any source can produce. Authoring one edge per schema would say nothing; the reach is mechanism (b) plus P11's outcomes.",
+    "Unsupported or Encrypted": "reached from P5 extraction outcomes (unreadable, unsupported), not from schema activation — an unreadable file usually activated nothing. Mechanism (b).",
+    "Reading Inbox, One-Off Images, Independent Records (empty-set path)": "the edges above cover the activated-then-fell-through cases; the same homes are also reached by mechanism (b) when nothing activated at all. Both paths end at the same nine names."
+  },
+  "boundaries": [
+    {
+      "id": "b1",
+      "name": "grouped transactional material vs Receipts and Confirmations",
+      "rule": "A boarding pass that IS part of a trip group is travel-domain material (the group claims it). A boarding pass alone is Receipts and Confirmations. The same document, the same evidence — the difference is the accepted group.",
+      "provenance": "design",
+      "design_cite": "holds sentence names “boarding passes” for the isolated case; the complement rule covers the grouped case: “If the LLM finds a credible connection to an accepted project, course, application, photo event, or career group, the file should be returned to the standard node-aware placement engine rather than being trapped in a generic residual folder.”"
+    },
+    {
+      "id": "b2",
+      "name": "Receipts and Confirmations vs finance domain vs Independent Records vs Temporary Screenshots",
+      "rule": "Transactional test first: merchant/amount/booking/ticket markers route to Receipts and Confirmations; durable non-transactional records (certificates, notices, forms) to Independent Records. Reliable finance-domain association (institution plus record type plus tax-year context) outranks both — the schema claims the file. A screenshot whose OCR is a full transactional document is claimed by content class (Receipts and Confirmations when enabled); the plain time-sensitive capture stays Temporary Screenshots, 00's own fallback in the Gate B12 case. When two homes stay plausible without a winner, that is the multiple-plausible-destinations review set, not a coin flip.",
+      "provenance": "inference",
+      "design_cite": "the two holds sentences partition the space; “16 files with multiple plausible destinations” is 00's surfacing of the tie case."
+    },
+    {
+      "id": "b3",
+      "name": "Temporary Screenshots vs photo-event domain vs confirmed-domain OCR",
+      "rule": "EXIF/GPS/time-cluster evidence makes a photo-event proposal — the photos domain claims it, never residual. Screenshot-hypothesis signals route to Temporary Screenshots only when no accepted relationship exists. OCR that resolves to a confirmed domain leaves residual entirely: the Columbia case returns to the placement engine.",
+      "provenance": "design",
+      "design_cite": "“Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” A screenshot with OCR reading “Your Columbia University application has been submitted” must not be treated as a generic screenshot — the model retrieves the accepted application group and returns the file to normal placement. Absence is never proof: “the system must not mistake the absence of EXIF for proof that an image is a screenshot”."
+    },
+    {
+      "id": "b4",
+      "name": "Protected Records vs everything — isolated-and-sensitive vs grouped-and-sensitive",
+      "rule": "P7's protected state plus isolation is the membership test. Sensitive AND grouped is not residual: a medical packet that did group belongs to its group; a passport inside an accepted application packet goes with the packet — protection travels with the file regardless of destination. Sensitive AND isolated falls to Protected Records. Not sensitive at all: the other homes' rules apply. The screenshot-of-a-passport is Protected Records, never Temporary Screenshots — content class outranks capture mechanism. P7 owns the detector (R2's content, pending in deferred-catalogues/08); this library never re-detects.",
+      "provenance": "design",
+      "design_cite": "“Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.” — surfacing is not placement; where the surfacing lands is NJ-4, open. “A file may validly belong to more than one accepted group, such as a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet.” — the packet keeps its members."
+    },
+    {
+      "id": "b5",
+      "name": "One-Off Images vs photo-event domain",
+      "rule": "A time/GPS/camera cluster is a deterministic event proposal — photos domain. A single unclustered photo, or a stripped-metadata image with no screenshot signals, is One-Off Images.",
+      "provenance": "design",
+      "design_cite": "“Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” “Messaging platforms and downloaded web images often strip metadata from real photographs.”"
+    },
+    {
+      "id": "b6",
+      "name": "Reference Clips vs One-Off Images vs Temporary Screenshots vs Reading Inbox",
+      "rule": "Content class first: recipe/product/quote/inspiration/snippet content routes to Reference Clips regardless of being a screenshot or photo. Time-sensitive or reminder content routes to Temporary Screenshots. Long-form documents to read route to Reading Inbox (a clip is kept to glance at; reading material is kept to read). What remains with no class is One-Off Images.",
+      "provenance": "inference",
+      "design_cite": "“Likewise, an image containing a recipe, product listing, quote, or visual inspiration may be proposed for Personal/Reference Clips if that user-approved branch exists.” — content class decides, per 00's own worked example."
+    },
+    {
+      "id": "b7",
+      "name": "Reference Clips vs current projects",
+      "rule": "Material belonging to a current project is domain material: a code snippet inside a repository, assets of an active design project. Reference Clips holds only what “does not belong to a current project”.",
+      "provenance": "design",
+      "design_cite": "sub-span of the holds sentence: “useful for later retrieval but does not belong to a current project”."
+    },
+    {
+      "id": "b8",
+      "name": "Reading Inbox vs research domain vs coursework readings",
+      "rule": "A paper with a validated project/lab/venue association is research-domain material. A reading with a reliable course association is academic-domain material. Reading Inbox holds only what has “no active research, course, or project association” — the inbox is where reading material waits for an association, not a parallel library.",
+      "provenance": "design",
+      "design_cite": "the holds sentence's absence clause is the whole boundary."
+    },
+    {
+      "id": "b9",
+      "name": "Unsupported or Encrypted vs P5 outcomes vs files that never were rows",
+      "rule": "Claims files whose extraction run ended unreadable (damaged, password-protected, corrupted) or unsupported (no extractor). Cannot claim: iCloud-dataless files (never opened — nothing was seen; the user materializes first; planning/11-ops-runtime.md section 5, paraphrased); contents of protected containers (application bundles and system items are never scanned and never become files rows — planning/11-ops-runtime.md section 4b, paraphrased; residual cannot claim a file that was never a files row — this also covers the Apple Photos library package: its internals, including hidden items, are outside the corpus); budget-deferred files (deferred is not unreadable — the file waits). Purpose is never inferred from the filename of an unreadable file.",
+      "provenance": "design",
+      "design_cite": "“Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone.” “Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open or allowed to become decompression-bomb risks.” “The system should never silently treat an unsupported format as an empty document, because an empty extraction result is different from an extractor that does not yet exist.”"
+    },
+    {
+      "id": "b10",
+      "name": "Review Later as the tie-breaker, never the dumping ground",
+      "rule": "Review Later claims only partial understanding and unresolved ties. Full understanding places; zero understanding with unreadable content is Unsupported or Encrypted; zero understanding with readable content but no association is the other homes' empty-set territory or leave-in-place. The honest terminal outcomes stay legal everywhere: “leave in place, Review Later, or abstain”.",
+      "provenance": "design",
+      "design_cite": "“Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.” “An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path.”"
+    },
+    {
+      "id": "b11",
+      "name": "negative examples reroute before residual claims again",
+      "rule": "A user rejection of a residual destination is stored and routes look-alikes back toward domain review — the boundary moves with the user's corrections.",
+      "provenance": "design",
+      "design_cite": "“If the user rejects Receipts and Confirmations for a set of PDFs because they are actually school forms, the system records those negative examples and can route future similar files back toward Academic or Applications review rather than repeating the same mistake.”"
+    }
+  ],
+  "worked_cases": [
+    {
+      "case": "boarding pass inside an accepted trip group",
+      "outcome": "travel domain via the group; residual never offered",
+      "boundary": "b1"
+    },
+    {
+      "case": "boarding pass alone, no trip group",
+      "outcome": "Receipts and Confirmations offered (edge travel → Receipts and Confirmations); leave-in-place stays legal",
+      "boundary": "b1"
+    },
+    {
+      "case": "gate screenshot, no trip group, travel branch approved",
+      "outcome": "the approved travel confirmations branch, with the explanation that no specific trip group was found",
+      "boundary": "b3"
+    },
+    {
+      "case": "gate screenshot, no trip group, no travel branch",
+      "outcome": "Temporary Screenshots or leave in place; never an invented Travel/Flight Gate B12",
+      "boundary": "b3"
+    },
+    {
+      "case": "passport scan alone",
+      "outcome": "Protected Records (edge identity → Protected Records); filenames and content never in prompts",
+      "boundary": "b4"
+    },
+    {
+      "case": "passport scan inside an accepted application packet",
+      "outcome": "applications group claims it, protection intact; not residual",
+      "boundary": "b4"
+    },
+    {
+      "case": "screenshot of a passport",
+      "outcome": "Protected Records, never Temporary Screenshots — content class outranks capture mechanism",
+      "boundary": "b4"
+    },
+    {
+      "case": "screenshot whose OCR reads an application submission confirmation",
+      "outcome": "returned to the placement engine against the accepted application group; no residual home",
+      "boundary": "b3"
+    },
+    {
+      "case": "paper with a validated project identifier",
+      "outcome": "research domain; Reading Inbox never offered",
+      "boundary": "b8"
+    },
+    {
+      "case": "article PDF in Downloads, no association",
+      "outcome": "Reading Inbox offered; leave in place stays legal",
+      "boundary": "b8"
+    },
+    {
+      "case": "school forms that looked like receipts",
+      "outcome": "user rejection recorded; future look-alikes route toward Academic or Applications review",
+      "boundary": "b11"
+    },
+    {
+      "case": "password-protected archive",
+      "outcome": "Unsupported or Encrypted (or represented without moving); never forced open, purpose never inferred from its name",
+      "boundary": "b9"
+    },
+    {
+      "case": "iCloud-dataless file",
+      "outcome": "not claimable by any residual home — never opened, no extraction run exists; surfaced for materialization instead",
+      "boundary": "b9"
+    },
+    {
+      "case": "file inside an application bundle",
+      "outcome": "never a files row; invisible to residual by construction",
+      "boundary": "b9"
+    }
+  ]
+}

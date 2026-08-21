@@ -311,7 +311,13 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 
 # Added 2026-08-21 (midday), after the decisions were answered
 
-**C1 · The 566 template dimensions with no schema field — the largest open item in the catalogue**
+> **Label correction, 2026-08-22.** The six items added on 21–22 August were numbered C1–C6, which
+> **collided with the pre-existing C1–C14** in P7's table above — six labels each meaning two
+> different things, in the document whose whole job is to be unambiguous. Renumbered **C20–C25**.
+> Anything citing the old numbers (including `_PLAN-AUTHORING-BRIEF.md`, now corrected) meant these.
+
+
+**C20 · The 566 template dimensions with no schema field — the largest open item in the catalogue**
 
 > `planning/domains/check.py` now fails at 566 and this is deliberate. **566 of 1,648 template
 > dimensions branch on a field the same domain's schema does not declare.** A domain is a schema
@@ -336,7 +342,7 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > Nothing was invented to make this green. The systematic offenders are `document_type` 104,
 > `artifact_type` 50, `client` 34, `matter` 28, `project` 27 — five names are 243 of the 566.
 
-**C2 · The name an OCR run carries when the engine crashed before reporting its own**
+**C21 · The name an OCR run carries when the engine crashed before reporting its own**
 
 > §2.7's first two persisted fields are the OCR provider and its version, and both come from the
 > engine's return value (`output.provider`). An engine that RAISES returns nothing, so neither is
@@ -352,7 +358,7 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > record no run at all (silently loses the fact that OCR was attempted and failed), or invent a
 > provider string (worse). Ratify the spelling or replace it.
 
-**C3 · P4's `norm` region unit does not say where the origin is, and §8.4 redacts against it**
+**C22 · P4's `norm` region unit does not say where the origin is, and §8.4 redacts against it**
 
 > `REGION_UNITS` is `("px", "norm")` and `Region` is `(x, y, w, h, unit)`. Neither says whether the
 > origin is top-left or bottom-left. **Apple Vision reports bottom-left; almost every other image
@@ -372,7 +378,7 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > in a write. Worth a check at the constructor — though note P4 already owns that rule, so the check
 > belongs in P4 and not in P5's `shape.location`.
 
-**C4 · pdfminer.six is chosen but provisional**
+**C23 · pdfminer.six is chosen but provisional**
 
 > Chosen on the repo's own contract, not on taste: `Region` says the reader names the zone *"because
 > that is library knowledge (a heading style, a table cell, a footer)"*, and §2.2 requires headings
@@ -385,7 +391,7 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > PDFKit, the thing to check is whether it can distinguish a heading from body text**; if it can
 > only give geometry, zone quality drops and §3.7's positional weighting gets weaker evidence.
 
-**C5 · Does P6 keep a `sensitivity status` field row beside P7's authoritative record?**
+**C24 · Does P6 keep a `sensitivity status` field row beside P7's authoritative record?**
 
 > D2 answered OQ11's actual question — *which record is authoritative* — and the answer is P7's
 > `ClassificationRecord`. It did **not** answer a second question hiding behind it: §3.11 lists
@@ -415,7 +421,7 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > guess here is the defect class that has cost this project the most. **This is the last live piece
 > of OQ11 and it blocks P7 Task 4.**
 
-**C6 · `SensitivityFacts` is a P6 seam that D2 left with nothing on the other side**
+**C25 · `SensitivityFacts` is a P6 seam that D2 left with nothing on the other side**
 
 > P7's plan defines `facts_seam.SensitivityFacts` as *"P7 talks to P6 through one injected
 > protocol"* — `current` / `write` / `supersede` / `history` over a sensitivity fact P6 owned. **D2

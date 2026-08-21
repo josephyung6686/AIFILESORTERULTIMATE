@@ -1,0 +1,281 @@
+{
+  "list_id": "course_code_formats",
+  "title": "12/02 — Course-code formats (patterns, never a list of courses)",
+  "version": "1.0",
+  "authored": "2026-08-21",
+  "owner": "P6 (injected) — Task 10's `Rule(pattern, required_context_terms, field_key)` instances",
+  "consumer": "P6 Task 10 (src/facts/rules.py) as injected Rule data, and CONNECTION.md section 4 step 1, where a course-code pattern plus catalogue 01's context terms is the worked example of a deterministic activation signal for the Academic schema. Values matched here auto-create in P6's `values` table; formats are the only thing authored.",
+  "match_field": "raw text of an observation in any text-bearing zone (filename, title, heading, body, table, ocr, manifest). The match yields a candidate value for the academic field.",
+  "field_key": "subject",
+  "field_key_note": "D6 is ratified (2026-08-21, _CONTRACT.md rule 8, DECISION-BRIEF.md): the stored academic key is `subject`; `course` is the design's prose for the same concept and survives inside quotations only. Patterns match the VALUE (`BUSIB 4300`) regardless of the key's spelling — fixture A03 spells the field `course` because it predates the ratification, and its forbidden VALUES bind unchanged.",
+  "normalization_for_matching": "case-sensitive, uppercase department block (see rules — case-insensitivity would let month names and ordinary words become departments). Word-boundary on both ends. The matched candidate keeps its raw spacing as `raw value`; the resolver may normalize `BUSIB4300` and `BUSIB 4300` into one value (P4 keeps raw evidence, §2.8).",
+  "seam_with_10_04": {
+    "overlap": "planning/deferred-catalogues/10-gazetteers/04-course-code-formats.json (R4) also authors the DEPT-space-number and DEPT-attached-number families. R4's file flags the fork itself: its unc-r6-merge-owner row asks which of the two files is the one owner, and its term_collision_guard note says the overlapping token lists 'must be unified when the course-code-format seam gets one owner'. Two catalogues carrying the same families will drift; exactly one must be the injected source.",
+    "differences": [
+      "letter block: 10/04 uses [A-Z]{2,6}; this file uses [A-Z]{2,5} (six-letter subject codes are rare and the sixth letter buys extra month/word collisions — e.g. AUGUST 2024 would enter a {2,6} shape)",
+      "guards: 10/04 carries a four-prefix term_collision_guard (AY/FY/CY/SY); this file carries the fuller dept_stoplist (months, seasons, standards bodies, camera prefixes, FORM/ROOM/SUITE/UNIT/APT) plus the catalogue-04 filename-zone arbitration",
+      "number-dot-department: 10/04 leaves every dotted form unauthored (its unc-number-dot-forms); this file authors 1234.DEPT as `proposal` with a mandatory extension stoplist, because the dispatch names the shape",
+      "MIT department.number: both files independently refuse it for the same reason (software versions); neither authors it"
+    ],
+    "resolution": "NEEDS-JOSEPH (README.md NJ-R6-1): pick the single owner. Until answered, an implementer must inject exactly one of the two files, never both; the entries here are the stricter superset of guards and are what check.py exercises.",
+    "not_touched": "this file does not edit 10/04 (outside R6's allowed paths) and does not consume it by reference, because the fork is about which file exists at all."
+  },
+  "design_cites": [
+    {
+      "cite": "00 (§3.5)",
+      "quote": "BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”"
+    },
+    {
+      "cite": "00 (§8.5 adversarial suite)",
+      "quote": "course-code patterns that are actually ZIP codes or device models"
+    },
+    {
+      "cite": "00 (§4.1 — the worked sparse file)",
+      "quote": "A file named HW 3.pdf may contain only equations and the phrase “Homework 3,”"
+    }
+  ],
+  "rules": [
+    "**Context is required on every entry, with no exception.** A match with no catalogue-01 context term in the surrounding window produces no fact and one `unresolved` row with reason `context_check_failed` (P6 SPEC). There is no such thing as a context-free course-code entry in this file, and check.py asserts the flag on every row.",
+    "**This is a format list, not a course list.** No entry names a real course, department, or university. Values auto-create at runtime (00 §3.12); formats are the authored half.",
+    "**The stoplist is load-bearing, and it exists because context is not enough.** A genuinely academic document can contain course-code-shaped strings that are not courses: a quality-management syllabus cites ISO 9001 beside the word 'syllabus'; a tax pack mentions FORM 1040 beside 'credits'. `dept_stoplist` names letter blocks that never open a course candidate even when context terms are present. It is a list of strings, not a threshold.",
+    "**Case-sensitivity is a defense, not a style choice.** Case-insensitive matching would admit `March 2010`, `June 2024` (month + year) and ordinary words as department blocks. The cost — lowercase course codes in filenames (`phys1401_hw3.pdf`) are missed — is recorded as an uncertain row, not silently absorbed.",
+    "**Arbitration with catalogue 04 (camera filenames).** The DCF basename shape (four uppercase alphanumerics + four digits) is refused as a camera pattern in catalogue 04 precisely because it is exactly the shape of an attached course code. The reciprocal rule here: in the `filename` zone, a string whose whole-filename match is claimed by a catalogue-04 camera pattern is not simultaneously a course-code candidate. Camera-prefix blocks (DSC, DSCF, DSCN, PICT, CIMG, IMGP) are additionally stoplisted so `DSCF1234` never opens a candidate in any zone.",
+    "**Ranking still applies.** Passing pattern + context makes a candidate `validated`-eligible, not written: §3.7's ranked candidates with injected minimum score and margin still run (the design requires both), and the positional difference between a course code in a reference list and the same code in a page-one heading is carried by P6's positional weights over P4 zones.",
+    "**No numbers.** Regex quantifier bounds ({2,5}, {3,4}) are the pattern's shape, not decision thresholds; no entry carries a score, weight, or window."
+  ],
+  "dept_stoplist": [
+    {"token": "ISO", "why": "standards body — ISO 9001 in a quality-management syllabus is a standard, not a course; context terms would be present, so shape alone must refuse"},
+    {"token": "IEC", "why": "standards body (IEC 61131)"},
+    {"token": "IEEE", "why": "standards body (IEEE 802.11 — dotted, but IEEE 1394 is plain)"},
+    {"token": "ANSI", "why": "standards body (ANSI 1264)"},
+    {"token": "DIN", "why": "standards body (DIN 4102)"},
+    {"token": "ASTM", "why": "standards body (ASTM 1064 forms occur beside course-like prose in engineering coursework)"},
+    {"token": "SAE", "why": "standards body (SAE 1010)"},
+    {"token": "RFC", "why": "IETF documents (RFC 2616) — pervasive in CS coursework, where context terms are guaranteed"},
+    {"token": "NIST", "why": "standards body (NIST 8259)"},
+    {"token": "HW", "why": "the design's own worked example: HW 3 is homework, a work-type clue — never a course code. {3,4} digits already exclude `HW 3`; the stoplist also kills `HW 2024` styles"},
+    {"token": "AY", "why": "academic-year designator — `AY 2024-25` must be a term candidate (catalogue 03), never a course `AY 2024`"},
+    {"token": "FY", "why": "fiscal-year designator — `FY 2025` belongs to catalogue 04's fiscal family"},
+    {"token": "WS", "why": "German Wintersemester abbreviation — `WS 2024/25` is a term (catalogue 03)"},
+    {"token": "FORM", "why": "government forms — `FORM 1040` beside 'tax credits' would otherwise validate a course"},
+    {"token": "ROOM", "why": "room numbers — `ROOM 1204` in an all-caps schedule heading"},
+    {"token": "SUITE", "why": "street addresses — `SUITE 1200`"},
+    {"token": "UNIT", "why": "apartment/storage numbers — `UNIT 4300` (UK curricula say `Unit 4`, single digit, already shape-excluded)"},
+    {"token": "APT", "why": "apartment numbers — `APT 1204`"},
+    {"token": "FALL", "why": "season + year — `FALL 2025` in an all-caps heading matches the dept-space-number shape; it is a term candidate (catalogue 03), never a department"},
+    {"token": "JAN", "why": "month abbreviation + year"},
+    {"token": "FEB", "why": "month abbreviation + year"},
+    {"token": "MAR", "why": "month abbreviation + year"},
+    {"token": "APR", "why": "month abbreviation + year"},
+    {"token": "MAY", "why": "month + year (`MAY 2024`)"},
+    {"token": "JUN", "why": "month abbreviation + year"},
+    {"token": "JUL", "why": "month abbreviation + year"},
+    {"token": "AUG", "why": "month abbreviation + year"},
+    {"token": "SEP", "why": "month abbreviation + year"},
+    {"token": "SEPT", "why": "month abbreviation + year"},
+    {"token": "OCT", "why": "month abbreviation + year"},
+    {"token": "NOV", "why": "month abbreviation + year"},
+    {"token": "DEC", "why": "month abbreviation + year"},
+    {"token": "MARCH", "why": "full month name within the {2,5} letter range"},
+    {"token": "APRIL", "why": "full month name within the {2,5} letter range"},
+    {"token": "JUNE", "why": "full month name within the {2,5} letter range"},
+    {"token": "JULY", "why": "full month name within the {2,5} letter range"},
+    {"token": "DSC", "why": "camera filename prefix (catalogue 04) — DSC1234"},
+    {"token": "DSCF", "why": "camera filename prefix (Fujifilm) — DSCF1234 is catalogue 04's own worked collision"},
+    {"token": "DSCN", "why": "camera filename prefix (Nikon)"},
+    {"token": "PICT", "why": "camera filename prefix — PICT0001"},
+    {"token": "CIMG", "why": "camera filename prefix (Casio)"},
+    {"token": "IMGP", "why": "camera filename prefix (Pentax)"}
+  ],
+  "entries": [
+    {
+      "id": "ccf-dept-space-number",
+      "pattern": "\\b[A-Z]{2,5} \\d{3,4}[A-Z]{0,2}\\b",
+      "match_kind": "regex",
+      "case_sensitive": true,
+      "word_boundary": true,
+      "context_required": true,
+      "provenance": "design",
+      "pattern_label": "department block, space, course number (DEPT 1234)",
+      "rationale": "The design's own value: BUSIB 4300. Registrar conventions across US/CA/AU/UK institutions use a 2–5 letter subject code plus a 3–4 digit number, optionally suffixed with letters (honors/lab/writing sections: `MATH 2010W`, `CHEM 1210L`). Five-digit numbers exist (Notre Dame — verified, RESEARCH.md) but are rare and collide with ZIP codes, so {3,4} is the authored shape and the 5-digit extension is an uncertain row. Three-digit forms (`CS 152`, `PHYS 101`) are ubiquitous.",
+      "design_cite": "00 §3.5",
+      "false_positive_risk": "high without context, low with",
+      "false_friends": "state + ZIP (`MA 02139` — excluded by shape: five digits), device models (`XPS 13` — excluded: two digits; `RTX 4090` — matches and must die at the context check or margin; A03's own case), flight numbers (`UA 1234`), all-caps months (`JUNE 2024` — stoplisted), seasons (`FALL 2025` — stoplisted), standards (`ISO 9001` — stoplisted), forms (`FORM 1040` — stoplisted), pull requests (`PR 1234` — not stoplisted because PR is a plausible department; documented residual risk)",
+      "example_true": "BUSIB 4300",
+      "example_true_2": "PHYS 1401",
+      "example_true_3": "MATH 2010W",
+      "example_false": "MA 02139",
+      "example_false_2": "XPS 13",
+      "example_false_3": "HW 3",
+      "source": "Notre Dame registrar course-numbering page (verified, RESEARCH.md); the 2–5-letter + 3–4-digit convention is a general-knowledge anchor recorded there"
+    },
+    {
+      "id": "ccf-dept-attached-number",
+      "pattern": "\\b[A-Z]{2,5}\\d{3,4}[A-Z]{0,2}\\b",
+      "match_kind": "regex",
+      "case_sensitive": true,
+      "word_boundary": true,
+      "context_required": true,
+      "provenance": "design",
+      "pattern_label": "department block attached to course number (DEPT1234)",
+      "rationale": "The attached form is standard in the UK (`COMP0034` UCL), Australia (`COMP1511` UNSW), and in informal US usage and filenames (`PHYS1401`, the design's grouping example). This is the single most dangerous shape in the file: it is exactly JEITA CP-3461's DCF camera basename form, which catalogue 04 refuses for the mirror-image reason. Context requirement, the camera-prefix stoplist rows, and the filename-zone arbitration rule carry the defense together.",
+      "design_cite": "00 §4.3 (PHYS1401 appears attached throughout the grouping walkthrough)",
+      "false_positive_risk": "high without context, medium with (filename zone)",
+      "false_friends": "DCF camera basenames (`DSCF1234`, `PICT0001` — stoplisted prefixes + catalogue-04 arbitration), flight numbers (`UA1234`, `QF0012`), GPU/product SKUs (`RTX4090` — context check), Apple model numbers (`A2338` — excluded: one letter), airline booking refs (`ABC123` — three digits, matches; context check carries it)",
+      "example_true": "PHYS1401",
+      "example_true_2": "COMP1511",
+      "example_true_3": "ECON1001",
+      "example_false": "DSCF1234",
+      "example_false_2": "A2338",
+      "example_false_3": "v2024",
+      "source": "JEITA CP-3461 via catalogue 04; UNSW/UCL course-code conventions (RESEARCH.md)"
+    },
+    {
+      "id": "ccf-number-dot-dept",
+      "pattern": "\\b\\d{3,4}\\.[A-Z]{2,5}\\b",
+      "match_kind": "regex",
+      "case_sensitive": true,
+      "word_boundary": true,
+      "context_required": true,
+      "provenance": "proposal",
+      "pattern_label": "course number, dot, department block (1234.DEPT)",
+      "rationale": "Named by the dispatch as a format to catalogue. Research found no confirmed registrar system that writes number-dot-department in this exact order (the well-known dotted convention is MIT's department.number, which is the uncertain row `unc-mit-dot-number`, not this). Authored as `proposal` so the shape exists for Joseph to keep or drop — see NEEDS-JOSEPH. The extension stoplist is mandatory for this row: a numerically named file with an uppercase extension (`4300.PDF`) is exactly this shape.",
+      "extension_stoplist_required": true,
+      "extension_stoplist": ["PDF", "DOC", "DOCX", "TXT", "JPG", "JPEG", "PNG", "GIF", "HEIC", "HEIF", "WEBP", "BMP", "TIFF", "TIF", "RAW", "CR2", "CR3", "NEF", "ARW", "DNG", "AAE", "ZIP", "RAR", "GZ", "TAR", "CSV", "TSV", "MOV", "AVI", "MP4", "M4V", "MKV", "MP3", "M4A", "WAV", "FLAC", "XLSX", "XLS", "PPTX", "PPT", "KEY", "PAGES", "NUMBERS", "MD", "HTML", "HTM", "XML", "JSON", "YAML", "YML", "TOML", "INI", "LOG", "TMP", "BAK", "EPUB", "RTF", "ODT", "ODS", "ODP", "SVG", "PSD", "DMG", "PKG", "EXE", "APP", "ICS", "VCF", "EML", "MSG"],
+      "extension_stoplist_note": "uppercase spellings of common file extensions — the shape `4300.PDF` is a numerically named file, not a course. The list is extendable data; an uppercase extension it misses is the priced-in residual risk of this row's `proposal` status (NUMBERS is seven letters and outside the {2,5} pattern anyway; it is listed for readers, not for the regex).",
+      "design_cite": "dispatch prompt §B (no design sentence names this shape)",
+      "false_positive_risk": "high",
+      "false_friends": "filenames with uppercase extensions (`4300.PDF` — extension stoplist), legal citations (`1983.SCOTUS`-style informal cites), decimal-plus-unit strings (`1000.USD`)",
+      "example_true": "4300.BUSIB",
+      "example_false": "4300.PDF",
+      "example_false_2": "3.10",
+      "source": "dispatch prompt; no external registrar source found (RESEARCH.md)"
+    }
+  ],
+  "refused": [
+    {
+      "id": "ref-hw-ordinal",
+      "pattern": "\\bHW\\s?\\d{1,2}\\b",
+      "match_kind": "regex",
+      "case_sensitive": false,
+      "pattern_label": "HW + small ordinal (HW 3)",
+      "provenance": "design",
+      "rationale": "The design's worked sparse file. `HW 3` is a work-type clue — homework-ness — never a course code: the design resolves it through grouping context, explicitly not by minting a course fact from the name. The shape is doubly excluded here: HW is stoplisted and {3,4} refuses one- and two-digit numbers. It belongs to the deferred work-type value evidence, not to this file.",
+      "quote": "the homework may have a homework-like name",
+      "design_cite": "00 §4.3",
+      "example_false": "HW 3"
+    },
+    {
+      "id": "ref-zip-state",
+      "pattern": "\\b[A-Z]{2} \\d{5}(-\\d{4})?\\b",
+      "match_kind": "regex",
+      "case_sensitive": true,
+      "pattern_label": "US state + ZIP (MA 02139), ZIP+4",
+      "provenance": "design",
+      "rationale": "A03's first forbidden value. The five-digit block is why every entry above stops at {3,4}: widening to {3,5} would make each mailing address a course candidate, and no context check should be asked to carry that. ZIP codes are also a named non-date in catalogue 12/04.",
+      "design_cite": "00 §8.5",
+      "example_false": "MA 02139"
+    },
+    {
+      "id": "ref-bare-number",
+      "pattern": "\\b\\d{3,4}\\b",
+      "match_kind": "regex",
+      "case_sensitive": false,
+      "pattern_label": "a bare 3–4 digit number",
+      "provenance": "design",
+      "rationale": "Never a course without its department block. The design's date section names the failure class — year-shaped numbers that are course identifiers, versions, builds, ZIPs — and the same ambiguity runs the other way: a bare number is not a course either. A bare number is never-alone by construction in this file because no entry matches one.",
+      "design_cite": "00 §3.10",
+      "example_false": "4300"
+    },
+    {
+      "id": "ref-device-model",
+      "pattern": "(device-model strings sharing entry shapes)",
+      "match_kind": "note",
+      "case_sensitive": false,
+      "pattern_label": "device models (XPS 13, RTX 4090, A2338)",
+      "provenance": "design",
+      "rationale": "A03's second forbidden value class, and the reason shape alone can never validate: `RTX 4090` is lexically a perfect DEPT-space-number. There is no shape that separates device models from course codes, so the defense is layered — context required (a receipt has no floor term), the §3.7 margin, and A03 as the standing acceptance test. Recorded as refused so nobody 'fixes' the overlap by widening the stoplist into a product catalogue.",
+      "design_cite": "00 §8.5",
+      "example_false": "XPS 13"
+    },
+    {
+      "id": "ref-issue-build-refs",
+      "pattern": "(#\\d+, build \\d+, PR \\d+, RC\\d, r\\d+)",
+      "match_kind": "note",
+      "case_sensitive": false,
+      "pattern_label": "issue numbers, build numbers, release candidates, revisions",
+      "provenance": "inference",
+      "rationale": "Issue and build references are the dispatch's named false-friend class for course codes. `#1234` and `build 4300` fail every entry shape (no uppercase letter block / lowercase). `PR 1234` passes ccf-dept-space-number's shape and PR is deliberately NOT stoplisted (PR is a plausible subject block at some institutions); the context check plus the improbability of floor terms in changelogs carry it, and the residual risk is documented on that entry.",
+      "design_cite": "00 §3.10 (build numbers as a named confusable class)",
+      "example_false": "build 4300"
+    },
+    {
+      "id": "ref-single-letter-alnum",
+      "pattern": "\\b[A-Z]\\d{1,4}\\b",
+      "match_kind": "regex",
+      "case_sensitive": true,
+      "pattern_label": "single letter + digits (B12, A380, C3)",
+      "provenance": "inference",
+      "rationale": "One letter is not a department. The design's own residual example is a boarding-gate screenshot — Gate B12 — and B12 is also a vitamin, A380 an aircraft, C3 a spreadsheet cell. Every entry requires {2,5} letters for exactly this reason.",
+      "design_cite": "00 §7.8 (the Gate B12 residual worked example)",
+      "example_false": "B12"
+    }
+  ],
+  "uncertain": [
+    {
+      "id": "unc-mit-dot-number",
+      "pattern": "\\b\\d{1,2}\\.\\d{2,4}\\b",
+      "match_kind": "regex",
+      "pattern_label": "MIT department.number (6.042, 18.06)",
+      "provenance": "inference",
+      "rationale": "MIT's convention is real and famous, but the shape is indistinguishable from software versions (3.12), section references (3.10 — this repo's own locators), decimals, and chapter.section numbers. A Python course syllabus containing 'Python 3.12' beside 'credits' would validate course = 3.12 under any honest reading of pattern+context. If wanted, it needs stronger guards than this file can state: zone restriction (filename/title/heading only), an explicit MIT-context gazetteer hit, and margin. Left unauthored pending corpus evidence.",
+      "example_true": "6.042",
+      "example_false": "Python 3.12"
+    },
+    {
+      "id": "unc-five-digit-numbers",
+      "pattern": "[A-Z]{2,5}\\s?\\d{5}",
+      "match_kind": "regex",
+      "pattern_label": "five-digit course numbers (Notre Dame CSE 30151-style)",
+      "provenance": "inference",
+      "rationale": "Some registrars use five digits. Admitting {5} makes every `MA 02139`-style address a candidate and hands the whole defense to the stoplist and context. Excluded from v1; needs corpus evidence that five-digit courses appear in the user's files at a rate that justifies the ZIP collision.",
+      "example_true": "CSE 30151",
+      "example_false": "MA 02139"
+    },
+    {
+      "id": "unc-lowercase-filename-codes",
+      "pattern": "(case policy, not a new shape)",
+      "match_kind": "note",
+      "pattern_label": "lowercase course codes in filenames (phys1401_hw3.pdf)",
+      "provenance": "proposal",
+      "rationale": "Real filenames are often lowercase, and the case-sensitive rule above misses them. A zone-conditional policy — case-insensitive matching in the `filename` zone only, with the stoplist checked case-insensitively too — would recover them at the cost of admitting `march2010.pdf`-style names as candidates. This is a fork for Joseph: per-zone case policy is mechanism, and this file only records the data cost of each choice.",
+      "example_true": "phys1401_hw3.pdf",
+      "example_false": "march2010_photos.zip"
+    },
+    {
+      "id": "unc-ambiguous-dept-tokens",
+      "pattern": "(EN, BS, PS, MA as department blocks)",
+      "match_kind": "note",
+      "pattern_label": "two-letter blocks that are also standard abbreviations",
+      "provenance": "inference",
+      "rationale": "EN 1090 is a European standard and EN 101 an English course; BS 5950 a British Standard and BS a business-school prefix; PS 101 political science and PS 2 a problem set or a PlayStation (single digit — shape-excluded); MA 02139 a ZIP (five digits — shape-excluded) and MA 4300 a maths module. None is stoplisted, because each is a real department somewhere; each is recorded so the collision is visible when tuning weights. The {3,4} digit rule already separates the worst cases.",
+      "example_true": "MA 4300",
+      "example_false": "MA 02139"
+    },
+    {
+      "id": "unc-compound-dept-codes",
+      "pattern": "(ECE/CS 552, 4CCS1FC1 and similar)",
+      "match_kind": "note",
+      "pattern_label": "cross-listed and UK-module compound codes",
+      "provenance": "inference",
+      "rationale": "Cross-listed courses (`ECE/CS 552`) and King's-style module codes (`4CCS1FC1`) exist but each institution's compound grammar differs; a generic compound pattern would be an over-match engine. The simple entries above already match the components (`CS 552`). Left to corpus evidence.",
+      "example_true": "ECE/CS 552",
+      "example_false": "—"
+    }
+  ],
+  "acceptance_fixtures": [
+    "tests/eval/fixtures/adversarial/A03.json — `MA 02139` and `XPS 13` must produce no course fact (forbidden values; the fixture's field spelling `course` predates D6's ratified `subject` and binds on the value)",
+    "tests/eval/fixtures/adversarial/A01.json / A02.json — word-boundary discipline: nothing in this file may match inside a longer word"
+  ],
+  "sourcing_note": "The five-digit exception was verified by web survey 2026-08-22 against the Notre Dame registrar's course-numbering page; the remaining conventions (2–5-letter subject codes, attached UK/AU forms such as COMP0034/COMP1511) are general-knowledge anchors recorded in RESEARCH.md, not survey findings. The DCF collision is catalogue 04's own finding, reused. No entry names a real course; examples use the design's values (BUSIB 4300, PHYS1401) and public course codes only as format witnesses."
+}

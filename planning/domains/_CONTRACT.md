@@ -135,3 +135,47 @@ on what may be asserted; the rest is a proposal for Joseph.
    rows** — it may describe those domains, and it may not turn them into `fields` catalogue
    entries. **Career is owed before P10**, where a destination dimension first needs one. Adding
    one earlier is reversing S3 and must say so explicitly rather than arriving as a plan edit.
+
+## R0 delta — two roster kinds and the closed edge vocabulary (2026-08-21)
+
+The connection architecture lives in [`CONNECTION.md`](CONNECTION.md); this section records only
+what changes about the **entry shape**. The pre-R0 entries above (the 574) predate these rules
+and are superseded by R1's roster, not migrated in place.
+
+11. **`kind` is mandatory on every new entry: `"schema" | "template"`.** R1a emits both kinds;
+    R1b refuses anything else. A schema row exists only for a genuinely distinct field set; a
+    template row exists only when its detection signals, recommended dimensions, or privacy rules
+    differ from its schema's default (the node test, CONNECTION.md §2). The gate applies the
+    kind-scoped checks below only to entries that carry `kind`, so the legacy 574 gain no new
+    findings before R1 replaces them.
+
+12. **Every `kind: template` entry carries `uses_schema: "<schema id>"` — exactly one.** A
+    template references its schema's fields; it never copies the field list, and its
+    `template.dimension_order` may only branch on fields that schema declares (rule 8's second
+    half, now checked across the `uses_schema` join for templates).
+
+13. **`parent_id` is optional and browse-only, on `kind: template` entries only.** It shelves the
+    library for humans. It is never schema inheritance, never an activation input, never a folder
+    dimension; activating a template activates nothing by walking it. A forest is **not**
+    required — parents are optional and roots may be many — but chains must be acyclic and a
+    `parent_id` may not name a schema.
+
+14. **The edge vocabulary is closed** (CONNECTION.md §5): `uses_schema`, `parent_id`,
+    `collides_with`, `also_holds_with`, `file_kind_plausible`, `falls_through_to`, `role_split`
+    (canonical field list only), plus derived-only `shares_field`. `related_to` and every other
+    invented edge is a gate failure. On kind-bearing entries, `collides_with` and
+    `also_holds_with` are reciprocal (both sides name each other), `also_holds_with` joins
+    schemas only, `collides_with` joins same-kind pairs, and a pair carrying both must have a
+    non-empty `signal` on the collision. `falls_through_to` targets one of §7.3's nine residual
+    template names — residuals are still not entries in this namespace (rule 6 stands).
+    `file_kind_plausible` lists P5 `SOURCE_TYPES` members or literal extensions on schema rows,
+    and is never sufficient alone. **`shares_field` is computed from canonical field references
+    and may never be authored.** Closed is enforced by construction, not by a blocklist: on
+    kind-bearing entries the gate accepts only the entry keys this contract names (the shape
+    above plus rules 11–15's keys) and reports **any** unrecognized key as a finding — so a
+    novel spelling (`similar_to`, `activates_with`, …) fails the same way `related_to` does.
+
+15. **`is_safety_domain: true` marks §3.15's four safety domains on schema rows.** It is the
+    replacement for a `safety_for` edge and it is not P7's handling-class vocabulary (rule 5
+    stands untouched). A placeholder schema (career, identity, medical, legal) may carry
+    `schema: []` — a row may describe the domain and still write no field rows (rule 10 stands).

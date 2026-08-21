@@ -26,6 +26,59 @@ RECOGNITION_KEYS = {"deterministic", "needs_llm", "never_alone"}
 NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w.])")
 NUMBER_OK = re.compile(r"§|section |P\d\b|D\d\b|OQ\d|\bM\d\b|20\d\d|B\d\b|C\d\b|G\d\b")
 
+#: R0 (CONNECTION.md) — two roster kinds and a CLOSED edge vocabulary. The kind-scoped
+#: checks below fire only on entries that carry `kind`, so the pre-R0 574 (which lack it
+#: and are superseded by R1's roster, not migrated) gain no new findings from this delta.
+KINDS = {"schema", "template"}
+#: Known-bad spellings, each with a specific message: edges CONNECTION.md §5 rejects by
+#: name (`related_to`, `broader`, `narrower`, `similar_to`), the split/dropped forms
+#: (`parent_of`/`child_of`, `safety_for`), `role_split` (canonical field list only) and
+#: `shares_field` (DERIVED from canonical field references, never authored). This list
+#: fires on every entry, legacy included — but a blocklist cannot enforce "closed", so
+#: on kind-bearing entries ALLOWED_ENTRY_KEYS below is the real fence.
+FORBIDDEN_EDGE_KEYS = {"shares_field", "related_to", "parent_of", "child_of",
+                       "safety_for", "broader", "narrower", "similar_to", "role_split"}
+SCHEMA_ONLY_KEYS = {"also_holds_with", "file_kind_plausible", "is_safety_domain"}
+TEMPLATE_ONLY_KEYS = {"uses_schema", "parent_id"}
+#: The CLOSED set of legal entry keys on kind-bearing rows (CONNECTION.md §5,
+#: _CONTRACT.md rule 14). "Closed" is enforced by construction: any key not in this set
+#: is a finding, so a novel edge (`activates_with`, ...) cannot sail past a blocklist of
+#: known-bad spellings. A new edge is a revision of CONNECTION.md, then of this set.
+ALLOWED_ENTRY_KEYS = set(REQUIRED) | {
+    "design_cite", "sensitivity_why", "open_question",   # the legacy contract's optionals
+    "kind", "uses_schema", "parent_id", "also_holds_with",
+    "file_kind_plausible", "falls_through_to", "is_safety_domain"}
+#: §7.3's nine residual template names, 00's own spelling. Residuals are P10/P11's and
+#: have no id in this namespace; `falls_through_to` names them as strings.
+RESIDUAL_TEMPLATES = {
+    "Temporary Screenshots", "One-Off Images", "Reference Clips", "Independent Records",
+    "Receipts and Confirmations", "Reading Inbox", "Review Later",
+    "Unsupported or Encrypted", "Protected Records"}
+#: P5's closed fourteen, imported so this gate never re-spells them. On import failure
+#: the membership check is skipped (never crashed) — the vocabulary stays single-homed.
+try:
+    sys.path.insert(0, str(HERE.parent.parent / "src"))
+    from evidence_shape.vocabulary import SOURCE_TYPES
+except Exception:
+    SOURCE_TYPES = None
+#: R1a's canonical field list (CONNECTION.md §6). Until it lands, the resolution checks
+#: that need it are SKIPPED, not failed — R0 ships the contract before the list.
+CANONICAL_FIELDS_PATH = HERE / "canonical_fields.json"
+
+
+def edge_targets(value):
+    """Ids named by a serialized edge list: bare strings or dicts keying the target."""
+    out = []
+    for item in value if isinstance(value, list) else [value]:
+        if isinstance(item, str):
+            out.append(item)
+        elif isinstance(item, dict):
+            for key in ("schema", "domain", "template", "id"):
+                if isinstance(item.get(key), str):
+                    out.append(item[key])
+                    break
+    return out
+
 
 #: A citation quotes the design. JSON's own delimiters are not quotation marks, so
 #: only CURLY quotes and backticked spans inside a string value count. The first
@@ -149,6 +202,48 @@ def check_file(path):
                 problems.append(
                     f"{tag}: template branches on {dim!r}, which this domain's "
                     "schema does not declare — §3.6 would reject every value for it")
+        # R0 (CONNECTION.md §5): closed edges, two kinds. Kind-scoped rules fire only on
+        # entries that opted into the new shape by carrying `kind`.
+        for bad_key in FORBIDDEN_EDGE_KEYS & set(e):
+            problems.append(f"{tag}: `{bad_key}` is not in the closed edge vocabulary — "
+                            "a new edge is a revision of CONNECTION.md, and "
+                            "`shares_field` is derived, never authored")
+        if "kind" in e:
+            # Closed means closed: on rows that opted into the new shape, ANY key
+            # outside ALLOWED_ENTRY_KEYS is a finding — enumerating known-bad spellings
+            # would let every novel edge (`similar_to`, `activates_with`, ...) through.
+            for bad_key in sorted(set(e) - ALLOWED_ENTRY_KEYS - FORBIDDEN_EDGE_KEYS):
+                problems.append(f"{tag}: unrecognized key `{bad_key}` — the entry-key "
+                                "vocabulary on kind-bearing rows is closed "
+                                "(CONNECTION.md §5); a new edge or field is a revision "
+                                "of CONNECTION.md, not an authoring choice")
+            kind = e.get("kind")
+            if kind not in KINDS:
+                problems.append(f"{tag}: kind {kind!r} not in {KINDS}")
+            if kind == "template":
+                if not isinstance(e.get("uses_schema"), str) or not e.get("uses_schema"):
+                    problems.append(f"{tag}: kind=template with no `uses_schema` — a "
+                                    "template points at exactly one schema")
+                for key in SCHEMA_ONLY_KEYS & set(e):
+                    problems.append(f"{tag}: `{key}` is schema-only, not legal on a template")
+            if kind == "schema":
+                for key in TEMPLATE_ONLY_KEYS & set(e):
+                    problems.append(f"{tag}: `{key}` is template-only, not legal on a schema")
+                if "is_safety_domain" in e and not isinstance(e["is_safety_domain"], bool):
+                    problems.append(f"{tag}: is_safety_domain must be a bool")
+            for st in e.get("file_kind_plausible") or []:
+                if not isinstance(st, str):
+                    problems.append(f"{tag}: file_kind_plausible member {st!r} is not a string")
+                elif st.startswith("."):
+                    pass  # a literal extension
+                elif SOURCE_TYPES is not None and st not in SOURCE_TYPES:
+                    problems.append(f"{tag}: file_kind_plausible names {st!r}, which is "
+                                    "neither an extension nor one of P5's SOURCE_TYPES")
+            for target in e.get("falls_through_to") or []:
+                name = target.get("residual_template") if isinstance(target, dict) else target
+                if name not in RESIDUAL_TEMPLATES:
+                    problems.append(f"{tag}: falls_through_to names {name!r}, which is not "
+                                    "one of §7.3's nine residual templates")
         # No held THRESHOLDS. A number written as a JSON number is a value the
         # catalogue holds; a number inside a string is an EXAMPLE, and examples are
         # required -- `BUSIB 4300` is §3.2's own. The first version of this check
@@ -212,11 +307,134 @@ def cross_file(files):
                 if isinstance(other, str) and other and other not in owner:
                     problems.append(f"{path.name} {e.get('id')}: collides_with names "
                                     f"{other!r}, which no catalogue defines")
+    problems.extend(connection_checks(files, owner))
     return problems, owner, supers
 
 
+def connection_checks(files, owner):
+    """R0 (CONNECTION.md §5): joins, reciprocity, cycles — kind-bearing entries only.
+
+    Scoped to entries carrying `kind` so the legacy 574 keep their exact pre-delta
+    finding count until R1 replaces them. What WILL fail on migration is documented in
+    CONNECTION.md's appendix; this gate is that documentation made executable.
+    """
+    problems = []
+    entries = {}
+    for path in files:
+        try:
+            doc = json.loads(path.read_text())
+        except Exception:
+            continue
+        for e in doc.get("entries", []):
+            if isinstance(e.get("id"), str):
+                entries[e["id"]] = e
+    kinds = {eid: e.get("kind") for eid, e in entries.items() if "kind" in e}
+
+    def kinded(eid):
+        return eid in kinds
+
+    for eid, e in entries.items():
+        if "kind" not in e:
+            continue
+        # `uses_schema` resolves, and to a schema.
+        target = e.get("uses_schema")
+        if isinstance(target, str) and target:
+            if target not in entries:
+                problems.append(f"{eid}: uses_schema names {target!r}, which no catalogue defines")
+            elif kinds.get(target) != "schema":
+                problems.append(f"{eid}: uses_schema names {target!r}, which is not kind=schema")
+        # `parent_id` is browse-only among templates; naming a schema is the smuggled
+        # schema-tree (CONNECTION.md §1).
+        parent = e.get("parent_id")
+        if isinstance(parent, str) and parent:
+            if parent not in entries:
+                problems.append(f"{eid}: parent_id names {parent!r}, which no catalogue defines")
+            elif kinds.get(parent) != "template":
+                problems.append(f"{eid}: parent_id names {parent!r}, which is not kind=template "
+                                "— browse parents join templates only")
+        # `also_holds_with`: schemas only, targets resolve, reciprocal.
+        for other in edge_targets(e.get("also_holds_with") or []):
+            if other not in entries:
+                problems.append(f"{eid}: also_holds_with names {other!r}, "
+                                "which no catalogue defines")
+                continue
+            if kinds.get(other) != "schema" or kinds.get(eid) != "schema":
+                problems.append(f"{eid}: also_holds_with joins {other!r} — both ends must be "
+                                "kind=schema (co-activation is a schema relation)")
+            if kinded(other) and eid not in edge_targets(entries[other].get("also_holds_with") or []):
+                problems.append(f"{eid}: also_holds_with names {other!r} with no reciprocal edge")
+        # `collides_with` among kind-bearing entries: same kind, reciprocal.
+        collisions = [c for c in e.get("collides_with") or []
+                      if not (isinstance(c, dict) and "residual_template" in c)]
+        for other in edge_targets(collisions):
+            if other not in entries or not kinded(other):
+                continue  # dangling ids are already reported by cross_file
+            if kinds.get(other) != kinds.get(eid):
+                problems.append(f"{eid}: collides_with {other!r} crosses kinds "
+                                f"({kinds.get(eid)} vs {kinds.get(other)}) — a collision "
+                                "joins two schemas or two templates, never one of each")
+            if eid not in edge_targets([c for c in entries[other].get("collides_with") or []
+                                        if not (isinstance(c, dict) and "residual_template" in c)]):
+                problems.append(f"{eid}: collides_with names {other!r} with no reciprocal edge")
+            # A pair may carry BOTH collides_with and also_holds_with — explicitly
+            # allowed (CONNECTION.md §5 invariant 1) — but then the collision must name
+            # its discriminating signal.
+            if other in edge_targets(e.get("also_holds_with") or []):
+                signals = [c.get("signal") for c in collisions
+                           if isinstance(c, dict) and other in edge_targets([c])]
+                if not any(isinstance(s, str) and s.strip() for s in signals):
+                    problems.append(f"{eid}: pair with {other!r} carries collides_with AND "
+                                    "also_holds_with, but the collision names no `signal` "
+                                    "discriminating the shared evidence")
+
+    # Cycles in the browse tree. Parents optional, roots many — but no cycle.
+    parent_of = {eid: e["parent_id"] for eid, e in entries.items()
+                 if isinstance(e.get("parent_id"), str) and e["parent_id"] in entries}
+    for start in parent_of:
+        seen, node = set(), start
+        while node in parent_of:
+            if node in seen:
+                problems.append(f"{start}: parent_id chain contains a cycle through {node!r}")
+                break
+            seen.add(node)
+            node = parent_of[node]
+
+    # Canonical field resolution — SKIPPED until R1a lands the list (CONNECTION.md §6).
+    if CANONICAL_FIELDS_PATH.exists():
+        try:
+            canonical = json.loads(CANONICAL_FIELDS_PATH.read_text())
+            keys = {f.get("key") for f in canonical.get("fields", []) if isinstance(f, dict)}
+        except Exception as exc:
+            problems.append(f"canonical_fields.json does not parse — {exc}")
+            keys = None
+        if keys:
+            for eid, e in entries.items():
+                if "kind" not in e:
+                    continue
+                for field in e.get("schema") or []:
+                    key = field.get("field") if isinstance(field, dict) else field
+                    if isinstance(key, str) and key not in keys:
+                        problems.append(f"{eid}: schema field {key!r} does not resolve to "
+                                        "canonical_fields.json — no private field names")
+            # role_split lives in the canonical list and is reciprocal there.
+            by_key = {f.get("key"): f for f in canonical.get("fields", [])
+                      if isinstance(f, dict)}
+            for key, row in by_key.items():
+                for other in row.get("role_split_with") or []:
+                    if other not in by_key:
+                        problems.append(f"canonical_fields.json {key}: role_split_with names "
+                                        f"{other!r}, which the list does not define")
+                    elif key not in (by_key[other].get("role_split_with") or []):
+                        problems.append(f"canonical_fields.json {key}: role_split_with "
+                                        f"{other!r} has no reciprocal entry")
+    return problems
+
+
 def main():
-    files = sorted(p for p in HERE.glob("*.json") if not p.name.startswith("_"))
+    #: `canonical_fields.json` is the one-table field list (CONNECTION.md §6), not a
+    #: catalogue slice — it is read by connection_checks, never scanned as entries.
+    files = sorted(p for p in HERE.glob("*.json")
+                   if not p.name.startswith("_") and p.name != "canonical_fields.json")
     if not files:
         print("no catalogue files yet")
         return 0

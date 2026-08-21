@@ -1,0 +1,34 @@
+{
+  "pack_id": "00-example",
+  "title": "Shape-example seed — not a deployable pack",
+  "version": "r5-draft-1",
+  "authored": "2026-08-22",
+  "status": "shape_example",
+  "jurisdiction": null,
+  "deployability": "never — this pack exists to make _SCHEMA.md concrete while D4's 'which jurisdiction' half is open. It mixes jurisdiction tags on purpose (one us row, one uk row, so the shape visibly does not pick a side), and no loader may accept it as a deployment pack. The v1 pack is authored under PACKS.md's protocol after Joseph answers.",
+  "owner": "P6 (injected) — never P5 — for the fact path; P7's injected detector set (catalogue 08's discipline) for the gate projections",
+  "consumer": "value rows: the caller-supplied value lookup injected at P6 fact-resolver construction, word-boundary matched, a ranked candidate entering the section-3.7 ranking and never a fact alone. gate projections: the caller builds catalogue 08's four R5 slots from rows' gate_slots declarations and injects them into P7's classification pass. No module under src/ may hold any of this at module level.",
+  "unsupported_region_copy": {
+    "text": "This domain is not modelled for your region.",
+    "provenance": "proposal",
+    "origin": "D4's risk seat asked for exactly one such string; the wording is the brief's own phrase with sentence casing, not invented UX voice. See unsupported-region.md for the slot contract and the verbatim sources.",
+    "consumer": "P10/P11 residual surfacing (01 section 7.5's screen); the wiring is theirs, the slot and the string are this catalogue's"
+  },
+  "match_rule": {
+    "matching": "word_boundary",
+    "case_rule": "per alias (case_sensitive true for short form codes whose lowercase forms collide with ordinary text)",
+    "cjk_slot": "unimplemented; representable per-alias via script keys — same convention as ../10-gazetteers/_SCHEMA.md"
+  },
+  "injected_slots": {
+    "min_score": null,
+    "min_margin": null,
+    "positional_weight_by_zone": null
+  },
+  "files": ["record_type.json"],
+  "gate_slot_projections": {
+    "tax_form_identifier_gazetteer": "rows in record_type.json whose gate_slots name this slot; the loader projects label plus aliases",
+    "national_id_label_gazetteer": "empty in this seed — gate_label rows are authored when a pack is chosen; the row shape is defined in _SCHEMA.md and the pack sketches in RESEARCH.md name the first members",
+    "account_locator_patterns": "empty in this seed — value shapes are format definitions a chosen pack authors; nothing here until then",
+    "legal_caption_gazetteer": "empty in this seed — catalogue 08 holds the generic English caption openers as its own data; one jurisdiction's extensions arrive with the chosen pack"
+  }
+}

@@ -147,10 +147,10 @@ Wiring it into the caller is separate later work and must not be done as "integr
 
 ## 7. What is still open — hold these open, do not resolve them
 
-- **NEEDS-JOSEPH C5** — whether P6 keeps a `sensitivity_status` field row. P7's SPEC Contract-in
+- **NEEDS-JOSEPH C24** (renumbered from C5, which was already taken) — whether P6 keeps a `sensitivity_status` field row. P7's SPEC Contract-in
   says *"P6 must accept `sensitivity` as a first-class universal field"*; D2 makes P7's record
   authoritative; round 1 found the field has no producer. **Create no such row either way.**
-- **NEEDS-JOSEPH C3** — P4's `norm` region unit does not say which corner it measures from. Vision
+- **NEEDS-JOSEPH C22** (renumbered from C3, which was already taken) — P4's `norm` region unit does not say which corner it measures from. Vision
   is bottom-left, most tooling is top-left. Redaction reads these boxes. Assume no origin.
 - **`filename` as a sixth releasable kind** — §8.4 names five and puts *paths* in the always-local
   set; P7's SPEC adds a sixth and flags it itself (NEEDS-JOSEPH B5d/C9a).
@@ -247,3 +247,35 @@ denial reasons included.
   2026-08-22) supplies the EXIF and labeled-date slot families and names *"Task 8's direct-fact slot
   list"* in its own `owner` field. That is a real cross-agent join and it half-closes F8. Title and
   content-hash slots still have no catalogue. Read it; do not edit it.
+
+
+---
+
+## 13. The L2 guard set is WRONG in the skeleton — measured, 2026-08-22
+
+P7's skeleton says the packages binding a P4 text materialiser are
+`{evidence_shape, extractors, privacy}`. Two independent agents flagged it and I confirmed it by
+introspection:
+
+- **`extractors` binds NONE of them.** A guard that names a package binding nothing passes forever
+  while checking nothing — the same shape as a column with no writer.
+- **`orchestrator` binds `text_units_for_run`** (the bundle copy), and the skeleton omits it.
+
+The true set is **`{evidence_shape, orchestrator, privacy}`**. Task 21 must assert that, with a
+stated reason per binder, and must **refuse to rule on the orchestrator's binding** — whether the
+caller may materialise text into a bundle is P7's own OQ8, which is open.
+
+## 14. Cite NEEDS-JOSEPH by its CURRENT labels
+
+My earlier additions to `planning/overnight/NEEDS-JOSEPH.md` were numbered C1–C6 and collided with
+the pre-existing C1–C14. They are now **C20–C25**. In particular:
+
+| Question | Correct label |
+|---|---|
+| Does P6 keep a `sensitivity_status` field row? | **C24** (was cited as C5; C5 is "is `protected` exactly the top two handling classes?") |
+| P4's `norm` has no origin | **C22** (was cited as C3; C3 is "what is a corpus area?") |
+| `SensitivityFacts` has nothing on the other side | **C25** |
+| `filename` as a sixth releasable kind | **B5d** and **C9a** — these were always right |
+
+If a citation and a substantive question disagree, **follow the substance and quote the passage that
+actually contains it**, as one author correctly did rather than propagating my wrong label.
