@@ -6,6 +6,16 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+# The deployment layer (`src/readers/`) and ONLY it. `dependencies` above stays
+# empty on purpose: P5's SPEC says it "adds no third-party runtime dependency" and
+# every format reader is a caller-supplied callable, so the libraries are installed
+# by a deployment that chose them, never by the part that consumes their output.
+# pyobjc pins are macOS-only, which is where §2.7 puts Apple Vision.
+readers = [
+    "pdfminer.six>=20231228",
+    "pyobjc-framework-Vision>=10.0; sys_platform == 'darwin'",
+    "pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

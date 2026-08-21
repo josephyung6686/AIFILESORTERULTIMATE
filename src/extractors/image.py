@@ -25,6 +25,7 @@ from dataclasses import dataclass, field as dataclass_field
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from extractors.failure import unsupported_result
 from extractors.runs import coverage
 from extractors.safety import SafetyPolicy, admit
 from extractors.shape import (
@@ -128,6 +129,15 @@ def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPoli
     """
     admit(path, policy=policy)
     record = read_image(path)
+    if record is None:
+        # §2.4: no reader for this format in this deployment. `unsupported`, never
+        # `failed` -- the bytes were never looked at, so a `failed` run would report
+        # a missing library as a corrupt file.
+        return unsupported_result(
+            file_row=file_row, extractor_name=EXTRACTOR_NAME,
+            extractor_version=VERSION, source_type=SOURCE_TYPE,
+            analysis_tier=ANALYSIS_TIER, now=now)
+
 
     observations: list[Mapping[str, Any]] = []
 

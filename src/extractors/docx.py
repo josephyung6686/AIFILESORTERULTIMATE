@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from extractors.reading import ZONE_BY_STRUCTURED_KIND, StructuredString
+from extractors.failure import unsupported_result
 from extractors.runs import coverage
 from extractors.safety import SafetyPolicy, admit
 from extractors.shape import (
@@ -114,6 +115,15 @@ def extract_docx(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolic
     """Section 2.3's full semantic structure, as P4 records."""
     admit(path, policy=policy)
     document = read_docx(path)
+    if document is None:
+        # §2.4: no reader for this format in this deployment. `unsupported`, never
+        # `failed` -- the bytes were never looked at, so a `failed` run would report
+        # a missing library as a corrupt file.
+        return unsupported_result(
+            file_row=file_row, extractor_name=EXTRACTOR_NAME,
+            extractor_version=VERSION, source_type=SOURCE_TYPE,
+            analysis_tier=ANALYSIS_TIER, now=now)
+
 
     observations: list[Mapping[str, Any]] = []
     units: list[Mapping[str, Any]] = []

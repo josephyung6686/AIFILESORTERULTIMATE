@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from extractors.reading import ZONE_BY_STRUCTURED_KIND, Region, StructuredString
+from extractors.failure import unsupported_result
 from extractors.runs import coverage
 from extractors.safety import SafetyPolicy, admit
 from extractors.shape import (
@@ -101,6 +102,15 @@ def extract_pdf(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
     """
     admit(path, policy=policy)
     document = read_pdf(path)
+    if document is None:
+        # §2.4: no reader for this format in this deployment. `unsupported`, never
+        # `failed` -- the bytes were never looked at, so a `failed` run would report
+        # a missing library as a corrupt file.
+        return unsupported_result(
+            file_row=file_row, extractor_name=EXTRACTOR_NAME,
+            extractor_version=VERSION, source_type=SOURCE_TYPE,
+            analysis_tier=ANALYSIS_TIER, now=now)
+
 
     candidates: list[_Candidate] = []
     units: list[Mapping[str, Any]] = []

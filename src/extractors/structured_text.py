@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from extractors.failure import unsupported_result
 from extractors.reading import ZONE_BY_STRUCTURED_KIND, Region, StructuredString
 from extractors.runs import coverage
 from extractors.safety import SafetyPolicy, admit
@@ -93,21 +94,6 @@ class TextDocument:
     markers: tuple[StructuralMarker, ...] = ()
 
 
-def unsupported_result(*, file_row: Mapping[str, Any], source_type: str,
-                       now: str) -> ExtractionResult:
-    """Section 2.4's second outcome: no extractor exists for this format yet.
-
-    Zero observations and zero text units, and a `completeness` a query can tell
-    apart from a `complete` run that found nothing (SPEC Done-means 1).
-    """
-    return ExtractionResult(
-        run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
-                extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
-                source_type=source_type, analysis_tier=ANALYSIS_TIER, config={},
-                completeness="unsupported", coverage=coverage("files", 0, 1),
-                observation_count=0, started_at=now, finished_at=now))
-
-
 def extract_structured_text(
         *, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy,
         source_type: str,
@@ -123,7 +109,10 @@ def extract_structured_text(
     admit(path, policy=policy)
     document = read_text_document(path)
     if document is None:
-        return unsupported_result(file_row=file_row, source_type=source_type, now=now)
+        return unsupported_result(
+            file_row=file_row, extractor_name=EXTRACTOR_NAME,
+            extractor_version=VERSION, source_type=source_type,
+            analysis_tier=ANALYSIS_TIER, now=now)
 
     observations: list[Mapping[str, Any]] = []
     units: list[Mapping[str, Any]] = [text_unit(text=document.text)]

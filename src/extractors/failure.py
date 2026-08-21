@@ -47,6 +47,40 @@ class ContractViolation(Exception):
     """
 
 
+def unsupported_result(*, file_row: Mapping[str, Any], extractor_name: str,
+                       extractor_version: str, source_type: str,
+                       analysis_tier: str, now: str) -> ExtractionResult:
+    """§2.4's second outcome: this deployment ships no reader for the format.
+
+    > *"A file with no extractor should be recorded as unsupported rather than
+    > silently treated as an empty document."*
+
+    Distinct from `failed`, and the distinction is the whole point. `failed` says a
+    reader RAN and raised -- a fact about the bytes. `unsupported` says no reader
+    exists -- a fact about the deployment, with the bytes never looked at. Both carry
+    zero observations, and a query that could not tell them apart would report a
+    missing library as a corrupt corpus.
+
+    **It lives here, beside `failed_result`, and takes the extractor's identity.** It
+    used to live in `structured_text.py` and hardcode that module's `EXTRACTOR_NAME`
+    and `VERSION`, because that was the only family it served -- so the two families
+    that HAD the outcome were the only two that could have it, and the other four
+    crashed on a `None` reader and recorded `failed` instead. Reusing it unchanged
+    would have been worse than the crash: a PDF with no reader would produce a run
+    claiming `text.structured` ran on it, and §3.4's cache key would be built from
+    the name of an extractor that never executed.
+    """
+    return ExtractionResult(
+        run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+                extractor_name=extractor_name, extractor_version=extractor_version,
+                source_type=source_type, analysis_tier=analysis_tier, config={},
+                completeness="unsupported",
+                coverage={"units": "files", "processed": 0, "total": 1},
+                observation_count=0, started_at=now, finished_at=now),
+        observations=(), text_units=(),
+    )
+
+
 def failed_result(*, file_row: Mapping[str, Any], error: BaseException,
                   extractor_name: str, extractor_version: str,
                   source_type: str, now: str,

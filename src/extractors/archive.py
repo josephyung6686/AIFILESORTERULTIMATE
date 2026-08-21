@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
+from extractors.failure import unsupported_result
 from extractors.runs import coverage
 from extractors.safety import SafetyPolicy, admit
 from extractors.shape import (
@@ -119,6 +120,15 @@ def extract_archive(*, file_row: Mapping[str, Any], path: Path,
     """
     admit(path, policy=policy)
     manifest = read_manifest(path)
+    if manifest is None:
+        # §2.4: no reader for this format in this deployment. `unsupported`, never
+        # `failed` -- the bytes were never looked at, so a `failed` run would report
+        # a missing library as a corrupt file.
+        return unsupported_result(
+            file_row=file_row, extractor_name=EXTRACTOR_NAME,
+            extractor_version=VERSION, source_type=SOURCE_TYPE,
+            analysis_tier=ANALYSIS_TIER, now=now)
+
 
     candidates: list[tuple[str, str, tuple, dict | None, str | None, str]] = []
     units: list[Mapping[str, Any]] = []

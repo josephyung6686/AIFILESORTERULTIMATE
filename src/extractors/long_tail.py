@@ -26,6 +26,7 @@ from dataclasses import dataclass, field as dataclass_field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
+from extractors.failure import unsupported_result
 from extractors.reading import ZONE_BY_STRUCTURED_KIND, StructuredString
 from extractors.runs import coverage
 from extractors.safety import SafetyPolicy, admit
@@ -34,7 +35,7 @@ from extractors.shape import (
 )
 from extractors.sink import ExtractionResult
 from extractors.structured_text import (
-    ANALYSIS_TIER, EXTRACTOR_NAME, VERSION, unsupported_result,
+    ANALYSIS_TIER, EXTRACTOR_NAME, VERSION,
 )
 
 #: Section 2.9's six long-tail families, in P4's `source_type` vocabulary. Together
@@ -205,8 +206,10 @@ def extract_long_tail(
     document = read_long_tail(path, transcribe=transcribe)
     if document is None:
         return LongTailResult(
-            extraction=unsupported_result(file_row=file_row,
-                                          source_type=source_type, now=now))
+            extraction=unsupported_result(
+                file_row=file_row, extractor_name=EXTRACTOR_NAME,
+                extractor_version=VERSION, analysis_tier=ANALYSIS_TIER,
+                source_type=source_type, now=now))
 
     iso_dates = document.iso_dates
     observations: list[Mapping[str, Any]] = []
