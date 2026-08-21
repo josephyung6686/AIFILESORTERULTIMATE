@@ -34,7 +34,12 @@ RECOGNIZED = "Homework 5 for BUSIB 4300, due 2026-07-17."
 
 def a_page(number=1, text=RECOGNIZED, confidence=0.94):
     return OcrRegion(page=number, region=1, text=text,
-                     box={"x": 0.1, "y": 0.2, "width": 0.8, "height": 0.05},
+                     # P4's region shape: (x, y, w, h, unit). This fixture said
+                     # `width`/`height` and carried no `unit` at all, so every
+                     # OCR observation it produced held a region P4 could not
+                     # parse -- and seven tests passed on it, because nothing
+                     # validated at the emitter and the P4 stub dropped the field.
+                     box={"x": 0.1, "y": 0.2, "w": 0.8, "h": 0.05, "unit": "norm"},
                      confidence=confidence)
 
 
@@ -89,8 +94,8 @@ def test_all_nine_section_2_7_fields_have_a_home_and_are_populated(sink):
     assert unit["container_path"][0] == {"kind": "page", "index": 1,
                                          "label": None}         # page reference
     assert unit["text"] == RECOGNIZED                            # raw recognized text
-    assert found["location"]["region"] == {"x": 0.1, "y": 0.2, "width": 0.8,
-                                           "height": 0.05}       # bounding box
+    assert found["location"]["region"] == {"x": 0.1, "y": 0.2, "w": 0.8,
+                                           "h": 0.05, "unit": "norm"}   # bounding box
     assert found["confidence"] == 0.94                           # confidence
     assert row["completeness"] == "complete"                     # complete or capped
     assert row["coverage"] == {"units": "pages", "processed": 1, "total": 1}

@@ -18,7 +18,7 @@ locator grammar has no term for. Neither name is P4's to change.
 """
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from evidence_shape.vocabulary import (
@@ -109,6 +109,46 @@ class Region:
             if type(value) not in (int, float):
                 raise MalformedLocation(f"region.{name} is a number, not {value!r}")
         check(self.unit, REGION_UNITS, name="region.unit")
+
+
+#: The five keys a region mapping carries, and the whole of them. `location()` used
+#: to accept any mapping and `location_from_mapping` read exactly these -- so a sixth
+#: key round-tripped into storage and was then silently dropped on the way out, and a
+#: missing one surfaced as a bare `KeyError` during a database write.
+REGION_KEYS: frozenset[str] = frozenset({"x", "y", "w", "h", "unit"})
+
+
+def region_from_mapping(mapping) -> "Region":
+    """§2.7's bounding box, validated where it is BUILT.
+
+    The one home for this rule. P5 constructs regions through
+    `extractors.shape.location`, which calls this, so a library's own key names --
+    `width`/`height` is what a real imaging API hands you -- fail at the emitter with
+    a message that names the problem, rather than three layers later inside
+    `location_from_mapping` as `KeyError('w')`.
+
+    That failure was not theoretical: the OCR extractor emitted `width`/`height` for
+    real, and `tests/p5/p4_stub.py` still carries a comment explaining that it drops
+    `region` because of it. The field §8.4 redacts against was the one field no test
+    round-tripped.
+
+    Unknown keys are refused rather than ignored. A sixth field would be stored by
+    `location()` and dropped by `location_from_mapping`, which is a value computed and
+    discarded -- and it is exactly how an adapter would try to record something P4's
+    vocabulary does not carry, such as which corner `norm` measures from.
+    """
+    if not isinstance(mapping, Mapping):
+        raise MalformedLocation(f"region is a mapping, not {mapping!r}")
+    keys = set(mapping)
+    missing = sorted(REGION_KEYS - keys)
+    unknown = sorted(keys - REGION_KEYS)
+    if missing or unknown:
+        raise MalformedLocation(
+            f"a region carries exactly {sorted(REGION_KEYS)}; "
+            f"missing {missing}, unknown {unknown}"
+        )
+    return Region(mapping["x"], mapping["y"], mapping["w"], mapping["h"],
+                  mapping["unit"])
 
 
 @dataclass(frozen=True, slots=True)

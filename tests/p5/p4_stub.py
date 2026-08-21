@@ -22,9 +22,13 @@ What remains local is only the adaptation, and each piece says why:
     P4's own violation list, so the DECISION is always P4's and only the exception
     type is this harness's.
 
-TWO places where real P4 and shipped P5 still disagree, each isolated to one line
-with a comment, each reported rather than papered over: `_location` (region) and
-`validate_observation` (run_id).
+ONE place where real P4 and shipped P5 still disagree, isolated to one line with a
+comment and reported rather than papered over: `validate_observation` (run_id).
+
+`_location` (region) used to be the second. It is CLOSED as of 2026-08-22:
+`evidence_shape.location.region_from_mapping` is the one rule, `extractors.shape.location`
+calls it at the emitter, and a region now round-trips through this stub in both
+directions instead of being dropped.
 
 The third — `config_fingerprint` — is FIXED, not worked around. P4's `sha256_of`
 length-prefixes the part before hashing and P5 called `hashlib.sha256` directly, so
@@ -37,7 +41,7 @@ from __future__ import annotations
 from typing import Any, Iterable, Mapping
 
 from evidence_shape.conformance import check_observation, check_run
-from evidence_shape.location import Location, Segment, TextSpan, TimeSpan
+from evidence_shape.location import Location, Segment, TextSpan, TimeSpan, region_from_mapping
 from evidence_shape.locator import (
     escape_label as _escape,
     parse_locator as _p4_parse_locator,
@@ -124,16 +128,17 @@ def _segments(container_path: Iterable[Mapping[str, Any]]) -> tuple[Segment, ...
 def _location(mapping: Mapping[str, Any], *, zone: str | None = None) -> Location:
     """P5's location dict as P4's record.
 
-    `region` is deliberately dropped. P4's `Region` is `(x, y, w, h, unit)`; the OCR
-    extractor emits `{"x", "y", "width", "height"}` (src/extractors/ocr.py:144 passing
-    `recognized.box` straight through), so `locator.location_from_mapping` raises
-    KeyError('w') on it. The hand-written stub never inspected `region` either, so
-    nothing is lost here that was previously checked -- but the shape mismatch between
-    shipped P4 and shipped P5 is real and is reported, not resolved in this file. The
-    locator grammar has no term for a bounding box in any case, so no locator, key or
-    round-trip below depends on it.
+    `region` round-trips (fixed 2026-08-22). It used to be dropped here, with a note
+    that the OCR extractor emitted `{"x", "y", "width", "height"}` while P4's `Region`
+    is `(x, y, w, h, unit)`, so `location_from_mapping` raised `KeyError('w')` on it.
+    That mismatch is closed at its source: `evidence_shape.location.region_from_mapping`
+    is now the one rule, `extractors.shape.location` calls it at the emitter, and the
+    OCR fixtures that carried the wrong shape were corrected. Dropping the field here
+    was the thing that let the mismatch survive -- the one field §8.4 redacts against
+    was the one field no test round-tripped.
     """
     text_span, time_span = mapping.get("text_span"), mapping.get("time_span")
+    region = mapping.get("region")
     return Location(
         mapping["zone"] if zone is None else zone,
         _segments(mapping["container_path"]),
@@ -141,6 +146,9 @@ def _location(mapping: Mapping[str, Any], *, zone: str | None = None) -> Locatio
         else TextSpan(text_span["start"], text_span["end"]),
         time_span=None if time_span is None
         else TimeSpan(time_span["start_ms"], time_span["end_ms"]),
+        # P4's own rule, called rather than restated. This line is what turns the
+        # stub from a place that hides a shape mismatch into one that reports it.
+        region=None if region is None else region_from_mapping(region),
     )
 
 
@@ -188,7 +196,10 @@ def parse_locator(text: str) -> dict:
         "time_span": None if location.time_span is None
         else {"start_ms": location.time_span.start_ms,
               "end_ms": location.time_span.end_ms},
-        "region": None,
+        "region": None if location.region is None
+        else {"x": location.region.x, "y": location.region.y,
+              "w": location.region.w, "h": location.region.h,
+              "unit": location.region.unit},
     }
 
 
@@ -226,10 +237,10 @@ def validate_observation(observation: Mapping[str, Any], *,
     which is the part that could drift.
     """
     location = observation["location"]
-    # `_location` is what makes P4's own `location_from_mapping` reachable at all here:
-    # handed P5's raw location dict, it raises an uncaught KeyError('w') on the OCR
-    # region rather than reporting a violation. P4 accepts a built `Location` record
-    # in this field, so the conversion is P4's supported path, not a way around it.
+    # `_location` converts P5's raw dict into the built `Location` record P4 accepts
+    # in this field -- P4's supported path, not a way around it. It used to also be
+    # the place an OCR region died as an uncaught KeyError('w'); `region_from_mapping`
+    # now validates at the emitter, so a wrong shape never reaches here.
     candidate = {**dict(observation), "run_id": _HARNESS_RUN_ID,
                  "location": _location(location)}
     _fail(check_observation(candidate))

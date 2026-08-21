@@ -19,6 +19,8 @@ P5 emits the structured location; P4 serializes it.
 """
 from __future__ import annotations
 
+from evidence_shape.location import region_from_mapping
+
 import re
 import unicodedata
 from typing import Any, Mapping, Sequence
@@ -151,6 +153,13 @@ def location(*, zone: str, container_path: Sequence[Mapping[str, Any]] = (),
     """
     if text_span is not None and time_span is not None:
         raise ValueError("a location carries a text_span or a time_span, not both")
+    if region is not None:
+        # P4 owns the region shape; this calls P4's rule rather than restating it,
+        # because a second copy of a vocabulary is this project's costliest defect.
+        # Invoked HERE so a wrong shape fails where the region is made -- it used to
+        # surface as `KeyError('w')` during a database write, after every extraction
+        # in the scan had already succeeded.
+        region_from_mapping(region)
     return {
         "zone": zone,
         "container_path": tuple(container_path),

@@ -275,3 +275,36 @@ def test_the_scanned_pdf_keeps_both_runs_and_both_tiers(db, tmp_path):
     row = db.execute("SELECT file_id FROM files").fetchone()
     status = json.loads(get_file(db, row["file_id"])["extraction_status_by_tier"])
     assert set(status) >= {"filesystem", "native", "ocr"}, status
+
+
+def test_a_real_vision_box_survives_to_a_parsed_p4_region(db, tmp_path):
+    """§2.7's bounding box, engine to `Region`, with nothing stubbed.
+
+    This is the round trip that had no test anywhere. The OCR extractor once emitted
+    `width`/`height` against a P4 `Region` of `(x, y, w, h, unit)`; `location()` did
+    not validate, `location_from_mapping` raised a bare `KeyError('w')` three layers
+    later during a write, and `tests/p5/p4_stub.py` dropped the field entirely — so
+    the one field §8.4 redacts against was the one field nothing round-tripped.
+    """
+    import json
+
+    from evidence_shape.location import Region
+    from evidence_shape.locator import location_from_mapping
+
+    root = tmp_path / "Documents"
+    root.mkdir()
+    build_scanned_pdf(root / "scan.pdf")
+    go(db, root)
+
+    located = [json.loads(r["location"]) for r in db.execute(
+        "SELECT location FROM evidence WHERE extractor_name = 'ocr.apple_vision'")]
+    assert located, "OCR produced no observations to carry a box"
+
+    boxed = [m for m in located if m["region"] is not None]
+    assert boxed, "Vision reported bounding boxes and none reached the evidence row"
+
+    for mapping in boxed:
+        region = location_from_mapping(mapping).region
+        assert isinstance(region, Region)
+        assert region.unit == "norm"
+        assert all(0.0 <= v <= 1.0 for v in (region.x, region.y, region.w, region.h))
