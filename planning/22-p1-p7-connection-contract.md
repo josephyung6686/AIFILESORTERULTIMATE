@@ -35,7 +35,7 @@ Of 69 seams round 4 tabulated, **21 have no producer.** See §6, check 7.
 | P6 ← P4 | `evidence_shape.fixtures` — 19 golden records | P6 is buildable with **no extractor present** |
 | P6 → P5 | `no_usable_facts(file_id, content_hash) -> bool` | signature matches `dispatch.py`'s `Callable[[str, str], bool]` — **but see §4** |
 | P6 ← P1 | `files_table.get_file`, `events.append_event`, `supersede.mark_superseded` | present |
-| P7 ← P1 | `files.sensitivity_state` column | **exists, and nothing writes it** — see §3 |
+| P7 ← P1 | `files.sensitivity_state` column | **P1 publishes `set_sensitivity_state`** (D2) — see §3 |
 | P7 ← P4 | the three context fields | present, and M5 says they exist *so §8.4 can redact a value without dropping its context* |
 | P7 ← P5 | `extractors.safety.admit`, `SafetyPolicy`, the two refusals | present |
 | ~~P7 → P2~~ **orchestrator → P2** | `bundle_file_entry.handling_class` | mis-attributed here: **P7 never reaches the bundle** (its own OQ8 says so). The producer is the caller's stage 4, and **no task in either plan gives it a value** |
@@ -74,7 +74,26 @@ doing two jobs."* The catcher is always the caller's.
 
 ---
 
-## 3. `sensitivity` — one concept with four candidate homes, and no producer at all
+## 3. `sensitivity` — RESOLVED as D2, 2026-08-21. Half of it is now built.
+
+> **Ratified.** P7's `ClassificationRecord`, keyed `(file_id, content_hash)`, is
+> **authoritative**; `files.sensitivity_state` is its projection onto the current row.
+> `Unreadable or unclassified` is a **gate outcome, not a file fact** — it lives on the release
+> decision and never in the column, so *"nothing has looked"* can never be read as *"carries
+> nothing"*. The detector is **P7's, injected, and unwritten**; there is no fourteenth part
+> (`02-segmentation-map.md`). P7 takes **no** `SensitivityStateWriter`: P1 now publishes
+> `set_sensitivity_state`, the twin of `set_extraction_status` (`src/database_agent/files_table.py`),
+> and calling it directly is the whole of the write path.
+>
+> **What is closed:** the column has a writer, the four homes have one authority, and the fifth
+> class has a home that is not this column. **What is still open and is the honest v1 posture:**
+> no rule set exists, so a P7 running against a real corpus classifies nothing and every file
+> resolves to `Denied(unclassified)`. That must be stated at the call site the way
+> `TARGETED_OCR_UNAVAILABLE` states P6's absence — never defaulted to "carries nothing".
+
+The original analysis is kept below because it is the reasoning the decision rests on.
+
+### 3a. The analysis as it stood — one concept with four candidate homes, and no producer at all
 
 **The largest connection risk in the wave, and P6's own SPEC flags it** (P6 open question 11,
 marked `[seam]`):
@@ -147,7 +166,7 @@ column that exists with no writer.**
   extraction until the caller was built.
 - `Dispatched.sensitivity` — §2.9's signals, computed by E3, discarded by the caller.
 - `extraction_routing` — a table P5 owns, written by nobody.
-- `files.sensitivity_state` — **still** has no writer (§3 above).
+- ~~`files.sensitivity_state` — **still** has no writer~~ — CLOSED by D2: P1 publishes `set_sensitivity_state` (§3 above).
 - P2's `runs_dataless` bucket — could only ever read zero until a `dataless` run became
   constructible.
 

@@ -644,9 +644,15 @@ file has.
 - Produces: `SensitivityFacts` protocol (`current`, `write`, `supersede`, `history`),
   `RELIABILITY_ORDER: tuple[str, ...]` (§3.13's five ranked, `rejected` excluded),
   `strongest(records) -> ClassificationRecord`,
-  `SensitivityStateWriter` protocol (`set_sensitivity_state(conn, file_id, *, state, author,
-  component_version) -> None`) — **injected, because P1 publishes no such writer**,
-  `mirror_state(record) -> str`.
+  `mirror_state(record) -> dict`.
+
+**D2 + round 5 CUT 5, ratified 2026-08-21 — the injected writer is gone.** This task used to
+produce a `SensitivityStateWriter` protocol *"because P1 publishes no such writer"*. P1 now
+publishes `database_agent.files_table.set_sensitivity_state`, the twin of `set_extraction_status`,
+with the same opaque storage and the same M8 authorship rule. A protocol wrapping a function that
+exists is a second write path to a column that spent the whole project with none. **Call P1's
+setter directly.** The "zero new tasks / Task 4 as written" cost estimate that assumed the injected
+protocol no longer holds; what remains is smaller, not larger.
 
 **Done-means:** 2 (second half).
 
@@ -654,9 +660,12 @@ file has.
 and that a `user_confirmed` record outranks a `validated` one by §3.13's listed order — the ordering
 is P6's, quoted, never re-derived. That a revision **supersedes** through P1's three columns and both
 records remain readable afterwards (§8.2's explicit rule). That the mirror onto
-`files.sensitivity_state` goes through an **injected** writer and that `src/privacy/` issues no
-`UPDATE files` of its own — the same position P5's plan took on `extraction_status_by_tier` before
-P1 published `set_extraction_status`, and the gap is reported rather than patched. And that the
+`files.sensitivity_state` goes through **P1's published `set_sensitivity_state`** and that
+`src/privacy/` issues no `UPDATE files` of its own — P5 took the identical position on
+`extraction_status_by_tier` and the resolution there was P1 publishing the setter, not P5 injecting
+one. That `Unreadable or unclassified` never reaches this column: it is a **gate outcome**, what the
+release decision says when it has no classification to release against, and storing it here would
+make "nothing has looked" indistinguishable from "this file carries nothing" (D2). And that the
 fixture holds P6 OQ11 open: it stores `protected` and `basis` in fields that P6's published
 `file_facts` shape has no column for, and says so in the assertion message.
 
@@ -967,10 +976,32 @@ Done-means 8's *"never deletes an audit record"* is proven against the substrate
 P7's own restraint. That `retraction_limit` is always present and non-empty, because §8.4 makes it a
 `must`: *"Revocation cannot necessarily retract data already sent to an external provider, so the
 product must communicate that distinction clearly"* — the wording is deferred UX copy, the
-**presence** is not. And that `delete_derived` raises `UnratifiedResolution` naming **I6**, so the
-one function whose semantics the SPEC says are unresolved cannot be quietly implemented: *"the
-candidate resolution on the table is to tombstone derived projections while keeping `events`
-append-only forever, but it is **not** ratified."*
+**presence** is not.
+
+> **D3, ratified by Joseph 2026-08-21.** I6's candidate resolution is now **ratified as the
+> direction**, and the sentence is:
+>
+> > `events` is append-only forever. Derived projections may be tombstoned; "derived" is a
+> > **literal enumerated table-and-column list** and `delete_derived` raises on anything outside
+> > it. **No tombstone column is built** until P13 drives it.
+>
+> Three consequences for this task:
+>
+> 1. **`delete_derived` still raises** — but now it raises because nothing is *built*, not because
+>    the semantics are *unratified*. It takes the enumerated list as a module-level constant and
+>    raises on any scope outside it, so an unenumerated table is a **red test rather than a silent
+>    miss**. That enumeration is the part that must actually be written down.
+> 2. **Add no writer-less tombstone column.** This is the ships seat's own counter to itself and it
+>    is taken: a migration later is cheaper than the defect class. `files.sensitivity_state` spent
+>    this entire project as a column nothing wrote, and it produced a second wrong value one column
+>    away — that is the cost being avoided here.
+> 3. **The direction lands before P6 Task 4's DDL**, which is the cheap moment. Thirteen tables
+>    already carry `BEFORE DELETE … RAISE(ABORT)`, so §8.4's right stays unimplementable without a
+>    migration until then, and that is the correct posture: *deletion later is always available;
+>    un-deletion never is.*
+>
+> The sealed bundles remain the one-way component and they accumulate per scan run, which is why
+> the Wave-2 caller's unconditional bundle copy was ruled on separately and is already fixed.
 
 ---
 

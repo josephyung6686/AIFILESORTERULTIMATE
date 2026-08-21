@@ -75,6 +75,41 @@ surface, not two. Split into separate parts, this becomes two engines and two re
 
 ---
 
+### Where the sensitivity detector lives — P7, and it is injected (D2)
+
+**There is no fourteenth part.** §8.4 requires a handling class before content reaches
+any model, and nothing in the design says who *detects* the sensitivity that class is
+assigned from. An initial reading put the detection in the fact layer, which would make
+P6 the classifier and give §8.4's rule two owners.
+
+The cut is: **P7 owns the classification and consumes an injected rule set.** It is the
+same shape as every reader in P5 — `Readers` names no library, `SafetyPolicy` holds no
+threshold, and P7 holds no detection rule. The rule set is a deployment's, not a part's.
+
+Three consequences, all of them binding now:
+
+1. **The rule set is unwritten.** No task in any plan produces one. Until one exists,
+   a P7 running against a real corpus classifies nothing, and every file resolves to
+   `Denied(unclassified)`. That is the honest v1 posture and it must be stated at the
+   call site rather than defaulted to "carries nothing" — the same correction
+   `TARGETED_OCR_UNAVAILABLE` made for P6's absent verdict.
+2. **`Unreadable or unclassified` is a gate outcome, not a file fact.** It is what the
+   gate answers when it has no classification to release against; it is not a fifth
+   value of a file's sensitivity. It therefore lives on the release decision, never in
+   `files.sensitivity_state`, and a reader must not be able to confuse "this file
+   carries nothing sensitive" with "nothing has looked".
+3. **P7's `ClassificationRecord`, keyed `(file_id, content_hash)`, is authoritative.**
+   P1's `files.sensitivity_state` is its projection onto the current row, written
+   through `set_sensitivity_state` — the twin of `set_extraction_status`, with the
+   same M8 authorship rule: P7 authors its §8.4 audit record and P1 stores. Keyed on
+   the content hash because a classification is about BYTES; new bytes at a path are
+   a new file version and inherit nothing.
+
+**P7 does not take an injected `SensitivityStateWriter`.** An earlier plan gave P7 a
+protocol for this. P1 already owns `files` and already publishes one setter of exactly
+this shape; a second write path would be a protocol wrapping a function that exists.
+Authority stays with P7, the protocol goes.
+
 ## Cross-cutting constraints
 
 These have no standalone deliverable and are not parts. Every `SPEC.md` must answer all four.

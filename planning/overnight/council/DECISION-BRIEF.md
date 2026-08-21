@@ -14,6 +14,32 @@ this was being written and it changes three sections** — D2 gains a second que
 narrowed to one option by execution, and one seat argument is corrected. Round 5 (scope) does not
 exist yet.
 
+> **Round 5 now does exist**, and it contradicts this document in one place: **D5.** Its CUT 1
+> deletes P6 Task 26 outright rather than fixing it. That collision was unresolved when this was
+> written and is resolved below, against D5.
+
+---
+
+## RATIFIED — Joseph, 2026-08-21
+
+Four taken as recommended, one narrowed, one **not** taken. Each is applied at its binding site;
+this table is the index, not the home.
+
+| | Answer | Applied where |
+|---|---|---|
+| **D6** | **snake_case**, and the §3.1 academic key is **`subject`**. | `planning/domains/*.json` (1,302 keys, 807 dimensions), `check.py` gate, `_CONTRACT.md` |
+| **D2** | `ClassificationRecord` keyed `(file_id, content_hash)` is **authoritative**. `Unreadable or unclassified` is a **gate outcome, not a file fact**. Detector is P7's, **injected and unwritten** — no fourteenth part; until it exists every real file is `Denied(unclassified)`. **No `SensitivityStateWriter`**: P1 publishes `set_sensitivity_state`. | `02-segmentation-map.md`, `22-…-contract.md` §3, P7 Task 4, `src/database_agent/files_table.py` |
+| **D3** | `events` append-only forever. Derived projections may be tombstoned; "derived" is a **literal enumerated list** and `delete_derived` raises outside it. **No writer-less tombstone column.** Bundle copy fixed. | P7 Task 15, P6 Task 4 DDL note, `src/orchestrator.py` |
+| **D4** | `jurisdiction` is a **value, never a field name and never a destination dimension**. One jurisdiction's gazetteers in v1, injected. | `planning/domains/_CONTRACT.md` |
+| **D1** | **Narrowed.** The closed reading is impossible — Task 2's *"acquiring one fails the test"* is struck. **No career fields authored**; S3's deferral stands and P6 starting does not un-defer it. Catalogue is a **placeholder that writes no field rows**; career owed before P10. | P6 Task 2, `_CONTRACT.md` |
+| **D5** | **NOT taken.** Round 5 CUT 1 wins: Task 26 is deleted, not fixed. Keep `TARGETED_OCR_UNAVAILABLE`, do **not** split `dispatch`, do **not** restructure `run_wave2`. §2.2's targeted-OCR clause is a `may`, and the only `ocr_engine` values in the repo are `None` and test lambdas. The four passes are **owed when an engine is chosen**. | P6 Task 26 (cut), `src/orchestrator.py` docstring |
+
+**Two things the ratification changes about this document's own reasoning.** D6's recommendation was
+argued by two seats from a `| Domain | Fields |` table that `00` does not contain — the correction
+holds and the answer is unchanged, but for the design seat's reason, not theirs. And D2's cost claim
+of *"zero new tasks / Task 4 as written"* died with round 5's CUT 5: the injected protocol is gone,
+so what remains is smaller than the brief estimated, not larger.
+
 ---
 
 ## The whole thing on one page

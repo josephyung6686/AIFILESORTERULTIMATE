@@ -60,12 +60,20 @@ from scan_agent.stat_cache import VERDICT_RECOMPUTE, cache_verdicts
 
 
 def TARGETED_OCR_UNAVAILABLE(file_id: str, content_hash: str) -> bool:
-    """P6 has not run, so §2.2's `text_layer_broken` route cannot be evaluated.
+    """No OCR engine is wired, so §2.2's `text_layer_broken` route cannot act.
 
     §2.2 names three text-layer states and the broken one is reachable only from P6's
     `no_usable_facts` verdict — "targeted OCR on a PDF with a non-empty but broken
     text layer only when its stored evidence yields no usable facts". P6 is unbuilt,
-    so there is no verdict to give.
+    so there is no verdict to give — **and even a built P6 would change nothing here
+    yet**, because there is no engine for the verdict to route to. `Readers.ocr_engine`
+    defaults to `None`, `_ocr` returns `None` when it is unset, and the only values it
+    ever takes in this repository are `None` and test lambdas.
+
+    That is why D5 was answered against restructuring the caller: §2.2's targeted-OCR
+    clause is a `may`, the `text_layer_absent` route is the `should` and is already
+    built, and a guard for the broken route could only be tested against a synthesised
+    exception. **This function is kept, not deleted** (P6 Task 26 is cut).
 
     Callers passed `lambda f, h: False` for this, and that is not the same statement.
     `False` from P6 means *"I examined this file's stored facts and the text layer is

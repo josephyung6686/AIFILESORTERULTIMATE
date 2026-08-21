@@ -1,7 +1,8 @@
 # Wave-2 orchestrator verification
 
 Date: 2026-08-21 (~02:10)
-Status: **The happy path runs. The caller is not finished.** `PYTHONPATH=src python3 -m pytest tests/wave2 -v` → **16 passed** (fresh this pass). Probes below were executed against live `src/orchestrator.py`, not inferred from [`18-wave2-orchestrator.md`](18-wave2-orchestrator.md).
+Status: **Historical.** Persist leftovers (sensitivity, routing, `handling_class`) closed later the same day. Current verdict: [`23-full-tree-stress.md`](23-full-tree-stress.md).
+`PYTHONPATH=src python3 -m pytest tests/wave2 -v` → **16 passed** (fresh this pass — count is stale; wave2 now has 26 tests). Probes below were executed against live `src/orchestrator.py`, not inferred from [`18-wave2-orchestrator.md`](18-wave2-orchestrator.md).
 Companion: [`20-p1-p5-recheck.md`](20-p1-p5-recheck.md) (P1–P5 join). Seam contract: [`18-wave2-orchestrator.md`](18-wave2-orchestrator.md) (partly stale vs code).
 
 The orchestrator is **not a part**. It owns order, the two refusal outcomes, the two joins (`source_scan_ref`, `extraction_status_by_tier`), and passing `author` through. It publishes no vocabulary and adds no table.

@@ -105,3 +105,33 @@ on what may be asserted; the rest is a proposal for Joseph.
 7. **Anything genuinely undecidable goes in `open_question`** and gets copied into
    `NEEDS-JOSEPH.md`. Do not resolve a question that is Joseph's — especially where a domain
    implies a default folder structure for someone's real life.
+8. **Field keys are `snake_case`, and a template may only branch on a field the same entry's
+   schema declares (D6, ratified 2026-08-21).** Both halves are enforced by the gate.
+
+   The key is a **stored join handle**: it lands in a fact row, in §3.4's cache key, and in a
+   template's branch order. Two spellings are two columns. This catalogue shipped with 966 spaced
+   keys and 959 snake_case ones, **131 of them the same key spelled two ways** — one concept in two
+   vocabularies, at scale, in a catalogue whose own gate reported "0 problems".
+
+   The academic field is **`subject`**, not `course`. The design names it both ways — `subject =
+   BUSIB 4300` in §3.1, "course" in §3.11's list and §5.4's template order — so one is the stored
+   key and the other is prose. **Design quotations keep the design's wording**; only keys change.
+
+   The second half is the one that failed: **566 of 1,648 dimensions branch on a field the schema
+   does not declare.** A domain is a schema *plus* a template — the allow-list §3.6 validates
+   against and the menu §5.3 draws branches from — so a dimension naming an undeclared field opens
+   a tree level no fact can ever fill. Fixing these is not mechanical: 305 have no related field at
+   all and need a decision about what the domain legitimises. **Do not invent fields to make the
+   gate green.**
+9. **`jurisdiction` is a value, never a field name and never a destination dimension (D4, ratified
+   2026-08-21).** §3.12: *"The system may create new values when it sees a new course, project,
+   company, university, or event, but it should not invent new fields automatically."* What varies
+   by jurisdiction is values; that is what keeps this two-way. v1 ships **one** jurisdiction's
+   gazetteers, injected per deployment, and the list is decided when P10 is planned. A
+   jurisdiction-specific **field** name (`w2_tax_year`) is the thing that would make it one-way;
+   none of the 574 entries has done that, and none may.
+10. **No career, identity, medical or legal field rows (D1, narrowed 2026-08-21).** S3 deferred
+   that schema and the deferral stands. This catalogue is a **placeholder that writes no field
+   rows** — it may describe those domains, and it may not turn them into `fields` catalogue
+   entries. **Career is owed before P10**, where a destination dimension first needs one. Adding
+   one earlier is reversing S3 and must say so explicitly rather than arriving as a plan edit.

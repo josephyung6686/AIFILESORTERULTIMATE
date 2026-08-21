@@ -169,6 +169,42 @@ def set_extraction_status(conn: sqlite3.Connection, file_id: str, *,
     )
 
 
+def set_sensitivity_state(conn: sqlite3.Connection, file_id: str, *,
+                          state: dict, author: str,
+                          component_version: str) -> None:
+    """Record the §8.4 sensitivity state a caller classified (D2).
+
+    The exact twin of `set_extraction_status`, and it exists for the identical
+    reason: `sensitivity_state` has been a column on `files` since the first schema
+    with **nothing able to write it**. Every reader saw NULL and could not tell *not
+    yet classified* from *classified as carrying nothing* -- and the Wave-2 caller,
+    reaching for a value, passed this NULL into the bundle's `handling_class`, which
+    is a different field on a different record. One concept with no writer produced a
+    second concept with a wrong one.
+
+    **P1 holds no handling-class vocabulary.** §8.4's classes are P7's, so the state
+    is stored opaquely exactly as `extraction_status_by_tier` is. A class P1 has
+    never heard of round-trips unchanged; validating it here would put one vocabulary
+    in two homes, which is this project's most expensive defect.
+
+    D2, ratified 2026-08-21: P7's `ClassificationRecord`, keyed `(file_id,
+    content_hash)`, is authoritative. This column is its PROJECTION onto the current
+    file row -- the same relationship P5's runs have to the tier map. A reader
+    needing the classification's provenance reads P7's record; a reader needing
+    "what is this file right now" reads here.
+
+    `author` and `component_version` name the classifying part. As with
+    `set_extraction_status`, P1 appends no event of its own (M8): P7 authors its
+    §8.4 audit record and P1 records the state under it. P1 minting an event here
+    would name the storage substrate as the thing that classified the file, which is
+    exactly what §8.2's reconstruction requirement cannot survive.
+    """
+    conn.execute(
+        "UPDATE files SET sensitivity_state = ? WHERE file_id = ?",
+        (json.dumps(state, sort_keys=True), file_id),
+    )
+
+
 def observe_path(conn: sqlite3.Connection, path: Path, *,
                  author: str,
                  component_version: str,

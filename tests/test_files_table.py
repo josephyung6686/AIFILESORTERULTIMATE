@@ -106,3 +106,50 @@ def test_invalidation_clears_a_status_a_caller_had_set(conn, sample_file):
                           author="P5", component_version="1.0")
     invalidate_extraction_state(conn, file_id, author="P5", component_version="1.0")
     assert get_file(conn, file_id)["extraction_status_by_tier"] == "{}"
+
+
+# ------------------------------------------------- D2: `sensitivity_state` (§8.4)
+def test_p1_publishes_a_writer_for_sensitivity_state(conn, sample_file):
+    """The twin of `set_extraction_status`, and for the identical reason.
+
+    `sensitivity_state` has been a column on `files` since the first schema with
+    NOTHING able to write it -- a column with no writer, which is this project's
+    recurring defect class. Every reader therefore saw NULL and could not tell
+    "not yet classified" from "classified as carrying nothing", and the Wave-2
+    caller passed the NULL on to a bundle field that means something else.
+
+    D2, ratified 2026-08-21: P7's `ClassificationRecord` keyed `(file_id,
+    content_hash)` is authoritative and P1's column is its projection -- the same
+    shape as `extraction_status_by_tier`, where P5 computes and P1 stores.
+    """
+    from database_agent.files_table import set_sensitivity_state
+    file_id = record_file(conn, sample_file, **_p3_fields(sample_file))
+    assert get_file(conn, file_id)["sensitivity_state"] is None
+    set_sensitivity_state(conn, file_id, state={"handling_class": "local_only"},
+                          author="P7", component_version="1.0")
+    assert json.loads(get_file(conn, file_id)["sensitivity_state"]) == {
+        "handling_class": "local_only"}
+
+
+def test_p1_holds_no_handling_class_vocabulary(conn, sample_file):
+    """§8.4's handling classes are P7's. P1 stores the state opaquely for the same
+    reason it stores the tier map opaquely: validating the values here would put one
+    vocabulary in two homes."""
+    from database_agent.files_table import set_sensitivity_state
+    file_id = record_file(conn, sample_file, **_p3_fields(sample_file))
+    set_sensitivity_state(conn, file_id,
+                          state={"a-class-p1-never-heard-of": ["why"]},
+                          author="P7", component_version="1.0")
+    assert json.loads(get_file(conn, file_id)["sensitivity_state"]) == {
+        "a-class-p1-never-heard-of": ["why"]}
+
+
+def test_p1_appends_no_event_of_its_own_for_a_classification(conn, sample_file):
+    """M8: the acting part authors, P1 stores. P7 appends its own §8.4 audit record;
+    P1 minting one here would name the storage substrate as the classifier."""
+    from database_agent.files_table import set_sensitivity_state
+    file_id = record_file(conn, sample_file, **_p3_fields(sample_file))
+    before = conn.execute("SELECT count(*) c FROM events").fetchone()["c"]
+    set_sensitivity_state(conn, file_id, state={"handling_class": "local_only"},
+                          author="P7", component_version="1.0")
+    assert conn.execute("SELECT count(*) c FROM events").fetchone()["c"] == before

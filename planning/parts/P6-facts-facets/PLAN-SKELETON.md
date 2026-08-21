@@ -578,7 +578,22 @@ test `tests/p6/test_p6_fields.py`.
 
 **What its tests must prove.** That the catalogue is exactly the six §3.11 universal fields, plus
 `download_session`, plus the six §3.11 domain rows verbatim — and **nothing else**: Career and
-recruiting, identity, medical and legal have no field rows and acquiring one fails the test (S3).
+recruiting, identity, medical and legal have no field rows.
+
+> **D1, narrowed by Joseph 2026-08-21.** The clause *"and acquiring one fails the test"* is
+> **struck.** The closed reading it enforced is impossible: it makes P6's own test suite the thing
+> that forbids a later, deliberate reversal of S3, so adding a career field would read as a
+> regression rather than a decision. S3 deferred that schema and the deferral stands on its own —
+> **P6 starting does not silently un-defer a binding resolution, and P6's tests are not the place
+> that resolution is held.** The test asserts the catalogue's contents; it does not assert that the
+> contents can never change.
+>
+> **Do not author career fields.** Not in this task, not in the domain catalogue as field rows. The
+> 574-entry catalogue is a **placeholder that writes no field rows** — that is the design seat's
+> actual ask and it is the half that is kept. **Career is owed before P10**, which is where a
+> destination dimension first needs one. Anyone adding one before then is reversing S3 and must say
+> so explicitly.
+
 That no producer can create a field at run time: the write path is a module-level authored table
 loaded by `create_fields`, there is no `add_field`, and an attempt to write a fact naming an unknown
 field raises `FieldNotInCatalogue` rather than inserting one. That `destination_eligible` is `FALSE`
@@ -1183,55 +1198,46 @@ record or three). That P6 imports nothing from a grouping, tree, placement or mo
 `subsystem = "P6"` is written in exactly one place. That no module branches on `source_type` or
 `extractor_name`. That catalogue 01 is not imported anywhere in `facts`.
 
-#### Task 26: The three-pass Wave-2 wiring — the orchestrator restructure
+#### Task 26: ~~The three-pass Wave-2 wiring — the orchestrator restructure~~ — **CUT (D5)**
 
-**Files:** modify `src/orchestrator.py`; modify `tests/wave2/test_wave2_orchestrator.py`;
-test `tests/p6/test_p6_pass_order.py`.
+> **Not built. Ratified by Joseph, 2026-08-21**, taking round 5's CUT 1 over the council's D5.
+>
+> The council was right that Task 26 **as written** must not land — round 4 executed it and found
+> two of its four joins unbuildable. The wrong inference was that a *fixed* Task 26 must therefore
+> land instead. It must not land at all yet.
+>
+> **Why.** §2.2's targeted-OCR clause is the one clause in that section written as permissive:
+> *"a file that technically produces text but yields no usable facts **may** receive targeted OCR
+> as a fallback"*. The `text_layer_absent` route is the `should`, and it is already built and
+> unaffected. The `text_layer_broken` route — the only route this restructure exists to serve —
+> cannot do anything in v1, because **no OCR engine is chosen**: `Readers.ocr_engine` defaults to
+> `None`, `_ocr` returns `None` when it is unset, and the only `ocr_engine` values anywhere in the
+> repository are `None` and a handful of test lambdas. A guard built now can only ever be tested
+> against a synthesised exception, which is §2.7's dead-path defect — class 4 on this project's own
+> list.
+>
+> **What stays.** `facts/usable.py` keeps `no_usable_facts_for(conn, *, usable_threshold)` and every
+> test Done-means 28 names. That is the whole of the SPEC's read-surface obligation. What goes is
+> the machinery that *sequences* it.
+>
+> **What is NOT done, deliberately.** Do not split `extractors.dispatch` into extra public entry
+> points. Do not restructure `run_wave2` into four loops. Do not delete
+> `orchestrator.TARGETED_OCR_UNAVAILABLE` — round 2's B-14 says Task 26 forgets to delete it, and
+> the simplification is that it should not be deleted. Its docstring needs **one word changed**:
+> the honest v1 statement is *no OCR engine is wired*, not *P6 has not run*.
+>
+> **What this deletes rather than fixes:** round 2's B-1 (CRITICAL), B-2, B-12, B-14, B-19 and
+> missing-tasks 3 and 8; round 3's A1 (CRITICAL) and A12(a) and half of A17; and round 4's C-1
+> (the `dispatch` split half), C-4 and C-6. Round 5 could not credit the round-4 three because it
+> ran before round 4 was written — so its stated saving is **understated by three findings**.
+>
+> **When it is owed.** When an OCR engine is chosen (P5 NEEDS-JOSEPH 1). Re-adding is round 2's
+> three-task split, run **against a live engine** — strictly better than building it now, because
+> the guard can then actually be observed firing. `FactPassNotRun` keeps its `ContractViolation`
+> base class regardless: that is right on its own merits and costs nothing while unused.
+>
+> The full cut text is preserved in git history at the commit that removed it.
 
-**Interfaces:**
-- Consumes: `facts.resolver.FactResolver`, `facts.usable.no_usable_facts_for`, `record_pass`,
-  `passes_for`, `FactPassNotRun`; `extractors.dispatch.extract`; `extractors.ocr_policy.OcrDecision`.
-- Produces: on `run_wave2`, one new keyword-only parameter carrying P6's resolver, **no default**,
-  matching the pattern every other injected dependency already follows. `run_wave2`'s existing
-  `no_usable_facts` parameter is **removed** — the orchestrator obtains it from the resolver, because
-  handing the caller a verdict function and a resolver separately is what let them drift apart.
-
-**Done-means:** none numbered directly; it is what makes 28 and preamble rule 5 true end to end.
-
-**Why this is a task and not an edit.** Today `run_wave2` is one loop: route → extract (which
-consults `no_usable_facts` and may run OCR inline) → write → set status. Preamble rule 5 requires the
-extract step to split, because P6 cannot answer between the two halves of a single `extract()` call —
-at that moment the observations are not in the store. The restructure is:
-
-```text
-loop 1   per file: route → extract WITHOUT the OCR branch → _write → set_extraction_status
-loop 2   per file: resolver.resolve(...) over the native evidence → facts / unresolved
-                   → usable.record_pass(..., analysis_tiers={"filesystem", "native"})
-loop 3   per file where no_usable_facts(file_id, content_hash) is True, and only there:
-                   targeted OCR → _write → set_extraction_status
-loop 4   per file touched by loop 3: resolver.resolve(...) again → facts supersede
-         then 2b (dataless), then 4 (P2 bundle) unchanged
-```
-
-The `text_layer_absent` route is **unaffected and stays in loop 1**: §2.2 sends a PDF with no text
-layer *"directly to OCR"* and P6 is not consulted for it — `ocr_policy.text_layer_state` returns
-`text_layer_absent` before it ever calls the verdict. Only the `text_layer_broken` branch moves.
-`image_ocr_decision` never consults P6 at all and does not move either. So the split is narrower
-than it first looks: one branch of one extractor family.
-
-**What its tests must prove.** That `no_usable_facts` is never called before `record_pass` for that
-`(file_id, content_hash)` — asserted by injecting a verdict that raises `FactPassNotRun` and running
-a full corpus without it firing, which is the mechanical check that replaces a comment. That a
-text-bearing PDF whose native evidence yields facts is **never** OCRed — the case that is silently
-broken today. That a text-bearing PDF whose native evidence yields only `unresolved` rows **is**
-OCRed exactly once, and that loop 4 then produces facts from the OCR observations. That loop 4
-**supersedes** rather than overwrites: the pass-2 `unresolved` row remains readable, the pass-4 fact
-carries `preferred = true`, and the two cache keys differ by `analysis_tier` alone. That a file whose
-OCR pass also produced nothing is not OCRed a second time on a re-run — the termination condition,
-read from the pass record. That `tests/wave2/test_wave2_orchestrator.py` stays green with the new
-parameter and without the removed one. That with `readers.ocr_engine is None` — the current default —
-loops 3 and 4 are no-ops and the corpus resolves from native evidence alone, so the restructure costs
-nothing until an OCR engine is actually wired.
 
 #### Task 27: Deterministic operation, and the walking-skeleton P6 step
 

@@ -5,6 +5,7 @@ Status: **The Wave-2 path now runs as the original design cut it.** Not a finish
 Source of truth: [`00-database-agent-product-design.md`](00-database-agent-product-design.md) · cut: [`02-segmentation-map.md`](02-segmentation-map.md)
 Supersedes the execute-headline of [`19-p4-p5-stress.md`](19-p4-p5-stress.md). File 19 stays as the break list that this pass closed.
 Orchestrator-specific verification: [`21-orchestrator-verification.md`](21-orchestrator-verification.md).
+**Current full-tree verdict:** [`23-full-tree-stress.md`](23-full-tree-stress.md) (2026-08-21 midday). File 20 leftovers 1–3 (sensitivity, routing, `handling_class`) are **closed in code**; the suite is now 1244.
 
 ---
 
