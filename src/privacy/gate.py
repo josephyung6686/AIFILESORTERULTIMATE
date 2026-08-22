@@ -1,0 +1,381 @@
+# src/privacy/gate.py
+"""The one door. `Gate.release(ModelCallRequest) -> ReleaseDecision`, and nothing else.
+
+B2 adopts SPEC §6's signature verbatim on both sides, so `release` takes the request
+and NOTHING ELSE -- no override, no flag, no connection. Everything the gate needs
+beyond the request is constructor state, and three of those constructor parameters
+carry no default because each is an open question this plan will not guess:
+
+    classifier / transform      SPEC *Deferred*: identifier classes and the redaction
+                                transform are not enumerated anywhere in the design.
+    scope_for                   Open question 3: "What is a 'corpus area'? ... Consent
+                                grants cannot be scoped until this is named."
+    unclassified_permits_local  Open question 5: does `unreadable_unclassified` permit
+                                a LOCAL model call?
+
+The gate writes exactly ONE thing -- the audit record -- and it writes it BEFORE the
+decision is returned, because §8.4 makes recording the authorization part of granting
+it (C4). It writes no classification, no `files.sensitivity_state`, no `stage_output`,
+no placement decision and no P8 `Refusal`. The catcher is always the caller's.
+
+It decides no precedence of its own: it COLLECTS every triggered reason and asks
+`denial.first_reason` which one wins, because `DENIAL_ORDER` is Task 13's and a second
+total order here would be a second home for it.
+"""
+from __future__ import annotations
+
+import sqlite3
+from collections.abc import Callable, Mapping, Sequence
+
+from database_agent.budget import get_ceiling
+from database_agent.files_table import get_file
+from evidence_shape.canonical import canonical_json
+
+from privacy.audit import AuditRecord, append_audit
+from privacy.authorship import SUBSYSTEM
+from privacy.binding import mint_release
+from privacy.classification import (
+    UNREADABLE_UNCLASSIFIED, ClassificationRecord, resolve_class,
+)
+from privacy.consent import ConsentRequirement, open_consent_request
+from privacy.denial import (
+    deny_always_local_item, deny_dossier_over_budget, deny_mode_forbids_target,
+    deny_policy_revoked, deny_protected_cloud_target,
+    deny_protected_records_template, deny_unclassified,
+    deny_whole_document_requested, first_reason, is_protected_records, mode_forbids,
+    over_dossier_ceiling, policy_revoked_for, protected_cloud_denies, record_denial,
+    unclassified_denies,
+)
+from privacy.items import (
+    AlwaysLocalRequested, Excerpt, ProtectedItemRequested, RedactedIdentifier,
+    WholeDocumentRequested, check_item, kind_of, sensitive_observation_keys,
+)
+from privacy.policy import current_policy
+from privacy.redaction import RedactionManifest, apply_redaction
+from privacy.release import (
+    DECISION_ORDER, Denied, ModelCallRequest, NeedsConsent, NoPolicyInForce,
+    ReleaseDecision, Released,
+)
+from privacy.resolve import Materialised, materialise
+
+#: §4's two item kinds that address local text and therefore resolve to a value.
+#: `candidate_label`, `metadata_field`, `evidence_reference` and `filename` carry no
+#: local content -- §4: an evidence reference is "an id only -- no content" -- so they
+#: are never materialised and never echoed back.
+TEXT_BEARING: tuple[type, ...] = (Excerpt, RedactedIdentifier)
+
+
+class Gate:
+    """§8.4's gate. One object, one door, no second name.
+
+    Task 20 pins the first ten keywords (`GATE_ARGUMENTS`) so its fixtures replay
+    through the real gate. `measure_tokens` and `template_for` are two OPTIONAL
+    additions, both defaulting to `None`, and both reported to Task 20:
+
+    - `measure_tokens` -- P7 owns no tokenizer and inventing one would invent a
+      number. With no measurement there is nothing to compare, exactly as an unset
+      ceiling cannot deny.
+    - `template_for` -- §7.3's residual-template library is P10's and P11's and is
+      unbuilt. With no mapping, no file is under a residual template.
+    """
+
+    def __init__(self, conn: sqlite3.Connection, *, store, plan_version: str,
+                 classifier, transform, unclassified_permits_local: bool,
+                 scope_for: Callable[[str], str | None],
+                 files_in_scope: Callable[[str], Sequence[str]],
+                 component_version: str, now: Callable[[], str],
+                 user_id: str | None,
+                 measure_tokens: Callable[..., int] | None = None,
+                 template_for: Callable[[str], str | None] | None = None) -> None:
+        self._conn = conn
+        self._store = store
+        self._plan_version = plan_version
+        self._classifier = classifier
+        self._transform = transform
+        self._unclassified_permits_local = unclassified_permits_local
+        self._scope_for = scope_for
+        #: Held for `Gate.revoke` (Task 15); `release` does not use it.
+        self._files_in_scope = files_in_scope
+        self._component_version = component_version
+        self._now = now
+        self._user_id = user_id
+        self._measure_tokens = measure_tokens
+        self._template_for = template_for
+
+    # -- §8.4's only door ---------------------------------------------------
+
+    def release(self, request: ModelCallRequest) -> ReleaseDecision:
+        """See `release.DECISION_ORDER` for the order and why it is forced."""
+        assert DECISION_ORDER[0] == "collect_request_denials"
+        policy = current_policy(self._conn, plan_version=self._plan_version)
+        if policy is None:
+            raise NoPolicyInForce(
+                f"no privacy policy is stored for plan version "
+                f"{self._plan_version!r}. §8.4's audit record names the authorizing "
+                "policy and there is none; W1's local-first floor is resolved in "
+                "`defaults.effective_policy`, not here, so the gate refuses to "
+                "invent one")
+
+        observed_at = self._now()
+        locality = request.model_target.locality
+        file_ids = request.target.file_ids
+        scope = self._scope_for(file_ids[0])
+        granted = tuple(name for name, _option in policy.consent_grants)
+
+        rows = {file_id: get_file(self._conn, file_id) for file_id in file_ids}
+        hashes = tuple(rows[file_id]["content_hash"] for file_id in file_ids)
+        records = {file_id: self._store.current(file_id, rows[file_id]["content_hash"])
+                   for file_id in file_ids}
+        classes = {file_id: resolve_class(record)
+                   for file_id, record in records.items()}
+        protected_ids = tuple(file_id for file_id, record in records.items()
+                              if record is not None and record.protected)
+        decisive = self._decisive(records, protected_ids, file_ids)
+        sensitive_keys = frozenset().union(*(
+            sensitive_observation_keys(self._conn, file_id) for file_id in file_ids))
+
+        # 1 -- every reason decidable from the request, the policy and a row lookup.
+        builders: dict[str, Callable[[], Denied]] = {}
+
+        if mode_forbids(policy.operation_mode, locality):
+            builders["mode_forbids_target"] = lambda: deny_mode_forbids_target(
+                operation_mode=policy.operation_mode,
+                model_target=request.model_target, file_ids=file_ids)
+
+        if policy_revoked_for(self._conn, policy, scope):
+            builders["policy_revoked"] = lambda: deny_policy_revoked(
+                scope=scope, policy=policy, file_ids=file_ids)
+
+        caught = self._precheck_items(request, protected=bool(protected_ids),
+                                      sensitive_keys=sensitive_keys)
+        if isinstance(caught, AlwaysLocalRequested):
+            builders["always_local_item"] = lambda: deny_always_local_item(
+                caught, file_ids=file_ids)
+        elif isinstance(caught, ProtectedItemRequested):
+            builders["protected_records_template"] = \
+                lambda: deny_protected_records_template(
+                    file_ids=file_ids, model_target=request.model_target)
+
+        unclassified = tuple(sorted(
+            file_id for file_id, name in classes.items()
+            if name == UNREADABLE_UNCLASSIFIED))
+        if unclassified and unclassified_denies(
+                locality=locality,
+                local_calls_on_unclassified=self._unclassified_permits_local):
+            builders["unclassified"] = lambda: deny_unclassified(
+                file_ids=unclassified, locality=locality,
+                completeness=self._completeness(rows, unclassified[0]))
+
+        if self._template_for is not None and any(
+                is_protected_records(self._template_for(file_id))
+                for file_id in file_ids):
+            builders["protected_records_template"] = \
+                lambda: deny_protected_records_template(
+                    file_ids=file_ids, model_target=request.model_target)
+
+        if protected_cloud_denies(protected=bool(protected_ids), locality=locality,
+                                  operation_mode=policy.operation_mode, scope=scope,
+                                  granted_scopes=granted):
+            builders["protected_cloud_target"] = \
+                lambda: deny_protected_cloud_target(
+                    file_ids=protected_ids, operation_mode=policy.operation_mode,
+                    scope=scope,
+                    evidence_refs=(decisive.evidence_refs
+                                   if decisive is not None else ()))
+
+        chosen = first_reason(builders)
+        if chosen is not None:
+            return self._denied(builders[chosen](), request, policy, decisive,
+                                hashes, observed_at)
+
+        # 2 -- a question only the user can answer, asked only if nothing denied.
+        text_items = tuple(item for item in request.requested_items
+                           if isinstance(item, TEXT_BEARING))
+        if text_items and protected_ids and scope not in granted:
+            requirement = ConsentRequirement(
+                file_ids=protected_ids,
+                handling_class=classes[protected_ids[0]],
+                items=tuple(kind_of(item) for item in text_items),
+                why=("§8.4: this call needs text from files entered into protected "
+                     f"state, and policy {policy.policy_version} holds no consent "
+                     f"grant for scope {scope!r}"))
+            return open_consent_request(
+                self._conn, requirement, request=request, policy=policy,
+                content_hashes=hashes, user_id=self._user_id,
+                component_version=self._component_version, observed_at=observed_at)
+
+        # 3 -- the only content read in the part.
+        resolved, manifest = self._materialise(text_items)
+
+        # 4 -- the two reasons that needed the resolved text.
+        late: dict[str, Callable[[], Denied]] = {}
+        caught = self._postcheck_items(request, resolved,
+                                       protected=bool(protected_ids),
+                                       sensitive_keys=sensitive_keys)
+        if isinstance(caught, WholeDocumentRequested):
+            late["whole_document_requested"] = \
+                lambda: deny_whole_document_requested(caught, file_ids=file_ids)
+
+        if self._measure_tokens is not None:
+            measured = self._measure_tokens(request, resolved)
+            if over_dossier_ceiling(self._conn, measured_tokens=measured):
+                late["dossier_over_budget"] = lambda: deny_dossier_over_budget(
+                    measured_tokens=measured,
+                    ceiling=self._ceiling(), file_ids=file_ids)
+
+        chosen = first_reason(late)
+        if chosen is not None:
+            return self._denied(late[chosen](), request, policy, decisive, hashes,
+                                observed_at)
+
+        # 5 -- the one write, before the value exists.
+        audit_id = append_audit(
+            self._conn,
+            self._release_record(request, policy, classes, hashes, resolved,
+                                 manifest, observed_at),
+            author=SUBSYSTEM, component_version=self._component_version)
+
+        # 6 -- the capability, recorded in Task 12's ledger and bound to three terms.
+        release_id = mint_release(
+            self._conn, policy=policy, model_target=request.model_target,
+            prompt_fingerprint=request.prompt_fingerprint, audit_id=audit_id,
+            minted_at=observed_at)
+
+        return Released(
+            release_id=release_id, audit_id=audit_id,
+            policy_version=policy.policy_version, materialised_items=resolved,
+            redaction_manifest=manifest, model_target=request.model_target)
+
+    # -- helpers ------------------------------------------------------------
+
+    @staticmethod
+    def _decisive(records: Mapping[str, ClassificationRecord | None],
+                  protected_ids: Sequence[str],
+                  file_ids: Sequence[str]) -> ClassificationRecord | None:
+        """The one record `record_denial` stores, which takes a single record.
+
+        The first protected file if there is one, because that is the file the
+        denial is about; otherwise the first target, whose record is `None` on the
+        ordinary path and is exactly what `resolve_class` turns into
+        `unreadable_unclassified`.
+        """
+        if protected_ids:
+            return records[protected_ids[0]]
+        return records[file_ids[0]]
+
+    @staticmethod
+    def _completeness(rows: Mapping[str, object], file_id: str) -> str | None:
+        """P1 stores extraction status per tier; absent means nothing has run."""
+        stored = rows[file_id]["extraction_status_by_tier"]
+        return str(stored) if stored else None
+
+    def _ceiling(self) -> int:
+        """P1's stored ceiling, read for the denial's explanation only.
+
+        Never `request.max_dossier_tokens`, which is "the caller's echo of it (M9)":
+        a caller must not be able to raise its own ceiling by echoing a larger one.
+        Reached only when `over_dossier_ceiling` already returned True, so the value
+        is never `None` here; P7 invents no number for the case that cannot occur.
+        """
+        value = get_ceiling(self._conn, "model.max_dossier_tokens_per_call")
+        if value is None:  # pragma: no cover - `over_dossier_ceiling` gated this
+            raise AssertionError(
+                "dossier_over_budget was reached with no ceiling stored; "
+                "`over_dossier_ceiling` cannot return True in that state")
+        return int(value)
+
+    def _precheck_items(self, request: ModelCallRequest, *, protected: bool,
+                        sensitive_keys) -> Exception | None:
+        """Task 7's refusals that need no content. `unit_length=None` means unknown.
+
+        `allow_unratified=True` because SPEC §4's flagged reading permits `filename`
+        for non-protected files and denies it for protected ones; the denial is §7.3's
+        and it arrives as `ProtectedItemRequested`, not as an unratified kind.
+        """
+        for item in request.requested_items:
+            try:
+                check_item(item, unit_length=None, protected=protected,
+                           sensitive_keys=sensitive_keys, allow_unratified=True)
+            except (AlwaysLocalRequested, ProtectedItemRequested) as caught:
+                return caught
+        return None
+
+    def _postcheck_items(self, request: ModelCallRequest,
+                         resolved: Sequence[Materialised], *, protected: bool,
+                         sensitive_keys) -> Exception | None:
+        """The one refusal that needs the resolved unit length."""
+        lengths = {item.observation_key: item.unit_length for item in resolved}
+        for item in request.requested_items:
+            if not isinstance(item, TEXT_BEARING):
+                continue
+            try:
+                check_item(item, unit_length=lengths.get(item.observation_key),
+                           protected=protected, sensitive_keys=sensitive_keys,
+                           allow_unratified=True)
+            except WholeDocumentRequested as caught:
+                return caught
+        return None
+
+    def _materialise(self, text_items: Sequence[object]
+                     ) -> tuple[tuple[Materialised, ...], RedactionManifest]:
+        """(observation_key, span) -> text -> redacted text. `resolve` is the only
+        module under `src/privacy/` that binds a P4 text materialiser (L2)."""
+        resolved: list[Materialised] = []
+        entries = []
+        for item in text_items:
+            found = materialise(self._conn, item)
+            value, entry = apply_redaction(
+                found.value, observation_key=found.observation_key,
+                span=found.span, context_before=found.context_before,
+                context_after=found.context_after,
+                context_truncated=found.context_truncated,
+                classifier=self._classifier, transform=self._transform)
+            resolved.append(Materialised(
+                observation_key=found.observation_key, span=found.span, value=value,
+                zone=found.zone, context_before=found.context_before,
+                context_after=found.context_after,
+                context_truncated=found.context_truncated,
+                unit_length=found.unit_length))
+            entries.append(entry)
+        return tuple(resolved), RedactionManifest(entries=tuple(entries))
+
+    def _release_record(self, request, policy, classes, hashes, resolved, manifest,
+                        observed_at) -> AuditRecord:
+        """SPEC §7's record for a release. `release_id` is None -- see the plan.
+
+        §6 puts the append strictly BEFORE the release id exists, `mint_release`
+        takes the `audit_id`, and `events` is append-only so the row cannot be
+        back-filled. The join therefore runs ledger -> events, which is the
+        direction Task 12 published the ledger's `audit_id` column for.
+        """
+        single = len(request.target.file_ids) == 1
+        distinct = sorted(set(classes.values()))
+        return AuditRecord(
+            authorizing_policy=policy.policy_version,
+            file_sensitivity=(distinct[0] if len(distinct) == 1
+                              else canonical_json(distinct)),
+            excerpts_included=tuple(
+                (item.observation_key, item.span) for item in resolved),
+            redaction_applied=manifest.any_redacted,
+            model=request.model_target.to_mapping(),
+            prompt_fingerprint=request.prompt_fingerprint,
+            audit_id=None, release_id=None, observed_at=observed_at,
+            stage=request.stage, file_ids=request.target.file_ids,
+            group_id=request.target.group_id, content_hashes=hashes,
+            operation_mode=policy.operation_mode,
+            policy_version=policy.policy_version, plan_version=policy.plan_version,
+            outcome="released",
+            file_id=request.target.file_ids[0] if single else None,
+            content_hash=hashes[0] if single else None,
+            user_id=self._user_id,
+            redaction_manifest=tuple(manifest.to_mapping()))
+
+    def _denied(self, denied: Denied, request, policy, decisive, hashes,
+                observed_at) -> Denied:
+        """One `model_release_denied`, appended before the value is returned."""
+        record_denial(self._conn, denied, request=request, policy=policy,
+                      classification=decisive, content_hashes=hashes,
+                      user_id=self._user_id,
+                      component_version=self._component_version,
+                      observed_at=observed_at)
+        return denied
