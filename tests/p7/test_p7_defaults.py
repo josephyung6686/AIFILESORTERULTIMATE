@@ -11,7 +11,10 @@ flow produces a starting mode of `hybrid` or `cloud_assisted`. Asserted by calli
 the resolver over every reachable stored state and by walking the package's
 module-level namespaces at run time -- not by grepping source text, because both mode
 names appear legitimately in `vocabulary.py`, in docstrings and in denial messages,
-and a text scan would either pass vacuously or fail on a comment.
+and a text scan would either pass vacuously or fail on a comment. That walk is one
+level deep and a later reader should not over-trust it: a cloud mode nested inside a
+container, held as a dataclass or instance attribute, or sitting in a function's
+keyword default is invisible to it.
 
 What this file must NOT assert: which of `offline` and `local_model` ships. That is
 SPEC Open question 11 and P7 will not guess it.
@@ -208,12 +211,21 @@ def test_assert_local_first_rejects_an_incomplete_facet_map(p7_conn):
         assert_local_first(replace(resolved(None), redaction_settings={}))
 
 
-def test_no_module_under_privacy_names_a_cloud_mode_at_module_level(p7_conn):
-    # Runtime introspection of every module's namespace, the way
-    # `tests/p3/test_p3_no_invention.py` established. Objects that ARE
-    # `vocabulary.py`'s own are skipped by IDENTITY, not by name, so a legitimate
-    # re-export of `OPERATION_MODES` or `MODE_SEMANTICS` is not a false positive
-    # while a second private copy of either is a failure.
+def cloud_mode_offenders() -> list[str]:
+    """The negative half's scan, run by the guard below and by the guard's own proof.
+
+    Runtime introspection of every module's namespace, the way
+    `tests/p3/test_p3_no_invention.py` established. Objects that ARE `vocabulary.py`'s
+    own are skipped by IDENTITY, not by name, so a legitimate re-export of
+    `OPERATION_MODES` or `MODE_SEMANTICS` is not a false positive while a second
+    private copy of either is a failure. Dunders are the only names skipped: a leading
+    underscore exempts nothing here, which is what `vocabulary.py:46-50` says an
+    introspecting guard does.
+
+    One function rather than two copies of it. A proof test that scanned with its own
+    logic could stay green against a guard that had drifted, which is the one thing
+    the proof exists to rule out.
+    """
     vocabulary_objects = {id(value) for value in vars(vocab).values()}
     forbidden = set(CLOUD_MODES)
     offenders: list[str] = []
@@ -222,7 +234,7 @@ def test_no_module_under_privacy_names_a_cloud_mode_at_module_level(p7_conn):
         if module is vocab:
             continue
         for name, value in vars(module).items():
-            if name.startswith("_") or id(value) in vocabulary_objects:
+            if name.startswith("__") or id(value) in vocabulary_objects:
                 continue
             found: set[str] = set()
             if isinstance(value, str):
@@ -235,7 +247,29 @@ def test_no_module_under_privacy_names_a_cloud_mode_at_module_level(p7_conn):
                     | {v for v in value.values() if isinstance(v, str)})
             if found:
                 offenders.append(f"privacy.{info.name}.{name} -> {sorted(found)}")
-    assert not offenders
+    return offenders
+
+
+def test_no_module_under_privacy_names_a_cloud_mode_at_module_level(p7_conn):
+    assert not cloud_mode_offenders()
+
+
+def test_the_guard_reports_a_private_name_and_does_not_exempt_it(p7_conn):
+    # The shape a "just the default we ship" value tends to take is a private
+    # constant, and `vocabulary.py:46-50` states the rule this proves: "a leading
+    # underscore exempts nothing from an introspecting guard." Injected rather than
+    # committed, because a real one in `src/privacy/` is the failure, not the fixture.
+    # `privacy.policy` and not `vocabulary`, whose own values the guard skips by
+    # identity.
+    import privacy.policy as target
+    assert not hasattr(target, "_INSTALL_DEFAULT")
+    target._INSTALL_DEFAULT = "cloud_assisted"
+    try:
+        assert "privacy.policy._INSTALL_DEFAULT -> ['cloud_assisted']" in \
+            cloud_mode_offenders()
+    finally:
+        del target._INSTALL_DEFAULT
+    assert not cloud_mode_offenders()
 
 
 def test_defaults_reads_no_configuration_at_all(p7_conn):
