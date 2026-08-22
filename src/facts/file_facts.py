@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from database_agent.db import transaction
 from database_agent.events import append_event
 from database_agent.supersede import SUPERSEDE_COLUMNS
 
@@ -140,6 +141,28 @@ def _fact_identity(*, file_id: str, content_hash: str, field_key: str, value_id:
                      canonical_json(list(evidence_refs)))
 
 
+def _refuse_divergent(existing: sqlite3.Row, *, active: bool, cited_quote_refs,
+                      model_identifier: str | None, prompt_fingerprint: str | None,
+                      internal_score: float | None,
+                      rejection_reason: str | None) -> None:
+    """A second write at the same identity must not silently drop non-identity
+    columns. Changing `active` is Task 16's supersession path, not a re-write."""
+    wanted = {
+        "active": int(bool(active)),
+        "cited_quote_refs": canonical_json(list(cited_quote_refs)),
+        "model_identifier": model_identifier,
+        "prompt_fingerprint": prompt_fingerprint,
+        "internal_score": internal_score,
+        "rejection_reason": rejection_reason,
+    }
+    for column, value in wanted.items():
+        if existing[column] != value:
+            raise ValueError(
+                f"a second write at the same identity diverges on {column}; "
+                "changing active is Task 16's supersession path, not a re-write"
+            )
+
+
 def write_fact(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                field_key: str, value_id: str, reliability_state: str, origin: str,
                evidence_refs, cache_key: str, active: bool,
@@ -152,8 +175,13 @@ def write_fact(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
     No path, no destination, no folder, no group -- not as a column and not as a
     keyword (§3.14, §4.3).
 
-    Idempotent: the same conclusion at the same cache key returns the existing row and
-    appends no second event, or the provenance log would count one fact twice.
+    Idempotent: the same conclusion at the same cache key, with the same
+    non-identity columns, returns the existing row and appends no second event,
+    or the provenance log would count one fact twice. A second write at the
+    same identity that changes active, cited_quote_refs, model_identifier,
+    prompt_fingerprint, internal_score or rejection_reason is refused -- those
+    columns are not part of the identity, and changing `active` is Task 16's
+    supersession path, not a re-write.
     """
     check(reliability_state, _states.STATES, name="reliability state")
     check(origin, FACT_ORIGINS, name="fact origin")
@@ -180,9 +208,15 @@ def write_fact(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
         value_id=value_id, reliability_state=reliability_state, origin=origin,
         cache_key=cache_key, evidence_refs=refs)
     existing = conn.execute(
-        "SELECT fact_id FROM file_facts WHERE fact_id = ?", (fact_id,)
+        "SELECT * FROM file_facts WHERE fact_id = ?", (fact_id,)
     ).fetchone()
     if existing is not None:
+        _refuse_divergent(
+            existing, active=active, cited_quote_refs=quotes,
+            model_identifier=model_identifier,
+            prompt_fingerprint=prompt_fingerprint,
+            internal_score=internal_score, rejection_reason=rejection_reason,
+        )
         return existing["fact_id"]
 
     # One call, so the fact row's timestamp and its creation event's timestamp are the
@@ -202,19 +236,25 @@ def write_fact(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
             "evidence_refs": list(refs),
         }),
     )
-    conn.execute(
-        "INSERT INTO file_facts (fact_id, file_id, content_hash, field_key, value_id, "
-        "reliability_state, origin, evidence_refs, cited_quote_refs, cache_key, "
-        "model_identifier, prompt_fingerprint, internal_score, active, "
-        "supersedes, superseded_by, supersede_reason, preferred, rejection_reason, "
-        "created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-        "NULL, NULL, NULL, NULL, ?, ?)",
-        (fact_id, file_id, content_hash, field_key, value_id, reliability_state,
-         origin, canonical_json(list(refs)), canonical_json(list(quotes)), cache_key,
-         model_identifier, prompt_fingerprint, internal_score, int(bool(active)),
-         rejection_reason, event["observed_at"]),
-    )
-    append_event(conn, **event)
+    # The handle is `isolation_level=None`, so unwrapped the fact INSERT and
+    # `append_event` autocommit independently and a failure between them leaves
+    # a fact with no `fact creation` event — the §8.2 provenance hole this
+    # module's docstring is written against. P1's `transaction` is reentrant,
+    # so a caller who already holds a boundary gets a SAVEPOINT.
+    with transaction(conn):
+        conn.execute(
+            "INSERT INTO file_facts (fact_id, file_id, content_hash, field_key, value_id, "
+            "reliability_state, origin, evidence_refs, cited_quote_refs, cache_key, "
+            "model_identifier, prompt_fingerprint, internal_score, active, "
+            "supersedes, superseded_by, supersede_reason, preferred, rejection_reason, "
+            "created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+            "NULL, NULL, NULL, NULL, ?, ?)",
+            (fact_id, file_id, content_hash, field_key, value_id, reliability_state,
+             origin, canonical_json(list(refs)), canonical_json(list(quotes)), cache_key,
+             model_identifier, prompt_fingerprint, internal_score, int(bool(active)),
+             rejection_reason, event["observed_at"]),
+        )
+        append_event(conn, **event)
     return fact_id
 
 

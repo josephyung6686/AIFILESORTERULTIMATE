@@ -279,6 +279,57 @@ def test_writing_the_same_fact_twice_is_one_row_and_one_event(p6_conn):
     assert p6_conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
 
 
+class _FailsOnTheEventInsert:
+    """P1's handle, with the event INSERT turned into a crash.
+
+    Everything else — P1's own `BEGIN` / `ROLLBACK`, the SELECTs, the fact INSERT —
+    reaches the real connection, so the write fails exactly where a half-written
+    fact would fail and nowhere else. P1's `transaction` is used, never mocked.
+    """
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def __getattr__(self, name: str):
+        return getattr(self._conn, name)
+
+    def execute(self, sql: str, *args):
+        if sql.startswith("INSERT INTO events"):
+            raise sqlite3.OperationalError("disk I/O error")
+        return self._conn.execute(sql, *args)
+
+
+def test_a_write_that_fails_on_the_event_absorbs_nothing(p6_conn):
+    # The fact INSERT and its `fact creation` event are one provenance record.
+    # Written outside a transaction they commit independently, and a crash on
+    # the event leaves a `file_facts` row with no event — the §8.2 hole this
+    # module's docstring is written against.
+    with pytest.raises(sqlite3.OperationalError):
+        _write(_FailsOnTheEventInsert(p6_conn))
+
+    assert p6_conn.execute("SELECT COUNT(*) FROM file_facts").fetchone()[0] == 0
+    assert p6_conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 0
+
+
+def test_a_second_write_that_diverges_on_a_non_identity_column_is_refused(p6_conn):
+    # Identity ignores active, cited_quote_refs, model_identifier,
+    # prompt_fingerprint, internal_score and rejection_reason. A second write
+    # that changes one of those is not a re-write — changing `active` is Task
+    # 16's supersession path. The stored row must stay as first written.
+    first = _write(p6_conn, active=True)
+    identical = _write(p6_conn, active=True)
+    assert identical == first
+
+    with pytest.raises(ValueError, match="active"):
+        _write(p6_conn, active=False)
+
+    row = p6_conn.execute(
+        "SELECT active FROM file_facts WHERE fact_id = ?", (first,)
+    ).fetchone()
+    assert row["active"] == 1
+    assert p6_conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
+
+
 def test_the_record_id_projection_lets_p1_address_the_table(p6_conn):
     # P1's `mark_superseded` and `chain` are "... WHERE record_id = ?", and P6's
     # published key is `fact_id`. `record_id` is a VIRTUAL projection of it: it
