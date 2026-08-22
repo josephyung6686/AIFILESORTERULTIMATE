@@ -45,19 +45,7 @@ from evidence_shape.canonical import canonical_json
 from privacy.authorship import SUBSYSTEM
 from privacy.classification import UNREADABLE_UNCLASSIFIED, ClassificationRecord
 from privacy.schema import CLASSIFICATIONS_TABLE
-from privacy.vocabulary import RELIABILITY_STATES
-
-#: The sixth state, and the one outside the ranking. "A rejected fact is a proposal
-#: that the user or validator marked as incorrect" -- stored, kept for §8.7's
-#: negative examples, never current. This is the one state name spelled in this
-#: module, and it is checked against Task 2's published tuple at import so it cannot
-#: drift.
-REJECTED = "rejected"
-if REJECTED not in RELIABILITY_STATES:
-    raise ImportError(
-        f"{REJECTED!r} is not one of §3.13's six reliability states "
-        f"{RELIABILITY_STATES}; the states are P4's and Task 2 re-exports them"
-    )
+from privacy.vocabulary import REJECTED, RELIABILITY_STATES
 
 #: §3.13, in the design's own listed order, strongest first: Task 2's re-exported
 #: tuple with the unranked state removed, IN PLACE. Derived rather than retyped --

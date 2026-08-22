@@ -99,7 +99,10 @@ from evidence_shape.vocabulary import NotInVocabulary
 from facts.cache import fact_cache_key
 from facts.families import DUPLICATE_FAMILY_FIELD
 from facts.fields import FieldNotInCatalogue
-from facts.file_facts import FACT_ORIGINS, FORBIDDEN_COLUMN_SUBSTRINGS, write_fact
+from facts.file_facts import (
+    DETERMINISTIC_EXTRACTOR, FACT_ORIGINS, FORBIDDEN_COLUMN_SUBSTRINGS, RULE,
+    write_fact,
+)
 from facts.photo_event import EVENT_FIELD
 from facts.read_surface import (
     DanglingCitation, PROPOSAL_ELIGIBLE_STATES, active_allowlist_for, evidence_chain,
@@ -107,21 +110,20 @@ from facts.read_surface import (
     proposal_eligible, session_facts, unresolved_for, values_with_counts,
 )
 from facts.session import DOWNLOAD_SESSION_FIELD
-from facts.states import STATES, STRENGTH_ORDER
+from facts.states import (
+    DIRECT, LLM_SUPPORTED, POSSIBLE, REJECTED, STATES, STRENGTH_ORDER,
+    USER_CONFIRMED, VALIDATED,
+)
 from facts.supersede import supersede_fact
 from facts.unresolved import ATTEMPTED_PRODUCERS, UNRESOLVED_REASONS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
 CLOCK = "2026-08-19T12:00:00+00:00"
 
-#: Addressed by index, never re-spelled. Task 1 owns the order:
-#: user_confirmed > direct > validated > llm_supported > possible, and `rejected` has no
-#: strength at all, so it is the one member of STATES absent from STRENGTH_ORDER.
-USER_CONFIRMED, DIRECT, VALIDATED, LLM_SUPPORTED, POSSIBLE = STRENGTH_ORDER
-REJECTED = next(s for s in STATES if s not in STRENGTH_ORDER)
+#: Task 1 owns every state name; Task 4 owns every origin name. Imported, never
+#: indexed, never unpacked from a ladder whose order is the opposite of this comment.
 
-#: Task 4 owns the spelling of each origin; this test owns none of them.
-DETERMINISTIC, RULE = FACT_ORIGINS[0], FACT_ORIGINS[1]
+DETERMINISTIC = DETERMINISTIC_EXTRACTOR
 
 
 def _record(conn, tmp_path, *, name, body, parent="Downloads"):

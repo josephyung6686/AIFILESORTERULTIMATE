@@ -1264,18 +1264,18 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS
 
 from facts.cache import fact_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
-from facts.file_facts import FACT_ORIGINS, write_fact
-from facts.states import STATES
+from facts.file_facts import FACT_ORIGINS, write_fact, DETERMINISTIC_EXTRACTOR
+from facts.states import STATES, DIRECT
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
 #: §3.13's second state, addressed by position so the six literals stay spelled once,
 #: in `facts.states`, which re-exports P4's tuple.
-_DIRECT = STATES[1]
+_DIRECT = DIRECT
 
 #: §3.1's first origin: "deterministic extractor". Addressed by position for the same
 #: reason -- `facts.file_facts` owns the spelling.
-_ORIGIN = FACT_ORIGINS[0]
+_ORIGIN = DETERMINISTIC_EXTRACTOR
 
 #: §8.6's first producer.
 _PRODUCER = ATTEMPTED_PRODUCERS[0]
@@ -1566,8 +1566,8 @@ from facts.discount import (
 )
 from facts.evidence import cite, observations_for_version
 from facts.fields import get_field
-from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact
-from facts.states import STATES
+from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact, DETERMINISTIC_EXTRACTOR
+from facts.states import STATES, DIRECT, POSSIBLE
 from facts.unresolved import unresolved_for_file
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -1674,7 +1674,7 @@ def test_a_suppressed_producer_is_not_demoted_to_possible(p6_conn):
     _screen(p6_conn, observations_for_version(p6_conn, "f1", HASH))
 
     assert [row for row in facts_for_file(p6_conn, "f1", HASH)
-            if row["reliability_state"] == STATES[4]] == []
+            if row["reliability_state"] == POSSIBLE] == []
 
 
 @pytest.mark.parametrize("run_id, raw", [
@@ -1740,7 +1740,7 @@ def test_a_demoted_value_becomes_an_authored_by_fact_with_its_evidence(p6_conn):
                             origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id="f1", content_hash=HASH,
                field_key=AUTHORSHIP_FIELDS[0], value_id=value_id,
-               reliability_state=STATES[1], origin=FACT_ORIGINS[0],
+               reliability_state=DIRECT, origin=DETERMINISTIC_EXTRACTOR,
                evidence_refs=(cite(observation),),
                cache_key=fact_cache_key(
                    content_hash=HASH,
@@ -1808,7 +1808,7 @@ def test_p4_fixture_6_is_direct_and_still_suppressed(p6_conn):
         record_observation(p6_conn, observation)
     observation = fixture.observations[0]
 
-    assert observation.reliability == STATES[1]
+    assert observation.reliability == DIRECT
     assert observation.raw_value == "python-docx"
     assert observation.location.zone == "metadata"
     assert is_discount_target(observation,

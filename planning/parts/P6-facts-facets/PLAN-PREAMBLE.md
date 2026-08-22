@@ -318,13 +318,12 @@ compile 115 entries and no task here does. It belongs with the loader, beside th
 `property_names`. A working matcher exists and was executed against all 115 entries with **0 misses
 and 0 false positives**; it is recorded in `../_ASSEMBLY-RULINGS.md` §4.8 for the loader's author.
 
-**The discount has no caller.** §2.2's suppression must fire **before** ranking. `field_permitted` and
-`screen_metadata` are consumed by no sibling and Task 20's `DEGRADATION_ORDER` binds three stages.
-**Task 24 owns adding the stage.** Until it does, a `DirectSlots` declaring a metadata-property slot
-turns `python-docx` into a `direct` fact and no test in this part would see it.
+**The discount has a caller.** §2.2's suppression fires **before** ranking. `FactResolver`
+requires `screen_metadata` with no default (Task 20); Task 9 publishes the helper. `DEGRADATION_ORDER`
+stays the three producers — screening is not a fourth producer.
 
-**D9's positive half is asserted nowhere.** No test asserts `target_school` and `client` **are**
-destination-eligible. Task 2 is the natural home.
+**D9's positive half is asserted in Task 2.** `authored_by` and `our_firm` are not destination-eligible;
+`target_school` and `client` are.
 
 **`document_title` has a publisher and no catalogue field.** Task 8 routes it to
 `FieldNotInCatalogue`, which is the honest outcome. If a PDF title should reach a fact, the catalogue

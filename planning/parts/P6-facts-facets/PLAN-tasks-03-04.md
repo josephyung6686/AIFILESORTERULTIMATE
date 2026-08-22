@@ -808,7 +808,9 @@ git commit -m "feat(P6): §3.12 values auto-create; §2.8's three renderings; a 
   `evidence_shape.vocabulary` — `check`, `NotInVocabulary`.
 - Produces: `FILE_FACTS_COLUMNS: tuple[str, ...]`, `FORBIDDEN_COLUMN_SUBSTRINGS: tuple[str, ...]`,
   `FACT_ORIGINS: tuple[str, ...]` (§3.1's five: deterministic extractor · rule · LLM interpretation ·
-  user correction · user-approved folder), `write_fact(conn, *, file_id, content_hash, field_key,
+  user correction · user-approved folder) **and one named constant per member —
+  `DETERMINISTIC_EXTRACTOR`, `RULE`, `LLM_INTERPRETATION`, `USER_CORRECTION`,
+  `USER_APPROVED_FOLDER`**, `write_fact(conn, *, file_id, content_hash, field_key,
   value_id, reliability_state, origin, evidence_refs, cache_key, active, cited_quote_refs=(),
   model_identifier=None, prompt_fingerprint=None, internal_score=None, rejection_reason=None) -> str`,
   `facts_for_file(conn, file_id, content_hash) -> list[sqlite3.Row]`, `EvidenceRequired`.
@@ -868,16 +870,22 @@ EXIF field, OCR region, archive manifest, user-approved folder, deterministic ru
 interpretation, or explicit user correction."* The first eight of those are evidence *locations* —
 P4's business, already carried on the observation — and the last four are producers.
 
-**The SPEC's order is the stored one**, because `PLAN-tasks-07-09.md`, `PLAN-tasks-14-15.md` and
-`PLAN-tasks-16-19.md` all address the tuple **by index** (`FACT_ORIGINS[0]` for a deterministic
-producer, `FACT_ORIGINS[1]` for a rule) precisely so this task can choose the spelling without
-breaking them. Re-ordering it would silently re-label every fact three other authors write. The
-spelling is `snake_case`, matching every other stored vocabulary in the part:
+**The SPEC's order is the stored one**, and **this task owns the literal spelling of each member**.
+The spelling is `snake_case`, matching every other stored vocabulary in the part:
 
 ```python
-FACT_ORIGINS = ("deterministic_extractor", "rule", "llm_interpretation",
-                "user_correction", "user_approved_folder")
+FACT_ORIGINS = (DETERMINISTIC_EXTRACTOR, RULE, LLM_INTERPRETATION,
+                USER_CORRECTION, USER_APPROVED_FOLDER)
 ```
+
+**Consumers import the NAMED CONSTANT, not an index** (preamble §3.1). Earlier drafts of
+`PLAN-tasks-07-09.md`, `PLAN-tasks-14-15.md` and `PLAN-tasks-16-19.md` addressed the tuple by index
+— `FACT_ORIGINS[0]` for a deterministic producer, `FACT_ORIGINS[1]` for a rule — and stated that as
+shared law. It is not. An index is single-homed and unreadable, and it silently couples every
+consumer to this tuple's **order**: re-ordering it would then re-label every fact three other
+authors write with no test failing. So this task publishes `DETERMINISTIC_EXTRACTOR`, `RULE`,
+`LLM_INTERPRETATION`, `USER_CORRECTION` and `USER_APPROVED_FOLDER` beside the tuple, and the
+ordering question stops being load-bearing on anyone else.
 
 ---
 
@@ -943,14 +951,19 @@ from evidence_shape.vocabulary import NotInVocabulary
 
 from facts.fields import FieldNotInCatalogue
 from facts.file_facts import (
+    DETERMINISTIC_EXTRACTOR,
     FACT_ORIGINS,
     FILE_FACTS_COLUMNS,
     FORBIDDEN_COLUMN_SUBSTRINGS,
+    LLM_INTERPRETATION,
+    RULE,
+    USER_APPROVED_FOLDER,
+    USER_CORRECTION,
     EvidenceRequired,
     facts_for_file,
     write_fact,
 )
-from facts.states import STATES
+from facts.states import DIRECT, STATES, USER_CONFIRMED
 from facts.values import VALUE_ORIGINS, ensure_value
 
 FIELD = "subject"            # D6: the ratified academic field key
@@ -973,8 +986,8 @@ def _value(conn, *, field_key: str = FIELD, canonical: str = "BUSIB 4300") -> st
 
 def _write(conn, **overrides) -> str:
     kwargs = dict(file_id=FILE_ID, content_hash=CONTENT_HASH, field_key=FIELD,
-                  value_id=_value(conn), reliability_state=STATES[1],
-                  origin=FACT_ORIGINS[0], evidence_refs=(_key("BUSIB 4300"),),
+                  value_id=_value(conn), reliability_state=DIRECT,
+                  origin=DETERMINISTIC_EXTRACTOR, evidence_refs=(_key("BUSIB 4300"),),
                   cache_key=CACHE_KEY, active=True)
     kwargs.update(overrides)
     return write_fact(conn, **kwargs)
@@ -1066,8 +1079,8 @@ def test_a_fact_is_written_and_read_back_with_its_field_and_its_value(p6_conn):
     # join `fields` and `values` for itself.
     assert row["field_key"] == FIELD
     assert row["canonical_value"] == "BUSIB 4300"
-    assert row["reliability_state"] == STATES[1] == "direct"
-    assert row["origin"] == FACT_ORIGINS[0]
+    assert row["reliability_state"] == DIRECT == "direct"
+    assert row["origin"] == DETERMINISTIC_EXTRACTOR
     assert json.loads(row["evidence_refs"]) == [_key("BUSIB 4300")]
     assert row["active"] == 1
 
@@ -1090,13 +1103,13 @@ def test_every_evidence_ref_must_be_a_p4_observation_key(p6_conn):
 
 
 def test_a_user_confirmed_fact_may_stand_without_an_observation(p6_conn):
-    # STATES[0] is `user_confirmed`. A user asserting a fact is not citing evidence,
-    # and demanding one would make the user path impossible rather than careful.
-    fact_id = _write(p6_conn, reliability_state=STATES[0],
-                     origin=FACT_ORIGINS[3], evidence_refs=())
+    # A user asserting a fact is not citing evidence, and demanding one would make
+    # the user path impossible rather than careful.
+    fact_id = _write(p6_conn, reliability_state=USER_CONFIRMED,
+                     origin=USER_CORRECTION, evidence_refs=())
     row = [r for r in facts_for_file(p6_conn, FILE_ID, CONTENT_HASH)
            if r["fact_id"] == fact_id][0]
-    assert row["reliability_state"] == STATES[0] == "user_confirmed"
+    assert row["reliability_state"] == USER_CONFIRMED == "user_confirmed"
     assert json.loads(row["evidence_refs"]) == []
 
 
@@ -1128,6 +1141,17 @@ def test_a_foreign_origin_is_refused(p6_conn):
 def test_the_five_origins_are_the_specs_five_in_the_specs_order(p6_conn):
     assert FACT_ORIGINS == ("deterministic_extractor", "rule", "llm_interpretation",
                             "user_correction", "user_approved_folder")
+
+
+def test_each_origin_has_a_named_constant_so_no_consumer_needs_an_index(p6_conn):
+    # Preamble §3.1. An index is single-homed and unreadable, and it couples every
+    # consumer to this tuple's ORDER -- reorder it and every fact three other tasks
+    # write is relabelled with no test failing. This test is what makes the literal
+    # safe to spell here and nowhere else.
+    named = (DETERMINISTIC_EXTRACTOR, RULE, LLM_INTERPRETATION, USER_CORRECTION,
+             USER_APPROVED_FOLDER)
+    assert named == FACT_ORIGINS
+    assert len(set(named)) == 5
 
 
 def test_a_fact_naming_a_field_outside_the_catalogue_is_refused(p6_conn):
@@ -1383,16 +1407,25 @@ from evidence_shape.vocabulary import check
 
 from facts.authorship import AUTHORED_EVENT_TYPES, event_defaults
 from facts.fields import get_field
-from facts.states import STATES
+from facts.states import STATES, USER_CONFIRMED
 
-#: §3.1's five producers, in the order the SPEC's `file_facts` shape publishes them:
+#: §3.1's five producers, one named constant each. This module owns the literal
+#: spelling; every consumer imports the CONSTANT, never an index into the tuple
+#: (preamble §3.1: an index couples the consumer to this tuple's order, so a reorder
+#: relabels every fact with no test failing).
+DETERMINISTIC_EXTRACTOR: str = "deterministic_extractor"
+RULE: str = "rule"
+LLM_INTERPRETATION: str = "llm_interpretation"
+USER_CORRECTION: str = "user_correction"
+USER_APPROVED_FOLDER: str = "user_approved_folder"
+
+#: The five in the order the SPEC's `file_facts` shape publishes them:
 #: "deterministic extractor | rule | LLM interpretation | user correction |
-#: user-approved folder". Three sibling tasks address this tuple BY INDEX so that this
-#: task could choose the spelling without breaking them -- reordering it would silently
-#: relabel every fact they write.
+#: user-approved folder". For iteration and membership; to NAME one origin, import
+#: the constant above.
 FACT_ORIGINS: tuple[str, ...] = (
-    "deterministic_extractor", "rule", "llm_interpretation",
-    "user_correction", "user_approved_folder",
+    DETERMINISTIC_EXTRACTOR, RULE, LLM_INTERPRETATION,
+    USER_CORRECTION, USER_APPROVED_FOLDER,
 )
 
 #: What the table is, in declaration order, minus the VIRTUAL `record_id`, which
@@ -1411,10 +1444,6 @@ FILE_FACTS_COLUMNS: tuple[str, ...] = (
 FORBIDDEN_COLUMN_SUBSTRINGS: tuple[str, ...] = (
     "path", "destination", "folder", "node", "group",
 )
-
-#: STATES is P4's tuple, re-exported by Task 1 and re-spelled nowhere. Index 0 is
-#: `user_confirmed`, the one state a user supplies rather than evidence.
-_USER_CONFIRMED = STATES[0]
 
 #: A P4 observation key is `sha256:` + 64 hex (M14, verified by execution).
 _KEY_PREFIX = "sha256:"
@@ -1441,7 +1470,7 @@ def _checked_refs(refs, reliability_state: str) -> tuple[str, ...]:
     """The M14 citation rule. Sorted, because P4's reads are in insertion order and
     this column must not inherit it (§8.5's replay compares runs)."""
     ordered = tuple(sorted(set(refs)))
-    if reliability_state != _USER_CONFIRMED and not ordered:
+    if reliability_state != USER_CONFIRMED and not ordered:
         raise EvidenceRequired(
             f"a {reliability_state} fact cites at least one observation (§3.1); "
             "only a user_confirmed fact may stand without one"
@@ -1580,8 +1609,8 @@ Expected: PASS — **25 passed**. Four are the ones a reviewer should read the o
 - `test_the_record_id_projection_lets_p1_address_the_table` passes because `PRAGMA table_xinfo`
   reports `record_id` with `hidden == 2` **and** because P1's own `mark_superseded` completes against
   the table — verified behaviour, not a claim about the DDL.
-- `test_a_user_confirmed_fact_may_stand_without_an_observation` passes on `STATES[0]`, never on a
-  string literal, so Task 1's re-export is what pins the spelling.
+- `test_a_user_confirmed_fact_may_stand_without_an_observation` passes on Task 1's `USER_CONFIRMED`,
+  never on a string literal and never on an index, so `facts.states` is what pins the spelling.
 
 - [ ] **Step 6: Run the whole P6 suite, so Tasks 1–3 are still green**
 

@@ -818,7 +818,7 @@ from database_agent.supersede import SUPERSEDE_COLUMNS
 from evidence_shape.observation import observation_key
 from facts.cache import fact_cache_key
 from facts.fields import create_fields
-from facts.file_facts import FACT_ORIGINS, FILE_FACTS_COLUMNS, write_fact
+from facts.file_facts import FACT_ORIGINS, FILE_FACTS_COLUMNS, write_fact, DETERMINISTIC_EXTRACTOR
 from facts.plan_versions import (
     PLAN_VERSIONED,
     SHARED_ACROSS_PLAN_VERSIONS,
@@ -882,7 +882,7 @@ def fact_id(conn, value_id) -> str:
         field_key="target_school",
         value_id=value_id,
         reliability_state="direct",
-        origin=FACT_ORIGINS[0],
+        origin=DETERMINISTIC_EXTRACTOR,
         evidence_refs=(REF,),
         cache_key=CACHE_KEY,
         active=True,

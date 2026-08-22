@@ -13,7 +13,7 @@ was written down. Four fabricated quotations were found and removed from these p
 mechanism that produced them was quoting from memory, so nothing here is quoted from memory. The
 facts that most change what these three tasks say:
 
-- `orchestrator.run_wave2` takes **eighteen parameters** and none of them is a gate, a policy or a
+- `orchestrator.run_wave2` takes **seventeen parameters** and none of them is a gate, a policy or a
   classifier. The signature, read live:
 
   ```text
@@ -122,14 +122,19 @@ the one the File Structure supports, apply it, and say so.
   `evidence_shape.fixtures.FIXTURES` (as `P4_FIXTURES`, for the substrate an excerpt resolves
   against).
 - Produces (`fixtures.py`):
-  - `GateFixture` — frozen, eleven fields: `number: int`, `spec_case: str`,
+  - `GateFixture` — frozen, fourteen fields: `number: int`, `spec_case: str`,
     `policy: Policy`, `classification: ClassificationRecord | None`,
     `area: str | None`, `request: ModelCallRequest`,
     `decision: Released | Denied | NeedsConsent`, `audit_record: AuditRecord`,
-    `p4_fixture: int | None`, `downstream_obligation: str | None`, `revoked: bool`.
-  - `FIXTURES: tuple[GateFixture, ...]` — sixteen.
+    `p4_fixture: int | None`, `downstream_obligation: str | None`, `revoked: bool`,
+    and three with defaults — `sensitive_keys: tuple[str, ...] = ()`,
+    `unclassified_permits_local: bool = False`, `residual_template: str | None = None`.
+  - `FIXTURES: tuple[GateFixture, ...]` — eighteen.
   - `FIXTURE_CLOCK: str`, `FIXTURE_AREA: str`, `LOCAL_MODEL`, `CLOUD_MODEL`.
   - `SPEC_11_ITEMS: tuple[str, ...]` — SPEC §11's five *"plus"* items, in the SPEC's own words.
+  - `GATE_ARGUMENTS: tuple[str, ...]` — the **twelve** keywords `Gate.__init__` accepts, pinned
+    here because the fixtures cannot be replayed without them.
+  - `gate_arguments(fixture, *, store) -> dict[str, object]` — those twelve, filled for one fixture.
   - `FIXTURE_COVERAGE: Mapping[str, tuple[int, ...]]` — thirteen keys: the eight `Denied.reason`
     values and the five `SPEC_11_ITEMS`.
   - `MODE_SWEEP: Mapping[str, int]` — operation mode → the fixture number that exercises a protected
@@ -138,15 +143,37 @@ the one the File Structure supports, apply it, and say so.
 
 **Done-means:** 11 (first clause; the second clause is P8's test run and is named as such).
 
-**One published surface this task pins for Task 11, because the fixtures cannot be replayed without
-it.** `Gate` takes a **required keyword** `scope_for: Callable[[str], str | None]` with **no default**.
-SPEC Open question 3 — *"What is a 'corpus area'? … Consent grants cannot be scoped until this is
-named"* — is unanswered, so a gate that resolved a file to an area would be answering it in code.
-This is the identical discipline Task 15 applied to `files_in_scope` for the identical question, and
-the skeleton's own negative-test table already anticipates it: *"Open question 3 leaves the area
-undefined, so the test parameterises the scope."* Reported as a pin on Task 11.
+**`Gate.__init__` is TWELVE keywords, and this task owns the pin.** Task 11's `Produces` said Task 20
+pins it (`PLAN-tasks-11.md:124`); an earlier draft of this task said it *reported* a pin on Task 11.
+Each deferred to the other and the signature had no owner. **Brief §24, L6 closes the loop here: Task
+20 owns it.** The signature published at `PLAN-tasks-11.md:1440-1447` is `conn` positionally, then
 
-**Five fields this task adds to the skeleton's `GateFixture`. Done-means 11 turns entirely on
+```text
+store, plan_version, classifier, transform, unclassified_permits_local,
+scope_for, files_in_scope, component_version, now, user_id      # ten, no defaults
+measure_tokens=None, template_for=None                          # two, optional
+```
+
+and it is pinned as `GATE_ARGUMENTS` with `gate_arguments(fixture, *, store)` filling it. Three
+things follow, and each is the difference between a fixture that replays and one that silently does
+not:
+
+- **`scope_for` has no default.** SPEC Open question 3 — *"What is a 'corpus area'? … Consent grants
+  cannot be scoped until this is named"* — is unanswered, so a gate that resolved a file to an area
+  would be answering it in code. Task 15 applied the identical discipline to `files_in_scope`.
+- **`template_for` must be supplied for fixtures 4 and 16.** With the `None` default the branch at
+  `PLAN-tasks-11.md:1527-1528` is unreachable, so `protected_records_template` never fires on an
+  `Excerpt` and fixture 4 releases. The fixture carries the mapping as `residual_template`, for the
+  same reason `area` is data: §7.3's residual-template library is P10's and P11's and is unbuilt.
+- **`measure_tokens` must be supplied for fixture 6.** With the `None` default the branch at
+  `PLAN-tasks-11.md:1577` is unreachable and `dossier_over_budget` cannot fire. P7 owns no tokenizer,
+  so the measurement is the caller's and the fixture module's is a character count that calls itself
+  one — it invents no number and holds none.
+
+An equality test against a hard-coded two-keyword list is what previously hid this. The test asserts
+`GATE_ARGUMENTS` **equals** the live signature minus `conn`, so the pin cannot drift from Task 11.
+
+**Eight fields this task adds to the skeleton's `GateFixture`. Done-means 11 turns entirely on
 replayability, and six fields cannot be replayed.** The skeleton's `Produces` lists `number`,
 `spec_case`, `request`, `decision`, `audit_record`, `policy`.
 
@@ -169,15 +196,32 @@ replayability, and six fields cannot be replayed.** The skeleton's `Produces` li
 5. **`revoked`.** `policy_revoked` means a grant **existed and was withdrawn**. A fixture whose
    policy simply never carried the grant would be testing *never permitted*, which is a different
    denial with a different remedy. Task 5's `revoke_consent` is what the seeding step calls.
+6. **`sensitive_keys`.** The **only** `AlwaysLocalRequested` the gate can raise on a constructible
+   item is `item.observation_key in sensitive_keys` (`PLAN-tasks-07.md:983`), and `sensitive_keys`
+   comes from `sensitive_observation_keys(conn, file_id)` (`PLAN-tasks-11.md:1493`), which composes
+   P4's runs with **P5's `POTENTIALLY_SENSITIVE` signals**. No suite in this part seeded one, so the
+   set was empty and fixture 7 was unreachable. The fixture names the keys P5 signalled and `seed()`
+   writes them through P5's own `record_sensitivity_signals`.
+7. **`unclassified_permits_local`.** SPEC Open question 5 — *"Does `unreadable_unclassified` permit a
+   LOCAL model call?"* — is unanswered, and `unclassified_denies` takes the parameter with **no
+   default anywhere** for that reason. Fixtures 17 and 18 are its two branches, so the answer is
+   carried as data exactly as `area` is, and P7 names no winner.
+8. **`residual_template`.** §7.3's residual-template library is P10's and P11's and is unbuilt, so
+   `Gate` takes a `template_for` resolver and the fixture supplies the answer. Fixtures 4 and 16 are
+   the two the answer is load-bearing for.
 
-Reported as five additions.
+Reported as eight additions. Three carry defaults (`()`, `False`, `None`) so the twelve fixtures that
+do not use them state nothing; the default on `unclassified_permits_local` is the stricter reading
+`unclassified_denies` calls *"reading escalation strictly"*, and it is a fixture default only — the
+gate itself still has none, and fixtures 17 and 18 hold both branches.
 
-**The sixteen fixtures are SPEC §11's list item for item, and two pairs look like duplicates until
+**The eighteen fixtures are SPEC §11's list item for item, and two pairs look like duplicates until
 you read what they differ on.** §11: *"Request → decision pairs, one per `Denied.reason`, plus: a
 clean `Released` with redaction applied; a `NeedsConsent` returning all four options; a protected
 file under each of the four modes; an `unreadable_unclassified` file; a `Protected Records` residual
 request."* Eight plus five items, sixteen fixtures, because *"a protected file under each of the four
-modes"* is four.
+modes"* is four — **and then two more, 17 and 18, which §11 does not ask for and Open question 5
+does.**
 
 - **Fixture 2 (`unclassified`) and fixture 15 (an `unreadable_unclassified` file) are not the same
   fixture.** Fixture 2 has **no `ClassificationRecord` at all** — nothing has looked. Fixture 15 has
@@ -195,6 +239,17 @@ modes"* is four.
   is the assertion that §8.4's protected rule is about **the prompt**, not about how innocuous the
   requested item is — *"Protected material should not be included in cloud-model prompts by
   default"* names no item kind.
+- **Fixtures 17 and 18 are one fixture and its counterfactual, and that is the point.** SPEC Open
+  question 5: *"Does `unreadable_unclassified` permit a LOCAL model call? … Reading escalation
+  strictly denies local calls on unclassified files, which may block exactly the OCR-opaque
+  screenshots §2.7 and §7.8 want a model to interpret."* Unanswered. `unclassified_denies` therefore
+  takes `local_calls_on_unclassified` with **no default**, and this pair is **the only place in the
+  part where both branches exist as data**: same file, same policy, same request, same local target,
+  and the single parameter flipped — 17 denies `unclassified`, 18 releases. A pair whose halves
+  differed in anything else would not isolate the parameter, which is why 17 duplicates fixture 2's
+  antecedent on purpose and differs from it only in asking for an `Excerpt` that can actually be
+  materialised. Task 21's OQ5 guard depends on the parameter existing with no default; these two
+  are what make the guard mean something.
 
 **One precedence rule this task pins for Task 13, because the mode sweep cannot be written without
 it.** A protected file with a cloud target under `offline` satisfies two denial reasons at once.
@@ -206,6 +261,30 @@ general and the more truthful one. Telling a user their passport was blocked bec
 when it would have been blocked anyway is a false explanation, and §8.6 requires the UI to show
 *"what has been deferred, and why"*. Reported as a pin on Task 13.
 
+**Fixture 7 stood on a zone that does not exist, and the failure was silent.** An earlier draft of
+this fixture used an `Excerpt` in the `ocr` **zone** and argued that §8.4's always-local set caught
+it. It does not. `check_item` (`PLAN-tasks-07.md:941-990`) **has no zone branch at all**, and P4
+fixture 8's text unit carries `zone = None` — the string `ocr` lives only in the observation's
+locator, `ocr:page=4/region=2#0-24`. So the request resolved and was **released**: a fixture for
+`always_local_item` that never reached the denial, failing open, with nothing to read in the output.
+Verified by introspection against live P4, not by reading the plan.
+
+The only `AlwaysLocalRequested` the gate can raise on a **constructible** item is
+`item.observation_key in sensitive_keys` (`PLAN-tasks-07.md:983`) — Task 7 makes the nine
+always-local *names* unconstructible in `__post_init__`, so a request holding one cannot be built and
+cannot be a fixture. `sensitive_keys` is `sensitive_observation_keys(conn, file_id)`
+(`PLAN-tasks-11.md:1493`), which composes P4's `runs_for_file` with P5's
+`sensitivity_signals_for` and keeps only rows whose `signal` is `POTENTIALLY_SENSITIVE`.
+
+**No suite in this part ever seeded such a signal**, so that set was empty for every fixture and the
+denial was unreachable regardless of what fixture 7 requested. So fixture 7 now names the key P5
+signalled (`sensitive_keys`), and `seed()` writes the signal through P5's own published writer:
+`record_sensitivity_signals(conn, run_id=…, signals=(SensitivitySignal(observation_index=…, signal=
+POTENTIALLY_SENSITIVE, basis=…),), observation_keys=observation_keys_for_run(conn, run_id), now=…)`.
+P4 fixture 8 stays the substrate — it is an `ocr.apple_vision` run, which is what makes §8.4's
+sentence about OCR output the right explanation — but the *mechanism* is P5's signal, and the
+explanation now says so instead of naming a branch that does not exist.
+
 **Every fixture is replayed through the real gate and compared field for field, and that is the
 substance of the task.** SPEC §11's second sentence — *"Each fixture carries the audit record the
 gate would have appended"* — is satisfiable two ways, and one of them is a trap: a hand-written audit
@@ -215,6 +294,31 @@ fixture, calls the real `Gate`, and compares. **`file_id` is the only substitute
 `record_file` accepts an explicit `content_hash` and every `observation_key` is derived from the
 content hash rather than the file id. The substituted and minted field names are published in the
 test as two small frozen sets, so the ignore-list cannot quietly grow.
+
+**Fixture 10 could not return `NeedsConsent`, and the reason is worth stating because it is a rule
+about the branch and not a typo.** It set `protected=False` **and** carried a grant for its own area.
+Task 11's branch is `if text_items and protected_ids and scope not in granted`
+(`PLAN-tasks-11.md:1551`) and **both conjuncts failed**: no protected id, and the scope granted. It
+released. Setting `protected=True` and dropping the grant fixes the second and third conjuncts and
+then exposes the real constraint: with a **cloud** target, `protected_cloud_denies` fires first —
+under `cloud_assisted` it returns `False` only when the scope **is** granted
+(`PLAN-tasks-12-14.md:1656-1670`), which is exactly the condition the consent branch needs to be
+absent. **A protected file with a cloud target can therefore never reach `NeedsConsent`.** Fixture
+10's target is a **local** model, which is the shape §8.4's sentence describes anyway — *"If a model
+needs text containing sensitive content, the user should see that requirement and choose"* — and
+whose four options include *allow a local model*. Reported as a correction, because a reader who
+fixed only the two flags would have written fixture 14 a second time.
+
+**`AuditRecord.release_id` is `None` on a release record (D14), and this task is where that becomes
+falsifiable.** §6 puts the audit append strictly **before** the release exists, `mint_release` takes
+the `audit_id`, and `events` is append-only, so the row cannot be back-filled — `_release_record`
+sets `release_id=None` unconditionally (`PLAN-tasks-11.md:1738`) and **the join runs ledger →
+events**. An earlier draft published `Released(release_id="release-fixture-09")` and then excused
+`release_id` from the field-for-field comparison, so it never confronted the conflict. The decision's
+`release_id` is real and stays; the **audit record's** is `None`, `release_id` comes **out** of
+`MINTED_FIELDS` so it is compared like any other field, and a named test asserts the direction of the
+join. SPEC §7 is amended, not the ordering guarantee: §6's *"the audit is written before anything is
+released"* is the property the whole trail rests on.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -236,19 +340,27 @@ field, and only the identity fields a replay cannot preserve are excused -- by n
 in a frozen set, so the excuse list cannot grow quietly.
 """
 import dataclasses
+import inspect
 
 import pytest
 
+from database_agent.budget import set_ceiling
 from database_agent.files_table import record_file
 
 from evidence_shape.fixtures import FIXTURES as P4_FIXTURES
-from evidence_shape.store import record_observation, record_run, record_text_unit
+from evidence_shape.store import (
+    observation_keys_for_run, record_observation, record_run, record_text_unit,
+)
+
+from extractors.long_tail import (
+    POTENTIALLY_SENSITIVE, SensitivitySignal, record_sensitivity_signals,
+)
 
 from privacy.audit import AUDIT_FIELDS, audit_record
 from privacy.classification_store import ClassificationStore
 from privacy.fixtures import (
-    FIXTURE_CLOCK, FIXTURE_COVERAGE, FIXTURES, GateFixture, MODE_SWEEP, SPEC_11_ITEMS,
-    UnknownFixture, by_number,
+    FIXTURE_CLOCK, FIXTURE_COVERAGE, FIXTURES, GATE_ARGUMENTS, GateFixture,
+    MODE_SWEEP, SPEC_11_ITEMS, UnknownFixture, by_number, gate_arguments,
 )
 from privacy.gate import Gate
 from privacy.policy import revoke_consent, set_policy
@@ -258,15 +370,22 @@ from privacy.vocabulary import (
 )
 
 COMPONENT = "0.1.0"
+CEILING_KEY = "model.max_dossier_tokens_per_call"
 
 #: The only field a replay cannot preserve. `record_file` mints the id; everything
 #: else -- content hash, observation key, locator -- is content-addressed and survives.
 SUBSTITUTED_FIELDS = frozenset({"file_id", "file_ids"})
 
 #: Minted by the gate at call time, so a fixture can carry an example and never the
-#: value. `audit_id` is P1's `lastrowid`; the other two are P7's own ids.
-MINTED_FIELDS = frozenset({"audit_id", "release_id", "consent_request_id",
-                           "appended_at"})
+#: value. `audit_id` is P1's `lastrowid`; `consent_request_id` is P7's own.
+#:
+#: `release_id` is NOT here, and D14 is why: `_release_record` sets it to `None`
+#: unconditionally, because §6 appends the audit BEFORE the release exists and `events`
+#: is append-only, so the row can never be back-filled. It is a compared field whose
+#: value is `None` on every record including a release, and the join runs
+#: ledger -> events. Excusing it is what let an earlier draft publish a release_id the
+#: gate cannot produce.
+MINTED_FIELDS = frozenset({"audit_id", "consent_request_id", "appended_at"})
 
 
 def p4(number: int):
@@ -306,6 +425,28 @@ def seed(conn, fixture, tmp_path) -> str:
             record_text_unit(conn, unit)
         for observation in source.observations:
             record_observation(conn, dataclasses.replace(observation, file_id=file_id))
+        if fixture.sensitive_keys:
+            # P5's per-value signal, written through P5's own writer. Without this the
+            # set `sensitive_observation_keys` composes is EMPTY for every file, and
+            # `always_local_item` is unreachable no matter what fixture 7 requests --
+            # the failure that made the old zone-based fixture pass by releasing.
+            # `observation_keys_for_run` is P4's assignment for the batch, in emit
+            # order, which is what `observation_index` indexes into.
+            keys = observation_keys_for_run(conn, run.run_id)
+            record_sensitivity_signals(
+                conn, run_id=run.run_id,
+                signals=tuple(
+                    SensitivitySignal(observation_index=keys.index(key),
+                                      signal=POTENTIALLY_SENSITIVE,
+                                      basis="the published fixture's P5 signal")
+                    for key in fixture.sensitive_keys),
+                observation_keys=keys, now=FIXTURE_CLOCK)
+
+    # M9 calls `request.max_dossier_tokens` "the caller's echo of it", so the fixture's
+    # echo is what the configured ceiling must be. The gate reads P1's stored value and
+    # never the request's -- `over_dossier_ceiling` is explicit about it -- so without
+    # this the ceiling is unset, an unset ceiling cannot deny, and fixture 6 releases.
+    set_ceiling(conn, CEILING_KEY, fixture.request.max_dossier_tokens)
 
     set_policy(conn, fixture.policy, component_version=COMPONENT,
                user_id="joseph",
@@ -325,16 +466,23 @@ def seed(conn, fixture, tmp_path) -> str:
 
 
 def replay(conn, fixture, tmp_path):
-    """Run the fixture's own request through the real gate and return the decision."""
+    """Run the fixture's own request through the real gate and return the decision.
+
+    The gate is built from `gate_arguments`, which fills all TWELVE keywords
+    `Gate.__init__` takes. Two of them are optional in the signature and mandatory
+    here: with `template_for` unset fixture 4 releases, and with `measure_tokens`
+    unset fixture 6 releases -- in both cases because the branch is unreachable, not
+    because the rule is wrong.
+
+    The fixture handed to `gate_arguments` carries the REBOUND request, so `scope_for`
+    and `files_in_scope` answer for the real file id rather than for the placeholder.
+    """
     file_id = seed(conn, fixture, tmp_path)
     request = dataclasses.replace(
         fixture.request,
         target=Target(file_ids=(file_id,), group_id=fixture.request.target.group_id))
-    # `scope_for` has no default. SPEC Open question 3 -- "What is a 'corpus area'? ...
-    # Consent grants cannot be scoped until this is named" -- is unanswered, so the
-    # resolver is the caller's and the fixture carries the answer as data.
-    gate = Gate(conn, component_version=COMPONENT,
-                scope_for=lambda _file_id: fixture.area)
+    bound = dataclasses.replace(fixture, request=request)
+    gate = Gate(conn, **gate_arguments(bound, store=ClassificationStore(conn)))
     return gate.release(request), file_id
 
 
@@ -376,9 +524,13 @@ def test_the_denial_reasons_are_all_eight_and_no_ninth():
     assert len(DENIAL_REASONS) == 8
 
 
-def test_fixture_numbers_are_dense_unique_and_sixteen():
+def test_fixture_numbers_are_dense_unique_and_eighteen():
+    # Sixteen are SPEC §11's. Seventeen and eighteen are Open question 5's two
+    # branches, which §11 does not ask for and which are the only place in the part
+    # where both readings of OQ5 exist as data.
     numbers = [f.number for f in FIXTURES]
-    assert numbers == list(range(1, 17))
+    assert numbers == list(range(1, 19))
+    assert len(FIXTURES) == 18
 
 
 def test_by_number_raises_on_a_number_nobody_published():
@@ -387,15 +539,70 @@ def test_by_number_raises_on_a_number_nobody_published():
         by_number(99)
 
 
-def test_the_gate_fixture_publishes_eleven_named_fields():
-    # Six are the skeleton's. Five are added by this task and every one of them is
-    # either a held-open question the fixture answers AS DATA (`area`) or a replay
-    # precondition without which "each fixture carries the audit record the gate would
-    # have appended" is unfalsifiable (`classification`, `p4_fixture`, `revoked`).
-    # `downstream_obligation` carries SPEC §11's own two sentences to P8.
+def test_the_gate_fixture_publishes_fourteen_named_fields():
+    # Six are the skeleton's. Eight are added by this task and every one of them is
+    # either a held-open question the fixture answers AS DATA (`area`,
+    # `unclassified_permits_local`, `residual_template`) or a replay precondition
+    # without which "each fixture carries the audit record the gate would have
+    # appended" is unfalsifiable (`classification`, `p4_fixture`, `revoked`,
+    # `sensitive_keys`). `downstream_obligation` carries SPEC §11's own two sentences
+    # to P8.
     assert [f.name for f in dataclasses.fields(GateFixture)] == [
         "number", "spec_case", "policy", "classification", "area", "request",
-        "decision", "audit_record", "p4_fixture", "downstream_obligation", "revoked"]
+        "decision", "audit_record", "p4_fixture", "downstream_obligation", "revoked",
+        "sensitive_keys", "unclassified_permits_local", "residual_template"]
+
+
+# --- the pin on `Gate.__init__`, which this task owns ------------------------
+
+def test_gate_arguments_are_the_twelve_keywords_the_gate_actually_takes():
+    # Brief §24, L6: Task 11 said Task 20 pinned this and Task 20 said it reported a
+    # pin on Task 11, so the signature had no owner and an equality test against a
+    # hard-coded pair passed while ten keywords went unfilled. Asserted as an EQUALITY
+    # against the live signature so the pin cannot drift from Task 11 in either
+    # direction -- a keyword added there and not here fails, and vice versa.
+    parameters = inspect.signature(Gate.__init__).parameters
+    keywords = [name for name, p in parameters.items()
+                if p.kind is inspect.Parameter.KEYWORD_ONLY]
+    assert tuple(keywords) == GATE_ARGUMENTS
+    assert len(GATE_ARGUMENTS) == 12
+    assert list(parameters)[:2] == ["self", "conn"]
+
+
+def test_the_ten_required_keywords_have_no_default_and_the_two_optional_ones_do():
+    parameters = inspect.signature(Gate.__init__).parameters
+    required = [name for name in GATE_ARGUMENTS
+                if parameters[name].default is inspect.Parameter.empty]
+    assert required == list(GATE_ARGUMENTS[:10])
+    assert GATE_ARGUMENTS[10:] == ("measure_tokens", "template_for")
+    for optional in GATE_ARGUMENTS[10:]:
+        assert parameters[optional].default is None
+
+
+def test_gate_arguments_fills_every_one_of_the_twelve_for_every_fixture():
+    # The `None` defaults are the trap: `template_for=None` makes
+    # `protected_records_template` unreachable on an excerpt and `measure_tokens=None`
+    # makes `dossier_over_budget` unreachable, so three of the eighteen fixtures would
+    # replay to the wrong branch with nothing raised anywhere.
+    store = object()
+    for fixture in FIXTURES:
+        filled = gate_arguments(fixture, store=store)
+        assert tuple(filled) == GATE_ARGUMENTS, fixture.number
+        assert all(value is not None for value in filled.values()), fixture.number
+
+
+def test_the_two_optional_keywords_are_supplied_where_a_denial_needs_them():
+    # 4 and 16 reach `protected_records_template` only through `template_for`; 6
+    # reaches `dossier_over_budget` only through `measure_tokens`.
+    from privacy.denial import PROTECTED_RECORDS_TEMPLATE
+    for number in (4, 16):
+        fixture = by_number(number)
+        assert fixture.residual_template == PROTECTED_RECORDS_TEMPLATE
+        template_for = gate_arguments(fixture, store=object())["template_for"]
+        assert template_for("any-file-id") == PROTECTED_RECORDS_TEMPLATE
+        assert fixture.decision.reason == "protected_records_template"
+    assert by_number(6).decision.reason == "dossier_over_budget"
+    assert callable(gate_arguments(by_number(6), store=object())["measure_tokens"])
 
 
 def test_exactly_one_fixture_revokes_a_grant_before_the_call():
@@ -481,6 +688,45 @@ def test_the_protected_cloud_rule_does_not_depend_on_the_item_kind():
     assert by_number(13).decision.reason == "protected_cloud_target"
 
 
+# --- always-local, which is P5's signal and not a zone -----------------------
+
+def test_the_always_local_fixture_stands_on_a_key_p5_signalled():
+    # The only `AlwaysLocalRequested` the gate can raise on a CONSTRUCTIBLE item is
+    # `item.observation_key in sensitive_keys`; the nine always-local NAMES are
+    # unconstructible in Task 7's `__post_init__`, so a request holding one cannot be
+    # a fixture. An earlier draft used an `Excerpt` "in the ocr zone", which
+    # `check_item` never branches on -- so the fixture RESOLVED AND RELEASED, silently.
+    from privacy.items import Excerpt
+    fixture = by_number(7)
+    assert fixture.decision.reason == "always_local_item"
+    assert fixture.sensitive_keys, "with no signalled key the denial is unreachable"
+    requested = {item.observation_key for item in fixture.request.requested_items
+                 if isinstance(item, Excerpt)}
+    assert set(fixture.sensitive_keys) <= requested
+    assert all(key in {o.observation_key for o in p4(fixture.p4_fixture).observations}
+               for key in fixture.sensitive_keys)
+
+
+def test_no_fixture_relies_on_a_text_unit_zone_because_p4_publishes_none():
+    # Why the zone reading was wrong, asserted rather than remembered: P4's text unit
+    # for the OCR fixture carries `zone = None`. The string `ocr` lives only in the
+    # observation's locator, and `check_item` reads neither.
+    unit = p4(8).text_units[0]
+    assert getattr(unit, "zone", None) is None
+    assert "ocr" in p4(8).observations[0].locator
+
+
+def test_the_p5_signal_is_what_the_gate_reads(p7_conn, tmp_path):
+    # The composition, end to end: P4's runs for the file -> P5's signals for the run
+    # -> the keys the gate refuses. Seeded by `seed()` through P5's own writer, so a
+    # change to either side fails here rather than turning a denial into a release.
+    from privacy.items import sensitive_observation_keys
+    fixture = by_number(7)
+    file_id = seed(p7_conn, fixture, tmp_path)
+    assert sensitive_observation_keys(p7_conn, file_id) == frozenset(
+        fixture.sensitive_keys)
+
+
 # --- the mode sweep ---------------------------------------------------------
 
 def test_a_protected_file_appears_under_each_of_the_four_modes():
@@ -517,6 +763,40 @@ def test_the_mode_only_denial_uses_a_non_protected_file():
     assert fixture.decision.reason == "mode_forbids_target"
 
 
+# --- Open question 5, held open as two fixtures ------------------------------
+
+def test_the_oq5_pair_differs_in_exactly_one_parameter():
+    # "Does `unreadable_unclassified` permit a LOCAL model call?" is unanswered, and
+    # `unclassified_denies` takes `local_calls_on_unclassified` with no default for
+    # that reason. A pair whose halves differed in anything but the parameter would
+    # not isolate the parameter, so everything else is asserted identical.
+    one, two = by_number(17), by_number(18)
+    assert one.unclassified_permits_local is False
+    assert two.unclassified_permits_local is True
+    assert one.policy == two.policy
+    assert one.classification is None and two.classification is None
+    assert one.request == two.request
+    assert one.request.model_target.locality == "local"
+
+
+def test_the_oq5_pair_holds_both_readings_and_names_no_winner():
+    assert isinstance(by_number(17).decision, Denied)
+    assert by_number(17).decision.reason == "unclassified"
+    assert isinstance(by_number(18).decision, Released)
+
+
+def test_the_gate_parameter_behind_oq5_has_no_default():
+    # The guard Task 21 leans on: the moment someone gives it one, P7 has answered a
+    # question the SPEC holds open, and this pair stops meaning anything.
+    parameters = inspect.signature(Gate.__init__).parameters
+    assert parameters["unclassified_permits_local"].default is (
+        inspect.Parameter.empty)
+    from privacy.denial import unclassified_denies
+    assert inspect.signature(
+        unclassified_denies).parameters["local_calls_on_unclassified"].default is (
+        inspect.Parameter.empty)
+
+
 # --- the two non-denial branches --------------------------------------------
 
 def test_the_released_fixture_applied_redaction_and_carries_a_manifest():
@@ -536,6 +816,35 @@ def test_the_needs_consent_fixture_offers_all_four_options_in_the_specs_order():
     assert isinstance(fixture.decision, NeedsConsent)
     assert fixture.decision.options == CONSENT_OPTIONS
     assert len(CONSENT_OPTIONS) == 4
+
+
+def test_the_consent_branch_needs_a_protected_file_and_an_ungranted_scope():
+    # Task 11's branch is `text_items and protected_ids and scope not in granted`.
+    # An earlier draft set `protected=False` AND carried a grant for the fixture's own
+    # area, so BOTH conjuncts failed and the fixture released.
+    fixture = by_number(10)
+    assert fixture.classification.protected is True
+    assert fixture.area is not None
+    assert fixture.area not in dict(fixture.policy.consent_grants)
+
+
+def test_the_consent_branch_is_unreachable_with_a_cloud_target():
+    # Not a fixture detail -- a property of the two rules read together. Under
+    # `cloud_assisted`, `protected_cloud_denies` returns False only when the scope IS
+    # granted, and the consent branch requires that it is NOT. So a protected file
+    # with a cloud target denies before it can ask, and the fixture that asks must use
+    # a local target. §8.4 describes exactly that case: "If a model needs text
+    # containing sensitive content, the user should see that requirement and choose",
+    # and the first of the four options is a LOCAL model.
+    from privacy.denial import protected_cloud_denies
+    fixture = by_number(10)
+    assert fixture.request.model_target.locality == "local"
+    assert protected_cloud_denies(
+        protected=True, locality="local", operation_mode="cloud_assisted",
+        scope=fixture.area, granted_scopes=()) is False
+    assert protected_cloud_denies(
+        protected=True, locality="cloud", operation_mode="cloud_assisted",
+        scope=fixture.area, granted_scopes=()) is True
 
 
 def test_the_needs_consent_fixture_has_no_reason_field_to_be_read_as_a_denial():
@@ -670,11 +979,53 @@ def test_replaying_a_fixture_reproduces_its_audit_record_field_for_field(
 
 def test_the_excused_field_list_is_small_and_named():
     # An ignore-list is the standard way a golden-record test stops testing anything.
-    # Five names, each with a reason, and the set is asserted rather than extended.
+    # Four names, each with a reason, and the set is asserted rather than extended.
+    # `release_id` came OUT of it under D14: it is not minted, it is `None`.
     assert SUBSTITUTED_FIELDS == {"file_id", "file_ids"}
-    assert MINTED_FIELDS == {"audit_id", "release_id", "consent_request_id",
-                             "appended_at"}
+    assert MINTED_FIELDS == {"audit_id", "consent_request_id", "appended_at"}
+    assert "release_id" not in MINTED_FIELDS | SUBSTITUTED_FIELDS
     assert len(SUBSTITUTED_FIELDS | MINTED_FIELDS) < len(AUDIT_FIELDS) / 2
+
+
+# --- D14: the audit record's `release_id` is None, and the join runs one way --
+
+@pytest.mark.parametrize("number", [f.number for f in FIXTURES])
+def test_the_audit_records_release_id_is_none_on_every_branch(
+        p7_conn, tmp_path, number):
+    # D14. §6 puts the audit append strictly BEFORE the release exists, `mint_release`
+    # takes the `audit_id`, and `events` is append-only so the row cannot be
+    # back-filled. `_release_record` therefore sets `release_id=None` unconditionally
+    # -- including on a release. An earlier draft published a `release_id` on the
+    # fixture's audit record and excused the field from comparison, which is how a
+    # value the gate cannot produce survived review.
+    decision, _ = replay(p7_conn, by_number(number), tmp_path)
+    appended = audit_record(p7_conn, _audit_id_of(p7_conn, decision))
+    assert appended.release_id is None
+    assert by_number(number).audit_record.release_id is None
+
+
+def test_the_released_decision_carries_a_release_id_the_record_does_not():
+    # The decision's id is real; the record's is not. Both are true at once and the
+    # two are joined ledger -> events, which is the direction Task 12 gave the ledger
+    # an `audit_id` column for.
+    released = by_number(9)
+    assert isinstance(released.decision, Released)
+    assert released.decision.release_id
+    assert released.audit_record.release_id is None
+
+
+def test_the_join_runs_ledger_to_events_and_not_the_other_way(p7_conn, tmp_path):
+    # SPEC §7 lists `release_id` on the audit record and §6 makes it impossible to be
+    # there. §7 is amended; §6's ordering guarantee -- "the audit is written before
+    # anything is released" -- is the property the whole trail rests on and is
+    # untouched. The reachable direction is asserted rather than described.
+    decision, _ = replay(p7_conn, by_number(9), tmp_path)
+    assert isinstance(decision, Released)
+    row = p7_conn.execute(
+        "SELECT audit_id FROM release_ledger WHERE release_id = ?",
+        (decision.release_id,)).fetchone()
+    assert row is not None and row["audit_id"] == decision.audit_id
+    assert audit_record(p7_conn, row["audit_id"]).release_id is None
 
 
 @pytest.mark.parametrize("number", [f.number for f in FIXTURES])
@@ -729,9 +1080,20 @@ Three things are true of this module and none of them is a style choice:
 - **The always-local set is enforced twice, and fixture 7 is why.** Task 7 makes the
   nine named kinds unconstructible, so a request holding "OCR output" cannot be built
   and cannot be a fixture. `Denied(always_local_item)` is therefore reached the other
-  way: by a CONSTRUCTIBLE `Excerpt` that RESOLVES to always-local content -- P4's
-  fixture 8 is an `ocr.apple_vision` run in zone `ocr`, and §8.4 puts "OCR output" in
-  the always-local set. Construction refuses the name; release refuses the resolution.
+  way, and there is exactly ONE way: `check_item` raises `AlwaysLocalRequested` when
+  `item.observation_key in sensitive_keys`, and `sensitive_keys` is
+  `sensitive_observation_keys(conn, file_id)` -- P4's runs for the file joined to P5's
+  `POTENTIALLY_SENSITIVE` signals. So fixture 7 names the signalled key in
+  `sensitive_keys` and the test seeds the signal through P5's own writer.
+
+  It is NOT reached through a zone. `check_item` has no zone branch, and P4 fixture
+  8's text unit carries `zone = None` -- the string `ocr` lives only in the
+  observation's locator. A fixture standing on that reading resolves and is RELEASED,
+  which is the worst failure a fixture can have: it proves the opposite of its name and
+  says nothing. P4 fixture 8 stays the substrate because it is an `ocr.apple_vision`
+  run, so §8.4's sentence about OCR output is the true explanation for the denial --
+  but the mechanism is P5's signal. Construction refuses the name; release refuses the
+  signalled key.
 """
 from __future__ import annotations
 
@@ -765,6 +1127,12 @@ FIXTURE_CLOCK: str = "2026-08-22T09:00:00+00:00"
 #: nothing. `Gate` takes an `scope_for` resolver with no default for the same reason.
 FIXTURE_AREA: str = "Academics"
 
+#: The acting component and user every fixture replays under. M8: "the acting part
+#: authors, P1 stores" -- these are the two values `Gate` needs to author a record and
+#: neither is a P7 rule.
+FIXTURE_COMPONENT_VERSION: str = "0.1.0"
+FIXTURE_USER_ID: str = "joseph"
+
 LOCAL_MODEL = ModelTarget(locality="local", model_id="local-small", provider="local")
 CLOUD_MODEL = ModelTarget(locality="cloud", model_id="acme-large", provider="Acme")
 
@@ -777,6 +1145,89 @@ SPEC_11_ITEMS: tuple[str, ...] = (
     "an `unreadable_unclassified` file",
     "a `Protected Records` residual request",
 )
+
+#: The TWELVE keywords `Gate.__init__` accepts, in signature order. Pinned here
+#: because the fixtures cannot be replayed without them, and because the signature had
+#: no owner until brief §24, L6 gave it to this task: Task 11 said Task 20 pinned it
+#: and Task 20 said it reported a pin on Task 11.
+#:
+#: The last two are OPTIONAL in the signature and mandatory here. Their `None` defaults
+#: make two denial branches unreachable rather than untaken -- `template_for` gates
+#: `protected_records_template` on an excerpt (fixtures 4 and 16) and `measure_tokens`
+#: gates `dossier_over_budget` (fixture 6) -- so a replay that left them unset would
+#: release three fixtures and raise nothing.
+GATE_ARGUMENTS: tuple[str, ...] = (
+    "store", "plan_version", "classifier", "transform",
+    "unclassified_permits_local", "scope_for", "files_in_scope",
+    "component_version", "now", "user_id",
+    "measure_tokens", "template_for",
+)
+
+
+def _identifier_classifier(value: str, *, context_before: str | None,
+                           context_after: str | None) -> str | None:
+    """The injected classifier, as a fixture. SPEC *Deferred* keeps the class opaque:
+    "Which identifier classes exist and how each is transformed is not enumerated
+    anywhere in the design."
+
+    It returns ONE constant string for every value and enumerates nothing. It is
+    deliberately not value-dependent: a rule that decided a class FROM the value would
+    be a detector, which P7 does not own and Task 21 asserts this package does not
+    hold -- no `re` import, no `IDENTIFIER_CLASSES`, no threshold.
+    """
+    return "institution"
+
+
+def _redaction_transform(value: str, *, identifier_class: str) -> str:
+    """The injected transform, also deferred and also enumerating nothing.
+
+    It must not return its input: `apply_redaction` raises `RedactionIneffective` if
+    it does, because recording that as `redacted = True` would put a false statement
+    in the §8.4 audit record.
+    """
+    return f"[{identifier_class}]"
+
+
+def _measure_tokens(request: ModelCallRequest, resolved) -> int:
+    """The caller's measurement, as a fixture. `Gate` takes it with a `None` default
+    and P7 owns no tokenizer -- SPEC *Deferred*: "Numeric values for every ceiling ...
+    Deferred to configuration, not to this contract."
+
+    It counts the characters of what would be sent and calls the count what it is. It
+    holds no number and defines no ceiling; the ceiling is P1's, read by
+    `over_dossier_ceiling` from `budget.get_ceiling`, and with nothing configured
+    there is nothing to exceed.
+    """
+    return sum(len(item.value) for item in resolved)
+
+
+def gate_arguments(fixture: "GateFixture", *, store: object) -> dict[str, object]:
+    """The twelve keywords `Gate(conn, **...)` takes, filled for one fixture.
+
+    Every value is either the fixture's own or a constant this module already
+    publishes; nothing here is a rule. `unclassified_permits_local` in particular is
+    read off the fixture and has no default anywhere, because SPEC Open question 5 --
+    "Does `unreadable_unclassified` permit a LOCAL model call?" -- is unanswered and
+    fixtures 17 and 18 are its two branches.
+
+    `scope_for` and `files_in_scope` answer for whatever request the fixture carries,
+    so a caller replaying against a real database rebinds the request first and the
+    resolvers follow it.
+    """
+    return {
+        "store": store,
+        "plan_version": fixture.policy.plan_version,
+        "classifier": _identifier_classifier,
+        "transform": _redaction_transform,
+        "unclassified_permits_local": fixture.unclassified_permits_local,
+        "scope_for": lambda _file_id: fixture.area,
+        "files_in_scope": lambda _scope: tuple(fixture.request.target.file_ids),
+        "component_version": FIXTURE_COMPONENT_VERSION,
+        "now": lambda: FIXTURE_CLOCK,
+        "user_id": FIXTURE_USER_ID,
+        "measure_tokens": _measure_tokens,
+        "template_for": lambda _file_id: fixture.residual_template,
+    }
 
 
 class UnknownFixture(KeyError):
@@ -907,12 +1358,19 @@ def _audit(**over: object) -> AuditRecord:
 class GateFixture:
     """One published request -> decision pair, replayable against the real gate.
 
-    Six fields are the plan skeleton's. Five are added here: `classification`,
-    `p4_fixture` and `revoked` because a fixture that cannot be seeded cannot be
-    replayed, and Done-means 11 turns on replay; `area` because Open question 3 is
-    open and the corpus area must therefore be data rather than a rule; and
+    Six fields are the plan skeleton's. Eight are added here: `classification`,
+    `p4_fixture`, `revoked` and `sensitive_keys` because a fixture that cannot be
+    seeded cannot be replayed, and Done-means 11 turns on replay; `area`,
+    `unclassified_permits_local` and `residual_template` because Open questions 3 and
+    5 and §7.3's unbuilt template library are open, so each answer is DATA the fixture
+    supplies to a resolver the gate takes rather than a rule P7 holds; and
     `downstream_obligation` because SPEC §11 puts an obligation on P8 for two of these
     and a comment in P7's source is not a contract P8 can read.
+
+    The last three carry defaults so the fixtures that do not use them state nothing.
+    `unclassified_permits_local = False` is the stricter reading and a FIXTURE default
+    only -- `Gate` and `unclassified_denies` still have none, which is what Task 21's
+    Open question 5 guard checks, and fixtures 17 and 18 hold both branches.
     """
 
     number: int
@@ -926,6 +1384,16 @@ class GateFixture:
     p4_fixture: int | None
     downstream_obligation: str | None
     revoked: bool
+    #: The observation keys P5 signalled `POTENTIALLY_SENSITIVE` for this file. The
+    #: ONLY route to `Denied(always_local_item)` on a constructible item.
+    sensitive_keys: tuple[str, ...] = ()
+    #: Open question 5's parameter, carried as data. Fixtures 17 and 18 are its two
+    #: branches and nothing here names a winner.
+    unclassified_permits_local: bool = False
+    #: §7.3's residual template for this file, if any. The library is P10's and P11's
+    #: and is unbuilt, so `Gate` takes a `template_for` resolver and the fixture
+    #: answers it.
+    residual_template: str | None = None
 
 
 def _denied(reason: str, explanation: str, *remedies: str,
@@ -1034,7 +1502,11 @@ FIXTURES: tuple[GateFixture, ...] = (
             content_hash=_hash(3), content_hashes=(_hash(3),),
             prompt_fingerprint="fp-04",
             model={"locality": "cloud", "model_id": "acme-large", "provider": "Acme"}),
-        p4_fixture=3, downstream_obligation=None, revoked=False),
+        p4_fixture=3, downstream_obligation=None, revoked=False,
+        # The content half is an `Excerpt`, which `check_item` does not refuse -- only
+        # `template_for` reaches this denial for it. With the signature's `None`
+        # default the branch is unreachable and this fixture releases.
+        residual_template=PROTECTED_RECORDS_TEMPLATE),
     GateFixture(
         number=5,
         spec_case="Denied.reason = whole_document_requested",
@@ -1099,19 +1571,27 @@ FIXTURES: tuple[GateFixture, ...] = (
                          fingerprint="fp-07", max_dossier_tokens=2000),
         decision=_denied(
             "always_local_item",
-            "the excerpt resolves to OCR output, which §8.4 places in the always-local "
-            "set: 'Paths, complete extracted text, OCR output, file hashes, image "
-            "EXIF, GPS, user edits, group memberships, and raw sensitive values should "
-            "remain local.'",
+            "P5 signalled this observation `potentially sensitive` at emission, and "
+            "§8.4 places 'raw sensitive values' in the always-local set: 'Paths, "
+            "complete extracted text, OCR output, file hashes, image EXIF, GPS, user "
+            "edits, group memberships, and raw sensitive values should remain local.' "
+            "The run is `ocr.apple_vision`, so the value is OCR output as well -- but "
+            "the signal is what the gate reads. §8.4 permits 'redacted identifiers', "
+            "so the same key is releasable as a RedactedIdentifier.",
+            "request the same key as a redacted identifier",
             "use the deterministic facts derived from the OCR text",
-            "ask the user to review the screenshot locally",
             evidence_refs=(_key(8),)),
         audit_record=_audit(outcome="denied", operation_mode="cloud_assisted",
                             file_sensitivity="public_low", content_hash=_hash(8),
                             content_hashes=(_hash(8),), prompt_fingerprint="fp-07",
                             model={"locality": "cloud", "model_id": "acme-large",
                                    "provider": "Acme"}),
-        p4_fixture=8, downstream_obligation=None, revoked=False),
+        p4_fixture=8, downstream_obligation=None, revoked=False,
+        # The whole fixture turns on this. `check_item` has no zone branch and P4
+        # fixture 8's text unit carries `zone = None`, so the earlier "an excerpt in
+        # the ocr zone" reading resolved and RELEASED. `seed()` writes this key as a
+        # P5 `POTENTIALLY_SENSITIVE` signal through `record_sensitivity_signals`.
+        sensitive_keys=(_key(8),)),
     GateFixture(
         number=8,
         spec_case="Denied.reason = mode_forbids_target (the mode axis, unprotected)",
@@ -1169,33 +1649,42 @@ FIXTURES: tuple[GateFixture, ...] = (
     GateFixture(
         number=10,
         spec_case="a `NeedsConsent` returning all four options",
-        policy=_policy("cloud_assisted", grants=((FIXTURE_AREA, "cloud_model"),)),
-        # `sensitive_personal` and NOT protected. Open question 1 -- "Is `protected`
+        # NO grant for this area, and the target is LOCAL. Both are forced by Task
+        # 11's branch read together with `protected_cloud_denies`, and an earlier
+        # draft had neither. The branch is `text_items and protected_ids and scope not
+        # in granted`; under `cloud_assisted` `protected_cloud_denies` returns False
+        # only when the scope IS granted. So a protected file with a CLOUD target
+        # denies before it can ask, for any policy -- the consent branch is reachable
+        # only through a non-cloud target. §8.4 describes exactly that case, and the
+        # first of the four options it offers is a local model.
+        policy=_policy("cloud_assisted"),
+        # `sensitive_personal` AND protected. Open question 1 -- "Is `protected`
         # exactly the top two handling classes?" -- is unsettled, and SPEC §2 says
         # outright: "Neighbouring parts should consume the `protected` flag, not infer
-        # it from the class." This fixture is where that stays true: a gate that
-        # inferred `protected` from the class would deny here and §8.4's consent
-        # branch would be unreachable.
-        classification=_classified(3, "sensitive_personal", protected=False),
+        # it from the class." The flag is set here as a parameter and never derived;
+        # fixture 3 is the fixture where a class and its flag disagree.
+        classification=_classified(3, "sensitive_personal", protected=True),
         area=FIXTURE_AREA,
-        request=_request(stage="fact_resolution", model_target=CLOUD_MODEL,
+        request=_request(stage="fact_resolution", model_target=LOCAL_MODEL,
                          items=(Excerpt(observation_key=_key(3),
                                         span=TextSpan(12043, 12051),
                                         reason="the sensitive passage names the "
                                                "institution"),),
                          fingerprint="fp-10", max_dossier_tokens=2000),
         decision=NeedsConsent(
-            consent_request_id=None,
+            consent_request_id="consent-fixture-10",
             requirement=ConsentRequirement(
-                items=(_key(3),),
-                why="the requested excerpt is text from a file classified "
-                    "`sensitive_personal`"),
+                file_ids=("fixture-file",),
+                handling_class="sensitive_personal",
+                items=((_key(3), "12043-12051"),),
+                why="§8.4: this call needs text from files entered into protected "
+                    "state, and policy policy-1 holds no consent grant for scope "
+                    "'Academics'"),
             options=CONSENT_OPTIONS),
         audit_record=_audit(
             outcome="consent_requested", operation_mode="cloud_assisted",
             file_sensitivity="sensitive_personal", content_hash=_hash(3),
-            content_hashes=(_hash(3),), prompt_fingerprint="fp-10",
-            model={"locality": "cloud", "model_id": "acme-large", "provider": "Acme"}),
+            content_hashes=(_hash(3),), prompt_fingerprint="fp-10"),
         p4_fixture=3,
         downstream_obligation=(
             "so P8 can prove it returns the branch to its caller intact"),
@@ -1539,7 +2028,7 @@ from database_agent.files_table import FILES_COLUMNS, get_file, record_file
 from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore, mirror_state
 from privacy.learning_seam import assign, reclassify
-from privacy.vocabulary import HELD_OPEN, OPEN_QUESTIONS
+from privacy.vocabulary import HELD_OPEN, OPEN_QUESTIONS, USER, USER_CONFIRMED
 
 COMPONENT = "0.1.0"
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
@@ -1716,8 +2205,8 @@ def test_open_question_1_never_infers_protected_from_the_handling_class():
     assert fixture.classification.protected is False
     record = ClassificationRecord(
         file_id="f", content_hash="sha256:abc", handling_class="public_low",
-        protected=True, basis="user", evidence_refs=(),
-        reliability_state="user_confirmed", observed_at=FIXED_CLOCK)
+        protected=True, basis=USER, evidence_refs=(),
+        reliability_state=USER_CONFIRMED, observed_at=FIXED_CLOCK)
     assert record.protected is True
 
 
@@ -1784,7 +2273,7 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
     # paths in the always-local set. The SPEC adds a sixth and flags it (Open question
     # 2, NEEDS-JOSEPH B5d / C9a). It is Joseph's call and nothing here decides it.
     from privacy.items import Filename
-    from privacy.vocabulary import ITEM_KINDS
+    from privacy.vocabulary import ITEM_KINDS, USER, USER_CONFIRMED
     assert ITEM_KINDS[-1] == "filename"
     assert len(ITEM_KINDS) == 6
     assert "filename" in OPEN_QUESTIONS[2].lower() or "Filename" in OPEN_QUESTIONS[2]
@@ -1842,8 +2331,8 @@ def test_the_classification_record_is_keyed_on_file_id_and_content_hash(
         scan_state="fixture-scan-state", materialized=True)
     first = ClassificationRecord(
         file_id=file_id, content_hash=get_file(p7_conn, file_id)["content_hash"],
-        handling_class="sensitive_personal", protected=True, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed", observed_at=FIXED_CLOCK)
+        handling_class="sensitive_personal", protected=True, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED, observed_at=FIXED_CLOCK)
     store.write(first)
     assert store.current(file_id, first.content_hash) == first
     assert store.current(file_id, "sha256:different-bytes") is None
@@ -2270,7 +2759,7 @@ from privacy.learning_seam import assign
 from privacy.policy import set_policy, transcription_authorized_for
 from privacy.release import Denied, ModelTarget, NeedsConsent, Released, Target
 from privacy.transport_guard import assert_single_egress
-from privacy.vocabulary import CONSENT_OPTIONS
+from privacy.vocabulary import CONSENT_OPTIONS, USER, USER_CONFIRMED
 
 COMPONENT = "0.1.0"
 NEVER: Callable[[], bool] = lambda: False
@@ -2384,8 +2873,8 @@ def classify(conn, file_id, handling_class="personal_non_sensitive", *,
     """
     record = ClassificationRecord(
         file_id=file_id, content_hash=get_file(conn, file_id)["content_hash"],
-        handling_class=handling_class, protected=protected, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class=handling_class, protected=protected, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at=SKELETON_CLOCK)
     assign(conn, record, store=ClassificationStore(conn),
            component_version=COMPONENT)
@@ -2403,10 +2892,10 @@ def p7_events(conn) -> int:
 
 def test_the_wave_2_caller_has_nowhere_to_put_a_gate():
     # "`release` was called zero times" as a STRUCTURAL fact rather than a counted one:
-    # eighteen parameters and not one of them is a gate, a classification, a detector
+    # seventeen parameters and not one of them is a gate, a classification, a detector
     # or a P7 policy. A caller that cannot hold a gate cannot have called one.
     parameters = inspect.signature(run_wave2).parameters
-    assert len(parameters) == 18
+    assert len(parameters) == 17
     for forbidden in ("gate", "release", "classifier", "detector", "handling_class",
                       "privacy_policy", "classification"):
         assert forbidden not in parameters, forbidden
@@ -2684,7 +3173,7 @@ def test_no_model_use_is_one_of_the_four_and_is_not_a_denial_reason():
     # The typed half of "does not become abstain": `no_model_use` is a CONSENT OPTION.
     # It is not in `DENIAL_REASONS`, so a caller cannot map the branch onto a denial by
     # respelling, and `NeedsConsent` carries no `reason` field to hold one.
-    from privacy.vocabulary import DENIAL_REASONS
+    from privacy.vocabulary import DENIAL_REASONS, USER, USER_CONFIRMED
     assert "no_model_use" in CONSENT_OPTIONS
     assert "no_model_use" not in DENIAL_REASONS
     fields = {f.name for f in dataclasses.fields(NeedsConsent)}

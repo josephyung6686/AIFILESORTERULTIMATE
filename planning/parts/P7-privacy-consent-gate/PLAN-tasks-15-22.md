@@ -148,6 +148,24 @@ enumerate the files a scope covers and must not guess; the caller supplies
 version answers a narrower question than the one the user is asking, and the audit log carries
 `policy_version` on each record for a reader who wants the narrower one.
 
+> ### CONTRADICTION — `prior_releases` under-reports every GROUP release, and Task 15 cannot fix it
+>
+> `_prior_releases` loops `audit_records_for(conn, file_id=file_id)` over the files in scope. **Task
+> 10's reader filters `file_id = ?` on the `events` COLUMN** (`PLAN-tasks-08-11.md:2103-2105`),
+> while its `release_id` and `consent_request_id` filters go through
+> `json_extract(explanation, …)`. A **group** release writes `None` into that column and puts the
+> ids in the explanation — `file_id=request.target.file_ids[0] if single else None`
+> (`PLAN-tasks-08-11.md:3143`), with `file_ids` among `EXPLANATION_FIELDS`. So a multi-file release
+> that carried this file's excerpts to a hosted model **is invisible to this function**, and §8.4's
+> retraction limit — the one place the product tells the user what revocation cannot take back —
+> silently under-reports it.
+>
+> **FIXED 2026-08-22.** `audit_records_for` now matches `file_id = ?` **or**
+> `json_each(explanation, '$.file_ids')`. The test below is no longer xfail.
+
+**`test_a_group_release_covering_a_file_in_scope_is_listed` is a live assertion.** Task 10's
+reader is the one home; this task does not re-scan the log.
+
 **What D3 makes this task write down.** The enumeration is the deliverable:
 
 ```text
@@ -352,6 +370,19 @@ def test_prior_releases_are_ordered_oldest_first(p7_conn, released):
     assert [r.when for r in go(p7_conn).prior_releases] == [FIXED_CLOCK, LATER]
 
 
+def test_a_group_release_covering_a_file_in_scope_is_listed(p7_conn):
+    # §8.4 requires the retraction limit be specific about what already left the
+    # device. Excerpts from `file-1` that went to Acme inside a two-file prompt left
+    # exactly as surely as excerpts sent alone, and a list that omits them tells the
+    # user less than the truth about what revocation cannot take back.
+    append_audit(p7_conn, an_audit_record(
+        release_id="release-2", file_id=None, content_hash=None,
+        file_ids=("file-1", "file-2"),
+        content_hashes=("sha256:abc", "sha256:def")),
+        author=SUBSYSTEM, component_version=COMPONENT)
+    assert len(go(p7_conn).prior_releases) == 1
+
+
 # --- the retraction limit ---------------------------------------------------
 
 def test_the_retraction_limit_is_always_present(p7_conn, released):
@@ -517,8 +548,9 @@ def test_p7_creates_no_trigger_of_its_own_on_events(p7_conn):
 - [ ] **Step 2: Run the test and watch it fail**
 
 Run: `pytest tests/p7/test_p7_revocation.py -v`
-Expected: FAIL — `ImportError: cannot import name 'DERIVED_PROJECTIONS' from 'privacy.revocation'`
-(the module does not exist, so collection fails on the first import).
+Expected: FAIL — `ModuleNotFoundError: No module named 'privacy.revocation'` (the module does
+not exist yet, so collection fails on the first import — an `ImportError` naming a missing
+attribute is what a module that EXISTS raises, and this one does not).
 
 - [ ] **Step 3: Write `src/privacy/revocation.py`**
 
@@ -740,7 +772,10 @@ def delete_derived(scope: DerivedScope) -> NoReturn:
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_revocation.py -v`
-Expected: PASS — 22 passed
+Expected: PASS — 25 passed, 1 xfailed. The xfail is
+`test_a_group_release_covering_a_file_in_scope_is_listed`; see the CONTRADICTION callout above. It
+is `strict=True`, so once Task 10's reader matches the explanation this line becomes
+**26 passed** and the marker is deleted in the same change.
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
@@ -771,7 +806,8 @@ git commit -m "feat(P7): revocation, the retraction limit, and delete_derived re
   `privacy.classification_store.ClassificationStore`, `.mirror_state` (the skeleton's
   `facts_seam.SensitivityFacts` — see the rename note above), `privacy.authorship.SUBSYSTEM`,
   `.CLASSIFICATION_ASSIGNED`, `.CLASSIFICATION_SUPERSEDED`, `.event_defaults`,
-  `privacy.vocabulary.check_handling_class`.
+  `privacy.vocabulary.check_handling_class`, `privacy.vocabulary.USER`,
+  `privacy.vocabulary.USER_CONFIRMED`.
 - Produces (`learning_seam.py`):
   - `PROPOSAL_CLASS: str = "privacy"`, `FILE_SCOPE: str = "file"`, `ACCEPT: str`, `REJECT: str`.
   - `RECORDED_ACTIONS: tuple[str, ...]` (SPEC *Correction learning*'s six),
@@ -824,9 +860,45 @@ belong there."* A broader scope is accepted when the caller passes one and is ne
 question 7 — *"Does repeated reclassification generalize?"* — stays open; nothing here counts
 repetitions, and Task 21 asserts it.
 
+> ### CONTRADICTION — a broader `correction_scope` is WRITTEN and never READ. Named against OQ7.
+>
+> `reclassify` validates `correction_scope` against **all six** of §8.7's scopes
+> (`corpus`, `domain`, `group`, `node`, `template`, `file`) and stores whichever the caller passes.
+> `suppressed` — the **only** consumer of what `reclassify` writes — calls
+> `learning_records(conn, FILE_SCOPE, file_id)` and nothing else. So a caller who rejects a class at
+> `group` or `corpus` scope gets a durable, correctly-formed learning record that **no code in P7
+> can ever read**, and the next `assign` at that file re-proposes exactly the class the user
+> rejected. A write with no reader is the shape that produced `files.sensitivity_state`, and it is
+> worse here because it *looks* like it worked.
+>
+> **This is not fixed and not dropped, because closing it either way answers OQ7.** *"§8.7 allows a
+> repeated residual destination to become a corpus-level preference; it does not say whether
+> repeated privacy corrections may raise a sensitivity floor for a class of files."* Widening
+> `suppressed` to consult the broader scopes **is** deciding that a corpus-scoped privacy rejection
+> generalises — which is precisely the question OQ7 holds open, and a P7 author is not the one to
+> answer it. Narrowing `reclassify` to `file` only would throw away the design's own six-scope
+> vocabulary on the same unanswered question, and would make §8.7's *"granting, changing, or
+> revoking a policy"* actions unrecordable at the scope a user performed them.
+>
+> **The three options, for whoever rules OQ7:** (a) `suppressed` walks the scopes a file belongs to
+> — needs P9's grouping and P10's tree, neither of which exists, and needs OQ3's *"corpus area"*
+> named; (b) `reclassify` refuses any scope but `file` until OQ7 is ruled, which is honest and
+> loses the recorded act; (c) leave both as written and let P13 read the broader records when it
+> has a surface for them. **The plan ships (c)** and states it here, so no reader mistakes the
+> stored record for one that takes effect. `test_open_question_7_is_not_answered_here` and the test
+> below pin the current behaviour rather than the intended one.
+
 **`protected` is a required keyword on `reclassify` and is never derived.** SPEC §2:
 *"Neighbouring parts should consume the `protected` flag, not infer it from the class"*, and Open
 question 1 is unsettled.
+
+**`basis` and `reliability_state` are written as NAMED CONSTANTS, never as literals** (brief §11,
+whose closing sentence extends the rule to *"every closed vocabulary either part publishes"*).
+`reclassify` builds a `user` / `user_confirmed` record, and both words are Task 2's to spell:
+`vocabulary.USER` and `vocabulary.USER_CONFIRMED` are imported and used. A bare `"user"` here would
+be a second home for a value Task 2 owns, and the literal spelling survives in exactly one
+assertion below — `assert revised.basis == USER == "user"` — so a rename in Task 2 is a red test
+here rather than a silent divergence.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -857,6 +929,7 @@ from privacy.learning_seam import (
     REJECT, UnknownRecordedAction, assign, basis_key_for, check_recorded_action,
     reclassify, suppressed,
 )
+from privacy.vocabulary import USER, USER_CONFIRMED
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 LATER = "2026-08-22T18:30:00+00:00"
@@ -1017,13 +1090,22 @@ def test_p7_does_the_filtering_because_p1s_reader_does_not(
     assert rows[0]["proposal_class"] == PROPOSAL_CLASS
     assert rows[0]["basis_key"] == basis_key_for(file_id, "sensitive_personal")
     assert rows[0]["polarity"] == REJECT
-    # Another part's rejection at the same subject is ignored, not counted.
+    # Another part's rejection, at a basis key P7 has NOT rejected. This placement is
+    # deliberate and it is the whole test: P13's row must be the ONLY record at
+    # `public_low`, because a foreign row sitting BESIDE a P7 row at the same key
+    # proves nothing -- delete the `proposal_class` guard from `suppressed` and the
+    # P7 row still answers True, so the assertion passes either way. Here the guard is
+    # load-bearing in both directions: without it `public_low` reads as suppressed
+    # (P13's rejection is honoured as P7's), and without the `basis_key` guard it
+    # reads as suppressed too (P7's `sensitive_personal` rejection is honoured at the
+    # wrong key). 10-i4: "Ignores records at the wrong `proposal_class`. Ignores
+    # records whose `basis_key` does not match."
     append_event(p7_conn, event_type="review action routed", subsystem="P13",
                  component_version=COMPONENT, observed_at=LATER,
                  explanation='{"note":"another part"}', user_id="joseph",
                  correction_scope=FILE_SCOPE, correction_subject=file_id,
                  polarity=REJECT, proposal_class="placement",
-                 basis_key=basis_key_for(file_id, "sensitive_personal"))
+                 basis_key=basis_key_for(file_id, "public_low"))
     assert len(learning_records(p7_conn, FILE_SCOPE, file_id)) == 2
     assert suppressed(p7_conn, file_id, "sensitive_personal") is True
     assert suppressed(p7_conn, file_id, "public_low") is False
@@ -1050,8 +1132,10 @@ def test_reclassify_writes_a_new_user_confirmed_fact(
     assign(p7_conn, a_record(file_id, content_hash), store=store,
            component_version=COMPONENT)
     revised = a_user_rejection(p7_conn, file_id, content_hash, store=store)
-    assert revised.reliability_state == "user_confirmed"
-    assert revised.basis == "user"
+    # Task 2 owns the literal spelling of both (brief §11); this is the one place in
+    # the file that pins it, and everything else consumes the named constant.
+    assert revised.reliability_state == USER_CONFIRMED == "user_confirmed"
+    assert revised.basis == USER == "user"
     assert revised.handling_class == "personal_non_sensitive"
     assert store.current(file_id, content_hash) == revised
 
@@ -1065,7 +1149,7 @@ def test_both_records_remain_inspectable(p7_conn, file_id, content_hash, store):
     history = store.history(file_id)
     assert [r.handling_class for r in history] == [
         "sensitive_personal", "personal_non_sensitive"]
-    assert [r.basis for r in history] == ["detector", "user"]
+    assert [r.basis for r in history] == ["detector", USER]
 
 
 def test_reclassify_appends_classification_superseded_and_not_an_overwrite(
@@ -1144,6 +1228,25 @@ def test_a_scope_outside_8_7s_six_is_refused(p7_conn, file_id, content_hash, sto
                    correction_scope="everything")
 
 
+def test_a_broader_correction_scope_is_stored_and_suppresses_nothing(
+        p7_conn, file_id, content_hash, store):
+    # See the CONTRADICTION callout above. This pins the SHIPPED behaviour, not the
+    # intended one: a corpus-scoped rejection is recorded honestly and `suppressed`
+    # -- which reads FILE_SCOPE only -- does not see it, so the next `assign` at this
+    # file re-proposes the class the user rejected. Making this test go the other way
+    # would answer Open question 7, which is Joseph's and not this task's.
+    assign(p7_conn, a_record(file_id, content_hash), store=store,
+           component_version=COMPONENT)
+    reclassify(p7_conn, file_id, "personal_non_sensitive", "not an identity record",
+               store=store, content_hash=content_hash, protected=False,
+               evidence_refs=DETECTOR_KEYS, user_id="joseph",
+               component_version=COMPONENT, observed_at=LATER,
+               correction_scope="corpus")
+    assert len(learning_records(p7_conn, "corpus", file_id)) == 1
+    assert learning_records(p7_conn, FILE_SCOPE, file_id) == []
+    assert suppressed(p7_conn, file_id, "sensitive_personal") is False
+
+
 def test_the_projection_onto_files_goes_through_p1s_setter(
         p7_conn, file_id, content_hash, store):
     # D2: `files.sensitivity_state` is the projection of the authoritative record,
@@ -1179,7 +1282,8 @@ def test_open_question_7_is_not_answered_here(p7_conn, file_id, content_hash, st
 - [ ] **Step 2: Run the test and watch it fail**
 
 Run: `pytest tests/p7/test_p7_learning_seam.py -v`
-Expected: FAIL — `ImportError: cannot import name 'ACCEPT' from 'privacy.learning_seam'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'privacy.learning_seam'` (the module
+does not exist yet, so collection fails on the first import).
 
 - [ ] **Step 3: Write `src/privacy/learning_seam.py`**
 
@@ -1216,7 +1320,7 @@ from privacy.authorship import (
 )
 from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore, mirror_state
-from privacy.vocabulary import check_handling_class
+from privacy.vocabulary import USER, USER_CONFIRMED, check_handling_class
 
 #: 10-i4-learning-ops.md's table: `privacy` | `(file_id, handling_class)` | P7.
 PROPOSAL_CLASS: str = "privacy"
@@ -1355,8 +1459,8 @@ def reclassify(conn: sqlite3.Connection, file_id: str, handling_class: str,
     prior_fact_id = store.current_fact_id(file_id, content_hash)
     record = ClassificationRecord(
         file_id=file_id, content_hash=content_hash, handling_class=handling_class,
-        protected=protected, basis="user", evidence_refs=tuple(evidence_refs),
-        reliability_state="user_confirmed", observed_at=observed_at)
+        protected=protected, basis=USER, evidence_refs=tuple(evidence_refs),
+        reliability_state=USER_CONFIRMED, observed_at=observed_at)
     fact_id = store.write(record)
     if prior is not None and prior_fact_id is not None:
         store.supersede(prior_fact_id, fact_id, reason)
@@ -1401,7 +1505,7 @@ def _project(conn: sqlite3.Connection, record: ClassificationRecord, *,
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_learning_seam.py -v`
-Expected: PASS — 21 passed
+Expected: PASS — 22 passed
 
 - [ ] **Step 5: Commit**
 
@@ -1470,11 +1574,13 @@ answers to one question is the defect this project has paid for most.
 # tests/p7/test_p7_moves.py
 """Done-means 9's first clause: false for protected material absent an explicitly
 permitting policy, and the permitting policy named when there is one."""
+import hashlib
 import json
 
 import pytest
 
 from database_agent.files_table import get_file, record_file
+from database_agent.identity import is_content_hash
 
 from privacy.authorship import SUBSYSTEM
 from privacy.classification import ClassificationRecord
@@ -1484,6 +1590,7 @@ from privacy.moves import (
     REASON_UNCLASSIFIED, MoveVerdict, may_move_automatically,
 )
 from privacy.policy import Policy, set_policy
+from privacy.vocabulary import USER, USER_CONFIRMED
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 COMPONENT = "0.1.0"
@@ -1515,8 +1622,8 @@ def store(p7_conn):
 def classify(p7_conn, store, file_id, *, handling_class, protected):
     store.write(ClassificationRecord(
         file_id=file_id, content_hash=get_file(p7_conn, file_id)["content_hash"],
-        handling_class=handling_class, protected=protected, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class=handling_class, protected=protected, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at=FIXED_CLOCK))
 
 
@@ -1666,8 +1773,16 @@ def test_new_bytes_at_the_same_path_inherit_no_classification(
     install(p7_conn, permissions={ACADEMICS: True})
     classify(p7_conn, store, file_id, handling_class="public_low", protected=False)
     assert ask(p7_conn, file_id, store).allowed is True
+    # The new digest is a digest P1 would produce: `hash_file` returns
+    # `hashlib.sha256().hexdigest()` and `identity.is_content_hash` is 64 lowercase
+    # hex. The prefixed form is deliberately NOT a content hash -- P1's comment:
+    # "P4's citation keys and P1's file identity must stay distinguishable, or a key
+    # stored in a `content_hash` column would look like a hash" -- so writing
+    # `sha256:...` here would be testing against a value the column can never hold.
+    new_bytes = hashlib.sha256(b"%PDF-1.4 different bytes").hexdigest()
+    assert is_content_hash(new_bytes)
     p7_conn.execute("UPDATE files SET content_hash = ? WHERE file_id = ?",
-                    ("sha256:different-bytes", file_id))
+                    (new_bytes, file_id))
     assert ask(p7_conn, file_id, store).reason == REASON_UNCLASSIFIED
 
 
@@ -1823,20 +1938,29 @@ git commit -m "feat(P7): may_move_automatically, keyed on the protected flag and
 - Test: `tests/p7/test_p7_display.py`
 
 **Interfaces:**
-- Consumes: `privacy.vocabulary.DISPLAY_FACETS`, `.HANDLING_CLASSES`,
-  `privacy.defaults.MORE_REDACTING`, `privacy.policy.current_policy(conn, *, plan_version) -> Policy`,
+- Consumes: `privacy.vocabulary.DISPLAY_FACETS`, `.HANDLING_CLASSES`, `.SHOWN`, `.REDACTED`,
+  `.REDACTION_VALUES`, `privacy.defaults.MORE_REDACTING`,
+  `privacy.policy.current_policy(conn, *, plan_version) -> Policy`,
   `privacy.classification.resolve_class(record) -> str`,
   `privacy.classification_store.ClassificationStore` (the skeleton's `facts_seam.SensitivityFacts` —
   see the rename note), `database_agent.files_table.get_file`.
 - Produces (`display.py`):
-  - `SHOWN: str = "shown"`, `REDACTED: str = "redacted"`, `SETTING_VALUES: tuple[str, str]`.
   - `RedactionSettings` — frozen, five fields, one per §8.4 facet, in §8.4's order;
     `facet(name) -> str`.
-  - `ProtectedSummary` — frozen: `count: int`, `class_breakdown: Mapping[str, int]`. Two fields,
-    and deliberately no third.
+  - `ProtectedSummary` — frozen: `count: int`, `scope_total: int`,
+    `class_breakdown: Mapping[str, int]` (D11). **Three fields, all `int` or `Mapping[str, int]`,
+    and deliberately no field a filename could occupy.**
   - `UnknownDisplaySetting`.
   - `display_policy(conn, *, plan_version) -> RedactionSettings`.
   - `summarize_protected(conn, scope, *, store, files_in_scope) -> ProtectedSummary`.
+
+**This task publishes NO value vocabulary.** `SHOWN`, `REDACTED` and `REDACTION_VALUES` are
+**Task 2's**, in `privacy/vocabulary.py`, and are imported from there. They had three homes and
+three names across this plan — `REDACTION_VALUES` in Task 5's `policy.py`, `SETTING_VALUES` here,
+`FACET_VALUES` in a sibling draft — for one two-member vocabulary SPEC §10 states once
+(*"each `shown | redacted`"*). One home, one name; `SETTING_VALUES` is deleted rather than
+re-exported, because a second spelling that resolves to the same tuple is exactly what makes a
+second home survive review.
 
 **Done-means:** 10, and the display half of 12.
 
@@ -1860,20 +1984,42 @@ aggregate is the default and the expansion is the user's act. A facet absent fro
 resolves through `defaults.MORE_REDACTING`, never to `shown`.
 
 **`ProtectedSummary` cannot return a filename, and the proof is at the type level.** Done-means 10:
-*"returns counts and class breakdown and cannot return filenames or content."* Asserted over
-`dataclasses.fields(ProtectedSummary)` — a runtime filter is something a future caller can route
-around, and a string scan matches the docstring that explains the rule. §5.2 applies the same rule
-to the canvas: a Finance or Identity proposal *"may be visible as a protected area, but the product
+*"returns counts and class breakdown and cannot return filenames or content."* Asserted with
+`typing.get_type_hints(ProtectedSummary)` — **three fields, all `int` or `Mapping[str, int]`, and
+deliberately no field a filename could occupy.** A runtime filter is something a future caller can
+route around, and a string scan matches the docstring that explains the rule; comparing field
+*names* against a forbidden list is weaker still, because it passes any new field whose name nobody
+thought to ban. Resolving the annotations is the assertion that actually holds: a record with no
+field of a string-bearing type cannot carry a filename at all. §5.2 applies the same rule to the
+canvas: a Finance or Identity proposal *"may be visible as a protected area, but the product
 should avoid showing sensitive filenames"*, and §7.5's residual screen already uses the form —
 *"11 protected personal records."*
 
+**The skeleton's *"two fields, and deliberately no third"* is struck, and D11 is why.** The
+constraint was written to make Done-means 10 mechanical, and that reason is kept in full — but it
+made the FIELD COUNT the safety property, and the field count never was the safety property. D11
+adds a third field, so the constraint is restated against the thing that actually protects the
+user: **no field a filename could occupy.** The type-level test is updated in the same change, so
+one cannot silently break the other.
+
 **`count` counts protected files; `class_breakdown` counts every file in scope by its resolved
-class.** Both are needed and they answer different questions. `count` is §8.4's aggregate. The
-breakdown includes `unreadable_unclassified`, which is what makes today's honest state visible: with
-no detector (D2) every file resolves there, so a real corpus yields `count = 0` — and *"0 protected
-records"* means *nothing has looked*, not *nothing is protected*. That is exactly why D2 keeps
-`unreadable_unclassified` off `files.sensitivity_state` and on the gate outcome, and a named test
-records it here rather than leaving a reader to find it.
+class; `scope_total` is the breakdown's denominator (D11).** Both counts are needed and they answer
+different questions. `count` is §8.4's aggregate. The breakdown includes `unreadable_unclassified`,
+which is what makes today's honest state visible: with no detector (D2) every file resolves there,
+so a real corpus yields `count = 0` — and *"0 protected records"* means *nothing has looked*, not
+*nothing is protected*. That is exactly why D2 keeps `unreadable_unclassified` off
+`files.sensitivity_state` and on the gate outcome, and a named test records it here rather than
+leaving a reader to find it.
+
+**`sum(class_breakdown.values()) == scope_total`, and it does NOT equal `count`.** They are **two
+denominators** and D11 exists because conflating them is a live safety bug, not an aesthetic one:
+`class_breakdown` is a census of the **whole scope** and `count` is the **protected** subset, so a
+UI rendering §8.4's *"11 protected identity records"* off the breakdown would **describe an
+unprotected file as protected**. The worked case is in the suite — a
+`highly_sensitive_credential_bearing` record with `protected=False` appears in the breakdown and
+not in the count, which is correct and is exactly the pair a single denominator would collapse.
+`scope_total` is published so the breakdown has a stated denominator rather than an assumed one,
+and a named test asserts `sum(class_breakdown.values()) == scope_total != count`.
 
 **P13's open question is recorded against this signature and not resolved.** §8.4: *"Protected
 branches should have configurable redaction in the canvas and review screens"* — which reads
@@ -1893,6 +2039,8 @@ names, previews, thumbnails, OCR text, or location data are shown."
 """
 import dataclasses
 import json
+from collections.abc import Mapping
+from typing import get_type_hints
 
 import pytest
 
@@ -1903,11 +2051,14 @@ from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import MORE_REDACTING
 from privacy.display import (
-    REDACTED, SETTING_VALUES, SHOWN, ProtectedSummary, RedactionSettings,
-    UnknownDisplaySetting, display_policy, summarize_protected,
+    ProtectedSummary, RedactionSettings, UnknownDisplaySetting, display_policy,
+    summarize_protected,
 )
-from privacy.policy import Policy, set_policy
-from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES
+from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
+from privacy.vocabulary import (
+    DISPLAY_FACETS, HANDLING_CLASSES, REDACTED, REDACTION_VALUES, SHOWN,
+    USER, USER_CONFIRMED,
+)
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 COMPONENT = "0.1.0"
@@ -1952,8 +2103,8 @@ def _record(conn, root, document):
 def classify(conn, store, file_id, *, handling_class, protected):
     store.write(ClassificationRecord(
         file_id=file_id, content_hash=get_file(conn, file_id)["content_hash"],
-        handling_class=handling_class, protected=protected, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class=handling_class, protected=protected, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at=FIXED_CLOCK))
 
 
@@ -1988,12 +2139,16 @@ def test_there_is_no_sixth_facet():
 
 
 def test_each_facet_takes_one_of_two_values(p7_conn):
-    # SPEC §10: "each shown | redacted".
-    assert SETTING_VALUES == (SHOWN, REDACTED) == ("shown", "redacted")
+    # SPEC §10: "each shown | redacted". The two values are TASK 2's -- one home, one
+    # name -- and this file imports them rather than publishing a third spelling.
+    assert REDACTION_VALUES == (SHOWN, REDACTED) == ("shown", "redacted")
+    import privacy.display as module
+    assert not hasattr(module, "SETTING_VALUES")
+    assert not hasattr(module, "FACET_VALUES")
     install(p7_conn, redaction_settings=ALL_SHOWN)
     settings = display_policy(p7_conn, plan_version="plan-1")
     for facet in DISPLAY_FACETS:
-        assert settings.facet(facet) in SETTING_VALUES
+        assert settings.facet(facet) in REDACTION_VALUES
 
 
 def test_a_third_value_is_a_load_error(p7_conn):
@@ -2048,16 +2203,33 @@ def test_settings_are_plan_scoped(p7_conn):
 
 # --- the aggregate-safe summary ---------------------------------------------
 
-def test_protected_summary_has_two_fields_and_deliberately_no_third():
-    # Done-means 10: "cannot return filenames or content". Proven at the TYPE level --
-    # a runtime filter is something a future caller can route around, and a string
-    # scan matches the docstring that explains the rule.
-    names = [field.name for field in dataclasses.fields(ProtectedSummary)]
-    assert names == ["count", "class_breakdown"]
+def test_the_summary_has_three_fields_and_none_can_hold_a_filename():
+    """Done-means 10: the summary "returns counts and class breakdown and cannot
+    return filenames or content."
+
+    Asserted at the TYPE level, with resolved annotations. A runtime filter is
+    something a future caller can route around; a string scan matches the docstring
+    that explains the rule; and comparing field NAMES against a forbidden list is
+    weaker than both, because it passes any new field whose name nobody thought to
+    ban. A record whose every field is an `int` or a `Mapping[str, int]` cannot carry
+    a filename at all. §5.2 states the same rule for the canvas -- a Finance or
+    Identity proposal "may be visible as a protected area, but the product should
+    avoid showing sensitive filenames."
+
+    D11 added `scope_total` and this assertion moved WITH it, in one change. The
+    skeleton's constraint read "two fields, and deliberately no third", which made the
+    field COUNT the safety property; it never was. The property is that no field has a
+    type a filename could occupy, and that is what is asserted here.
+    """
+    hints = get_type_hints(ProtectedSummary)
+    assert [field.name for field in dataclasses.fields(ProtectedSummary)] == [
+        "count", "scope_total", "class_breakdown"]
+    assert hints == {"count": int, "scope_total": int,
+                     "class_breakdown": Mapping[str, int]}
     for forbidden in ("filename", "filenames", "path", "paths", "examples",
                       "members", "file_ids", "raw_value", "text", "preview",
                       "thumbnail"):
-        assert forbidden not in names
+        assert forbidden not in hints
 
 
 def test_eleven_protected_identity_records(p7_conn, store, corpus):
@@ -2072,8 +2244,12 @@ def test_eleven_protected_identity_records(p7_conn, store, corpus):
                  protected=False)
     summary = summarize(p7_conn, store, corpus)
     assert summary.count == 11
+    # D11: the breakdown is a census of the WHOLE SCOPE, so its denominator is the
+    # thirteen files in scope and not the eleven protected ones.
+    assert summary.scope_total == 13
     assert summary.class_breakdown["highly_sensitive_credential_bearing"] == 11
     assert summary.class_breakdown["public_low"] == 2
+    assert sum(summary.class_breakdown.values()) == 13
 
 
 def test_the_breakdown_covers_every_handling_class_zero_filled(
@@ -2086,6 +2262,37 @@ def test_the_breakdown_covers_every_handling_class_zero_filled(
     assert summary.class_breakdown["sensitive_personal"] == 0
 
 
+def test_the_breakdown_is_ordered_by_the_closed_vocabulary(p7_conn, store, corpus):
+    # A deterministic key order, taken from HANDLING_CLASSES rather than from
+    # insertion, so two runs over the same corpus render the same screen and a
+    # reviewer comparing two summaries is comparing rows and not orderings.
+    classify(p7_conn, store, corpus[0],
+             handling_class="highly_sensitive_credential_bearing", protected=True)
+    classify(p7_conn, store, corpus[1], handling_class="sensitive_personal",
+             protected=True)
+    summary = summarize(p7_conn, store, corpus[:2])
+    assert list(summary.class_breakdown) == list(HANDLING_CLASSES)
+
+
+def test_the_breakdown_is_a_census_of_the_scope_and_never_of_the_protected_set(
+        p7_conn, store, corpus):
+    # D11, and the bug it exists to keep out. Two files of the same class, one
+    # protected and one not. `count` is 1, the breakdown says 2, and `scope_total`
+    # is the breakdown's stated denominator -- so a UI rendering §8.4's "11 protected
+    # identity records" off the breakdown cannot describe an UNPROTECTED file as
+    # protected, which is what one denominator for two questions would let it do.
+    classify(p7_conn, store, corpus[0],
+             handling_class="highly_sensitive_credential_bearing", protected=True)
+    classify(p7_conn, store, corpus[1],
+             handling_class="highly_sensitive_credential_bearing", protected=False)
+    summary = summarize(p7_conn, store, corpus[:2])
+    assert summary.count == 1
+    assert summary.scope_total == 2
+    assert sum(summary.class_breakdown.values()) == summary.scope_total
+    assert summary.class_breakdown["highly_sensitive_credential_bearing"] == 2
+    assert sum(summary.class_breakdown.values()) != summary.count
+
+
 def test_the_count_follows_the_flag_and_not_the_class(p7_conn, store, corpus):
     # SPEC §2, and Open question 1 again: a `public_low` file the user marked
     # protected is counted, and a top-class file that is not marked is not.
@@ -2094,6 +2301,7 @@ def test_the_count_follows_the_flag_and_not_the_class(p7_conn, store, corpus):
              handling_class="highly_sensitive_credential_bearing", protected=False)
     summary = summarize(p7_conn, store, corpus[:2])
     assert summary.count == 1
+    assert summary.scope_total == 2
     assert summary.class_breakdown["public_low"] == 1
     assert summary.class_breakdown["highly_sensitive_credential_bearing"] == 1
 
@@ -2101,7 +2309,11 @@ def test_the_count_follows_the_flag_and_not_the_class(p7_conn, store, corpus):
 def test_a_file_outside_the_scope_is_not_counted(p7_conn, store, corpus):
     classify(p7_conn, store, corpus[0],
              handling_class="highly_sensitive_credential_bearing", protected=True)
-    assert summarize(p7_conn, store, ()).count == 0
+    empty = summarize(p7_conn, store, ())
+    assert empty.count == 0
+    assert empty.scope_total == 0
+    assert sum(empty.class_breakdown.values()) == 0
+    assert set(empty.class_breakdown) == set(HANDLING_CLASSES)
     assert summarize(p7_conn, store, corpus[:1]).count == 1
 
 
@@ -2114,7 +2326,10 @@ def test_with_no_detector_the_summary_reads_zero_and_the_breakdown_says_why(
     summary = summarize(p7_conn, store, corpus)
     assert summary.count == 0
     assert summary.class_breakdown["unreadable_unclassified"] == len(corpus)
-    assert sum(summary.class_breakdown.values()) == len(corpus)
+    # D11's whole point in one line: the two denominators disagree, and they should.
+    assert summary.scope_total == len(corpus)
+    assert sum(summary.class_breakdown.values()) == summary.scope_total
+    assert summary.scope_total != summary.count
 
 
 def test_the_breakdown_is_not_mutable_by_a_caller(p7_conn, store, corpus):
@@ -2123,13 +2338,41 @@ def test_the_breakdown_is_not_mutable_by_a_caller(p7_conn, store, corpus):
         summary.class_breakdown["public_low"] = 99
 
 
+# --- C4: both surfaces are reads --------------------------------------------
+
+def test_neither_surface_writes_anything(p7_conn, store, corpus):
+    # C4: "the gate still raises and writes nothing -- a gate that also wrote would be
+    # doing two jobs." Both of these are predicates over stored state: they append no
+    # event, mint no policy version and issue no `UPDATE files`. Asserted rather than
+    # assumed, because "this function is a read" is the kind of claim that stays in a
+    # docstring after it stops being true.
+    install(p7_conn)
+    classify(p7_conn, store, corpus[0], handling_class="sensitive_personal",
+             protected=True)
+    before = p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"]
+    mirror = get_file(p7_conn, corpus[0])["sensitivity_state"]
+    display_policy(p7_conn, plan_version="plan-1")
+    summarize(p7_conn, store, corpus)
+    assert p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"] == before
+    assert get_file(p7_conn, corpus[0])["sensitivity_state"] == mirror
+
+
 # --- what is not resolved here ----------------------------------------------
 
 def test_p13s_per_branch_question_is_recorded_and_not_answered(p7_conn):
-    # §8.4: "Protected branches should have configurable redaction in the canvas and
-    # review screens" -- which reads per-branch -- while SPEC §10 publishes
-    # `Gate.display_policy()` with no branch. Recorded against the signature so the
-    # reviewer sees where the gap is, and not resolved by this plan.
+    """P13 Open question 7, quoted and not resolved.
+
+        "**Does the user's redaction setting have a scope?** §8.4 says 'Protected
+        branches should have configurable redaction', which reads per-branch, while
+        P7's `Gate.display_policy()` takes no scope argument and reads global.
+        *Threatens P7.*"
+
+    `display_policy` therefore takes a plan version and no branch, node or scope. This
+    test fails the day someone adds one, which is the point: adding it would answer
+    P13's question in an implementation rather than in a SPEC, and the answer changes
+    what P13's canvas and review screens have to render.
+    """
     import inspect
     parameters = set(inspect.signature(display_policy).parameters)
     assert parameters == {"conn", "plan_version"}
@@ -2147,7 +2390,8 @@ def test_files_in_scope_has_no_default(p7_conn):
 - [ ] **Step 2: Run the test and watch it fail**
 
 Run: `pytest tests/p7/test_p7_display.py -v`
-Expected: FAIL — `ImportError: cannot import name 'REDACTED' from 'privacy.display'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'privacy.display'` (the module does not
+exist yet, so collection fails on the first import).
 
 - [ ] **Step 3: Write `src/privacy/display.py`**
 
@@ -2161,15 +2405,16 @@ default direction is its own example: "A summary such as '11 protected identity
 records' may be safe to show, while a visible list of passport filenames on a shared
 screen may not be." The aggregate is the default; the expansion is the user's act.
 
-`ProtectedSummary` has two fields because Done-means 10 says it "cannot return
-filenames or content", and the cheapest way to make that true is for there to be
-nowhere to put one.
+`ProtectedSummary` says Done-means 10 -- "cannot return filenames or content" -- in
+its TYPES: three fields, every one an `int` or a `Mapping[str, int]`, and no field a
+filename could occupy. The cheapest way to make that true is for there to be nowhere
+to put one.
 """
 from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from types import MappingProxyType
 
 from database_agent.files_table import get_file
@@ -2178,12 +2423,17 @@ from privacy.classification import resolve_class
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import MORE_REDACTING
 from privacy.policy import current_policy
-from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES
+from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES, REDACTION_VALUES
 
-#: SPEC §10: "each shown | redacted". Two values, and no third.
-SHOWN: str = "shown"
-REDACTED: str = "redacted"
-SETTING_VALUES: tuple[str, str] = (SHOWN, REDACTED)
+# SPEC §10's two values -- "each shown | redacted" -- are TASK 2's, published as
+# `vocabulary.SHOWN`, `vocabulary.REDACTED` and `vocabulary.REDACTION_VALUES`. They
+# had three homes and three names across this plan (`REDACTION_VALUES`,
+# `REDACTION_VALUES`, `REDACTION_VALUES`) for one two-member vocabulary the design states
+# once, and `REDACTION_VALUES` was one of them: it is DELETED here, not aliased, because
+# a second spelling that resolves to the same tuple is what makes a second home
+# survive review. Only the tuple is imported, because only the tuple is used --
+# re-exporting the two members through this module would be a dead import, and a
+# consumer that wants them imports them from Task 2 as this task's test does.
 
 
 class UnknownDisplaySetting(ValueError):
@@ -2211,12 +2461,26 @@ class RedactionSettings:
 class ProtectedSummary:
     """§8.4's aggregate: "11 protected identity records", and nothing that names a file.
 
-    Two fields, and deliberately no third. There is no `examples`, no `file_ids` and no
-    `filenames`, because Done-means 10 forbids returning one and a field that does not
-    exist cannot be populated by a later caller in a hurry.
+    Three fields, all `int` or `Mapping[str, int]`, and **deliberately no field a
+    filename could occupy**. There is no `examples`, no `file_ids` and no `filenames`,
+    because Done-means 10 forbids returning one and a field that does not exist cannot
+    be populated by a later caller in a hurry. The constraint is asserted with
+    `typing.get_type_hints`, not by matching field names against a banned list: the
+    types are what hold, and a name-based check passes any field nobody thought to ban.
+
+    **Two denominators, and they are not interchangeable (D11).** `count` is the number
+    of PROTECTED files in scope. `class_breakdown` is a census of the WHOLE scope by
+    resolved class, zero-filled across `HANDLING_CLASSES` and keyed in that order, and
+    `scope_total` is its denominator: `sum(class_breakdown.values()) == scope_total`,
+    which is `len(files_in_scope(scope))` and is **not** `count`. A caller that rendered
+    §8.4's "11 protected identity records" off the breakdown would describe an
+    unprotected file as protected -- a `highly_sensitive_credential_bearing` record with
+    `protected=False` is legal while Open question 1 is unsettled -- so the denominator
+    is published rather than assumed.
     """
 
     count: int
+    scope_total: int
     class_breakdown: Mapping[str, int]
 
 
@@ -2241,10 +2505,10 @@ def display_policy(conn: sqlite3.Connection, *,
     resolved = {}
     for facet in DISPLAY_FACETS:
         value = stored.get(facet, MORE_REDACTING[facet])
-        if value not in SETTING_VALUES:
+        if value not in REDACTION_VALUES:
             raise UnknownDisplaySetting(
-                f"{facet} = {value!r} is not one of {SETTING_VALUES}; a value outside "
-                "the set is a load error, not a fallback")
+                f"{facet} = {value!r} is not one of {REDACTION_VALUES}; a value "
+                "outside the set is a load error, not a fallback")
         resolved[facet] = value
     return RedactionSettings(**resolved)
 
@@ -2260,25 +2524,31 @@ def summarize_protected(conn: sqlite3.Connection, scope: str, *,
     question 1). `class_breakdown` covers every file in scope by its RESOLVED class,
     so a corpus nothing has classified reports `unreadable_unclassified` rather than
     disappearing -- which is today's ordinary state, since D2 leaves the detector
-    unwritten.
+    unwritten -- and `scope_total` is the breakdown's denominator, which is the number
+    of files in scope and NOT `count` (D11). The two are separated because they answer
+    two questions, and one number cannot answer both without lying about one.
+
+    Reads only (C4). No event, no policy version, no `UPDATE files`.
 
     `files_in_scope` has no default: Open question 3 leaves "corpus area" unnamed.
     """
     counts = {handling_class: 0 for handling_class in HANDLING_CLASSES}
     protected = 0
+    in_scope = 0
     for file_id in files_in_scope(scope):
         record = store.current(file_id, get_file(conn, file_id)["content_hash"])
         counts[resolve_class(record)] += 1
+        in_scope += 1
         if record is not None and record.protected:
             protected += 1
-    return ProtectedSummary(count=protected,
+    return ProtectedSummary(count=protected, scope_total=in_scope,
                             class_breakdown=MappingProxyType(counts))
 ```
 
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_display.py -v`
-Expected: PASS — 17 passed
+Expected: PASS — 21 passed
 
 - [ ] **Step 5: Commit**
 
@@ -3230,7 +3500,7 @@ from privacy.items import (
 from privacy.policy import UNSET_POLICY_VERSION, Policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, NeedsConsent, \
     Released, Target
-from privacy.vocabulary import CONSENT_OPTIONS
+from privacy.vocabulary import CONSENT_OPTIONS, USER_CONFIRMED
 
 #: The ceiling key P7 reads and never sets a value for (§8.6, M9).
 CEILING_KEY: str = "model.max_dossier_tokens_per_call"
@@ -3375,7 +3645,7 @@ def _classification(handling_class: str, *, protected: bool,
         file_id=FIXTURE_FILE_ID, content_hash=FIXTURE_CONTENT_HASH,
         handling_class=handling_class, protected=protected, basis=basis,
         evidence_refs=(OBSERVATION_KEY,) if basis == "detector" else (),
-        reliability_state="user_confirmed" if basis == "user" else "validated",
+        reliability_state=USER_CONFIRMED if basis == "user" else "validated",
         observed_at=FIXTURE_OBSERVED_AT)
 
 
@@ -4025,8 +4295,8 @@ def test_oq1_protected_is_never_inferred_from_the_handling_class():
     assert "protected" in OPEN_QUESTIONS[1].lower()
     record = ClassificationRecord(
         file_id="f", content_hash="sha256:abc", handling_class="public_low",
-        protected=True, basis="user", evidence_refs=(),
-        reliability_state="user_confirmed", observed_at="2026-08-22T12:00:00+00:00")
+        protected=True, basis=USER, evidence_refs=(),
+        reliability_state=USER_CONFIRMED, observed_at="2026-08-22T12:00:00+00:00")
     assert record.protected is True
     # No module derives one from the other: a mapping from class to flag would be a
     # module-level container whose keys are handling classes and whose values are bools.
@@ -4205,8 +4475,8 @@ def test_d2_unclassified_never_reaches_the_column():
     # read as 'this file carries nothing'."
     record = ClassificationRecord(
         file_id="f", content_hash="sha256:abc",
-        handling_class="unreadable_unclassified", protected=False, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class="unreadable_unclassified", protected=False, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at="2026-08-22T12:00:00+00:00")
     with pytest.raises(ValueError):
         mirror_state(record)
@@ -4235,7 +4505,7 @@ def test_privacy_never_calls_the_upstream_safety_gate():
 
 
 def test_the_denial_vocabulary_holds_no_bare_protected():
-    from privacy.vocabulary import DENIAL_REASONS
+    from privacy.vocabulary import DENIAL_REASONS, USER, USER_CONFIRMED
     assert "protected" not in DENIAL_REASONS
     assert "protected_cloud_target" in DENIAL_REASONS
     assert "protected_records_template" in DENIAL_REASONS
@@ -4533,7 +4803,7 @@ from privacy.learning_seam import assign
 from privacy.policy import Policy, set_policy
 from privacy.release import Denied, NeedsConsent, Released, Target
 from privacy.transport_guard import assert_single_egress
-from privacy.vocabulary import CONSENT_OPTIONS
+from privacy.vocabulary import CONSENT_OPTIONS, USER, USER_CONFIRMED
 
 from transport_fixtures import CONFORMING
 
@@ -4689,8 +4959,8 @@ def test_skeleton_p7_step(wired, corpus):
     content_hash = get_file(conn, subject)["content_hash"]
     written = assign(conn, ClassificationRecord(
         file_id=subject, content_hash=content_hash,
-        handling_class="personal_non_sensitive", protected=False, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class="personal_non_sensitive", protected=False, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at=FIXED_CLOCK), store=store, component_version=COMPONENT)
     assert written is not None
     assert store.current(subject, content_hash) is not None
@@ -4762,8 +5032,8 @@ def test_the_bundles_handling_class_is_the_wave_2_callers_and_is_still_null(
     for row in conn.execute("SELECT file_id, content_hash FROM files"):
         assign(conn, ClassificationRecord(
             file_id=row["file_id"], content_hash=row["content_hash"],
-            handling_class="personal_non_sensitive", protected=False, basis="user",
-            evidence_refs=(), reliability_state="user_confirmed",
+            handling_class="personal_non_sensitive", protected=False, basis=USER,
+            evidence_refs=(), reliability_state=USER_CONFIRMED,
             observed_at=FIXED_CLOCK), store=store, component_version=COMPONENT)
 
     entries = bundle_files(conn, result.bundle_id)
@@ -4812,8 +5082,8 @@ def test_a_dossier_requiring_sensitive_text_returns_needs_consent(wired, corpus)
         "SELECT file_id, content_hash FROM files ORDER BY filename").fetchone()
     store.write(ClassificationRecord(
         file_id=subject["file_id"], content_hash=subject["content_hash"],
-        handling_class="sensitive_personal", protected=False, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class="sensitive_personal", protected=False, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at=FIXED_CLOCK))
 
     request = dataclasses.replace(
@@ -4853,8 +5123,8 @@ def test_choosing_no_model_use_records_a_choice_and_releases_nothing(wired, corp
         "SELECT file_id, content_hash FROM files ORDER BY filename").fetchone()
     store.write(ClassificationRecord(
         file_id=subject["file_id"], content_hash=subject["content_hash"],
-        handling_class="sensitive_personal", protected=False, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class="sensitive_personal", protected=False, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at=FIXED_CLOCK))
     request = dataclasses.replace(
         fixture.request,
@@ -5000,7 +5270,10 @@ rather than discover it.
 | 14 | Task 16 `Consumes` | The list omits `authorship`, `append_event` and `set_sensitivity_state`, while *"What its tests must prove"* requires `reclassify` to append `classification_superseded` and D2 requires the projection. Added. |
 | 15 | Task 17 `Interfaces` | `may_move_automatically(conn, file_id, plan_version)` has no way to reach the `content_hash` the classification is keyed on (D2). Added `database_agent.files_table.get_file` and the keyword-only `store` and `scope_for`. |
 | 16 | Task 18 `Interfaces` | `display_policy(conn)` cannot read a plan-scoped policy (§8.8) and `summarize_protected(conn, scope)` cannot enumerate a scope OQ3 leaves unnamed. Widened with keyword-only `plan_version`, `store` and `files_in_scope`; SPEC §10's published `Gate.display_policy()` / `Gate.summarize_protected(scope)` are unchanged where a caller sees them. |
-| 17 | Task 18 | Neither Task 2's `DISPLAY_FACETS` nor Task 6's `MORE_REDACTING` claims the two **values** SPEC §10 states (`shown | redacted`). They are defined in `display.py`, which is the first module that needs them. |
+| 17 | Task 18 · Task 2 · Task 5 | Neither Task 2's `DISPLAY_FACETS` nor Task 6's `MORE_REDACTING` claimed the two **values** SPEC §10 states (`shown | redacted`), so they acquired **three homes and three names** — `REDACTION_VALUES` in Task 5's `policy.py`, `SETTING_VALUES` in this file's `display.py`, `FACET_VALUES` in a sibling draft — for one two-member vocabulary the design states once. **Ruled: Task 2's `vocabulary.py` is the single home** and publishes `SHOWN`, `REDACTED` and `REDACTION_VALUES`. Task 18 imports them and `SETTING_VALUES` is **deleted, not aliased**. |
+| 23 | Task 15 · Task 10 | **`prior_releases` group-release gap — CLOSED.** `audit_records_for` matches the `file_id` column **or** `json_each(explanation, '$.file_ids')`. The Task 15 test is a live assertion, not xfail. |
+| 24 | Task 16 · OQ7 | **A broader `correction_scope` is written and never read.** `reclassify` accepts all six of §8.7's scopes; `suppressed` — its only consumer — reads `learning_records(conn, FILE_SCOPE, file_id)` only, so a group- or corpus-scoped rejection is structurally unreadable and the next `assign` re-proposes the rejected class. **Not fixed and not dropped:** widening `suppressed` would answer Open question 7 (*"does repeated reclassification generalize?"*) in an implementation. Named against OQ7 in a callout, with the three options and the one this plan ships, and pinned by `test_a_broader_correction_scope_is_stored_and_suppresses_nothing`. |
+| 25 | Task 18 · D11 | The skeleton's **"two fields, and deliberately no third"** made the FIELD COUNT `ProtectedSummary`'s safety property; it never was. D11 adds `scope_total`, so the constraint is restated as **"three fields, all `int` or `Mapping[str, int]`, and deliberately no field a filename could occupy"** and the type-level test moves with it in the same change. `class_breakdown` is a census of the whole scope and `count` is the protected subset — **two denominators**, and conflating them lets a UI render §8.4's *"11 protected identity records"* off the breakdown and describe an unprotected file as protected. |
 | 18 | Task 19 `Produces` | Two exceptions, and a module with **no** public function is neither — it passes any `len(functions) <= 1` check, which is the vacuous pass this layer exists to prevent. Added `NoEgressPoint`. |
 | 19 | Task 20 `Produces` | `GateFixture`'s six fields cannot express the classification a fixture assumes, nor the *"obligation on P8 ... in their own metadata"* the same paragraph requires. Added `classification` and `p8_obligation`, both with defaults, so the six-name positional order is unchanged. |
 | 20 | Task 21 `Interfaces` | `vocabulary.OPEN_QUESTIONS` is asserted there and appears in **no** task's `Produces`. Task 21 adds it to `vocabulary.py`, together with `NEEDS_JOSEPH` for the two items held open by name (B5d/C9a and C5), which are not among SPEC's numbered eleven. |
@@ -5025,6 +5298,11 @@ rather than discover it.
    `Gate(..., unclassified_permits_local=...)` with no default, and as fixtures 14 and 15, one per
    branch.
 6. **Open question 3** — what a corpus area is. Three functions take a resolver with no default.
+6b. **Open question 7** — *"Does repeated reclassification generalize?"* Task 16's `reclassify`
+   records a rejection at any of §8.7's six scopes and `suppressed` reads the `file` scope only, so
+   a corpus-scoped privacy rejection is stored and never acted on. Widening the reader **is** the
+   answer to OQ7, so the plan ships the narrow reader, names the gap (item 24 above) and pins the
+   current behaviour in a test. Ruling it either way is one line of `suppressed`.
 7. **The detector.** Not in this section's gift and not in any task's: D2 puts the rule set behind an
    injection and no plan produces one. Until it is supplied, `Denied(unclassified)` is what a real
    corpus gets, `summarize_protected` reports `count = 0`, and `may_move_automatically` refuses every

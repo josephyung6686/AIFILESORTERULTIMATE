@@ -76,8 +76,8 @@ must stay distinguishable.** Five strings share one stem across two parts:
 | `untouched_protected` | P3 | `exclusion.LABEL_UNTOUCHED_PROTECTED` |
 | `protected_container` | P3 | `exclusion.REASON_PROTECTED_CONTAINER` |
 
-The skeleton's Task 2 heading counts four and its body names five. The body is right and this section
-follows it; the discrepancy is reported below. Conflating any two of the five is how this part goes
+The skeleton's Task 2 heading counts four and its body names five. The body is right, so **this
+section's Task 2 heading says five**; the discrepancy with the skeleton is reported below. Conflating any two of the five is how this part goes
 wrong, and Task 2's test pins all five side by side so a later normalization pass is a red test
 rather than an editorial choice.
 
@@ -86,13 +86,15 @@ rather than an editorial choice.
 ## What these three tasks add to the skeleton's `Produces` blocks, and why
 
 The skeleton's `Interfaces:` blocks are a contract with the authors of Tasks 4–22 and every name in
-them is honoured exactly. Four names are **added**, each because the task cannot be written without
+them is honoured exactly. Seven names are **added**, each because the task cannot be written without
 it. Each is reported here rather than smuggled in.
 
 | Added | Task | Why the task is not writable without it |
 |---|---|---|
 | `vocabulary.OPEN_QUESTIONS: Mapping[int, str]` | 2 | The skeleton's own File Structure line says `vocabulary.py` holds *"every closed vocabulary, and OPEN_QUESTIONS"*, and Task 21's `Interfaces:` block says *"`vocabulary.OPEN_QUESTIONS: Mapping[int, str]` is asserted here"*. Task 2's `Produces` list omits it. Task 21 fails without it. |
 | `vocabulary.HANDLING_CLASS_LABELS: Mapping[str, str]` | 2 | Nothing else in the codebase ties the identifier `unreadable_unclassified` to the design's own line *"Unreadable or unclassified"*. Without it the five snake_case identifiers are five words a P7 author chose. It is the exact analogue of `MODE_SEMANTICS`, which the skeleton does list. |
+| `vocabulary.SHOWN`, `.REDACTED`, `.REDACTION_VALUES: tuple[str, str]` | 2 | SPEC §10's `display_settings` is *"each shown \| redacted"*, and three sections wrote the pair out under three names — `REDACTION_VALUES` in Task 5's `policy.py`, `SETTING_VALUES` in Task 18, `FACET_VALUES` in a third. Task 5's own A7 reported it and asked for this home: *"if Task 2 publishes them, `policy.py` re-exports and deletes its own."* Task 2 publishes; `policy.py` re-exports. The names are Task 5's three, because renaming a consumed surface to gain one home is a cost with no return. |
+| `vocabulary.RELIABILITY_STATES` (re-export), `.USER_CONFIRMED`, `.USER` | 2 | Brief §11 makes a named constant the rule for every closed vocabulary either part publishes, and P7 was writing `basis="user"` / `reliability_state="user_confirmed"` as **bare literals** across five sections. `CLASSIFICATION_BASES` was published with no per-value constant and P7 had no reliability-state vocabulary at all. Under D7 there is no P6 tuple to import — but the six states are **P4's**: `evidence_shape.vocabulary.RELIABILITY_STATES`, verified by import, in the design's own line-50 order. `privacy` already binds `evidence_shape`, so Task 2 re-exports P4's tuple and names the two members P7 writes. |
 | `classification.COMPLETENESS_RULE: Mapping[str, tuple[bool, str]]` | 3 | The skeleton requires the completeness mapping be *"stated explicitly per value rather than by an `in`-check over a set the author guessed"*. An unpublished internal frozenset **is** that set. The published nine-entry table, each carrying the sentence that decides it, is the requirement. |
 | `classification.sensitivity_signal_keys(conn, file_id) -> tuple[str, ...]` | 3 | Task 3's `Consumes` block lists `extractors.long_tail.POTENTIALLY_SENSITIVE`, `.sensitivity_signals_for` and `evidence_shape.store.runs_for_file`, and its `Produces` block names nothing that could consume them. The skeleton's prose settles the intent — *"P7 adds no reader to P5; it composes the two P4 and P5 already publish"* — so the composition is published under one name and decides nothing. |
 
@@ -631,7 +633,7 @@ git commit -m "feat(P7): package skeleton, and the eight event types asserted ag
 
 ---
 
-### Task 2: The closed vocabularies, and the four words with `protected` in them
+### Task 2: The closed vocabularies, and the five words with `protected` in them
 
 **Files:**
 - Create: `src/privacy/vocabulary.py`
@@ -641,6 +643,8 @@ git commit -m "feat(P7): package skeleton, and the eight event types asserted ag
 - Consumes: `scan_agent.exclusion.LABEL_UNTOUCHED_PROTECTED: str`, `.REASON_PROTECTED_CONTAINER: str`
   — imported **in the test only**, to pin the distinction. `src/privacy/` imports neither, and
   `privacy.vocabulary` binds no value equal to either.
+- Consumes: `evidence_shape.vocabulary.RELIABILITY_STATES: tuple[str, ...]` — imported by the
+  **module**, not copied. P4's shipped six, in the design's own line-50 order.
 - Produces (`vocabulary.py`):
   - `HANDLING_CLASSES: tuple[str, ...]` (5), `HANDLING_CLASS_LABELS: Mapping[str, str]` (added — the
     design's own five lines).
@@ -650,8 +654,14 @@ git commit -m "feat(P7): package skeleton, and the eight event types asserted ag
   - `DENIAL_REASONS: tuple[str, ...]` (8).
   - `CONSENT_OPTIONS: tuple[str, ...]` (4).
   - `DISPLAY_FACETS: tuple[str, ...]` (5).
-  - `CLASSIFICATION_BASES: tuple[str, ...]` (3).
+  - `CLASSIFICATION_BASES: tuple[str, ...]` (3), and `USER: str = "user"` — the one member P7 writes
+    (added, brief §11).
   - `AUDIT_OUTCOMES: tuple[str, ...]` (3).
+  - `RELIABILITY_STATES: tuple[str, ...]` — **re-exported** from `evidence_shape.vocabulary`, not
+    retyped — and `USER_CONFIRMED: str`, the one member P7 writes (added, brief §11).
+  - `SHOWN: str = "shown"`, `REDACTED: str = "redacted"`,
+    `REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)` (added — SPEC §10's *"each shown |
+    redacted"*; Task 5's A7 reported these and asked for this home).
   - `OPEN_QUESTIONS: Mapping[int, str]` (added — the SPEC's eleven, held open).
   - `OutOfVocabulary`.
   - `check_handling_class(value) -> str`, `check_mode(value) -> str`,
@@ -674,10 +684,49 @@ misspelling becomes a silent downgrade, and a silent downgrade in this vocabular
 **Four checkers, not nine, and that is the skeleton's contract.** The four vocabularies with a
 checker are the four a caller supplies a value into from outside P7: a handling class arrives from a
 detector or a user, a mode from a policy, an item kind from P8's request, a denial reason from P7's
-own branches under test. `CONSENT_OPTIONS`, `DISPLAY_FACETS`, `CLASSIFICATION_BASES` and
-`AUDIT_OUTCOMES` are consumed as membership tests by the tasks that own them (5, 10, 14). Adding
-five more checkers would be five more names for Task 21 to introspect and five more places for the
-same refusal to be spelled differently.
+own branches under test. `CONSENT_OPTIONS`, `DISPLAY_FACETS`, `CLASSIFICATION_BASES`,
+`AUDIT_OUTCOMES`, `REDACTION_VALUES` and `RELIABILITY_STATES` are consumed as membership tests by
+the tasks that own them (5, 10, 14, 16). A checker on each of the rest would be six more names for
+Task 21 to introspect and six more places for the same refusal to be spelled differently.
+
+**`SHOWN` and `REDACTED` live here, and nowhere else.** SPEC §10 spells `display_settings` as *"each
+shown | redacted"*, and three separate sections wrote the pair out under three names —
+`REDACTION_VALUES` in Task 5's `policy.py`, `SETTING_VALUES` in Task 18, `FACET_VALUES` in a third.
+Three homes and three names for two strings is this project's most expensive defect class, and the
+Task 5 author reported it against themselves: *"they arguably belong in Task 2's `vocabulary.py`; if
+Task 2 publishes them, `policy.py` re-exports and deletes its own"* (A7). Task 2 publishes them, so
+`policy.py` re-exports and deletes its own, and Task 18 and its sibling import rather than respell.
+The names are **`SHOWN`, `REDACTED`, `REDACTION_VALUES`** — Task 5's own three, because they are
+already written and already consumed under those names, and the cheapest single home is the one that
+renames nothing. They sit beside `DISPLAY_FACETS` because that is the tuple they are the values of:
+`redaction_settings` is a mapping from a facet to one of these two, and a facet vocabulary published
+without its value vocabulary is half a contract.
+
+**The classification basis and the reliability state get named constants, and the six states are
+P4's.** Brief §11 makes named constants the rule for every closed vocabulary either part publishes —
+*"Never a bare string, never an index"* — and P7 was writing `basis="user"` and
+`reliability_state="user_confirmed"` as bare literals in five sections. `CLASSIFICATION_BASES` was
+published with no per-value constant, and there was **no reliability-state vocabulary in P7 at all**.
+Under D7, P7's Contract-in from P6 is empty and P7 imports nothing from P6, so a P6-published tuple
+was not available to import — which is how the literals survived.
+
+**They did not need P6.** The six states are **P4's**, shipped:
+`evidence_shape.vocabulary.RELIABILITY_STATES == ("user_confirmed", "direct", "validated",
+"llm_supported", "possible", "rejected")`, verified by import, and that order is the design's own
+line 50 read in sequence — *"A **user confirmed** fact … A **direct** fact … A **validated** fact …
+An **LLM-supported** fact … A **possible** fact … A **rejected** fact"*. P6's Task 1 publishes the
+same six for `facts` (brief §11); P7 imports **P4's**, because `privacy` already binds
+`evidence_shape` — it is one of the three packages in the L2 guard set `{evidence_shape,
+orchestrator, privacy}` — and because D7 forbids the P6 import. The tuple is **re-exported, not
+copied**: a second literal spelling of six strings is the thing the rule exists to prevent, and a
+re-export means a P4 revision reaches P7 by import rather than by memory.
+
+**One named constant per member P7 actually writes, not six.** `USER_CONFIRMED` and `USER` are the
+two P7 writes — a user reclassifying is the only classification P7 itself originates (Task 16), and
+`basis="user"` and `reliability_state="user_confirmed"` are what that record carries. The other five
+states are read, never written, and `check`ing membership against the re-exported tuple is what
+reading needs. Publishing a constant for a member nothing writes would be five more names for Task 21
+to introspect, which is the same argument as the four checkers above.
 
 **No threshold, no ceiling, no number.** This module contains no `int` and no `float` at all, and a
 test asserts it by walking the module namespace. §8.6 names the knobs, states they are
@@ -733,10 +782,12 @@ Where a vocabulary can be DERIVED from a design sentence mechanically, it is. A 
 that retypes the nine always-local items proves the author can retype; a test that
 splits the design's sentence proves the identifiers are the design's words.
 """
+import re
 from collections.abc import Mapping
 
 import pytest
 
+from evidence_shape import vocabulary as p4_vocabulary
 from scan_agent.exclusion import LABEL_UNTOUCHED_PROTECTED, REASON_PROTECTED_CONTAINER
 
 import privacy.vocabulary as vocabulary
@@ -744,7 +795,21 @@ from privacy.vocabulary import (
     ALWAYS_LOCAL, AUDIT_OUTCOMES, CLASSIFICATION_BASES, CONSENT_OPTIONS,
     DENIAL_REASONS, DISPLAY_FACETS, HANDLING_CLASSES, HANDLING_CLASS_LABELS,
     ITEM_KINDS, MODE_SEMANTICS, OPEN_QUESTIONS, OPERATION_MODES, OutOfVocabulary,
+    REDACTED, REDACTION_VALUES, REJECTED, RELIABILITY_STATES, SHOWN, USER,
+    USER_CONFIRMED, DETECTOR,
     check_denial_reason, check_handling_class, check_item_kind, check_mode,
+)
+
+#: The design's line 50, verbatim. The six reliability states are derived from this
+#: sentence run rather than retyped, which is what makes the tuple's ORDER the
+#: design's and not an author's.
+RELIABILITY_SENTENCES = (
+    "A user confirmed fact has been explicitly accepted, entered, renamed, merged, "
+    "or corrected by the user. A direct fact was read from a reliable and explicit "
+    "source. A validated fact was found by a deterministic rule and passed "
+    "contextual checks. An LLM-supported fact was proposed by a language model. "
+    "A possible fact is a useful but insufficient clue. A rejected fact is a "
+    "proposal that the user or validator marked as incorrect."
 )
 
 #: §8.4, verbatim. The nine names are derived from this sentence rather than retyped.
@@ -773,6 +838,14 @@ def _identifiers(listed: str) -> tuple[str, ...]:
         word = part.strip().removeprefix("and ").removeprefix("or ")
         out.append(word.lower().replace(" ", "_"))
     return tuple(out)
+
+
+def _states(prose: str) -> tuple[str, ...]:
+    """Pull `A <name> fact` / `An <name> fact` out of line 50, in order."""
+    return tuple(
+        match.group(1).strip().lower().replace("-", "_").replace(" ", "_")
+        for match in re.finditer(r"\b(?:A|An) ((?:[\w-]+ )+?)fact\b", prose)
+    )
 
 
 # --- the five handling classes -----------------------------------------------
@@ -935,7 +1008,8 @@ def test_the_five_protected_spellings_coexist_and_no_two_are_equal():
 def test_no_p7_vocabulary_contains_a_bare_protected():
     for closed in (HANDLING_CLASSES, OPERATION_MODES, ALWAYS_LOCAL, ITEM_KINDS,
                    DENIAL_REASONS, CONSENT_OPTIONS, DISPLAY_FACETS,
-                   CLASSIFICATION_BASES, AUDIT_OUTCOMES):
+                   CLASSIFICATION_BASES, AUDIT_OUTCOMES, RELIABILITY_STATES,
+                   REDACTION_VALUES):
         assert "protected" not in closed
 
 
@@ -990,6 +1064,86 @@ def test_three_classification_bases_and_three_audit_outcomes():
     assert AUDIT_OUTCOMES == ("released", "denied", "consent_requested")
 
 
+def test_the_one_basis_p7_writes_has_a_named_constant():
+    # Brief §11: never a bare string, never an index. `basis="user"` was written as a
+    # literal in five sections before this constant existed.
+    assert USER == "user"
+    assert USER in CLASSIFICATION_BASES
+
+
+# --- the six reliability states, imported from P4 and not retyped ------------
+
+def test_the_six_states_are_p4s_tuple_and_not_a_second_copy():
+    # Re-exported, not copied. `is` and not `==`: a second tuple with the same six
+    # strings would pass equality and would be exactly the second home the rule
+    # exists to prevent. D7 makes P7's Contract-in from P6 empty, so this is P4's
+    # tuple -- `privacy` already binds `evidence_shape` -- and never P6's.
+    assert RELIABILITY_STATES is p4_vocabulary.RELIABILITY_STATES
+
+
+def test_the_states_are_the_designs_line_50_in_the_designs_order():
+    # The order is the ranking Task 4 reads (§3.13), so it is derived from the
+    # design's own sentence run rather than retyped: "A user confirmed fact ... A
+    # direct fact ... A validated fact ... An LLM-supported fact ... A possible fact
+    # ... A rejected fact."
+    assert RELIABILITY_STATES == _states(RELIABILITY_SENTENCES)
+    assert RELIABILITY_STATES == (
+        "user_confirmed", "direct", "validated", "llm_supported", "possible",
+        "rejected")
+
+
+def test_the_one_state_p7_writes_has_a_named_constant():
+    # Task 16's reclassification is the only classification P7 originates, and it
+    # writes USER_CONFIRMED. Task 4's store also needs REJECTED as an exclusion, so
+    # that literal is published here rather than respelt in classification_store.
+    assert USER_CONFIRMED == "user_confirmed"
+    assert USER_CONFIRMED in RELIABILITY_STATES
+    assert RELIABILITY_STATES[0] == USER_CONFIRMED
+
+
+def test_rejected_is_published_as_the_exclusion_not_a_second_spelling():
+    assert REJECTED == "rejected"
+    assert REJECTED in RELIABILITY_STATES
+    assert REJECTED == RELIABILITY_STATES[-1]
+
+
+def test_p7_publishes_no_second_spelling_of_a_state():
+    # The failure this whole section exists to prevent: a module-level string in
+    # `privacy.vocabulary` whose value happens to be one of P4's six, bound under a
+    # name that is not a published constant.
+    allowed = {"USER_CONFIRMED": USER_CONFIRMED, "REJECTED": REJECTED}
+    for name, value in vars(vocabulary).items():
+        if name.startswith("_") or not isinstance(value, str):
+            continue
+        if value in RELIABILITY_STATES:
+            assert name in allowed, name
+            assert value == allowed[name]
+
+
+def test_detector_is_the_named_basis_constant():
+    assert DETECTOR == "detector"
+    assert DETECTOR in CLASSIFICATION_BASES
+
+
+# --- SPEC §10's two display values, one home ---------------------------------
+
+def test_the_two_display_values_are_spec_10s_two():
+    # SPEC §10: `display_settings` is "each shown | redacted". Before this constant
+    # existed the pair had three homes and three names -- `REDACTION_VALUES` in
+    # `policy.py`, `REDACTION_VALUES` in Task 18, `REDACTION_VALUES` in a third section.
+    assert (SHOWN, REDACTED) == ("shown", "redacted")
+    assert REDACTION_VALUES == (SHOWN, REDACTED)
+
+
+def test_a_display_facet_maps_to_one_of_exactly_two_values():
+    # The reason the pair belongs beside DISPLAY_FACETS: it is the value vocabulary
+    # of that key vocabulary, and a facet list published without one is half a
+    # contract. W1's "the more redacting option is the default" is Task 6's rule and
+    # no default lives here.
+    assert len(REDACTION_VALUES) == 2
+    assert set(REDACTION_VALUES).isdisjoint(DISPLAY_FACETS)
+
+
 def test_unreadable_unclassified_is_a_class_and_unclassified_is_a_denial_reason():
     # D2: "Unreadable or unclassified is a GATE OUTCOME, not a file fact." The class
     # is what `resolve_class` returns to a caller; the denial reason is what the gate
@@ -1022,7 +1176,8 @@ def test_the_module_holds_no_number_at_all():
 def test_every_vocabulary_is_a_tuple_of_unique_nonempty_strings():
     for closed in (HANDLING_CLASSES, OPERATION_MODES, ALWAYS_LOCAL, ITEM_KINDS,
                    DENIAL_REASONS, CONSENT_OPTIONS, DISPLAY_FACETS,
-                   CLASSIFICATION_BASES, AUDIT_OUTCOMES):
+                   CLASSIFICATION_BASES, AUDIT_OUTCOMES, RELIABILITY_STATES,
+                   REDACTION_VALUES):
         assert isinstance(closed, tuple)
         assert len(set(closed)) == len(closed)
         assert all(isinstance(v, str) and v and v == v.strip() for v in closed)
@@ -1061,6 +1216,15 @@ Every member is the design's, in the design's order, and nothing here is invente
 Where the design writes prose, the prose is carried beside the identifier
 (`HANDLING_CLASS_LABELS`, `MODE_SEMANTICS`) so a later paraphrase is a failing test.
 
+**One home per vocabulary, and one named constant per member P7 writes.** Brief §11:
+"Never a bare string, never an index." Two vocabularies reach this module from
+outside their obvious owners for that reason. §3.13's six reliability states are
+RE-EXPORTED from `evidence_shape.vocabulary` -- P4 ships them, `privacy` already
+binds `evidence_shape`, and D7 empties P7's Contract-in from P6, so importing P4's
+tuple is both the closest home and the only one available. SPEC §10's `shown` /
+`redacted` pair lands here rather than in `policy.py` because three sections had
+written it out under three names; `policy.py` re-exports these and deletes its own.
+
 **This module holds no detection rule and no number.** SPEC *Deferred*: "The design
 states *what* is protected and never *how it is recognised*. The detector rule set,
 its signals, and its thresholds are hand-authored. P7 publishes the vocabulary the
@@ -1082,6 +1246,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from types import MappingProxyType
+
+# §3.13's six reliability states, RE-EXPORTED and not retyped. The import IS the
+# publication: rebinding it -- `RELIABILITY_STATES = _RELIABILITY_STATES` -- would put
+# a second module-level collection in `privacy` under a private alias, and a leading
+# underscore exempts nothing from an introspecting guard. See the block beside
+# `USER_CONFIRMED` below for why the states are P4's and not P6's.
+from evidence_shape.vocabulary import RELIABILITY_STATES
 
 
 class OutOfVocabulary(ValueError):
@@ -1229,7 +1400,17 @@ DISPLAY_FACETS: tuple[str, ...] = (
     "names", "previews", "thumbnails", "ocr_text", "location_data",
 )
 
-# --- SPEC §2 and §7: bases and outcomes --------------------------------------
+#: SPEC §10's `display_settings`: "each shown | redacted". The value vocabulary for
+#: the facet vocabulary above, and the ONE home for these two strings. They were
+#: written three times under three names -- `REDACTION_VALUES` in `policy.py`,
+#: `SETTING_VALUES` in Task 18, `REDACTION_VALUES` in a third section -- and Task 5's own
+#: A7 asked for this home: "if Task 2 publishes them, `policy.py` re-exports and
+#: deletes its own." `policy.py` re-exports; nothing else respells.
+SHOWN: str = "shown"
+REDACTED: str = "redacted"
+REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)
+
+# --- SPEC §2 and §7: bases, states and outcomes ------------------------------
 
 #: SPEC §2's classification record: "basis  detector | safety_domain | user".
 #: `safety_domain` is §3.15's: finance, identity, medical and legal material ship
@@ -1237,6 +1418,29 @@ DISPLAY_FACETS: tuple[str, ...] = (
 #: cloud or automated placement decision is allowed". This is NOT P6's five-value
 #: `origin` vocabulary (§3.1) and the two are never mapped onto one another here.
 CLASSIFICATION_BASES: tuple[str, ...] = ("detector", "safety_domain", "user")
+
+#: The one basis P7 itself writes: Task 16's reclassification records the user's own
+#: act. Named rather than spelled at the call site -- brief §11, "never a bare string,
+#: never an index" -- because `basis="user"` was a literal in five sections before it.
+USER: str = "user"
+
+# §3.13's six reliability states are `RELIABILITY_STATES`, imported at the top of
+# this module from `evidence_shape.vocabulary` and re-exported unchanged. A second
+# tuple holding the same six strings is the second home the named-constant rule
+# exists to prevent, and a re-export means a P4 revision reaches P7 by import rather
+# than by memory. P4's order is the design's line 50 read in sequence -- "A user
+# confirmed fact ... A direct fact ... A validated fact ... An LLM-supported fact ...
+# A possible fact ... A rejected fact" -- and Task 4 ranks against it. The states are
+# taken from P4 and not P6 deliberately: `privacy` already binds `evidence_shape`,
+# and D7 empties P7's Contract-in from P6, so P7 imports nothing from P6 at all.
+
+#: The one state P7 itself writes, beside `USER`. Task 16's record is the only
+#: classification P7 originates; the other five states are read, never written, and
+#: membership in the tuple above is what reading needs. Spelled, not indexed: brief
+#: §11 bans `USER_CONFIRMED` because it couples every consumer to the tuple's ORDER, and
+#: a reorder would then change meanings with no test failing. The test asserts
+#: membership in P4's tuple instead, so a P4 rename goes red here.
+USER_CONFIRMED: str = "user_confirmed"
 
 #: SPEC §7's audit record: "outcome  released | denied | consent_requested". Every
 #: model call is recorded -- §8.4 says "Every model call" with no exemption for a
@@ -1297,7 +1501,7 @@ OPEN_QUESTIONS: Mapping[int, str] = MappingProxyType({
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_vocabulary.py -v`
-Expected: PASS — 26 passed
+Expected: PASS — 33 passed
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
@@ -1308,7 +1512,7 @@ Expected: PASS — Tasks 1–2 green, and every pre-existing test still green.
 
 ```bash
 git add src/privacy/vocabulary.py tests/p7/test_p7_vocabulary.py
-git commit -m "feat(P7): the nine closed vocabularies, and the five strings that share the stem protected"
+git commit -m "feat(P7): the closed vocabularies, one home for shown|redacted, P4's six reliability states re-exported, and the five strings that share the stem protected"
 ```
 
 ---
@@ -1418,10 +1622,12 @@ settled by D2. A record with `handling_class = "public_low"` and `protected = Tr
 does its opposite; the test asserts both, and asserts the module publishes no function mapping one to
 the other.
 
-**`reliability_state` is stored and not validated here.** It is P6's vocabulary — §3.13's six — and
-Task 4 publishes `RELIABILITY_ORDER` and the `strongest` resolution over it. Validating in two places
-invites two vocabularies, which is the defect this part is most exposed to. This module requires it
-to be a non-empty string and stores it.
+**`reliability_state` is stored and not validated here.** §3.13's six are **P4's**, shipped as
+`evidence_shape.vocabulary.RELIABILITY_STATES` and re-exported by Task 2, and Task 4 publishes
+`RELIABILITY_ORDER` and the `strongest` resolution over it. Validating in two places invites two
+vocabularies, which is the defect this part is most exposed to. This module requires it to be a
+non-empty string and stores it. Where a test needs the one state P7 writes, it uses Task 2's
+`USER_CONFIRMED` rather than the literal — brief §11, *"never a bare string, never an index"*.
 
 **`COMPLETENESS_RULE` is added because the requirement is a per-value statement.** Nine entries, in
 P4's order, each carrying `(implies_unclassified, the sentence that decides it)`. An unpublished
@@ -1481,7 +1687,9 @@ from privacy.classification import (
     UnbackedClassification, completeness_implies_unclassified, resolve_class,
     sensitivity_signal_keys,
 )
-from privacy.vocabulary import CLASSIFICATION_BASES, HANDLING_CLASSES, OutOfVocabulary
+from privacy.vocabulary import (
+    CLASSIFICATION_BASES, HANDLING_CLASSES, OutOfVocabulary, USER, USER_CONFIRMED,
+)
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 
@@ -1587,8 +1795,8 @@ def test_a_user_record_and_a_safety_domain_record_need_no_evidence(
     # basis = detector classification". The user's act is the evidence (§8.4's
     # "revised by the user"); a safety domain is §3.15's rule about a domain, not a
     # reading of a span. Requiring evidence here would invent a stricter rule.
-    assert a_record(file_id, content_hash, basis="user",
-                    evidence_refs=(), reliability_state="user_confirmed")
+    assert a_record(file_id, content_hash, basis=USER,
+                    evidence_refs=(), reliability_state=USER_CONFIRMED)
     assert a_record(file_id, content_hash, basis="safety_domain", evidence_refs=())
 
 
@@ -1641,7 +1849,8 @@ def test_p6s_origin_vocabulary_is_not_p7s_basis_vocabulary(file_id, content_hash
 
 
 def test_reliability_state_is_stored_and_not_validated_here(file_id, content_hash):
-    # §3.13's six are P6's and Task 4 publishes the ordering. Two validators would be
+    # §3.13's six are P4's -- `evidence_shape.vocabulary.RELIABILITY_STATES`, which
+    # Task 2 re-exports -- and Task 4 publishes the ordering. Two validators would be
     # two vocabularies. Non-empty is the only requirement this module makes.
     assert a_record(file_id, content_hash,
                     reliability_state="llm_supported").reliability_state == \
@@ -1956,9 +2165,10 @@ class ClassificationRecord:
     consume the `protected` flag, not infer it from the class", and Open question 1 --
     whether `protected` is exactly the top two classes -- is unsettled.
 
-    `reliability_state` is P6's vocabulary (§3.13's six) and is stored, not validated:
-    Task 4 publishes the ordering and the `strongest` resolution over it, and two
-    validators would be two vocabularies.
+    `reliability_state` is P4's vocabulary (§3.13's six, shipped as
+    `evidence_shape.vocabulary.RELIABILITY_STATES` and re-exported by Task 2) and is
+    stored, not validated: Task 4 publishes the ordering and the `strongest`
+    resolution over it, and two validators would be two vocabularies.
     """
 
     file_id: str
@@ -2135,17 +2345,21 @@ git commit -m "feat(P7): the classification record, evidence-backed, with absenc
 
 ## What these three tasks leave open, and for whom
 
-**NEEDS-JOSEPH C5 — P7's SPEC and D2 disagree about whether a P6 `sensitivity` field exists, and
-nothing here picks a side.** P7's SPEC Contract in says *"**P6 must accept `sensitivity` as a
-first-class universal field** (§3.11) rather than a domain-scoped one"*, and the design does list
-*"sensitivity status"* among §3.11's universal file facts. D2 then made P7's `ClassificationRecord`
-authoritative, and round 1 found that the P6 field has no producer. D2 settled which record is
-AUTHORITATIVE; it did not settle whether a second, P6-owned field row continues to exist beside it.
-**Task 3 is written so that nothing depends on the answer:** `src/privacy/classification.py` imports
-nothing from P6, reads no `file_facts` row, and uses no P6 vocabulary except `reliability_state`,
-which it stores opaquely and does not validate. If Joseph rules that P6 keeps the field, Task 3 is
-unchanged and Task 4 gains a reader; if he rules that it does not, Task 3 is unchanged and P6 creates
-no such row. Flagged, not resolved.
+**C24 — whether a P6 `sensitivity` field exists — is CLOSED by D7, and the conclusion these tasks
+were written to survive is the one that was ruled.** P7's SPEC Contract in said *"**P6 must accept
+`sensitivity` as a first-class universal field** (§3.11) rather than a domain-scoped one"*, and the
+design does list *"sensitivity status"* among §3.11's universal file facts. D2 made P7's
+`ClassificationRecord` authoritative and round 1 found that the P6 field has no producer; D2 settled
+which record is AUTHORITATIVE and did not settle whether a second, P6-owned field row continues to
+exist beside it. **D7 settles it: P6 creates no `sensitivity_status` field row, and P7's
+`ClassificationRecord` is the sole home** — the reconciliation would have made a *third* home for one
+concept, beside P1's `files.sensitivity_state` column. The SPEC Contract-in sentence is amended to
+name `ClassificationRecord`; round 1's F-2 is closed by deletion rather than by inventing a writer.
+**Task 3 needs no change:** `src/privacy/classification.py` imports nothing from P6 and reads no
+`file_facts` row, which is now the ruled shape rather than a hedge against an open question. It uses
+no P6 vocabulary at all — `reliability_state` is **P4's**
+(`evidence_shape.vocabulary.RELIABILITY_STATES`, re-exported by Task 2), which is what lets P7 keep
+the states without the P6 import D7 forbids.
 
 **Open questions this section holds and does not answer.** Question 1 (`protected` versus the top
 two classes) is held by `ClassificationRecord.protected` being a required caller-supplied boolean

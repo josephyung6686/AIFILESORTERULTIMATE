@@ -662,19 +662,17 @@ from facts.cache import fact_cache_key as _fact_cache_key
 from facts.evidence import analysis_tier_for_observation as _tier_of
 from facts.evidence import cite as _cite
 from facts.evidence import observations_for_version as _observations_for_version
-from facts.file_facts import FACT_ORIGINS as _FACT_ORIGINS
 from facts.file_facts import write_fact as _write_fact
-from facts.states import STATES as _STATES
+from facts.file_facts import DETERMINISTIC_EXTRACTOR
+from facts.states import DIRECT
 from facts.values import VALUE_ORIGINS as _VALUE_ORIGINS
 from facts.values import ensure_value as _ensure_value
 
-#: §3.13's second state. Spelled by index rather than as a literal so `facts.states`
-#: stays the one place a state name is written (Task 1).
-DIRECT_STATE: str = _STATES[1]
+#: Task 1 owns the spelling. Never an index into STATES.
+DIRECT_STATE: str = DIRECT
 
-#: §3.1's first of five origins -- the deterministic extractor. Also by index; Task 4
-#: owns the spelling.
-DIRECT_ORIGIN: str = _FACT_ORIGINS[0]
+#: Task 4 owns the spelling. Never an index into FACT_ORIGINS.
+DIRECT_ORIGIN: str = DETERMINISTIC_EXTRACTOR
 
 
 class UnknownFile(Exception):

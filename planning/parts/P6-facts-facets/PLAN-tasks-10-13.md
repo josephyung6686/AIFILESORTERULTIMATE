@@ -98,9 +98,9 @@ the skeleton: *"The six literals are P4's, already published, and P6 re-spells n
 So each module that writes a state binds it once, derived:
 
 ```python
-#: §3.13's third state. Rule 2: the six literals are P4's and P6 re-spells none of
-#: them, so the state is addressed by its index into P4's tuple.
-_VALIDATED = STATES[2]
+from facts.states import VALIDATED
+#: Task 1 owns the spelling. Never an index into STATES.
+_VALIDATED = VALIDATED
 ```
 
 `FACT_ORIGINS` and `ATTEMPTED_PRODUCERS` are addressed by index for the same reason — `FACT_ORIGINS`
@@ -630,8 +630,8 @@ from facts.evidence import (
     analysis_tier_for_observation, cite, context_pair, observations_for_version,
 )
 from facts.facets import word_boundary_match
-from facts.file_facts import FACT_ORIGINS, write_fact
-from facts.states import STATES
+from facts.file_facts import FACT_ORIGINS, write_fact, RULE
+from facts.states import STATES, VALIDATED
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -641,9 +641,8 @@ from facts.values import VALUE_ORIGINS, ensure_value
 ACADEMIC_CONTEXT_TERMS: tuple[str, str, str, str, str] = (
     "syllabus", "lecture", "credits", "instructor", "semester")
 
-#: §3.13's third state. Rule 2: the six literals are P4's and P6 re-spells none of
-#: them, so the state is addressed by its index into P4's tuple.
-_VALIDATED = STATES[2]
+#: Task 1 owns the spelling. Never an index into STATES.
+_VALIDATED = VALIDATED
 
 
 class MalformedRule(ValueError):
@@ -753,7 +752,7 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
             written.append(write_fact(
                 conn, file_id=file_id, content_hash=content_hash,
                 field_key=rule.field_key, value_id=value_id,
-                reliability_state=_VALIDATED, origin=FACT_ORIGINS[1],
+                reliability_state=_VALIDATED, origin=RULE,
                 evidence_refs=(cite(observation),),
                 cache_key=_pass_cache_key(conn, file_id=file_id,
                                           content_hash=content_hash),
@@ -1289,15 +1288,15 @@ from facts.cache import fact_cache_key
 from facts.evidence import (
     analysis_tier_for_observation, observations_for_version,
 )
-from facts.file_facts import FACT_ORIGINS, write_fact
-from facts.states import STATES
+from facts.file_facts import FACT_ORIGINS, write_fact, RULE
+from facts.states import STATES, VALIDATED
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
 
 #: §3.13's third state. Rule 2: the six literals are P4's and P6 re-spells none of
 #: them, so every state in this module is addressed by its index into P4's tuple.
-_VALIDATED = STATES[2]
+_VALIDATED = VALIDATED
 
 
 class MissingWeight(KeyError):
@@ -1476,7 +1475,7 @@ def fill_or_abstain(conn: sqlite3.Connection, *, file_id: str, content_hash: str
                             origin=VALUE_ORIGINS[0])
     return write_fact(conn, file_id=file_id, content_hash=content_hash,
                       field_key=field_key, value_id=value_id,
-                      reliability_state=_VALIDATED, origin=FACT_ORIGINS[1],
+                      reliability_state=_VALIDATED, origin=RULE,
                       evidence_refs=winner.evidence_refs,
                       cache_key=_pass_cache_key(conn, file_id=file_id,
                                                 content_hash=content_hash),
@@ -2171,7 +2170,7 @@ from facts.domains import (
     schema_fields,
 )
 from facts.fields import DOMAIN_FIELDS, FIELD_SCOPES, fields_in_scope
-from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact
+from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact, RULE
 from facts.values import VALUE_ORIGINS, ensure_value
 
 EVIDENCE_REF = "sha256:" + "a" * 64
@@ -2197,7 +2196,7 @@ def _fact(conn, *, file_id, content_hash, field_key, value):
                             origin=VALUE_ORIGINS[0])
     return write_fact(conn, file_id=file_id, content_hash=content_hash,
                       field_key=field_key, value_id=value_id,
-                      reliability_state="validated", origin=FACT_ORIGINS[1],
+                      reliability_state="validated", origin=RULE,
                       evidence_refs=(EVIDENCE_REF,), cache_key=CACHE_KEY,
                       active=True)
 

@@ -67,7 +67,7 @@ file_id              internal, stable across renames and moves
 content_hash         + hash algorithm; the identity of a file *version* (§8.2)
 current_path         used for filename-derived observations only, never stored on a fact
 mime_type / detected_format
-sensitivity_state    (§8.2 file record) — see the open question on its relationship to P7
+sensitivity_state    (§8.2 file record) — P1 projection of P7's `ClassificationRecord` (D2, D7). P6 does not own this column and does not create a `sensitivity_status` field row.
 ```
 
 Append-only: P6 writes `events` rows through P1 and never mutates them (see Provenance below).

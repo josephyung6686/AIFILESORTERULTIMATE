@@ -249,6 +249,20 @@ USER: str = "user"
 #: membership in P4's tuple instead, so a P4 rename goes red here.
 USER_CONFIRMED: str = "user_confirmed"
 
+#: The sixth §3.13 state, an exclusion not a rank. Task 4's store keeps rejected
+#: rows for §8.7's negative examples and never treats them as current. Published
+#: here so `classification_store` does not respell the literal (brief §11).
+REJECTED: str = "rejected"
+if REJECTED not in RELIABILITY_STATES:
+    raise ImportError(
+        f"{REJECTED!r} is not one of §3.13's six reliability states "
+        f"{RELIABILITY_STATES}; the states are P4's and this module re-exports them"
+    )
+
+#: The one basis a detector writes. Named so `classification.py` does not respell
+#: `"detector"` beside `USER`.
+DETECTOR: str = "detector"
+
 #: SPEC §7's audit record: "outcome  released | denied | consent_requested". Every
 #: model call is recorded -- §8.4 says "Every model call" with no exemption for a
 #: local model -- and denials and consent requests are recorded too, on §8.2's "Every

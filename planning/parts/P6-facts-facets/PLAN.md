@@ -318,13 +318,12 @@ compile 115 entries and no task here does. It belongs with the loader, beside th
 `property_names`. A working matcher exists and was executed against all 115 entries with **0 misses
 and 0 false positives**; it is recorded in `../_ASSEMBLY-RULINGS.md` §4.8 for the loader's author.
 
-**The discount has no caller.** §2.2's suppression must fire **before** ranking. `field_permitted` and
-`screen_metadata` are consumed by no sibling and Task 20's `DEGRADATION_ORDER` binds three stages.
-**Task 24 owns adding the stage.** Until it does, a `DirectSlots` declaring a metadata-property slot
-turns `python-docx` into a `direct` fact and no test in this part would see it.
+**The discount has a caller.** §2.2's suppression fires **before** ranking. `FactResolver`
+requires `screen_metadata` with no default (Task 20); Task 9 publishes the helper. `DEGRADATION_ORDER`
+stays the three producers — screening is not a fourth producer.
 
-**D9's positive half is asserted nowhere.** No test asserts `target_school` and `client` **are**
-destination-eligible. Task 2 is the natural home.
+**D9's positive half is asserted in Task 2.** `authored_by` and `our_firm` are not destination-eligible;
+`target_school` and `client` are.
 
 **`document_title` has a publisher and no catalogue field.** Task 8 routes it to
 `FieldNotInCatalogue`, which is the honest outcome. If a PDF title should reach a fact, the catalogue
@@ -383,7 +382,7 @@ described as *"understood and found unimportant"*.
 
 **Interfaces:**
 - Consumes: `database_agent.events.RESERVED_EVENT_TYPES`, `evidence_shape.vocabulary.RELIABILITY_STATES`, `evidence_shape.vocabulary.EXTRACTOR_RELIABILITY_STATES`, `evidence_shape.vocabulary.check`, `evidence_shape.vocabulary.NotInVocabulary`, `evidence_shape.conformance.validate_observation`, `evidence_shape.fixtures.by_number`.
-- Produces: `SUBSYSTEM: str`, `COMPONENT_VERSION: str`, `AUTHORED_EVENT_TYPES: tuple[str, str]`, `event_defaults(**fields) -> dict`; `STATES: tuple[str, ...]` (re-export), `STRENGTH_ORDER: tuple[str, ...]`, `EXCLUDED_STATE: str`, `strength(state: str) -> int`, `is_stronger(a: str, b: str) -> bool`.
+- Produces: `SUBSYSTEM: str`, `COMPONENT_VERSION: str`, `AUTHORED_EVENT_TYPES: tuple[str, str]`, `event_defaults(**fields) -> dict`; `STATES: tuple[str, ...]` (re-export), **one named constant per state — `USER_CONFIRMED: str`, `DIRECT: str`, `VALIDATED: str`, `LLM_SUPPORTED: str`, `POSSIBLE: str`, `REJECTED: str`** — `STRENGTH_ORDER: tuple[str, ...]`, `EXCLUDED_STATE: str`, `strength(state: str) -> int`, `is_stronger(a: str, b: str) -> bool`.
 
 **Done-means:** foundational to all; directly none.
 
@@ -434,6 +433,22 @@ contains `fact creation` and `fact rejection` — nineteen names, both present. 
 > whose members are the six**. That is runtime introspection over `vars(module)`, not a source-text
 > search, and it catches the defect the skeleton was aiming at while permitting the three subsets
 > above. Task 25 owns the whole-package version of it.
+
+**The six are published BOTH ways, and every other module imports the NAMED CONSTANT.** `STATES` is
+for iteration and membership; `USER_CONFIRMED`, `DIRECT`, `VALIDATED`, `LLM_SUPPORTED`, `POSSIBLE`
+and `REJECTED` are for naming one state. **Never a bare literal, never an index.** A bare literal is
+a second home for a published vocabulary — this project's most expensive defect class. An index
+(`STATES[1]`) is single-homed and unreadable, and it silently couples every consumer to the tuple's
+**order**: reorder the tuple and every meaning changes with no test failing. The repo's own
+precedent is the named constant — P5 publishes `POTENTIALLY_SENSITIVE`, P1 publishes
+`SUPERSEDED_CONTENT`.
+
+The literal is spelled **here and nowhere else**, because this is the module that publishes it, and
+`test_the_six_named_constants_are_exactly_the_six_states` pins each name to its member of `STATES`
+so a typo in one of them is a failing test rather than a silent second vocabulary. A producer that
+names the one or two states it may write — `EVENT_STATE`, `SESSION_STATE`, `VERSION_FAMILY_STATES`,
+`LLM_STATES` — builds that subset **from these constants**, which is what keeps it the producer's
+own contract rather than a second copy.
 
 **`rejected` has no strength, and asking for one raises.** §3.13: *"A rejected fact is a proposal
 that the user or validator marked as incorrect."* It is an exclusion, not the bottom of a ladder — a
@@ -553,7 +568,10 @@ from evidence_shape.vocabulary import (
     EXTRACTOR_RELIABILITY_STATES, RELIABILITY_STATES, NotInVocabulary,
 )
 
-from facts.states import EXCLUDED_STATE, STATES, STRENGTH_ORDER, is_stronger, strength
+from facts.states import (
+    DIRECT, EXCLUDED_STATE, LLM_SUPPORTED, POSSIBLE, REJECTED, STATES,
+    STRENGTH_ORDER, USER_CONFIRMED, VALIDATED, is_stronger, strength,
+)
 
 
 def test_states_is_p4s_tuple_and_not_a_copy_of_it():
@@ -562,6 +580,20 @@ def test_states_is_p4s_tuple_and_not_a_copy_of_it():
     assert STATES is RELIABILITY_STATES
     assert STATES == ("user_confirmed", "direct", "validated", "llm_supported",
                       "possible", "rejected")
+
+
+def test_the_six_named_constants_are_exactly_the_six_states():
+    # Preamble §3.1: the six are published BOTH ways -- `STATES` for iteration and
+    # membership, one named constant for naming one state. Every other module
+    # imports the constant: never a bare literal (a second home), never an index
+    # (single-homed, unreadable, and coupled to the tuple's ORDER). This test is
+    # what makes the literal safe to spell in `states.py` and nowhere else -- a typo
+    # in one constant fails here rather than becoming a second vocabulary.
+    named = (USER_CONFIRMED, DIRECT, VALIDATED, LLM_SUPPORTED, POSSIBLE, REJECTED)
+    assert named == STATES
+    assert len(set(named)) == 6
+    for one in named:
+        assert one in STATES
 
 
 def test_the_3_13_prose_spellings_are_prose_and_are_not_members():
@@ -777,7 +809,10 @@ is the common format into which both systems write their conclusions." The produ
 is a column, not a schema.
 
 `STATES` IS `evidence_shape.vocabulary.RELIABILITY_STATES` — the same object, not a
-copy, so the two cannot drift. The §3.13 prose spellings ("LLM-supported", "user
+copy, so the two cannot drift. Beside it, **one named constant per state**, spelled
+here and nowhere else: every other module imports `DIRECT`, `POSSIBLE`, `VALIDATED`,
+`LLM_SUPPORTED`, `USER_CONFIRMED` or `REJECTED`, never a bare literal and never an
+index into `STATES`. The §3.13 prose spellings ("LLM-supported", "user
 confirmed") are English; a value outside the six is a load error, not a spelling to
 normalize.
 
@@ -800,19 +835,33 @@ from evidence_shape.vocabulary import (
     check,
 )
 
+#: §3.13's six states, one named constant each. This module is the ONE place a state
+#: name is spelled; every other module imports the constant. Never a bare literal (a
+#: second home for a published vocabulary) and never an index into `STATES` (which is
+#: single-homed and unreadable, and silently couples the consumer to the tuple's
+#: ORDER -- reorder it and meanings change with no test failing). The repo's own
+#: precedent: P5 publishes POTENTIALLY_SENSITIVE, P1 publishes SUPERSEDED_CONTENT.
+#: `test_the_six_named_constants_are_exactly_the_six_states` pins each to `STATES`.
+USER_CONFIRMED: str = "user_confirmed"
+DIRECT: str = "direct"
+VALIDATED: str = "validated"
+LLM_SUPPORTED: str = "llm_supported"
+POSSIBLE: str = "possible"
+REJECTED: str = "rejected"
+
 #: §3.13's five ranked states, weakest first, so `strength` is an index and the order
 #: is readable in one line. §3.13's own sentence order is strongest-first; the ladder
 #: is written the other way round only so that a larger number means a stronger fact.
 STRENGTH_ORDER: tuple[str, ...] = (
-    "possible",
-    "llm_supported",
-    "validated",
-    "direct",
-    "user_confirmed",
+    POSSIBLE,
+    LLM_SUPPORTED,
+    VALIDATED,
+    DIRECT,
+    USER_CONFIRMED,
 )
 
 #: The sixth state, named as excluded rather than left out silently.
-EXCLUDED_STATE = "rejected"
+EXCLUDED_STATE = REJECTED
 
 
 def strength(state: str) -> int:
@@ -840,12 +889,12 @@ def is_stronger(a: str, b: str) -> bool:
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `pytest tests/p6/test_p6_authorship.py tests/p6/test_p6_states.py -v`
-Expected: PASS — 9 passed in `test_p6_authorship.py`, 8 passed in `test_p6_states.py`, 17 total.
+Expected: PASS — 9 passed in `test_p6_authorship.py`, 9 passed in `test_p6_states.py`, 18 total.
 
 - [ ] **Step 5: Run the whole suite and confirm nothing else moved**
 
 Run: `pytest tests/ -q`
-Expected: PASS — the 1302 P1–P5 tests still pass, plus 17. `src/facts/` and `tests/p6/` are new
+Expected: PASS — the 1302 P1–P5 tests still pass, plus 18. `src/facts/` and `tests/p6/` are new
 directories; `pyproject.toml` already carries `pythonpath = ["src"]` and `testpaths = ["tests"]`,
 so `facts` is importable and `tests/p6/` is collected with no change to any file P6 does not own.
 
@@ -1014,15 +1063,11 @@ disagree.**
   §3.8 sentence binds the authorship side only and that §3.8 *"places a document's purpose, project,
   subject, or target above its authorship"*.
 
-**Resolved for the skeleton**, which outranks `planning/domains/` in the brief's precedence order
-(§3: design → SPEC → skeleton; `planning/domains/` is a *source to read*). All four are `FALSE`.
-The reading costs nothing today and is the reversible direction: `target_school` is held as a key
-**unreferenced by any domain**, pending the ROSTER NEEDS-JOSEPH that may fold it into
-`target_university` (which **is** `destination_eligible = TRUE`, as §3.11's College-applications row
-requires); and `client` is referenced by no §3.11 domain either, because the business schemas are
-deferred. Widening a field to destination-eligible later is a decision; narrowing one after a tree
-has been built from it is a migration. The disagreement is recorded here rather than silently
-picked.
+**Resolved for D9**, which overrules both the skeleton and the earlier "all four FALSE" reading.
+Authorship is never destination-eligible (`authored_by`, and `our_firm` as the firm-side identity).
+`target_school` and `client` **are** destination-eligible: they are targets, not authorship.
+D8: the stored key is `target_school`, not a second `target_university` key. The catalogue may still
+list both with a NEEDS-JOSEPH note; this task stores `target_school`.
 
 **3. `value_kind` cannot carry the SPEC's "date/term" obligation.** The SPEC's column comment is
 *"how this field's values normalize; date/term fields must use §3.10 rules"*, but
@@ -1169,20 +1214,21 @@ def test_career_identity_medical_and_legal_have_no_field_rows():
         assert absent not in KEYS
 
 
-def test_the_four_3_8_role_fields_exist_and_none_is_destination_eligible():
+def test_the_four_3_8_role_fields_exist_and_d9_splits_destination_eligibility():
     # §3.8: "distinct facets, such as authored_by and target_school, or our_firm and
     # client" — the design's own spelling, underscores included.
     #
+    # D9: authorship is never destination-eligible; target_school and client ARE.
     # Round 1's F-1: Done-means 13 and 22 both require `authored_by` to exist, so a
     # catalogue without these four made two of the SPEC's own Done-means unwritable.
     assert ROLE_FIELDS == ("authored_by", "target_school", "our_firm", "client")
     for key in ROLE_FIELDS:
         row = next(r for r in FIELD_ROWS if r.field_key == key)
-        assert row.destination_eligible is False, key
         assert row.scope == "universal", key
-    # §3.8: "It should avoid using authorship or creator identity as a destination
-    # dimension." Recorded disagreement: canonical_fields.json marks target_school
-    # and client eligible; the skeleton says all four are FALSE and outranks it.
+    assert get_row("authored_by").destination_eligible is False
+    assert get_row("our_firm").destination_eligible is False
+    assert get_row("target_school").destination_eligible is True
+    assert get_row("client").destination_eligible is True
 
 
 def test_the_application_target_is_destination_eligible_under_its_3_11_spelling():
@@ -1570,21 +1616,18 @@ _DOWNLOAD_SESSION: tuple[FieldRow, ...] = (
 #: client" — the design's own spelling, underscores included, so `display_name` keeps
 #: it rather than inventing English the design does not use.
 #:
-#: All four are `destination_eligible = False`: §3.8, "It should avoid using
-#: authorship or creator identity as a destination dimension." Recorded disagreement:
-#: `canonical_fields.json` marks `target_school` and `client` eligible on the reading
-#: that the sentence binds the authorship side only. The skeleton says all four are
-#: FALSE and outranks that file; it costs nothing today, because no §3.11 domain
-#: references either key, and it is the reversible direction.
+#: D9: authorship (`authored_by`, and `our_firm` as firm-side identity) is never
+#: destination-eligible. `target_school` and `client` ARE — they are targets, not
+#: authorship. D8: the stored key is `target_school`.
 #:
 #: They take `scope = "universal"`: no §3.11 domain sentence names any of them, and
 #: FIELD_SCOPES has no eighth member to hold them. `authored_by` in particular is
 #: produced from document metadata on any file, in any domain (§3.8's demotion tier).
 _ROLES_3_8: tuple[FieldRow, ...] = (
     _row("authored_by", "authored_by", "universal", "string", False),
-    _row("target_school", "target_school", "universal", "string", False),
+    _row("target_school", "target_school", "universal", "string", True),
     _row("our_firm", "our_firm", "universal", "string", False),
-    _row("client", "client", "universal", "string", False),
+    _row("client", "client", "universal", "string", True),
 )
 
 #: §3.11: "Academic files may use school, term, course, instructor, and work type."
@@ -2644,7 +2687,9 @@ git commit -m "feat(P6): §3.12 values auto-create; §2.8's three renderings; a 
   `evidence_shape.vocabulary` — `check`, `NotInVocabulary`.
 - Produces: `FILE_FACTS_COLUMNS: tuple[str, ...]`, `FORBIDDEN_COLUMN_SUBSTRINGS: tuple[str, ...]`,
   `FACT_ORIGINS: tuple[str, ...]` (§3.1's five: deterministic extractor · rule · LLM interpretation ·
-  user correction · user-approved folder), `write_fact(conn, *, file_id, content_hash, field_key,
+  user correction · user-approved folder) **and one named constant per member —
+  `DETERMINISTIC_EXTRACTOR`, `RULE`, `LLM_INTERPRETATION`, `USER_CORRECTION`,
+  `USER_APPROVED_FOLDER`**, `write_fact(conn, *, file_id, content_hash, field_key,
   value_id, reliability_state, origin, evidence_refs, cache_key, active, cited_quote_refs=(),
   model_identifier=None, prompt_fingerprint=None, internal_score=None, rejection_reason=None) -> str`,
   `facts_for_file(conn, file_id, content_hash) -> list[sqlite3.Row]`, `EvidenceRequired`.
@@ -2704,16 +2749,22 @@ EXIF field, OCR region, archive manifest, user-approved folder, deterministic ru
 interpretation, or explicit user correction."* The first eight of those are evidence *locations* —
 P4's business, already carried on the observation — and the last four are producers.
 
-**The SPEC's order is the stored one**, because `PLAN-tasks-07-09.md`, `PLAN-tasks-14-15.md` and
-`PLAN-tasks-16-19.md` all address the tuple **by index** (`FACT_ORIGINS[0]` for a deterministic
-producer, `FACT_ORIGINS[1]` for a rule) precisely so this task can choose the spelling without
-breaking them. Re-ordering it would silently re-label every fact three other authors write. The
-spelling is `snake_case`, matching every other stored vocabulary in the part:
+**The SPEC's order is the stored one**, and **this task owns the literal spelling of each member**.
+The spelling is `snake_case`, matching every other stored vocabulary in the part:
 
 ```python
-FACT_ORIGINS = ("deterministic_extractor", "rule", "llm_interpretation",
-                "user_correction", "user_approved_folder")
+FACT_ORIGINS = (DETERMINISTIC_EXTRACTOR, RULE, LLM_INTERPRETATION,
+                USER_CORRECTION, USER_APPROVED_FOLDER)
 ```
+
+**Consumers import the NAMED CONSTANT, not an index** (preamble §3.1). Earlier drafts of
+`PLAN-tasks-07-09.md`, `PLAN-tasks-14-15.md` and `PLAN-tasks-16-19.md` addressed the tuple by index
+— `FACT_ORIGINS[0]` for a deterministic producer, `FACT_ORIGINS[1]` for a rule — and stated that as
+shared law. It is not. An index is single-homed and unreadable, and it silently couples every
+consumer to this tuple's **order**: re-ordering it would then re-label every fact three other
+authors write with no test failing. So this task publishes `DETERMINISTIC_EXTRACTOR`, `RULE`,
+`LLM_INTERPRETATION`, `USER_CORRECTION` and `USER_APPROVED_FOLDER` beside the tuple, and the
+ordering question stops being load-bearing on anyone else.
 
 ---
 
@@ -2779,14 +2830,19 @@ from evidence_shape.vocabulary import NotInVocabulary
 
 from facts.fields import FieldNotInCatalogue
 from facts.file_facts import (
+    DETERMINISTIC_EXTRACTOR,
     FACT_ORIGINS,
     FILE_FACTS_COLUMNS,
     FORBIDDEN_COLUMN_SUBSTRINGS,
+    LLM_INTERPRETATION,
+    RULE,
+    USER_APPROVED_FOLDER,
+    USER_CORRECTION,
     EvidenceRequired,
     facts_for_file,
     write_fact,
 )
-from facts.states import STATES
+from facts.states import DIRECT, STATES, USER_CONFIRMED
 from facts.values import VALUE_ORIGINS, ensure_value
 
 FIELD = "subject"            # D6: the ratified academic field key
@@ -2809,8 +2865,8 @@ def _value(conn, *, field_key: str = FIELD, canonical: str = "BUSIB 4300") -> st
 
 def _write(conn, **overrides) -> str:
     kwargs = dict(file_id=FILE_ID, content_hash=CONTENT_HASH, field_key=FIELD,
-                  value_id=_value(conn), reliability_state=STATES[1],
-                  origin=FACT_ORIGINS[0], evidence_refs=(_key("BUSIB 4300"),),
+                  value_id=_value(conn), reliability_state=DIRECT,
+                  origin=DETERMINISTIC_EXTRACTOR, evidence_refs=(_key("BUSIB 4300"),),
                   cache_key=CACHE_KEY, active=True)
     kwargs.update(overrides)
     return write_fact(conn, **kwargs)
@@ -2902,8 +2958,8 @@ def test_a_fact_is_written_and_read_back_with_its_field_and_its_value(p6_conn):
     # join `fields` and `values` for itself.
     assert row["field_key"] == FIELD
     assert row["canonical_value"] == "BUSIB 4300"
-    assert row["reliability_state"] == STATES[1] == "direct"
-    assert row["origin"] == FACT_ORIGINS[0]
+    assert row["reliability_state"] == DIRECT == "direct"
+    assert row["origin"] == DETERMINISTIC_EXTRACTOR
     assert json.loads(row["evidence_refs"]) == [_key("BUSIB 4300")]
     assert row["active"] == 1
 
@@ -2926,13 +2982,13 @@ def test_every_evidence_ref_must_be_a_p4_observation_key(p6_conn):
 
 
 def test_a_user_confirmed_fact_may_stand_without_an_observation(p6_conn):
-    # STATES[0] is `user_confirmed`. A user asserting a fact is not citing evidence,
-    # and demanding one would make the user path impossible rather than careful.
-    fact_id = _write(p6_conn, reliability_state=STATES[0],
-                     origin=FACT_ORIGINS[3], evidence_refs=())
+    # A user asserting a fact is not citing evidence, and demanding one would make
+    # the user path impossible rather than careful.
+    fact_id = _write(p6_conn, reliability_state=USER_CONFIRMED,
+                     origin=USER_CORRECTION, evidence_refs=())
     row = [r for r in facts_for_file(p6_conn, FILE_ID, CONTENT_HASH)
            if r["fact_id"] == fact_id][0]
-    assert row["reliability_state"] == STATES[0] == "user_confirmed"
+    assert row["reliability_state"] == USER_CONFIRMED == "user_confirmed"
     assert json.loads(row["evidence_refs"]) == []
 
 
@@ -2964,6 +3020,17 @@ def test_a_foreign_origin_is_refused(p6_conn):
 def test_the_five_origins_are_the_specs_five_in_the_specs_order(p6_conn):
     assert FACT_ORIGINS == ("deterministic_extractor", "rule", "llm_interpretation",
                             "user_correction", "user_approved_folder")
+
+
+def test_each_origin_has_a_named_constant_so_no_consumer_needs_an_index(p6_conn):
+    # Preamble §3.1. An index is single-homed and unreadable, and it couples every
+    # consumer to this tuple's ORDER -- reorder it and every fact three other tasks
+    # write is relabelled with no test failing. This test is what makes the literal
+    # safe to spell here and nowhere else.
+    named = (DETERMINISTIC_EXTRACTOR, RULE, LLM_INTERPRETATION, USER_CORRECTION,
+             USER_APPROVED_FOLDER)
+    assert named == FACT_ORIGINS
+    assert len(set(named)) == 5
 
 
 def test_a_fact_naming_a_field_outside_the_catalogue_is_refused(p6_conn):
@@ -3219,16 +3286,25 @@ from evidence_shape.vocabulary import check
 
 from facts.authorship import AUTHORED_EVENT_TYPES, event_defaults
 from facts.fields import get_field
-from facts.states import STATES
+from facts.states import STATES, USER_CONFIRMED
 
-#: §3.1's five producers, in the order the SPEC's `file_facts` shape publishes them:
+#: §3.1's five producers, one named constant each. This module owns the literal
+#: spelling; every consumer imports the CONSTANT, never an index into the tuple
+#: (preamble §3.1: an index couples the consumer to this tuple's order, so a reorder
+#: relabels every fact with no test failing).
+DETERMINISTIC_EXTRACTOR: str = "deterministic_extractor"
+RULE: str = "rule"
+LLM_INTERPRETATION: str = "llm_interpretation"
+USER_CORRECTION: str = "user_correction"
+USER_APPROVED_FOLDER: str = "user_approved_folder"
+
+#: The five in the order the SPEC's `file_facts` shape publishes them:
 #: "deterministic extractor | rule | LLM interpretation | user correction |
-#: user-approved folder". Three sibling tasks address this tuple BY INDEX so that this
-#: task could choose the spelling without breaking them -- reordering it would silently
-#: relabel every fact they write.
+#: user-approved folder". For iteration and membership; to NAME one origin, import
+#: the constant above.
 FACT_ORIGINS: tuple[str, ...] = (
-    "deterministic_extractor", "rule", "llm_interpretation",
-    "user_correction", "user_approved_folder",
+    DETERMINISTIC_EXTRACTOR, RULE, LLM_INTERPRETATION,
+    USER_CORRECTION, USER_APPROVED_FOLDER,
 )
 
 #: What the table is, in declaration order, minus the VIRTUAL `record_id`, which
@@ -3247,10 +3323,6 @@ FILE_FACTS_COLUMNS: tuple[str, ...] = (
 FORBIDDEN_COLUMN_SUBSTRINGS: tuple[str, ...] = (
     "path", "destination", "folder", "node", "group",
 )
-
-#: STATES is P4's tuple, re-exported by Task 1 and re-spelled nowhere. Index 0 is
-#: `user_confirmed`, the one state a user supplies rather than evidence.
-_USER_CONFIRMED = STATES[0]
 
 #: A P4 observation key is `sha256:` + 64 hex (M14, verified by execution).
 _KEY_PREFIX = "sha256:"
@@ -3277,7 +3349,7 @@ def _checked_refs(refs, reliability_state: str) -> tuple[str, ...]:
     """The M14 citation rule. Sorted, because P4's reads are in insertion order and
     this column must not inherit it (§8.5's replay compares runs)."""
     ordered = tuple(sorted(set(refs)))
-    if reliability_state != _USER_CONFIRMED and not ordered:
+    if reliability_state != USER_CONFIRMED and not ordered:
         raise EvidenceRequired(
             f"a {reliability_state} fact cites at least one observation (§3.1); "
             "only a user_confirmed fact may stand without one"
@@ -3416,8 +3488,8 @@ Expected: PASS — **25 passed**. Four are the ones a reviewer should read the o
 - `test_the_record_id_projection_lets_p1_address_the_table` passes because `PRAGMA table_xinfo`
   reports `record_id` with `hidden == 2` **and** because P1's own `mark_superseded` completes against
   the table — verified behaviour, not a claim about the DDL.
-- `test_a_user_confirmed_fact_may_stand_without_an_observation` passes on `STATES[0]`, never on a
-  string literal, so Task 1's re-export is what pins the spelling.
+- `test_a_user_confirmed_fact_may_stand_without_an_observation` passes on Task 1's `USER_CONFIRMED`,
+  never on a string literal and never on an index, so `facts.states` is what pins the spelling.
 
 - [ ] **Step 6: Run the whole P6 suite, so Tasks 1–3 are still green**
 
@@ -3448,8 +3520,14 @@ git commit -m "feat(P6): §3.12's fact row — evidence required, and no path, d
 - Consumes: `facts.fields.get_field`, `facts.fields.FieldNotInCatalogue`;
   `evidence_shape.vocabulary.check`, `evidence_shape.vocabulary.NotInVocabulary`;
   `evidence_shape.canonical.canonical_json`; `database_agent.supersede.supersede_ddl`.
-- Produces: `UNRESOLVED_REASONS: tuple[str, ...]` (the thirteen),
-  `ATTEMPTED_PRODUCERS: tuple[str, str, str]` (`direct`, `rule`, `llm`),
+- Produces: `UNRESOLVED_REASONS: tuple[str, ...]` (the thirteen) **and one named constant per reason
+  — `NO_CANDIDATE_EVIDENCE`, `BELOW_SCORE_THRESHOLD`, `BELOW_MARGIN`, `CONTEXT_CHECK_FAILED`,
+  `CONTEXT_TRUNCATED`, `FIELD_NOT_IN_ACTIVE_SCHEMA`, `CITATION_ABSENT_FROM_EVIDENCE`,
+  `NORMALIZATION_FAILED`, `CONTRADICTED_BY_STRONGER_FACT`, `MODEL_RETURNED_UNKNOWN`,
+  `DISCOUNTED_TOOL_METADATA`, `PRIVACY_WITHHELD`, `BUDGET_DEFERRED`**,
+  `ATTEMPTED_PRODUCERS: tuple[str, str, str]` (`direct`, `rule`, `llm`) **and one named constant per
+  member — `DIRECT_ROUTE`, `RULE_ROUTE`, `LLM_ROUTE`** (suffixed, because `facts.states.DIRECT` and
+  `facts.file_facts.RULE` are different vocabularies and several modules import both),
   `write_unresolved(conn, *, file_id, content_hash, field_key, reason, attempted_producers,
   evidence_refs, cache_key) -> str`,
   `unresolved_for_file(conn, file_id, content_hash, *, field_key=None, reason=None) -> list[sqlite3.Row]`,
@@ -3550,11 +3628,13 @@ from evidence_shape.vocabulary import NotInVocabulary
 
 from facts.fields import FieldNotInCatalogue
 from facts.file_facts import (
-    FACT_ORIGINS, FORBIDDEN_COLUMN_SUBSTRINGS, facts_for_file, write_fact,
+    RULE, FORBIDDEN_COLUMN_SUBSTRINGS, facts_for_file, write_fact,
 )
+from facts.states import VALIDATED
 from facts.unresolved import (
-    ATTEMPTED_PRODUCERS, NOT_ABSTENTIONS, UNRESOLVED_REASONS,
-    unresolved_for_file, write_unresolved,
+    ATTEMPTED_PRODUCERS, BELOW_MARGIN, BUDGET_DEFERRED, DIRECT_ROUTE, LLM_ROUTE,
+    NOT_ABSTENTIONS, NO_CANDIDATE_EVIDENCE, PRIVACY_WITHHELD, RULE_ROUTE,
+    UNRESOLVED_REASONS, unresolved_for_file, write_unresolved,
 )
 from facts.values import ensure_value
 
@@ -3614,7 +3694,7 @@ def test_a_fourteenth_reason_is_refused_at_the_write(p6_conn):
     with pytest.raises(NotInVocabulary):
         write_unresolved(
             p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="subject",
-            reason="looked_wrong", attempted_producers=("direct",),
+            reason="looked_wrong", attempted_producers=(DIRECT_ROUTE,),
             evidence_refs=(), cache_key=CACHE_KEY)
     assert unresolved_for_file(p6_conn, FILE_ID, HASH) == []
 
@@ -3624,7 +3704,7 @@ def test_the_three_attempted_producers_and_a_fourth_refused(p6_conn):
     with pytest.raises(NotInVocabulary):
         write_unresolved(
             p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="subject",
-            reason="no_candidate_evidence", attempted_producers=("direct", "heuristic"),
+            reason=NO_CANDIDATE_EVIDENCE, attempted_producers=(DIRECT_ROUTE, "heuristic"),
             evidence_refs=(), cache_key=CACHE_KEY)
 
 
@@ -3649,7 +3729,7 @@ def test_the_row_obeys_file_facts_negative_contract(p6_conn):
 def test_record_id_projects_unresolved_id_so_p1_can_address_the_row(p6_conn):
     unresolved_id = write_unresolved(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="subject",
-        reason="no_candidate_evidence", attempted_producers=("direct", "rule"),
+        reason=NO_CANDIDATE_EVIDENCE, attempted_producers=(DIRECT_ROUTE, RULE_ROUTE),
         evidence_refs=(), cache_key=CACHE_KEY)
     projected = p6_conn.execute(
         "SELECT record_id FROM unresolved WHERE unresolved_id = ?",
@@ -3665,17 +3745,16 @@ def test_a_later_fact_supersedes_the_row_and_does_not_delete_it(p6_conn):
     resolved, and the record of the refusal stays inspectable."""
     unresolved_id = write_unresolved(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="subject",
-        reason="no_candidate_evidence", attempted_producers=("direct", "rule"),
+        reason=NO_CANDIDATE_EVIDENCE, attempted_producers=(DIRECT_ROUTE, RULE_ROUTE),
         evidence_refs=(), cache_key=CACHE_KEY)
     value_id = ensure_value(
         p6_conn, field_key="subject", canonical_value="BUSIB 4300",
         first_evidence_ref=_key("BUSIB 4300"), origin="automatic")
-    # FACT_ORIGINS is addressed BY INDEX -- §3.1's five, in §3.1's order, index 1 is
-    # `rule`. Task 4 owns the literal spelling and `PLAN-tasks-07-09.md` records the
-    # same convention, so no second document guesses at the string.
+    # Task 4 owns the literal spelling of `rule` and publishes it as a named
+    # constant; this call site imports the constant (preamble §3.1).
     fact_id = write_fact(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="subject",
-        value_id=value_id, reliability_state="validated", origin=FACT_ORIGINS[1],
+        value_id=value_id, reliability_state=VALIDATED, origin=RULE,
         evidence_refs=(_key("BUSIB 4300"),), cache_key="sha256:cache-ocr-1",
         active=True)
 
@@ -3687,14 +3766,14 @@ def test_a_later_fact_supersedes_the_row_and_does_not_delete_it(p6_conn):
     assert rows[0]["unresolved_id"] == unresolved_id
     assert rows[0]["superseded_by"] == fact_id
     assert rows[0]["supersede_reason"]
-    assert rows[0]["reason"] == "no_candidate_evidence"
+    assert rows[0]["reason"] == NO_CANDIDATE_EVIDENCE
 
 
 def test_an_unresolved_row_is_absent_from_every_fact_read(p6_conn):
     """Done-means 19. The two tables never leak into one another."""
     write_unresolved(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="subject",
-        reason="below_margin", attempted_producers=("rule",),
+        reason=BELOW_MARGIN, attempted_producers=(RULE_ROUTE,),
         evidence_refs=(_key("BUSIB 4300"),), cache_key=CACHE_KEY)
     assert facts_for_file(p6_conn, FILE_ID, HASH) == []
 
@@ -3708,15 +3787,15 @@ def test_budget_deferred_and_privacy_withheld_are_not_abstentions(p6_conn):
 
     write_unresolved(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="subject",
-        reason="no_candidate_evidence", attempted_producers=("direct", "rule"),
+        reason=NO_CANDIDATE_EVIDENCE, attempted_producers=(DIRECT_ROUTE, RULE_ROUTE),
         evidence_refs=(), cache_key=CACHE_KEY)
     write_unresolved(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="purpose",
-        reason="budget_deferred", attempted_producers=(),
+        reason=BUDGET_DEFERRED, attempted_producers=(),
         evidence_refs=(), cache_key=CACHE_KEY)
     write_unresolved(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="project",
-        reason="privacy_withheld", attempted_producers=("direct", "rule"),
+        reason=PRIVACY_WITHHELD, attempted_producers=(DIRECT_ROUTE, RULE_ROUTE),
         evidence_refs=(), cache_key=CACHE_KEY)
 
     assert _abstained(p6_conn, FILE_ID, HASH, "subject") is True
@@ -3730,7 +3809,7 @@ def test_a_ceiling_reached_before_any_producer_ran_is_writable(p6_conn):
     """`attempted_producers` may be empty, and the column still says so out loud."""
     unresolved_id = write_unresolved(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="purpose",
-        reason="budget_deferred", attempted_producers=(),
+        reason=BUDGET_DEFERRED, attempted_producers=(),
         evidence_refs=(), cache_key=CACHE_KEY)
     row = unresolved_for_file(p6_conn, FILE_ID, HASH)[0]
     assert row["unresolved_id"] == unresolved_id
@@ -3743,7 +3822,7 @@ def test_evidence_refs_hold_observation_keys_and_nothing_else(p6_conn):
     refs = (_key("BUSIB 4300"), _key("Columbia"))
     write_unresolved(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="subject",
-        reason="below_margin", attempted_producers=("rule",),
+        reason=BELOW_MARGIN, attempted_producers=(RULE_ROUTE,),
         evidence_refs=refs, cache_key=CACHE_KEY)
     stored = json.loads(unresolved_for_file(p6_conn, FILE_ID, HASH)[0]["evidence_refs"])
     assert stored == list(refs)
@@ -3752,7 +3831,7 @@ def test_evidence_refs_hold_observation_keys_and_nothing_else(p6_conn):
     with pytest.raises(ValueError):
         write_unresolved(
             p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="subject",
-            reason="below_margin", attempted_producers=("rule",),
+            reason=BELOW_MARGIN, attempted_producers=(RULE_ROUTE,),
             evidence_refs=("obs-00000001",), cache_key=CACHE_KEY)
 
 
@@ -3762,34 +3841,34 @@ def test_a_field_outside_the_catalogue_cannot_be_abstained_on(p6_conn):
     with pytest.raises(FieldNotInCatalogue):
         write_unresolved(
             p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="vibe_score",
-            reason="no_candidate_evidence", attempted_producers=("direct",),
+            reason=NO_CANDIDATE_EVIDENCE, attempted_producers=(DIRECT_ROUTE,),
             evidence_refs=(), cache_key=CACHE_KEY)
 
 
 def test_the_abstention_is_per_file_version_and_the_read_is_totally_ordered(p6_conn):
     """§3.4, §8.2 — the row is per content hash, and the reader imposes its own order
     rather than inheriting insertion order from SQLite."""
-    for content_hash, reason in ((HASH, "no_candidate_evidence"),
-                                 (OTHER_HASH, "below_margin")):
+    for content_hash, reason in ((HASH, NO_CANDIDATE_EVIDENCE),
+                                 (OTHER_HASH, BELOW_MARGIN)):
         write_unresolved(
             p6_conn, file_id=FILE_ID, content_hash=content_hash, field_key="subject",
-            reason=reason, attempted_producers=("rule",),
+            reason=reason, attempted_producers=(RULE_ROUTE,),
             evidence_refs=(), cache_key=CACHE_KEY)
 
     native = unresolved_for_file(p6_conn, FILE_ID, HASH)
-    assert [row["reason"] for row in native] == ["no_candidate_evidence"]
+    assert [row["reason"] for row in native] == [NO_CANDIDATE_EVIDENCE]
     assert [row["reason"] for row in unresolved_for_file(
-        p6_conn, FILE_ID, OTHER_HASH)] == ["below_margin"]
+        p6_conn, FILE_ID, OTHER_HASH)] == [BELOW_MARGIN]
 
     write_unresolved(
         p6_conn, file_id=FILE_ID, content_hash=HASH, field_key="purpose",
-        reason="privacy_withheld", attempted_producers=("llm",),
+        reason=PRIVACY_WITHHELD, attempted_producers=(LLM_ROUTE,),
         evidence_refs=(), cache_key=CACHE_KEY)
     rows = unresolved_for_file(p6_conn, FILE_ID, HASH)
     order = [(row["created_at"], row["unresolved_id"]) for row in rows]
     assert order == sorted(order), "the reader imposes its own total order"
     assert len(unresolved_for_file(p6_conn, FILE_ID, HASH,
-                                   reason="privacy_withheld")) == 1
+                                   reason=PRIVACY_WITHHELD)) == 1
     assert len(unresolved_for_file(p6_conn, FILE_ID, HASH,
                                    field_key="purpose")) == 1
 
@@ -3824,28 +3903,56 @@ in **one** module, checked with P4's `check` — the same rule that keeps `FIELD
 # Task 5 — the abstention vocabularies (§3.6, §8.5, §8.6; B7)
 # ---------------------------------------------------------------------------
 
-#: The thirteen reasons, in the SPEC's own table order. Each is fired by exactly one
-#: place, named in the comment beside it, so a reason with no producer or a producer
-#: with no reason is visible by reading this list.
+#: The thirteen reasons, one named constant each. This module owns the literal
+#: spelling; every call site imports the CONSTANT (preamble §3.1). That
+#: `write_unresolved` validates the reason through P4's `check` -- so a misspelling
+#: raises `NotInVocabulary` rather than storing -- is true and worth knowing, and it
+#: is NOT a reason to spell the reason inline: validation at the seam catches a TYPO,
+#: it does not stop the literal being a SECOND HOME.
+NO_CANDIDATE_EVIDENCE: str = "no_candidate_evidence"
+BELOW_SCORE_THRESHOLD: str = "below_score_threshold"
+BELOW_MARGIN: str = "below_margin"
+CONTEXT_CHECK_FAILED: str = "context_check_failed"
+CONTEXT_TRUNCATED: str = "context_truncated"
+FIELD_NOT_IN_ACTIVE_SCHEMA: str = "field_not_in_active_schema"
+CITATION_ABSENT_FROM_EVIDENCE: str = "citation_absent_from_evidence"
+NORMALIZATION_FAILED: str = "normalization_failed"
+CONTRADICTED_BY_STRONGER_FACT: str = "contradicted_by_stronger_fact"
+MODEL_RETURNED_UNKNOWN: str = "model_returned_unknown"
+DISCOUNTED_TOOL_METADATA: str = "discounted_tool_metadata"
+PRIVACY_WITHHELD: str = "privacy_withheld"
+BUDGET_DEFERRED: str = "budget_deferred"
+
+#: The thirteen in the SPEC's own table order, for iteration and membership. Each is
+#: fired by exactly one place, named in the comment beside it, so a reason with no
+#: producer or a producer with no reason is visible by reading this list. To NAME one
+#: reason, import the constant above -- never a literal, never an index.
 UNRESOLVED_REASONS: tuple[str, ...] = (
-    "no_candidate_evidence",         # no observation offered a candidate (§3.6)
-    "below_score_threshold",         # §3.7 minimum score not cleared
-    "below_margin",                  # §3.7 margin not cleared, incl. §2.6's conflict
-    "context_check_failed",          # §3.5 pattern matched, required context absent
-    "context_truncated",             # §3.5 check failed on context_truncated = true (§8.6)
-    "field_not_in_active_schema",    # §3.6 check 1
-    "citation_absent_from_evidence",  # §3.6 check 2
-    "normalization_failed",          # §3.6 check 3
-    "contradicted_by_stronger_fact",  # §3.6 check 4
-    "model_returned_unknown",        # §3.6 — the model declined
-    "discounted_tool_metadata",      # the §2.2/§2.3 producer/creator discount fired
-    "privacy_withheld",              # P7's handling class forbids the model route (§8.4)
-    "budget_deferred",               # §8.6 ceiling reached — never merged with abstention
+    NO_CANDIDATE_EVIDENCE,           # no observation offered a candidate (§3.6)
+    BELOW_SCORE_THRESHOLD,           # §3.7 minimum score not cleared
+    BELOW_MARGIN,                    # §3.7 margin not cleared, incl. §2.6's conflict
+    CONTEXT_CHECK_FAILED,            # §3.5 pattern matched, required context absent
+    CONTEXT_TRUNCATED,               # §3.5 check failed on context_truncated = true (§8.6)
+    FIELD_NOT_IN_ACTIVE_SCHEMA,      # §3.6 check 1
+    CITATION_ABSENT_FROM_EVIDENCE,   # §3.6 check 2
+    NORMALIZATION_FAILED,            # §3.6 check 3
+    CONTRADICTED_BY_STRONGER_FACT,   # §3.6 check 4
+    MODEL_RETURNED_UNKNOWN,          # §3.6 — the model declined
+    DISCOUNTED_TOOL_METADATA,        # the §2.2/§2.3 producer/creator discount fired
+    PRIVACY_WITHHELD,                # P7's handling class forbids the model route (§8.4)
+    BUDGET_DEFERRED,                 # §8.6 ceiling reached — never merged with abstention
 )
 
-#: §3.5's three routes. `direct` and `rule` are P6's own; `llm` is P8's, and P6
-#: records that it was tried without owning the call (§3.3).
-ATTEMPTED_PRODUCERS: tuple[str, str, str] = ("direct", "rule", "llm")
+#: §3.5's three routes, one named constant each. `direct` and `rule` are P6's own;
+#: `llm` is P8's, and P6 records that it was tried without owning the call (§3.3).
+#: The `_ROUTE` suffix is deliberate: `facts.states.DIRECT` (a reliability state) and
+#: `facts.file_facts.RULE` (a fact origin) are different vocabularies that happen to
+#: share a word, and four modules import two of the three.
+DIRECT_ROUTE: str = "direct"
+RULE_ROUTE: str = "rule"
+LLM_ROUTE: str = "llm"
+
+ATTEMPTED_PRODUCERS: tuple[str, str, str] = (DIRECT_ROUTE, RULE_ROUTE, LLM_ROUTE)
 
 #: The two reasons that are NOT abstentions (B7, §8.6). A refusal for either of these
 #: means the question was never answered on the evidence: the budget stopped the work,
@@ -3860,7 +3967,7 @@ ATTEMPTED_PRODUCERS: tuple[str, str, str] = ("direct", "rule", "llm")
 #: consequence -- outcome `deferred` requires budget_state `ceiling_reached`, and
 #: `ceiling_reached` refuses outcome `abstained`. P6 does not re-implement that rule;
 #: it names the two reasons that must not be routed into it as abstentions.
-NOT_ABSTENTIONS: frozenset[str] = frozenset({"budget_deferred", "privacy_withheld"})
+NOT_ABSTENTIONS: frozenset[str] = frozenset({BUDGET_DEFERRED, PRIVACY_WITHHELD})
 ```
 
 - [ ] **Step 4: Add the `unresolved` table to `src/facts/schema.py`**
@@ -3957,12 +4064,36 @@ from evidence_shape.vocabulary import check
 
 from facts.fields import get_field
 from facts.vocabulary import (
-    ATTEMPTED_PRODUCERS, NOT_ABSTENTIONS, UNRESOLVED_REASONS,
+    ATTEMPTED_PRODUCERS, BELOW_MARGIN, BELOW_SCORE_THRESHOLD, BUDGET_DEFERRED,
+    CITATION_ABSENT_FROM_EVIDENCE, CONTEXT_CHECK_FAILED, CONTEXT_TRUNCATED,
+    CONTRADICTED_BY_STRONGER_FACT, DIRECT_ROUTE, DISCOUNTED_TOOL_METADATA,
+    FIELD_NOT_IN_ACTIVE_SCHEMA, LLM_ROUTE, MODEL_RETURNED_UNKNOWN,
+    NO_CANDIDATE_EVIDENCE, NORMALIZATION_FAILED, NOT_ABSTENTIONS, PRIVACY_WITHHELD,
+    RULE_ROUTE, UNRESOLVED_REASONS,
 )
 
+#: The vocabularies are re-exported here, beside `write_unresolved`, because this is
+#: the module preamble §3.4 publishes and a call site should import the reason it
+#: passes from the same place as the writer it passes it to.
 __all__ = [
     "ATTEMPTED_PRODUCERS",
+    "BELOW_MARGIN",
+    "BELOW_SCORE_THRESHOLD",
+    "BUDGET_DEFERRED",
+    "CITATION_ABSENT_FROM_EVIDENCE",
+    "CONTEXT_CHECK_FAILED",
+    "CONTEXT_TRUNCATED",
+    "CONTRADICTED_BY_STRONGER_FACT",
+    "DIRECT_ROUTE",
+    "DISCOUNTED_TOOL_METADATA",
+    "FIELD_NOT_IN_ACTIVE_SCHEMA",
+    "LLM_ROUTE",
+    "MODEL_RETURNED_UNKNOWN",
     "NOT_ABSTENTIONS",
+    "NO_CANDIDATE_EVIDENCE",
+    "NORMALIZATION_FAILED",
+    "PRIVACY_WITHHELD",
+    "RULE_ROUTE",
     "UNRESOLVED_REASONS",
     "unresolved_for_file",
     "write_unresolved",
@@ -4128,11 +4259,12 @@ git commit -m "feat(P6): unresolved — the abstention is a row, and two of its 
 **Interfaces:**
 - Consumes: `evidence_shape.canonical.sha256_of`, `evidence_shape.canonical.canonical_json`,
   `evidence_shape.vocabulary.ANALYSIS_TIERS`, `evidence_shape.vocabulary.check`,
-  `evidence_shape.runs.ExtractionRun`.
+  `evidence_shape.runs.ExtractionRun`. P4's `evidence` and `extraction_runs` tables are read **by
+  SQL**, importing no sibling — see *"the two derived parts"* below.
 - Produces: `CACHE_KEY_PARTS: tuple[str, ...]` (`content_hash`, `extractor_version`, `analysis_tier`,
   `model_identifier`, `prompt_fingerprint`),
-  `fact_cache_key(*, content_hash: str, extractor_version: str, analysis_tier: str,
-  model_identifier: str | None, prompt_fingerprint: str | None) -> str`,
+  `fact_cache_key(conn, *, file_id: str, content_hash: str, model_identifier: str | None,
+  prompt_fingerprint: str | None) -> str`,
   `is_stale(conn, *, file_id, content_hash, cache_key) -> bool`.
 
 **Done-means:** 15, 16.
@@ -4193,6 +4325,55 @@ not a defect in it.** It is recorded here so a later reviewer meets it as a deci
 surprise: the design describes one cache key; the built system has two functions, because P4's
 observation/fact split gave the sentence two subjects. If they are ever reconciled, the reconciliation
 is a P4/P5/P6 seam change and not an edit inside `facts.cache`.
+
+#### The two derived parts — the settled rule, and it is not the one three drafts carried
+
+**`facts.cache` is this task's module and no other task may add to it. This task publishes ONE
+helper, `fact_cache_key`, and every producer imports it.** Eight sibling sections had written their
+own private `_cache_key` copy of the reconciliation below; one copy is the rule, eight are eight
+places for it to drift.
+
+Two of §3.4's five parts are scalars and a file version has many of each — several extractors,
+several analysis tiers. The reconciliation is **this function's**, not the caller's, and it is:
+
+> `extractor_version` is `canonical_json` of the sorted distinct `[extractor_name,
+> extractor_version]` pairs of **every observation of that file version** — *not* of the
+> observations the fact happens to cite — and `analysis_tier` is the **last tier present** across
+> the same set, in `ANALYSIS_TIERS` order (`filesystem` < `native` < `ocr` < `llm`). The key is
+> therefore one key per **(file version, deterministic pass)**.
+
+**The deciding argument is the abstention.** The SPEC gives `unresolved.cache_key` the *"same
+composition as `file_facts` (§3.4), so an abstention is invalidated by the same events that
+invalidate a fact"* — and **an abstention with no citations has no cited observations to compute a
+key from**. A per-cited-observation rule cannot key the row that Done-means 18 and 19 exist for. One
+key per pass answers both, and it is why `file_id` and `content_hash` are the inputs rather than a
+set of observations: **a caller cannot hand this function a filtered subset**, which is the whole
+defect the rule was written against.
+
+It is also what makes preamble §3.3's supersession work. A later, richer pass adds observations at a
+higher tier, so both derived parts move, so the pass lands in a **different cache slot** and
+supersedes rather than overwrites (§8.2).
+
+**The two derived parts are read by SQL, importing no sibling.** One query joins P4's `evidence` to
+its `extraction_runs`:
+
+```sql
+SELECT DISTINCT e.extractor_name, e.extractor_version, r.analysis_tier
+  FROM evidence e JOIN extraction_runs r ON r.run_id = e.run_id
+ WHERE e.file_id = ? AND e.content_hash = ?
+```
+
+`facts.evidence.observations_for_version` answers the same question and this module does **not**
+import it, for the reason `is_stale` does not import `facts.file_facts`: every Wave B producer
+imports both this module and those, and a module that imports none of its siblings cannot be half of
+an import cycle. Column names verified live on 2026-08-22 — `evidence` carries `extractor_name`,
+`extractor_version`, `file_id`, `content_hash` and `run_id`; `extraction_runs` carries `run_id` and
+`analysis_tier`.
+
+**A file version with no observations at all is not an error.** It is the abstention's own case, and
+it keys at `analysis_tier = ANALYSIS_TIERS[0]` with an empty pair list — a real slot, distinct from
+every slot that has evidence in it, so an abstention recorded before any extractor ran is not
+mistaken for work done after one did.
 
 #### The three rulings this task makes
 
@@ -4258,16 +4439,21 @@ import pytest
 
 from database_agent.files_table import get_file, record_file
 
-from evidence_shape.observation import observation_key
+from evidence_shape.location import Location, Segment
+from evidence_shape.observation import Observation, observation_key
 from evidence_shape.runs import ExtractionRun
+from evidence_shape.store import get_run, record_observation, record_run
 from evidence_shape.vocabulary import ANALYSIS_TIERS, NotInVocabulary
 
 from extractors.runs import cache_key as extraction_cache_key
 
 from facts import cache as cache_module
 from facts.cache import CACHE_KEY_PARTS, fact_cache_key, is_stale
-from facts.file_facts import FACT_ORIGINS, write_fact
-from facts.unresolved import write_unresolved
+from facts.file_facts import RULE, write_fact
+from facts.states import POSSIBLE, VALIDATED
+from facts.unresolved import (
+    DIRECT_ROUTE, NO_CANDIDATE_EVIDENCE, RULE_ROUTE, write_unresolved,
+)
 from facts.values import ensure_value
 
 CLOCK = "2026-08-22T12:00:00+00:00"
@@ -4304,11 +4490,10 @@ def _write_subject_fact(conn, *, file_id: str, content_hash: str, key: str) -> s
                           locator="heading:page=1/heading=2", raw_value="BUSIB 4300")
     value_id = ensure_value(conn, field_key="subject", canonical_value="BUSIB 4300",
                             first_evidence_ref=ref, origin="automatic")
-    # FACT_ORIGINS is addressed by index -- §3.1's five, in §3.1's order; index 1 is
-    # `rule`. Task 4 owns the literal spelling.
+    # Task 4 owns the literal spelling of `rule` and publishes the named constant.
     return write_fact(conn, file_id=file_id, content_hash=content_hash,
                       field_key="subject", value_id=value_id,
-                      reliability_state="validated", origin=FACT_ORIGINS[1],
+                      reliability_state=VALIDATED, origin=RULE,
                       evidence_refs=(ref,), cache_key=key, active=True)
 
 
@@ -4474,8 +4659,8 @@ def test_an_abstention_counts_as_work_done_under_that_key(p6_conn, tmp_path):
     file_id, content_hash = _record(p6_conn, tmp_path, name="Blank.pdf", body=b"   ")
     key = fact_cache_key(**dict(BASELINE, content_hash=content_hash))
     write_unresolved(p6_conn, file_id=file_id, content_hash=content_hash,
-                     field_key="subject", reason="no_candidate_evidence",
-                     attempted_producers=("direct", "rule"), evidence_refs=(),
+                     field_key="subject", reason=NO_CANDIDATE_EVIDENCE,
+                     attempted_producers=(DIRECT_ROUTE, RULE_ROUTE), evidence_refs=(),
                      cache_key=key)
     assert is_stale(p6_conn, file_id=file_id, content_hash=content_hash,
                     cache_key=key) is False
@@ -4516,7 +4701,7 @@ cd "/Users/jy/GRAPH AGENT" && python3 -m pytest tests/p6/test_p6_cache.py -x -q
 ```
 
 **Expected failure:** collection fails before any test body runs —
-`ModuleNotFoundError: No module named 'facts.cache'`. All twelve tests error at import.
+`ModuleNotFoundError: No module named 'facts.cache'`. All thirteen tests error at import.
 
 - [ ] **Step 3: Write `src/facts/cache.py`**
 
@@ -4560,10 +4745,20 @@ model identifier and an empty one are not the same cache slot.
 WHAT IS NOT DECIDED HERE. §3.4 says "model identifier when relevant" and "prompt
 fingerprint for model-derived results" and states no dependency between them, so no
 both-or-neither guard is imposed: P8 is the part that would know whether one is true and
-P8 does not exist. And a fact built from several observations has several extractor
-versions and several analysis tiers; reconciling those into the two scalars this
-function takes is the CALLER's, and Tasks 8, 9, 14 and 15 state the rule they apply
-identically. This function takes what it is given.
+P8 does not exist.
+
+WHAT IS DECIDED HERE, AND ONLY HERE. A file version has several extractor versions and
+several analysis tiers, and §3.4 wants one of each. That reconciliation is THIS
+function's: `extractor_version` is the canonical JSON of the sorted distinct
+(extractor_name, extractor_version) pairs of EVERY observation of the version -- not of
+the ones a fact happens to cite -- and `analysis_tier` is the last tier present in
+ANALYSIS_TIERS order. So there is ONE key per (file version, deterministic pass), which
+is what lets the abstention share the fact's key: an `unresolved` row with no citations
+has no cited observations to compute a key from, and the SPEC gives it the "same
+composition as `file_facts` (§3.4)". Taking `file_id` and `content_hash` rather than a
+set of observations is deliberate: a caller CANNOT hand this function a filtered subset.
+No producer writes its own copy of this rule; `facts.cache` is Task 6's module and no
+other task adds to it.
 """
 from __future__ import annotations
 
@@ -4595,28 +4790,74 @@ CACHE_KEY_PARTS: tuple[str, ...] = (
 #: imports none of its siblings cannot be half of an import cycle.
 _RECORD_TABLES: tuple[str, ...] = ("file_facts", "unresolved")
 
+#: P4's evidence, joined to the run that produced it. Column names verified live on
+#: 2026-08-22. `facts.evidence.observations_for_version` answers the same question and
+#: is deliberately NOT imported, for the same reason as `_RECORD_TABLES` above.
+_VERSION_PARTS_SQL = """
+    SELECT DISTINCT e.extractor_name  AS extractor_name,
+                    e.extractor_version AS extractor_version,
+                    r.analysis_tier   AS analysis_tier
+      FROM evidence e
+      JOIN extraction_runs r ON r.run_id = e.run_id
+     WHERE e.file_id = ? AND e.content_hash = ?
+"""
+
 
 def _required(value: str, *, name: str) -> str:
-    """`content_hash` and `extractor_version` identify the work. An empty one means
-    "unknown", and two unknowns must not silently share a cache slot with each other
-    or with a real value."""
+    """`file_id` and `content_hash` identify the work. An empty one means "unknown",
+    and two unknowns must not silently share a cache slot with each other or with a
+    real value."""
     if not isinstance(value, str) or not value:
         raise ValueError(f"{name} is required and must be a non-empty string")
     return value
 
 
-def fact_cache_key(*, content_hash: str, extractor_version: str, analysis_tier: str,
+def _version_parts(conn: sqlite3.Connection, *, file_id: str,
+                   content_hash: str) -> tuple[str, str]:
+    """§3.4's two derived parts for one file version: `(extractor_version, tier)`.
+
+    Both are over EVERY observation of the version. A version with no observations
+    yet keys at the first tier with an empty pair list -- a real slot, distinct from
+    every slot that has evidence in it, which is what an abstention recorded before
+    any extractor ran needs.
+
+    The tier is the LAST one present in `ANALYSIS_TIERS` order, so a pass that reached
+    OCR lands outside the slot the native pass computed under: preamble §3.3's
+    supersede-rather-than-overwrite, at the key. `check` is applied to what P4 stored
+    because P6 never infers a tier and a tier P4 does not publish is a contract
+    revision, not a row this module quietly hashes.
+    """
+    rows = conn.execute(_VERSION_PARTS_SQL, (file_id, content_hash)).fetchall()
+    pairs = sorted({(row["extractor_name"], row["extractor_version"])
+                    for row in rows})
+    tiers = {check(row["analysis_tier"], ANALYSIS_TIERS, name="analysis_tier")
+             for row in rows}
+    tier = max(tiers, key=ANALYSIS_TIERS.index) if tiers else ANALYSIS_TIERS[0]
+    return canonical_json([list(pair) for pair in pairs]), tier
+
+
+def fact_cache_key(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                    model_identifier: str | None,
                    prompt_fingerprint: str | None) -> str:
-    """§3.4's key for one fact. Returns a `sha256:`-prefixed digest.
+    """§3.4's key for one (file version, deterministic pass). A `sha256:` digest.
 
-    `analysis_tier` is checked against P4's published tuple rather than accepted as a
-    string, because P6 never infers a tier -- it comes off P4's `ExtractionRun`, and a
-    tier P4 does not publish is a contract revision, not a local decision.
+    THE ONE HELPER. Every producer imports this; no task writes its own copy of the
+    reconciliation in `_version_parts`, and `facts.cache` is the module that owns it.
+
+    `extractor_version` and `analysis_tier` are derived from every observation of the
+    version rather than supplied, so a caller cannot narrow them to the observations
+    one fact cited -- and so an `unresolved` row, which cites nothing, computes the
+    SAME key as the facts of the pass that wrote it.
+
+    The two model parts stay the caller's and carry no default: they are `None` on
+    every deterministic fact P6 writes (§3.3), and Task 17's LLM-supported fact is the
+    one place that is not true. A defaulted part is a part that silently stops
+    distinguishing cache slots.
     """
     _required(content_hash, name="content_hash")
-    _required(extractor_version, name="extractor_version")
-    check(analysis_tier, ANALYSIS_TIERS, name="analysis_tier")
+    _required(file_id, name="file_id")
+    extractor_version, analysis_tier = _version_parts(
+        conn, file_id=file_id, content_hash=content_hash)
     parts = (content_hash, extractor_version, analysis_tier,
              model_identifier, prompt_fingerprint)
     assert len(parts) == len(CACHE_KEY_PARTS)
@@ -5901,19 +6142,17 @@ from facts.cache import fact_cache_key as _fact_cache_key
 from facts.evidence import analysis_tier_for_observation as _tier_of
 from facts.evidence import cite as _cite
 from facts.evidence import observations_for_version as _observations_for_version
-from facts.file_facts import FACT_ORIGINS as _FACT_ORIGINS
 from facts.file_facts import write_fact as _write_fact
-from facts.states import STATES as _STATES
+from facts.file_facts import DETERMINISTIC_EXTRACTOR
+from facts.states import DIRECT
 from facts.values import VALUE_ORIGINS as _VALUE_ORIGINS
 from facts.values import ensure_value as _ensure_value
 
-#: §3.13's second state. Spelled by index rather than as a literal so `facts.states`
-#: stays the one place a state name is written (Task 1).
-DIRECT_STATE: str = _STATES[1]
+#: Task 1 owns the spelling. Never an index into STATES.
+DIRECT_STATE: str = DIRECT
 
-#: §3.1's first of five origins -- the deterministic extractor. Also by index; Task 4
-#: owns the spelling.
-DIRECT_ORIGIN: str = _FACT_ORIGINS[0]
+#: Task 4 owns the spelling. Never an index into FACT_ORIGINS.
+DIRECT_ORIGIN: str = DETERMINISTIC_EXTRACTOR
 
 
 class UnknownFile(Exception):
@@ -7359,8 +7598,8 @@ from facts.evidence import (
     analysis_tier_for_observation, cite, context_pair, observations_for_version,
 )
 from facts.facets import word_boundary_match
-from facts.file_facts import FACT_ORIGINS, write_fact
-from facts.states import STATES
+from facts.file_facts import FACT_ORIGINS, write_fact, RULE
+from facts.states import STATES, VALIDATED
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -7370,9 +7609,8 @@ from facts.values import VALUE_ORIGINS, ensure_value
 ACADEMIC_CONTEXT_TERMS: tuple[str, str, str, str, str] = (
     "syllabus", "lecture", "credits", "instructor", "semester")
 
-#: §3.13's third state. Rule 2: the six literals are P4's and P6 re-spells none of
-#: them, so the state is addressed by its index into P4's tuple.
-_VALIDATED = STATES[2]
+#: Task 1 owns the spelling. Never an index into STATES.
+_VALIDATED = VALIDATED
 
 
 class MalformedRule(ValueError):
@@ -7482,7 +7720,7 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
             written.append(write_fact(
                 conn, file_id=file_id, content_hash=content_hash,
                 field_key=rule.field_key, value_id=value_id,
-                reliability_state=_VALIDATED, origin=FACT_ORIGINS[1],
+                reliability_state=_VALIDATED, origin=RULE,
                 evidence_refs=(cite(observation),),
                 cache_key=_pass_cache_key(conn, file_id=file_id,
                                           content_hash=content_hash),
@@ -8020,15 +8258,15 @@ from facts.cache import fact_cache_key
 from facts.evidence import (
     analysis_tier_for_observation, observations_for_version,
 )
-from facts.file_facts import FACT_ORIGINS, write_fact
-from facts.states import STATES
+from facts.file_facts import FACT_ORIGINS, write_fact, RULE
+from facts.states import STATES, VALIDATED
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
 
 #: §3.13's third state. Rule 2: the six literals are P4's and P6 re-spells none of
 #: them, so every state in this module is addressed by its index into P4's tuple.
-_VALIDATED = STATES[2]
+_VALIDATED = VALIDATED
 
 
 class MissingWeight(KeyError):
@@ -8207,7 +8445,7 @@ def fill_or_abstain(conn: sqlite3.Connection, *, file_id: str, content_hash: str
                             origin=VALUE_ORIGINS[0])
     return write_fact(conn, file_id=file_id, content_hash=content_hash,
                       field_key=field_key, value_id=value_id,
-                      reliability_state=_VALIDATED, origin=FACT_ORIGINS[1],
+                      reliability_state=_VALIDATED, origin=RULE,
                       evidence_refs=winner.evidence_refs,
                       cache_key=_pass_cache_key(conn, file_id=file_id,
                                                 content_hash=content_hash),
@@ -8906,7 +9144,7 @@ from facts.domains import (
     schema_fields,
 )
 from facts.fields import DOMAIN_FIELDS, FIELD_SCOPES, fields_in_scope
-from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact
+from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact, RULE
 from facts.values import VALUE_ORIGINS, ensure_value
 
 EVIDENCE_REF = "sha256:" + "a" * 64
@@ -8932,7 +9170,7 @@ def _fact(conn, *, file_id, content_hash, field_key, value):
                             origin=VALUE_ORIGINS[0])
     return write_fact(conn, file_id=file_id, content_hash=content_hash,
                       field_key=field_key, value_id=value_id,
-                      reliability_state="validated", origin=FACT_ORIGINS[1],
+                      reliability_state="validated", origin=RULE,
                       evidence_refs=(EVIDENCE_REF,), cache_key=CACHE_KEY,
                       active=True)
 
@@ -9788,7 +10026,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 
 from facts.cache import fact_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
-from facts.file_facts import FACT_ORIGINS, write_fact
+from facts.file_facts import FACT_ORIGINS, write_fact, DETERMINISTIC_EXTRACTOR, RULE
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -9940,7 +10178,7 @@ def duplicate_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
             written.append(_write_family(
                 conn, version=member, field_key=DUPLICATE_FAMILY_FIELD,
                 canonical_value=content_hash, reliability_state="direct",
-                origin=FACT_ORIGINS[0], evidence_refs=tuple(shared), cited=cited))
+                origin=DETERMINISTIC_EXTRACTOR, evidence_refs=tuple(shared), cited=cited))
 
     written.extend(_near_families(conn, versions=versions,
                                   perceptual_hash_label=perceptual_hash_label,
@@ -10001,7 +10239,7 @@ def _near_families(conn: sqlite3.Connection, *, versions: tuple[_Version, ...],
             written.append(_write_family(
                 conn, version=by_id[file_id], field_key=DUPLICATE_FAMILY_FIELD,
                 canonical_value=canonical_value, reliability_state="possible",
-                origin=FACT_ORIGINS[0], evidence_refs=refs, cited=cited))
+                origin=DETERMINISTIC_EXTRACTOR, evidence_refs=refs, cited=cited))
     return written
 
 
@@ -10070,7 +10308,7 @@ def version_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
             written.append(_write_family(
                 conn, version=by_id[file_id], field_key=VERSION_FAMILY_FIELD,
                 canonical_value=canonical_value, reliability_state=weakest,
-                origin=FACT_ORIGINS[1], evidence_refs=refs, cited=cited))
+                origin=RULE, evidence_refs=refs, cited=cited))
     return tuple(written)
 ```
 
@@ -10182,7 +10420,7 @@ from evidence_shape.store import record_observation, record_run
 
 from facts import session
 from facts.fields import get_field
-from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact
+from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact, RULE
 from facts.session import (
     DOWNLOAD_SESSION_FIELD, SESSION_STATE, SessionBoundary, SessionNeverPromoted,
     bounded_sessions, require_possible,
@@ -10294,7 +10532,7 @@ def test_the_session_fact_is_written_for_the_member_file_only(one_session, p6_co
                             first_evidence_ref=left_key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=left, content_hash=left_hash, field_key="subject",
                value_id=value_id, reliability_state="validated",
-               origin=FACT_ORIGINS[1], evidence_refs=(left_key,),
+               origin=RULE, evidence_refs=(left_key,),
                cache_key="sha256:cache", active=True)
     bounded_sessions(p6_conn, file_ids=(left, right), boundary=TIGHT)
     right_fields = {r["field_key"]
@@ -10436,7 +10674,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS
 
 from facts.cache import fact_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
-from facts.file_facts import FACT_ORIGINS, write_fact
+from facts.file_facts import FACT_ORIGINS, write_fact, DETERMINISTIC_EXTRACTOR
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -10607,7 +10845,7 @@ def bounded_sessions(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                 conn, file_id=member.file_id, content_hash=member.content_hash,
                 field_key=DOWNLOAD_SESSION_FIELD, value_id=value_id,
                 reliability_state=require_possible(SESSION_STATE),
-                origin=FACT_ORIGINS[0], evidence_refs=refs,
+                origin=DETERMINISTIC_EXTRACTOR, evidence_refs=refs,
                 cache_key=_cache_key(conn, content_hash=member.content_hash,
                                      observations=citable[member.file_id]),
                 active=True)
@@ -11179,7 +11417,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, SIGNAL_TIERS, check
 from facts.cache import fact_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
 from facts.facets import Candidate, fill_or_abstain
-from facts.file_facts import FACT_ORIGINS, write_fact
+from facts.file_facts import FACT_ORIGINS, write_fact, RULE
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -11345,7 +11583,7 @@ def photo_events(conn: sqlite3.Connection, *, file_ids: Iterable[str],
             written[file_id] = write_fact(
                 conn, file_id=file_id, content_hash=photo.content_hash,
                 field_key=EVENT_FIELD, value_id=value_id,
-                reliability_state=EVENT_STATE, origin=FACT_ORIGINS[1],
+                reliability_state=EVENT_STATE, origin=RULE,
                 evidence_refs=refs,
                 cache_key=_cache_key(conn, content_hash=photo.content_hash,
                                      observations=photo.cited),
@@ -11590,7 +11828,7 @@ import facts
 from facts import llm_seam
 from facts.domains import ActivationSignals
 from facts.fields import FieldNotInCatalogue
-from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact
+from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact, LLM_INTERPRETATION, RULE
 from facts.llm_seam import (
     CHECK_REASONS, FOUR_CHECKS, LLM_STATES, UNKNOWN_REASON, FactRequest, Proposal,
     ProposalStateRefused, Verdict, apply_verdict, build_request, require_llm_state,
@@ -11721,7 +11959,7 @@ def test_the_request_carries_the_stronger_facts_a_contradiction_check_needs(
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=file_id, content_hash=content_hash,
                field_key="subject", value_id=value_id,
-               reliability_state="validated", origin=FACT_ORIGINS[1],
+               reliability_state="validated", origin=RULE,
                evidence_refs=(key,), cache_key="sha256:cache", active=True)
     request = _request(p6_conn, subject_file)
     assert [r["reliability_state"] for r in request.existing_facts] == ["validated"]
@@ -11759,7 +11997,7 @@ def test_a_proposal_contradicted_by_a_stronger_fact_produces_no_fact(
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=file_id, content_hash=content_hash,
                field_key="subject", value_id=value_id,
-               reliability_state="validated", origin=FACT_ORIGINS[1],
+               reliability_state="validated", origin=RULE,
                evidence_refs=(key,), cache_key="sha256:cache", active=True)
     request = _request(p6_conn, subject_file)
     proposal = Proposal(field_key="subject", value="ECON 1010",
@@ -11830,7 +12068,7 @@ def test_a_passing_verdict_writes_one_llm_supported_fact(subject_file, p6_conn):
             if r["field_key"] == "subject"]
     assert len(rows) == 1
     assert rows[0]["reliability_state"] == LLM_STATES[0] == "llm_supported"
-    assert rows[0]["origin"] == FACT_ORIGINS[2]
+    assert rows[0]["origin"] == LLM_INTERPRETATION
     assert json.loads(rows[0]["evidence_refs"]) == [subject_file[2]]
     assert unresolved_for_file(p6_conn, request.file_id,
                                request.content_hash) == []
@@ -12023,7 +12261,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 from facts.cache import fact_cache_key
 from facts.domains import active_field_allowlist
 from facts.evidence import cite, observations_for_version
-from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact
+from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact, LLM_INTERPRETATION
 from facts.states import is_stronger
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
@@ -12237,7 +12475,7 @@ def apply_verdict(conn: sqlite3.Connection, *, request: FactRequest,
     return write_fact(
         conn, file_id=request.file_id, content_hash=request.content_hash,
         field_key=proposal.field_key, value_id=value_id,
-        reliability_state=reliability_state, origin=FACT_ORIGINS[2],
+        reliability_state=reliability_state, origin=LLM_INTERPRETATION,
         evidence_refs=tuple(proposal.citations), cache_key=cache_key, active=True)
 ```
 
@@ -12364,8 +12602,8 @@ from evidence_shape.observation import Observation
 from evidence_shape.runs import ExtractionRun
 from evidence_shape.store import record_observation, record_run
 
-from facts.file_facts import FACT_ORIGINS, FILE_FACTS_COLUMNS, facts_for_file, write_fact
-from facts.states import STATES
+from facts.file_facts import FACT_ORIGINS, FILE_FACTS_COLUMNS, facts_for_file, write_fact, RULE
+from facts.states import STATES, USER_CONFIRMED
 from facts.supersede import (
     FACT_TABLE, PreferredNeverReverses, SupersedeAcrossSlots, fact_history,
     preferred_fact, supersede_fact,
@@ -12431,7 +12669,7 @@ def _fact(conn, *, file_id, content_hash, field_key, value, key, state, cache_ke
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     return write_fact(conn, file_id=file_id, content_hash=content_hash,
                       field_key=field_key, value_id=value_id,
-                      reliability_state=state, origin=FACT_ORIGINS[1],
+                      reliability_state=state, origin=RULE,
                       evidence_refs=(key,), cache_key=cache_key, active=True)
 
 
@@ -12462,7 +12700,7 @@ def test_the_table_this_module_addresses_carries_both_columns_it_needs(p6_conn):
     for column in ("fact_id", "file_id", "content_hash", "reliability_state",
                    "preferred"):
         assert column in FILE_FACTS_COLUMNS, column
-    assert STATES[0] == "user_confirmed"      # P4 publishes the tuple strongest-first
+    assert USER_CONFIRMED == "user_confirmed"      # P4 publishes the tuple strongest-first
 
 
 def test_a_superseding_fact_is_preferred_and_the_superseded_row_is_not(
@@ -12556,7 +12794,7 @@ def test_a_user_confirmed_fact_is_always_the_preferred_row(scanned, p6_conn):
     file_id, content_hash, first, second = scanned
     confirmed = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
                       field_key="subject", value="Columbia University", key=first,
-                      state=STATES[0], cache_key="sha256:user")
+                      state=USER_CONFIRMED, cache_key="sha256:user")
     _fact(p6_conn, file_id=file_id, content_hash=content_hash, field_key="subject",
           value="Colombia", key=second, state="llm_supported",
           cache_key="sha256:model")
@@ -12569,7 +12807,7 @@ def test_preferred_never_reverses_the_reliability_ordering(scanned, p6_conn):
     file_id, content_hash, first, second = scanned
     confirmed = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
                       field_key="subject", value="Columbia University", key=first,
-                      state=STATES[0], cache_key="sha256:user")
+                      state=USER_CONFIRMED, cache_key="sha256:user")
     weaker = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
                    field_key="subject", value="Colombia", key=second,
                    state="validated", cache_key="sha256:rule")
@@ -12701,7 +12939,7 @@ from typing import Iterable
 from database_agent.supersede import chain, mark_superseded
 
 from facts.file_facts import facts_for_file
-from facts.states import STATES
+from facts.states import STATES, USER_CONFIRMED
 
 #: The table P1's `mark_superseded` and `chain` are addressed by. Task 4 owns the DDL,
 #: including the VIRTUAL `record_id` projection of `fact_id` that P1 requires and the
@@ -12779,9 +13017,9 @@ def supersede_fact(conn: sqlite3.Connection, *, old_fact_id: str,
         raise SupersedeAcrossSlots(
             "§8.2 supersedes an answer: both facts must be for one file and one "
             f"field; {old_fact_id!r} and {new_fact_id!r} are not")
-    if old["reliability_state"] == STATES[0] != new["reliability_state"]:
+    if old["reliability_state"] == USER_CONFIRMED != new["reliability_state"]:
         raise PreferredNeverReverses(
-            f"{old_fact_id!r} is {STATES[0]!r}; §3.13's ordering is not negotiable "
+            f"{old_fact_id!r} is {USER_CONFIRMED!r}; §3.13's ordering is not negotiable "
             "and `preferred` never reverses it, so a weaker fact cannot take the "
             "pointer from a user's own answer")
     mark_superseded(conn, FACT_TABLE, old_id=old_fact_id, new_id=new_fact_id,
@@ -12815,7 +13053,7 @@ def preferred_fact(conn: sqlite3.Connection, *, file_id: str,
     """
     live = [row for row in _slot(conn, file_id=file_id, field_key=field_key)
             if row["superseded_by"] is None]
-    confirmed = [row for row in live if row["reliability_state"] == STATES[0]]
+    confirmed = [row for row in live if row["reliability_state"] == USER_CONFIRMED]
     if confirmed:
         live = confirmed
     if len(live) == 1:
@@ -13019,7 +13257,7 @@ from extractors.ocr_policy import text_layer_state
 from extractors.sink import ExtractionResult
 
 from facts import usable
-from facts.file_facts import FACT_ORIGINS, FORBIDDEN_COLUMN_SUBSTRINGS, write_fact
+from facts.file_facts import FACT_ORIGINS, FORBIDDEN_COLUMN_SUBSTRINGS, write_fact, RULE
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.usable import (
     FACT_PASSES_TABLE, FactPassNotRun, no_usable_facts_for, passes_for, record_pass,
@@ -13124,7 +13362,7 @@ def test_false_for_a_file_with_one_active_usable_fact(scanned, p6_conn):
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=file_id, content_hash=content_hash,
                field_key="subject", value_id=value_id,
-               reliability_state="validated", origin=FACT_ORIGINS[1],
+               reliability_state="validated", origin=RULE,
                evidence_refs=(key,), cache_key="sha256:cache", active=True)
     record_pass(p6_conn, file_id=file_id, content_hash=content_hash,
                 analysis_tiers=NATIVE)
@@ -13157,7 +13395,7 @@ def test_the_threshold_decides_and_the_module_states_none(scanned, p6_conn):
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=file_id, content_hash=content_hash,
                field_key="subject", value_id=value_id,
-               reliability_state="possible", origin=FACT_ORIGINS[1],
+               reliability_state="possible", origin=RULE,
                evidence_refs=(key,), cache_key="sha256:cache", active=True)
     record_pass(p6_conn, file_id=file_id, content_hash=content_hash,
                 analysis_tiers=NATIVE)
@@ -13728,6 +13966,7 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
           model_route_permitted=lambda file_id: permitted,
           record_pass=recorder.record_pass,
           cache_key_for=lambda file_id, content_hash: CACHE_KEY,
+          screen_metadata=lambda conn, file_id, content_hash: (),
       )
 
 
@@ -13805,6 +14044,7 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
               model_route_permitted=lambda file_id: True,
               record_pass=recorder.record_pass,
               cache_key_for=lambda f, c: CACHE_KEY,
+              screen_metadata=lambda conn, f, c: (),
           )
 
 
@@ -13814,6 +14054,33 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
               continue
           assert parameter.kind is inspect.Parameter.KEYWORD_ONLY, name
           assert parameter.default is inspect.Parameter.empty, name
+      assert "screen_metadata" in inspect.signature(FactResolver.__init__).parameters
+
+
+  def test_screen_metadata_runs_before_any_stage(p6):
+      calls: list[str] = []
+
+      def screen(conn, file_id, content_hash):
+          calls.append("screen")
+          return ()
+
+      recorder = Recorder()
+      resolver = FactResolver(
+          stages={
+              "direct": recorder.stage("direct", produces=("fact-direct",)),
+              "rule": recorder.stage("rule"),
+              "llm": None,
+          },
+          pending_fields=lambda conn, file_id, content_hash: (FIELD,),
+          budget_exhausted=lambda key: False,
+          model_route_permitted=lambda file_id: True,
+          record_pass=recorder.record_pass,
+          cache_key_for=lambda file_id, content_hash: CACHE_KEY,
+          screen_metadata=screen,
+      )
+      resolve(resolver, p6)
+      assert calls == ["screen"]
+      assert recorder.calls[0] == "direct"
 
 
   def test_with_p8_absent_the_llm_route_does_not_exist_and_nothing_is_withheld(p6):
@@ -13973,8 +14240,8 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
           model_route_permitted=lambda file_id: True,
           record_pass=recorder.record_pass,
           cache_key_for=lambda f, c: CACHE_KEY,
+          screen_metadata=lambda conn, f, c: (),
       )
-      with pytest.raises(RuntimeError):
           resolve(resolver, p6)
       assert recorder.passes == []
 
@@ -14235,6 +14502,27 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
       the route does not exist — which is the ordinary case for `llm`, because P8 does
       not exist. A route that does not exist is NOT a route that was barred: nothing is
       withheld, nothing is deferred, and no `unresolved` row is written for it.
+
+      `screen_metadata` is required and has no default. §2.2's tool-metadata
+      suppression must fire **before** any producer; without this call `python-docx`
+      can become a `direct` fact and Done-means 22 is unreachable. Task 9 publishes
+      the helper; this constructor is the caller. `DEGRADATION_ORDER` stays the three
+      producers — screening is not a fourth producer.
+
+      Task 9's helper is keyword-only and takes the version's observations plus the
+      two catalogue predicates. The production composition site binds a thin adapter
+      with this constructor's three-positional shape::
+
+          def screen(conn, file_id, content_hash):
+              observations = observations_for_version(conn, file_id, content_hash)
+              return screen_metadata(
+                  conn, file_id=file_id, content_hash=content_hash,
+                  observations=observations,
+                  tool_producer_strings=TOOL_PRODUCER_STRINGS,
+                  metadata_property_names=METADATA_PROPERTY_NAMES,
+              )
+
+      Tests in this task bind a no-op or a recorder. They do not import Task 9.
       """
 
       def __init__(self, *, stages: Mapping[str, Stage | None],
@@ -14243,7 +14531,9 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
                    budget_exhausted: Callable[[str], bool],
                    model_route_permitted: Callable[[str], bool],
                    record_pass: PassRecorder,
-                   cache_key_for: Callable[[str, str], str]) -> None:
+                   cache_key_for: Callable[[str, str], str],
+                   screen_metadata: Callable[[sqlite3.Connection, str, str],
+                                            object]) -> None:
           if set(stages) != set(DEGRADATION_ORDER):
               raise StageSetInvalid(
                   f"stages must be exactly {DEGRADATION_ORDER}, got "
@@ -14255,6 +14545,7 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
           self._model_route_permitted = model_route_permitted
           self._record_pass = record_pass
           self._cache_key_for = cache_key_for
+          self._screen_metadata = screen_metadata
 
       def resolve(self, conn: sqlite3.Connection, *, file_id: str,
                   content_hash: str) -> ResolveResult:
@@ -14262,6 +14553,11 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
           barred: dict[str, str] = {}
           deferred_against: tuple[str, ...] = ()
           fact_ids: list[str] = []
+
+          # §2.2 fires before ranking. The return value is the survivor set;
+          # stages that re-query observations still use field_permitted.
+          # This call is what writes the unresolved row Done-means 22 requires.
+          self._screen_metadata(conn, file_id, content_hash)
 
           for name in DEGRADATION_ORDER:
               stage = self._stages[name]
@@ -15841,7 +16137,7 @@ from database_agent.supersede import SUPERSEDE_COLUMNS
 from evidence_shape.observation import observation_key
 from facts.cache import fact_cache_key
 from facts.fields import create_fields
-from facts.file_facts import FACT_ORIGINS, FILE_FACTS_COLUMNS, write_fact
+from facts.file_facts import FACT_ORIGINS, FILE_FACTS_COLUMNS, write_fact, DETERMINISTIC_EXTRACTOR
 from facts.plan_versions import (
     PLAN_VERSIONED,
     SHARED_ACROSS_PLAN_VERSIONS,
@@ -15905,7 +16201,7 @@ def fact_id(conn, value_id) -> str:
         field_key="target_school",
         value_id=value_id,
         reliability_state="direct",
-        origin=FACT_ORIGINS[0],
+        origin=DETERMINISTIC_EXTRACTOR,
         evidence_refs=(REF,),
         cache_key=CACHE_KEY,
         active=True,
@@ -16391,7 +16687,10 @@ from evidence_shape.vocabulary import NotInVocabulary
 from facts.cache import fact_cache_key
 from facts.families import DUPLICATE_FAMILY_FIELD
 from facts.fields import FieldNotInCatalogue
-from facts.file_facts import FACT_ORIGINS, FORBIDDEN_COLUMN_SUBSTRINGS, write_fact
+from facts.file_facts import (
+    DETERMINISTIC_EXTRACTOR, FACT_ORIGINS, FORBIDDEN_COLUMN_SUBSTRINGS, RULE,
+    write_fact,
+)
 from facts.photo_event import EVENT_FIELD
 from facts.read_surface import (
     DanglingCitation, PROPOSAL_ELIGIBLE_STATES, active_allowlist_for, evidence_chain,
@@ -16399,21 +16698,20 @@ from facts.read_surface import (
     proposal_eligible, session_facts, unresolved_for, values_with_counts,
 )
 from facts.session import DOWNLOAD_SESSION_FIELD
-from facts.states import STATES, STRENGTH_ORDER
+from facts.states import (
+    DIRECT, LLM_SUPPORTED, POSSIBLE, REJECTED, STATES, STRENGTH_ORDER,
+    USER_CONFIRMED, VALIDATED,
+)
 from facts.supersede import supersede_fact
 from facts.unresolved import ATTEMPTED_PRODUCERS, UNRESOLVED_REASONS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
 CLOCK = "2026-08-19T12:00:00+00:00"
 
-#: Addressed by index, never re-spelled. Task 1 owns the order:
-#: user_confirmed > direct > validated > llm_supported > possible, and `rejected` has no
-#: strength at all, so it is the one member of STATES absent from STRENGTH_ORDER.
-USER_CONFIRMED, DIRECT, VALIDATED, LLM_SUPPORTED, POSSIBLE = STRENGTH_ORDER
-REJECTED = next(s for s in STATES if s not in STRENGTH_ORDER)
+#: Task 1 owns every state name; Task 4 owns every origin name. Imported, never
+#: indexed, never unpacked from a ladder whose order is the opposite of this comment.
 
-#: Task 4 owns the spelling of each origin; this test owns none of them.
-DETERMINISTIC, RULE = FACT_ORIGINS[0], FACT_ORIGINS[1]
+DETERMINISTIC = DETERMINISTIC_EXTRACTOR
 
 
 def _record(conn, tmp_path, *, name, body, parent="Downloads"):
@@ -18128,6 +18426,7 @@ import pytest
 from evidence_shape.vocabulary import RELIABILITY_STATES
 
 from facts.resolver import FactResolver
+from facts.states import LLM_SUPPORTED
 
 TEST_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TEST_DIR.parents[1]
@@ -18136,9 +18435,7 @@ REPO_ROOT = TEST_DIR.parents[1]
 #: file is cheap and runs in both.
 CHILD_MARKER = "P6_DETERMINISTIC_SUITE_CHILD"
 
-#: The state no deterministic path may reach. Read off P4's tuple, never spelled as a
-#: literal: the six states have exactly one home (Global Constraints).
-LLM_SUPPORTED = RELIABILITY_STATES[3]
+#: The state no deterministic path may reach. Task 1 owns the spelling.
 
 #: Every fact-producing entry point in `facts`, module and function. This is the
 #: plan's task list read off -- Tasks 8-16, 18 and 19 publish exactly these. It is

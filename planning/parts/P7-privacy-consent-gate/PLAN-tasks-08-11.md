@@ -2101,8 +2101,17 @@ def audit_records_for(conn: sqlite3.Connection, *, file_id: str | None = None,
     clauses = ["event_type IN (?, ?, ?)"]
     parameters: list[object] = [MODEL_RELEASE, MODEL_RELEASE_DENIED, CONSENT_REQUESTED]
     if file_id is not None:
-        clauses.append("file_id = ?")
-        parameters.append(file_id)
+        # Column match covers a single-file release. A group release writes
+        # NULL into that column and puts the ids in explanation.file_ids
+        # (§8.4 prior_releases must list every release that carried this
+        # file's excerpts). json_each is the match; a second reader in
+        # revoke() would be a second home.
+        clauses.append(
+            "(file_id = ? OR EXISTS ("
+            "SELECT 1 FROM json_each(explanation, '$.file_ids') "
+            "WHERE value = ?))"
+        )
+        parameters.extend([file_id, file_id])
     for name, value in (("release_id", release_id),
                         ("consent_request_id", consent_request_id)):
         if value is not None:
@@ -2393,8 +2402,8 @@ def classify(conn, handling_class, *, protected):
     """
     ClassificationStore(conn).write(ClassificationRecord(
         file_id=only_file(conn), content_hash=CONTENT_HASH,
-        handling_class=handling_class, protected=protected, basis="user",
-        evidence_refs=(KEY,), reliability_state="user_confirmed",
+        handling_class=handling_class, protected=protected, basis=USER,
+        evidence_refs=(KEY,), reliability_state=USER_CONFIRMED,
         observed_at=FIXED_CLOCK))
 
 

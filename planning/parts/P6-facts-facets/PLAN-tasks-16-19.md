@@ -638,7 +638,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, SIGNAL_TIERS, check
 from facts.cache import fact_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
 from facts.facets import Candidate, fill_or_abstain
-from facts.file_facts import FACT_ORIGINS, write_fact
+from facts.file_facts import FACT_ORIGINS, write_fact, RULE
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -804,7 +804,7 @@ def photo_events(conn: sqlite3.Connection, *, file_ids: Iterable[str],
             written[file_id] = write_fact(
                 conn, file_id=file_id, content_hash=photo.content_hash,
                 field_key=EVENT_FIELD, value_id=value_id,
-                reliability_state=EVENT_STATE, origin=FACT_ORIGINS[1],
+                reliability_state=EVENT_STATE, origin=RULE,
                 evidence_refs=refs,
                 cache_key=_cache_key(conn, content_hash=photo.content_hash,
                                      observations=photo.cited),
@@ -1047,7 +1047,7 @@ import facts
 from facts import llm_seam
 from facts.domains import ActivationSignals
 from facts.fields import FieldNotInCatalogue
-from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact
+from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact, LLM_INTERPRETATION, RULE
 from facts.llm_seam import (
     CHECK_REASONS, FOUR_CHECKS, LLM_STATES, UNKNOWN_REASON, FactRequest, Proposal,
     ProposalStateRefused, Verdict, apply_verdict, build_request, require_llm_state,
@@ -1178,7 +1178,7 @@ def test_the_request_carries_the_stronger_facts_a_contradiction_check_needs(
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=file_id, content_hash=content_hash,
                field_key="subject", value_id=value_id,
-               reliability_state="validated", origin=FACT_ORIGINS[1],
+               reliability_state="validated", origin=RULE,
                evidence_refs=(key,), cache_key="sha256:cache", active=True)
     request = _request(p6_conn, subject_file)
     assert [r["reliability_state"] for r in request.existing_facts] == ["validated"]
@@ -1216,7 +1216,7 @@ def test_a_proposal_contradicted_by_a_stronger_fact_produces_no_fact(
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=file_id, content_hash=content_hash,
                field_key="subject", value_id=value_id,
-               reliability_state="validated", origin=FACT_ORIGINS[1],
+               reliability_state="validated", origin=RULE,
                evidence_refs=(key,), cache_key="sha256:cache", active=True)
     request = _request(p6_conn, subject_file)
     proposal = Proposal(field_key="subject", value="ECON 1010",
@@ -1287,7 +1287,7 @@ def test_a_passing_verdict_writes_one_llm_supported_fact(subject_file, p6_conn):
             if r["field_key"] == "subject"]
     assert len(rows) == 1
     assert rows[0]["reliability_state"] == LLM_STATES[0] == "llm_supported"
-    assert rows[0]["origin"] == FACT_ORIGINS[2]
+    assert rows[0]["origin"] == LLM_INTERPRETATION
     assert json.loads(rows[0]["evidence_refs"]) == [subject_file[2]]
     assert unresolved_for_file(p6_conn, request.file_id,
                                request.content_hash) == []
@@ -1480,7 +1480,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 from facts.cache import fact_cache_key
 from facts.domains import active_field_allowlist
 from facts.evidence import cite, observations_for_version
-from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact
+from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact, LLM_INTERPRETATION
 from facts.states import is_stronger
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
@@ -1694,7 +1694,7 @@ def apply_verdict(conn: sqlite3.Connection, *, request: FactRequest,
     return write_fact(
         conn, file_id=request.file_id, content_hash=request.content_hash,
         field_key=proposal.field_key, value_id=value_id,
-        reliability_state=reliability_state, origin=FACT_ORIGINS[2],
+        reliability_state=reliability_state, origin=LLM_INTERPRETATION,
         evidence_refs=tuple(proposal.citations), cache_key=cache_key, active=True)
 ```
 
@@ -1819,8 +1819,8 @@ from evidence_shape.observation import Observation
 from evidence_shape.runs import ExtractionRun
 from evidence_shape.store import record_observation, record_run
 
-from facts.file_facts import FACT_ORIGINS, FILE_FACTS_COLUMNS, facts_for_file, write_fact
-from facts.states import STATES
+from facts.file_facts import FACT_ORIGINS, FILE_FACTS_COLUMNS, facts_for_file, write_fact, RULE
+from facts.states import STATES, USER_CONFIRMED
 from facts.supersede import (
     FACT_TABLE, PreferredNeverReverses, SupersedeAcrossSlots, fact_history,
     preferred_fact, supersede_fact,
@@ -1886,7 +1886,7 @@ def _fact(conn, *, file_id, content_hash, field_key, value, key, state, cache_ke
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     return write_fact(conn, file_id=file_id, content_hash=content_hash,
                       field_key=field_key, value_id=value_id,
-                      reliability_state=state, origin=FACT_ORIGINS[1],
+                      reliability_state=state, origin=RULE,
                       evidence_refs=(key,), cache_key=cache_key, active=True)
 
 
@@ -1917,7 +1917,7 @@ def test_the_table_this_module_addresses_carries_both_columns_it_needs(p6_conn):
     for column in ("fact_id", "file_id", "content_hash", "reliability_state",
                    "preferred"):
         assert column in FILE_FACTS_COLUMNS, column
-    assert STATES[0] == "user_confirmed"      # P4 publishes the tuple strongest-first
+    assert USER_CONFIRMED == "user_confirmed"      # P4 publishes the tuple strongest-first
 
 
 def test_a_superseding_fact_is_preferred_and_the_superseded_row_is_not(
@@ -2011,7 +2011,7 @@ def test_a_user_confirmed_fact_is_always_the_preferred_row(scanned, p6_conn):
     file_id, content_hash, first, second = scanned
     confirmed = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
                       field_key="subject", value="Columbia University", key=first,
-                      state=STATES[0], cache_key="sha256:user")
+                      state=USER_CONFIRMED, cache_key="sha256:user")
     _fact(p6_conn, file_id=file_id, content_hash=content_hash, field_key="subject",
           value="Colombia", key=second, state="llm_supported",
           cache_key="sha256:model")
@@ -2024,7 +2024,7 @@ def test_preferred_never_reverses_the_reliability_ordering(scanned, p6_conn):
     file_id, content_hash, first, second = scanned
     confirmed = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
                       field_key="subject", value="Columbia University", key=first,
-                      state=STATES[0], cache_key="sha256:user")
+                      state=USER_CONFIRMED, cache_key="sha256:user")
     weaker = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
                    field_key="subject", value="Colombia", key=second,
                    state="validated", cache_key="sha256:rule")
@@ -2156,7 +2156,7 @@ from typing import Iterable
 from database_agent.supersede import chain, mark_superseded
 
 from facts.file_facts import facts_for_file
-from facts.states import STATES
+from facts.states import STATES, USER_CONFIRMED
 
 #: The table P1's `mark_superseded` and `chain` are addressed by. Task 4 owns the DDL,
 #: including the VIRTUAL `record_id` projection of `fact_id` that P1 requires and the
@@ -2234,9 +2234,9 @@ def supersede_fact(conn: sqlite3.Connection, *, old_fact_id: str,
         raise SupersedeAcrossSlots(
             "§8.2 supersedes an answer: both facts must be for one file and one "
             f"field; {old_fact_id!r} and {new_fact_id!r} are not")
-    if old["reliability_state"] == STATES[0] != new["reliability_state"]:
+    if old["reliability_state"] == USER_CONFIRMED != new["reliability_state"]:
         raise PreferredNeverReverses(
-            f"{old_fact_id!r} is {STATES[0]!r}; §3.13's ordering is not negotiable "
+            f"{old_fact_id!r} is {USER_CONFIRMED!r}; §3.13's ordering is not negotiable "
             "and `preferred` never reverses it, so a weaker fact cannot take the "
             "pointer from a user's own answer")
     mark_superseded(conn, FACT_TABLE, old_id=old_fact_id, new_id=new_fact_id,
@@ -2270,7 +2270,7 @@ def preferred_fact(conn: sqlite3.Connection, *, file_id: str,
     """
     live = [row for row in _slot(conn, file_id=file_id, field_key=field_key)
             if row["superseded_by"] is None]
-    confirmed = [row for row in live if row["reliability_state"] == STATES[0]]
+    confirmed = [row for row in live if row["reliability_state"] == USER_CONFIRMED]
     if confirmed:
         live = confirmed
     if len(live) == 1:
@@ -2472,7 +2472,7 @@ from extractors.ocr_policy import text_layer_state
 from extractors.sink import ExtractionResult
 
 from facts import usable
-from facts.file_facts import FACT_ORIGINS, FORBIDDEN_COLUMN_SUBSTRINGS, write_fact
+from facts.file_facts import FACT_ORIGINS, FORBIDDEN_COLUMN_SUBSTRINGS, write_fact, RULE
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.usable import (
     FACT_PASSES_TABLE, FactPassNotRun, no_usable_facts_for, passes_for, record_pass,
@@ -2577,7 +2577,7 @@ def test_false_for_a_file_with_one_active_usable_fact(scanned, p6_conn):
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=file_id, content_hash=content_hash,
                field_key="subject", value_id=value_id,
-               reliability_state="validated", origin=FACT_ORIGINS[1],
+               reliability_state="validated", origin=RULE,
                evidence_refs=(key,), cache_key="sha256:cache", active=True)
     record_pass(p6_conn, file_id=file_id, content_hash=content_hash,
                 analysis_tiers=NATIVE)
@@ -2610,7 +2610,7 @@ def test_the_threshold_decides_and_the_module_states_none(scanned, p6_conn):
                             first_evidence_ref=key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=file_id, content_hash=content_hash,
                field_key="subject", value_id=value_id,
-               reliability_state="possible", origin=FACT_ORIGINS[1],
+               reliability_state="possible", origin=RULE,
                evidence_refs=(key,), cache_key="sha256:cache", active=True)
     record_pass(p6_conn, file_id=file_id, content_hash=content_hash,
                 analysis_tiers=NATIVE)

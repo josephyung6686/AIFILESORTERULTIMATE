@@ -527,7 +527,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 
 from facts.cache import fact_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
-from facts.file_facts import FACT_ORIGINS, write_fact
+from facts.file_facts import FACT_ORIGINS, write_fact, DETERMINISTIC_EXTRACTOR, RULE
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -679,7 +679,7 @@ def duplicate_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
             written.append(_write_family(
                 conn, version=member, field_key=DUPLICATE_FAMILY_FIELD,
                 canonical_value=content_hash, reliability_state="direct",
-                origin=FACT_ORIGINS[0], evidence_refs=tuple(shared), cited=cited))
+                origin=DETERMINISTIC_EXTRACTOR, evidence_refs=tuple(shared), cited=cited))
 
     written.extend(_near_families(conn, versions=versions,
                                   perceptual_hash_label=perceptual_hash_label,
@@ -740,7 +740,7 @@ def _near_families(conn: sqlite3.Connection, *, versions: tuple[_Version, ...],
             written.append(_write_family(
                 conn, version=by_id[file_id], field_key=DUPLICATE_FAMILY_FIELD,
                 canonical_value=canonical_value, reliability_state="possible",
-                origin=FACT_ORIGINS[0], evidence_refs=refs, cited=cited))
+                origin=DETERMINISTIC_EXTRACTOR, evidence_refs=refs, cited=cited))
     return written
 
 
@@ -809,7 +809,7 @@ def version_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
             written.append(_write_family(
                 conn, version=by_id[file_id], field_key=VERSION_FAMILY_FIELD,
                 canonical_value=canonical_value, reliability_state=weakest,
-                origin=FACT_ORIGINS[1], evidence_refs=refs, cited=cited))
+                origin=RULE, evidence_refs=refs, cited=cited))
     return tuple(written)
 ```
 
@@ -919,7 +919,7 @@ from evidence_shape.store import record_observation, record_run
 
 from facts import session
 from facts.fields import get_field
-from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact
+from facts.file_facts import FACT_ORIGINS, facts_for_file, write_fact, RULE
 from facts.session import (
     DOWNLOAD_SESSION_FIELD, SESSION_STATE, SessionBoundary, SessionNeverPromoted,
     bounded_sessions, require_possible,
@@ -1031,7 +1031,7 @@ def test_the_session_fact_is_written_for_the_member_file_only(one_session, p6_co
                             first_evidence_ref=left_key, origin=VALUE_ORIGINS[0])
     write_fact(p6_conn, file_id=left, content_hash=left_hash, field_key="subject",
                value_id=value_id, reliability_state="validated",
-               origin=FACT_ORIGINS[1], evidence_refs=(left_key,),
+               origin=RULE, evidence_refs=(left_key,),
                cache_key="sha256:cache", active=True)
     bounded_sessions(p6_conn, file_ids=(left, right), boundary=TIGHT)
     right_fields = {r["field_key"]
@@ -1173,7 +1173,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS
 
 from facts.cache import fact_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
-from facts.file_facts import FACT_ORIGINS, write_fact
+from facts.file_facts import FACT_ORIGINS, write_fact, DETERMINISTIC_EXTRACTOR
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -1344,7 +1344,7 @@ def bounded_sessions(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                 conn, file_id=member.file_id, content_hash=member.content_hash,
                 field_key=DOWNLOAD_SESSION_FIELD, value_id=value_id,
                 reliability_state=require_possible(SESSION_STATE),
-                origin=FACT_ORIGINS[0], evidence_refs=refs,
+                origin=DETERMINISTIC_EXTRACTOR, evidence_refs=refs,
                 cache_key=_cache_key(conn, content_hash=member.content_hash,
                                      observations=citable[member.file_id]),
                 active=True)

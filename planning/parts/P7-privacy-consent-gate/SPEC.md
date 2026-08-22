@@ -58,9 +58,12 @@ deferred (below). P7 owns the vocabulary, the record shapes, the modes, the audi
 
 Held elsewhere in the design but enforced through P7's vocabulary:
 
-- `sensitivity` is a **field** in the core model (§3.12) and `sensitivity status` is one of the small set
-  of universal file facts (§3.11). P7 does not create a private table for classification — it owns the
-  value vocabulary of an existing field and writes through P6.
+- `sensitivity status` is named among §3.11's universal file facts and the residual screen is required
+  to display it. **D7 (2026-08-22):** P6 creates no `sensitivity_status` field row. P7 owns an
+  authoritative `ClassificationRecord` and projects it onto `files.sensitivity_state` through P1's
+  `set_sensitivity_state`. The product still has sensitivity status; it does not live as a P6 fact.
+  That is a letter-deviation from §3.11, stated here rather than buried. Without a detector the
+  column is never written, so the residual display shows nothing today.
 - Finance, identity, medical and legal material ship first as **safety domains**: *"the system detects
   and protects them before any cloud or automated placement decision is allowed"* (§3.15).
 - Rare sensitive files — passports, visas, legal documents — *"may be surfaced as protected records even
@@ -111,7 +114,7 @@ A value outside this set is a load error, not a fallback. **Absence of a classif
 escalation (*"classify data into handling classes before LLM escalation"*), so a file that has not been
 classified has not met the precondition for a model call — see Budgets, below.
 
-### 2. Classification record (§8.4, written through P6's `sensitivity` field)
+### 2. Classification record (§8.4, P7-owned; projected onto `files.sensitivity_state`)
 
 ```text
 file_id                 P1 identity

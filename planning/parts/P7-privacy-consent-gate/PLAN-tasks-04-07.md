@@ -107,7 +107,7 @@ one place so the authors of the neighbouring tasks can see them without reading 
 | A4 | 4 | `Files:` names only `facts_seam.py` | Task 4 creates `src/privacy/schema.py` with `create_privacy_schema(conn)`; **Task 5 extends the same function** | *"Task 4 loses a protocol and gains a `CREATE TABLE`"* and Task 4 runs first. One schema entry point, called once by `tests/p7/conftest.py`. |
 | A5 | 4 | — | consumes `privacy.classification.UNREADABLE_UNCLASSIFIED` | The class name must exist as a bound name, not as a literal retyped in a second module — that duplication is the defect class P1's `set_sensitivity_state` docstring calls *"this project's most expensive"*. **Task 3 must publish it**; its own tests already assert `resolve_class(None) == "unreadable_unclassified"`. |
 | A6 | 5 | `current_policy(conn, *, plan_version) -> Policy` | `-> Policy \| None` | A non-optional return forces `policy.py` to hold a default mode, which is Task 6's W1 job and which Task 6's negative test forbids anywhere else. `None` means *no policy has been set*, and Task 6 is what turns that into the local-first floor. |
-| A7 | 5 | — | `SHOWN`, `REDACTED`, `REDACTION_VALUES: tuple[str, str]` | SPEC §10 spells the two values — *"each shown \| redacted"* — and `Policy` cannot validate `redaction_settings` without names for them. They arguably belong in Task 2's `vocabulary.py`; if Task 2 publishes them, `policy.py` re-exports and deletes its own. Reported to the Task 2 author. |
+| A7 | 5 | — | `SHOWN`, `REDACTED`, `REDACTION_VALUES: tuple[str, str]` — **re-exported from `privacy.vocabulary`, not defined here** | SPEC §10 spells the two values — *"each shown \| redacted"* — and `Policy` cannot validate `redaction_settings` without names for them. **Resolved as this row proposed: Task 2 publishes them, so `policy.py` re-exports and deletes its own.** The pair had grown three homes and three names — `REDACTION_VALUES` here, `SETTING_VALUES` in Task 18, `FACET_VALUES` in a third section — and Task 2's `vocabulary.py` is the one home, beside `DISPLAY_FACETS`, whose value vocabulary they are. The three names above are unchanged, so no consumer of `privacy.policy` moves. |
 | A8 | 5 | `set_policy(conn, policy, …)` | refuses a `Policy` whose `policy_version` is not `UNSET_POLICY_VERSION` | SPEC §6: *"the gate owns the policy, so the caller does not supply this value, it echoes it."* A minted value cannot be minted if the caller already filled the field. |
 | A9 | 5 | *"the policy, consent-grant and release-ledger tables"* | **one** table, `privacy_policies`; grants live on the policy row | `policy_version` is a binding term (B2). A consent grant that did not mint a new policy version would leave releases minted before the grant still spendable after it. §8.8 also lists *"Privacy and model-consent policies"* as one plan-version item, not two. The release ledger stays Task 12's. |
 | A10 | 6 | `resolve_default_policy(stored) -> Policy` | `resolve_default_policy(stored, *, install_mode, plan_version, set_at) -> Policy` | `install_mode` is a **required keyword validated against `LOCAL_FIRST_MODES`** — the mechanical form of *"P7 constrains it without choosing it"* (Contract out §5, W1). It is why `src/privacy/` can hold no default mode at all and why Open question 11 stays structurally open. |
@@ -253,6 +253,7 @@ from privacy.schema import (
     SUPERSEDE_ADAPTER_COLUMN,
     create_privacy_schema,
 )
+from privacy.vocabulary import USER, USER_CONFIRMED
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 LATER = "2026-08-22T18:30:00+00:00"
@@ -384,34 +385,45 @@ def test_current_is_none_before_anything_classifies(store):
 
 def test_current_fact_id_returns_the_unsuperseded_row(store):
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", observed_at=LATER))
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     assert store.current_fact_id("file-1", HASH_A) == new
 
 
 # --- §3.13's ordering, quoted and not re-derived ----------------------------
 
-def test_the_ordering_is_p6s_listed_order(store):
-    # The design lists them in this order and states no comparison rule; P6's
-    # canonical snake_case literals, never a respelling.
+def test_the_ordering_is_the_designs_listed_order(store):
+    # The design lists them in this order and states no comparison rule. The
+    # spellings are P4's -- `evidence_shape.vocabulary.RELIABILITY_STATES`, which
+    # Task 2 re-exports -- and this module retypes none of them: the ranking is the
+    # published tuple with the one unranked state removed, in place.
     assert RELIABILITY_ORDER == (
         "user_confirmed", "direct", "validated", "llm_supported", "possible")
     assert REJECTED == "rejected"
     assert REJECTED not in RELIABILITY_ORDER
+    assert RELIABILITY_ORDER == tuple(
+        state for state in RELIABILITY_STATES if state != REJECTED)
+    assert set(RELIABILITY_ORDER) | {REJECTED} == set(RELIABILITY_STATES)
+
+
+def test_the_ranking_head_is_task_2s_named_constant(store):
+    # Brief §11: never a bare string, never an index. The strongest state is the one
+    # P7 itself writes (Task 16), so it is the one with a name.
+    assert RELIABILITY_ORDER[0] == USER_CONFIRMED
 
 
 def test_a_user_confirmed_record_outranks_a_validated_one(store):
     validated = a_record(reliability_state="validated")
-    confirmed = a_record(reliability_state="user_confirmed",
+    confirmed = a_record(reliability_state=USER_CONFIRMED,
                          handling_class="personal_non_sensitive", protected=False,
-                         basis="user", evidence_refs=(), observed_at=LATER)
+                         basis=USER, evidence_refs=(), observed_at=LATER)
     store.write(validated)
     store.write(confirmed)
     assert store.current("file-1", HASH_A) == confirmed
 
 
 def test_the_ordering_holds_regardless_of_write_order(store):
-    confirmed = a_record(reliability_state="user_confirmed", basis="user",
+    confirmed = a_record(reliability_state=USER_CONFIRMED, basis=USER,
                          evidence_refs=())
     store.write(confirmed)
     store.write(a_record(reliability_state="direct", observed_at=LATER))
@@ -420,8 +432,8 @@ def test_the_ordering_holds_regardless_of_write_order(store):
 
 def test_strongest_reads_the_order_and_computes_no_score(store):
     records = [a_record(reliability_state=state) for state in
-               ("possible", "llm_supported", "direct", "user_confirmed", "validated")]
-    assert strongest(records).reliability_state == "user_confirmed"
+               ("possible", "llm_supported", "direct", USER_CONFIRMED, "validated")]
+    assert strongest(records).reliability_state == USER_CONFIRMED
     assert strongest(records[:1]).reliability_state == "possible"
 
 
@@ -459,8 +471,8 @@ def test_two_live_records_at_the_same_rank_raise_rather_than_pick(store):
 def test_a_revision_supersedes_through_p1s_three_columns(p7_conn, store):
     old = store.write(a_record())
     new = store.write(a_record(handling_class="personal_non_sensitive", protected=False,
-                               basis="user", evidence_refs=(),
-                               reliability_state="user_confirmed", observed_at=LATER))
+                               basis=USER, evidence_refs=(),
+                               reliability_state=USER_CONFIRMED, observed_at=LATER))
     store.supersede(old, new, "user reclassified as non-sensitive")
     row = p7_conn.execute(
         f"SELECT * FROM {CLASSIFICATIONS_TABLE} WHERE fact_id = ?", (old,)).fetchone()
@@ -475,7 +487,7 @@ def test_both_records_remain_readable_afterwards(store):
     # §8.2's explicit rule, and its OCR example applies directly: an early detector
     # and a later one may disagree and both survive.
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=(), observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     history = store.history("file-1")
@@ -485,7 +497,7 @@ def test_both_records_remain_readable_afterwards(store):
 
 def test_the_chain_is_p1s_and_p7_does_not_copy_it(p7_conn, store):
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=(), observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     assert [row["fact_id"] for row in chain(p7_conn, CLASSIFICATIONS_TABLE, old)] == \
@@ -494,7 +506,7 @@ def test_the_chain_is_p1s_and_p7_does_not_copy_it(p7_conn, store):
 
 def test_the_first_supersede_reason_is_never_overwritten(store):
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=(), observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     third = store.write(a_record(reliability_state="direct", observed_at=LATER))
@@ -503,7 +515,7 @@ def test_the_first_supersede_reason_is_never_overwritten(store):
 
 
 def test_a_superseded_record_is_not_current(store):
-    old = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    old = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=()))
     new = store.write(a_record(reliability_state="validated", observed_at=LATER))
     store.supersede(old, new, "detector re-ran on better evidence")
@@ -651,7 +663,7 @@ def test_the_store_appends_no_event(p7_conn, store):
     # C4's one job. `classification_assigned` is Task 16's, once, with a user_id.
     before = p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"]
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=(), observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     assert p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"] == before
@@ -803,16 +815,17 @@ from evidence_shape.canonical import canonical_json
 from privacy.authorship import SUBSYSTEM
 from privacy.classification import UNREADABLE_UNCLASSIFIED, ClassificationRecord
 from privacy.schema import CLASSIFICATIONS_TABLE
+from privacy.vocabulary import REJECTED, RELIABILITY_STATES
 
-#: §3.13, in the design's own listed order, strongest first. P6's canonical
-#: snake_case literals. Never sorted, never scored, never re-derived.
-RELIABILITY_ORDER: tuple[str, ...] = (
-    "user_confirmed", "direct", "validated", "llm_supported", "possible",
+#: §3.13, in the design's own listed order, strongest first: Task 2's re-exported
+#: tuple with the unranked state removed, IN PLACE. Derived rather than retyped --
+#: five literals here would be a second home for a vocabulary P4 publishes and Task 2
+#: re-exports, which is the defect brief §11 exists to prevent. Never sorted, never
+#: scored: the order is the design's own line 50 read in sequence and nothing
+#: computes it. `REJECTED` is Task 2's named exclusion — this module does not respell it.
+RELIABILITY_ORDER: tuple[str, ...] = tuple(
+    state for state in RELIABILITY_STATES if state != REJECTED
 )
-
-#: The sixth state. "A rejected fact is a proposal that the user or validator marked
-#: as incorrect" -- stored, kept for §8.7's negative examples, never current.
-REJECTED = "rejected"
 
 _COLUMNS = (
     "fact_id", "file_id", "content_hash", "handling_class", "protected", "basis",
@@ -1042,8 +1055,8 @@ git commit -m "feat(P7): P7's own classification store, §3.13's ordering, and t
   - `POLICIES_TABLE: str = "privacy_policies"`, `POLICIES_DDL: str`;
     `create_privacy_schema` also executes it.
 - Produces (`policy.py`):
-  - `SHOWN: str = "shown"`, `REDACTED: str = "redacted"`,
-    `REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)` (A7).
+  - `SHOWN`, `REDACTED`, `REDACTION_VALUES: tuple[str, str]` — **re-exported** from
+    `privacy.vocabulary`, which owns them (A7). `policy.py` defines none of the three.
   - `NO_MODEL_USE: str = "no_model_use"` — validated against `CONSENT_OPTIONS` at import.
   - `UNSET_POLICY_VERSION: str = ""` — what a `Policy` carries before the gate mints one.
   - `Policy` — frozen: `policy_version: str`, `operation_mode: str`,
@@ -1153,6 +1166,7 @@ from privacy.policy import (
     transcription_authorized_for,
 )
 from privacy.schema import POLICIES_TABLE
+import privacy.vocabulary as vocabulary
 from privacy.vocabulary import (
     CONSENT_OPTIONS,
     DISPLAY_FACETS,
@@ -1351,6 +1365,17 @@ def test_the_two_redaction_values_are_the_specs_own(p7_conn):
     # SPEC §10: "names | previews | thumbnails | ocr_text | location_data
     #            each shown | redacted".
     assert REDACTION_VALUES == ("shown", "redacted") == (SHOWN, REDACTED)
+
+
+def test_policy_re_exports_task_2s_values_and_defines_none_of_its_own(p7_conn):
+    # A7, resolved: `privacy.vocabulary` owns the pair and `policy.py` re-exports it.
+    # `is`, not `==`: a second tuple with the same two strings passes equality and is
+    # exactly the second home the re-export exists to remove. Before this, the pair
+    # had three homes -- REDACTION_VALUES here, REDACTION_VALUES in Task 18,
+    # REDACTION_VALUES in a third section.
+    assert SHOWN is vocabulary.SHOWN
+    assert REDACTED is vocabulary.REDACTED
+    assert REDACTION_VALUES is vocabulary.REDACTION_VALUES
 
 
 def test_an_unknown_facet_is_a_load_error(p7_conn):
@@ -1610,16 +1635,21 @@ from privacy.schema import POLICIES_TABLE
 from privacy.vocabulary import (
     CONSENT_OPTIONS,
     DISPLAY_FACETS,
+    REDACTED,
+    REDACTION_VALUES,
+    SHOWN,
     OutOfVocabulary,
     check_mode,
 )
 
-#: SPEC §10: "names | previews | thumbnails | ocr_text | location_data -- each
-#: shown | redacted". Two values, named once. Reported to Task 2's author: if
-#: `vocabulary.py` adopts them, this module re-exports and deletes its own.
-SHOWN = "shown"
-REDACTED = "redacted"
-REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)
+# SPEC §10: "names | previews | thumbnails | ocr_text | location_data -- each
+# shown | redacted". `SHOWN`, `REDACTED` and `REDACTION_VALUES` are imported above
+# and RE-EXPORTED under the same three names, because `privacy.vocabulary` owns them
+# (A7, resolved) and because they are the value vocabulary of `DISPLAY_FACETS`, which
+# lives there too. This module defined them once, Task 18 defined them again as
+# `REDACTION_VALUES` and a third section as `REDACTION_VALUES`; three homes for two strings
+# is the defect class this project has paid the most for. Consumers keep importing
+# them from `privacy.policy` -- the names did not move, only the definition did.
 
 #: The consent option that authorizes nothing. Named so `transcription_authorized_for`
 #: does not index into a tuple, and validated at import so it cannot drift from

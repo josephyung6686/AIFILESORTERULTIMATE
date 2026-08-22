@@ -10,7 +10,7 @@
 
 **Interfaces:**
 - Consumes: `database_agent.events.RESERVED_EVENT_TYPES`, `evidence_shape.vocabulary.RELIABILITY_STATES`, `evidence_shape.vocabulary.EXTRACTOR_RELIABILITY_STATES`, `evidence_shape.vocabulary.check`, `evidence_shape.vocabulary.NotInVocabulary`, `evidence_shape.conformance.validate_observation`, `evidence_shape.fixtures.by_number`.
-- Produces: `SUBSYSTEM: str`, `COMPONENT_VERSION: str`, `AUTHORED_EVENT_TYPES: tuple[str, str]`, `event_defaults(**fields) -> dict`; `STATES: tuple[str, ...]` (re-export), `STRENGTH_ORDER: tuple[str, ...]`, `EXCLUDED_STATE: str`, `strength(state: str) -> int`, `is_stronger(a: str, b: str) -> bool`.
+- Produces: `SUBSYSTEM: str`, `COMPONENT_VERSION: str`, `AUTHORED_EVENT_TYPES: tuple[str, str]`, `event_defaults(**fields) -> dict`; `STATES: tuple[str, ...]` (re-export), **one named constant per state — `USER_CONFIRMED: str`, `DIRECT: str`, `VALIDATED: str`, `LLM_SUPPORTED: str`, `POSSIBLE: str`, `REJECTED: str`** — `STRENGTH_ORDER: tuple[str, ...]`, `EXCLUDED_STATE: str`, `strength(state: str) -> int`, `is_stronger(a: str, b: str) -> bool`.
 
 **Done-means:** foundational to all; directly none.
 
@@ -61,6 +61,22 @@ contains `fact creation` and `fact rejection` — nineteen names, both present. 
 > whose members are the six**. That is runtime introspection over `vars(module)`, not a source-text
 > search, and it catches the defect the skeleton was aiming at while permitting the three subsets
 > above. Task 25 owns the whole-package version of it.
+
+**The six are published BOTH ways, and every other module imports the NAMED CONSTANT.** `STATES` is
+for iteration and membership; `USER_CONFIRMED`, `DIRECT`, `VALIDATED`, `LLM_SUPPORTED`, `POSSIBLE`
+and `REJECTED` are for naming one state. **Never a bare literal, never an index.** A bare literal is
+a second home for a published vocabulary — this project's most expensive defect class. An index
+(`STATES[1]`) is single-homed and unreadable, and it silently couples every consumer to the tuple's
+**order**: reorder the tuple and every meaning changes with no test failing. The repo's own
+precedent is the named constant — P5 publishes `POTENTIALLY_SENSITIVE`, P1 publishes
+`SUPERSEDED_CONTENT`.
+
+The literal is spelled **here and nowhere else**, because this is the module that publishes it, and
+`test_the_six_named_constants_are_exactly_the_six_states` pins each name to its member of `STATES`
+so a typo in one of them is a failing test rather than a silent second vocabulary. A producer that
+names the one or two states it may write — `EVENT_STATE`, `SESSION_STATE`, `VERSION_FAMILY_STATES`,
+`LLM_STATES` — builds that subset **from these constants**, which is what keeps it the producer's
+own contract rather than a second copy.
 
 **`rejected` has no strength, and asking for one raises.** §3.13: *"A rejected fact is a proposal
 that the user or validator marked as incorrect."* It is an exclusion, not the bottom of a ladder — a
@@ -180,7 +196,10 @@ from evidence_shape.vocabulary import (
     EXTRACTOR_RELIABILITY_STATES, RELIABILITY_STATES, NotInVocabulary,
 )
 
-from facts.states import EXCLUDED_STATE, STATES, STRENGTH_ORDER, is_stronger, strength
+from facts.states import (
+    DIRECT, EXCLUDED_STATE, LLM_SUPPORTED, POSSIBLE, REJECTED, STATES,
+    STRENGTH_ORDER, USER_CONFIRMED, VALIDATED, is_stronger, strength,
+)
 
 
 def test_states_is_p4s_tuple_and_not_a_copy_of_it():
@@ -189,6 +208,20 @@ def test_states_is_p4s_tuple_and_not_a_copy_of_it():
     assert STATES is RELIABILITY_STATES
     assert STATES == ("user_confirmed", "direct", "validated", "llm_supported",
                       "possible", "rejected")
+
+
+def test_the_six_named_constants_are_exactly_the_six_states():
+    # Preamble §3.1: the six are published BOTH ways -- `STATES` for iteration and
+    # membership, one named constant for naming one state. Every other module
+    # imports the constant: never a bare literal (a second home), never an index
+    # (single-homed, unreadable, and coupled to the tuple's ORDER). This test is
+    # what makes the literal safe to spell in `states.py` and nowhere else -- a typo
+    # in one constant fails here rather than becoming a second vocabulary.
+    named = (USER_CONFIRMED, DIRECT, VALIDATED, LLM_SUPPORTED, POSSIBLE, REJECTED)
+    assert named == STATES
+    assert len(set(named)) == 6
+    for one in named:
+        assert one in STATES
 
 
 def test_the_3_13_prose_spellings_are_prose_and_are_not_members():
@@ -404,7 +437,10 @@ is the common format into which both systems write their conclusions." The produ
 is a column, not a schema.
 
 `STATES` IS `evidence_shape.vocabulary.RELIABILITY_STATES` — the same object, not a
-copy, so the two cannot drift. The §3.13 prose spellings ("LLM-supported", "user
+copy, so the two cannot drift. Beside it, **one named constant per state**, spelled
+here and nowhere else: every other module imports `DIRECT`, `POSSIBLE`, `VALIDATED`,
+`LLM_SUPPORTED`, `USER_CONFIRMED` or `REJECTED`, never a bare literal and never an
+index into `STATES`. The §3.13 prose spellings ("LLM-supported", "user
 confirmed") are English; a value outside the six is a load error, not a spelling to
 normalize.
 
@@ -427,19 +463,33 @@ from evidence_shape.vocabulary import (
     check,
 )
 
+#: §3.13's six states, one named constant each. This module is the ONE place a state
+#: name is spelled; every other module imports the constant. Never a bare literal (a
+#: second home for a published vocabulary) and never an index into `STATES` (which is
+#: single-homed and unreadable, and silently couples the consumer to the tuple's
+#: ORDER -- reorder it and meanings change with no test failing). The repo's own
+#: precedent: P5 publishes POTENTIALLY_SENSITIVE, P1 publishes SUPERSEDED_CONTENT.
+#: `test_the_six_named_constants_are_exactly_the_six_states` pins each to `STATES`.
+USER_CONFIRMED: str = "user_confirmed"
+DIRECT: str = "direct"
+VALIDATED: str = "validated"
+LLM_SUPPORTED: str = "llm_supported"
+POSSIBLE: str = "possible"
+REJECTED: str = "rejected"
+
 #: §3.13's five ranked states, weakest first, so `strength` is an index and the order
 #: is readable in one line. §3.13's own sentence order is strongest-first; the ladder
 #: is written the other way round only so that a larger number means a stronger fact.
 STRENGTH_ORDER: tuple[str, ...] = (
-    "possible",
-    "llm_supported",
-    "validated",
-    "direct",
-    "user_confirmed",
+    POSSIBLE,
+    LLM_SUPPORTED,
+    VALIDATED,
+    DIRECT,
+    USER_CONFIRMED,
 )
 
 #: The sixth state, named as excluded rather than left out silently.
-EXCLUDED_STATE = "rejected"
+EXCLUDED_STATE = REJECTED
 
 
 def strength(state: str) -> int:
@@ -467,12 +517,12 @@ def is_stronger(a: str, b: str) -> bool:
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `pytest tests/p6/test_p6_authorship.py tests/p6/test_p6_states.py -v`
-Expected: PASS — 9 passed in `test_p6_authorship.py`, 8 passed in `test_p6_states.py`, 17 total.
+Expected: PASS — 9 passed in `test_p6_authorship.py`, 9 passed in `test_p6_states.py`, 18 total.
 
 - [ ] **Step 5: Run the whole suite and confirm nothing else moved**
 
 Run: `pytest tests/ -q`
-Expected: PASS — the 1302 P1–P5 tests still pass, plus 17. `src/facts/` and `tests/p6/` are new
+Expected: PASS — the 1302 P1–P5 tests still pass, plus 18. `src/facts/` and `tests/p6/` are new
 directories; `pyproject.toml` already carries `pythonpath = ["src"]` and `testpaths = ["tests"]`,
 so `facts` is importable and `tests/p6/` is collected with no change to any file P6 does not own.
 
@@ -639,15 +689,11 @@ disagree.**
   §3.8 sentence binds the authorship side only and that §3.8 *"places a document's purpose, project,
   subject, or target above its authorship"*.
 
-**Resolved for the skeleton**, which outranks `planning/domains/` in the brief's precedence order
-(§3: design → SPEC → skeleton; `planning/domains/` is a *source to read*). All four are `FALSE`.
-The reading costs nothing today and is the reversible direction: `target_school` is held as a key
-**unreferenced by any domain**, pending the ROSTER NEEDS-JOSEPH that may fold it into
-`target_university` (which **is** `destination_eligible = TRUE`, as §3.11's College-applications row
-requires); and `client` is referenced by no §3.11 domain either, because the business schemas are
-deferred. Widening a field to destination-eligible later is a decision; narrowing one after a tree
-has been built from it is a migration. The disagreement is recorded here rather than silently
-picked.
+**Resolved for D9**, which overrules both the skeleton and the earlier "all four FALSE" reading.
+Authorship is never destination-eligible (`authored_by`, and `our_firm` as the firm-side identity).
+`target_school` and `client` **are** destination-eligible: they are targets, not authorship.
+D8: the stored key is `target_school`, not a second `target_university` key. The catalogue may still
+list both with a NEEDS-JOSEPH note; this task stores `target_school`.
 
 **3. `value_kind` cannot carry the SPEC's "date/term" obligation.** The SPEC's column comment is
 *"how this field's values normalize; date/term fields must use §3.10 rules"*, but
@@ -794,20 +840,21 @@ def test_career_identity_medical_and_legal_have_no_field_rows():
         assert absent not in KEYS
 
 
-def test_the_four_3_8_role_fields_exist_and_none_is_destination_eligible():
+def test_the_four_3_8_role_fields_exist_and_d9_splits_destination_eligibility():
     # §3.8: "distinct facets, such as authored_by and target_school, or our_firm and
     # client" — the design's own spelling, underscores included.
     #
+    # D9: authorship is never destination-eligible; target_school and client ARE.
     # Round 1's F-1: Done-means 13 and 22 both require `authored_by` to exist, so a
     # catalogue without these four made two of the SPEC's own Done-means unwritable.
     assert ROLE_FIELDS == ("authored_by", "target_school", "our_firm", "client")
     for key in ROLE_FIELDS:
         row = next(r for r in FIELD_ROWS if r.field_key == key)
-        assert row.destination_eligible is False, key
         assert row.scope == "universal", key
-    # §3.8: "It should avoid using authorship or creator identity as a destination
-    # dimension." Recorded disagreement: canonical_fields.json marks target_school
-    # and client eligible; the skeleton says all four are FALSE and outranks it.
+    assert get_row("authored_by").destination_eligible is False
+    assert get_row("our_firm").destination_eligible is False
+    assert get_row("target_school").destination_eligible is True
+    assert get_row("client").destination_eligible is True
 
 
 def test_the_application_target_is_destination_eligible_under_its_3_11_spelling():
@@ -1195,21 +1242,18 @@ _DOWNLOAD_SESSION: tuple[FieldRow, ...] = (
 #: client" — the design's own spelling, underscores included, so `display_name` keeps
 #: it rather than inventing English the design does not use.
 #:
-#: All four are `destination_eligible = False`: §3.8, "It should avoid using
-#: authorship or creator identity as a destination dimension." Recorded disagreement:
-#: `canonical_fields.json` marks `target_school` and `client` eligible on the reading
-#: that the sentence binds the authorship side only. The skeleton says all four are
-#: FALSE and outranks that file; it costs nothing today, because no §3.11 domain
-#: references either key, and it is the reversible direction.
+#: D9: authorship (`authored_by`, and `our_firm` as firm-side identity) is never
+#: destination-eligible. `target_school` and `client` ARE — they are targets, not
+#: authorship. D8: the stored key is `target_school`.
 #:
 #: They take `scope = "universal"`: no §3.11 domain sentence names any of them, and
 #: FIELD_SCOPES has no eighth member to hold them. `authored_by` in particular is
 #: produced from document metadata on any file, in any domain (§3.8's demotion tier).
 _ROLES_3_8: tuple[FieldRow, ...] = (
     _row("authored_by", "authored_by", "universal", "string", False),
-    _row("target_school", "target_school", "universal", "string", False),
+    _row("target_school", "target_school", "universal", "string", True),
     _row("our_firm", "our_firm", "universal", "string", False),
-    _row("client", "client", "universal", "string", False),
+    _row("client", "client", "universal", "string", True),
 )
 
 #: §3.11: "Academic files may use school, term, course, instructor, and work type."

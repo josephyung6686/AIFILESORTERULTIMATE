@@ -51,7 +51,7 @@ from evidence_shape.store import runs_for_file
 from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
 
 from privacy.vocabulary import (
-    CLASSIFICATION_BASES, OutOfVocabulary, check_handling_class,
+    CLASSIFICATION_BASES, DETECTOR as _DETECTOR, OutOfVocabulary, check_handling_class,
 )
 
 #: SPEC §2's eight, in SPEC §2's order.
@@ -69,7 +69,7 @@ UNREADABLE_UNCLASSIFIED: str = check_handling_class("unreadable_unclassified")
 #: The one basis §8.4's "evidence-backed" binds. `user` needs no evidence -- the
 #: user's act is the evidence -- and `safety_domain` is §3.15's rule about a domain,
 #: not a reading of a span.
-_EVIDENCE_REQUIRED_BASIS: str = "detector"
+_EVIDENCE_REQUIRED_BASIS: str = _DETECTOR
 
 #: M14's citation handle, shaped by asking P4 rather than by hard-coding a pattern.
 #: One probe key at import yields the algorithm prefix and the digest width, so a

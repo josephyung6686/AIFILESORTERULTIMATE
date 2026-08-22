@@ -270,29 +270,23 @@ A published function with no caller.
 
 ## 4. FINDINGS THAT ARE NOT MECHANICAL — these need a decision
 
-### 4.1 **Nothing in P6's plan ever calls the discount.** ← the biggest one
+### 4.1 **Nothing in P6's plan ever calls the discount.** ← CLOSED 2026-08-22
 
-`screen_metadata`, `suppress_tool_metadata`, `may_populate` and `field_permitted` appear in **no
-sibling file**, and Task 20's `DEGRADATION_ORDER` binds exactly three stages — direct, rule, llm
-(`20-21:105-107`). §2.2's suppression **must fire before ranking** and has **no caller**. So a
-`DirectSlots` declaring a metadata-property slot turns `python-docx` into a `direct` fact and **no
-test in the part would see it**.
+`FactResolver` (Task 20) now requires `screen_metadata` with no default and calls it
+**before** `DEGRADATION_ORDER`. Screening is not a fourth producer. Tests bind a no-op or a
+recorder; the production composition site wraps Task 9's keyword-only helper (observations +
+catalogue predicates) into the constructor's `(conn, file_id, content_hash)` shape.
 
-This is a **producer with no consumer** — the mirror of the class round 4 was built to find, and it
-sits on Done-means 22. Task 20 or Task 24 must add the stage.
+### 4.2 D9's positive half is asserted nowhere ← CLOSED 2026-08-22
 
-### 4.2 D9's positive half is asserted nowhere
+Task 2 now asserts `authored_by` / `our_firm` are not destination-eligible and `target_school` /
+`client` are. Field rows match.
 
-Now that `target_school` and `client` are `destination_eligible = TRUE`, **no test asserts it** — and
-the losing Task 9's now-red test was the only test touching those two keys at all. Task 2 is the
-natural home for `test_target_school_and_client_are_destination_eligible`.
+### 4.3 `prior_releases` under-reports every group release ← CLOSED 2026-08-22
 
-### 4.3 `prior_releases` under-reports every group release
-
-`15-22:690`'s `_prior_releases` loops `audit_records_for(conn, file_id=file_id)`, and Task 10's reader
-(`08-11:2100-2103`) filters `file_id = ?` on the **column only**. Brief §15 demands it also match the
-`explanation` — **that demand is unimplemented in Task 10**, and Task 15 is its only consumer. §8.4's
-*"truthful and specific"* retraction limit is exactly what breaks. **Neither version flags it.**
+Task 10's `audit_records_for` file_id filter is
+`(file_id = ? OR EXISTS (SELECT 1 FROM json_each(explanation, '$.file_ids') WHERE value = ?))`.
+Task 15's `xfail` on the group-release listing test is removed.
 
 ### 4.4 A broader `correction_scope` is written and never read
 
@@ -720,26 +714,38 @@ Both `PLAN.md` files are assembled and rebuild reproducibly from
 version is correct. `PLAN-tasks-20-22.md`'s forbidden-token guard names `field_key`, which is right
 under the rename. `PLAN-tasks-11.md`'s **C5** citations are correct and still live.
 
-### NOT APPLIED — still blocks execution
+### APPLIED IN WORKING TREE (session-limit handoff, 2026-08-22 ~15:50) — not yet committed
+
+The five parallel fix agents died at the session wall. Their edits are on disk in the
+source task files and have been re-assembled into both `PLAN.md` files. Do not treat HEAD
+as current for these rows.
+
+| | What | Where |
+|---|---|---|
+| ✅ | **`Gate.__init__` twelve keywords + `gate_arguments()`** | `20-22` |
+| ✅ | **Fixtures sixteen → eighteen** | `20-22` (`len(FIXTURES) == 18`) |
+| ✅ | **Fixture 7 stands on a P5-signalled key; `seed()` writes the signal** | `20-22` |
+| ✅ | **Fixture 10 can return `NeedsConsent`** (protected + no grant) | `20-22` |
+| ✅ | **Named constants published** — P6 Task 1 six states; Task 4 `FACT_ORIGINS` members; P7 Task 2 `USER` / `USER_CONFIRMED` / P4 `RELIABILITY_STATES` re-export | `01-02`, `03-04`, `01-03` |
+| ⚠️ | **Named-constant consumers** — 34 python fences in winner files rewritten 2026-08-22: `STATES[n]` / `FACT_ORIGINS[n]` / `_STATES[n]` / `_FACT_ORIGINS[n]` / `basis="user"` / `reliability_state="user_confirmed"`. `VALUE_ORIGINS` and `LLM_STATES` left alone (different vocabularies). Leftover: loser-file Task 18 `FACET_VALUES` prose in `17-19`; `LLM_STATES[n]` in Task 17. | P6 `08-09`…`27`; P7 `15-22`, `17-19`, `08-11` |
+| ✅ | **§3.4 cache key — one helper `fact_cache_key` in Task 6** | `05-06` |
+| ✅ | **`ProtectedSummary.scope_total`** (D11) | `15-22` |
+| ✅ | **`AuditRecord.release_id` is `None` on a release (D14); join is ledger → events** | `20-22` |
+| ✅ | **`SHOWN` / `REDACTED` / `REDACTION_VALUES` one home in Task 2; Task 5 re-exports** | `01-03`, `04-07` |
+| ✅ | **CUT 2 / CUT 4 callouts** held as KEPT under D13 | `20-22` `HELD_OPEN` |
+| ✅ | **`IS_MODEL_TRANSPORT`** now produced by Task 19 as `False` on the instrument; P8 writes `True` | `17-19` |
+
+### STILL BLOCKS EXECUTION
 
 | | What | Cost |
 |---|---|---|
-| ❌ | **`Gate.__init__` is twelve keywords and no fixture supplies them.** Task 20 pins two; the graft of `gate_arguments()` from `15-22:3319-3339` is the fix, widened to twelve, supplying `template_for` and `measure_tokens` so fixtures 4, 6 and 16 can replay. **Task 20 owns it** (§3.3 of the preamble closes the deferral loop). | medium |
-| ❌ | **Fixtures: sixteen → eighteen**, then one renumbering pass over every `len(FIXTURES) == 16`, `range(1, 17)`, `MODE_SWEEP`, `SKELETON_FIXTURE` and `by_number(n)` in Tasks 20 and 22. | medium |
-| ❌ | **Fixture 7 cannot deny in either version**, and **no P5 sensitivity signal is seeded in either suite**, so `always_local_item` is unreachable. `seed()` must write the signal and the fixture must stand on a P5-signalled key. | medium |
-| ❌ | **Fixture 10 cannot return `NeedsConsent`** — `protected=False` *and* a grant. Both flip. | small |
-| ❌ | **Named constants** — brief §11 reaches **neither** version of anything. P6's states, `FACT_ORIGINS`, `ATTEMPTED_PRODUCERS`, `UNRESOLVED_REASONS`; P7's `basis="user"` / `reliability_state="user_confirmed"`, which **Task 2 does not yet publish** (see the D7 open item). | large |
-| ❌ | **The §3.4 cache key is still written out eight times.** One helper in `facts.cache`. | medium |
-| ❌ | **`ProtectedSummary` gains `scope_total`** (D11) — implementation is small, the test change is large, and the type-level "no field a filename could occupy" proof must move with it. | medium |
-| ❌ | **`AuditRecord.release_id`** — `assert record.release_id == decision.release_id` and two fixtures building `release_id="release-1"` are wrong under D14. | small |
-| ❌ | **`SHOWN` / `REDACTED` have three homes and three names** (`REDACTION_VALUES`, `SETTING_VALUES`, `FACET_VALUES`). One home, everyone re-exports. | small |
-| ❌ | **The discount has no caller** (§4.1). Task 24 adds the stage. | medium |
-| ❌ | **CUT 2 and CUT 4 callouts** are missing from both Task 22 versions, and Task 19's is unlabelled prose in which the author ruled the cut themselves. | small |
-| ❌ | **`IS_MODEL_TRANSPORT`** is read by Task 22 and written by no task. | small |
-| ❌ | **`prior_releases` under-reports every group release** (§4.3) — Task 10's reader filters the column only. | medium |
+| ⚠️ | **`LLM_STATES[n]` in Task 17** — a producer subset, not `STATES`. Leave until Task 17 builds `LLM_STATES` from Task 1's `LLM_SUPPORTED` / `POSSIBLE`. | small |
+| ⚠️ | **Loser Task 18 in `17-19`** still names `FACET_VALUES` in prose. Assembly does not copy it; Task 18 winner is `15-22` and imports `REDACTION_VALUES`. | none for assembly |
+
+Closed this session (do not re-open without a new counterexample): named-constant consumers in winner python fences; discount caller (Task 20 `screen_metadata`); `prior_releases` group-release filter; D9 destination eligibility on `target_school` / `client`; Task 2 / Task 4 `REJECTED` / `DETECTOR` named constants matching live `src/privacy/`.
 
 ### Still unruled
 
-`run_wave2`'s parameter count is **17**, and two sections say eighteen. The `NeedsConsent` ownership
-contradiction resolves to `consent.py` (brief §15's direction), and the losing reasoning is kept as
-the justification. Neither is applied yet.
+`run_wave2`'s parameter count is **17**, verified live, and Task 22 now asserts 17. Older
+narrative in `15-22` may still say eighteen; that copy is a loser under the winner table.
+The `NeedsConsent` owner is `consent.py`.

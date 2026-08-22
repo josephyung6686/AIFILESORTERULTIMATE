@@ -24,7 +24,8 @@ from privacy.vocabulary import (
     ALWAYS_LOCAL, AUDIT_OUTCOMES, CLASSIFICATION_BASES, CONSENT_OPTIONS,
     DENIAL_REASONS, DISPLAY_FACETS, HANDLING_CLASSES, HANDLING_CLASS_LABELS,
     ITEM_KINDS, MODE_SEMANTICS, OPEN_QUESTIONS, OPERATION_MODES, OutOfVocabulary,
-    REDACTED, REDACTION_VALUES, RELIABILITY_STATES, SHOWN, USER, USER_CONFIRMED,
+    REDACTED, REDACTION_VALUES, REJECTED, RELIABILITY_STATES, SHOWN, USER,
+    USER_CONFIRMED, DETECTOR,
     check_denial_reason, check_handling_class, check_item_kind, check_mode,
 )
 
@@ -329,15 +330,30 @@ def test_the_one_state_p7_writes_has_a_named_constant():
     assert RELIABILITY_STATES[0] == USER_CONFIRMED
 
 
+def test_rejected_is_published_as_the_exclusion_not_a_second_spelling():
+    # Task 4's store keeps rejected rows and never treats them as current. The
+    # literal used to live in classification_store; that was a second home.
+    assert REJECTED == "rejected"
+    assert REJECTED in RELIABILITY_STATES
+    assert REJECTED == RELIABILITY_STATES[-1]
+
+
 def test_p7_publishes_no_second_spelling_of_a_state():
     # The failure this whole section exists to prevent: a module-level string in
     # `privacy.vocabulary` whose value happens to be one of P4's six, bound under a
-    # name that is not the constant above.
+    # name that is not a published constant.
+    allowed = {"USER_CONFIRMED": USER_CONFIRMED, "REJECTED": REJECTED}
     for name, value in vars(vocabulary).items():
         if name.startswith("_") or not isinstance(value, str):
             continue
         if value in RELIABILITY_STATES:
-            assert name == "USER_CONFIRMED", name
+            assert name in allowed, name
+            assert value == allowed[name]
+
+
+def test_detector_is_the_named_basis_constant():
+    assert DETECTOR == "detector"
+    assert DETECTOR in CLASSIFICATION_BASES
 
 
 # --- SPEC §10's two display values, one home ---------------------------------

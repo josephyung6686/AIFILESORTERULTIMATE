@@ -199,6 +199,7 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
           model_route_permitted=lambda file_id: permitted,
           record_pass=recorder.record_pass,
           cache_key_for=lambda file_id, content_hash: CACHE_KEY,
+          screen_metadata=lambda conn, file_id, content_hash: (),
       )
 
 
@@ -276,6 +277,7 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
               model_route_permitted=lambda file_id: True,
               record_pass=recorder.record_pass,
               cache_key_for=lambda f, c: CACHE_KEY,
+              screen_metadata=lambda conn, f, c: (),
           )
 
 
@@ -285,6 +287,33 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
               continue
           assert parameter.kind is inspect.Parameter.KEYWORD_ONLY, name
           assert parameter.default is inspect.Parameter.empty, name
+      assert "screen_metadata" in inspect.signature(FactResolver.__init__).parameters
+
+
+  def test_screen_metadata_runs_before_any_stage(p6):
+      calls: list[str] = []
+
+      def screen(conn, file_id, content_hash):
+          calls.append("screen")
+          return ()
+
+      recorder = Recorder()
+      resolver = FactResolver(
+          stages={
+              "direct": recorder.stage("direct", produces=("fact-direct",)),
+              "rule": recorder.stage("rule"),
+              "llm": None,
+          },
+          pending_fields=lambda conn, file_id, content_hash: (FIELD,),
+          budget_exhausted=lambda key: False,
+          model_route_permitted=lambda file_id: True,
+          record_pass=recorder.record_pass,
+          cache_key_for=lambda file_id, content_hash: CACHE_KEY,
+          screen_metadata=screen,
+      )
+      resolve(resolver, p6)
+      assert calls == ["screen"]
+      assert recorder.calls[0] == "direct"
 
 
   def test_with_p8_absent_the_llm_route_does_not_exist_and_nothing_is_withheld(p6):
@@ -444,8 +473,8 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
           model_route_permitted=lambda file_id: True,
           record_pass=recorder.record_pass,
           cache_key_for=lambda f, c: CACHE_KEY,
+          screen_metadata=lambda conn, f, c: (),
       )
-      with pytest.raises(RuntimeError):
           resolve(resolver, p6)
       assert recorder.passes == []
 
@@ -706,6 +735,27 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
       the route does not exist — which is the ordinary case for `llm`, because P8 does
       not exist. A route that does not exist is NOT a route that was barred: nothing is
       withheld, nothing is deferred, and no `unresolved` row is written for it.
+
+      `screen_metadata` is required and has no default. §2.2's tool-metadata
+      suppression must fire **before** any producer; without this call `python-docx`
+      can become a `direct` fact and Done-means 22 is unreachable. Task 9 publishes
+      the helper; this constructor is the caller. `DEGRADATION_ORDER` stays the three
+      producers — screening is not a fourth producer.
+
+      Task 9's helper is keyword-only and takes the version's observations plus the
+      two catalogue predicates. The production composition site binds a thin adapter
+      with this constructor's three-positional shape::
+
+          def screen(conn, file_id, content_hash):
+              observations = observations_for_version(conn, file_id, content_hash)
+              return screen_metadata(
+                  conn, file_id=file_id, content_hash=content_hash,
+                  observations=observations,
+                  tool_producer_strings=TOOL_PRODUCER_STRINGS,
+                  metadata_property_names=METADATA_PROPERTY_NAMES,
+              )
+
+      Tests in this task bind a no-op or a recorder. They do not import Task 9.
       """
 
       def __init__(self, *, stages: Mapping[str, Stage | None],
@@ -714,7 +764,9 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
                    budget_exhausted: Callable[[str], bool],
                    model_route_permitted: Callable[[str], bool],
                    record_pass: PassRecorder,
-                   cache_key_for: Callable[[str, str], str]) -> None:
+                   cache_key_for: Callable[[str, str], str],
+                   screen_metadata: Callable[[sqlite3.Connection, str, str],
+                                            object]) -> None:
           if set(stages) != set(DEGRADATION_ORDER):
               raise StageSetInvalid(
                   f"stages must be exactly {DEGRADATION_ORDER}, got "
@@ -726,6 +778,7 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
           self._model_route_permitted = model_route_permitted
           self._record_pass = record_pass
           self._cache_key_for = cache_key_for
+          self._screen_metadata = screen_metadata
 
       def resolve(self, conn: sqlite3.Connection, *, file_id: str,
                   content_hash: str) -> ResolveResult:
@@ -733,6 +786,11 @@ which P2 stores and never parses. Stated here so no one later adds a fifth P6 ta
           barred: dict[str, str] = {}
           deferred_against: tuple[str, ...] = ()
           fact_ids: list[str] = []
+
+          # §2.2 fires before ranking. The return value is the survivor set;
+          # stages that re-query observations still use field_permitted.
+          # This call is what writes the unresolved row Done-means 22 requires.
+          self._screen_metadata(conn, file_id, content_hash)
 
           for name in DEGRADATION_ORDER:
               stage = self._stages[name]

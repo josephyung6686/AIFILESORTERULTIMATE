@@ -936,7 +936,7 @@ git commit -m "feat(P7): package skeleton, and the eight event types asserted ag
 
 ---
 
-### Task 2: The closed vocabularies, and the four words with `protected` in them
+### Task 2: The closed vocabularies, and the five words with `protected` in them
 
 **Files:**
 - Create: `src/privacy/vocabulary.py`
@@ -946,6 +946,8 @@ git commit -m "feat(P7): package skeleton, and the eight event types asserted ag
 - Consumes: `scan_agent.exclusion.LABEL_UNTOUCHED_PROTECTED: str`, `.REASON_PROTECTED_CONTAINER: str`
   — imported **in the test only**, to pin the distinction. `src/privacy/` imports neither, and
   `privacy.vocabulary` binds no value equal to either.
+- Consumes: `evidence_shape.vocabulary.RELIABILITY_STATES: tuple[str, ...]` — imported by the
+  **module**, not copied. P4's shipped six, in the design's own line-50 order.
 - Produces (`vocabulary.py`):
   - `HANDLING_CLASSES: tuple[str, ...]` (5), `HANDLING_CLASS_LABELS: Mapping[str, str]` (added — the
     design's own five lines).
@@ -955,8 +957,14 @@ git commit -m "feat(P7): package skeleton, and the eight event types asserted ag
   - `DENIAL_REASONS: tuple[str, ...]` (8).
   - `CONSENT_OPTIONS: tuple[str, ...]` (4).
   - `DISPLAY_FACETS: tuple[str, ...]` (5).
-  - `CLASSIFICATION_BASES: tuple[str, ...]` (3).
+  - `CLASSIFICATION_BASES: tuple[str, ...]` (3), and `USER: str = "user"` — the one member P7 writes
+    (added, brief §11).
   - `AUDIT_OUTCOMES: tuple[str, ...]` (3).
+  - `RELIABILITY_STATES: tuple[str, ...]` — **re-exported** from `evidence_shape.vocabulary`, not
+    retyped — and `USER_CONFIRMED: str`, the one member P7 writes (added, brief §11).
+  - `SHOWN: str = "shown"`, `REDACTED: str = "redacted"`,
+    `REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)` (added — SPEC §10's *"each shown |
+    redacted"*; Task 5's A7 reported these and asked for this home).
   - `OPEN_QUESTIONS: Mapping[int, str]` (added — the SPEC's eleven, held open).
   - `OutOfVocabulary`.
   - `check_handling_class(value) -> str`, `check_mode(value) -> str`,
@@ -979,10 +987,49 @@ misspelling becomes a silent downgrade, and a silent downgrade in this vocabular
 **Four checkers, not nine, and that is the skeleton's contract.** The four vocabularies with a
 checker are the four a caller supplies a value into from outside P7: a handling class arrives from a
 detector or a user, a mode from a policy, an item kind from P8's request, a denial reason from P7's
-own branches under test. `CONSENT_OPTIONS`, `DISPLAY_FACETS`, `CLASSIFICATION_BASES` and
-`AUDIT_OUTCOMES` are consumed as membership tests by the tasks that own them (5, 10, 14). Adding
-five more checkers would be five more names for Task 21 to introspect and five more places for the
-same refusal to be spelled differently.
+own branches under test. `CONSENT_OPTIONS`, `DISPLAY_FACETS`, `CLASSIFICATION_BASES`,
+`AUDIT_OUTCOMES`, `REDACTION_VALUES` and `RELIABILITY_STATES` are consumed as membership tests by
+the tasks that own them (5, 10, 14, 16). A checker on each of the rest would be six more names for
+Task 21 to introspect and six more places for the same refusal to be spelled differently.
+
+**`SHOWN` and `REDACTED` live here, and nowhere else.** SPEC §10 spells `display_settings` as *"each
+shown | redacted"*, and three separate sections wrote the pair out under three names —
+`REDACTION_VALUES` in Task 5's `policy.py`, `SETTING_VALUES` in Task 18, `FACET_VALUES` in a third.
+Three homes and three names for two strings is this project's most expensive defect class, and the
+Task 5 author reported it against themselves: *"they arguably belong in Task 2's `vocabulary.py`; if
+Task 2 publishes them, `policy.py` re-exports and deletes its own"* (A7). Task 2 publishes them, so
+`policy.py` re-exports and deletes its own, and Task 18 and its sibling import rather than respell.
+The names are **`SHOWN`, `REDACTED`, `REDACTION_VALUES`** — Task 5's own three, because they are
+already written and already consumed under those names, and the cheapest single home is the one that
+renames nothing. They sit beside `DISPLAY_FACETS` because that is the tuple they are the values of:
+`redaction_settings` is a mapping from a facet to one of these two, and a facet vocabulary published
+without its value vocabulary is half a contract.
+
+**The classification basis and the reliability state get named constants, and the six states are
+P4's.** Brief §11 makes named constants the rule for every closed vocabulary either part publishes —
+*"Never a bare string, never an index"* — and P7 was writing `basis="user"` and
+`reliability_state="user_confirmed"` as bare literals in five sections. `CLASSIFICATION_BASES` was
+published with no per-value constant, and there was **no reliability-state vocabulary in P7 at all**.
+Under D7, P7's Contract-in from P6 is empty and P7 imports nothing from P6, so a P6-published tuple
+was not available to import — which is how the literals survived.
+
+**They did not need P6.** The six states are **P4's**, shipped:
+`evidence_shape.vocabulary.RELIABILITY_STATES == ("user_confirmed", "direct", "validated",
+"llm_supported", "possible", "rejected")`, verified by import, and that order is the design's own
+line 50 read in sequence — *"A **user confirmed** fact … A **direct** fact … A **validated** fact …
+An **LLM-supported** fact … A **possible** fact … A **rejected** fact"*. P6's Task 1 publishes the
+same six for `facts` (brief §11); P7 imports **P4's**, because `privacy` already binds
+`evidence_shape` — it is one of the three packages in the L2 guard set `{evidence_shape,
+orchestrator, privacy}` — and because D7 forbids the P6 import. The tuple is **re-exported, not
+copied**: a second literal spelling of six strings is the thing the rule exists to prevent, and a
+re-export means a P4 revision reaches P7 by import rather than by memory.
+
+**One named constant per member P7 actually writes, not six.** `USER_CONFIRMED` and `USER` are the
+two P7 writes — a user reclassifying is the only classification P7 itself originates (Task 16), and
+`basis="user"` and `reliability_state="user_confirmed"` are what that record carries. The other five
+states are read, never written, and `check`ing membership against the re-exported tuple is what
+reading needs. Publishing a constant for a member nothing writes would be five more names for Task 21
+to introspect, which is the same argument as the four checkers above.
 
 **No threshold, no ceiling, no number.** This module contains no `int` and no `float` at all, and a
 test asserts it by walking the module namespace. §8.6 names the knobs, states they are
@@ -1038,10 +1085,12 @@ Where a vocabulary can be DERIVED from a design sentence mechanically, it is. A 
 that retypes the nine always-local items proves the author can retype; a test that
 splits the design's sentence proves the identifiers are the design's words.
 """
+import re
 from collections.abc import Mapping
 
 import pytest
 
+from evidence_shape import vocabulary as p4_vocabulary
 from scan_agent.exclusion import LABEL_UNTOUCHED_PROTECTED, REASON_PROTECTED_CONTAINER
 
 import privacy.vocabulary as vocabulary
@@ -1049,7 +1098,21 @@ from privacy.vocabulary import (
     ALWAYS_LOCAL, AUDIT_OUTCOMES, CLASSIFICATION_BASES, CONSENT_OPTIONS,
     DENIAL_REASONS, DISPLAY_FACETS, HANDLING_CLASSES, HANDLING_CLASS_LABELS,
     ITEM_KINDS, MODE_SEMANTICS, OPEN_QUESTIONS, OPERATION_MODES, OutOfVocabulary,
+    REDACTED, REDACTION_VALUES, REJECTED, RELIABILITY_STATES, SHOWN, USER,
+    USER_CONFIRMED, DETECTOR,
     check_denial_reason, check_handling_class, check_item_kind, check_mode,
+)
+
+#: The design's line 50, verbatim. The six reliability states are derived from this
+#: sentence run rather than retyped, which is what makes the tuple's ORDER the
+#: design's and not an author's.
+RELIABILITY_SENTENCES = (
+    "A user confirmed fact has been explicitly accepted, entered, renamed, merged, "
+    "or corrected by the user. A direct fact was read from a reliable and explicit "
+    "source. A validated fact was found by a deterministic rule and passed "
+    "contextual checks. An LLM-supported fact was proposed by a language model. "
+    "A possible fact is a useful but insufficient clue. A rejected fact is a "
+    "proposal that the user or validator marked as incorrect."
 )
 
 #: §8.4, verbatim. The nine names are derived from this sentence rather than retyped.
@@ -1078,6 +1141,14 @@ def _identifiers(listed: str) -> tuple[str, ...]:
         word = part.strip().removeprefix("and ").removeprefix("or ")
         out.append(word.lower().replace(" ", "_"))
     return tuple(out)
+
+
+def _states(prose: str) -> tuple[str, ...]:
+    """Pull `A <name> fact` / `An <name> fact` out of line 50, in order."""
+    return tuple(
+        match.group(1).strip().lower().replace("-", "_").replace(" ", "_")
+        for match in re.finditer(r"\b(?:A|An) ((?:[\w-]+ )+?)fact\b", prose)
+    )
 
 
 # --- the five handling classes -----------------------------------------------
@@ -1240,7 +1311,8 @@ def test_the_five_protected_spellings_coexist_and_no_two_are_equal():
 def test_no_p7_vocabulary_contains_a_bare_protected():
     for closed in (HANDLING_CLASSES, OPERATION_MODES, ALWAYS_LOCAL, ITEM_KINDS,
                    DENIAL_REASONS, CONSENT_OPTIONS, DISPLAY_FACETS,
-                   CLASSIFICATION_BASES, AUDIT_OUTCOMES):
+                   CLASSIFICATION_BASES, AUDIT_OUTCOMES, RELIABILITY_STATES,
+                   REDACTION_VALUES):
         assert "protected" not in closed
 
 
@@ -1295,6 +1367,86 @@ def test_three_classification_bases_and_three_audit_outcomes():
     assert AUDIT_OUTCOMES == ("released", "denied", "consent_requested")
 
 
+def test_the_one_basis_p7_writes_has_a_named_constant():
+    # Brief §11: never a bare string, never an index. `basis="user"` was written as a
+    # literal in five sections before this constant existed.
+    assert USER == "user"
+    assert USER in CLASSIFICATION_BASES
+
+
+# --- the six reliability states, imported from P4 and not retyped ------------
+
+def test_the_six_states_are_p4s_tuple_and_not_a_second_copy():
+    # Re-exported, not copied. `is` and not `==`: a second tuple with the same six
+    # strings would pass equality and would be exactly the second home the rule
+    # exists to prevent. D7 makes P7's Contract-in from P6 empty, so this is P4's
+    # tuple -- `privacy` already binds `evidence_shape` -- and never P6's.
+    assert RELIABILITY_STATES is p4_vocabulary.RELIABILITY_STATES
+
+
+def test_the_states_are_the_designs_line_50_in_the_designs_order():
+    # The order is the ranking Task 4 reads (§3.13), so it is derived from the
+    # design's own sentence run rather than retyped: "A user confirmed fact ... A
+    # direct fact ... A validated fact ... An LLM-supported fact ... A possible fact
+    # ... A rejected fact."
+    assert RELIABILITY_STATES == _states(RELIABILITY_SENTENCES)
+    assert RELIABILITY_STATES == (
+        "user_confirmed", "direct", "validated", "llm_supported", "possible",
+        "rejected")
+
+
+def test_the_one_state_p7_writes_has_a_named_constant():
+    # Task 16's reclassification is the only classification P7 originates, and it
+    # writes USER_CONFIRMED. Task 4's store also needs REJECTED as an exclusion, so
+    # that literal is published here rather than respelt in classification_store.
+    assert USER_CONFIRMED == "user_confirmed"
+    assert USER_CONFIRMED in RELIABILITY_STATES
+    assert RELIABILITY_STATES[0] == USER_CONFIRMED
+
+
+def test_rejected_is_published_as_the_exclusion_not_a_second_spelling():
+    assert REJECTED == "rejected"
+    assert REJECTED in RELIABILITY_STATES
+    assert REJECTED == RELIABILITY_STATES[-1]
+
+
+def test_p7_publishes_no_second_spelling_of_a_state():
+    # The failure this whole section exists to prevent: a module-level string in
+    # `privacy.vocabulary` whose value happens to be one of P4's six, bound under a
+    # name that is not a published constant.
+    allowed = {"USER_CONFIRMED": USER_CONFIRMED, "REJECTED": REJECTED}
+    for name, value in vars(vocabulary).items():
+        if name.startswith("_") or not isinstance(value, str):
+            continue
+        if value in RELIABILITY_STATES:
+            assert name in allowed, name
+            assert value == allowed[name]
+
+
+def test_detector_is_the_named_basis_constant():
+    assert DETECTOR == "detector"
+    assert DETECTOR in CLASSIFICATION_BASES
+
+
+# --- SPEC §10's two display values, one home ---------------------------------
+
+def test_the_two_display_values_are_spec_10s_two():
+    # SPEC §10: `display_settings` is "each shown | redacted". Before this constant
+    # existed the pair had three homes and three names -- `REDACTION_VALUES` in
+    # `policy.py`, `REDACTION_VALUES` in Task 18, `REDACTION_VALUES` in a third section.
+    assert (SHOWN, REDACTED) == ("shown", "redacted")
+    assert REDACTION_VALUES == (SHOWN, REDACTED)
+
+
+def test_a_display_facet_maps_to_one_of_exactly_two_values():
+    # The reason the pair belongs beside DISPLAY_FACETS: it is the value vocabulary
+    # of that key vocabulary, and a facet list published without one is half a
+    # contract. W1's "the more redacting option is the default" is Task 6's rule and
+    # no default lives here.
+    assert len(REDACTION_VALUES) == 2
+    assert set(REDACTION_VALUES).isdisjoint(DISPLAY_FACETS)
+
+
 def test_unreadable_unclassified_is_a_class_and_unclassified_is_a_denial_reason():
     # D2: "Unreadable or unclassified is a GATE OUTCOME, not a file fact." The class
     # is what `resolve_class` returns to a caller; the denial reason is what the gate
@@ -1327,7 +1479,8 @@ def test_the_module_holds_no_number_at_all():
 def test_every_vocabulary_is_a_tuple_of_unique_nonempty_strings():
     for closed in (HANDLING_CLASSES, OPERATION_MODES, ALWAYS_LOCAL, ITEM_KINDS,
                    DENIAL_REASONS, CONSENT_OPTIONS, DISPLAY_FACETS,
-                   CLASSIFICATION_BASES, AUDIT_OUTCOMES):
+                   CLASSIFICATION_BASES, AUDIT_OUTCOMES, RELIABILITY_STATES,
+                   REDACTION_VALUES):
         assert isinstance(closed, tuple)
         assert len(set(closed)) == len(closed)
         assert all(isinstance(v, str) and v and v == v.strip() for v in closed)
@@ -1366,6 +1519,15 @@ Every member is the design's, in the design's order, and nothing here is invente
 Where the design writes prose, the prose is carried beside the identifier
 (`HANDLING_CLASS_LABELS`, `MODE_SEMANTICS`) so a later paraphrase is a failing test.
 
+**One home per vocabulary, and one named constant per member P7 writes.** Brief §11:
+"Never a bare string, never an index." Two vocabularies reach this module from
+outside their obvious owners for that reason. §3.13's six reliability states are
+RE-EXPORTED from `evidence_shape.vocabulary` -- P4 ships them, `privacy` already
+binds `evidence_shape`, and D7 empties P7's Contract-in from P6, so importing P4's
+tuple is both the closest home and the only one available. SPEC §10's `shown` /
+`redacted` pair lands here rather than in `policy.py` because three sections had
+written it out under three names; `policy.py` re-exports these and deletes its own.
+
 **This module holds no detection rule and no number.** SPEC *Deferred*: "The design
 states *what* is protected and never *how it is recognised*. The detector rule set,
 its signals, and its thresholds are hand-authored. P7 publishes the vocabulary the
@@ -1387,6 +1549,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from types import MappingProxyType
+
+# §3.13's six reliability states, RE-EXPORTED and not retyped. The import IS the
+# publication: rebinding it -- `RELIABILITY_STATES = _RELIABILITY_STATES` -- would put
+# a second module-level collection in `privacy` under a private alias, and a leading
+# underscore exempts nothing from an introspecting guard. See the block beside
+# `USER_CONFIRMED` below for why the states are P4's and not P6's.
+from evidence_shape.vocabulary import RELIABILITY_STATES
 
 
 class OutOfVocabulary(ValueError):
@@ -1534,7 +1703,17 @@ DISPLAY_FACETS: tuple[str, ...] = (
     "names", "previews", "thumbnails", "ocr_text", "location_data",
 )
 
-# --- SPEC §2 and §7: bases and outcomes --------------------------------------
+#: SPEC §10's `display_settings`: "each shown | redacted". The value vocabulary for
+#: the facet vocabulary above, and the ONE home for these two strings. They were
+#: written three times under three names -- `REDACTION_VALUES` in `policy.py`,
+#: `SETTING_VALUES` in Task 18, `REDACTION_VALUES` in a third section -- and Task 5's own
+#: A7 asked for this home: "if Task 2 publishes them, `policy.py` re-exports and
+#: deletes its own." `policy.py` re-exports; nothing else respells.
+SHOWN: str = "shown"
+REDACTED: str = "redacted"
+REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)
+
+# --- SPEC §2 and §7: bases, states and outcomes ------------------------------
 
 #: SPEC §2's classification record: "basis  detector | safety_domain | user".
 #: `safety_domain` is §3.15's: finance, identity, medical and legal material ship
@@ -1542,6 +1721,29 @@ DISPLAY_FACETS: tuple[str, ...] = (
 #: cloud or automated placement decision is allowed". This is NOT P6's five-value
 #: `origin` vocabulary (§3.1) and the two are never mapped onto one another here.
 CLASSIFICATION_BASES: tuple[str, ...] = ("detector", "safety_domain", "user")
+
+#: The one basis P7 itself writes: Task 16's reclassification records the user's own
+#: act. Named rather than spelled at the call site -- brief §11, "never a bare string,
+#: never an index" -- because `basis="user"` was a literal in five sections before it.
+USER: str = "user"
+
+# §3.13's six reliability states are `RELIABILITY_STATES`, imported at the top of
+# this module from `evidence_shape.vocabulary` and re-exported unchanged. A second
+# tuple holding the same six strings is the second home the named-constant rule
+# exists to prevent, and a re-export means a P4 revision reaches P7 by import rather
+# than by memory. P4's order is the design's line 50 read in sequence -- "A user
+# confirmed fact ... A direct fact ... A validated fact ... An LLM-supported fact ...
+# A possible fact ... A rejected fact" -- and Task 4 ranks against it. The states are
+# taken from P4 and not P6 deliberately: `privacy` already binds `evidence_shape`,
+# and D7 empties P7's Contract-in from P6, so P7 imports nothing from P6 at all.
+
+#: The one state P7 itself writes, beside `USER`. Task 16's record is the only
+#: classification P7 originates; the other five states are read, never written, and
+#: membership in the tuple above is what reading needs. Spelled, not indexed: brief
+#: §11 bans `USER_CONFIRMED` because it couples every consumer to the tuple's ORDER, and
+#: a reorder would then change meanings with no test failing. The test asserts
+#: membership in P4's tuple instead, so a P4 rename goes red here.
+USER_CONFIRMED: str = "user_confirmed"
 
 #: SPEC §7's audit record: "outcome  released | denied | consent_requested". Every
 #: model call is recorded -- §8.4 says "Every model call" with no exemption for a
@@ -1602,7 +1804,7 @@ OPEN_QUESTIONS: Mapping[int, str] = MappingProxyType({
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_vocabulary.py -v`
-Expected: PASS — 26 passed
+Expected: PASS — 33 passed
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
@@ -1613,7 +1815,7 @@ Expected: PASS — Tasks 1–2 green, and every pre-existing test still green.
 
 ```bash
 git add src/privacy/vocabulary.py tests/p7/test_p7_vocabulary.py
-git commit -m "feat(P7): the nine closed vocabularies, and the five strings that share the stem protected"
+git commit -m "feat(P7): the closed vocabularies, one home for shown|redacted, P4's six reliability states re-exported, and the five strings that share the stem protected"
 ```
 
 ---
@@ -1725,10 +1927,12 @@ settled by D2. A record with `handling_class = "public_low"` and `protected = Tr
 does its opposite; the test asserts both, and asserts the module publishes no function mapping one to
 the other.
 
-**`reliability_state` is stored and not validated here.** It is P6's vocabulary — §3.13's six — and
-Task 4 publishes `RELIABILITY_ORDER` and the `strongest` resolution over it. Validating in two places
-invites two vocabularies, which is the defect this part is most exposed to. This module requires it
-to be a non-empty string and stores it.
+**`reliability_state` is stored and not validated here.** §3.13's six are **P4's**, shipped as
+`evidence_shape.vocabulary.RELIABILITY_STATES` and re-exported by Task 2, and Task 4 publishes
+`RELIABILITY_ORDER` and the `strongest` resolution over it. Validating in two places invites two
+vocabularies, which is the defect this part is most exposed to. This module requires it to be a
+non-empty string and stores it. Where a test needs the one state P7 writes, it uses Task 2's
+`USER_CONFIRMED` rather than the literal — brief §11, *"never a bare string, never an index"*.
 
 **`COMPLETENESS_RULE` is added because the requirement is a per-value statement.** Nine entries, in
 P4's order, each carrying `(implies_unclassified, the sentence that decides it)`. An unpublished
@@ -1788,7 +1992,9 @@ from privacy.classification import (
     UnbackedClassification, completeness_implies_unclassified, resolve_class,
     sensitivity_signal_keys,
 )
-from privacy.vocabulary import CLASSIFICATION_BASES, HANDLING_CLASSES, OutOfVocabulary
+from privacy.vocabulary import (
+    CLASSIFICATION_BASES, HANDLING_CLASSES, OutOfVocabulary, USER, USER_CONFIRMED,
+)
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 
@@ -1894,8 +2100,8 @@ def test_a_user_record_and_a_safety_domain_record_need_no_evidence(
     # basis = detector classification". The user's act is the evidence (§8.4's
     # "revised by the user"); a safety domain is §3.15's rule about a domain, not a
     # reading of a span. Requiring evidence here would invent a stricter rule.
-    assert a_record(file_id, content_hash, basis="user",
-                    evidence_refs=(), reliability_state="user_confirmed")
+    assert a_record(file_id, content_hash, basis=USER,
+                    evidence_refs=(), reliability_state=USER_CONFIRMED)
     assert a_record(file_id, content_hash, basis="safety_domain", evidence_refs=())
 
 
@@ -1948,7 +2154,8 @@ def test_p6s_origin_vocabulary_is_not_p7s_basis_vocabulary(file_id, content_hash
 
 
 def test_reliability_state_is_stored_and_not_validated_here(file_id, content_hash):
-    # §3.13's six are P6's and Task 4 publishes the ordering. Two validators would be
+    # §3.13's six are P4's -- `evidence_shape.vocabulary.RELIABILITY_STATES`, which
+    # Task 2 re-exports -- and Task 4 publishes the ordering. Two validators would be
     # two vocabularies. Non-empty is the only requirement this module makes.
     assert a_record(file_id, content_hash,
                     reliability_state="llm_supported").reliability_state == \
@@ -2263,9 +2470,10 @@ class ClassificationRecord:
     consume the `protected` flag, not infer it from the class", and Open question 1 --
     whether `protected` is exactly the top two classes -- is unsettled.
 
-    `reliability_state` is P6's vocabulary (§3.13's six) and is stored, not validated:
-    Task 4 publishes the ordering and the `strongest` resolution over it, and two
-    validators would be two vocabularies.
+    `reliability_state` is P4's vocabulary (§3.13's six, shipped as
+    `evidence_shape.vocabulary.RELIABILITY_STATES` and re-exported by Task 2) and is
+    stored, not validated: Task 4 publishes the ordering and the `strongest`
+    resolution over it, and two validators would be two vocabularies.
     """
 
     file_id: str
@@ -2559,6 +2767,7 @@ from privacy.schema import (
     SUPERSEDE_ADAPTER_COLUMN,
     create_privacy_schema,
 )
+from privacy.vocabulary import USER, USER_CONFIRMED
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 LATER = "2026-08-22T18:30:00+00:00"
@@ -2690,34 +2899,45 @@ def test_current_is_none_before_anything_classifies(store):
 
 def test_current_fact_id_returns_the_unsuperseded_row(store):
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", observed_at=LATER))
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     assert store.current_fact_id("file-1", HASH_A) == new
 
 
 # --- §3.13's ordering, quoted and not re-derived ----------------------------
 
-def test_the_ordering_is_p6s_listed_order(store):
-    # The design lists them in this order and states no comparison rule; P6's
-    # canonical snake_case literals, never a respelling.
+def test_the_ordering_is_the_designs_listed_order(store):
+    # The design lists them in this order and states no comparison rule. The
+    # spellings are P4's -- `evidence_shape.vocabulary.RELIABILITY_STATES`, which
+    # Task 2 re-exports -- and this module retypes none of them: the ranking is the
+    # published tuple with the one unranked state removed, in place.
     assert RELIABILITY_ORDER == (
         "user_confirmed", "direct", "validated", "llm_supported", "possible")
     assert REJECTED == "rejected"
     assert REJECTED not in RELIABILITY_ORDER
+    assert RELIABILITY_ORDER == tuple(
+        state for state in RELIABILITY_STATES if state != REJECTED)
+    assert set(RELIABILITY_ORDER) | {REJECTED} == set(RELIABILITY_STATES)
+
+
+def test_the_ranking_head_is_task_2s_named_constant(store):
+    # Brief §11: never a bare string, never an index. The strongest state is the one
+    # P7 itself writes (Task 16), so it is the one with a name.
+    assert RELIABILITY_ORDER[0] == USER_CONFIRMED
 
 
 def test_a_user_confirmed_record_outranks_a_validated_one(store):
     validated = a_record(reliability_state="validated")
-    confirmed = a_record(reliability_state="user_confirmed",
+    confirmed = a_record(reliability_state=USER_CONFIRMED,
                          handling_class="personal_non_sensitive", protected=False,
-                         basis="user", evidence_refs=(), observed_at=LATER)
+                         basis=USER, evidence_refs=(), observed_at=LATER)
     store.write(validated)
     store.write(confirmed)
     assert store.current("file-1", HASH_A) == confirmed
 
 
 def test_the_ordering_holds_regardless_of_write_order(store):
-    confirmed = a_record(reliability_state="user_confirmed", basis="user",
+    confirmed = a_record(reliability_state=USER_CONFIRMED, basis=USER,
                          evidence_refs=())
     store.write(confirmed)
     store.write(a_record(reliability_state="direct", observed_at=LATER))
@@ -2726,8 +2946,8 @@ def test_the_ordering_holds_regardless_of_write_order(store):
 
 def test_strongest_reads_the_order_and_computes_no_score(store):
     records = [a_record(reliability_state=state) for state in
-               ("possible", "llm_supported", "direct", "user_confirmed", "validated")]
-    assert strongest(records).reliability_state == "user_confirmed"
+               ("possible", "llm_supported", "direct", USER_CONFIRMED, "validated")]
+    assert strongest(records).reliability_state == USER_CONFIRMED
     assert strongest(records[:1]).reliability_state == "possible"
 
 
@@ -2765,8 +2985,8 @@ def test_two_live_records_at_the_same_rank_raise_rather_than_pick(store):
 def test_a_revision_supersedes_through_p1s_three_columns(p7_conn, store):
     old = store.write(a_record())
     new = store.write(a_record(handling_class="personal_non_sensitive", protected=False,
-                               basis="user", evidence_refs=(),
-                               reliability_state="user_confirmed", observed_at=LATER))
+                               basis=USER, evidence_refs=(),
+                               reliability_state=USER_CONFIRMED, observed_at=LATER))
     store.supersede(old, new, "user reclassified as non-sensitive")
     row = p7_conn.execute(
         f"SELECT * FROM {CLASSIFICATIONS_TABLE} WHERE fact_id = ?", (old,)).fetchone()
@@ -2781,7 +3001,7 @@ def test_both_records_remain_readable_afterwards(store):
     # §8.2's explicit rule, and its OCR example applies directly: an early detector
     # and a later one may disagree and both survive.
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=(), observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     history = store.history("file-1")
@@ -2791,7 +3011,7 @@ def test_both_records_remain_readable_afterwards(store):
 
 def test_the_chain_is_p1s_and_p7_does_not_copy_it(p7_conn, store):
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=(), observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     assert [row["fact_id"] for row in chain(p7_conn, CLASSIFICATIONS_TABLE, old)] == \
@@ -2800,7 +3020,7 @@ def test_the_chain_is_p1s_and_p7_does_not_copy_it(p7_conn, store):
 
 def test_the_first_supersede_reason_is_never_overwritten(store):
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=(), observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     third = store.write(a_record(reliability_state="direct", observed_at=LATER))
@@ -2809,7 +3029,7 @@ def test_the_first_supersede_reason_is_never_overwritten(store):
 
 
 def test_a_superseded_record_is_not_current(store):
-    old = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    old = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=()))
     new = store.write(a_record(reliability_state="validated", observed_at=LATER))
     store.supersede(old, new, "detector re-ran on better evidence")
@@ -2957,7 +3177,7 @@ def test_the_store_appends_no_event(p7_conn, store):
     # C4's one job. `classification_assigned` is Task 16's, once, with a user_id.
     before = p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"]
     old = store.write(a_record())
-    new = store.write(a_record(reliability_state="user_confirmed", basis="user",
+    new = store.write(a_record(reliability_state=USER_CONFIRMED, basis=USER,
                                evidence_refs=(), observed_at=LATER))
     store.supersede(old, new, "user reclassified")
     assert p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"] == before
@@ -3109,16 +3329,17 @@ from evidence_shape.canonical import canonical_json
 from privacy.authorship import SUBSYSTEM
 from privacy.classification import UNREADABLE_UNCLASSIFIED, ClassificationRecord
 from privacy.schema import CLASSIFICATIONS_TABLE
+from privacy.vocabulary import REJECTED, RELIABILITY_STATES
 
-#: §3.13, in the design's own listed order, strongest first. P6's canonical
-#: snake_case literals. Never sorted, never scored, never re-derived.
-RELIABILITY_ORDER: tuple[str, ...] = (
-    "user_confirmed", "direct", "validated", "llm_supported", "possible",
+#: §3.13, in the design's own listed order, strongest first: Task 2's re-exported
+#: tuple with the unranked state removed, IN PLACE. Derived rather than retyped --
+#: five literals here would be a second home for a vocabulary P4 publishes and Task 2
+#: re-exports, which is the defect brief §11 exists to prevent. Never sorted, never
+#: scored: the order is the design's own line 50 read in sequence and nothing
+#: computes it. `REJECTED` is Task 2's named exclusion — this module does not respell it.
+RELIABILITY_ORDER: tuple[str, ...] = tuple(
+    state for state in RELIABILITY_STATES if state != REJECTED
 )
-
-#: The sixth state. "A rejected fact is a proposal that the user or validator marked
-#: as incorrect" -- stored, kept for §8.7's negative examples, never current.
-REJECTED = "rejected"
 
 _COLUMNS = (
     "fact_id", "file_id", "content_hash", "handling_class", "protected", "basis",
@@ -3350,8 +3571,8 @@ git commit -m "feat(P7): P7's own classification store, §3.13's ordering, and t
   - `POLICIES_TABLE: str = "privacy_policies"`, `POLICIES_DDL: str`;
     `create_privacy_schema` also executes it.
 - Produces (`policy.py`):
-  - `SHOWN: str = "shown"`, `REDACTED: str = "redacted"`,
-    `REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)` (A7).
+  - `SHOWN`, `REDACTED`, `REDACTION_VALUES: tuple[str, str]` — **re-exported** from
+    `privacy.vocabulary`, which owns them (A7). `policy.py` defines none of the three.
   - `NO_MODEL_USE: str = "no_model_use"` — validated against `CONSENT_OPTIONS` at import.
   - `UNSET_POLICY_VERSION: str = ""` — what a `Policy` carries before the gate mints one.
   - `Policy` — frozen: `policy_version: str`, `operation_mode: str`,
@@ -3461,6 +3682,7 @@ from privacy.policy import (
     transcription_authorized_for,
 )
 from privacy.schema import POLICIES_TABLE
+import privacy.vocabulary as vocabulary
 from privacy.vocabulary import (
     CONSENT_OPTIONS,
     DISPLAY_FACETS,
@@ -3659,6 +3881,17 @@ def test_the_two_redaction_values_are_the_specs_own(p7_conn):
     # SPEC §10: "names | previews | thumbnails | ocr_text | location_data
     #            each shown | redacted".
     assert REDACTION_VALUES == ("shown", "redacted") == (SHOWN, REDACTED)
+
+
+def test_policy_re_exports_task_2s_values_and_defines_none_of_its_own(p7_conn):
+    # A7, resolved: `privacy.vocabulary` owns the pair and `policy.py` re-exports it.
+    # `is`, not `==`: a second tuple with the same two strings passes equality and is
+    # exactly the second home the re-export exists to remove. Before this, the pair
+    # had three homes -- REDACTION_VALUES here, REDACTION_VALUES in Task 18,
+    # REDACTION_VALUES in a third section.
+    assert SHOWN is vocabulary.SHOWN
+    assert REDACTED is vocabulary.REDACTED
+    assert REDACTION_VALUES is vocabulary.REDACTION_VALUES
 
 
 def test_an_unknown_facet_is_a_load_error(p7_conn):
@@ -3918,16 +4151,21 @@ from privacy.schema import POLICIES_TABLE
 from privacy.vocabulary import (
     CONSENT_OPTIONS,
     DISPLAY_FACETS,
+    REDACTED,
+    REDACTION_VALUES,
+    SHOWN,
     OutOfVocabulary,
     check_mode,
 )
 
-#: SPEC §10: "names | previews | thumbnails | ocr_text | location_data -- each
-#: shown | redacted". Two values, named once. Reported to Task 2's author: if
-#: `vocabulary.py` adopts them, this module re-exports and deletes its own.
-SHOWN = "shown"
-REDACTED = "redacted"
-REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)
+# SPEC §10: "names | previews | thumbnails | ocr_text | location_data -- each
+# shown | redacted". `SHOWN`, `REDACTED` and `REDACTION_VALUES` are imported above
+# and RE-EXPORTED under the same three names, because `privacy.vocabulary` owns them
+# (A7, resolved) and because they are the value vocabulary of `DISPLAY_FACETS`, which
+# lives there too. This module defined them once, Task 18 defined them again as
+# `REDACTION_VALUES` and a third section as `REDACTION_VALUES`; three homes for two strings
+# is the defect class this project has paid the most for. Consumers keep importing
+# them from `privacy.policy` -- the names did not move, only the definition did.
 
 #: The consent option that authorizes nothing. Named so `transcription_authorized_for`
 #: does not index into a tuple, and validated at import so it cannot drift from
@@ -7879,8 +8117,17 @@ def audit_records_for(conn: sqlite3.Connection, *, file_id: str | None = None,
     clauses = ["event_type IN (?, ?, ?)"]
     parameters: list[object] = [MODEL_RELEASE, MODEL_RELEASE_DENIED, CONSENT_REQUESTED]
     if file_id is not None:
-        clauses.append("file_id = ?")
-        parameters.append(file_id)
+        # Column match covers a single-file release. A group release writes
+        # NULL into that column and puts the ids in explanation.file_ids
+        # (§8.4 prior_releases must list every release that carried this
+        # file's excerpts). json_each is the match; a second reader in
+        # revoke() would be a second home.
+        clauses.append(
+            "(file_id = ? OR EXISTS ("
+            "SELECT 1 FROM json_each(explanation, '$.file_ids') "
+            "WHERE value = ?))"
+        )
+        parameters.extend([file_id, file_id])
     for name, value in (("release_id", release_id),
                         ("consent_request_id", consent_request_id)):
         if value is not None:
@@ -7919,13 +8166,23 @@ git commit -m "feat(P7): the consent-aware audit record as one events row, and t
 
 ### Task 11: `Gate.release` — the request, the three-branch union, and no override parameter
 
-> ### ⚠ CUT 4 — unratified. This task is a cut target; it is written in full anyway.
+> ### CUT 4 — RULED 2026-08-22 (D13): the facade is KEPT. This callout is the record of that.
 >
-> `planning/overnight/reviews/round-5-scope.md` **CUT 4** recommends deleting **P7's `Gate` facade as
+> `planning/overnight/reviews/round-5-scope.md` **CUT 4** recommended deleting **P7's `Gate` facade as
 > a seven-method object**, on the argument that seven methods on one class is a namespace, not an
 > abstraction, and that six of the seven are one-line delegations to modules that already publish the
-> function. **Joseph has not ruled on it.** Of round 5's seven cuts exactly one is ratified (CUT 1,
-> P6 Task 26, via D5); this is not that one.
+> function. **D13 ruled the five remaining round-5 cuts KEPT**, this one among them; CUT 1 (P6 Task
+> 26, via D5) remains the only cut ever applied.
+>
+> **Two consequences, and the second is work:**
+> 1. The argument is recorded rather than acted on, so a later reader can still decide against the
+>    facade with the plan in front of them. A kept cut is a decision that can be revisited.
+> 2. **The six delegating methods are now certain, not provisional.** Finding #6 below — that
+>    Tasks 15–18 each need a `Modify: src/privacy/gate.py` line their `Files` blocks omit — was
+>    filed as *"relevant to CUT 4"*. It is now **mandatory assembly work**, and it has been applied:
+>    without it, `Gate.revoke`, `Gate.reclassify`, `Gate.delete_derived`,
+>    `Gate.may_move_automatically`, `Gate.display_policy` and `Gate.summarize_protected` are six
+>    published surfaces with no producer.
 >
 > Written in full, per the authoring brief §9, because an unratified recommendation is not a decision
 > and a half-written keystone is worth nothing to either outcome. **What the cut would and would not
@@ -7933,9 +8190,11 @@ git commit -m "feat(P7): the consent-aware audit record as one events row, and t
 > `Gate.release(ModelCallRequest) -> ReleaseDecision` and which B2 makes P8's call verbatim. A build
 > that adopts CUT 4 has to answer what `Gate.release` becomes — SPEC §6 names the method on an object
 > — and that is a Contract-out revision, not an implementation choice. This task therefore ships
-> `Gate` with **one** method and names the six that Tasks 15–18 add (see *What this task does not do*),
-> which is the smallest form the published signature admits and the form a reviewer deciding CUT 4
-> needs in front of them.
+> `Gate` with **one** method and names the six that Tasks 15–18 add (see *What this task does not do*).
+> That was the smallest form the published signature admits, chosen while the cut was open. With
+> the cut ruled and the facade kept, the shape is unchanged but the reason is different: the six
+> land with the tasks that own their logic, so `gate.py` never holds a method whose module does
+> not yet exist.
 
 **Files:**
 - Create: `src/privacy/release.py`, `src/privacy/gate.py`
@@ -9674,7 +9933,7 @@ Expected: **PASS — 28 passed.**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
 
-Expected: **PASS** — Tasks 1–14 green, and P1–P5's 1300 collected tests still green.
+Expected: **PASS** — Tasks 1–14 green, and P1–P5's 1302 collected tests still green.
 `src/privacy/` still imports none of `extractors`' three refusals, and `src/privacy/gate.py` binds no
 P4 text materialiser — `resolve` is still the only module that does, which Task 21 re-asserts
 repo-wide.
@@ -12420,6 +12679,24 @@ enumerate the files a scope covers and must not guess; the caller supplies
 version answers a narrower question than the one the user is asking, and the audit log carries
 `policy_version` on each record for a reader who wants the narrower one.
 
+> ### CONTRADICTION — `prior_releases` under-reports every GROUP release, and Task 15 cannot fix it
+>
+> `_prior_releases` loops `audit_records_for(conn, file_id=file_id)` over the files in scope. **Task
+> 10's reader filters `file_id = ?` on the `events` COLUMN** (`PLAN-tasks-08-11.md:2103-2105`),
+> while its `release_id` and `consent_request_id` filters go through
+> `json_extract(explanation, …)`. A **group** release writes `None` into that column and puts the
+> ids in the explanation — `file_id=request.target.file_ids[0] if single else None`
+> (`PLAN-tasks-08-11.md:3143`), with `file_ids` among `EXPLANATION_FIELDS`. So a multi-file release
+> that carried this file's excerpts to a hosted model **is invisible to this function**, and §8.4's
+> retraction limit — the one place the product tells the user what revocation cannot take back —
+> silently under-reports it.
+>
+> **FIXED 2026-08-22.** `audit_records_for` now matches `file_id = ?` **or**
+> `json_each(explanation, '$.file_ids')`. The test below is no longer xfail.
+
+**`test_a_group_release_covering_a_file_in_scope_is_listed` is a live assertion.** Task 10's
+reader is the one home; this task does not re-scan the log.
+
 **What D3 makes this task write down.** The enumeration is the deliverable:
 
 ```text
@@ -12624,6 +12901,19 @@ def test_prior_releases_are_ordered_oldest_first(p7_conn, released):
     assert [r.when for r in go(p7_conn).prior_releases] == [FIXED_CLOCK, LATER]
 
 
+def test_a_group_release_covering_a_file_in_scope_is_listed(p7_conn):
+    # §8.4 requires the retraction limit be specific about what already left the
+    # device. Excerpts from `file-1` that went to Acme inside a two-file prompt left
+    # exactly as surely as excerpts sent alone, and a list that omits them tells the
+    # user less than the truth about what revocation cannot take back.
+    append_audit(p7_conn, an_audit_record(
+        release_id="release-2", file_id=None, content_hash=None,
+        file_ids=("file-1", "file-2"),
+        content_hashes=("sha256:abc", "sha256:def")),
+        author=SUBSYSTEM, component_version=COMPONENT)
+    assert len(go(p7_conn).prior_releases) == 1
+
+
 # --- the retraction limit ---------------------------------------------------
 
 def test_the_retraction_limit_is_always_present(p7_conn, released):
@@ -12789,8 +13079,9 @@ def test_p7_creates_no_trigger_of_its_own_on_events(p7_conn):
 - [ ] **Step 2: Run the test and watch it fail**
 
 Run: `pytest tests/p7/test_p7_revocation.py -v`
-Expected: FAIL — `ImportError: cannot import name 'DERIVED_PROJECTIONS' from 'privacy.revocation'`
-(the module does not exist, so collection fails on the first import).
+Expected: FAIL — `ModuleNotFoundError: No module named 'privacy.revocation'` (the module does
+not exist yet, so collection fails on the first import — an `ImportError` naming a missing
+attribute is what a module that EXISTS raises, and this one does not).
 
 - [ ] **Step 3: Write `src/privacy/revocation.py`**
 
@@ -13012,7 +13303,10 @@ def delete_derived(scope: DerivedScope) -> NoReturn:
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_revocation.py -v`
-Expected: PASS — 22 passed
+Expected: PASS — 25 passed, 1 xfailed. The xfail is
+`test_a_group_release_covering_a_file_in_scope_is_listed`; see the CONTRADICTION callout above. It
+is `strict=True`, so once Task 10's reader matches the explanation this line becomes
+**26 passed** and the marker is deleted in the same change.
 
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
@@ -13046,7 +13340,8 @@ git commit -m "feat(P7): revocation, the retraction limit, and delete_derived re
   `privacy.classification_store.ClassificationStore`, `.mirror_state` (the skeleton's
   `facts_seam.SensitivityFacts` — see the rename note above), `privacy.authorship.SUBSYSTEM`,
   `.CLASSIFICATION_ASSIGNED`, `.CLASSIFICATION_SUPERSEDED`, `.event_defaults`,
-  `privacy.vocabulary.check_handling_class`.
+  `privacy.vocabulary.check_handling_class`, `privacy.vocabulary.USER`,
+  `privacy.vocabulary.USER_CONFIRMED`.
 - Produces (`learning_seam.py`):
   - `PROPOSAL_CLASS: str = "privacy"`, `FILE_SCOPE: str = "file"`, `ACCEPT: str`, `REJECT: str`.
   - `RECORDED_ACTIONS: tuple[str, ...]` (SPEC *Correction learning*'s six),
@@ -13099,9 +13394,45 @@ belong there."* A broader scope is accepted when the caller passes one and is ne
 question 7 — *"Does repeated reclassification generalize?"* — stays open; nothing here counts
 repetitions, and Task 21 asserts it.
 
+> ### CONTRADICTION — a broader `correction_scope` is WRITTEN and never READ. Named against OQ7.
+>
+> `reclassify` validates `correction_scope` against **all six** of §8.7's scopes
+> (`corpus`, `domain`, `group`, `node`, `template`, `file`) and stores whichever the caller passes.
+> `suppressed` — the **only** consumer of what `reclassify` writes — calls
+> `learning_records(conn, FILE_SCOPE, file_id)` and nothing else. So a caller who rejects a class at
+> `group` or `corpus` scope gets a durable, correctly-formed learning record that **no code in P7
+> can ever read**, and the next `assign` at that file re-proposes exactly the class the user
+> rejected. A write with no reader is the shape that produced `files.sensitivity_state`, and it is
+> worse here because it *looks* like it worked.
+>
+> **This is not fixed and not dropped, because closing it either way answers OQ7.** *"§8.7 allows a
+> repeated residual destination to become a corpus-level preference; it does not say whether
+> repeated privacy corrections may raise a sensitivity floor for a class of files."* Widening
+> `suppressed` to consult the broader scopes **is** deciding that a corpus-scoped privacy rejection
+> generalises — which is precisely the question OQ7 holds open, and a P7 author is not the one to
+> answer it. Narrowing `reclassify` to `file` only would throw away the design's own six-scope
+> vocabulary on the same unanswered question, and would make §8.7's *"granting, changing, or
+> revoking a policy"* actions unrecordable at the scope a user performed them.
+>
+> **The three options, for whoever rules OQ7:** (a) `suppressed` walks the scopes a file belongs to
+> — needs P9's grouping and P10's tree, neither of which exists, and needs OQ3's *"corpus area"*
+> named; (b) `reclassify` refuses any scope but `file` until OQ7 is ruled, which is honest and
+> loses the recorded act; (c) leave both as written and let P13 read the broader records when it
+> has a surface for them. **The plan ships (c)** and states it here, so no reader mistakes the
+> stored record for one that takes effect. `test_open_question_7_is_not_answered_here` and the test
+> below pin the current behaviour rather than the intended one.
+
 **`protected` is a required keyword on `reclassify` and is never derived.** SPEC §2:
 *"Neighbouring parts should consume the `protected` flag, not infer it from the class"*, and Open
 question 1 is unsettled.
+
+**`basis` and `reliability_state` are written as NAMED CONSTANTS, never as literals** (brief §11,
+whose closing sentence extends the rule to *"every closed vocabulary either part publishes"*).
+`reclassify` builds a `user` / `user_confirmed` record, and both words are Task 2's to spell:
+`vocabulary.USER` and `vocabulary.USER_CONFIRMED` are imported and used. A bare `"user"` here would
+be a second home for a value Task 2 owns, and the literal spelling survives in exactly one
+assertion below — `assert revised.basis == USER == "user"` — so a rename in Task 2 is a red test
+here rather than a silent divergence.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -13132,6 +13463,7 @@ from privacy.learning_seam import (
     REJECT, UnknownRecordedAction, assign, basis_key_for, check_recorded_action,
     reclassify, suppressed,
 )
+from privacy.vocabulary import USER, USER_CONFIRMED
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 LATER = "2026-08-22T18:30:00+00:00"
@@ -13292,13 +13624,22 @@ def test_p7_does_the_filtering_because_p1s_reader_does_not(
     assert rows[0]["proposal_class"] == PROPOSAL_CLASS
     assert rows[0]["basis_key"] == basis_key_for(file_id, "sensitive_personal")
     assert rows[0]["polarity"] == REJECT
-    # Another part's rejection at the same subject is ignored, not counted.
+    # Another part's rejection, at a basis key P7 has NOT rejected. This placement is
+    # deliberate and it is the whole test: P13's row must be the ONLY record at
+    # `public_low`, because a foreign row sitting BESIDE a P7 row at the same key
+    # proves nothing -- delete the `proposal_class` guard from `suppressed` and the
+    # P7 row still answers True, so the assertion passes either way. Here the guard is
+    # load-bearing in both directions: without it `public_low` reads as suppressed
+    # (P13's rejection is honoured as P7's), and without the `basis_key` guard it
+    # reads as suppressed too (P7's `sensitive_personal` rejection is honoured at the
+    # wrong key). 10-i4: "Ignores records at the wrong `proposal_class`. Ignores
+    # records whose `basis_key` does not match."
     append_event(p7_conn, event_type="review action routed", subsystem="P13",
                  component_version=COMPONENT, observed_at=LATER,
                  explanation='{"note":"another part"}', user_id="joseph",
                  correction_scope=FILE_SCOPE, correction_subject=file_id,
                  polarity=REJECT, proposal_class="placement",
-                 basis_key=basis_key_for(file_id, "sensitive_personal"))
+                 basis_key=basis_key_for(file_id, "public_low"))
     assert len(learning_records(p7_conn, FILE_SCOPE, file_id)) == 2
     assert suppressed(p7_conn, file_id, "sensitive_personal") is True
     assert suppressed(p7_conn, file_id, "public_low") is False
@@ -13325,8 +13666,10 @@ def test_reclassify_writes_a_new_user_confirmed_fact(
     assign(p7_conn, a_record(file_id, content_hash), store=store,
            component_version=COMPONENT)
     revised = a_user_rejection(p7_conn, file_id, content_hash, store=store)
-    assert revised.reliability_state == "user_confirmed"
-    assert revised.basis == "user"
+    # Task 2 owns the literal spelling of both (brief §11); this is the one place in
+    # the file that pins it, and everything else consumes the named constant.
+    assert revised.reliability_state == USER_CONFIRMED == "user_confirmed"
+    assert revised.basis == USER == "user"
     assert revised.handling_class == "personal_non_sensitive"
     assert store.current(file_id, content_hash) == revised
 
@@ -13340,7 +13683,7 @@ def test_both_records_remain_inspectable(p7_conn, file_id, content_hash, store):
     history = store.history(file_id)
     assert [r.handling_class for r in history] == [
         "sensitive_personal", "personal_non_sensitive"]
-    assert [r.basis for r in history] == ["detector", "user"]
+    assert [r.basis for r in history] == ["detector", USER]
 
 
 def test_reclassify_appends_classification_superseded_and_not_an_overwrite(
@@ -13419,6 +13762,25 @@ def test_a_scope_outside_8_7s_six_is_refused(p7_conn, file_id, content_hash, sto
                    correction_scope="everything")
 
 
+def test_a_broader_correction_scope_is_stored_and_suppresses_nothing(
+        p7_conn, file_id, content_hash, store):
+    # See the CONTRADICTION callout above. This pins the SHIPPED behaviour, not the
+    # intended one: a corpus-scoped rejection is recorded honestly and `suppressed`
+    # -- which reads FILE_SCOPE only -- does not see it, so the next `assign` at this
+    # file re-proposes the class the user rejected. Making this test go the other way
+    # would answer Open question 7, which is Joseph's and not this task's.
+    assign(p7_conn, a_record(file_id, content_hash), store=store,
+           component_version=COMPONENT)
+    reclassify(p7_conn, file_id, "personal_non_sensitive", "not an identity record",
+               store=store, content_hash=content_hash, protected=False,
+               evidence_refs=DETECTOR_KEYS, user_id="joseph",
+               component_version=COMPONENT, observed_at=LATER,
+               correction_scope="corpus")
+    assert len(learning_records(p7_conn, "corpus", file_id)) == 1
+    assert learning_records(p7_conn, FILE_SCOPE, file_id) == []
+    assert suppressed(p7_conn, file_id, "sensitive_personal") is False
+
+
 def test_the_projection_onto_files_goes_through_p1s_setter(
         p7_conn, file_id, content_hash, store):
     # D2: `files.sensitivity_state` is the projection of the authoritative record,
@@ -13454,7 +13816,8 @@ def test_open_question_7_is_not_answered_here(p7_conn, file_id, content_hash, st
 - [ ] **Step 2: Run the test and watch it fail**
 
 Run: `pytest tests/p7/test_p7_learning_seam.py -v`
-Expected: FAIL — `ImportError: cannot import name 'ACCEPT' from 'privacy.learning_seam'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'privacy.learning_seam'` (the module
+does not exist yet, so collection fails on the first import).
 
 - [ ] **Step 3: Write `src/privacy/learning_seam.py`**
 
@@ -13491,7 +13854,7 @@ from privacy.authorship import (
 )
 from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore, mirror_state
-from privacy.vocabulary import check_handling_class
+from privacy.vocabulary import USER, USER_CONFIRMED, check_handling_class
 
 #: 10-i4-learning-ops.md's table: `privacy` | `(file_id, handling_class)` | P7.
 PROPOSAL_CLASS: str = "privacy"
@@ -13630,8 +13993,8 @@ def reclassify(conn: sqlite3.Connection, file_id: str, handling_class: str,
     prior_fact_id = store.current_fact_id(file_id, content_hash)
     record = ClassificationRecord(
         file_id=file_id, content_hash=content_hash, handling_class=handling_class,
-        protected=protected, basis="user", evidence_refs=tuple(evidence_refs),
-        reliability_state="user_confirmed", observed_at=observed_at)
+        protected=protected, basis=USER, evidence_refs=tuple(evidence_refs),
+        reliability_state=USER_CONFIRMED, observed_at=observed_at)
     fact_id = store.write(record)
     if prior is not None and prior_fact_id is not None:
         store.supersede(prior_fact_id, fact_id, reason)
@@ -13676,7 +14039,7 @@ def _project(conn: sqlite3.Connection, record: ClassificationRecord, *,
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_learning_seam.py -v`
-Expected: PASS — 21 passed
+Expected: PASS — 22 passed
 
 - [ ] **Step 5: Commit**
 
@@ -13781,6 +14144,7 @@ from privacy.moves import (
     may_move_automatically,
 )
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
+from privacy.vocabulary import USER, USER_CONFIRMED
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 COMPONENT = "0.1.0"
@@ -13855,8 +14219,8 @@ def classify(store, file_id, content_hash, *, handling_class, protected):
     prior_fact_id = store.current_fact_id(file_id, content_hash)
     record = ClassificationRecord(
         file_id=file_id, content_hash=content_hash, handling_class=handling_class,
-        protected=protected, basis="user", evidence_refs=(),
-        reliability_state="user_confirmed", observed_at=FIXED_CLOCK)
+        protected=protected, basis=USER, evidence_refs=(),
+        reliability_state=USER_CONFIRMED, observed_at=FIXED_CLOCK)
     fact_id = store.write(record)
     if prior_fact_id is not None:
         store.supersede(prior_fact_id, fact_id, "the fixture revises its own record")
@@ -14269,20 +14633,29 @@ git commit -m "feat(P7): may_move_automatically, keyed on the protected flag and
 - Test: `tests/p7/test_p7_display.py`
 
 **Interfaces:**
-- Consumes: `privacy.vocabulary.DISPLAY_FACETS`, `.HANDLING_CLASSES`,
-  `privacy.defaults.MORE_REDACTING`, `privacy.policy.current_policy(conn, *, plan_version) -> Policy`,
+- Consumes: `privacy.vocabulary.DISPLAY_FACETS`, `.HANDLING_CLASSES`, `.SHOWN`, `.REDACTED`,
+  `.REDACTION_VALUES`, `privacy.defaults.MORE_REDACTING`,
+  `privacy.policy.current_policy(conn, *, plan_version) -> Policy`,
   `privacy.classification.resolve_class(record) -> str`,
   `privacy.classification_store.ClassificationStore` (the skeleton's `facts_seam.SensitivityFacts` —
   see the rename note), `database_agent.files_table.get_file`.
 - Produces (`display.py`):
-  - `SHOWN: str = "shown"`, `REDACTED: str = "redacted"`, `SETTING_VALUES: tuple[str, str]`.
   - `RedactionSettings` — frozen, five fields, one per §8.4 facet, in §8.4's order;
     `facet(name) -> str`.
-  - `ProtectedSummary` — frozen: `count: int`, `class_breakdown: Mapping[str, int]`. Two fields,
-    and deliberately no third.
+  - `ProtectedSummary` — frozen: `count: int`, `scope_total: int`,
+    `class_breakdown: Mapping[str, int]` (D11). **Three fields, all `int` or `Mapping[str, int]`,
+    and deliberately no field a filename could occupy.**
   - `UnknownDisplaySetting`.
   - `display_policy(conn, *, plan_version) -> RedactionSettings`.
   - `summarize_protected(conn, scope, *, store, files_in_scope) -> ProtectedSummary`.
+
+**This task publishes NO value vocabulary.** `SHOWN`, `REDACTED` and `REDACTION_VALUES` are
+**Task 2's**, in `privacy/vocabulary.py`, and are imported from there. They had three homes and
+three names across this plan — `REDACTION_VALUES` in Task 5's `policy.py`, `SETTING_VALUES` here,
+`FACET_VALUES` in a sibling draft — for one two-member vocabulary SPEC §10 states once
+(*"each `shown | redacted`"*). One home, one name; `SETTING_VALUES` is deleted rather than
+re-exported, because a second spelling that resolves to the same tuple is exactly what makes a
+second home survive review.
 
 **Done-means:** 10, and the display half of 12.
 
@@ -14306,20 +14679,42 @@ aggregate is the default and the expansion is the user's act. A facet absent fro
 resolves through `defaults.MORE_REDACTING`, never to `shown`.
 
 **`ProtectedSummary` cannot return a filename, and the proof is at the type level.** Done-means 10:
-*"returns counts and class breakdown and cannot return filenames or content."* Asserted over
-`dataclasses.fields(ProtectedSummary)` — a runtime filter is something a future caller can route
-around, and a string scan matches the docstring that explains the rule. §5.2 applies the same rule
-to the canvas: a Finance or Identity proposal *"may be visible as a protected area, but the product
+*"returns counts and class breakdown and cannot return filenames or content."* Asserted with
+`typing.get_type_hints(ProtectedSummary)` — **three fields, all `int` or `Mapping[str, int]`, and
+deliberately no field a filename could occupy.** A runtime filter is something a future caller can
+route around, and a string scan matches the docstring that explains the rule; comparing field
+*names* against a forbidden list is weaker still, because it passes any new field whose name nobody
+thought to ban. Resolving the annotations is the assertion that actually holds: a record with no
+field of a string-bearing type cannot carry a filename at all. §5.2 applies the same rule to the
+canvas: a Finance or Identity proposal *"may be visible as a protected area, but the product
 should avoid showing sensitive filenames"*, and §7.5's residual screen already uses the form —
 *"11 protected personal records."*
 
+**The skeleton's *"two fields, and deliberately no third"* is struck, and D11 is why.** The
+constraint was written to make Done-means 10 mechanical, and that reason is kept in full — but it
+made the FIELD COUNT the safety property, and the field count never was the safety property. D11
+adds a third field, so the constraint is restated against the thing that actually protects the
+user: **no field a filename could occupy.** The type-level test is updated in the same change, so
+one cannot silently break the other.
+
 **`count` counts protected files; `class_breakdown` counts every file in scope by its resolved
-class.** Both are needed and they answer different questions. `count` is §8.4's aggregate. The
-breakdown includes `unreadable_unclassified`, which is what makes today's honest state visible: with
-no detector (D2) every file resolves there, so a real corpus yields `count = 0` — and *"0 protected
-records"* means *nothing has looked*, not *nothing is protected*. That is exactly why D2 keeps
-`unreadable_unclassified` off `files.sensitivity_state` and on the gate outcome, and a named test
-records it here rather than leaving a reader to find it.
+class; `scope_total` is the breakdown's denominator (D11).** Both counts are needed and they answer
+different questions. `count` is §8.4's aggregate. The breakdown includes `unreadable_unclassified`,
+which is what makes today's honest state visible: with no detector (D2) every file resolves there,
+so a real corpus yields `count = 0` — and *"0 protected records"* means *nothing has looked*, not
+*nothing is protected*. That is exactly why D2 keeps `unreadable_unclassified` off
+`files.sensitivity_state` and on the gate outcome, and a named test records it here rather than
+leaving a reader to find it.
+
+**`sum(class_breakdown.values()) == scope_total`, and it does NOT equal `count`.** They are **two
+denominators** and D11 exists because conflating them is a live safety bug, not an aesthetic one:
+`class_breakdown` is a census of the **whole scope** and `count` is the **protected** subset, so a
+UI rendering §8.4's *"11 protected identity records"* off the breakdown would **describe an
+unprotected file as protected**. The worked case is in the suite — a
+`highly_sensitive_credential_bearing` record with `protected=False` appears in the breakdown and
+not in the count, which is correct and is exactly the pair a single denominator would collapse.
+`scope_total` is published so the breakdown has a stated denominator rather than an assumed one,
+and a named test asserts `sum(class_breakdown.values()) == scope_total != count`.
 
 **P13's open question is recorded against this signature and not resolved.** §8.4: *"Protected
 branches should have configurable redaction in the canvas and review screens"* — which reads
@@ -14339,6 +14734,8 @@ names, previews, thumbnails, OCR text, or location data are shown."
 """
 import dataclasses
 import json
+from collections.abc import Mapping
+from typing import get_type_hints
 
 import pytest
 
@@ -14349,11 +14746,14 @@ from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import MORE_REDACTING
 from privacy.display import (
-    REDACTED, SETTING_VALUES, SHOWN, ProtectedSummary, RedactionSettings,
-    UnknownDisplaySetting, display_policy, summarize_protected,
+    ProtectedSummary, RedactionSettings, UnknownDisplaySetting, display_policy,
+    summarize_protected,
 )
-from privacy.policy import Policy, set_policy
-from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES
+from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
+from privacy.vocabulary import (
+    DISPLAY_FACETS, HANDLING_CLASSES, REDACTED, REDACTION_VALUES, SHOWN,
+    USER, USER_CONFIRMED,
+)
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 COMPONENT = "0.1.0"
@@ -14398,8 +14798,8 @@ def _record(conn, root, document):
 def classify(conn, store, file_id, *, handling_class, protected):
     store.write(ClassificationRecord(
         file_id=file_id, content_hash=get_file(conn, file_id)["content_hash"],
-        handling_class=handling_class, protected=protected, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class=handling_class, protected=protected, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at=FIXED_CLOCK))
 
 
@@ -14434,12 +14834,16 @@ def test_there_is_no_sixth_facet():
 
 
 def test_each_facet_takes_one_of_two_values(p7_conn):
-    # SPEC §10: "each shown | redacted".
-    assert SETTING_VALUES == (SHOWN, REDACTED) == ("shown", "redacted")
+    # SPEC §10: "each shown | redacted". The two values are TASK 2's -- one home, one
+    # name -- and this file imports them rather than publishing a third spelling.
+    assert REDACTION_VALUES == (SHOWN, REDACTED) == ("shown", "redacted")
+    import privacy.display as module
+    assert not hasattr(module, "SETTING_VALUES")
+    assert not hasattr(module, "FACET_VALUES")
     install(p7_conn, redaction_settings=ALL_SHOWN)
     settings = display_policy(p7_conn, plan_version="plan-1")
     for facet in DISPLAY_FACETS:
-        assert settings.facet(facet) in SETTING_VALUES
+        assert settings.facet(facet) in REDACTION_VALUES
 
 
 def test_a_third_value_is_a_load_error(p7_conn):
@@ -14494,16 +14898,33 @@ def test_settings_are_plan_scoped(p7_conn):
 
 # --- the aggregate-safe summary ---------------------------------------------
 
-def test_protected_summary_has_two_fields_and_deliberately_no_third():
-    # Done-means 10: "cannot return filenames or content". Proven at the TYPE level --
-    # a runtime filter is something a future caller can route around, and a string
-    # scan matches the docstring that explains the rule.
-    names = [field.name for field in dataclasses.fields(ProtectedSummary)]
-    assert names == ["count", "class_breakdown"]
+def test_the_summary_has_three_fields_and_none_can_hold_a_filename():
+    """Done-means 10: the summary "returns counts and class breakdown and cannot
+    return filenames or content."
+
+    Asserted at the TYPE level, with resolved annotations. A runtime filter is
+    something a future caller can route around; a string scan matches the docstring
+    that explains the rule; and comparing field NAMES against a forbidden list is
+    weaker than both, because it passes any new field whose name nobody thought to
+    ban. A record whose every field is an `int` or a `Mapping[str, int]` cannot carry
+    a filename at all. §5.2 states the same rule for the canvas -- a Finance or
+    Identity proposal "may be visible as a protected area, but the product should
+    avoid showing sensitive filenames."
+
+    D11 added `scope_total` and this assertion moved WITH it, in one change. The
+    skeleton's constraint read "two fields, and deliberately no third", which made the
+    field COUNT the safety property; it never was. The property is that no field has a
+    type a filename could occupy, and that is what is asserted here.
+    """
+    hints = get_type_hints(ProtectedSummary)
+    assert [field.name for field in dataclasses.fields(ProtectedSummary)] == [
+        "count", "scope_total", "class_breakdown"]
+    assert hints == {"count": int, "scope_total": int,
+                     "class_breakdown": Mapping[str, int]}
     for forbidden in ("filename", "filenames", "path", "paths", "examples",
                       "members", "file_ids", "raw_value", "text", "preview",
                       "thumbnail"):
-        assert forbidden not in names
+        assert forbidden not in hints
 
 
 def test_eleven_protected_identity_records(p7_conn, store, corpus):
@@ -14518,8 +14939,12 @@ def test_eleven_protected_identity_records(p7_conn, store, corpus):
                  protected=False)
     summary = summarize(p7_conn, store, corpus)
     assert summary.count == 11
+    # D11: the breakdown is a census of the WHOLE SCOPE, so its denominator is the
+    # thirteen files in scope and not the eleven protected ones.
+    assert summary.scope_total == 13
     assert summary.class_breakdown["highly_sensitive_credential_bearing"] == 11
     assert summary.class_breakdown["public_low"] == 2
+    assert sum(summary.class_breakdown.values()) == 13
 
 
 def test_the_breakdown_covers_every_handling_class_zero_filled(
@@ -14532,6 +14957,37 @@ def test_the_breakdown_covers_every_handling_class_zero_filled(
     assert summary.class_breakdown["sensitive_personal"] == 0
 
 
+def test_the_breakdown_is_ordered_by_the_closed_vocabulary(p7_conn, store, corpus):
+    # A deterministic key order, taken from HANDLING_CLASSES rather than from
+    # insertion, so two runs over the same corpus render the same screen and a
+    # reviewer comparing two summaries is comparing rows and not orderings.
+    classify(p7_conn, store, corpus[0],
+             handling_class="highly_sensitive_credential_bearing", protected=True)
+    classify(p7_conn, store, corpus[1], handling_class="sensitive_personal",
+             protected=True)
+    summary = summarize(p7_conn, store, corpus[:2])
+    assert list(summary.class_breakdown) == list(HANDLING_CLASSES)
+
+
+def test_the_breakdown_is_a_census_of_the_scope_and_never_of_the_protected_set(
+        p7_conn, store, corpus):
+    # D11, and the bug it exists to keep out. Two files of the same class, one
+    # protected and one not. `count` is 1, the breakdown says 2, and `scope_total`
+    # is the breakdown's stated denominator -- so a UI rendering §8.4's "11 protected
+    # identity records" off the breakdown cannot describe an UNPROTECTED file as
+    # protected, which is what one denominator for two questions would let it do.
+    classify(p7_conn, store, corpus[0],
+             handling_class="highly_sensitive_credential_bearing", protected=True)
+    classify(p7_conn, store, corpus[1],
+             handling_class="highly_sensitive_credential_bearing", protected=False)
+    summary = summarize(p7_conn, store, corpus[:2])
+    assert summary.count == 1
+    assert summary.scope_total == 2
+    assert sum(summary.class_breakdown.values()) == summary.scope_total
+    assert summary.class_breakdown["highly_sensitive_credential_bearing"] == 2
+    assert sum(summary.class_breakdown.values()) != summary.count
+
+
 def test_the_count_follows_the_flag_and_not_the_class(p7_conn, store, corpus):
     # SPEC §2, and Open question 1 again: a `public_low` file the user marked
     # protected is counted, and a top-class file that is not marked is not.
@@ -14540,6 +14996,7 @@ def test_the_count_follows_the_flag_and_not_the_class(p7_conn, store, corpus):
              handling_class="highly_sensitive_credential_bearing", protected=False)
     summary = summarize(p7_conn, store, corpus[:2])
     assert summary.count == 1
+    assert summary.scope_total == 2
     assert summary.class_breakdown["public_low"] == 1
     assert summary.class_breakdown["highly_sensitive_credential_bearing"] == 1
 
@@ -14547,7 +15004,11 @@ def test_the_count_follows_the_flag_and_not_the_class(p7_conn, store, corpus):
 def test_a_file_outside_the_scope_is_not_counted(p7_conn, store, corpus):
     classify(p7_conn, store, corpus[0],
              handling_class="highly_sensitive_credential_bearing", protected=True)
-    assert summarize(p7_conn, store, ()).count == 0
+    empty = summarize(p7_conn, store, ())
+    assert empty.count == 0
+    assert empty.scope_total == 0
+    assert sum(empty.class_breakdown.values()) == 0
+    assert set(empty.class_breakdown) == set(HANDLING_CLASSES)
     assert summarize(p7_conn, store, corpus[:1]).count == 1
 
 
@@ -14560,7 +15021,10 @@ def test_with_no_detector_the_summary_reads_zero_and_the_breakdown_says_why(
     summary = summarize(p7_conn, store, corpus)
     assert summary.count == 0
     assert summary.class_breakdown["unreadable_unclassified"] == len(corpus)
-    assert sum(summary.class_breakdown.values()) == len(corpus)
+    # D11's whole point in one line: the two denominators disagree, and they should.
+    assert summary.scope_total == len(corpus)
+    assert sum(summary.class_breakdown.values()) == summary.scope_total
+    assert summary.scope_total != summary.count
 
 
 def test_the_breakdown_is_not_mutable_by_a_caller(p7_conn, store, corpus):
@@ -14569,13 +15033,41 @@ def test_the_breakdown_is_not_mutable_by_a_caller(p7_conn, store, corpus):
         summary.class_breakdown["public_low"] = 99
 
 
+# --- C4: both surfaces are reads --------------------------------------------
+
+def test_neither_surface_writes_anything(p7_conn, store, corpus):
+    # C4: "the gate still raises and writes nothing -- a gate that also wrote would be
+    # doing two jobs." Both of these are predicates over stored state: they append no
+    # event, mint no policy version and issue no `UPDATE files`. Asserted rather than
+    # assumed, because "this function is a read" is the kind of claim that stays in a
+    # docstring after it stops being true.
+    install(p7_conn)
+    classify(p7_conn, store, corpus[0], handling_class="sensitive_personal",
+             protected=True)
+    before = p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"]
+    mirror = get_file(p7_conn, corpus[0])["sensitivity_state"]
+    display_policy(p7_conn, plan_version="plan-1")
+    summarize(p7_conn, store, corpus)
+    assert p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"] == before
+    assert get_file(p7_conn, corpus[0])["sensitivity_state"] == mirror
+
+
 # --- what is not resolved here ----------------------------------------------
 
 def test_p13s_per_branch_question_is_recorded_and_not_answered(p7_conn):
-    # §8.4: "Protected branches should have configurable redaction in the canvas and
-    # review screens" -- which reads per-branch -- while SPEC §10 publishes
-    # `Gate.display_policy()` with no branch. Recorded against the signature so the
-    # reviewer sees where the gap is, and not resolved by this plan.
+    """P13 Open question 7, quoted and not resolved.
+
+        "**Does the user's redaction setting have a scope?** §8.4 says 'Protected
+        branches should have configurable redaction', which reads per-branch, while
+        P7's `Gate.display_policy()` takes no scope argument and reads global.
+        *Threatens P7.*"
+
+    `display_policy` therefore takes a plan version and no branch, node or scope. This
+    test fails the day someone adds one, which is the point: adding it would answer
+    P13's question in an implementation rather than in a SPEC, and the answer changes
+    what P13's canvas and review screens have to render.
+    """
     import inspect
     parameters = set(inspect.signature(display_policy).parameters)
     assert parameters == {"conn", "plan_version"}
@@ -14593,7 +15085,8 @@ def test_files_in_scope_has_no_default(p7_conn):
 - [ ] **Step 2: Run the test and watch it fail**
 
 Run: `pytest tests/p7/test_p7_display.py -v`
-Expected: FAIL — `ImportError: cannot import name 'REDACTED' from 'privacy.display'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'privacy.display'` (the module does not
+exist yet, so collection fails on the first import).
 
 - [ ] **Step 3: Write `src/privacy/display.py`**
 
@@ -14607,15 +15100,16 @@ default direction is its own example: "A summary such as '11 protected identity
 records' may be safe to show, while a visible list of passport filenames on a shared
 screen may not be." The aggregate is the default; the expansion is the user's act.
 
-`ProtectedSummary` has two fields because Done-means 10 says it "cannot return
-filenames or content", and the cheapest way to make that true is for there to be
-nowhere to put one.
+`ProtectedSummary` says Done-means 10 -- "cannot return filenames or content" -- in
+its TYPES: three fields, every one an `int` or a `Mapping[str, int]`, and no field a
+filename could occupy. The cheapest way to make that true is for there to be nowhere
+to put one.
 """
 from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from types import MappingProxyType
 
 from database_agent.files_table import get_file
@@ -14624,12 +15118,17 @@ from privacy.classification import resolve_class
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import MORE_REDACTING
 from privacy.policy import current_policy
-from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES
+from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES, REDACTION_VALUES
 
-#: SPEC §10: "each shown | redacted". Two values, and no third.
-SHOWN: str = "shown"
-REDACTED: str = "redacted"
-SETTING_VALUES: tuple[str, str] = (SHOWN, REDACTED)
+# SPEC §10's two values -- "each shown | redacted" -- are TASK 2's, published as
+# `vocabulary.SHOWN`, `vocabulary.REDACTED` and `vocabulary.REDACTION_VALUES`. They
+# had three homes and three names across this plan (`REDACTION_VALUES`,
+# `REDACTION_VALUES`, `REDACTION_VALUES`) for one two-member vocabulary the design states
+# once, and `REDACTION_VALUES` was one of them: it is DELETED here, not aliased, because
+# a second spelling that resolves to the same tuple is what makes a second home
+# survive review. Only the tuple is imported, because only the tuple is used --
+# re-exporting the two members through this module would be a dead import, and a
+# consumer that wants them imports them from Task 2 as this task's test does.
 
 
 class UnknownDisplaySetting(ValueError):
@@ -14657,12 +15156,26 @@ class RedactionSettings:
 class ProtectedSummary:
     """§8.4's aggregate: "11 protected identity records", and nothing that names a file.
 
-    Two fields, and deliberately no third. There is no `examples`, no `file_ids` and no
-    `filenames`, because Done-means 10 forbids returning one and a field that does not
-    exist cannot be populated by a later caller in a hurry.
+    Three fields, all `int` or `Mapping[str, int]`, and **deliberately no field a
+    filename could occupy**. There is no `examples`, no `file_ids` and no `filenames`,
+    because Done-means 10 forbids returning one and a field that does not exist cannot
+    be populated by a later caller in a hurry. The constraint is asserted with
+    `typing.get_type_hints`, not by matching field names against a banned list: the
+    types are what hold, and a name-based check passes any field nobody thought to ban.
+
+    **Two denominators, and they are not interchangeable (D11).** `count` is the number
+    of PROTECTED files in scope. `class_breakdown` is a census of the WHOLE scope by
+    resolved class, zero-filled across `HANDLING_CLASSES` and keyed in that order, and
+    `scope_total` is its denominator: `sum(class_breakdown.values()) == scope_total`,
+    which is `len(files_in_scope(scope))` and is **not** `count`. A caller that rendered
+    §8.4's "11 protected identity records" off the breakdown would describe an
+    unprotected file as protected -- a `highly_sensitive_credential_bearing` record with
+    `protected=False` is legal while Open question 1 is unsettled -- so the denominator
+    is published rather than assumed.
     """
 
     count: int
+    scope_total: int
     class_breakdown: Mapping[str, int]
 
 
@@ -14687,10 +15200,10 @@ def display_policy(conn: sqlite3.Connection, *,
     resolved = {}
     for facet in DISPLAY_FACETS:
         value = stored.get(facet, MORE_REDACTING[facet])
-        if value not in SETTING_VALUES:
+        if value not in REDACTION_VALUES:
             raise UnknownDisplaySetting(
-                f"{facet} = {value!r} is not one of {SETTING_VALUES}; a value outside "
-                "the set is a load error, not a fallback")
+                f"{facet} = {value!r} is not one of {REDACTION_VALUES}; a value "
+                "outside the set is a load error, not a fallback")
         resolved[facet] = value
     return RedactionSettings(**resolved)
 
@@ -14706,25 +15219,31 @@ def summarize_protected(conn: sqlite3.Connection, scope: str, *,
     question 1). `class_breakdown` covers every file in scope by its RESOLVED class,
     so a corpus nothing has classified reports `unreadable_unclassified` rather than
     disappearing -- which is today's ordinary state, since D2 leaves the detector
-    unwritten.
+    unwritten -- and `scope_total` is the breakdown's denominator, which is the number
+    of files in scope and NOT `count` (D11). The two are separated because they answer
+    two questions, and one number cannot answer both without lying about one.
+
+    Reads only (C4). No event, no policy version, no `UPDATE files`.
 
     `files_in_scope` has no default: Open question 3 leaves "corpus area" unnamed.
     """
     counts = {handling_class: 0 for handling_class in HANDLING_CLASSES}
     protected = 0
+    in_scope = 0
     for file_id in files_in_scope(scope):
         record = store.current(file_id, get_file(conn, file_id)["content_hash"])
         counts[resolve_class(record)] += 1
+        in_scope += 1
         if record is not None and record.protected:
             protected += 1
-    return ProtectedSummary(count=protected,
+    return ProtectedSummary(count=protected, scope_total=in_scope,
                             class_breakdown=MappingProxyType(counts))
 ```
 
 - [ ] **Step 4: Run the test and watch it pass**
 
 Run: `pytest tests/p7/test_p7_display.py -v`
-Expected: PASS — 17 passed
+Expected: PASS — 21 passed
 
 - [ ] **Step 5: Commit**
 
@@ -14751,6 +15270,9 @@ git commit -m "feat(P7): display_policy and summarize_protected, aggregate-safe 
   and Task 21's repo-wide guard still passes).
 - Produces (`transport_guard.py`):
   - `CONTENT_PARAMETER_TYPES: frozenset[type]` = `{str, bytes, Path, Observation, TextUnit}`.
+  - `IS_MODEL_TRANSPORT: bool = False` — this module is the **instrument**, not a transport.
+    Task 22 greps `src/` for `IS_MODEL_TRANSPORT is True`. P8's transport module is the one
+    writer of `True`; until P8 exists the scan is empty and that is the honest result.
   - `EgressGuardFailure`, `MultipleEgressPoints`, `NoEgressPoint`, `UnreleasedContentParameter`.
   - `egress_functions(module) -> list[Callable]`.
   - `assert_single_egress(module) -> None`.
@@ -15537,14 +16059,19 @@ git commit -m "feat(P7): the transport guard, proven against one conforming and 
   `evidence_shape.fixtures.FIXTURES` (as `P4_FIXTURES`, for the substrate an excerpt resolves
   against).
 - Produces (`fixtures.py`):
-  - `GateFixture` — frozen, eleven fields: `number: int`, `spec_case: str`,
+  - `GateFixture` — frozen, fourteen fields: `number: int`, `spec_case: str`,
     `policy: Policy`, `classification: ClassificationRecord | None`,
     `area: str | None`, `request: ModelCallRequest`,
     `decision: Released | Denied | NeedsConsent`, `audit_record: AuditRecord`,
-    `p4_fixture: int | None`, `downstream_obligation: str | None`, `revoked: bool`.
-  - `FIXTURES: tuple[GateFixture, ...]` — sixteen.
+    `p4_fixture: int | None`, `downstream_obligation: str | None`, `revoked: bool`,
+    and three with defaults — `sensitive_keys: tuple[str, ...] = ()`,
+    `unclassified_permits_local: bool = False`, `residual_template: str | None = None`.
+  - `FIXTURES: tuple[GateFixture, ...]` — eighteen.
   - `FIXTURE_CLOCK: str`, `FIXTURE_AREA: str`, `LOCAL_MODEL`, `CLOUD_MODEL`.
   - `SPEC_11_ITEMS: tuple[str, ...]` — SPEC §11's five *"plus"* items, in the SPEC's own words.
+  - `GATE_ARGUMENTS: tuple[str, ...]` — the **twelve** keywords `Gate.__init__` accepts, pinned
+    here because the fixtures cannot be replayed without them.
+  - `gate_arguments(fixture, *, store) -> dict[str, object]` — those twelve, filled for one fixture.
   - `FIXTURE_COVERAGE: Mapping[str, tuple[int, ...]]` — thirteen keys: the eight `Denied.reason`
     values and the five `SPEC_11_ITEMS`.
   - `MODE_SWEEP: Mapping[str, int]` — operation mode → the fixture number that exercises a protected
@@ -15553,15 +16080,37 @@ git commit -m "feat(P7): the transport guard, proven against one conforming and 
 
 **Done-means:** 11 (first clause; the second clause is P8's test run and is named as such).
 
-**One published surface this task pins for Task 11, because the fixtures cannot be replayed without
-it.** `Gate` takes a **required keyword** `scope_for: Callable[[str], str | None]` with **no default**.
-SPEC Open question 3 — *"What is a 'corpus area'? … Consent grants cannot be scoped until this is
-named"* — is unanswered, so a gate that resolved a file to an area would be answering it in code.
-This is the identical discipline Task 15 applied to `files_in_scope` for the identical question, and
-the skeleton's own negative-test table already anticipates it: *"Open question 3 leaves the area
-undefined, so the test parameterises the scope."* Reported as a pin on Task 11.
+**`Gate.__init__` is TWELVE keywords, and this task owns the pin.** Task 11's `Produces` said Task 20
+pins it (`PLAN-tasks-11.md:124`); an earlier draft of this task said it *reported* a pin on Task 11.
+Each deferred to the other and the signature had no owner. **Brief §24, L6 closes the loop here: Task
+20 owns it.** The signature published at `PLAN-tasks-11.md:1440-1447` is `conn` positionally, then
 
-**Five fields this task adds to the skeleton's `GateFixture`. Done-means 11 turns entirely on
+```text
+store, plan_version, classifier, transform, unclassified_permits_local,
+scope_for, files_in_scope, component_version, now, user_id      # ten, no defaults
+measure_tokens=None, template_for=None                          # two, optional
+```
+
+and it is pinned as `GATE_ARGUMENTS` with `gate_arguments(fixture, *, store)` filling it. Three
+things follow, and each is the difference between a fixture that replays and one that silently does
+not:
+
+- **`scope_for` has no default.** SPEC Open question 3 — *"What is a 'corpus area'? … Consent grants
+  cannot be scoped until this is named"* — is unanswered, so a gate that resolved a file to an area
+  would be answering it in code. Task 15 applied the identical discipline to `files_in_scope`.
+- **`template_for` must be supplied for fixtures 4 and 16.** With the `None` default the branch at
+  `PLAN-tasks-11.md:1527-1528` is unreachable, so `protected_records_template` never fires on an
+  `Excerpt` and fixture 4 releases. The fixture carries the mapping as `residual_template`, for the
+  same reason `area` is data: §7.3's residual-template library is P10's and P11's and is unbuilt.
+- **`measure_tokens` must be supplied for fixture 6.** With the `None` default the branch at
+  `PLAN-tasks-11.md:1577` is unreachable and `dossier_over_budget` cannot fire. P7 owns no tokenizer,
+  so the measurement is the caller's and the fixture module's is a character count that calls itself
+  one — it invents no number and holds none.
+
+An equality test against a hard-coded two-keyword list is what previously hid this. The test asserts
+`GATE_ARGUMENTS` **equals** the live signature minus `conn`, so the pin cannot drift from Task 11.
+
+**Eight fields this task adds to the skeleton's `GateFixture`. Done-means 11 turns entirely on
 replayability, and six fields cannot be replayed.** The skeleton's `Produces` lists `number`,
 `spec_case`, `request`, `decision`, `audit_record`, `policy`.
 
@@ -15584,15 +16133,32 @@ replayability, and six fields cannot be replayed.** The skeleton's `Produces` li
 5. **`revoked`.** `policy_revoked` means a grant **existed and was withdrawn**. A fixture whose
    policy simply never carried the grant would be testing *never permitted*, which is a different
    denial with a different remedy. Task 5's `revoke_consent` is what the seeding step calls.
+6. **`sensitive_keys`.** The **only** `AlwaysLocalRequested` the gate can raise on a constructible
+   item is `item.observation_key in sensitive_keys` (`PLAN-tasks-07.md:983`), and `sensitive_keys`
+   comes from `sensitive_observation_keys(conn, file_id)` (`PLAN-tasks-11.md:1493`), which composes
+   P4's runs with **P5's `POTENTIALLY_SENSITIVE` signals**. No suite in this part seeded one, so the
+   set was empty and fixture 7 was unreachable. The fixture names the keys P5 signalled and `seed()`
+   writes them through P5's own `record_sensitivity_signals`.
+7. **`unclassified_permits_local`.** SPEC Open question 5 — *"Does `unreadable_unclassified` permit a
+   LOCAL model call?"* — is unanswered, and `unclassified_denies` takes the parameter with **no
+   default anywhere** for that reason. Fixtures 17 and 18 are its two branches, so the answer is
+   carried as data exactly as `area` is, and P7 names no winner.
+8. **`residual_template`.** §7.3's residual-template library is P10's and P11's and is unbuilt, so
+   `Gate` takes a `template_for` resolver and the fixture supplies the answer. Fixtures 4 and 16 are
+   the two the answer is load-bearing for.
 
-Reported as five additions.
+Reported as eight additions. Three carry defaults (`()`, `False`, `None`) so the twelve fixtures that
+do not use them state nothing; the default on `unclassified_permits_local` is the stricter reading
+`unclassified_denies` calls *"reading escalation strictly"*, and it is a fixture default only — the
+gate itself still has none, and fixtures 17 and 18 hold both branches.
 
-**The sixteen fixtures are SPEC §11's list item for item, and two pairs look like duplicates until
+**The eighteen fixtures are SPEC §11's list item for item, and two pairs look like duplicates until
 you read what they differ on.** §11: *"Request → decision pairs, one per `Denied.reason`, plus: a
 clean `Released` with redaction applied; a `NeedsConsent` returning all four options; a protected
 file under each of the four modes; an `unreadable_unclassified` file; a `Protected Records` residual
 request."* Eight plus five items, sixteen fixtures, because *"a protected file under each of the four
-modes"* is four.
+modes"* is four — **and then two more, 17 and 18, which §11 does not ask for and Open question 5
+does.**
 
 - **Fixture 2 (`unclassified`) and fixture 15 (an `unreadable_unclassified` file) are not the same
   fixture.** Fixture 2 has **no `ClassificationRecord` at all** — nothing has looked. Fixture 15 has
@@ -15610,6 +16176,17 @@ modes"* is four.
   is the assertion that §8.4's protected rule is about **the prompt**, not about how innocuous the
   requested item is — *"Protected material should not be included in cloud-model prompts by
   default"* names no item kind.
+- **Fixtures 17 and 18 are one fixture and its counterfactual, and that is the point.** SPEC Open
+  question 5: *"Does `unreadable_unclassified` permit a LOCAL model call? … Reading escalation
+  strictly denies local calls on unclassified files, which may block exactly the OCR-opaque
+  screenshots §2.7 and §7.8 want a model to interpret."* Unanswered. `unclassified_denies` therefore
+  takes `local_calls_on_unclassified` with **no default**, and this pair is **the only place in the
+  part where both branches exist as data**: same file, same policy, same request, same local target,
+  and the single parameter flipped — 17 denies `unclassified`, 18 releases. A pair whose halves
+  differed in anything else would not isolate the parameter, which is why 17 duplicates fixture 2's
+  antecedent on purpose and differs from it only in asking for an `Excerpt` that can actually be
+  materialised. Task 21's OQ5 guard depends on the parameter existing with no default; these two
+  are what make the guard mean something.
 
 **One precedence rule this task pins for Task 13, because the mode sweep cannot be written without
 it.** A protected file with a cloud target under `offline` satisfies two denial reasons at once.
@@ -15621,6 +16198,30 @@ general and the more truthful one. Telling a user their passport was blocked bec
 when it would have been blocked anyway is a false explanation, and §8.6 requires the UI to show
 *"what has been deferred, and why"*. Reported as a pin on Task 13.
 
+**Fixture 7 stood on a zone that does not exist, and the failure was silent.** An earlier draft of
+this fixture used an `Excerpt` in the `ocr` **zone** and argued that §8.4's always-local set caught
+it. It does not. `check_item` (`PLAN-tasks-07.md:941-990`) **has no zone branch at all**, and P4
+fixture 8's text unit carries `zone = None` — the string `ocr` lives only in the observation's
+locator, `ocr:page=4/region=2#0-24`. So the request resolved and was **released**: a fixture for
+`always_local_item` that never reached the denial, failing open, with nothing to read in the output.
+Verified by introspection against live P4, not by reading the plan.
+
+The only `AlwaysLocalRequested` the gate can raise on a **constructible** item is
+`item.observation_key in sensitive_keys` (`PLAN-tasks-07.md:983`) — Task 7 makes the nine
+always-local *names* unconstructible in `__post_init__`, so a request holding one cannot be built and
+cannot be a fixture. `sensitive_keys` is `sensitive_observation_keys(conn, file_id)`
+(`PLAN-tasks-11.md:1493`), which composes P4's `runs_for_file` with P5's
+`sensitivity_signals_for` and keeps only rows whose `signal` is `POTENTIALLY_SENSITIVE`.
+
+**No suite in this part ever seeded such a signal**, so that set was empty for every fixture and the
+denial was unreachable regardless of what fixture 7 requested. So fixture 7 now names the key P5
+signalled (`sensitive_keys`), and `seed()` writes the signal through P5's own published writer:
+`record_sensitivity_signals(conn, run_id=…, signals=(SensitivitySignal(observation_index=…, signal=
+POTENTIALLY_SENSITIVE, basis=…),), observation_keys=observation_keys_for_run(conn, run_id), now=…)`.
+P4 fixture 8 stays the substrate — it is an `ocr.apple_vision` run, which is what makes §8.4's
+sentence about OCR output the right explanation — but the *mechanism* is P5's signal, and the
+explanation now says so instead of naming a branch that does not exist.
+
 **Every fixture is replayed through the real gate and compared field for field, and that is the
 substance of the task.** SPEC §11's second sentence — *"Each fixture carries the audit record the
 gate would have appended"* — is satisfiable two ways, and one of them is a trap: a hand-written audit
@@ -15630,6 +16231,31 @@ fixture, calls the real `Gate`, and compares. **`file_id` is the only substitute
 `record_file` accepts an explicit `content_hash` and every `observation_key` is derived from the
 content hash rather than the file id. The substituted and minted field names are published in the
 test as two small frozen sets, so the ignore-list cannot quietly grow.
+
+**Fixture 10 could not return `NeedsConsent`, and the reason is worth stating because it is a rule
+about the branch and not a typo.** It set `protected=False` **and** carried a grant for its own area.
+Task 11's branch is `if text_items and protected_ids and scope not in granted`
+(`PLAN-tasks-11.md:1551`) and **both conjuncts failed**: no protected id, and the scope granted. It
+released. Setting `protected=True` and dropping the grant fixes the second and third conjuncts and
+then exposes the real constraint: with a **cloud** target, `protected_cloud_denies` fires first —
+under `cloud_assisted` it returns `False` only when the scope **is** granted
+(`PLAN-tasks-12-14.md:1656-1670`), which is exactly the condition the consent branch needs to be
+absent. **A protected file with a cloud target can therefore never reach `NeedsConsent`.** Fixture
+10's target is a **local** model, which is the shape §8.4's sentence describes anyway — *"If a model
+needs text containing sensitive content, the user should see that requirement and choose"* — and
+whose four options include *allow a local model*. Reported as a correction, because a reader who
+fixed only the two flags would have written fixture 14 a second time.
+
+**`AuditRecord.release_id` is `None` on a release record (D14), and this task is where that becomes
+falsifiable.** §6 puts the audit append strictly **before** the release exists, `mint_release` takes
+the `audit_id`, and `events` is append-only, so the row cannot be back-filled — `_release_record`
+sets `release_id=None` unconditionally (`PLAN-tasks-11.md:1738`) and **the join runs ledger →
+events**. An earlier draft published `Released(release_id="release-fixture-09")` and then excused
+`release_id` from the field-for-field comparison, so it never confronted the conflict. The decision's
+`release_id` is real and stays; the **audit record's** is `None`, `release_id` comes **out** of
+`MINTED_FIELDS` so it is compared like any other field, and a named test asserts the direction of the
+join. SPEC §7 is amended, not the ordering guarantee: §6's *"the audit is written before anything is
+released"* is the property the whole trail rests on.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -15651,19 +16277,27 @@ field, and only the identity fields a replay cannot preserve are excused -- by n
 in a frozen set, so the excuse list cannot grow quietly.
 """
 import dataclasses
+import inspect
 
 import pytest
 
+from database_agent.budget import set_ceiling
 from database_agent.files_table import record_file
 
 from evidence_shape.fixtures import FIXTURES as P4_FIXTURES
-from evidence_shape.store import record_observation, record_run, record_text_unit
+from evidence_shape.store import (
+    observation_keys_for_run, record_observation, record_run, record_text_unit,
+)
+
+from extractors.long_tail import (
+    POTENTIALLY_SENSITIVE, SensitivitySignal, record_sensitivity_signals,
+)
 
 from privacy.audit import AUDIT_FIELDS, audit_record
 from privacy.classification_store import ClassificationStore
 from privacy.fixtures import (
-    FIXTURE_CLOCK, FIXTURE_COVERAGE, FIXTURES, GateFixture, MODE_SWEEP, SPEC_11_ITEMS,
-    UnknownFixture, by_number,
+    FIXTURE_CLOCK, FIXTURE_COVERAGE, FIXTURES, GATE_ARGUMENTS, GateFixture,
+    MODE_SWEEP, SPEC_11_ITEMS, UnknownFixture, by_number, gate_arguments,
 )
 from privacy.gate import Gate
 from privacy.policy import revoke_consent, set_policy
@@ -15673,15 +16307,22 @@ from privacy.vocabulary import (
 )
 
 COMPONENT = "0.1.0"
+CEILING_KEY = "model.max_dossier_tokens_per_call"
 
 #: The only field a replay cannot preserve. `record_file` mints the id; everything
 #: else -- content hash, observation key, locator -- is content-addressed and survives.
 SUBSTITUTED_FIELDS = frozenset({"file_id", "file_ids"})
 
 #: Minted by the gate at call time, so a fixture can carry an example and never the
-#: value. `audit_id` is P1's `lastrowid`; the other two are P7's own ids.
-MINTED_FIELDS = frozenset({"audit_id", "release_id", "consent_request_id",
-                           "appended_at"})
+#: value. `audit_id` is P1's `lastrowid`; `consent_request_id` is P7's own.
+#:
+#: `release_id` is NOT here, and D14 is why: `_release_record` sets it to `None`
+#: unconditionally, because §6 appends the audit BEFORE the release exists and `events`
+#: is append-only, so the row can never be back-filled. It is a compared field whose
+#: value is `None` on every record including a release, and the join runs
+#: ledger -> events. Excusing it is what let an earlier draft publish a release_id the
+#: gate cannot produce.
+MINTED_FIELDS = frozenset({"audit_id", "consent_request_id", "appended_at"})
 
 
 def p4(number: int):
@@ -15721,6 +16362,28 @@ def seed(conn, fixture, tmp_path) -> str:
             record_text_unit(conn, unit)
         for observation in source.observations:
             record_observation(conn, dataclasses.replace(observation, file_id=file_id))
+        if fixture.sensitive_keys:
+            # P5's per-value signal, written through P5's own writer. Without this the
+            # set `sensitive_observation_keys` composes is EMPTY for every file, and
+            # `always_local_item` is unreachable no matter what fixture 7 requests --
+            # the failure that made the old zone-based fixture pass by releasing.
+            # `observation_keys_for_run` is P4's assignment for the batch, in emit
+            # order, which is what `observation_index` indexes into.
+            keys = observation_keys_for_run(conn, run.run_id)
+            record_sensitivity_signals(
+                conn, run_id=run.run_id,
+                signals=tuple(
+                    SensitivitySignal(observation_index=keys.index(key),
+                                      signal=POTENTIALLY_SENSITIVE,
+                                      basis="the published fixture's P5 signal")
+                    for key in fixture.sensitive_keys),
+                observation_keys=keys, now=FIXTURE_CLOCK)
+
+    # M9 calls `request.max_dossier_tokens` "the caller's echo of it", so the fixture's
+    # echo is what the configured ceiling must be. The gate reads P1's stored value and
+    # never the request's -- `over_dossier_ceiling` is explicit about it -- so without
+    # this the ceiling is unset, an unset ceiling cannot deny, and fixture 6 releases.
+    set_ceiling(conn, CEILING_KEY, fixture.request.max_dossier_tokens)
 
     set_policy(conn, fixture.policy, component_version=COMPONENT,
                user_id="joseph",
@@ -15740,16 +16403,23 @@ def seed(conn, fixture, tmp_path) -> str:
 
 
 def replay(conn, fixture, tmp_path):
-    """Run the fixture's own request through the real gate and return the decision."""
+    """Run the fixture's own request through the real gate and return the decision.
+
+    The gate is built from `gate_arguments`, which fills all TWELVE keywords
+    `Gate.__init__` takes. Two of them are optional in the signature and mandatory
+    here: with `template_for` unset fixture 4 releases, and with `measure_tokens`
+    unset fixture 6 releases -- in both cases because the branch is unreachable, not
+    because the rule is wrong.
+
+    The fixture handed to `gate_arguments` carries the REBOUND request, so `scope_for`
+    and `files_in_scope` answer for the real file id rather than for the placeholder.
+    """
     file_id = seed(conn, fixture, tmp_path)
     request = dataclasses.replace(
         fixture.request,
         target=Target(file_ids=(file_id,), group_id=fixture.request.target.group_id))
-    # `scope_for` has no default. SPEC Open question 3 -- "What is a 'corpus area'? ...
-    # Consent grants cannot be scoped until this is named" -- is unanswered, so the
-    # resolver is the caller's and the fixture carries the answer as data.
-    gate = Gate(conn, component_version=COMPONENT,
-                scope_for=lambda _file_id: fixture.area)
+    bound = dataclasses.replace(fixture, request=request)
+    gate = Gate(conn, **gate_arguments(bound, store=ClassificationStore(conn)))
     return gate.release(request), file_id
 
 
@@ -15791,9 +16461,13 @@ def test_the_denial_reasons_are_all_eight_and_no_ninth():
     assert len(DENIAL_REASONS) == 8
 
 
-def test_fixture_numbers_are_dense_unique_and_sixteen():
+def test_fixture_numbers_are_dense_unique_and_eighteen():
+    # Sixteen are SPEC §11's. Seventeen and eighteen are Open question 5's two
+    # branches, which §11 does not ask for and which are the only place in the part
+    # where both readings of OQ5 exist as data.
     numbers = [f.number for f in FIXTURES]
-    assert numbers == list(range(1, 17))
+    assert numbers == list(range(1, 19))
+    assert len(FIXTURES) == 18
 
 
 def test_by_number_raises_on_a_number_nobody_published():
@@ -15802,15 +16476,70 @@ def test_by_number_raises_on_a_number_nobody_published():
         by_number(99)
 
 
-def test_the_gate_fixture_publishes_eleven_named_fields():
-    # Six are the skeleton's. Five are added by this task and every one of them is
-    # either a held-open question the fixture answers AS DATA (`area`) or a replay
-    # precondition without which "each fixture carries the audit record the gate would
-    # have appended" is unfalsifiable (`classification`, `p4_fixture`, `revoked`).
-    # `downstream_obligation` carries SPEC §11's own two sentences to P8.
+def test_the_gate_fixture_publishes_fourteen_named_fields():
+    # Six are the skeleton's. Eight are added by this task and every one of them is
+    # either a held-open question the fixture answers AS DATA (`area`,
+    # `unclassified_permits_local`, `residual_template`) or a replay precondition
+    # without which "each fixture carries the audit record the gate would have
+    # appended" is unfalsifiable (`classification`, `p4_fixture`, `revoked`,
+    # `sensitive_keys`). `downstream_obligation` carries SPEC §11's own two sentences
+    # to P8.
     assert [f.name for f in dataclasses.fields(GateFixture)] == [
         "number", "spec_case", "policy", "classification", "area", "request",
-        "decision", "audit_record", "p4_fixture", "downstream_obligation", "revoked"]
+        "decision", "audit_record", "p4_fixture", "downstream_obligation", "revoked",
+        "sensitive_keys", "unclassified_permits_local", "residual_template"]
+
+
+# --- the pin on `Gate.__init__`, which this task owns ------------------------
+
+def test_gate_arguments_are_the_twelve_keywords_the_gate_actually_takes():
+    # Brief §24, L6: Task 11 said Task 20 pinned this and Task 20 said it reported a
+    # pin on Task 11, so the signature had no owner and an equality test against a
+    # hard-coded pair passed while ten keywords went unfilled. Asserted as an EQUALITY
+    # against the live signature so the pin cannot drift from Task 11 in either
+    # direction -- a keyword added there and not here fails, and vice versa.
+    parameters = inspect.signature(Gate.__init__).parameters
+    keywords = [name for name, p in parameters.items()
+                if p.kind is inspect.Parameter.KEYWORD_ONLY]
+    assert tuple(keywords) == GATE_ARGUMENTS
+    assert len(GATE_ARGUMENTS) == 12
+    assert list(parameters)[:2] == ["self", "conn"]
+
+
+def test_the_ten_required_keywords_have_no_default_and_the_two_optional_ones_do():
+    parameters = inspect.signature(Gate.__init__).parameters
+    required = [name for name in GATE_ARGUMENTS
+                if parameters[name].default is inspect.Parameter.empty]
+    assert required == list(GATE_ARGUMENTS[:10])
+    assert GATE_ARGUMENTS[10:] == ("measure_tokens", "template_for")
+    for optional in GATE_ARGUMENTS[10:]:
+        assert parameters[optional].default is None
+
+
+def test_gate_arguments_fills_every_one_of_the_twelve_for_every_fixture():
+    # The `None` defaults are the trap: `template_for=None` makes
+    # `protected_records_template` unreachable on an excerpt and `measure_tokens=None`
+    # makes `dossier_over_budget` unreachable, so three of the eighteen fixtures would
+    # replay to the wrong branch with nothing raised anywhere.
+    store = object()
+    for fixture in FIXTURES:
+        filled = gate_arguments(fixture, store=store)
+        assert tuple(filled) == GATE_ARGUMENTS, fixture.number
+        assert all(value is not None for value in filled.values()), fixture.number
+
+
+def test_the_two_optional_keywords_are_supplied_where_a_denial_needs_them():
+    # 4 and 16 reach `protected_records_template` only through `template_for`; 6
+    # reaches `dossier_over_budget` only through `measure_tokens`.
+    from privacy.denial import PROTECTED_RECORDS_TEMPLATE
+    for number in (4, 16):
+        fixture = by_number(number)
+        assert fixture.residual_template == PROTECTED_RECORDS_TEMPLATE
+        template_for = gate_arguments(fixture, store=object())["template_for"]
+        assert template_for("any-file-id") == PROTECTED_RECORDS_TEMPLATE
+        assert fixture.decision.reason == "protected_records_template"
+    assert by_number(6).decision.reason == "dossier_over_budget"
+    assert callable(gate_arguments(by_number(6), store=object())["measure_tokens"])
 
 
 def test_exactly_one_fixture_revokes_a_grant_before_the_call():
@@ -15896,6 +16625,45 @@ def test_the_protected_cloud_rule_does_not_depend_on_the_item_kind():
     assert by_number(13).decision.reason == "protected_cloud_target"
 
 
+# --- always-local, which is P5's signal and not a zone -----------------------
+
+def test_the_always_local_fixture_stands_on_a_key_p5_signalled():
+    # The only `AlwaysLocalRequested` the gate can raise on a CONSTRUCTIBLE item is
+    # `item.observation_key in sensitive_keys`; the nine always-local NAMES are
+    # unconstructible in Task 7's `__post_init__`, so a request holding one cannot be
+    # a fixture. An earlier draft used an `Excerpt` "in the ocr zone", which
+    # `check_item` never branches on -- so the fixture RESOLVED AND RELEASED, silently.
+    from privacy.items import Excerpt
+    fixture = by_number(7)
+    assert fixture.decision.reason == "always_local_item"
+    assert fixture.sensitive_keys, "with no signalled key the denial is unreachable"
+    requested = {item.observation_key for item in fixture.request.requested_items
+                 if isinstance(item, Excerpt)}
+    assert set(fixture.sensitive_keys) <= requested
+    assert all(key in {o.observation_key for o in p4(fixture.p4_fixture).observations}
+               for key in fixture.sensitive_keys)
+
+
+def test_no_fixture_relies_on_a_text_unit_zone_because_p4_publishes_none():
+    # Why the zone reading was wrong, asserted rather than remembered: P4's text unit
+    # for the OCR fixture carries `zone = None`. The string `ocr` lives only in the
+    # observation's locator, and `check_item` reads neither.
+    unit = p4(8).text_units[0]
+    assert getattr(unit, "zone", None) is None
+    assert "ocr" in p4(8).observations[0].locator
+
+
+def test_the_p5_signal_is_what_the_gate_reads(p7_conn, tmp_path):
+    # The composition, end to end: P4's runs for the file -> P5's signals for the run
+    # -> the keys the gate refuses. Seeded by `seed()` through P5's own writer, so a
+    # change to either side fails here rather than turning a denial into a release.
+    from privacy.items import sensitive_observation_keys
+    fixture = by_number(7)
+    file_id = seed(p7_conn, fixture, tmp_path)
+    assert sensitive_observation_keys(p7_conn, file_id) == frozenset(
+        fixture.sensitive_keys)
+
+
 # --- the mode sweep ---------------------------------------------------------
 
 def test_a_protected_file_appears_under_each_of_the_four_modes():
@@ -15932,6 +16700,40 @@ def test_the_mode_only_denial_uses_a_non_protected_file():
     assert fixture.decision.reason == "mode_forbids_target"
 
 
+# --- Open question 5, held open as two fixtures ------------------------------
+
+def test_the_oq5_pair_differs_in_exactly_one_parameter():
+    # "Does `unreadable_unclassified` permit a LOCAL model call?" is unanswered, and
+    # `unclassified_denies` takes `local_calls_on_unclassified` with no default for
+    # that reason. A pair whose halves differed in anything but the parameter would
+    # not isolate the parameter, so everything else is asserted identical.
+    one, two = by_number(17), by_number(18)
+    assert one.unclassified_permits_local is False
+    assert two.unclassified_permits_local is True
+    assert one.policy == two.policy
+    assert one.classification is None and two.classification is None
+    assert one.request == two.request
+    assert one.request.model_target.locality == "local"
+
+
+def test_the_oq5_pair_holds_both_readings_and_names_no_winner():
+    assert isinstance(by_number(17).decision, Denied)
+    assert by_number(17).decision.reason == "unclassified"
+    assert isinstance(by_number(18).decision, Released)
+
+
+def test_the_gate_parameter_behind_oq5_has_no_default():
+    # The guard Task 21 leans on: the moment someone gives it one, P7 has answered a
+    # question the SPEC holds open, and this pair stops meaning anything.
+    parameters = inspect.signature(Gate.__init__).parameters
+    assert parameters["unclassified_permits_local"].default is (
+        inspect.Parameter.empty)
+    from privacy.denial import unclassified_denies
+    assert inspect.signature(
+        unclassified_denies).parameters["local_calls_on_unclassified"].default is (
+        inspect.Parameter.empty)
+
+
 # --- the two non-denial branches --------------------------------------------
 
 def test_the_released_fixture_applied_redaction_and_carries_a_manifest():
@@ -15951,6 +16753,35 @@ def test_the_needs_consent_fixture_offers_all_four_options_in_the_specs_order():
     assert isinstance(fixture.decision, NeedsConsent)
     assert fixture.decision.options == CONSENT_OPTIONS
     assert len(CONSENT_OPTIONS) == 4
+
+
+def test_the_consent_branch_needs_a_protected_file_and_an_ungranted_scope():
+    # Task 11's branch is `text_items and protected_ids and scope not in granted`.
+    # An earlier draft set `protected=False` AND carried a grant for the fixture's own
+    # area, so BOTH conjuncts failed and the fixture released.
+    fixture = by_number(10)
+    assert fixture.classification.protected is True
+    assert fixture.area is not None
+    assert fixture.area not in dict(fixture.policy.consent_grants)
+
+
+def test_the_consent_branch_is_unreachable_with_a_cloud_target():
+    # Not a fixture detail -- a property of the two rules read together. Under
+    # `cloud_assisted`, `protected_cloud_denies` returns False only when the scope IS
+    # granted, and the consent branch requires that it is NOT. So a protected file
+    # with a cloud target denies before it can ask, and the fixture that asks must use
+    # a local target. §8.4 describes exactly that case: "If a model needs text
+    # containing sensitive content, the user should see that requirement and choose",
+    # and the first of the four options is a LOCAL model.
+    from privacy.denial import protected_cloud_denies
+    fixture = by_number(10)
+    assert fixture.request.model_target.locality == "local"
+    assert protected_cloud_denies(
+        protected=True, locality="local", operation_mode="cloud_assisted",
+        scope=fixture.area, granted_scopes=()) is False
+    assert protected_cloud_denies(
+        protected=True, locality="cloud", operation_mode="cloud_assisted",
+        scope=fixture.area, granted_scopes=()) is True
 
 
 def test_the_needs_consent_fixture_has_no_reason_field_to_be_read_as_a_denial():
@@ -16085,11 +16916,53 @@ def test_replaying_a_fixture_reproduces_its_audit_record_field_for_field(
 
 def test_the_excused_field_list_is_small_and_named():
     # An ignore-list is the standard way a golden-record test stops testing anything.
-    # Five names, each with a reason, and the set is asserted rather than extended.
+    # Four names, each with a reason, and the set is asserted rather than extended.
+    # `release_id` came OUT of it under D14: it is not minted, it is `None`.
     assert SUBSTITUTED_FIELDS == {"file_id", "file_ids"}
-    assert MINTED_FIELDS == {"audit_id", "release_id", "consent_request_id",
-                             "appended_at"}
+    assert MINTED_FIELDS == {"audit_id", "consent_request_id", "appended_at"}
+    assert "release_id" not in MINTED_FIELDS | SUBSTITUTED_FIELDS
     assert len(SUBSTITUTED_FIELDS | MINTED_FIELDS) < len(AUDIT_FIELDS) / 2
+
+
+# --- D14: the audit record's `release_id` is None, and the join runs one way --
+
+@pytest.mark.parametrize("number", [f.number for f in FIXTURES])
+def test_the_audit_records_release_id_is_none_on_every_branch(
+        p7_conn, tmp_path, number):
+    # D14. §6 puts the audit append strictly BEFORE the release exists, `mint_release`
+    # takes the `audit_id`, and `events` is append-only so the row cannot be
+    # back-filled. `_release_record` therefore sets `release_id=None` unconditionally
+    # -- including on a release. An earlier draft published a `release_id` on the
+    # fixture's audit record and excused the field from comparison, which is how a
+    # value the gate cannot produce survived review.
+    decision, _ = replay(p7_conn, by_number(number), tmp_path)
+    appended = audit_record(p7_conn, _audit_id_of(p7_conn, decision))
+    assert appended.release_id is None
+    assert by_number(number).audit_record.release_id is None
+
+
+def test_the_released_decision_carries_a_release_id_the_record_does_not():
+    # The decision's id is real; the record's is not. Both are true at once and the
+    # two are joined ledger -> events, which is the direction Task 12 gave the ledger
+    # an `audit_id` column for.
+    released = by_number(9)
+    assert isinstance(released.decision, Released)
+    assert released.decision.release_id
+    assert released.audit_record.release_id is None
+
+
+def test_the_join_runs_ledger_to_events_and_not_the_other_way(p7_conn, tmp_path):
+    # SPEC §7 lists `release_id` on the audit record and §6 makes it impossible to be
+    # there. §7 is amended; §6's ordering guarantee -- "the audit is written before
+    # anything is released" -- is the property the whole trail rests on and is
+    # untouched. The reachable direction is asserted rather than described.
+    decision, _ = replay(p7_conn, by_number(9), tmp_path)
+    assert isinstance(decision, Released)
+    row = p7_conn.execute(
+        "SELECT audit_id FROM release_ledger WHERE release_id = ?",
+        (decision.release_id,)).fetchone()
+    assert row is not None and row["audit_id"] == decision.audit_id
+    assert audit_record(p7_conn, row["audit_id"]).release_id is None
 
 
 @pytest.mark.parametrize("number", [f.number for f in FIXTURES])
@@ -16144,9 +17017,20 @@ Three things are true of this module and none of them is a style choice:
 - **The always-local set is enforced twice, and fixture 7 is why.** Task 7 makes the
   nine named kinds unconstructible, so a request holding "OCR output" cannot be built
   and cannot be a fixture. `Denied(always_local_item)` is therefore reached the other
-  way: by a CONSTRUCTIBLE `Excerpt` that RESOLVES to always-local content -- P4's
-  fixture 8 is an `ocr.apple_vision` run in zone `ocr`, and §8.4 puts "OCR output" in
-  the always-local set. Construction refuses the name; release refuses the resolution.
+  way, and there is exactly ONE way: `check_item` raises `AlwaysLocalRequested` when
+  `item.observation_key in sensitive_keys`, and `sensitive_keys` is
+  `sensitive_observation_keys(conn, file_id)` -- P4's runs for the file joined to P5's
+  `POTENTIALLY_SENSITIVE` signals. So fixture 7 names the signalled key in
+  `sensitive_keys` and the test seeds the signal through P5's own writer.
+
+  It is NOT reached through a zone. `check_item` has no zone branch, and P4 fixture
+  8's text unit carries `zone = None` -- the string `ocr` lives only in the
+  observation's locator. A fixture standing on that reading resolves and is RELEASED,
+  which is the worst failure a fixture can have: it proves the opposite of its name and
+  says nothing. P4 fixture 8 stays the substrate because it is an `ocr.apple_vision`
+  run, so §8.4's sentence about OCR output is the true explanation for the denial --
+  but the mechanism is P5's signal. Construction refuses the name; release refuses the
+  signalled key.
 """
 from __future__ import annotations
 
@@ -16180,6 +17064,12 @@ FIXTURE_CLOCK: str = "2026-08-22T09:00:00+00:00"
 #: nothing. `Gate` takes an `scope_for` resolver with no default for the same reason.
 FIXTURE_AREA: str = "Academics"
 
+#: The acting component and user every fixture replays under. M8: "the acting part
+#: authors, P1 stores" -- these are the two values `Gate` needs to author a record and
+#: neither is a P7 rule.
+FIXTURE_COMPONENT_VERSION: str = "0.1.0"
+FIXTURE_USER_ID: str = "joseph"
+
 LOCAL_MODEL = ModelTarget(locality="local", model_id="local-small", provider="local")
 CLOUD_MODEL = ModelTarget(locality="cloud", model_id="acme-large", provider="Acme")
 
@@ -16192,6 +17082,89 @@ SPEC_11_ITEMS: tuple[str, ...] = (
     "an `unreadable_unclassified` file",
     "a `Protected Records` residual request",
 )
+
+#: The TWELVE keywords `Gate.__init__` accepts, in signature order. Pinned here
+#: because the fixtures cannot be replayed without them, and because the signature had
+#: no owner until brief §24, L6 gave it to this task: Task 11 said Task 20 pinned it
+#: and Task 20 said it reported a pin on Task 11.
+#:
+#: The last two are OPTIONAL in the signature and mandatory here. Their `None` defaults
+#: make two denial branches unreachable rather than untaken -- `template_for` gates
+#: `protected_records_template` on an excerpt (fixtures 4 and 16) and `measure_tokens`
+#: gates `dossier_over_budget` (fixture 6) -- so a replay that left them unset would
+#: release three fixtures and raise nothing.
+GATE_ARGUMENTS: tuple[str, ...] = (
+    "store", "plan_version", "classifier", "transform",
+    "unclassified_permits_local", "scope_for", "files_in_scope",
+    "component_version", "now", "user_id",
+    "measure_tokens", "template_for",
+)
+
+
+def _identifier_classifier(value: str, *, context_before: str | None,
+                           context_after: str | None) -> str | None:
+    """The injected classifier, as a fixture. SPEC *Deferred* keeps the class opaque:
+    "Which identifier classes exist and how each is transformed is not enumerated
+    anywhere in the design."
+
+    It returns ONE constant string for every value and enumerates nothing. It is
+    deliberately not value-dependent: a rule that decided a class FROM the value would
+    be a detector, which P7 does not own and Task 21 asserts this package does not
+    hold -- no `re` import, no `IDENTIFIER_CLASSES`, no threshold.
+    """
+    return "institution"
+
+
+def _redaction_transform(value: str, *, identifier_class: str) -> str:
+    """The injected transform, also deferred and also enumerating nothing.
+
+    It must not return its input: `apply_redaction` raises `RedactionIneffective` if
+    it does, because recording that as `redacted = True` would put a false statement
+    in the §8.4 audit record.
+    """
+    return f"[{identifier_class}]"
+
+
+def _measure_tokens(request: ModelCallRequest, resolved) -> int:
+    """The caller's measurement, as a fixture. `Gate` takes it with a `None` default
+    and P7 owns no tokenizer -- SPEC *Deferred*: "Numeric values for every ceiling ...
+    Deferred to configuration, not to this contract."
+
+    It counts the characters of what would be sent and calls the count what it is. It
+    holds no number and defines no ceiling; the ceiling is P1's, read by
+    `over_dossier_ceiling` from `budget.get_ceiling`, and with nothing configured
+    there is nothing to exceed.
+    """
+    return sum(len(item.value) for item in resolved)
+
+
+def gate_arguments(fixture: "GateFixture", *, store: object) -> dict[str, object]:
+    """The twelve keywords `Gate(conn, **...)` takes, filled for one fixture.
+
+    Every value is either the fixture's own or a constant this module already
+    publishes; nothing here is a rule. `unclassified_permits_local` in particular is
+    read off the fixture and has no default anywhere, because SPEC Open question 5 --
+    "Does `unreadable_unclassified` permit a LOCAL model call?" -- is unanswered and
+    fixtures 17 and 18 are its two branches.
+
+    `scope_for` and `files_in_scope` answer for whatever request the fixture carries,
+    so a caller replaying against a real database rebinds the request first and the
+    resolvers follow it.
+    """
+    return {
+        "store": store,
+        "plan_version": fixture.policy.plan_version,
+        "classifier": _identifier_classifier,
+        "transform": _redaction_transform,
+        "unclassified_permits_local": fixture.unclassified_permits_local,
+        "scope_for": lambda _file_id: fixture.area,
+        "files_in_scope": lambda _scope: tuple(fixture.request.target.file_ids),
+        "component_version": FIXTURE_COMPONENT_VERSION,
+        "now": lambda: FIXTURE_CLOCK,
+        "user_id": FIXTURE_USER_ID,
+        "measure_tokens": _measure_tokens,
+        "template_for": lambda _file_id: fixture.residual_template,
+    }
 
 
 class UnknownFixture(KeyError):
@@ -16322,12 +17295,19 @@ def _audit(**over: object) -> AuditRecord:
 class GateFixture:
     """One published request -> decision pair, replayable against the real gate.
 
-    Six fields are the plan skeleton's. Five are added here: `classification`,
-    `p4_fixture` and `revoked` because a fixture that cannot be seeded cannot be
-    replayed, and Done-means 11 turns on replay; `area` because Open question 3 is
-    open and the corpus area must therefore be data rather than a rule; and
+    Six fields are the plan skeleton's. Eight are added here: `classification`,
+    `p4_fixture`, `revoked` and `sensitive_keys` because a fixture that cannot be
+    seeded cannot be replayed, and Done-means 11 turns on replay; `area`,
+    `unclassified_permits_local` and `residual_template` because Open questions 3 and
+    5 and §7.3's unbuilt template library are open, so each answer is DATA the fixture
+    supplies to a resolver the gate takes rather than a rule P7 holds; and
     `downstream_obligation` because SPEC §11 puts an obligation on P8 for two of these
     and a comment in P7's source is not a contract P8 can read.
+
+    The last three carry defaults so the fixtures that do not use them state nothing.
+    `unclassified_permits_local = False` is the stricter reading and a FIXTURE default
+    only -- `Gate` and `unclassified_denies` still have none, which is what Task 21's
+    Open question 5 guard checks, and fixtures 17 and 18 hold both branches.
     """
 
     number: int
@@ -16341,6 +17321,16 @@ class GateFixture:
     p4_fixture: int | None
     downstream_obligation: str | None
     revoked: bool
+    #: The observation keys P5 signalled `POTENTIALLY_SENSITIVE` for this file. The
+    #: ONLY route to `Denied(always_local_item)` on a constructible item.
+    sensitive_keys: tuple[str, ...] = ()
+    #: Open question 5's parameter, carried as data. Fixtures 17 and 18 are its two
+    #: branches and nothing here names a winner.
+    unclassified_permits_local: bool = False
+    #: §7.3's residual template for this file, if any. The library is P10's and P11's
+    #: and is unbuilt, so `Gate` takes a `template_for` resolver and the fixture
+    #: answers it.
+    residual_template: str | None = None
 
 
 def _denied(reason: str, explanation: str, *remedies: str,
@@ -16449,7 +17439,11 @@ FIXTURES: tuple[GateFixture, ...] = (
             content_hash=_hash(3), content_hashes=(_hash(3),),
             prompt_fingerprint="fp-04",
             model={"locality": "cloud", "model_id": "acme-large", "provider": "Acme"}),
-        p4_fixture=3, downstream_obligation=None, revoked=False),
+        p4_fixture=3, downstream_obligation=None, revoked=False,
+        # The content half is an `Excerpt`, which `check_item` does not refuse -- only
+        # `template_for` reaches this denial for it. With the signature's `None`
+        # default the branch is unreachable and this fixture releases.
+        residual_template=PROTECTED_RECORDS_TEMPLATE),
     GateFixture(
         number=5,
         spec_case="Denied.reason = whole_document_requested",
@@ -16514,19 +17508,27 @@ FIXTURES: tuple[GateFixture, ...] = (
                          fingerprint="fp-07", max_dossier_tokens=2000),
         decision=_denied(
             "always_local_item",
-            "the excerpt resolves to OCR output, which §8.4 places in the always-local "
-            "set: 'Paths, complete extracted text, OCR output, file hashes, image "
-            "EXIF, GPS, user edits, group memberships, and raw sensitive values should "
-            "remain local.'",
+            "P5 signalled this observation `potentially sensitive` at emission, and "
+            "§8.4 places 'raw sensitive values' in the always-local set: 'Paths, "
+            "complete extracted text, OCR output, file hashes, image EXIF, GPS, user "
+            "edits, group memberships, and raw sensitive values should remain local.' "
+            "The run is `ocr.apple_vision`, so the value is OCR output as well -- but "
+            "the signal is what the gate reads. §8.4 permits 'redacted identifiers', "
+            "so the same key is releasable as a RedactedIdentifier.",
+            "request the same key as a redacted identifier",
             "use the deterministic facts derived from the OCR text",
-            "ask the user to review the screenshot locally",
             evidence_refs=(_key(8),)),
         audit_record=_audit(outcome="denied", operation_mode="cloud_assisted",
                             file_sensitivity="public_low", content_hash=_hash(8),
                             content_hashes=(_hash(8),), prompt_fingerprint="fp-07",
                             model={"locality": "cloud", "model_id": "acme-large",
                                    "provider": "Acme"}),
-        p4_fixture=8, downstream_obligation=None, revoked=False),
+        p4_fixture=8, downstream_obligation=None, revoked=False,
+        # The whole fixture turns on this. `check_item` has no zone branch and P4
+        # fixture 8's text unit carries `zone = None`, so the earlier "an excerpt in
+        # the ocr zone" reading resolved and RELEASED. `seed()` writes this key as a
+        # P5 `POTENTIALLY_SENSITIVE` signal through `record_sensitivity_signals`.
+        sensitive_keys=(_key(8),)),
     GateFixture(
         number=8,
         spec_case="Denied.reason = mode_forbids_target (the mode axis, unprotected)",
@@ -16584,33 +17586,42 @@ FIXTURES: tuple[GateFixture, ...] = (
     GateFixture(
         number=10,
         spec_case="a `NeedsConsent` returning all four options",
-        policy=_policy("cloud_assisted", grants=((FIXTURE_AREA, "cloud_model"),)),
-        # `sensitive_personal` and NOT protected. Open question 1 -- "Is `protected`
+        # NO grant for this area, and the target is LOCAL. Both are forced by Task
+        # 11's branch read together with `protected_cloud_denies`, and an earlier
+        # draft had neither. The branch is `text_items and protected_ids and scope not
+        # in granted`; under `cloud_assisted` `protected_cloud_denies` returns False
+        # only when the scope IS granted. So a protected file with a CLOUD target
+        # denies before it can ask, for any policy -- the consent branch is reachable
+        # only through a non-cloud target. §8.4 describes exactly that case, and the
+        # first of the four options it offers is a local model.
+        policy=_policy("cloud_assisted"),
+        # `sensitive_personal` AND protected. Open question 1 -- "Is `protected`
         # exactly the top two handling classes?" -- is unsettled, and SPEC §2 says
         # outright: "Neighbouring parts should consume the `protected` flag, not infer
-        # it from the class." This fixture is where that stays true: a gate that
-        # inferred `protected` from the class would deny here and §8.4's consent
-        # branch would be unreachable.
-        classification=_classified(3, "sensitive_personal", protected=False),
+        # it from the class." The flag is set here as a parameter and never derived;
+        # fixture 3 is the fixture where a class and its flag disagree.
+        classification=_classified(3, "sensitive_personal", protected=True),
         area=FIXTURE_AREA,
-        request=_request(stage="fact_resolution", model_target=CLOUD_MODEL,
+        request=_request(stage="fact_resolution", model_target=LOCAL_MODEL,
                          items=(Excerpt(observation_key=_key(3),
                                         span=TextSpan(12043, 12051),
                                         reason="the sensitive passage names the "
                                                "institution"),),
                          fingerprint="fp-10", max_dossier_tokens=2000),
         decision=NeedsConsent(
-            consent_request_id=None,
+            consent_request_id="consent-fixture-10",
             requirement=ConsentRequirement(
-                items=(_key(3),),
-                why="the requested excerpt is text from a file classified "
-                    "`sensitive_personal`"),
+                file_ids=("fixture-file",),
+                handling_class="sensitive_personal",
+                items=((_key(3), "12043-12051"),),
+                why="§8.4: this call needs text from files entered into protected "
+                    "state, and policy policy-1 holds no consent grant for scope "
+                    "'Academics'"),
             options=CONSENT_OPTIONS),
         audit_record=_audit(
             outcome="consent_requested", operation_mode="cloud_assisted",
             file_sensitivity="sensitive_personal", content_hash=_hash(3),
-            content_hashes=(_hash(3),), prompt_fingerprint="fp-10",
-            model={"locality": "cloud", "model_id": "acme-large", "provider": "Acme"}),
+            content_hashes=(_hash(3),), prompt_fingerprint="fp-10"),
         p4_fixture=3,
         downstream_obligation=(
             "so P8 can prove it returns the branch to its caller intact"),
@@ -16956,7 +17967,7 @@ from database_agent.files_table import FILES_COLUMNS, get_file, record_file
 from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore, mirror_state
 from privacy.learning_seam import assign, reclassify
-from privacy.vocabulary import HELD_OPEN, OPEN_QUESTIONS
+from privacy.vocabulary import HELD_OPEN, OPEN_QUESTIONS, USER, USER_CONFIRMED
 
 COMPONENT = "0.1.0"
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
@@ -17133,8 +18144,8 @@ def test_open_question_1_never_infers_protected_from_the_handling_class():
     assert fixture.classification.protected is False
     record = ClassificationRecord(
         file_id="f", content_hash="sha256:abc", handling_class="public_low",
-        protected=True, basis="user", evidence_refs=(),
-        reliability_state="user_confirmed", observed_at=FIXED_CLOCK)
+        protected=True, basis=USER, evidence_refs=(),
+        reliability_state=USER_CONFIRMED, observed_at=FIXED_CLOCK)
     assert record.protected is True
 
 
@@ -17201,7 +18212,7 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
     # paths in the always-local set. The SPEC adds a sixth and flags it (Open question
     # 2, NEEDS-JOSEPH B5d / C9a). It is Joseph's call and nothing here decides it.
     from privacy.items import Filename
-    from privacy.vocabulary import ITEM_KINDS
+    from privacy.vocabulary import ITEM_KINDS, USER, USER_CONFIRMED
     assert ITEM_KINDS[-1] == "filename"
     assert len(ITEM_KINDS) == 6
     assert "filename" in OPEN_QUESTIONS[2].lower() or "Filename" in OPEN_QUESTIONS[2]
@@ -17259,8 +18270,8 @@ def test_the_classification_record_is_keyed_on_file_id_and_content_hash(
         scan_state="fixture-scan-state", materialized=True)
     first = ClassificationRecord(
         file_id=file_id, content_hash=get_file(p7_conn, file_id)["content_hash"],
-        handling_class="sensitive_personal", protected=True, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed", observed_at=FIXED_CLOCK)
+        handling_class="sensitive_personal", protected=True, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED, observed_at=FIXED_CLOCK)
     store.write(first)
     assert store.current(file_id, first.content_hash) == first
     assert store.current(file_id, "sha256:different-bytes") is None
@@ -17689,7 +18700,7 @@ from privacy.learning_seam import assign
 from privacy.policy import set_policy, transcription_authorized_for
 from privacy.release import Denied, ModelTarget, NeedsConsent, Released, Target
 from privacy.transport_guard import assert_single_egress
-from privacy.vocabulary import CONSENT_OPTIONS
+from privacy.vocabulary import CONSENT_OPTIONS, USER, USER_CONFIRMED
 
 COMPONENT = "0.1.0"
 NEVER: Callable[[], bool] = lambda: False
@@ -17803,8 +18814,8 @@ def classify(conn, file_id, handling_class="personal_non_sensitive", *,
     """
     record = ClassificationRecord(
         file_id=file_id, content_hash=get_file(conn, file_id)["content_hash"],
-        handling_class=handling_class, protected=protected, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class=handling_class, protected=protected, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at=SKELETON_CLOCK)
     assign(conn, record, store=ClassificationStore(conn),
            component_version=COMPONENT)
@@ -17822,10 +18833,10 @@ def p7_events(conn) -> int:
 
 def test_the_wave_2_caller_has_nowhere_to_put_a_gate():
     # "`release` was called zero times" as a STRUCTURAL fact rather than a counted one:
-    # eighteen parameters and not one of them is a gate, a classification, a detector
+    # seventeen parameters and not one of them is a gate, a classification, a detector
     # or a P7 policy. A caller that cannot hold a gate cannot have called one.
     parameters = inspect.signature(run_wave2).parameters
-    assert len(parameters) == 18
+    assert len(parameters) == 17
     for forbidden in ("gate", "release", "classifier", "detector", "handling_class",
                       "privacy_policy", "classification"):
         assert forbidden not in parameters, forbidden
@@ -18103,7 +19114,7 @@ def test_no_model_use_is_one_of_the_four_and_is_not_a_denial_reason():
     # The typed half of "does not become abstain": `no_model_use` is a CONSENT OPTION.
     # It is not in `DENIAL_REASONS`, so a caller cannot map the branch onto a denial by
     # respelling, and `NeedsConsent` carries no `reason` field to hold one.
-    from privacy.vocabulary import DENIAL_REASONS
+    from privacy.vocabulary import DENIAL_REASONS, USER, USER_CONFIRMED
     assert "no_model_use" in CONSENT_OPTIONS
     assert "no_model_use" not in DENIAL_REASONS
     fields = {f.name for f in dataclasses.fields(NeedsConsent)}
@@ -18261,17 +19272,21 @@ can decide against them with the plan in front of them.
 
 ## What these three tasks leave open, and for whom
 
-**NEEDS-JOSEPH C5 — P7's SPEC and D2 disagree about whether a P6 `sensitivity` field exists, and
-nothing here picks a side.** P7's SPEC Contract in says *"**P6 must accept `sensitivity` as a
-first-class universal field** (§3.11) rather than a domain-scoped one"*, and the design does list
-*"sensitivity status"* among §3.11's universal file facts. D2 then made P7's `ClassificationRecord`
-authoritative, and round 1 found that the P6 field has no producer. D2 settled which record is
-AUTHORITATIVE; it did not settle whether a second, P6-owned field row continues to exist beside it.
-**Task 3 is written so that nothing depends on the answer:** `src/privacy/classification.py` imports
-nothing from P6, reads no `file_facts` row, and uses no P6 vocabulary except `reliability_state`,
-which it stores opaquely and does not validate. If Joseph rules that P6 keeps the field, Task 3 is
-unchanged and Task 4 gains a reader; if he rules that it does not, Task 3 is unchanged and P6 creates
-no such row. Flagged, not resolved.
+**C24 — whether a P6 `sensitivity` field exists — is CLOSED by D7, and the conclusion these tasks
+were written to survive is the one that was ruled.** P7's SPEC Contract in said *"**P6 must accept
+`sensitivity` as a first-class universal field** (§3.11) rather than a domain-scoped one"*, and the
+design does list *"sensitivity status"* among §3.11's universal file facts. D2 made P7's
+`ClassificationRecord` authoritative and round 1 found that the P6 field has no producer; D2 settled
+which record is AUTHORITATIVE and did not settle whether a second, P6-owned field row continues to
+exist beside it. **D7 settles it: P6 creates no `sensitivity_status` field row, and P7's
+`ClassificationRecord` is the sole home** — the reconciliation would have made a *third* home for one
+concept, beside P1's `files.sensitivity_state` column. The SPEC Contract-in sentence is amended to
+name `ClassificationRecord`; round 1's F-2 is closed by deletion rather than by inventing a writer.
+**Task 3 needs no change:** `src/privacy/classification.py` imports nothing from P6 and reads no
+`file_facts` row, which is now the ruled shape rather than a hedge against an open question. It uses
+no P6 vocabulary at all — `reliability_state` is **P4's**
+(`evidence_shape.vocabulary.RELIABILITY_STATES`, re-exported by Task 2), which is what lets P7 keep
+the states without the P6 import D7 forbids.
 
 **Open questions this section holds and does not answer.** Question 1 (`protected` versus the top
 two classes) is held by `ClassificationRecord.protected` being a required caller-supplied boolean
@@ -18390,7 +19405,10 @@ rather than discover it.
 | 14 | Task 16 `Consumes` | The list omits `authorship`, `append_event` and `set_sensitivity_state`, while *"What its tests must prove"* requires `reclassify` to append `classification_superseded` and D2 requires the projection. Added. |
 | 15 | Task 17 `Interfaces` | `may_move_automatically(conn, file_id, plan_version)` has no way to reach the `content_hash` the classification is keyed on (D2). Added `database_agent.files_table.get_file` and the keyword-only `store` and `scope_for`. |
 | 16 | Task 18 `Interfaces` | `display_policy(conn)` cannot read a plan-scoped policy (§8.8) and `summarize_protected(conn, scope)` cannot enumerate a scope OQ3 leaves unnamed. Widened with keyword-only `plan_version`, `store` and `files_in_scope`; SPEC §10's published `Gate.display_policy()` / `Gate.summarize_protected(scope)` are unchanged where a caller sees them. |
-| 17 | Task 18 | Neither Task 2's `DISPLAY_FACETS` nor Task 6's `MORE_REDACTING` claims the two **values** SPEC §10 states (`shown | redacted`). They are defined in `display.py`, which is the first module that needs them. |
+| 17 | Task 18 · Task 2 · Task 5 | Neither Task 2's `DISPLAY_FACETS` nor Task 6's `MORE_REDACTING` claimed the two **values** SPEC §10 states (`shown | redacted`), so they acquired **three homes and three names** — `REDACTION_VALUES` in Task 5's `policy.py`, `SETTING_VALUES` in this file's `display.py`, `FACET_VALUES` in a sibling draft — for one two-member vocabulary the design states once. **Ruled: Task 2's `vocabulary.py` is the single home** and publishes `SHOWN`, `REDACTED` and `REDACTION_VALUES`. Task 18 imports them and `SETTING_VALUES` is **deleted, not aliased**. |
+| 23 | Task 15 · Task 10 | **`prior_releases` group-release gap — CLOSED.** `audit_records_for` matches the `file_id` column **or** `json_each(explanation, '$.file_ids')`. The Task 15 test is a live assertion, not xfail. |
+| 24 | Task 16 · OQ7 | **A broader `correction_scope` is written and never read.** `reclassify` accepts all six of §8.7's scopes; `suppressed` — its only consumer — reads `learning_records(conn, FILE_SCOPE, file_id)` only, so a group- or corpus-scoped rejection is structurally unreadable and the next `assign` re-proposes the rejected class. **Not fixed and not dropped:** widening `suppressed` would answer Open question 7 (*"does repeated reclassification generalize?"*) in an implementation. Named against OQ7 in a callout, with the three options and the one this plan ships, and pinned by `test_a_broader_correction_scope_is_stored_and_suppresses_nothing`. |
+| 25 | Task 18 · D11 | The skeleton's **"two fields, and deliberately no third"** made the FIELD COUNT `ProtectedSummary`'s safety property; it never was. D11 adds `scope_total`, so the constraint is restated as **"three fields, all `int` or `Mapping[str, int]`, and deliberately no field a filename could occupy"** and the type-level test moves with it in the same change. `class_breakdown` is a census of the whole scope and `count` is the protected subset — **two denominators**, and conflating them lets a UI render §8.4's *"11 protected identity records"* off the breakdown and describe an unprotected file as protected. |
 | 18 | Task 19 `Produces` | Two exceptions, and a module with **no** public function is neither — it passes any `len(functions) <= 1` check, which is the vacuous pass this layer exists to prevent. Added `NoEgressPoint`. |
 | 19 | Task 20 `Produces` | `GateFixture`'s six fields cannot express the classification a fixture assumes, nor the *"obligation on P8 ... in their own metadata"* the same paragraph requires. Added `classification` and `p8_obligation`, both with defaults, so the six-name positional order is unchanged. |
 | 20 | Task 21 `Interfaces` | `vocabulary.OPEN_QUESTIONS` is asserted there and appears in **no** task's `Produces`. Task 21 adds it to `vocabulary.py`, together with `NEEDS_JOSEPH` for the two items held open by name (B5d/C9a and C5), which are not among SPEC's numbered eleven. |
@@ -18415,6 +19433,11 @@ rather than discover it.
    `Gate(..., unclassified_permits_local=...)` with no default, and as fixtures 14 and 15, one per
    branch.
 6. **Open question 3** — what a corpus area is. Three functions take a resolver with no default.
+6b. **Open question 7** — *"Does repeated reclassification generalize?"* Task 16's `reclassify`
+   records a rejection at any of §8.7's six scopes and `suppressed` reads the `file` scope only, so
+   a corpus-scoped privacy rejection is stored and never acted on. Widening the reader **is** the
+   answer to OQ7, so the plan ships the narrow reader, names the gap (item 24 above) and pins the
+   current behaviour in a test. Ruling it either way is one line of `suppressed`.
 7. **The detector.** Not in this section's gift and not in any task's: D2 puts the rule set behind an
    injection and no plan produces one. Until it is supplied, `Denied(unclassified)` is what a real
    corpus gets, `summarize_protected` reports `count = 0`, and `may_move_automatically` refuses every

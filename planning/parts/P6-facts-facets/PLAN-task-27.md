@@ -266,6 +266,7 @@ import pytest
 from evidence_shape.vocabulary import RELIABILITY_STATES
 
 from facts.resolver import FactResolver
+from facts.states import LLM_SUPPORTED
 
 TEST_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TEST_DIR.parents[1]
@@ -274,9 +275,7 @@ REPO_ROOT = TEST_DIR.parents[1]
 #: file is cheap and runs in both.
 CHILD_MARKER = "P6_DETERMINISTIC_SUITE_CHILD"
 
-#: The state no deterministic path may reach. Read off P4's tuple, never spelled as a
-#: literal: the six states have exactly one home (Global Constraints).
-LLM_SUPPORTED = RELIABILITY_STATES[3]
+#: The state no deterministic path may reach. Task 1 owns the spelling.
 
 #: Every fact-producing entry point in `facts`, module and function. This is the
 #: plan's task list read off -- Tasks 8-16, 18 and 19 publish exactly these. It is

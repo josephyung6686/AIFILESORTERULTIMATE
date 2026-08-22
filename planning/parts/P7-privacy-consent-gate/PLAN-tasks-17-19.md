@@ -196,6 +196,7 @@ from privacy.moves import (
     may_move_automatically,
 )
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
+from privacy.vocabulary import USER, USER_CONFIRMED
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 COMPONENT = "0.1.0"
@@ -270,8 +271,8 @@ def classify(store, file_id, content_hash, *, handling_class, protected):
     prior_fact_id = store.current_fact_id(file_id, content_hash)
     record = ClassificationRecord(
         file_id=file_id, content_hash=content_hash, handling_class=handling_class,
-        protected=protected, basis="user", evidence_refs=(),
-        reliability_state="user_confirmed", observed_at=FIXED_CLOCK)
+        protected=protected, basis=USER, evidence_refs=(),
+        reliability_state=USER_CONFIRMED, observed_at=FIXED_CLOCK)
     fact_id = store.write(record)
     if prior_fact_id is not None:
         store.supersede(prior_fact_id, fact_id, "the fixture revises its own record")
@@ -783,12 +784,12 @@ from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import MORE_REDACTING, resolve_default_policy
 from privacy.display import (
-    FACET_VALUES, REDACTED, SHOWN, ProtectedSummary, RedactionSettings,
+    REDACTION_VALUES, REDACTED, SHOWN, ProtectedSummary, RedactionSettings,
     UnknownFacetValue, check_facet_value, display_policy, settings_for,
     summarize_protected,
 )
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
-from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES
+from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES, REDACTION_VALUES, USER, USER_CONFIRMED
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 COMPONENT = "0.1.0"
@@ -846,8 +847,8 @@ def classify(conn, store, file_id, *, handling_class, protected):
     Task 3 refuses a `detector` record with no `evidence_refs`."""
     record = ClassificationRecord(
         file_id=file_id, content_hash=get_file(conn, file_id)["content_hash"],
-        handling_class=handling_class, protected=protected, basis="user",
-        evidence_refs=(), reliability_state="user_confirmed",
+        handling_class=handling_class, protected=protected, basis=USER,
+        evidence_refs=(), reliability_state=USER_CONFIRMED,
         observed_at=FIXED_CLOCK)
     store.write(record)
     return record
@@ -873,7 +874,7 @@ def test_the_five_facets_are_8_4s_own_list_in_8_4s_own_order():
 def test_each_facet_takes_one_of_exactly_two_values():
     # SPEC §10: "names | previews | thumbnails | ocr_text | location_data   each
     # shown | redacted."
-    assert FACET_VALUES == (SHOWN, REDACTED) == ("shown", "redacted")
+    assert REDACTION_VALUES == (SHOWN, REDACTED) == ("shown", "redacted")
     assert check_facet_value(SHOWN) == SHOWN
     assert check_facet_value(REDACTED) == REDACTED
 
@@ -890,7 +891,7 @@ def test_every_field_of_the_settings_is_one_of_the_two_values(p7_conn):
     stored(p7_conn)
     settings = display_policy(p7_conn, plan_version=PLAN_ONE)
     for field in dataclasses.fields(RedactionSettings):
-        assert getattr(settings, field.name) in FACET_VALUES
+        assert getattr(settings, field.name) in REDACTION_VALUES
 
 
 # --- W1: the default is the more redacting value ------------------------------
@@ -1166,12 +1167,12 @@ from database_agent.files_table import get_file
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import MORE_REDACTING
 from privacy.policy import Policy, current_policy
-from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES
+from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES, REDACTION_VALUES
 
 #: SPEC §10: "each `shown | redacted`". Two values, and a third is a load error.
 SHOWN: str = "shown"
 REDACTED: str = "redacted"
-FACET_VALUES: tuple[str, str] = (SHOWN, REDACTED)
+REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)
 
 
 class UnknownFacetValue(ValueError):
@@ -1185,9 +1186,9 @@ class UnknownFacetValue(ValueError):
 
 
 def check_facet_value(value: str) -> str:
-    if value not in FACET_VALUES:
+    if value not in REDACTION_VALUES:
         raise UnknownFacetValue(
-            f"{value!r} is not one of §8.4's two redaction values {FACET_VALUES}")
+            f"{value!r} is not one of §8.4's two redaction values {REDACTION_VALUES}")
     return value
 
 
@@ -1312,6 +1313,9 @@ git commit -m "feat(P7): display_policy per facet, and a protected summary with 
   and Task 21's repo-wide guard still passes).
 - Produces (`transport_guard.py`):
   - `CONTENT_PARAMETER_TYPES: frozenset[type]` = `{str, bytes, Path, Observation, TextUnit}`.
+  - `IS_MODEL_TRANSPORT: bool = False` — this module is the **instrument**, not a transport.
+    Task 22 greps `src/` for `IS_MODEL_TRANSPORT is True`. P8's transport module is the one
+    writer of `True`; until P8 exists the scan is empty and that is the honest result.
   - `EgressGuardFailure`, `MultipleEgressPoints`, `NoEgressPoint`, `UnreleasedContentParameter`.
   - `egress_functions(module) -> list[Callable]`.
   - `assert_single_egress(module) -> None`.
