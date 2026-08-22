@@ -116,14 +116,26 @@ def _box(rect) -> dict[str, Any]:
     library's: `width`/`height` round-tripped through `location()` unvalidated and
     only exploded much later in `parse_locator`, which reads `w` and `h`.
 
-    **P4's `norm` does not say where the origin is, and Vision's is BOTTOM-LEFT.**
-    Most image tooling is top-left, so a consumer that assumes the common convention
-    redacts a band mirrored about the horizontal axis -- a §8.4 failure that looks
-    like a working redaction. That ambiguity is P4's to close and is raised in
-    NEEDS-JOSEPH; nothing is invented here, because an extra key would be stored by
-    `location()` and silently dropped by `parse_locator`.
+    **Vision's origin is BOTTOM-LEFT; P4's `norm` is TOP-LEFT, and the flip happens
+    here.** P4's `Region` carries no origin key, so every consumer picks a convention
+    and the common one -- all image tooling, and P7's redaction -- is top-left. A
+    consumer that assumed top-left over a bottom-left box would black out a band
+    mirrored about the horizontal axis: a §8.4 failure that looks like a working
+    redaction. NEEDS-JOSEPH C22, ruled 2026-08-22, closes it at the adapter rather
+    than in P4, because this is the only live producer of a `norm` region and P4's
+    shipped shape and its nineteen fixtures then stay untouched. An extra `origin`
+    key was the alternative and was rejected: `location()` would store it and
+    `parse_locator` would silently drop it.
+
+    `y` is the box's TOP edge measured downward, so a rectangle flush with the top of
+    the page (`origin.y + height == 1.0`) maps to exactly `0.0`. The top edge is
+    summed BEFORE the subtraction -- `1.0 - (y + h)`, not `1.0 - y - h` -- because the
+    two-step form leaves that flush case at `-5.6e-17`, and a box a hair outside 0..1
+    is exactly what a range check exists to catch. Clamping was the alternative and
+    was rejected: it would hide a genuinely out-of-range rectangle just as quietly.
     """
-    return {"x": float(rect.origin.x), "y": float(rect.origin.y),
+    return {"x": float(rect.origin.x),
+            "y": 1.0 - (float(rect.origin.y) + float(rect.size.height)),
             "w": float(rect.size.width), "h": float(rect.size.height),
             "unit": "norm"}
 

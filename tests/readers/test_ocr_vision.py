@@ -200,3 +200,56 @@ def test_the_adapter_holds_no_product_vocabulary():
     for forbidden in ("ocr.apple_vision", "capped", "complete", "possible"):
         assert forbidden not in strings, (
             f"{forbidden!r} is P5's vocabulary and must not be spelled in an adapter")
+
+
+def test_a_box_is_measured_from_the_top_left(screenshot):
+    """C22, ruled 2026-08-22: P4's `norm` means TOP-LEFT.
+
+    Vision reports bottom-left-origin rectangles. P4's `Region` carries no origin, so
+    every consumer picks a convention and the common one is top-left. A redaction that
+    assumed top-left over a bottom-left box blacks out a band mirrored about the
+    horizontal axis -- a §8.4 failure that looks like a working redaction. The ruling
+    closes it at the adapter, which is the only live producer of a `norm` region, so
+    P4's shipped shape and its nineteen fixtures are untouched.
+
+    Asserted on the pure geometry, because a real screenshot cannot distinguish the
+    two conventions for a band that happens to sit near the middle.
+    """
+    from readers.ocr_vision import _box
+
+    class _Point:
+        def __init__(self, x, y): self.x, self.y = x, y
+
+    class _Size:
+        def __init__(self, w, h): self.width, self.height = w, h
+
+    class _Rect:
+        def __init__(self, x, y, w, h):
+            self.origin, self.size = _Point(x, y), _Size(w, h)
+
+    # Vision: a band whose BOTTOM edge sits 0.1 up from the bottom, 0.2 tall --
+    # so it occupies 0.1..0.3 from the bottom, i.e. 0.7..0.9 from the top.
+    box = _box(_Rect(0.25, 0.1, 0.5, 0.2))
+
+    assert box["y"] == pytest.approx(0.7), (
+        "y must be the TOP edge measured downward from the top-left corner")
+    assert box["x"] == pytest.approx(0.25), "x is unchanged; only the y axis flips"
+    assert box["w"] == pytest.approx(0.5)
+    assert box["h"] == pytest.approx(0.2)
+    assert box["unit"] == "norm"
+
+
+def test_a_box_that_touches_the_top_stays_inside_the_page(screenshot):
+    """The flip must not push a legitimate box out of 0..1. A Vision rectangle
+    flush with the TOP of the page has origin.y + height == 1.0, which must map to
+    y == 0.0 exactly -- not to a small negative that a redaction would clamp."""
+    from readers.ocr_vision import _box
+
+    class _Rect:
+        def __init__(self, x, y, w, h):
+            self.origin = type("P", (), {"x": x, "y": y})()
+            self.size = type("S", (), {"width": w, "height": h})()
+
+    box = _box(_Rect(0.0, 0.8, 1.0, 0.2))
+    assert box["y"] == pytest.approx(0.0)
+    assert 0.0 <= box["y"] <= 1.0
