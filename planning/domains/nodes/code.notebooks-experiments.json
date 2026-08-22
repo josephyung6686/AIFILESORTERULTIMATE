@@ -1,0 +1,375 @@
+{
+  "id": "code.notebooks-experiments",
+  "kind": "template",
+  "schema_id": "code",
+  "parent_id": null,
+  "name": "Notebooks and ML experiments",
+  "one_line": "The situation where the code evidence is a computational notebook and the run it produced - the notebook, the data file its cells read, the run's configuration and metrics log, the checkpoint and the figure it wrote - and there is no repository root above them to preserve, so the anchoring signal, the recommended dimensions and the dossier privacy rule all differ from the repository-rooted default.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "extends 00's named Code domain - 'Code files may use project, repository, programming language, and artifact type' - into a situation 00 names in its extraction sentences but not in a template: notebooks appear in 'structural indicators such as repository markers, package manifests, notebook metadata, and README files' and in 'language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals'. 00 states no dimension order for this situation, so the order below is inference, not design.",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "notebook metadata in a .ipynb - the kernel/language slot and the cell-type structure 00 stores as 'notebook cell types' - in a directory that carries no project-root marker. This yields the artifact kind and the language and yields NO project; the project rules are the two below",
+      "a run-directory layout: one directory whose immediate members include a labelled configuration file, an append-only metrics log and a checkpoint-shaped binary, with sibling directories of the same shape under one parent. This is the project-root analogue for a situation that has no manifest, and it is structural in 00's sense - 'Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text'",
+      "a labelled project or experiment slot read as a structured field - a key in such a configuration file, or a named column in an experiment-tracker export's header row - never a project-shaped token in prose",
+      "a lineage link the extractor can check on disk: a notebook cell's source naming a sibling data file, figure or checkpoint that exists in the same directory. This is what makes a loose table this template's dataset rather than an unattached spreadsheet",
+      "an archive manifest listing a notebook beside a data file and a checkpoint, read without unpacking - 00: 'A source-code archive may reveal a README.md, package.json, src directory, or Python package layout and can be recognized as a code project', and the same manifest reading applies to a notebook-shaped bundle"
+    ],
+    "needs_llm": [
+      "whether a notebook is the user's own experiment or a downloaded tutorial or competition starter kept to read: the kernel slot, cell structure and imports are identical and only the prose distinguishes them",
+      "whether one parent holding many similarly-shaped run directories is one project's sweep or several unrelated projects sharing a runner",
+      "whether a project-shaped token in a markdown cell, a plot title or a config comment names this user's project or cites someone else's",
+      "an OCR'd screenshot of a training log, a loss curve or a notebook cell: whether it references a known project at all, or is a generic code image",
+      "whether a results table beside a notebook is that notebook's output or an unrelated spreadsheet that happens to share the folder"
+    ],
+    "never_alone": [
+      "a .ipynb extension alone. 00: 'treat the file extension as a routing signal rather than an assumption about meaning'. The tempting false file is a downloaded tutorial notebook in Downloads - same extension, same kernel slot, same cell structure as the user's own experiment, and no project of the user's anywhere in it",
+      "a checkpoint- or model-shaped extension alone (.ckpt, .pt, .safetensors, .h5). The engine cannot read it, and 00 requires that class to 'default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved'; position in a run layout is the evidence, not the suffix",
+      "a .csv, .json, .jsonl, .yaml or .parquet file alone - the same formats carry spreadsheets, application settings, and device or account exports, which is exactly why the run-layout or notebook-lineage context is part of the rule rather than a nicety",
+      "a number inside a run-directory or checkpoint name. 00 warns these are often 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values', and a learning rate, a seed, an epoch count and a timestamped run name are precisely that class",
+      "a project-shaped token in a markdown cell, a plot title or a code comment, with no labelled slot and no run layout - prose, not a structured slot",
+      "download-session membership. 00: 'A session should never be treated as proof of topic'",
+      "source_type = code_structured alone, which is a file-kind signal and is constitutionally never sufficient",
+      "a library import list (a scientific or ML package set) - imports are topic similarity, and the same imports appear in a tutorial, a colleague's shared notebook and a research dataset analysis"
+    ]
+  },
+
+  "proposed_context_terms": [
+    "experiment",
+    "run",
+    "checkpoint",
+    "epoch",
+    "seed",
+    "dataset",
+    "metrics"
+  ],
+
+  "work_types": [
+    "notebook",
+    "run configuration",
+    "metrics log",
+    "model checkpoint",
+    "dataset or fixture",
+    "evaluation report or results table",
+    "figure or plot output",
+    "environment lockfile",
+    "sweep or job specification"
+  ],
+
+  "grouping_reasons": [
+    "one experiment run: the configuration, metrics log and checkpoint that share a run directory - a structural family, not a semantic cluster",
+    "one notebook together with the data file its cells read and the figure or results table it wrote, when a validated project value is shared",
+    "many sibling run directories under one parent as one project's sweep",
+    "NOT a shared library import set or a shared model architecture: that is generic similarity, and a member connected only by it must stay uncertain rather than be absorbed",
+    "NOT a shared programming language, which is a search field and would make the collector 00 warns against"
+  ],
+
+  "template": {
+    "dimension_order": ["project", "artifact_type"],
+    "why": "project leads for 00's stated reason - 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders' - and because a checkpoint, a metrics log or a config file is unintelligible without the project, which is 00's parent-makes-the-child-intelligible rule: 'A work type such as Homework 3 is meaningful only after the course is known.' The difference from the Code schema's default order (project, repository, artifact_type) is not a level flattened for lack of files. It is that the level the default leans on is absent BY DEFINITION of this situation, and the level the default treats as optional is the only one doing work. In the repository-rooted situation the recommended dimensions describe where a preserved root may sit, because 00 says 'The system should also know that existing folder structures should mainly be preserved' and requires the engine to 'reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod' - the interior is never re-filed, so artifact_type there is decorative. Here there is no root to preserve and no descendant rule to respect: the artifacts are loose siblings of unlike kinds, and artifact_type is the only level that separates a checkpoint from the data it was trained on and from the figure it produced. repository is deliberately absent and its absence is a detection signal rather than a shortage: where a repository root does exist above the notebook, this is code.software-project's situation and the default order applies, which is the collision recorded below. The order is a recommendation - 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions' - and 00 asks the canvas to 'recommend flattening when a dimension does not materially improve retrieval', which is the right outcome for a project holding exactly one notebook. programming_language is not in the order because it is not destination-eligible on the canonical row.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["code_structured", "spreadsheet", "opaque_binary", "archive", "text_document", "image", "ocr", "email"],
+    "extensions": [".ipynb", ".py", ".yaml", ".json", ".jsonl", ".csv", ".parquet", ".ckpt", ".pt", ".safetensors", ".h5", ".md", ".png", ".zip"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "train_resnet.ipynb (in a Desktop folder with no manifest)",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook metadata carrying a kernel/language slot",
+        "code cells with a training loop; markdown cells carrying a project-shaped token",
+        "stored cell outputs: a printed table of data rows and a rendered figure held inside the file",
+        "a code cell naming a sibling data file that exists in the same directory",
+        "no project-root marker in this directory or above it"
+      ],
+      "facts_legal": ["programming_language", "artifact_type", "project"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the markdown-cell token alone - that token is prose, and the project fact here rests on the on-disk lineage link and the labelled slots, not on the wording",
+        "repository - none exists, and a remote URL pasted in a cell is a citation, not a repository marker",
+        "that the notebook's stored outputs are code: they are content, and the rows inside them are somebody's data"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "runs/2026-03-11T14-02_lr0.001/config.yaml",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled key/value slots including a model name, a learning rate, a seed and a dataset path",
+        "immediate siblings metrics.jsonl and a checkpoint-shaped binary",
+        "the parent runs/ directory holds many sibling directories of the same shape",
+        "the directory name carries a timestamp and a hyperparameter fragment"
+      ],
+      "facts_legal": ["project", "artifact_type", "programming_language"],
+      "must_not_conclude": [
+        "a folder path",
+        "a date fact from the directory-name timestamp or a year from lr0.001 - these are 00's build-and-version number class",
+        "project from the run-directory name, which names the run and not the project",
+        "that a labelled hyperparameter slot is a product field: the slot name stays the source format's own"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "the anchor fixture for this template's own rule family - the run-directory layout, which is the project-root analogue where 00's four marker files are absent."
+    },
+    {
+      "filename": "metrics.jsonl",
+      "source_type": "code_structured",
+      "observations": [
+        "one JSON object per line carrying step and loss keys",
+        "no prose, no headings, no manifest",
+        "sits beside a labelled configuration file and a checkpoint-shaped binary"
+      ],
+      "facts_legal": ["artifact_type", "project"],
+      "must_not_conclude": [
+        "activation from the .jsonl shape alone - the same shape carries application logs and data exports",
+        "project when the run layout is absent and no configuration file names one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "best_model.safetensors",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a format the text extractors cannot read; size and hash only",
+        "position: the same run directory as a labelled config file and a metrics log",
+        "no readable prose anywhere in the file"
+      ],
+      "facts_legal": ["artifact_type", "project"],
+      "must_not_conclude": [
+        "any content-derived fact - 00: 'unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved'",
+        "that an unreadable file is an empty one - 00: 'The system should never silently treat an unsupported format as an empty document'",
+        "artifact_type from the extension alone; the evidence is the position in the run layout"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "participants_raw.csv (read by a cell of the notebook above)",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row with a participant identifier, a date of birth column and measurement columns",
+        "named by path in a notebook cell in the same directory",
+        "no institution name, no account name, no codebook beside it"
+      ],
+      "facts_legal": ["artifact_type", "project"],
+      "must_not_conclude": [
+        "a folder path",
+        "row values, participant identifiers or dates of birth into any dossier or prompt",
+        "project when the notebook that names it has no validated project of its own - the lineage link carries the project only in the direction the project already exists"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records",
+      "note": "the two-schema fixture in 00's shape - 'One file may hold facts from more than one domain without losing information'. The code facts come from the lineage link, the safety activation from the participant-level columns, and they are disjoint evidence items. The edge itself is not authored here: also_holds_with joins schemas only (CONNECTION.md section 5), and medical writes no field rows, so co-activation changes what is protected, not what is extracted."
+    },
+    {
+      "filename": "Untitled(3).ipynb (in Downloads)",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook metadata with a kernel/language slot; a handful of cells",
+        "generic filename; no project-root marker, no run layout, no named sibling data file",
+        "membership in a tightly bounded download session with unrelated files"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "project - nothing in the file, its slots, or its position names one",
+        "a project inherited from the download session - 00: 'A session should never be treated as proof of topic'",
+        "a project copied from a neighbouring notebook because a group exists - 00: 'The graph does not automatically copy those missing facts onto sparse files'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "the HW 3 case for this template: P9 may attach it to a project's notebook neighbourhood as a context-supported member while the project fact stays unwritten. It is also the boundary fixture against code.scratch-prototypes - with no run layout and no lineage link, the scratch situation is the honest one until one appears."
+    },
+    {
+      "filename": "kaggle_titanic_starter.ipynb",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook metadata identical in shape to the user's own notebooks",
+        "markdown cells written in tutorial voice, naming a public dataset and a competition",
+        "no sibling data file on disk, no run layout, no project-root marker"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "project from the competition or public-dataset name - that names somebody else's material",
+        "that identical notebook structure makes this the user's experiment",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox",
+      "note": "the collision fixture against this template's strongest file kind: it is a .ipynb with every structural signal and none of the anchoring ones."
+    },
+    {
+      "filename": "analysis/model_fit.py (under a directory whose root carries pyproject.toml)",
+      "source_type": "code_structured",
+      "observations": [
+        "a training and evaluation script with scientific imports",
+        "an ancestor directory carries a project-root marker and the file is interior to it",
+        "sibling test directory and a README at that root"
+      ],
+      "facts_legal": ["project", "repository", "artifact_type", "programming_language"],
+      "must_not_conclude": [
+        "that this template organizes it - the root exists, so the interior is preserved rather than re-filed",
+        "a folder path",
+        "a second project fact competing with the enclosing root's"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": null,
+      "note": "the collision fixture toward code.software-project. The facts are the same on both sides because both use one schema; what differs is which situation should shape the branch, and the project-root marker decides it."
+    },
+    {
+      "filename": "clean_and_merge.ipynb (beside a codebook and a results table, no manifest and no run directory)",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook metadata with a kernel/language slot",
+        "cells reading a raw table and writing a cleaned one",
+        "neighbourhood: a codebook defining the columns, and a results table",
+        "no repository marker, no run layout, no checkpoint"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "that the notebook shape alone settles which template organizes it",
+        "project from the same evidence item on both sides - one item may only count for the better-supported side",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "the reciprocal of the collision research.dataset-analysis authored at this row, using the fixture that row named. With a codebook-and-results neighbourhood and no run layout, the dataset-analysis situation is the better-supported side."
+    },
+    {
+      "filename": "experiment_bundle.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking, listing a notebook, a CSV, a checkpoint-shaped binary and a README",
+        "member paths reproducing a run-directory shape",
+        "file count and uncompressed size from the manifest"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "facts about members the manifest does not list",
+        "anything that requires extracting the archive to disk",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "design_cite": "00: 'the normal scan should never extract archive contents to the filesystem'; and for the unreadable case, 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open'"
+    },
+    {
+      "filename": "Screenshot 2026-03-11 at 14.02.png (a loss curve and a log tail)",
+      "source_type": "image",
+      "observations": [
+        "no camera EXIF",
+        "PNG format at a screen-shaped pixel dimension",
+        "OCR observations containing epoch and loss lines and a truncated local path"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF - 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'",
+        "project or artifact_type from a path fragment in OCR text alone",
+        "an experiment because the image contains metric-shaped text"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots",
+      "note": "the fallthrough belongs to the capture side, not to this template, which is why Temporary Screenshots is not one of this row's falls_through_to edges."
+    },
+    {
+      "filename": "Run 4f2a completed - 3 alerts.eml",
+      "source_type": "email",
+      "observations": [
+        "subject line carrying a run identifier and a project-shaped token",
+        "sender is a tracking service; body is a templated summary table",
+        "no attachment"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "project from a notification subject line - a service-generated subject is the same class of evidence 00 refuses to trust in generated metadata, which 'should not be mistaken for meaningful content'",
+        "that a run identifier in prose is the labelled slot this template's rule requires",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "the mail case: this template sees it, and it activates nothing on its own. It may still be a P9 neighbourhood member beside the run directory it reports on."
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "code.software-project",
+      "signal": "one evidence item - a notebook, a training script, a labelled configuration file, a requirements or environment file - supports both templates on the one Code schema. The discriminating evidence is 00's own: a project-root marker at a real root above the file, 'files such as package.json, requirements.txt, Cargo.toml, or go.mod'. With such a root the file is interior to a structure 00 asks to preserve and the software-project order applies; with no root anywhere above it and a run-directory layout or an on-disk notebook lineage instead, this template applies. Fixtures: analysis/model_fit.py under a pyproject.toml root sits on the software-project side; runs/2026-03-11T14-02_lr0.001/config.yaml with no manifest above it sits here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.dataset-analysis",
+      "signal": "a notebook carrying analysis-library imports and a project token supports both, because project and artifact_type are one canonical key each and both templates' schemas reference them. Reciprocating the signal that row authored: a repository root, a package manifest or a run-directory layout above the file counts here; a notebook whose named inputs and outputs are a project's data files, and whose neighbourhood is a codebook and a results table, counts there. Fixtures: clean_and_merge.ipynb sits on the dataset-analysis side; runs/2026-03-11T14-02_lr0.001/config.yaml with a checkpoint sibling sits here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.scratch-prototypes",
+      "signal": "a loose .ipynb or .py in Downloads, with no repository root, satisfies both rows' file kinds and both rows' never-alone rules leave it unanchored. The discriminator is structure the extractor can check on disk: a run-directory layout, or a notebook cell naming a sibling data file that exists, puts the file here; the absence of both leaves it a one-off whose honest destination is often a broad residual home, which is that row's situation. Fixture: Untitled(3).ipynb sits on the scratch side until a run layout or a lineage link appears.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.lab-notebook-protocols",
+      "signal": "the words are the false friend: notebook, experiment and run appear in the filenames and folder names of both, and a token match decides nothing. The discriminator is what the file's own structure is: cell and kernel metadata around executable source is a computational notebook and belongs here; a dated experiment record tied to a protocol and a sample identity is a lab record and belongs there. Fixture: a file named experiment_notebook_2026-03-11 resolves by structure, not by its name.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "00: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.' This situation produces that file in quantity - a notebook whose kind and language are readable and whose project is not. Fixtures: Untitled(3).ipynb, metrics.jsonl with no run layout above it, the run-completed notification.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00 gives this residual 'password-protected archives, unreadable documents, damaged files, and unknown formats', and the format rule behind it is 00's own: 'unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved'. Model checkpoints and serialized weight files are the ordinary case here. Fixture: best_model.safetensors with no run layout to anchor it.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "a downloaded tutorial, course or competition notebook is reading material with, in 00's words for this residual, 'no active research, course, or project association'. 00 names papers and saved PDFs there rather than notebooks, so the extension to an executable reading artifact is inference. Fixture: kaggle_titanic_starter.ipynb.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "a participant-level or otherwise personal dataset sitting beside a notebook, with no accepted project association, has no safe deeper home. 00 puts this residual under a local-only rule: it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. Fixture: participants_raw.csv when the notebook naming it has no validated project.",
+      "provenance": "inference"
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The template-specific reason, and the one that is not the Code schema's: a computational notebook stores its OUTPUTS inside the file - a printed table of rows from the data it read, a rendered figure, a traceback carrying local paths. So a file the router treats as code_structured can carry other people's data in its body, and the datasets sitting beside it can be participant-level or health data, which 00 places among the highly personal material a corpus holds: 'identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. The rule this template asks for is 00's dossier discipline applied to cell outputs before any model path: 'Privacy policy must be enforced before content reaches any model or external connector', and 'It should not send full documents where a short heading or OCR excerpt is enough to resolve the question' - cell source and slot names are usually enough, and stored outputs usually are not needed. The classification stays per file and evidence-backed; the handling class is P7's and is not set here.",
+
+  "open_question": "This situation's real organizing unit is the experiment RUN, and the Code schema declares no field for it - project, repository, programming_language, artifact_type. A run is not a project (one project has many), not an artifact_type (that is the kind, not the instance), and not a version_family (differing hyperparameters are not drafts of one document). Three answers are all defensible and all Joseph's: a fifth Code field, a value carried inside artifact_type, or a P9 group with no folder level at all. This row deliberately did not mint one, because a template minting a field is how a tree level appears that no fact can fill. The consequence of leaving it out is recorded honestly: with dimension_order project then artifact_type, a project's fifty runs collapse into one checkpoints level and one metrics level, and the user has to split them by hand on the canvas."
+}

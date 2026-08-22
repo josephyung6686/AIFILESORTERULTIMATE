@@ -1,0 +1,480 @@
+{
+  "id": "research.thesis-dissertation",
+  "kind": "template",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Thesis or dissertation",
+  "one_line": "One degree-defining research document and everything the degree requires around it: chapters and their draft families, committee and examiner feedback, defense materials, and the institutional deposit formalities that close it out.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Extends 00's named Research domain — \"Research files may use project, stage, artifact type, lab, and venue\" — into one organizational situation. 00 never names a thesis or a dissertation; every claim below that goes past the Research schema is marked inference or proposal. The template object 00 asks for is the one built here: \"Each template should define the domain’s allowed fact fields, detection signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation constraints\".",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": {
+    "differs_from_schema_default": true,
+    "limb_detection_signals": "PASS, and this is the load-bearing limb. Not one of this row's five deterministic signals appears on research.json: a degree-submission title-page phrase beside a named degree and department; a signature or approval page whose labelled slots name a committee chair and members; a table of contents listing sequentially numbered chapters beside front matter and appendices; a degree-milestone term (proposal defense, candidacy, dissertation defense, deposit, embargo) beside a thesis document or an institutional-repository form; an ETD deposit form's labelled slots. The schema row's signals are project-token-plus-artifact-structure, labelled Project/Protocol slots, submission-lifecycle terms, archive manifests, and zone-restricted venue gazetteer hits. The two sets overlap nowhere, and the reviewing body is why: a committee and a degree programme, not an editorial office.",
+    "limb_dimensions": "PASS, weakly and honestly. The schema default is project → stage → artifact_type; this row recommends project → artifact_type → stage. The swap is real (see template.why) but it is not unique on this schema — research.dataset-analysis reaches the same order from different material. The node test asks only that a row differ from ITS SCHEMA's default template, which this does; it does not ask the row to be unique among siblings, and claiming uniqueness here would be a fabricated distinction.",
+    "limb_privacy": "PARTIAL. The unpublished-work and human-subjects reasons are the schema's. What this situation adds is narrower: committee and examiner reports are evaluative statements about one named person who is usually the file's holder, and a deposit-time embargo is an explicit instruction, recorded on the file itself in a labelled slot, that the work is not yet public. Recorded as an addition, not claimed as a whole distinct privacy regime.",
+    "why_not_refused": "One limb suffices under CONNECTION.md section 2 (\"detection signals, recommended dimensions, or privacy rules differ\"), and this row clears one outright and two partially. The refusal shape would be a row whose signals are the schema's restated — the shape research.project-workspace correctly refused on. Here the signals are the material's own, and without this row a signed approval page, an ETD form and a defense deck have no detection path at all: the schema row's five signals do not fire on any of them."
+  },
+
+  "fields": [],
+  "fields_note": "Empty by contract, not by omission. CONNECTION.md section 3: \"Templates reference a schema; they never copy its fields.\" The legal facts here are the research schema's — project, stage, artifact_type, lab, venue, and the search-only authored_by — and they are read from planning/domains/nodes/research.json through schema_id. This row adds one proposed key (below) and copies nothing.",
+
+  "proposed_fields": [
+    {
+      "key": "chapter",
+      "type": "string",
+      "example": "Chapter 4",
+      "destination_eligible": false,
+      "role_split_with": [],
+      "provenance": "proposal",
+      "why_no_existing_key_works": "A search, explanation and review key for the ordinal position of a part inside one degree document — 00 allows a domain \"several additional fields used only for search, privacy protection, explanation, or later review\" beside the three-to-six that may become folder levels. No canonical key holds it. `subject` is a course. `artifact_type` is a KIND (thesis chapter, defense slides) and cannot carry an ordinal without becoming a value explosion of one member per chapter. `project` is the whole thesis. `version_family` is 00's universal fact for drafts of ONE document, so it already links Ch4_v1 through Ch4_v11 but cannot link that family to the separate file holding the committee's comments on chapter four. That cross-artifact join is this situation's characteristic sparse-file problem and there is no existing key for it.",
+      "destination_eligible_why_false": "A folder per chapter is the failure 00 warns about twice over: it \"creates a large number of tiny folders\" and it \"repeats a concept already expressed in the parent\" once the artifact_type level already reads Chapters. The key is proposed for search and grouping explanation only, and it is deliberately absent from this row's dimension_order.",
+      "r1c_note": "R1c or Joseph may reject this outright and leave the ordinal as a P4 observation that never becomes a fact. Nothing in this row's dimension_order, recognition signals, or file examples depends on the key existing; it is recorded because the gap is real, not because the template needs it to work."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "a page-one title-block pattern combining a degree-submission phrase (submitted in partial fulfilment of the requirements for the degree of, or a programme's local wording) with a named degree and a named department, in the title or page-one heading zone — 00 weights that zone for exactly this reason: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\"",
+      "a signature or approval page whose LABELLED slots name a committee chair, committee members, a department head and a date — 00's direct-fact path for \"a labeled form field\", and the single strongest signal on this row because no other research situation produces it",
+      "a table of contents listing sequentially numbered chapters alongside front-matter sections (abstract, acknowledgements, list of figures) and lettered appendices — a book-length degree document's structure, which does not resemble a journal manuscript's sectioned body and is available from DOCX heading levels or PDF headings without any language interpretation",
+      "a degree-milestone term (proposal defense, qualifying or candidacy examination, committee review, dissertation defense, final deposit, embargo request) co-occurring with a thesis document, a signature page, or a labelled institutional-repository form in the same document or in an archive manifest read without unpacking — 00: \"the normal scan should never extract archive contents to the filesystem\"",
+      "an institutional-repository or ETD deposit form carrying labelled slots such as Title of Dissertation, Degree, Department, Advisor and Embargo — labelled structured slots, so 00's direct path again, and the deposit form is what distinguishes closing a degree from submitting a paper",
+      "a LaTeX source tree whose root document declares a thesis or dissertation document class and includes sequentially numbered chapter files beside a front-matter file — structural evidence, evaluated only after the repository-marker precedence check, because 00 puts repository structure on the code side: \"Code-related files should rely heavily on local structural evidence, including repository roots and package files\""
+    ],
+    "needs_llm": [
+      "whether a long sectioned document is a dissertation chapter or a standalone manuscript, once the front matter has been stripped — the same text is routinely both, and 00 reserves exactly this for the model: \"interpret an unusual research artifact\"",
+      "whether tracked changes and comment metadata are committee or examiner feedback on a degree document, or a co-author's ordinary edits on a paper",
+      "whether a document titled Proposal is a dissertation proposal, a grant proposal, or a project plan, when no committee or sponsor slot is labelled",
+      "whether a slide deck is a defense or a conference talk when the slide titles carry neither committee names nor a venue — the presentation source_type decides nothing",
+      "whether an OCR'd portal confirmation is a thesis deposit receipt or an application-portal receipt, since both read as a submission was received"
+    ],
+    "never_alone": [
+      "the word thesis or dissertation in a filename alone. The tempting false file is Ravikumar_dissertation_2014.pdf — somebody else's dissertation, downloaded as a literature source, whose author list does not include the holder and which carries no signature page. It is reading material, and 00 gives it a residual home: \"papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association\"",
+      "a chapter-shaped token alone — Ch 4.docx, Chapter 3 final.docx. This is 00's HW 3 case wearing this domain's clothes: the file may join a thesis neighbourhood as a context-supported member while acquiring no project fact, because \"The graph does not automatically copy those missing facts onto sparse files\"",
+      "a university, department or programme name alone — 00: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\", and a degree programme is one more role that sentence covers",
+      "a bare 4-digit number read as a graduation year, a defense year or a project id — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a version suffix read as stage. Ch4_v11.docx says a draft family exists; it does not say the chapter is in committee review. Version family is a universal fact and stage is a workflow position, and a thesis produces unusually deep version families, which makes this the easiest mistake here",
+      "a source_type or extension alone. presentation is not a defense, archive is not a deposit packet, and audio_video is not a defense recording; 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a parent folder named Dissertation or Thesis alone, with no member carrying in-file evidence. Its members characteristically include downloaded papers, an unrelated spreadsheet and a stock figure, and 00 keeps folder context a clue rather than a licence: \"The system learns from existing folders but must not silently reorganize them.\"",
+      "a same-session download batch of chapter-shaped PDFs as proof they are one thesis — 00: \"A session should never be treated as proof of topic\""
+    ]
+  },
+
+  "work_types": [
+    "thesis chapter",
+    "full thesis manuscript",
+    "dissertation proposal",
+    "literature review chapter",
+    "front matter",
+    "abstract",
+    "appendix",
+    "committee feedback",
+    "examiner or external reader report",
+    "defense slides",
+    "defense recording",
+    "signed approval page",
+    "deposit or ETD submission form",
+    "embargo request",
+    "copyright or distribution agreement",
+    "formatting review letter",
+    "bibliography file"
+  ],
+  "work_types_note": "VALUES of the research schema's artifact_type field, discovered at runtime like any value. 00: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" None of them is a roster node and none licenses a child schema. Recorded as a finding for R1c, not acted on here: the research schema row's own artifact_type value list holds none of the degree-specific members above, and the same gap exists on stage, whose schema-row example (under review) is a submission-lifecycle value while this situation's values are degree milestones (proposal defense, candidacy, committee review, defense, deposit, embargo). A different value list is a value-list gap; it is explicitly NOT a reason for a node, per the dispatch rule that work types are values.",
+
+  "grouping_reasons": [
+    "one thesis across its chapters, its front matter, its appendices and their draft families — the anchor is the file carrying the title-page degree phrase or the signature page, and the chapters attach to it as context-supported members",
+    "one chapter's draft family together with the separate file holding the committee's comments on that chapter, joined by the chapter ordinal rather than by a shared version stem",
+    "the defense bundle: slides, a recording, the scheduling event and any examiner reports, coherent as one milestone rather than one artifact type",
+    "the deposit packet: the final PDF, the signed approval page, the abstract, the copyright agreement and the embargo request, purpose-coherent and content-incoherent in 00's sense, and often arriving as one archive",
+    "a sparse chapter or appendix file joins the thesis neighbourhood as a context-supported member without acquiring a project fact — 00: \"The graph does not automatically copy those missing facts onto sparse files\", and per 00's stop rules a chapter set with no title-page or signature-page anchor stays a tentative discovery candidate: \"Sparse groups with no anchor should be shown only as tentative discovery candidates\""
+  ],
+
+  "template": {
+    "dimension_order": ["project", "artifact_type", "stage"],
+    "why": "A recommendation for one situation, never a filesystem — \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" project stays first for 00's stated reason, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\", and because the parent must make the child intelligible: 00 states that as \"A work type such as Homework 3 is meaningful only after the course is known\", and a file named Chapter 4 or Approval page is meaningless until the reader knows which degree document it closes. THE CHANGE THIS ROW MAKES to the schema default (project → stage → artifact_type) is to lift artifact_type above stage. The reason is that a degree document divides primarily by artifact — chapters, committee feedback, defense materials, deposit formalities — and each of those carries its OWN draft-to-final progression, so putting stage on top interleaves a chapter draft with a defense deck under one Revision folder and separates a chapter from the comments written on it. This is the manuscript row's argument run the other way: there, one project produces several complete venue-scoped submission families and stage is the live navigation axis; here there is one submission, to one degree programme, and the artifact is the axis. TWO WARNINGS 00 raises that this row must carry rather than hide. First, project characteristically resolves to a SINGLE value — one thesis — so the project level is the one 00 tells the canvas to flag: \"It should warn when a level produces only one child\", and \"The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels\". In practice the thesis IS the branch and artifact_type is its first split; the dimension is written first anyway because a corpus holding both a master's thesis and a doctoral dissertation needs it, and because a dimension that resolves to one child is flattened on the canvas rather than removed from the recommendation. Second, stage is thin on most of this material and 00 says what to do about that: \"It should recommend flattening when a dimension does not materially improve retrieval\", and \"each branch should offer the dimensions that are actually present in its member groups\". Expect chapters to populate stage barely (their variation is a version family, not a workflow position) while the deposit materials populate it richly. lab and venue are legal facts on this schema and are deliberately NOT dimensions here: a thesis is reviewed by a committee, not a venue, and a lab level would fragment one degree document across the groups that contributed to it. school and term are the facts a reader expects at the top of a thesis branch and they are NOT available to this row: they belong to the academic schema, and CONNECTION.md section 3 makes a template's dimensions a subset of its own schema's fields with no parent walk. See open_question.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "archive",
+      "image",
+      "ocr",
+      "audio_video",
+      "calendar",
+      "email",
+      "code_structured",
+      "spreadsheet",
+      "opaque_binary"
+    ],
+    "extensions": [".pdf", ".docx", ".pptx", ".zip", ".png", ".mp4", ".ics", ".eml", ".tex", ".bib", ".xlsx"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Dissertation_final_2026-05-12.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page one is a title block whose body carries a degree-submission phrase, a named degree and a named department",
+        "page two is an approval page with labelled signature slots for a chair and three committee members",
+        "the table of contents lists sequentially numbered chapters, an abstract, acknowledgements and lettered appendices",
+        "a research-group name appears in the acknowledgements",
+        "several journal names appear only in the reference list across the late pages",
+        "the filename carries a date-shaped token"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage", "lab", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "venue from the journal names that occur only in the reference list — 00 weights zones for exactly this: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\"",
+        "school or term as facts on this template — they are the academic schema's fields, and they become legal only if the academic schema independently activates on this file's own degree-programme evidence",
+        "a destination dimension from authored_by — 00: \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "a term value from the date-shaped filename token, which no term pattern matched"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Ch4_results_v11_AB-comments.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a heading reads Chapter 4 followed by sectioned body prose; there is no title page and no signature page",
+        "revision metadata records tracked changes and comments by a second named person",
+        "the filename carries a chapter-shaped token, a version suffix and a pair of initials",
+        "no project token appears anywhere in the document",
+        "sits beside six similarly named files and one file carrying a title-page degree phrase"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the chapter number or from the neighbouring anchor file — this is 00's HW 3 case: \"The graph does not automatically copy those missing facts onto sparse files\"",
+        "stage from the v11 suffix — that is a version_family signal, not a workflow position",
+        "the comment author as instructor, advisor or lab — a person named in revision metadata is 00's \"prior editor\" warning, not a role fact",
+        "a destination dimension from authored_by"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Proposal_defense_slides.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles read Dissertation Proposal, Aims, Timeline and Committee",
+        "a slide lists four names under the word Committee",
+        "speaker notes rehearse answers to anticipated questions",
+        "no venue, no session code, no registration or travel material anywhere in the deck"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "venue — a defense has a committee, not a venue, and reading one in from the presentation source_type would be format-as-schema",
+        "lab from the four committee names",
+        "that the presentation source_type routes this to research.conference-presentation, which the roster makes file_kind_owner of that type — ownership of a format is not ownership of this file's evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ETD_submission_form_signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled form slots: Student Name, Degree, Department, Title of Dissertation, Advisor, Embargo Period, Date",
+        "an institution name in the letterhead and a repository name in the footer",
+        "a signature image and a stamped receipt line"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from the institution in the letterhead — that is the applications role, and this institution is the one conferring the degree, not one being applied to",
+        "any handling class from the embargo slot; sensitivity here is only 00's own phrase and the class is P7's",
+        "an embargo duration as anything but a value read from the labelled slot"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "deposit_package.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a final thesis PDF, a scanned approval page, abstract.txt, a copyright agreement, an embargo request and a supplementary appendix",
+        "one member name carries the degree word; none carries a venue token",
+        "no member is extracted to disk"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact from a member that was not inspected — the manifest is the evidence, and 00 requires that \"the normal scan should never extract archive contents to the filesystem\"",
+        "that the outer archive name means anything on its own",
+        "that this is a journal submission packet, whose manifest would carry a cover letter and figure files instead of an approval page and a copyright agreement"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-05-12 at 16.04.09.png",
+      "source_type": "image",
+      "observations": [
+        "PNG at an exact display resolution; no camera EXIF",
+        "an OCR region reads a repository submission-received line and a document title matching the thesis title",
+        "an OCR region reads a browser chrome and an account name"
+      ],
+      "facts_legal": ["stage", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "project from the OCR'd title unless that title resolves to a project already evidenced in this file",
+        "an application-cycle or target_university reading of the confirmation — a deposit receipt and an admissions receipt read alike, which is why this is the model's call"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Approval_page_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no text layer; OCR of a photographed signed page",
+        "OCR recovers a degree phrase, a document title, four name lines above ruled signature lines and a date",
+        "several regions are low confidence and one name is unrecovered"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "lab or instructor from the signature names — a committee list is a set of roles the OCR has not labelled",
+        "authored_by from the top name line, which on an approval page is as likely the chair as the candidate",
+        "that a low-confidence region can support a fact; 00 requires that a model or resolver \"must return unknown where support is insufficient\""
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Defense_recording.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "duration, container and codec metadata, a creation time and an embedded title tag reading the candidate's surname and the word defense",
+        "no captions track present",
+        "sits beside the proposal deck and the scheduling event"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact derived from speech — 00 permits transcripts \"only under an explicit privacy and compute policy\", and without that policy this file has no content evidence at all",
+        "project from the embedded title tag alone",
+        "committee members as facts from names spoken or shown"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Dissertation defense — room 4.12.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY carries a degree-milestone term and a room token",
+        "organizer and four attendee addresses present, on a university mail domain",
+        "no project token and no document title in the event body"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "stage from the event title alone, with no thesis document anchoring which project it closes",
+        "lab or school from the mail domain — 00's Columbia sentence strikes an institution name carrying no role",
+        "that calendar as a source_type makes this or any schema plausible by itself",
+        "attendee addresses as facts; 00 requires mail material be handled \"while treating addresses and message content as potentially sensitive\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "main.tex",
+      "source_type": "code_structured",
+      "observations": [
+        "the root document declares a thesis document class and includes sequentially numbered chapter files from a chapters directory",
+        "a front-matter file and a bibliography file sit beside it",
+        "a version-control directory sits at the tree root; there is no package manifest"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the repository marker makes this a software project rather than a thesis — 00 puts repository structure on the code side (\"Code-related files should rely heavily on local structural evidence, including repository roots and package files\"), so the code schema may legitimately hold facts here too; the thesis evidence is the document class and the chapter includes, not the directory",
+        "stage — a source tree's lifecycle is not a degree milestone",
+        "project from the directory name alone"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Appendix_C_participant_consent_forms.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a heading reads Appendix C and the body is a repeated consent form",
+        "labelled slots name a study title, an approval reference and a participant signature line",
+        "some slots are filled in by hand and OCR'd"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "participant identifiers as any field value — they are protected content, not facts",
+        "medical fields, because the medical schema is a field-less safety placeholder that activates for protection only",
+        "stage from the word appendix"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Capstone_Final_Paper_BUSIB4300.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a long sectioned document with an abstract, a literature section and a conclusion",
+        "the phrase thesis statement appears in the introduction",
+        "a course-code-shaped token appears beside the words instructor, semester and credits on page one",
+        "no title-page degree phrase, no signature page, no chapter numbering"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this template from the word thesis or from the document's length — the discriminating evidence is 00's own academic pattern, \"a course-code pattern together with academic context\", which puts the file on academic.coursework",
+        "project from the course code",
+        "artifact_type = thesis chapter from the sectioned structure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Ravikumar_dissertation_2014.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title page with a degree phrase, a signature page and numbered chapters — the full structural fingerprint of this template",
+        "the author list and the signature names include nobody connected to the holder",
+        "the institution is one the holder has no other file about",
+        "downloaded in a bounded session with three other papers, and saved inside the holder's own thesis directory"
+      ],
+      "facts_legal": ["authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "project or lab from this document's own affiliations — they describe its author, not the holder's work; this is the collision fixture that shows the structural signals alone are not sufficient without an authorship check",
+        "project from the directory it was saved into — 00: \"The system learns from existing folders but must not silently reorganize them.\"",
+        "a topic for the session — 00: \"A session should never be treated as proof of topic\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Formatting_review_returned.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a letter from a graduate office listing margin, pagination and front-matter corrections required before acceptance",
+        "a labelled reference number and a document title matching the thesis title",
+        "no research content of any kind"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the absence of research content means the research schema is inactive — the project and stage evidence is the labelled title and the milestone, not the subject matter",
+        "venue from the graduate office, which is an administrative unit and not a publisher",
+        "a numeric requirement of any kind as a fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "research.manuscript-publication",
+      "signal": "A thesis chapter and a journal manuscript are frequently the same text, so project, stage, artifact_type and a deep version family support both. The discriminating evidence is which body is reviewing it: a committee, a signature page, a defense, a deposit form or a degree programme's formatting rules put the item here; an editorial office, a venue token, referee reports, a cover letter or proofs put it there. Reciprocal to the edge already authored on research.manuscript-publication, whose wording this matches deliberately. A chapter that is also a submitted paper legitimately holds both situations on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.conference-presentation",
+      "signal": "A defense deck and a conference talk deck are the same source_type with the same shape — slide titles, speaker notes, embedded figures — and the roster makes research.conference-presentation the file_kind_owner of presentation, which makes this the likeliest mis-shelving on this schema. The discriminating evidence is a committee list or a degree-milestone term in the slide titles versus a venue token, a session code, or registration and travel material in the neighbourhood. A deck with neither is the model's call, not either row's. Fixture: Proposal_defense_slides.pptx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "A capstone, a senior thesis for credit, or any long sectioned term paper carries the word thesis, an abstract and a literature section, and its author is a student at a school — the same surface a degree document shows. The discriminating evidence is 00's own academic pattern, \"a course-code pattern together with academic context\", against this row's title-page degree phrase and signature page. A course code beside instructor, semester or credits sends the item to coursework; neither one of those beside a partial-fulfilment phrase and a committee page sends it here. Fixture: Capstone_Final_Paper_BUSIB4300.docx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "Somebody else's dissertation, downloaded as a literature source, presents this row's entire structural fingerprint — degree phrase, signature page, numbered chapters — and often sits inside the holder's own thesis directory. The discriminating evidence is authorship and neighbourhood: whether the holder appears in the author or signature block, and whether any other file in the corpus evidences that institution or project. Neither row may claim it on structure alone; where the authorship check fails, the honest home is the Reading Inbox residual. Fixture: Ravikumar_dissertation_2014.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "Degree completion produces documents on both sides at the same moment. The discriminating evidence is what the document records: a conferred credential addressed to the holder (a diploma, a degree certificate, a final transcript) is a credential record, while a document that closes the research work (an approval page, a deposit form, an embargo request, a formatting review letter) belongs here. Both carry an institution name, a degree name and a date, which is precisely why the item must be resolved rather than split by keyword. Fixture: ETD_submission_form_signed.pdf against a conferral letter arriving in the same week.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Deliberately empty, and it is a contract rule rather than a judgement. CONNECTION.md section 5 restricts also_holds_with to schema ↔ schema only; this row is kind: template and may not author one. The dispatch prompt lists academic in must_consider_neighbors and offers also_holds_with as an available edge; CONNECTION wins on the conflict and is noted in the research notes. The co-activation is real and is already authored where it belongs — research.json's also_holds_with with academic names this exact case (a thesis chapter carrying school and term on degree-programme evidence and project, stage and artifact_type on its own research evidence). Four of this row's file examples carry also_schema: academic to record it at the file level, which is description, not an edge.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\". This is the honest home for the chapter-shaped and appendix-shaped files whose only signal is an ordinal — the sparse-file class this situation generates more of than any sibling, because a degree document is written in numbered parts over years. The roster names it as this id's must-consider residual. Fixtures: Ch4_results_v11_AB-comments.docx, Defense_recording.mp4.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\". A signed approval page, a deposit form or a formatting review letter that arrives with no thesis document anywhere in the corpus is exactly that shape: durable, single-purpose and unattached. Fixtures: ETD_submission_form_signed.pdf, Approval_page_scan.pdf, Formatting_review_returned.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "00: \"papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association\". Required here specifically because somebody else's dissertation matches this row's structural signals completely, so the residual is what catches the authorship failure rather than a wrong template. Fixture: Ravikumar_dissertation_2014.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Human-subjects appendices bound into a thesis carry participant identifiers, and 00 requires such material to be represented without exposure — it \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Offered as a home, not as a classification. Fixture: Appendix_C_participant_consent_forms.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A deposit-portal confirmation capture whose OCR resolves to no project is a screenshot with no accepted association, which is the residual 00 defines for screenshots that \"have no accepted project, trip, application, or event relationship\". Fixture: Screenshot 2026-05-12 at 16.04.09.png.",
+      "provenance": "inference"
+    }
+  ],
+
+  "role_split": [
+    {
+      "field": "lab",
+      "other_field": "school",
+      "other_domain": "academic",
+      "why": "Same entity type, different role, and this situation is where the two are hardest to separate because they are usually the same organization: the institution conferring the degree and the research group producing the work. A thesis title page names the university in the degree phrase (the school role) and the acknowledgements name the group (the lab role), and a naive gazetteer hit cannot tell them apart. 00 names the ambiguity for the identical string: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\". Restates the split already recorded on research.json; recorded again here because this row's fixtures are where it bites.",
+      "provenance": "inference"
+    },
+    {
+      "field": "authored_by",
+      "other_field": "instructor",
+      "other_domain": "academic",
+      "why": "Same entity type — a person's name — in two roles that a thesis title page prints one line apart: the candidate who wrote the work and the advisor or committee chair who supervised it. An approval page prints four such names above ruled lines with no machine-readable labels at all, which is why Approval_page_scan.pdf refuses authored_by. Neither field is destination-eligible, so this split changes what is searchable and explainable, never a folder level. FINDING for R1c or Joseph, not acted on here: the canonical row for authored_by lists role_split_with target_school only, and the canonical row for instructor lists nothing; widening the canonical list is R1c's or Joseph's and never a node's.",
+      "provenance": "proposal"
+    }
+  ],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here. Three reasons, of which the first two are this situation's rather than the schema's. Committee and examiner reports are evaluative statements about one named person who is normally the file's holder, and they sit in the same directory as the work they judge. An embargo is an explicit, file-borne instruction that the work is not yet public, recorded in a labelled slot on the deposit form, so a thesis corpus can carry its own do-not-expose flag as data. Third, inherited from the schema: human-subjects appendices carry participant identifiers, and the correspondence that surrounds a defense arrives as mail, which 00 requires be handled \"while treating addresses and message content as potentially sensitive\".",
+
+  "open_question": "The dimension a reader expects at the top of a thesis branch is the school, and this row cannot offer it. school and term are the academic schema's fields; CONNECTION.md section 3 makes a template's dimension_order a subset of ITS OWN schema's fields and forbids any parent walk, so a template on the research schema can never branch on them even though research.json's also_holds_with with academic says both schemas legitimately hold facts on the same thesis file. Three ways out, none of them this node's to choose: (a) accept it — one person's thesis rarely needs a school level, and the co-activated academic facts remain searchable and explainable without being folder levels; (b) a mirror template on the academic schema for the degree-programme view, which would then need collides_with against this row and risks the two-rows-one-situation shape research.project-workspace was refused for; (c) Joseph decides that a dimension_order may draw on the union of a file's co-activated schemas, which is a change to CONNECTION.md section 3 and to the gate, not a catalogue edit. This decides how someone's real degree work is filed, so it is recorded rather than resolved. A second, smaller fork for R1c: whether the proposed `chapter` key lands at all, or the ordinal stays a P4 observation that never becomes a fact."
+}

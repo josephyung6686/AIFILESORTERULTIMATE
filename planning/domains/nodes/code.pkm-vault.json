@@ -1,0 +1,386 @@
+{
+  "id": "code.pkm-vault",
+  "kind": "template",
+  "schema_id": "code",
+  "parent_id": null,
+  "name": "Personal knowledge vault",
+  "one_line": "A markdown note corpus that is a structural unit rather than a pile of documents - an Obsidian, Logseq, Dendron or exported Notion vault - recognized by a settings-directory marker at its own root plus wiki-links that resolve to sibling notes beneath it, and organized by preserving that root whole rather than by opening folder levels inside it.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "a vault settings directory at the root of a directory that itself holds markdown files - an .obsidian directory carrying app.json and workspace.json, a logseq directory carrying config.edn, a dendron.yml - evaluated the way 00 evaluates a project root: the marker's POSITION at the root plus that directory's own sibling contents, never the marker file wherever it is found. This is the same rule family the Code schema already uses for 'files such as package.json, requirements.txt, Cargo.toml, or go.mod', applied to a marker set 00 does not name",
+      "wiki-link and embed references across sibling markdown files whose targets RESOLVE to files existing under the same root - the link graph, not the bracket syntax. 00 lists 'hyperlinks, document relationships' among the structure an extractor preserves, and requires each observation to record 'a document zone, page number, text offset, surrounding context, and occurrence count', which is what makes a resolved-link count available as evidence rather than a slogan",
+      "the Notion-export layout with no settings directory at all: markdown filenames ending in a long hexadecimal-shaped token, paired with .csv sidecars carrying the same token pattern and a same-named sibling directory holding the attachments those notes reference. Recognized from the export's own directory manifest and naming structure, in the spirit of 00's rule that code-related material 'should rely heavily on local structural evidence ... rather than forcing semantic analysis to infer a project from arbitrary code text'",
+      "an archive manifest listing a vault layout without unpacking - a settings directory, or the hex-token markdown-plus-csv pairing, among the contained paths. 00: archives are inspected for 'contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers'",
+      "YAML frontmatter at the head of markdown files under an already-marked root, read as labelled key slots (tags, aliases, created) rather than as prose - supporting evidence only, and only after the root test above has passed"
+    ],
+    "needs_llm": [
+      "a directory of markdown files with no settings directory and no resolved link graph: a personal vault, a project's documentation folder, an exported team wiki that belongs to an employer, or a pile of saved articles",
+      "a single note carrying wiki-link syntax with no marked root anywhere above it: a member that escaped its vault, a note written in a vault-flavoured editor that never had one, or an article about note-taking that quotes the syntax",
+      "whether a note under a marked root is the user's own writing or a clipped article kept for reading, which decides between a vault member and reading material",
+      "whether two marked roots are one vault that was copied and drifted, or two genuinely separate vaults with overlapping note titles"
+    ],
+    "never_alone": [
+      "double-bracket wiki-link syntax in one file. This is the tempting false file for this node and the reason the deterministic signal is written as resolved links rather than as syntax: the same brackets appear in templating languages, in documentation quoting the convention, and in a downloaded article explaining Zettelkasten. A link whose target does not resolve to a sibling under a marked root is a string, not a structure",
+      "the .md or .markdown extension alone - 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning', and 00's own text-extractor sentence puts Markdown beside 'plain text, JSON, CSV, source code, notebooks, and configuration files', none of which is a domain",
+      "source_type text_document alone, which is a file_kind_plausible signal and is constitutionally never sufficient",
+      "a directory NAME such as Notes, Vault, Zettelkasten or Second Brain with no marker file and no resolved link graph. 00 keeps folder names a clue and not a licence: 'The system learns from existing folders but must not silently reorganize them'",
+      "a date-shaped filename such as 2026-08-22.md as proof of a daily note. 00 requires that 'Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching', and a date in a filename is a creation-or-title observation, never a capture date and never a term",
+      "a long hexadecimal or 4-digit token in a filename. 00 warns about 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'; an export id is the same class of token and is an identity handle, not a value of any field here",
+      "the settings directory considered by itself, with no markdown corpus beside it - a copied app-configuration folder is not a vault",
+      "download-session membership - 00: 'A session should never be treated as proof of topic'",
+      "the absence of camera EXIF on an image inside the vault as proof it is a screenshot - 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'"
+    ]
+  },
+
+  "work_types": [
+    "note",
+    "daily or journal note",
+    "literature or source note",
+    "index or map-of-content note",
+    "template note",
+    "canvas",
+    "attachment",
+    "vault configuration",
+    "database export sidecar"
+  ],
+
+  "grouping_reasons": [
+    "one marked vault root together with every file beneath it - a structural family, the wiki-link analogue of a repository family, and not a semantic cluster",
+    "a note together with the attachments it embeds, because an embed is a structural reference to a named sibling file rather than a similarity",
+    "an escaped or exported copy of a note together with the vault member it duplicates (duplicate and version-family links)",
+    "one export archive together with the extracted vault it produced",
+    "NOT a shared tag or topic across notes. A tag is a value, no canonical field holds it, and a hub tag is exactly the case 00's stop rules exclude - a group must not form 'when one high-frequency entity acts as the only bridge'"
+  ],
+
+  "template": {
+    "dimension_order": ["project"],
+    "why": "One dimension, deliberately, and the narrowing is the point of this row rather than a shortened copy of the schema's. The vault root is the unit the product must recognise, and 00's preservation rule is what makes any deeper level wrong here: 'The system should also know that existing folder structures should mainly be preserved', 'A carefully curated existing folder should be treated as a strong expression of user intent', and 'Existing folders must not be automatically flattened, renamed, or reorganized simply because a template would produce a different structure'. project leads because 00 puts subject-like dimensions before time for record domains - 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders' - which also rules out a daily-note year level, the one deeper split a vault visibly invites. repository is absent because a vault normally declares none: 00's repository evidence is a manifest's own slot, and where a vault is additionally a synced repository that fact arrives through the schema's manifest rule, not through a vault marker. artifact_type is absent because every value it would take (note, daily note, attachment, canvas) names material that already sits inside the preserved root, so a level built from it would split the interior 00 asks to leave alone and would break the embed and wiki-link references that resolve by sibling position; 00 also asks the canvas to 'recommend flattening when a dimension does not materially improve retrieval'. The user may still add levels - 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions' - and 00 licenses the shallow shape directly: 'The product should not force every branch to use the full template or have the same number of levels.'",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["text_document", "filesystem", "code_structured", "image", "archive", "ocr"],
+    "extensions": [".md", ".markdown", ".canvas", ".json", ".edn", ".yml", ".csv", ".png", ".pdf", ".zip"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": ".obsidian/app.json (at the root of a directory holding hundreds of .md files)",
+      "source_type": "code_structured",
+      "observations": [
+        "a settings map with labelled keys, in a directory named .obsidian",
+        "siblings workspace.json and community-plugins.json in the same settings directory",
+        "the parent directory holds many markdown files and an attachments directory",
+        "no package manifest anywhere at that root"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a software project - none of 00's four named project-root markers is present, and this settings directory is not one of them",
+        "programming_language from the file being JSON",
+        "that the settings directory's own members are placeable user files; they are app state beside the corpus, the way 00 treats 'caches, auto-save folders, previews'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The anchor fixture. The marker fires the situation; the value of project comes from the marked root's own directory name, and that name is never the activation evidence."
+    },
+    {
+      "filename": "Journals/2026-08-22.md",
+      "source_type": "text_document",
+      "observations": [
+        "an ISO-date-shaped filename token",
+        "YAML frontmatter with tags and a created key",
+        "body text containing wiki-link references whose targets exist as sibling markdown files under the same root",
+        "an ancestor directory carries a vault settings marker"
+      ],
+      "facts_legal": ["project", "artifact_type", "creation_date", "language"],
+      "must_not_conclude": [
+        "a folder path",
+        "term or subject from a date-shaped token - 00 requires narrow, explicitly patterned date extraction and dedicated term patterns",
+        "capture_year, which belongs to capture-based media and has no evidence here",
+        "that the date should become a folder level; the interior of a preserved vault is not a destination tree"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "project is legal on a member because it comes from the root marker above it, the same positional rule that gives a file deep inside a repository its project fact."
+    },
+    {
+      "filename": "attachments/Pasted image 20260814102233.png",
+      "source_type": "image",
+      "observations": [
+        "no camera EXIF",
+        "PNG at a screen-shaped pixel dimension",
+        "filename matches the editor's paste-naming pattern",
+        "an embed reference in a sibling note names this exact file",
+        "an ancestor directory carries a vault settings marker"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF",
+        "an event or location fact - no capture metadata exists",
+        "that it is an isolated one-off image; the embed reference is a structural relationship, and moving it out of the vault breaks the note that names it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images",
+      "note": "The residual-collision fixture. With the vault undetected this file is exactly what 00 describes as an image with 'no event, project, reference collection, or photo-family association', and it would be scattered away from the note that embeds it. That risk is the argument for this node existing."
+    },
+    {
+      "filename": "Meeting Notes 4f3a91c2b8d24e0f9a7c5e1d6b0f8a23.md (a Notion export)",
+      "source_type": "text_document",
+      "observations": [
+        "the filename ends in a long hexadecimal-shaped token",
+        "sibling .csv files carry the same token pattern in their names",
+        "a same-named sibling directory holds the files this note links to",
+        "links are relative markdown paths to sibling files, not double-bracket wiki-links",
+        "no settings directory anywhere at the export root"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "the hexadecimal token as a value of any field - it is an export identity handle",
+        "that the .csv sidecars are spreadsheets carrying a finance or records domain; they are the export's database tables",
+        "a vault from the hex-token filename alone, without the paired sidecar-and-directory layout"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The ugly case: the same organizational situation with a completely different marker set, recognized from export layout rather than from a settings directory."
+    },
+    {
+      "filename": "Second Brain.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists an .obsidian directory, an attachments directory and many .md paths - read without unpacking",
+        "file count and uncompressed size available from the manifest",
+        "outer archive name resembles a vault directory name"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "facts about members the manifest does not list",
+        "anything requiring the archive to be extracted to disk",
+        "a vault from the outer archive name alone when the manifest shows no marker"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Project Ideas.md (on the Desktop, copied out of a vault)",
+      "source_type": "text_document",
+      "observations": [
+        "YAML frontmatter with tags",
+        "double-bracket references whose targets do not resolve to any sibling file",
+        "no settings marker in any ancestor directory",
+        "content and title matching a note that exists under a marked root elsewhere in the corpus"
+      ],
+      "facts_legal": ["duplicate_family", "version_family", "language"],
+      "must_not_conclude": [
+        "a folder path",
+        "project = the vault it was probably copied from - 00: 'The graph does not automatically copy those missing facts onto sparse files'",
+        "a vault from unresolved bracket syntax",
+        "that it should be moved back into the vault; a duplicate relationship is evidence for review, not a placement"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The HW 3 case for this situation. P9 may attach it to the vault neighbourhood as a context-supported member while the project fact stays unwritten."
+    },
+    {
+      "filename": "Zettelkasten and smart notes - a guide.md (in Downloads)",
+      "source_type": "text_document",
+      "observations": [
+        "markdown headings and a byline that is not the user",
+        "the body quotes double-bracket link syntax inside fenced code blocks",
+        "arrived in a bounded download session with unrelated files",
+        "no marker and no resolved links anywhere above it"
+      ],
+      "facts_legal": ["language"],
+      "must_not_conclude": [
+        "a folder path",
+        "a vault from bracket syntax that is quotation rather than structure",
+        "project from the session it arrived in",
+        "artifact_type = note; nothing structural supports a vault artifact here"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox",
+      "note": "The collision fixture against this node's own most tempting signal: a file that talks about vaults is not a vault member. 00's residual for it is reading material with 'no active research, course, or project association'."
+    },
+    {
+      "filename": "Health/Bloodwork 2026-03.md (a note inside a marked vault)",
+      "source_type": "text_document",
+      "observations": [
+        "prose describing test results and a clinician's name",
+        "frontmatter tags",
+        "wiki-links resolving to sibling notes under the marked root",
+        "an ancestor directory carries a vault settings marker"
+      ],
+      "facts_legal": ["project", "artifact_type", "sensitivity_status"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the note body may travel in a cloud prompt because the vault as a whole looked ordinary - 00: 'complete extracted text' should 'remain local', and a short heading or excerpt is what a model gets",
+        "a medical field value; the medical placeholder writes no field rows",
+        "that the note should be lifted out of the vault into a protected branch without a user decision"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records",
+      "note": "The privacy fixture and the co-holding fixture. A vault is a corpus of personal prose, so single members can be exactly the material 00 sends into a protected state; the co-holding edge itself belongs on schema rows, not here."
+    },
+    {
+      "filename": "PHYS1401 lecture 8 notes.md (a note inside a marked vault)",
+      "source_type": "text_document",
+      "observations": [
+        "a course-code-shaped token in the filename",
+        "body text containing the words lecture and instructor beside a term-shaped token",
+        "wiki-links resolving to sibling notes under the marked root",
+        "an ancestor directory carries a vault settings marker"
+      ],
+      "facts_legal": ["project", "artifact_type", "subject", "term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the vault membership and the course facts must resolve to one domain - 00: 'One file may hold facts from more than one domain without losing information'",
+        "that the course fact licenses lifting the note out of its vault; a fact is not a placement",
+        "subject from the course-code token without the academic context terms beside it"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "Disjoint evidence, so this is co-holding rather than a collision: the vault marker and the course-code-plus-context pattern are different evidence items. The shared-material policy - one physical path, several memberships - is what decides where it lives, and that is the user's."
+    },
+    {
+      "filename": "docs/architecture.md (inside a repository that also carries a vault marker)",
+      "source_type": "text_document",
+      "observations": [
+        "a package manifest at the repository root",
+        "a vault settings directory at that same root",
+        "wiki-links resolving to sibling markdown files under docs",
+        "the file is a design document with headings and diagrams"
+      ],
+      "facts_legal": ["project", "repository", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "two competing project values from the two markers at one root",
+        "that the vault marker overrides the manifest, or the reverse; both describe the same preserved root and neither opens a level inside it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The sibling-template collision made concrete: one root, two markers, one preserved unit. Which of the two templates P10 offers is a user choice on the canvas, not a fact about the file."
+    },
+    {
+      "filename": "Untitled.canvas (inside a marked vault)",
+      "source_type": "code_structured",
+      "observations": [
+        "a JSON document of node and edge objects",
+        "node objects reference sibling .md filenames that exist under the same root",
+        "generic filename",
+        "an ancestor directory carries a vault settings marker"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a software project from the file being JSON",
+        "a topic or title fact from a generic filename",
+        "that the referenced notes may be separated from it; the references resolve by sibling position"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "vault-backup-2026.7z (password-protected)",
+      "source_type": "archive",
+      "observations": [
+        "archive type detected; the manifest cannot be read",
+        "encryption flag present",
+        "no readable member names",
+        "the outer name resembles a vault backup"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a vault from the filename - 00: 'the system should not infer a purpose from their filename alone'",
+        "any member-derived fact",
+        "that the archive should be forced open"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_7731.png (a phone photo of a note open on a laptop screen)",
+      "source_type": "ocr",
+      "observations": [
+        "camera EXIF present with make, model and capture time",
+        "OCR text containing a note title and bracket-shaped tokens",
+        "no marker, no sibling markdown, no resolvable link target"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "project or artifact_type from OCR text that mentions a note title",
+        "a vault from bracket-shaped tokens recovered by OCR",
+        "that camera EXIF here is evidence about the vault rather than about the photograph"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images",
+      "note": "The inverse of the usual screenshot trap: EXIF is present and it is real photo evidence, which is precisely why it says nothing about this node. The fallthrough belongs to the capture side, which is why One-Off Images is not one of this node's falls_through_to edges."
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "code.scratch-prototypes",
+      "signal": "One evidence item - a text-bearing file with no project-root marker anywhere above it - supports both templates on the one Code schema. The discriminating evidence is whether the file's references resolve: wiki-link or embed targets that exist as sibling files under a marked root put it here, while an unrooted file whose references resolve to nothing is the scratch situation. An escaped vault note (Project Ideas.md above) is the file where the two are hardest to tell apart, and the honest outcome there is neither template's project fact."
+    },
+    {
+      "domain": "research.lab-notebook-protocols",
+      "signal": "One evidence item - a dated series of prose entries carrying an author's own running record - supports both, because a vault's daily notes and a lab notebook's dated pages have the same shape on disk. The discriminating evidence is what the series sits beside: a vault settings marker plus a resolved sibling link graph puts it here; a lab-owned header, protocol or procedure structure, instrument or sample references and a lab value put it on the research template. Neither side may take a shared dated-entry item without clearing the margin over the other."
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "One evidence item - a markdown file titled like a publication, with an author-and-year-shaped token and a citation - supports both. The discriminator is whose structure the file has: a publication's own apparatus (title-zone masthead or DOI, abstract heading, its own reference list) makes it a reading item, while a short note ABOUT a source, sitting under a marked root and linking to sibling notes, is a literature note inside a vault. A clipped article saved as markdown with no marker above it belongs to neither and is reading material."
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "the honest home for a markdown note whose meaning is partly readable but whose vault cannot be established - an escaped member, an ambiguous notes directory, an export whose layout does not resolve. 00: it holds 'files whose meaning is partly understood but whose final location requires a future decision'."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "an unanchored markdown file that reads as saved reading material rather than as the user's own note - 00's set for material with 'no active research, course, or project association'. Naming the edge is what keeps this node from claiming every stray .md file."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "password-protected or malformed vault backups and exports whose manifests cannot be read, which 00 asks be 'marked as unreadable or partially inspected rather than forced open'."
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A vault is a corpus of personal prose, so individual members routinely restate the material 00 names as highly personal - it lists 'private correspondence' and 'medical information' among what a personal corpus holds, and its residual set describes 'a private document with no project association'. The template-level consequence is a prompt rule rather than a folder rule: 00 requires that 'complete extracted text' 'remain local' and that the engine 'should not send full documents where a short heading or OCR excerpt is enough to resolve the question', which bites hardest here because a vault offers thousands of small readable files and the tempting error is to send note bodies wholesale. Sensitivity stays per file and evidence-backed; the handling class is P7's and none is assigned here.",
+
+  "open_question": "Three, and the first is Joseph's. (1) Is a detected vault ATOMIC - relocatable only whole, so no template may ever open a folder level inside it - or may a user split a vault by a note dimension on the canvas? This node recommends one dimension on the preservation reading, which is the same fork code.json files as its own open_question for repository roots; the two should be answered together rather than separately. (2) 00's exclusion list is written for software projects and does not name an application settings directory, so whether an .obsidian or logseq directory's own members (workspace state, plugin data, caches) are excluded from organization the way 'caches, auto-save folders, previews' are is a scan-side decision this node cannot make and R2 or P3 needs. (3) The Code schema's field profile fits this situation only partly: project is the vault, repository is normally absent because a vault declares no manifest slot, and programming_language never fires - a fenced code block in a note is quotation, not a declared slot. That is a note for R1c about how thin a schema reuse may be before the roster's assignment should be revisited; it is not a licence to mint a schema, which would be the 574's failure."
+}

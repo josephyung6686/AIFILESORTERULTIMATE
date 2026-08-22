@@ -1,0 +1,470 @@
+{
+  "id": "career.employer-side-hiring",
+  "kind": "template",
+  "schema_id": "career",
+  "parent_id": null,
+  "name": "Hiring as the employer",
+  "one_line": "The organizational situation of running a hiring process from the employer's side: a requisition, the many people who applied to it, their resumes and packets, the scorecards and debriefs written about them, the approval that ends it — a situation whose files are almost entirely OTHER PEOPLE'S personal data held in custody, which is what separates it from every other career situation and why its privacy rules, not its dimensions, are its reason for existing as a node.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "the one-to-many inversion, read structurally: several differently-named resume-shaped documents carrying DIFFERENT people's names, tied together by one requisition-shaped identifier appearing in a labelled slot or a high-weight zone. The recruiting neighbour's shape is the exact inverse — one person's documents across many employers — and this inversion is the only signal in this row that a single document can never fake. Neither half fires alone: 00 requires the boundary discipline for the name half (\"It should use word-boundary matching rather than substring matching.\") and the positional discipline for the identifier half (\"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference\")",
+      "a candidate-pipeline spreadsheet: labelled column headers pairing a person column with a contact-channel column and a pipeline-stage or disposition column, over many rows, with a requisition-shaped identifier in a sheet name or a labelled cell. 00's spreadsheet extraction yields exactly the slots this reads — \"sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\" — and 00 states why the cells rather than the prose carry it: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\" The stage and disposition terms themselves are PROPOSED; 00 states the pattern-plus-context SHAPE only for course codes (\"a course-code pattern together with academic context\") and this row copies the shape, not a list 00 wrote. R6 owns the term patterns, R4 the organization gazetteer; this row writes neither a regex nor a gazetteer entry",
+      "an evaluation-instrument structure: labelled competency or criterion rows against a rating scale, a labelled recommendation slot, a labelled slot naming the person being evaluated, and a labelled slot naming the person evaluating. A scorecard is the one document kind that exists in this situation and in no other career situation, which makes it this template's strongest structural signal rather than a term list — and the two named-person slots are what distinguish it from the employment-records neighbour's review of the holder",
+      "an archive manifest, read without unpacking, whose members are many resume-shaped and letter-shaped documents under DIFFERENT people's names beneath one requisition token. 00's own manifest-as-evidence sentence describes the mirror-image packet — an archive \"may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague\" — and the discriminating structure here is that composition repeats per person instead of per document kind. Reading only, never extraction: \"the normal scan should never extract archive contents to the filesystem\"",
+      "the internal-about-an-outsider correspondence shape: the email extractor's labelled sender AND recipient slots resolving to one organization's domain at a word boundary while the labelled subject slot names a third party together with a hiring-stage term. 00's email extraction yields precisely these slots — \"sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context\" — and the shape inverts the recruiting neighbour's, where the employer sits in the sender slot and the holder is the subject. The source_type alone never fires (see never_alone)",
+      "a calendar event whose labelled SUMMARY slot carries a hiring-stage term and whose attendee list mixes several addresses on the organizer's own organization domain with exactly one external address. 00's calendar extraction yields \"event title, start and end time, location, organizer, attendees, and recurrence metadata\"; content in the labelled slots is what fires, never the format, because calendar is a SOURCE_TYPE and not a domain"
+    ],
+    "needs_llm": [
+      "whether a resume-shaped document is the holder's own or another person's — the single judgement this whole template rests on, and the one no rule can make from the document alone, because the two files are identical in kind, structure and vocabulary. 00 names this class among the reasons rules are insufficient: \"vague filenames, indirect language, multilingual documents, screenshots, unlabeled forms, unusual professional artifacts, and user-specific workflows\", and names the determination itself among the model's allowed ones — it \"may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain\"",
+      "unlabelled debrief or calibration prose that discusses several people without naming a requisition, a role or, sometimes, anyone at all — the file whose only evidence is its rhetoric",
+      "whether a heterogeneous set of files is one requisition's pipeline or several requisitions bundled in one export — a group-coherence question, not a per-file one, and 00 restricts the model to exactly that: \"an LLM receives only compact evidence packets for files or groups that remain ambiguous, have multiple plausible domains, or contain language that requires interpretation\"",
+      "an OCR'd applicant-tracking board or pipeline page: deciding it is a hiring-system capture rather than a generic image. 00's worked parallel is the admissions portal capture, and the hiring board is the same shape with a pipeline of other people's names in place of one's own status",
+      "whether an evaluation document's subject is the holder, an employee the holder manages, or a candidate, when the subject slot is unresolved. The neighbouring employment-records row already rules that an unresolved subject abstains on both sides; the model's job here is to say which it is when the evidence supports one, never to guess. This is also the point where 00's redaction posture applies before the call: \"It should not send full documents where a short heading or OCR excerpt is enough to resolve the question.\""
+    ],
+    "never_alone": [
+      "a resume-shaped document alone. This is the tempting false file of this row, stated plainly: Chen Wei - Resume.pdf and Resume - Joseph Yung - 2026.pdf are the same document kind, the same structure and the same vocabulary on opposite sides of a collision, and reading either as this template's material on its shape alone puts a stranger's personal data into the holder's job-search branch or the holder's resume into a candidate pipeline. Only the ownership evidence — whose name stands in the document's own subject position, and what surrounds it — decides",
+      "an organization name alone. 00: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" — and this row has a sharper version of the same rule: the holder's OWN employer name appears on every internal file in this situation, so within this template it discriminates nothing at all",
+      "a person's name alone, in a filename, a subject slot or an OCR region. Names appear on references, correspondence, shared documents, contact files and the holder's own material; a name is never evidence of candidacy",
+      "a source_type of spreadsheet, email, calendar, archive, image or ocr alone — file_kind_plausible is constitutionally never-alone, and the temptation is strongest for the spreadsheet here: a table of people is a mailing list, a class roster, a guest list or a payroll register just as easily as a candidate pipeline",
+      "a bare 4-digit number read as a requisition identifier or a hiring cycle. 00's narrow-date rule: documents and filenames carry \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "membership in a download session that happened to bundle an export, a posting and an unrelated invoice. 00: \"A session should never be treated as proof of topic\"",
+      "the absence of camera EXIF read as proof that an applicant-tracking capture is a screenshot — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\" — and, where the signals disagree, \"conflicting signals should lead to abstention rather than an invented classification\"",
+      "an organization or person name in DOCX or PDF author, creator or producer metadata. On this row that string names an applicant-tracking vendor or the recruiter who exported the file far more often than anything meaningful, and authorship is barred from placement in any case: \"It should avoid using authorship or creator identity as a destination dimension\"",
+      "a compensation figure alone. It sits on an offer approval, a posting's range, a payroll register, an agency invoice and a budget sheet; the labelled structure around it is what discriminates, never the number"
+    ]
+  },
+  "work_types": [
+    "job requisition",
+    "approved job description",
+    "candidate resume received",
+    "candidate cover letter received",
+    "candidate pipeline export",
+    "interview scorecard",
+    "interview debrief notes",
+    "hiring rubric or interview guide",
+    "reference check record",
+    "background check result received",
+    "work authorization or right-to-work form",
+    "offer approval",
+    "candidate offer letter issued",
+    "rejection notice issued",
+    "recruiting agency agreement",
+    "new-hire onboarding checklist"
+  ],
+  "grouping_reasons": [
+    "one requisition — one role, one hiring cycle — across every candidate, scorecard and thread attached to it. 00 lists the analogous unit among the single organizing reasons a coherent group may have: \"one course, project, application, recruiting process, photo event, or submission packet\", and this row's process is that unit read from the employer's end",
+    "one candidate's own packet inside a requisition — resume, cover letter, scorecards, correspondence about one named person. This is a real sub-group and a privacy hazard at the same time: a per-person collection is a personnel file, and whether it may become a folder level rather than only a group is recorded as an open question rather than assumed here",
+    "one correspondence thread and its attachments as the spine of a decision — thread identifier and reply-chain context are structural links 00's email extraction already yields, not a semantic judgement",
+    "an outlier excluded on a conflicting requisition identifier, the same discipline 00 applies where \"an application packet does not silently absorb a document with a conflicting target institution\"",
+    "no group at all when the only bridge is a person's name or the holder's own employer — 00: \"It should not form a supported group when there is no valid anchor\", and both of those are the generic hubs this situation is full of"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, not by refusal, and this row inherits the emptiness rather than causing it: a dimension may only branch on a field its schema declares, and the career schema is a placeholder that declares none (D1 as narrowed; _CONTRACT rule 15; CONNECTION PR-6, which holds the career recommendation as prose until the schema lands). What this row adds to the held prose is a situation-specific correction, recorded so R1c/P10 does not apply the career default here unexamined. 00's recorded career order is \"a Career template may define company \\u2192 role or recruiting cycle \\u2192 document type\", and its first level is degenerate on this side: every file in an employer-side hiring corpus names the SAME employer, so a company level proposes exactly the branch 00 tells the interface to warn about \\u2014 it should \"warn when a level produces only one child\" and \"recommend flattening when a dimension does not materially improve retrieval\". The intelligible parent here is the requisition (the role together with its hiring cycle), because a scorecard or a debrief is unreadable without knowing which opening it was written for \\u2014 exactly 00's argument that \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" Document type goes last, as on every career situation. The level this row will NOT recommend is the per-candidate one: a folder named for a person is a personnel file about a third party, and 00 disfavours person-collectors outright \\u2014 \"A folder should not become a collection point for everything produced by the same person or organization.\" That is a privacy decision rather than a retrieval one, so it is recorded in open_question and not resolved here. Not time-first: 00 \\u2014 \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" All of it stays a recommendation the user may reverse or flatten; it is never a filesystem.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "email",
+      "archive",
+      "ocr",
+      "image",
+      "calendar",
+      "presentation"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".ics",
+      ".pptx"
+    ],
+    "never_alone": true,
+    "note": "spreadsheet leads the list because the candidate-pipeline export is this situation's most characteristic artifact and its most sensitive one — many people's names and contact channels in labelled columns. Leading the list changes nothing about sufficiency: a table of people activates nothing until its labelled headers pair a person column with a stage or disposition column under a requisition identifier."
+  },
+  "file_examples": [
+    {
+      "filename": "Req 20418 - Senior Data Analyst - approved JD.docx",
+      "source_type": "text_document",
+      "observations": [
+        "requisition-shaped identifier in the filename and again in a labelled header cell",
+        "labelled sections: Level, Headcount, Hiring manager, Budget owner, Approval date",
+        "the holder's own organization in the page-one header at a word boundary",
+        "DOCX table cells carry the approval slots; the body prose carries the role description"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any career-domain fact: the career schema declares no field rows (D1 as narrowed), so activation legitimises the universal facts only and the requisition, the role and the employer all stay observations",
+        "a hiring cycle from the requisition identifier's digits",
+        "an employer fact from the letterhead — within this situation the holder's own employer is on every file and discriminates nothing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Candidates - Req 20418.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet name carries the requisition identifier; a second sheet is named for the hiring stage",
+        "labelled column headers: Candidate, Email, Phone, Source, Stage, Interviewer, Disposition",
+        "many rows, each a different person's name beside a personal email address and a phone number",
+        "producer metadata names an applicant-tracking vendor's export routine"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any career-domain fact — none is declared",
+        "contact facts used to create folder proposals: this is a table of other people's addresses and numbers, and 00 keeps that data privacy-protected \"rather than used to create folder proposals\"",
+        "that the name or address columns may be quoted into a model prompt, a group summary or a review screen without redaction — \"Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries\"",
+        "a people fact used as a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Chen Wei - Resume.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading is a person's name that is not the holder's, above a personal email and phone number",
+        "reverse-chronological Experience and Education sections; several employer names as section labels",
+        "arrived as an attachment on a thread whose labelled subject slot carries the requisition identifier",
+        "no addressee anywhere in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this is the holder's own job-search material — the collision fixture with career.recruiting, where the same document kind on the opposite side of the role would put a stranger's personal data into the holder's job-search branch",
+        "an employer fact from the most recent experience entry: a resume LISTS employers and belongs to none of them, on either side of the collision",
+        "a version_family with the holder's own resume because both are resumes — 00's adversarial suite names the mirror error, \"duplicate suffixes on unrelated files\"",
+        "the subject person's name as a folder level, or as a group formed from the name alone",
+        "any career-domain fact — none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Interview scorecard - Round 2 - 20418.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled competency rows against a rating scale; a labelled overall recommendation slot",
+        "a labelled slot naming the person evaluated and a separate labelled slot naming the evaluator",
+        "requisition identifier in a header; the holder's organization in the footer",
+        "free-text justification paragraphs beneath each competency row"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "any career-domain fact — none is declared; the requisition, the candidate and the evaluator all stay observations",
+        "the evaluator in the labelled slot as a destination dimension — \"It should avoid using authorship or creator identity as a destination dimension\", and the two named-person slots here are precisely the role split this template has only half a vocabulary for",
+        "that a rating or recommendation value says anything about the holder: this document's subject is another person",
+        "that the justification prose may be excerpted into a group summary or a cloud dossier without the consent step 00 requires — \"the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Debrief notes.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose: comparative paragraphs about several unnamed people, no heading, no requisition token, no organization name",
+        "DOCX author metadata names the holder; producer metadata names a browser-generated exporter",
+        "mutual retrieval neighbours are the scorecard and the pipeline spreadsheet above"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a requisition, role or candidate fact borrowed from its retrieval neighbours — this is the HW-3-shaped file of this situation, and 00 is explicit: \"The graph does not automatically copy those missing facts onto sparse files.\" It may join the requisition neighbourhood as a context-supported member with nothing written onto it",
+        "any career-domain fact — none is declared, and none is evidenced here in any case",
+        "a purpose fact: purpose is a College-applications field under PR-1 and is not minted per domain",
+        "that the comparative prose is safe to summarise — it is unattributed evaluation of real people, which is why this row's protection posture applies even where its facts are empty"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Applications - Req 20418.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists many members whose names pair a different person with 'Resume' or 'Cover Letter', plus one scorecard and one summary sheet",
+        "outer name carries the requisition identifier and the token 'Applications'",
+        "manifest read without extraction to disk; one member is password-protected and reported as unreadable"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that this is an admissions or purpose-defined application packet — the composition is identical to 00's packet sentence and therefore discriminates nothing; the inversion does. One person's transcript, statement, resume, certificate and form is a packet; many people's resumes under one requisition is this row. The collision with applications.purpose-packet is decided by that inversion, never by the archive name",
+        "that the members share a purpose because they arrived in one archive; the pipeline reading is a candidate group for review, and the manifest rather than the outer name is the evidence",
+        "any career-domain fact — none is declared",
+        "that the protected member should be opened: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Chen Wei - feedback before Friday.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender and all labelled recipient slots resolve to the holder's own organization domain",
+        "labelled subject slot names a third party beside a feedback term; reply chain spans five messages",
+        "attachment names: Scorecard.pdf, Resume.pdf",
+        "message body contains candid evaluative sentences about the named person"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that source_type = email makes this employer-side hiring on its own",
+        "any career-domain fact — none is declared",
+        "a contact fact used as a folder proposal from the recipient list — those are colleagues' addresses, and 00 treats mail slots as data that must be handled \"while treating addresses and message content as potentially sensitive\"",
+        "that the two attachments inherit the thread's requisition as a fact; they join the same neighbourhood, which is not the same thing",
+        "that the evaluative body text may be excerpted into a cloud dossier by default"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Offer approval - 20418 - Level 5.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled internal slots: level, compensation band, budget code, start date, approver names and dates",
+        "requisition identifier in a labelled header; the holder's organization on the letterhead",
+        "the named recipient of the approval is an internal approver, not the candidate",
+        "a sibling PDF with the same normalized stem is addressed to the candidate and carries a countersignature line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a finance fact (institution / account_type / record_type) from the compensation band or the budget code — an approval states a band, it is not an account record",
+        "that this and its candidate-facing sibling are one document: the internal approval is this row's, and the letter the candidate receives is the same event seen from career.recruiting's side. They are one version_family with no fact crossing between them",
+        "any career-domain fact — none is declared",
+        "the approver names as a destination level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Panel interview - Chen Wei.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY slot carries a hiring-stage term and a person's name",
+        "labelled start/end times; organizer on the holder's organization domain; four attendees on that domain and exactly one external personal address",
+        "a video-conference URL in the labelled location slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar; the content in the labelled SUMMARY and attendee slots is what fires",
+        "any career-domain fact — none is declared",
+        "an event fact in the photos sense; this is a scheduled meeting, not a capture",
+        "people facts from the attendee list used as a folder level, and never the external attendee's personal address as anything but protected data"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 11.03.14.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF, platform default screenshot filename pattern",
+        "OCR regions read a pipeline board: a column of person names beside stage labels and one requisition identifier",
+        "the requisition identifier also appears on the spreadsheet and the scorecard above"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone; the exact display resolution together with the filename pattern are what may support it, and disagreeing signals abstain",
+        "any career-domain fact — none is declared",
+        "that the OCR'd names may be sent to a cloud model or shown in a general review screen — 00 makes the redaction requirement explicit for exactly this surface: \"Protected branches should have configurable redaction in the canvas and review screens.\"",
+        "that this capture is ordinary Temporary Screenshots material: by form it is a screenshot, by content it is a roster of other people. The tension between those two residual homes is recorded in open_question, not resolved here"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Work authorization - Chen Wei.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "scanned pages with no text layer, routed to OCR",
+        "a labelled consent and attestation form followed by a photographed identity page bearing a document number and a date of birth",
+        "vendor letterhead on page one, not the employer's; requisition identifier handwritten in a margin"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any career-domain fact — none is declared",
+        "an employer fact from the vendor letterhead — the vendor is neither the employer nor a party to the hire",
+        "that this file may reach any model path before protection: 00 is unconditional — \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" The identity schema co-activates on the file's own evidence; that co-activation is a schema-level join and is not authored by this template row",
+        "that a normal group-size rule governs it — \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold\""
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Recruiting agency invoice - Q1 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "agency letterhead; labelled invoice number, issue date, payment terms, remit-to bank details",
+        "line items naming one placed candidate and one requisition identifier beside a placement fee",
+        "the holder's organization named as the bill-to party"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "that the candidate name and requisition identifier make this hiring material — this is the collision fixture with finance.small-business-bookkeeping, and its own structure is an invoice: \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\"",
+        "a tax_year from a bare 4-digit token in the filename; an explicit labelled year pattern is required",
+        "any career-domain fact — none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career.recruiting",
+      "signal": "Reciprocal of the edge that row authored, and the load-bearing collision of this template. Two resumes are indistinguishable as documents; the roles are opposite. The discriminating evidence is whose material it is: a resume whose subject name matches the holder, in a process where the holder is the applicant, is that template; a resume among many, arriving under a requisition beside a scorecard, is this one. The one-to-many inversion is the structural form of the same discriminator — one person across many employers there, many people under one opening here. This edge is not cosmetic: the wrong side of it puts another person's data into the holder's job-search branch, which is what this row's privacy rules exist to prevent.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "Reciprocal of the edge that row authored, adopted in its own terms: a performance review, a personnel form or a compensation letter is the same document shape whether it is about the holder or about someone the holder manages, so the employer name plus the review structure is one evidence item on both sides. The discriminating evidence is whose data the document records — a subject slot naming the holder is that template; a subject slot naming a candidate or a direct report is this one. Neither side may take a review form with an unresolved subject; that abstains.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "academic.recommendation-letters-written",
+      "signal": "Reciprocal of the edge that row authored. A reference letter about a named person carries the same committee salutation, the same single named subject and the same signature block whoever wrote it. The discriminating evidence on that side is an academic role for the writer (a course-code-shaped token with academic context, a term pattern, or a labelled instructor or evaluator slot in a school context); on this side it is the hiring frame around the letter — a requisition identifier, a reference-check form, or a pipeline the named person sits in. An organization name alone discriminates neither, and where an academic writes for a former student's job both may hold on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.purpose-packet",
+      "signal": "An archive of resumes, cover letters, transcripts and certificates has identical COMPOSITION on both sides — which is exactly why composition is never-alone evidence here. The discriminating evidence is the inversion: one person's documents assembled for one submission is a purpose packet; many different people's documents assembled under one requisition is this template. 00's own manifest sentence describes the first shape, and the second is its mirror. Fixtures: Applications - Req 20418.zip on this side.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "Agency placement fees, assessment-platform subscriptions and interview travel reimbursements all name a candidate and a requisition beside a figure, so the name and the identifier are each one evidence item supporting either side. The discriminating evidence is structural: a labelled invoice number, payment terms, remit-to details and line items is the bookkeeping record wherever the names came from; a requisition, a scorecard or a pipeline structure is hiring. Fixture: Recruiting agency invoice - Q1 2026.pdf.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "An executed employment agreement is one document with two custodians. The discriminating evidence is which party the holder is: a contract the holder personally signed as employee belongs to that row; the counterparty copy the holder's organization holds about a hire belongs here, where the subject is another person and the privacy posture changes accordingly. An employer name plus a signature block discriminates nothing on its own.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "Both rows hold confidential files ABOUT a named third party, which is a rare shape and the reason they confuse: an HR investigation file and a practitioner's matter file have the same structure of evidence, correspondence and evaluative memoranda about one person. The discriminating evidence is the holder's role and the frame around it — a matter or case identifier under a retained engagement is that row; a requisition, a pipeline or an employment relationship is this one. Both sides protect first regardless of which wins, so the collision decides the branch and never the protection.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "A passport scan is a passport scan. The discriminating evidence is whose it is and why it is held: the holder's own identity document, kept for its own sake, is that row; a candidate's identity page collected inside a work-authorization form under a requisition is this one. Both enter a protected state immediately on the same 00 sentence, so this collision decides which branch may ever hold the file, not whether it is protected. Fixture: Work authorization - Chen Wei.pdf.",
+      "provenance": "proposal"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary and default residual home of this row, which is unusual and deliberate: 00 defines it for \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\" and requires that it \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". This situation's ordinary material — a candidate's resume, a pipeline export, a scorecard, an evaluative thread — is another living person's data held in custody, so an unplaced file here defaults to protection rather than to a review pile. Fixtures: Candidates - Req 20418.xlsx, Chen Wei - Resume.pdf, Interview scorecard - Round 2 - 20418.pdf, Work authorization - Chen Wei.pdf. Provenance inference: the residual and its rule are 00's; routing this situation's ordinary files there rather than its exceptional ones is this row's reading.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — the shape of this situation's sparse leftovers, where a debrief or an invite is legible as hiring material but attaches to no accepted requisition. Fixtures: Debrief notes.docx, Panel interview - Chen Wei.ics.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\". A requisition, an approved job description or an offer approval outlives the opening it came from and names no third party in its own body, so it is the one class here that lands in an ordinary durable-records home rather than a protected one. 00 also warns that \"An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path.\" Fixtures: Req 20418 - Senior Data Analyst - approved JD.docx, Offer approval - 20418 - Level 5.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "00: \"screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship\" — correct for a hiring-system capture whose OCR yields no readable names and no requisition, and wrong for one whose OCR yields a board of other people's names. This row therefore keeps the edge but scopes it to the first case, and records the unscoped case as an open question rather than inventing a protected-screenshot home the residual library does not have. Provenance inference: the residual is 00's, the scoping is this row's.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00: password-protected and unreadable members \"should be marked as unreadable or partially inspected rather than forced open\", and the residual represents them \"or, more safely, represent without moving\". Candidate submissions arrive password-protected often enough that this is a real class here rather than a formality. Fixture: the protected member inside Applications - Req 20418.zip. Provenance inference: 00 names the residual and the archive rule; connecting them to this situation is this row's.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "authored_by",
+      "other_field": "target_school",
+      "neighbor": "career.recruiting",
+      "why": "Reciprocal of the pair that neighbour authored against this row, and the place where this template's vocabulary is visibly short by one key. Every characteristic document here names two different people: the person who wrote it (interviewer, recruiter, reference writer) and the person it is ABOUT (the candidate). 00 requires the separation — \"The system must separate roles that happen to contain the same entity type\" — and bars the authorship half from placement in any case: \"It should avoid using authorship or creator identity as a destination dimension.\" The canonical list holds the authorship half (authored_by) and holds the addressed half only in its school-shaped spelling (target_school); the subject-of-an-evaluation role that this situation actually needs has no canonical key, and this row mints none. The split is therefore recorded as protection rather than as a folder level: a recruiter in DOCX metadata is authorship, never a branch.",
+      "design_cite": "distinct facets, such as authored_by and target_school, or our_firm and client"
+    },
+    {
+      "field": "our_firm",
+      "other_field": "client",
+      "neighbor": "career.consulting-client-engagement",
+      "why": "The second canonical pair this situation genuinely uses, in the agency case: when the holder recruits on behalf of another company, the holder's agency is our_firm and the hiring company is client, which is exactly 00's named split and exactly why our_firm is not destination-eligible while client is — \"It should avoid using authorship or creator identity as a destination dimension.\" In the in-house case the pair collapses: the hiring company IS our_firm, there is no client, and the field that would organize the corpus is the requisition rather than any organization. This row references the canonical pair and mints nothing; that the in-house case leaves the split degenerate is part of the open question below.",
+      "design_cite": "distinct facets, such as authored_by and target_school, or our_firm and client"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00's listing of the highly personal corpus names this material — \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" — but the fact that distinguishes this row from every other career situation is not WHICH categories appear, it is WHOSE they are. Here the employment materials, the private correspondence, the educational records and sometimes the identity documents belong to people who are not the user and who never chose this filesystem. Three of 00's rules therefore bind harder here than on its neighbours. Contact-shaped data is the ordinary content rather than the exception, and 00 keeps it privacy-protected \"rather than used to create folder proposals\". Mail slots carry evaluative statements about named people, and the mail extractor is told to work \"while treating addresses and message content as potentially sensitive\". And the review surface itself is a disclosure risk: a summary \"may be safe to show, while a visible list of passport filenames on a shared screen may not be\", which is why 00 requires that \"Protected branches should have configurable redaction in the canvas and review screens.\" The default posture 00 sets — \"The default posture must therefore be local-first and data-minimizing\" — is the whole reason this row is a node. Only 00's phrases are asserted here; the handling class is P7's and is not set.",
+  "open_question": "Four, in descending order of what they block. (1) Inherited from the career schema row and unresolved above this node: which canonical field keys the employer, the role-or-cycle and the document-type concepts get when S3/D1's deferral lifts. Until then this row's dimension_order is empty rather than aspirational. (2) Specific to this row and NOT inherited: 00's recorded career order starts with company, and on the employer side that level is degenerate — one employer, every file — so the level that would actually organize this corpus is the requisition, which is neither 'company' nor 'role or recruiting cycle' but a pairing of a role with a cycle under an opening identifier. Whether that is a key, a value of an existing key, or a group label that never becomes a field is a vocabulary decision and therefore Joseph's. (3) Whether a per-candidate folder level may exist at all. It is the most natural retrieval structure in this situation and the most dangerous: a folder named for a person is a personnel file about a third party, and 00 disfavours person-collectors — \"A folder should not become a collection point for everything produced by the same person or organization.\" This row recommends against it and does not decide it, because it decides how someone's real hiring records are shaped. (4) A residual gap this row found and did not paper over: a capture of an applicant-tracking board is a screenshot by form and a roster of other people's names by content. 00's nine residual names offer Temporary Screenshots for the first reading and Protected Records for the second, and nothing for both. This row routes such captures to Protected Records and scopes its Temporary Screenshots edge to captures with no readable third-party content, but whether the residual library needs a protected-capture home is R3's and Joseph's, not this row's to invent."
+}

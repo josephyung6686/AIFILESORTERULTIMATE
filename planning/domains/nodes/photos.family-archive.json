@@ -1,0 +1,357 @@
+{
+  "id": "photos.family-archive",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Family photo archive",
+  "one_line": "Inherited photographs that entered the corpus by being digitized: print, negative, slide and album-page scans, phone re-photographs of prints, and tape transfers, where the only machine-readable timestamp dates the digitization and not the depicted scene.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Extends 00's named Photos domain — \"Photos may use capture year, event, location, people, camera information, and media type\" — to one organizational situation 00 does not name. The two spans this row's recommendation actually leans on are quoted where they are used, not claimed here: \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material\" and \"then decide whether photographs should branch by year, event, location, or remain mostly flat\". Nothing below asserts that 00 describes a family archive; it does not.",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "EXIF Make/Model naming a flatbed, film or slide scanner, or EXIF Software naming scanning software, with none of the exposure slots a camera writes (lens model, ISO, focal length, aperture) present alongside",
+      "a scanner-written resolution slot (XResolution/ResolutionUnit) on an image whose pixel dimensions are print-proportioned rather than sensor-proportioned — 00 stores both: \"For every supported image, the engine should store its format, pixel dimensions, file size, color information where useful, content hash, perceptual hash, EXIF camera make and model, lens data, ISO, focal length, capture time, GPS, orientation, software metadata, filename pattern, and OCR output where needed\"",
+      "EXIF DateTimeOriginal present but written by the digitizing device, so the fact derived from it is a digitization date and not a capture year — 00 states the observation/fact split on this exact slot: \"an image observation may come from EXIF DateTimeOriginal or an OCR region\"",
+      "an explicit written date recovered by OCR from a print's verso, an album-page caption, or a printed border, parsed by a dedicated pattern — 00: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching\"",
+      "a recto/verso pair: two scans in one batch manifest whose second member carries handwriting and no photographic subject",
+      "perceptual-hash agreement between a scan, a re-scan and a phone re-photograph of one print — 00: \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates\"",
+      "a no-text-layer PDF whose producer metadata names a scanning service, routed to OCR — 00: \"A file with no text should route directly to OCR\"",
+      "an existing curated folder the user made whose name carries an album, family-side or decade label, read as a candidate event value the user may accept — 00: \"A carefully curated existing folder should be treated as a strong expression of user intent\"",
+      "container, codec and creation-time metadata of a capture-card or tape-transfer export on a video file, where the creation time is the transfer",
+      "camera EXIF present on a phone image whose OCR region returns an album-page caption or a print border, which is the re-photograph case rather than a contemporary capture"
+    ],
+    "needs_llm": [
+      "deciding whether a scan is a photograph of people and places (this situation) or a photographed document that belongs to another active schema, when OCR returns only handwriting",
+      "naming an event a family would recognise from a caption that gives a place and a first name but no occasion word — the value must still be one the user accepts",
+      "reading handwritten or non-Latin verso text before any date, place or person candidate exists at all",
+      "judging whether a decade-level date in a caption describes the depicted scene or the moment the caption was written",
+      "deciding whether a batch of undated scans is one occasion or several, when the only shared evidence is the scanning session"
+    ],
+    "never_alone": [
+      "scanner or scanning-software metadata alone — it evidences digitization, not a family photograph; the scanned bank statement, tax form and clinic letter in the same shoebox carry the identical slot, and this is the tempting false file for this node",
+      "absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"Messaging platforms and downloaded web images often strip metadata from real photographs\"; an EXIF-less JPEG is no more an old family print than it is a screenshot",
+      "grayscale or sepia color information alone read as age — a monochrome image may be a modern stylistic choice and a color scan may be of a mid-century print",
+      "a bare 4-digit number in a filename, a caption or a printed border read as a capture year — 00: \"The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a scan-batch sequence (Scan_0001 … Scan_0400) or a bounded import session read as one event — 00: \"A session should never be treated as proof of topic\"",
+      "source_type = image, or a .tif / .jpg extension, on its own — file_kind_plausible is constitutionally never-alone",
+      "a surname or first name in a filename or caption read as a people fact; on this schema people is user-confirmed and never a folder level",
+      "a parent folder named Old Photos read as an event value without the user accepting it",
+      "OCR text density on a scan read as evidence of what the scan is — 00: \"OCR text density is also not a reliable screenshot detector\", and \"whiteboards, and photographs of pages can all contain dense text\"",
+      "a filesystem creation or modification timestamp read as either a capture or a digitization date — a restore, a copy or a cloud sync rewrites it"
+    ]
+  },
+
+  "work_types": [
+    "print scan",
+    "negative scan",
+    "slide scan",
+    "album page scan",
+    "verso caption scan",
+    "photographed print",
+    "digitized tape transfer",
+    "restored or retouched derivative"
+  ],
+
+  "grouping_reasons": [
+    "one physical album or box digitized in one scanning pass, once the user accepts a label for it",
+    "a recto and its verso, as one print in two files",
+    "a duplicate or near-duplicate family across a scan, a re-scan and a phone re-photograph of the same print",
+    "several prints whose captions name one occasion the user recognises",
+    "captures sharing one existing curated folder the user already made"
+  ],
+
+  "template": {
+    "dimension_order": ["event", "capture_year"],
+    "why": "This is the one recommendation that makes this a node rather than a repeat of the schema's default. 00's Photos default is time-first and 00 gives the reason: \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" In this situation the capture date is precisely the thing that is not recoverable — the only machine-readable timestamp belongs to the scanner or the phone that re-photographed the print, so a capture_year level at the top would collect prints under the year somebody digitized them. That reverses 00's own parent-context rule: \"a parent dimension should provide the context required to understand the child.\" The dimension that does provide context here is event — an album, a box, an occasion named by a caption, or a curated folder the user already made — and capture_year sits beneath it holding whatever the caption or the user supports, including a decade-shaped value, or nothing. 00 explicitly leaves this fork to the user for photos: the tree design is where they \"confirm Photos first, then decide whether photographs should branch by year, event, location, or remain mostly flat\". Flat is a legitimate outcome of this template and 00 asks for it to be offered: \"It should recommend flattening when a dimension does not materially improve retrieval\", and \"It should warn when a level produces only one child\" — an archive from one family will often produce exactly one capture_year child, or none. location is destination-eligible on the schema and deliberately not recommended here: a scan's GPS slot, when present, is the scanner's, and the depicted place survives only in a caption. media_type is destination-eligible and deliberately not recommended: this whole situation is scans, so the level would have one child. people and camera_information are not destination-eligible on the canonical rows and are not candidates. Where the event never resolves, the branch offers 00's scoped fallback rather than a global pile: \"a scoped General or Other branch within a meaningful parent.\" The order is a recommendation the user may reverse, remove, add to, or flatten.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["image", "ocr", "archive", "audio_video"],
+    "extensions": [".jpg", ".jpeg", ".tif", ".tiff", ".png", ".dng", ".pdf", ".heic", ".zip", ".mpg", ".mov"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Scan_0042.jpg",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make/Model slots name a flatbed scanner; no lens, ISO, focal-length or aperture slot is present",
+        "EXIF Software slot names scanning software; a scanner resolution slot is populated",
+        "pixel dimensions are print-proportioned, not sensor-proportioned",
+        "filename is a batch sequence pattern with no words in it",
+        "a sibling scan in the same batch manifest carries handwriting and no photographic subject"
+      ],
+      "facts_legal": ["media_type", "camera_information"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year from the scanner's DateTimeOriginal — that slot dates the digitization",
+        "camera_information read as the camera that took the picture; the slot holds the scanner that digitized it",
+        "an event from the batch sequence number",
+        "people from faces in the frame"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Scan_0043.jpg (verso of the print above)",
+      "source_type": "ocr",
+      "observations": [
+        "same scanner metadata as its recto",
+        "OCR of handwriting returns a month-and-year phrase, a place word and two first names",
+        "no photographic subject in the frame"
+      ],
+      "facts_legal": ["capture_year", "event", "location", "people"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year at direct reliability — handwriting recovered by OCR is a possible clue, not a labelled metadata slot",
+        "these facts written onto the recto, or onto any other member of the scan batch, because the neighbourhood contains them",
+        "people at anything above user-confirmed, from two first names"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "1998-07 Beach.tif",
+      "source_type": "image",
+      "observations": [
+        "TIFF whose software metadata names a film-scanning service",
+        "no camera Make/Model, no GPS",
+        "filename carries an explicit year-month pattern",
+        "very high resolution slot relative to the print-proportioned dimensions"
+      ],
+      "facts_legal": ["capture_year", "media_type", "event"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year as a direct fact — a filename date is a possible clue",
+        "camera_information, because the only device recorded is the scanner and no camera slot survived the film",
+        "location from the word Beach — it is not a resolved place"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_20140612_101122.jpg (phone photograph of an album page)",
+      "source_type": "image",
+      "observations": [
+        "genuine phone EXIF: Make, Model, DateTimeOriginal, lens and ISO slots all populated",
+        "a GPS fix is present",
+        "OCR of the frame returns a handwritten album caption and the page carries visible print borders"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type", "location"],
+      "must_not_conclude": [
+        "a folder path",
+        "that capture_year or location describe the depicted scene — they describe the moment and place of re-photographing, which is the collision this template exists to keep straight",
+        "an event in the contemporary year from the timestamp",
+        "a depicted decade, which no slot in this file supports"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Scan_0007.jpg (a bank statement from the same shoebox)",
+      "source_type": "ocr",
+      "observations": [
+        "scanner metadata identical to every other member of the batch",
+        "OCR returns printed form headings, an institution name, a labelled account line and a table of dated rows",
+        "no photographic subject"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "membership in the family archive because the scan batch, the session and the scanner metadata are shared",
+        "any capture fact — the scanner slot is never-alone evidence and this file's photographic reading has no support at all",
+        "an event"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Grandma passport 1961.jpg",
+      "source_type": "image",
+      "observations": [
+        "scanner metadata, same batch as the family prints",
+        "OCR region carries travel-document identity wording and a document number line",
+        "filename carries a relationship word and a 4-digit number"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year from the 4-digit number in the filename",
+        "an event, or membership in the family-archive event, for a protected record",
+        "people from the OCR'd name line",
+        "any content of this file in a cloud dossier — 00 requires it to \"enter a protected state immediately\""
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Wedding Album 1985.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "PDF with no text layer; producer metadata names a scanning service",
+        "page images are album pages, several prints to a page",
+        "OCR recovers a printed studio imprint and one handwritten caption",
+        "PDF creation date is recent"
+      ],
+      "facts_legal": ["media_type", "event", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year from the PDF creation date",
+        "one event per page, or one capture_year for every print the pages contain",
+        "that the studio imprint is a people or camera_information fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "family-photos-box3.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists numbered scans plus one captions spreadsheet; no member is extracted to disk",
+        "manifest paths carry a scanning-service folder layout",
+        "archive's own timestamp is the delivery date"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "one event for the whole archive because its members arrived in one download",
+        "capture facts from the archive timestamp — the members and the captions sheet, once read, are the evidence",
+        "that the box number is a decade or a location"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MVI_0031.MPG (digitized VHS home movie)",
+      "source_type": "audio_video",
+      "observations": [
+        "container and codec metadata of a capture-card export",
+        "creation-time tag equals the transfer session, not the recording",
+        "long duration, no GPS, no camera Make/Model"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year from the transfer tag",
+        "an event from the tape label unless the user accepts it as a value",
+        "a transcript — 00 allows speech-to-text \"only under an explicit privacy and compute policy\"",
+        "people from voices or faces"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Dad graduation 1972 - diploma.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "scanner metadata, same batch as the family prints",
+        "OCR returns an institution name in a title zone, a conferral phrase and a printed year",
+        "the frame is a printed certificate, not a photographic subject"
+      ],
+      "facts_legal": ["media_type", "school", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year from the printed conferral year — it dates the award, not any capture",
+        "that the credential reading replaces the capture reading, or the reverse",
+        "an event, from the word graduation alone, for the photographic side"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_5512.HEIC",
+      "source_type": "image",
+      "observations": [
+        "HEIC decoded rather than skipped — 00: \"HEIC support must be included explicitly\"",
+        "full phone EXIF including Make, Model, DateTimeOriginal and GPS",
+        "sensor-proportioned dimensions",
+        "sits loose in the same import folder as the scan batch"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "membership in the family archive because it shares an import folder with the scans",
+        "an event from the import session",
+        "that this file belongs to this template at all — camera EXIF with a sensor-shaped frame is the neighbouring situation's evidence, not this one's"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.camera-events",
+      "signal": "The confusable evidence item is genuine camera EXIF. A phone photograph of an old print or an album page carries a real Make/Model, a real DateTimeOriginal and often a GPS fix — 00: \"camera EXIF is strong photo evidence\" — and that item alone would file the picture as a contemporary capture under the year somebody re-photographed it. The discriminating evidence is in the frame, not the metadata: OCR returning an album caption, a studio imprint or a print border, and dimensions that are a photographed rectangle rather than the scene. Neither side may take a bare capture timestamp. Fixtures: IMG_20140612_101122.jpg (this side), IMG_5512.HEIC (the other side).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "Both situations are flatbed output and carry byte-identical scanner metadata, so the device slot discriminates nothing. The discriminating evidence is what OCR returns: printed form headings, labelled fields, an institution name in a title zone or a table of dated rows routes to the document reading; a photographic subject with at most a handwritten verso caption routes here. A shared scan batch is a retrieval clue and not proof of either — 00: \"A session should never be treated as proof of topic\". Fixtures: Scan_0007.jpg and Dad graduation 1972 - diploma.jpg sit on this seam; Scan_0042.jpg does not.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.home-video",
+      "signal": "The confusable item is a creation-time tag on an audio_video file: it dates the recording for a contemporary home movie and the transfer session for a digitized tape, and nothing in the tag itself says which. The discriminating evidence is the container and codec provenance — capture-card or tape-transfer software and tape-era encoding markers on this side, a camera's own container and companion still files on the other. Neither side may take the timestamp alone. Fixture: MVI_0031.MPG.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "The confusable evidence item is the digitization itself: a passport, birth certificate or citizenship paper scanned in the same shoebox pass carries byte-identical scanner metadata, the same batch sequence number and the same session as the prints beside it, and that item alone would sweep a protected record into a photo event. The discriminating evidence is document-identity wording in the OCR region, and 00 gives the order — \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\", and \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold\". The capture reading must never be the one that decides this file's home. Fixture: Grandma passport 1961.jpg.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    {
+      "residual_template": "One-Off Images",
+      "why": "00's own definition names this template's association by name: \"One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.\" A scan whose album, caption, decade and family side all fail to resolve is exactly an image with no photo-family association. Fixtures: Scan_0042.jpg, 1998-07 Beach.tif, IMG_5512.HEIC.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" That is the standing shape here — the file is plainly a family photograph and its event and decade need a person who remembers, not a better extractor. Fixtures: Scan_0043.jpg, Wedding Album 1985.pdf, family-photos-box3.zip, MVI_0031.MPG.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "A shoebox digitization is one of the commonest ways identity and medical material enters an image corpus. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\", and \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" Fixture: Grandma passport 1961.jpg.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00 defines it for \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\" — the scanned diploma and the scanned statement that arrived in the same batch as the photographs and belong to neither the archive nor an accepted deeper group. Fixtures: Dad graduation 1972 - diploma.jpg, Scan_0007.jpg.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "People are the subject matter of this situation rather than an incidental field, and 00 keeps their raw forms behind the local boundary — \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\" — and makes their display a user choice: \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\" The second reason is structural: a box or shoebox digitized in one pass mixes photographs with passports, certificates, statements and clinic letters, so this template's own batch is a reliable carrier of another domain's protected content. Handling classes are not assigned here.",
+
+  "open_question": "Three forks, all of them decisions about someone's real filesystem rather than gaps in the evidence. (1) This row recommends event before capture_year, which departs from 00's stated photo default of time-first; 00's reason for that default — \"capture date is a defining aspect of the material\" — is the exact thing an inherited archive lacks, but the departure is still a recommendation about Joseph's own photographs and is recorded rather than settled. (2) If capture_year survives as a level, may it hold a decade-shaped value (a 1970s branch) rather than a year? Nothing in 00 forbids it, since values auto-create, but a decade branch beside year branches in the same level is a tree-shape choice. (3) The canonical row seeds people destination_eligible false and the roster hint marks the widening as pending Joseph; a family archive is the one situation where a person-first tree is what people actually build, and it is also the most privacy-loaded level this catalogue could propose. None of the three is resolved here."
+}

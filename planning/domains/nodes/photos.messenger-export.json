@@ -1,0 +1,405 @@
+{
+  "id": "photos.messenger-export",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Messenger and chat exports",
+  "one_line": "The situation of correspondence leaving its app: a conversation archive the platform produced — a transcript plus the photos, videos, voice notes and contact cards that were sent inside it — together with the loose platform-named media that arrive the same way and reach disk with every capture slot stripped.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test_note": "Applied honestly; the row survives on all three limbs, which is rarer than it sounds and is why it was written rather than refused. DETECTION SIGNALS: disjoint from the schema's. photos.json and photos.camera-events run on camera EXIF; this situation's material has no EXIF by construction, because stripping is what the platform does to it — 00 states the trap directly (\"Messaging platforms and downloaded web images often strip metadata from real photographs\") and the whole point of this row is that the evidence is POSITIVE and elsewhere: an export layout read from an archive manifest, deferred catalogue 04's messaging filename family, a per-message JSON or text transcript sidecar, a .vcf member, a voice-note container. Not one of those appears on any sibling except as a never_alone trap. PRIVACY RULES: the sharpest difference, and the reason the roster hint says privacy dominates. Every other photos template holds the holder's own captures; this one holds other people's words and other people's identities, and 00 names both — \"private correspondence\" sits in its list of what a personal corpus contains, exported mail archives are to be handled \"while treating addresses and message content as potentially sensitive\", and VCF data \"should normally be privacy-protected rather than used to create folder proposals\". DIMENSIONS: also different, and different by SUBTRACTION rather than by invention — the schema default is capture_year then event, and this row drops the event level with a reason (see template.why), recommends one level at most, and refuses to reach for media_type because the schema row records that as Joseph's open question. What this row does NOT claim is a new field: the dimension this material actually invites is the correspondent, and that is the dimension 00 forbids outright. It is recorded in open_question, not authored.",
+
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3, _CONTRACT rule 12). The legal fields here are photos.json's six — capture_year, event, location, people, camera_information, media_type — plus the universal facts. This row's honest finding about them is recorded rather than hidden: on this material four of the six are near-permanently unfillable. camera_information has no slot left after a re-encode, location has no GPS fix left, event has no occasion for a bundle to belong to, and people has a user_confirmed ceiling that no filename or transcript display name may shortcut. That scarcity is the argument for the shallow dimension recommendation below and for the placeholder launch flag; it is not an argument for minting replacements.",
+
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. Two keys were considered and both were refused. (1) A correspondent or conversation key, to hold who the thread is with. Refused because 00 already answers it twice, in the direction of not having it as a destination — \"It should avoid using authorship or creator identity as a destination dimension\" and \"A folder should not become a collection point for everything produced by the same person or organization\" — and because the search-side need is already met by the schema's people field, whose canonical row is seeded destination_eligible false for exactly this reason. Minting a second person-shaped key would be the 574's failure mode wearing a privacy justification. The residual tension is real and is recorded in open_question for Joseph. (2) A platform key, to hold which messenger produced the export. Refused because it is a routing signal, not a meaning — 00: the engine should \"treat the file extension as a routing signal rather than an assumption about meaning\" — and the universal file_type row already carries the format family. The platform belongs in the observation (catalogue 04's pattern id, the manifest's layout), not in a fact field and never in a folder level.",
+
+  "recognition": {
+    "deterministic": [
+      "an archive manifest whose member paths pair a conversation-transcript basename with media members and carry no source-code manifest — the export layout is the signal, and it is read from the manifest alone, because 00 is absolute: \"Archives should be inspected without being unpacked to disk\" and \"the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks\". 00 licenses storing exactly what this signal needs: \"the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\". CATALOGUE GAP, recorded not invented: deferred catalogue 07's document-name vocabulary deliberately stops at 00's five packet names, so no marker row for a chat-transcript member exists today and this node does not write one",
+      "a messaging filename pattern from deferred catalogue 04's messaging family — fnp-whatsapp-img (IMG-YYYYMMDD-WA####), fnp-whatsapp-vid (VID-YYYYMMDD-WA####), fnp-signal — emitted at possible grade with no signal tier. Catalogue 04's own rationale is the boundary this row keeps: the pattern says the file arrived through a messenger and says nothing about what the content is",
+      "a structured export sidecar whose LABELLED keys carry per-message timestamps and per-media relative paths into sibling media folders — 00 routes it: \"Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks, and configuration files should be handled through a lighter structured-text extractor.\" A labelled slot is what makes a capture date read from a sidecar a stronger reading than a date read from a filename",
+      "a transcript member that is line-per-message: an explicit date-time pattern, a display name, a message body, and inline attachment references naming the media members beside it — the transcript and the media it names are one derived document set, which 00 treats as a structural relationship: \"Structural relationships should retrieve nodes that contain a version family, duplicate family, archive family, photo event, or derived document set\"",
+      "an audio member carrying duration, container and codec metadata with a messaging filename and no camera identity — 00: \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\"",
+      "a .vcf member sitting inside the export — source_type contacts, and 00 settles what may be done with it: VCF should yield \"names, organizations, email addresses, phone numbers, and address-book metadata, but should normally be privacy-protected rather than used to create folder proposals\". It is recognition evidence for the situation and never a destination input",
+      "exact and perceptual hash agreement across forwarded and re-saved copies of one shared image — 00: \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates.\" This situation produces more near-duplicates than any other photos sibling, because a single image is re-encoded once per hop",
+      "a date candidate parsed out of a transcript line or a platform filename stamp by an explicit pattern and no fuzzy matching — 00: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching\". The result is a possible-grade clue about when a message was sent, which is not the same claim as when a capture was made",
+      "a password-protected, malformed or oversized export archive marked unreadable or partially inspected — 00: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open or allowed to become decompression-bomb risks\"",
+      "word-boundary matching on every platform token before it is read as a platform name — 00: \"It should use word-boundary matching rather than substring matching\", the rule that stops signal inside a filename about signal processing from producing a messaging reading"
+    ],
+    "needs_llm": [
+      "deciding whether a transcript is private correspondence or a thread whose facts belong to another active schema — a support thread with an order number, a landlord thread with a lease attached, a recruiter thread with an offer. 00's own eligibility for the call: files that \"have multiple plausible domains, or contain language that requires interpretation\", and the reading here is language interpretation, not a lookup",
+      "judging whether an image that arrived through a messenger is a photograph someone took, a screenshot they forwarded, or a photographed document — the metadata that would decide it is gone, so what is left is the content, which is 00's stated screenshot discipline applied to a stripped file: \"A screenshot is always a screenshot of something\"",
+      "proposing a label for a bundle a user would recognise, while abstaining where the only available label is a person's name — the model may propose \"a concise human-readable display label\" only once coherence is supported, and a person-shaped label is a suggestion for the user, never a fact",
+      "reading a non-Latin or code-switched transcript, where the language must be interpreted before any field can be filled"
+    ],
+    "never_alone": [
+      "A MESSAGING-PLATFORM FILENAME. This is this row's tempting false file and the one signal that would otherwise carry the whole node. IMG-20260502-WA0003.jpg in a Downloads folder is a loose re-encoded image, not an export: catalogue 04's messaging rows exist to explain the missing EXIF positively, and the row's own rationale keeps them to that job — the pattern records that the file arrived through a messenger and nothing more. An export needs the layout: a transcript or sidecar beside the media, in one bundle. Fixture: IMG-20260502-WA0003.jpg, which activates nothing on its own",
+      "absence of EXIF — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and the sentence that makes the trap this row's normal condition rather than an edge case: \"Messaging platforms and downloaded web images often strip metadata from real photographs.\" 00 lists it in its own adversarial suite as \"stripped EXIF on messaging-app photographs\"",
+      "a .zip extension, or source_type = archive, on its own — file_kind_plausible is constitutionally never-alone, and an archive of images is as likely to be a card dump or a platform takeout as an export",
+      "a person's name or nickname appearing in a filename, a folder name or a transcript display line, read as a people fact. The schema's ceiling for that field is user_confirmed, and 00 refuses the analogous shortcut for organizations — \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\". Fixture: WhatsApp Chat with Mom.zip",
+      "OCR text density — 00: \"OCR text density is also not a reliable screenshot detector\", and a screenshot of a conversation is dense text that belongs to the screenshot sibling, not here",
+      "a bounded download session read as one conversation or one bundle — 00: \"A session should never be treated as proof of topic\". Exporting three chats in one sitting is a session, not a thread",
+      "a bare four-digit number in a filename read as a capture_year — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a filesystem creation or modification timestamp read as a capture time; every hop through a platform and every re-download rewrites it, and 00 requires the engine to recompute rather than \"assuming that time only moves forward\"",
+      "a transcript-shaped .txt member alone, with no media members and no platform evidence — a text file named for a chat is a text file",
+      "a platform date stamp in a filename read as the moment of capture. The stamp records when the message moved, not when the shutter fired, and the slot that held the latter was stripped upstream"
+    ]
+  },
+
+  "work_types": [
+    "conversation export bundle",
+    "chat transcript",
+    "shared photo",
+    "shared video",
+    "voice note",
+    "shared document scan",
+    "sticker or animated image",
+    "exported contact card"
+  ],
+  "work_types_note": "These are VALUES of the photos schema's media_type field, not roster nodes and not a work_type field — the photos schema declares no work_type. 00's values rule governs them: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" Two of them stretch the field's canonical role, which reads \"what kind of capture this is\": a conversation export bundle is not a capture at all, and a chat transcript is a text record. That stretch is one of the two reasons this row does not put media_type in its dimension order; the other is that photos.json records the media_type dimension question as Joseph's.",
+
+  "grouping_reasons": [
+    "one export bundle held together as an archive family, transcript and media members inseparable — the transcript names the media and the media are meaningless without it",
+    "a transcript and the media members it references by filename, as one derived document set",
+    "a run of loose media sharing one platform filename family and a contiguous span of platform date stamps",
+    "a duplicate or near-duplicate family of one shared image re-encoded across forwards and re-saves, found by exact and perceptual hash",
+    "media the user attached to an export bundle by hand after the platform wrote them to a separate folder"
+  ],
+
+  "template": {
+    "dimension_order": ["capture_year"],
+    "why": "One level, and the shortest recommendation of any photos sibling, because on this material almost nothing else is fillable. The schema default is capture_year then event, and the event level is dropped here on evidence rather than on taste: the canonical event role is an occasion, trip or gathering, and a conversation archive is not one — it has a span, not an occasion — so an event level over bundles would open a tree level no fact can fill. That is not literally _CONTRACT rule 8's finding, since event IS a field this schema declares, but it is the same defect one step further on — a declared field that this situation's evidence can never populate — and 00 rules on the symptom directly: \"It should warn when a level produces only one child\". Event survives as an OPTIONAL dimension for the loose shared media only, and only where those media independently join an accepted photo event; it is never derived from the thread. media_type is deliberately not a dimension here even though it is destination-eligible and would express the split this situation actually has (whole bundles versus loose shared media): photos.json records the media_type-as-a-folder-level question as Joseph's open question, and a template may not settle a question its own schema row referred upward. 00's alternatives for this branch are stated and one of them is flat: \"whether photographs should branch by year, event, location, or remain mostly flat\", and 00 says when to prefer it — \"It should recommend flattening when a dimension does not materially improve retrieval.\" For a corpus holding three exports, flat is the right answer and this row says so rather than manufacturing depth. The one level that remains carries a caveat this row must state rather than bury: capture_year is honest for loose shared media, and is NOT assertable for a whole conversation archive, which routinely spans years and has no single capture year — such a bundle belongs at the branch root as one archive family, or under a scoped General, which is 00's own mechanism for a member of a meaningful parent with no recoverable deeper fact (\"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder\", applied here by inference). time_first is true only trivially, because time is the sole dimension, and the direction deserves a caveat too: 00's time-first exception is for \"Photos and capture-based media\", while a conversation archive behaves like the record domains 00 sends the other way — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" At one level the two rules cannot conflict, which is a further argument for staying shallow rather than a reason to pick a side. All of it is a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": true
+  },
+
+  "file_kinds": {
+    "source_types": ["archive", "image", "text_document", "audio_video", "contacts", "code_structured", "ocr"],
+    "extensions": [".zip", ".txt", ".html", ".json", ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".opus", ".m4a", ".vcf", ".pdf"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "WhatsApp Chat with Mom.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a _chat.txt member beside IMG-YYYYMMDD-WA####.jpg, VID-YYYYMMDD-WA####.mp4 and PTT-YYYYMMDD-WA####.opus members",
+        "no source-code manifest and no document-name marker among the member paths",
+        "member count and uncompressed size available from the manifest",
+        "the archive's own timestamp is the day the export was produced",
+        "no member is extracted to disk"
+      ],
+      "facts_legal": ["media_type", "duplicate_family"],
+      "must_not_conclude": [
+        "a folder path",
+        "people = Mom from the archive's filename — the field's ceiling is user_confirmed and a nickname in a filename is not a person the system may assert",
+        "capture_year from the archive's own timestamp, which records the export, not any capture inside it",
+        "one event for the bundle, because a conversation has a span and not an occasion",
+        "anything at all from decompressing it — 00 forbids extraction to the filesystem outright"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "_chat.txt",
+      "source_type": "text_document",
+      "observations": [
+        "line-per-message structure: an explicit bracketed date-time pattern, a display name, then a message body",
+        "inline attachment references naming media files that exist as siblings",
+        "several thousand lines spanning more than one calendar year",
+        "no document title, no author metadata slot"
+      ],
+      "facts_legal": ["language", "media_type", "version_family"],
+      "must_not_conclude": [
+        "a folder path",
+        "people from the display names in the message lines — they are the raw observation, and the fact needs the user",
+        "a single capture_year for a transcript whose date lines span years",
+        "that the message bodies may be sent whole to a cloud model — 00: \"It should not send full documents where a short heading or OCR excerpt is enough to resolve the question\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG-20260502-WA0003.jpg",
+      "source_type": "image",
+      "observations": [
+        "filename matches deferred catalogue 04's fnp-whatsapp-img pattern; note the hyphen form, which cannot collide with the Apple DCF IMG_ stem",
+        "every EXIF slot absent — no Make, no Model, no DateTimeOriginal, no GPS",
+        "JPEG re-encoded and downscaled; pixel dimensions sensor-shaped but not a known display resolution",
+        "sits loose in a Downloads folder with no transcript and no sidecar beside it"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this situation applies at all — a messaging filename without an export layout is a loose file, and this is the row's own never_alone fixture",
+        "media_type = screenshot from the absent EXIF, which 00 forbids and names in its adversarial suite as \"stripped EXIF on messaging-app photographs\"",
+        "media_type = photo from the filename either; catalogue 04's row says the pattern reports an origin, not a content",
+        "capture_year from the 20260502 stamp, which records when the message moved, not when the shutter fired"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "result.json",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled keys carry a chat name, a per-message list, ISO-shaped date-time values and relative paths into sibling photos/ and video_files/ folders",
+        "sits at the root of an exported folder whose siblings are those media directories",
+        "structured-text extraction reads keys and values without interpreting them"
+      ],
+      "facts_legal": ["capture_year", "media_type", "language"],
+      "must_not_conclude": [
+        "a folder path",
+        "people from the chat-name key or from per-message sender keys",
+        "that a sidecar date is a camera capture time — it is a labelled send time, and the strongest honest reading is when the media reached the thread",
+        "location, because no coordinate survives the export"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PTT-20260502-WA0001.opus",
+      "source_type": "audio_video",
+      "observations": [
+        "container, codec and duration metadata present; duration under a minute",
+        "no creation-time tag and no device identity",
+        "filename shares the platform date stamp of the media members beside it"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a transcript — 00 permits speech-to-text on audio and video only under an explicit privacy and compute policy, and this is correspondence",
+        "people from the voice",
+        "capture_year from the filename stamp"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Contacts.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "names, organizations, email addresses, phone numbers and address-book metadata present as labelled slots",
+        "exported in the same sitting as the chat archive beside it"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any destination input at all — 00 is explicit that VCF data \"should normally be privacy-protected rather than used to create folder proposals\"",
+        "people as a fact on the media in the bundle, from names in this file",
+        "that same-session export makes this file part of the conversation's evidence — a session is a retrieval clue only"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "iMessage - Jane Doe.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "PDF with a usable text layer: rendered message bubbles, timestamps, and a phone number in the page header",
+        "PDF producer metadata names a print-to-PDF pipeline rather than a person",
+        "no embedded media; images appear as rasterised page content"
+      ],
+      "facts_legal": ["language", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "people = Jane Doe from the filename, or from the header line",
+        "authored_by from the producer string — 00 warns that a value such as python-docx or a browser-generated producer string is not meaningful content",
+        "capture_year for the document as a whole when its timestamps span months"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-05-02 at 21.10.04.png",
+      "source_type": "image",
+      "observations": [
+        "PNG, pixel dimensions equal to a known display resolution",
+        "software metadata naming a screen-capture tool",
+        "no camera EXIF slots",
+        "OCR recovers message bubbles, timestamps and a contact name"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this situation applies — the capture is a screenshot OF a conversation, which is the screenshot sibling's material; 00 lists conversation among what a screenshot may be OF, in the same sentence as a receipt, a portal and a code error",
+        "an export bundle from the OCR'd conversation, because no transcript, sidecar or manifest exists",
+        "people from the OCR'd contact name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG-20260502-WA0011.jpg",
+      "source_type": "image",
+      "observations": [
+        "messaging filename pattern, all EXIF stripped, sitting inside an export bundle beside its transcript",
+        "OCR of the frame recovers travel-document wording, a machine-readable zone and a document number",
+        "the transcript line that references it reads as someone sending their ID"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a capture_year folder level for a protected record — 00 requires that such a file \"should enter a protected state immediately\", ahead of any placement or model path",
+        "membership in a photo event",
+        "any content of this file, or its filename, in a cloud dossier — the residual home for it \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\""
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "takeout-20260118.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists paired media files and per-file JSON sidecars under an export-tool folder layout",
+        "no conversation transcript member and no messaging filename family among the members",
+        "no member is extracted to disk"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this situation applies — this is the collision fixture, and the discriminator is in the manifest: per-file sidecars under a takeout layout belong to the platform-export sibling, a transcript beside its media belongs here",
+        "capture facts from the archive's own timestamp",
+        "one event for the archive because it was downloaded in one session"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "chat-backup-2026.zip (password protected)",
+      "source_type": "archive",
+      "observations": [
+        "archive header readable, member list not readable without the password",
+        "outer filename carries a backup-shaped name and a four-digit number",
+        "size and archive type available; nothing else is"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year from the four-digit number in the name — a bare four-digit number is never sufficient",
+        "that this is a chat export at all; 00 refuses the shortcut for exactly this class — \"the system should not infer a purpose from their filename alone\"",
+        "that the archive should be forced open, which 00 forbids alongside decompression-bomb risk"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "signal-2026-04-12-19-03-55-001.jpg",
+      "source_type": "image",
+      "observations": [
+        "filename matches deferred catalogue 04's fnp-signal pattern",
+        "EXIF stripped; JPEG re-encoded",
+        "sits in a folder of exported attachments alongside other files sharing the same stem shape",
+        "no transcript member anywhere in the folder"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an export bundle, because the attachments were saved without the conversation that named them",
+        "media_type from the pattern; catalogue 04's messaging rows report an origin only",
+        "that a stem beginning signal- is a messaging file before word-boundary matching has run — 00 requires word-boundary matching rather than substring matching, and signal-processing-notes is the false positive that rule exists for"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "messages.html",
+      "source_type": "text_document",
+      "observations": [
+        "HTML export with per-message blocks, sender spans and timestamp attributes",
+        "relative src references into a sibling media folder",
+        "no metadata slots beyond the generator string"
+      ],
+      "facts_legal": ["language", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "people from sender spans",
+        "that the generator string identifies a person",
+        "capture_year for the whole file when its timestamps span years"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.social-media-export",
+      "signal": "The shared evidence item is an export-shaped archive manifest: both situations arrive as a bundle of media with adjacent metadata, inspected by manifest only, and both take their capture evidence from sidecars rather than from file timestamps. The discriminator is the layout in the manifest — a conversation transcript beside its media here, versus a takeout tool's per-file JSON sidecar tree there. 00 licenses reading exactly this without unpacking: the engine stores \"the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\". Fixtures: WhatsApp Chat with Mom.zip against takeout-20260118.zip.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "The shared evidence item is a dense-text image of a conversation. 00 puts conversation on its own list of what a screenshot may be OF — \"a screenshot of a receipt, application portal, conversation, code error, or research figure\" — so the content cannot separate them. The discriminator is provenance of the pixels: screen-capture evidence (a known display resolution with PNG format and screen-capture software metadata) belongs to the screenshot situation; a transcript, sidecar or manifest belongs here. Neither may use OCR text density, which 00 rejects as a screenshot detector. Fixture: Screenshot 2026-05-02 at 21.10.04.png.",
+      "provenance": "design"
+    },
+    {
+      "domain": "photos.home-video",
+      "signal": "The shared evidence item is an audio or video file carrying duration, container and codec metadata with no camera identity — which is both a voice note and a voice memo. The discriminator is the messaging filename family or membership in an export bundle; without either, a recording is the home-recording situation's. The privacy consequence runs the same way for both and is why the edge matters: 00 allows speech-to-text \"only under an explicit privacy and compute policy\", and getting the situation wrong is what would put someone else's voice through a transcript pipeline. Fixture: PTT-20260502-WA0001.opus.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "A photographed ID sent through a messenger reaches disk as an ordinary stripped platform-named JPEG inside an export bundle, and this row's signals would file it as shared media in a conversation. The discriminating evidence is document-identity wording and a machine-readable zone in the OCR region, and 00 settles the order of operations: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\", and \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" This situation is a likelier carrier than any other photos sibling, because sending an ID to someone is a routine act. Fixture: IMG-20260502-WA0011.jpg.",
+      "provenance": "design"
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "The shared evidence item is an image whose content is a document and whose capture slots are empty. The discriminator is what surrounds it: a scanner or photographed-page provenance with a document structure recovered by OCR belongs to the scan situation; a platform filename family plus an export layout belongs here. The consequence of confusing them is not cosmetic — the scan situation reads the document to route its facts onward, and doing that to a document someone else sent is a privacy decision, not an extraction decision.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by absence: also_holds_with joins schemas only (CONNECTION.md section 5), and this is a template row. The co-holding this situation actually meets is a file that is both a capture and another domain's protected record — the ID photographed and sent through a thread — and it is carried here as a file example with also_schema = identity, and authored as an edge on the schema rows where it belongs. 00's licence: \"One file may hold facts from more than one domain without losing information.\"",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The default outcome for this situation rather than an exception, which is what separates it from every other photos sibling. 00's residual holds \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\" and \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\" — and a conversation archive is 00's own \"private correspondence\" plus, routinely, other people's identity material inside it. Fixtures: WhatsApp Chat with Mom.zip, _chat.txt, Contacts.vcf, IMG-20260502-WA0011.jpg.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "00's own description fits the loose half of this situation exactly: images with \"no event, project, reference collection, or photo-family association\". A single stripped platform-named JPEG in Downloads has no bundle to belong to and no capture fact to place it by. Fixtures: IMG-20260502-WA0003.jpg, signal-2026-04-12-19-03-55-001.jpg.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — an export bundle whose layout resolved but whose members have not been read, so media_type stands and no capture fact does. Fixtures: takeout-20260118.zip when the layout is ambiguous, result.json before its media folders are walked.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Chat backups are commonly password-protected, and 00's residual covers \"password-protected archives, unreadable documents, damaged files, and unknown formats\", preferring representation over movement. The design also refuses to let such a file be read as empty or as understood: \"the system should not infer a purpose from their filename alone\". Fixture: chat-backup-2026.zip.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [],
+  "role_split_note": "Empty, and after looking rather than for lack of looking. The near-case is real and is the sharpest one on the photos schema: a transcript names a sender and a recipient, which is one entity type in two roles, and 00's test would ordinarily apply — \"The system must separate roles that happen to contain the same entity type.\" It is not authored, for two reasons. First, the canonical list holds no such pair; the only person-shaped key on this schema is people, and minting sender and recipient beside it would be inventing a field relationship the canonical table does not contain, which is R1a's and Joseph's, not a template's. Second, both halves would be destination-ineligible the moment they existed, under 00's own bar — \"It should avoid using authorship or creator identity as a destination dimension\" — so the split would buy search precision at the cost of two new person columns in a privacy-loaded domain. Recorded in the research notes and in open_question instead.",
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the only photos situation whose primary content is other people's words. 00 names the material in its own list of what a personal corpus contains — \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" — and gives the handling rule for its nearest extractor sibling directly: exported mail archives are to be read \"while treating addresses and message content as potentially sensitive\". The contact half is settled outright: VCF data \"should normally be privacy-protected rather than used to create folder proposals\". The local boundary applies with full force, since raw transcript text is exactly what it names — \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\" — and any model call must carry \"only a compact dossier relevant to the current question\" rather than a thread. Two rules follow for this row specifically, both inference from those sentences. First, third-party consent: everyone in a transcript except the holder is a person who never chose to be in this corpus, so a person-shaped label, a person-shaped folder and a person-shaped fact are all suggestions for the user and never machine assertions. Second, interface redaction is not optional here, because 00 already treats a visible list of sensitive filenames as a hazard and a filename like WhatsApp Chat with Mom.zip discloses a relationship before it is opened; 00's remedy is the one this row relies on — \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\" Handling classes are not assigned here; they are P7's.",
+
+  "open_question": "Three, all of them Joseph's rather than this row's. First and largest: the dimension this material invites is the correspondent, and it is the one dimension 00 forbids — \"It should avoid using authorship or creator identity as a destination dimension\" and \"A folder should not become a collection point for everything produced by the same person or organization.\" Every real person who keeps chat exports keeps them per person. So either the rule holds and this branch stays shallow and time-keyed, as recommended above, or a correspondent dimension is a deliberate exception Joseph carves for correspondence — which is a decision about someone's real relationships and cannot be taken by a template. Note that the same fork governs the schema's people field, which the canonical row already seeds destination_eligible false. Second: does correspondence belong on the photos schema at all? The roster puts it here because the embedded media are captures, but a transcript is a text record with senders, timestamps and a thread identity, and 00 describes exactly that shape when it specifies email extraction — while email itself is a SOURCE_TYPE, not a domain, which is why no correspondence schema exists to point at. If Joseph adds one, this template moves rather than being rewritten, and the media stay dual under the photos schema. Third, a catalogue gap this node recorded and refused to fill: deferred catalogue 07's document-name marker vocabulary deliberately stops at 00's five packet names, so there is no archive-marker row for a chat-transcript member, and catalogue 04's Telegram and Instagram naming sits in its uncertain list pending one real exported file. Both are R2's and R4's to settle with evidence; writing marker strings or regexes here would have been inventing catalogue contents."
+}

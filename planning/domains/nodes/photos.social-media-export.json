@@ -1,0 +1,407 @@
+{
+  "id": "photos.social-media-export",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Social platform exports",
+  "one_line": "The situation of a whole-account download: a platform hands back the holder's uploaded media as a bundle whose members carry no camera metadata, and whose capture facts live in per-file JSON sidecars and the export's own folder layout rather than in the files themselves.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test_note": "Applied honestly; the row survives on all three limbs, and the first alone would carry it. DETECTION SIGNALS: disjoint from every sibling on the photos schema. The whole sibling set runs on capture metadata — 00's own band, \"camera EXIF is strong photo evidence\" — and this situation has none, because the platform stripped it on upload; 00 names the mechanism, \"Messaging platforms and downloaded web images often strip metadata from real photographs\". What is left is structural: an export-tool folder layout read from an archive manifest, an exact-stem media-to-sidecar pairing, and labelled slots inside the sidecar. Not one of those signals appears on photos.camera-events, photos.screenshot-captures or photos.scanned-documents. DIMENSIONS: they differ by one real level. camera-events records that its situation is single-valued on media_type and therefore refuses it as a dimension; an account export is the opposite case — one bundle returns stills, clips, uploaded screenshots and profile images together — so media_type earns a leaf here. PRIVACY: also genuinely different, and this is the limb that most justifies a separate row. A camera roll is media. An account export is the account: correspondence, contact lists and account records arrive in the same bundle as the photographs, and 00 puts two of those behind protection outright (VCF \"should normally be privacy-protected rather than used to create folder proposals\"; mail formats are read \"treating addresses and message content as potentially sensitive\"). A situation whose bundle routinely contains material the design protects cannot inherit the camera roll's privacy posture.",
+
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3). The legal fields here are photos.json's six — capture_year, event, location, people, camera_information, media_type — plus the universal facts. camera_information is legal and almost always empty in this situation, which is a fact about the platform, not about the capture.",
+
+  "proposed_fields": [
+    {
+      "field": "export_source",
+      "type": "string",
+      "example": "unknown",
+      "reliability_ceiling": "validated",
+      "destination_eligible": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "The one thing this situation knows that no canonical key can hold: which service produced the bundle. It matters because it is the explanation the product owes the user for every fact derived here — a capture_year on a member of this bundle came from a sidecar written by an export tool, not from the file, and 00 requires the origin of a conclusion to stay inspectable. No existing key fits. media_type answers what kind of capture a member is, not who produced the container. institution is the finance schema's record-issuing institution and is not on this schema. authored_by is the wrong role and is destination-ineligible for a different reason. file_type is the detected format family, a routing signal. Ceiling validated rather than direct because the value is concluded from a layout rule over manifest paths, which is 00's definition of the state: \"A validated fact was found by a deterministic rule and passed contextual checks\". Rule family: export-layout marker recognition over archive manifest paths (see recognition.deterministic; the marker set itself is R2's, and no pattern is written here). destination_eligible FALSE deliberately and not for lack of appetite — a per-platform folder is precisely the collector 00 forbids: \"A folder should not become a collection point for everything produced by the same person or organization.\" It is a search, explanation and privacy field. Proposed for R1c, not authored: this node writes nothing into canonical_fields.json and no dimension branches on it."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "an archive manifest whose member paths show an export-tool layout — an export root, per-service folders beneath it, and media members each paired with a same-stem metadata sidecar — read without unpacking. 00 licenses exactly this reading: \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\", under the prohibition that \"the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks\". This is the signal that separates this situation from every sibling on the photos schema",
+      "an exact-stem pairing between a media member and its metadata sidecar (a media file and a sidecar whose name is that file's name plus a metadata suffix), read as a structural pairing on the name, never on proximity. 00's structural band covers it — \"Structural relationships should retrieve nodes that contain a version family, duplicate family, archive family, photo event, or derived document set\" — and the evidence record for it is a manifest path: \"an archive observation may come from a manifest path\"",
+      "a labelled capture-time slot inside a paired sidecar, parsed by an explicit pattern — 00: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.\" The slot is direct evidence about the sidecar; carrying it to the media member it names is the exact-stem rule above, and the resulting fact on the media file is validated, not direct (see open_question)",
+      "a labelled geo slot inside a paired sidecar resolved to a place name through a gazetteer matched at word boundaries (00: \"It should use word-boundary matching rather than substring matching\"); the coordinate is never the stored value and never leaves the machine",
+      "structured-data extraction of the sidecar and index members themselves, which 00 routes to the light structured-text extractor: \"Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure\"",
+      "an export index or manifest member sitting at the export root and naming the producing tool in its own text or in software metadata (deferred catalogue 01 holds the tool-producer-string family; no string is authored here, and an export-layout marker family does not yet exist in deferred catalogue 07, which stops at source-code manifests and the five document names — recorded in the research notes as an R2 gap, not filled by guessing)",
+      "a split multi-part archive set whose parts share one export stem and carry sequential part suffixes, joined into one archive family rather than read as duplicates of each other — 00: \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates\", and the parts are neither",
+      "file count and declared uncompressed size read from the manifest, with the safety outcome 00 states: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open or allowed to become decompression-bomb risks.\"",
+      "an album or collection folder inside the export layout supplying a candidate event LABEL for the user to accept — the holder named those albums on the platform, and 00 treats holder-made structure as intent: \"A carefully curated existing folder should be treated as a strong expression of user intent.\" It becomes an event value only on acceptance",
+      "absence of every EXIF camera slot on a media member, recorded as an absence and never as a conclusion; on a member whose sidecar pairs with it, the absence is expected and carries no weight either way",
+      "container, codec, duration and creation-time metadata on a clip member — 00: \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\"",
+      "an exact content-hash match between a member of the export and a file already in the corpus, identifying the re-download of material the holder already has"
+    ],
+    "needs_llm": [
+      "deciding whether an unfamiliar bundle is a platform export at all, when the manifest layout resembles a known export shape without matching one — 00's own eligibility is files that \"remain ambiguous, have multiple plausible domains, or contain language that requires interpretation\"",
+      "naming an occasion a user would recognise from an album folder name that is a slug, a machine date, or an untranslated string, where the reading is language interpretation rather than a lookup",
+      "reading a post caption or sidecar description to decide whether a media member carries a purpose beyond the export — that it documents a research artifact, a receipt, or a record — with the citation the design requires and abstention when it does not",
+      "deciding whether a media member sitting in the export folder with no sidecar belongs to the export at all, or is unrelated material the holder dropped in after unpacking"
+    ],
+    "never_alone": [
+      "JSON members in an archive, on their own. This is the tempting false file and it is the reason the code neighbour is on the collision list: a source archive is full of JSON, and 00 names its markers outright — \"A source-code archive may reveal a README.md, package.json, src directory, or Python package layout and can be recognized as a code project.\" Fixture: my-portfolio-export.zip, a bundle of folders and JSON that is not this situation",
+      "source_type = archive, or a .zip / .tar.gz extension, on its own — file_kind_plausible is constitutionally never-alone",
+      "the archive's own filename. The members carry the evidence; deferred catalogue 07 records the same refusal for the same reason, and 00's worked archive case turns on the outer name being uninformative",
+      "the fact that the bundle arrived in one download, read as one event or one topic — 00: \"A session should never be treated as proof of topic\"",
+      "absence of EXIF on a media member read as proof of a screenshot — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and in this situation the absence is the platform's doing: \"Messaging platforms and downloaded web images often strip metadata from real photographs\". Fixture: IMG_2201.jpg",
+      "proximity inside an export folder read as a sidecar pairing. Only an exact-stem name match pairs a sidecar to a member; a sidecar does not describe its neighbours, and treating a folder's metadata as every member's metadata is the copy 00 forbids: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+      "a date in an export folder name, or a bare four-digit number in a member path, read as capture_year",
+      "the archive's own timestamp, or a member's filesystem timestamp after unpacking, read as a capture time — unpacking rewrites those, and 00 requires the engine to recompute rather than assume that time only moves forward",
+      "a platform or account name in the export root read as a people fact, an event, or a folder level",
+      "an album folder name read as an accepted event value before the user accepts it"
+    ]
+  },
+
+  "work_types": [
+    "uploaded photo",
+    "uploaded video",
+    "uploaded screenshot",
+    "profile photo",
+    "album",
+    "short-form or story clip",
+    "platform-generated derivative (thumbnail, re-encode)"
+  ],
+  "work_types_note": "These are VALUES of the photos schema's media_type field, not roster nodes and not a work_type field — the photos schema declares no work_type. 00's values rule governs them: the system may create new values when it sees a new event, but it does not invent new fields automatically.",
+
+  "grouping_reasons": [
+    "one export bundle and the members unpacked from it, held together as an archive family",
+    "a media member and its exact-stem sidecar, held as one structural pair",
+    "a split multi-part export set whose parts share one stem, held as one archive family rather than as duplicates",
+    "an album folder inside the export whose name the user accepted as an event value",
+    "a duplicate family joining a member of the export to the same photograph already in the holder's camera roll, found by exact and perceptual hash — the characteristic overlap of this situation, and the reason a member's placement is often a shared-material decision rather than a new home"
+  ],
+
+  "template": {
+    "dimension_order": ["capture_year", "event", "media_type"],
+    "why": "time_first for 00's stated reason, which holds here even though the metadata arrives by a different route: \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" The order's first two levels are 00's Photos template — \"a Photos template may define year → event\" — and the event values available here are the holder's own album names, accepted rather than clustered, because no camera identity exists to cluster on. media_type earns the third level in THIS situation and in no sibling: an account export returns stills, clips, uploaded screenshots and profile images in one bundle, so the leaf is genuinely multi-valued, where photos.camera-events records the opposite for a camera roll. It sits last because of 00's parent-context rule — \"a parent dimension should provide the context required to understand the child\", the same rule that puts work type after the course, \"A work type such as Homework 3 is meaningful only after the course is known\" — and putting media_type above event would split one occasion across two branches. Every level is optional and the flat answer is a real one: 00 \"should recommend flattening when a dimension does not materially improve retrieval\", and an export whose members never resolve an album has one child at the event level, which 00 says to warn about — \"It should warn when a level produces only one child.\" A year whose members never resolve an occasion takes a scoped General under the meaningful parent rather than a global catch-all, by inference from 00's own mechanism: \"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder\". The optional branch pattern this situation actually raises is whether the bundle stays whole: an export is a purpose-coherent unit the way 00's packet is, and 00 allows a packet to be preserved rather than re-branched — \"The system can present that packet as a preserved or proposed branch alongside institution-based organization\", \"The user may keep it as one flat purpose folder\", and \"The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.\" Whether an export layout counts as the holder's structure for that purpose is in open_question and is not settled here. All of it is a recommendation and none of it is a path: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": true
+  },
+
+  "file_kinds": {
+    "source_types": ["archive", "image", "code_structured", "audio_video", "contacts", "text_document"],
+    "extensions": [".zip", ".tar.gz", ".tgz", ".json", ".html", ".jpg", ".jpeg", ".png", ".heic", ".mp4", ".mov", ".vcf"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "takeout-20260118T090000Z-001.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an export root containing per-service folders",
+        "media members each sit beside a same-stem metadata sidecar",
+        "an index page member sits at the export root",
+        "file count and declared uncompressed size available from the manifest",
+        "no member is extracted to disk",
+        "the archive's own timestamp is the day the bundle was downloaded"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture facts from the archive's own timestamp — the sidecars, once read as members, are the capture evidence",
+        "one event for the whole bundle because it arrived in one download",
+        "an export_source fact from the archive's own filename; the members carry the layout evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "takeout-20260118T090000Z-002.zip",
+      "source_type": "archive",
+      "observations": [
+        "same export stem as the part beside it, sequential part suffix",
+        "manifest continues the same export root layout; some member paths are truncated mid-folder",
+        "exact hash differs from the first part; no perceptual relationship exists between archives"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is a duplicate of the first part, or a second export — the shared stem and the sequential suffix make it one archive family",
+        "that the truncated layout is a malformed export; a split set is complete only across its parts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_2201.jpg",
+      "source_type": "image",
+      "observations": [
+        "every EXIF slot absent — the platform stripped them on upload",
+        "pixel dimensions sensor-shaped but re-encoded to a platform size",
+        "a sidecar named for this exact file sits beside it",
+        "it really is a photograph someone took"
+      ],
+      "facts_legal": ["capture_year", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absent EXIF — 00 names both halves of this trap, \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\" and \"Messaging platforms and downloaded web images often strip metadata from real photographs\"",
+        "camera_information, because the slot is gone",
+        "capture_year as a DIRECT fact — the labelled slot is on the sidecar, and reaching this file takes the exact-stem rule, which makes the fact validated",
+        "an event from the album folder before the user accepts its name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_2201.jpg.supplemental-metadata.json",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled slots carry a capture timestamp, a geo pair, a title and a people-tag list",
+        "the file's own name contains, verbatim, the name of the media member it describes",
+        "no image data of any kind"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this file is itself a capture — it has no capture_year, location or media_type of its own; its slots are evidence about the member it names",
+        "people from the tag list; the canonical row seeds people as a search and privacy field and the ceiling is user_confirmed",
+        "that its slots describe the other members of its folder"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "archive_browser.html",
+      "source_type": "text_document",
+      "observations": [
+        "sits at the export root",
+        "body text names the export tool and lists the services included in the bundle",
+        "links resolve to member paths inside the same bundle"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is saved reading material — it is an index generated by the export tool, and misreading it sends the whole bundle's anchor to a reading residual",
+        "an export_source fact strong enough to stand alone; the layout in the manifest is the corroborating evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "posts_1.json",
+      "source_type": "code_structured",
+      "observations": [
+        "an array of entries, each carrying a caption, a timestamp slot and one or more media paths",
+        "the media paths resolve to members elsewhere in the same export",
+        "captions are free prose and name other people"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "one event for every media file this index names, because they share an index",
+        "people from the names in the captions",
+        "that the caption prose is a fact rather than free text an LLM may interpret, with a citation, only when the file is otherwise ambiguous"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot_20240612-142233.png",
+      "source_type": "image",
+      "observations": [
+        "sits inside the export's media folder with a sidecar beside it",
+        "PNG; pixel dimensions equal a known display resolution and reduce to no sensor-shaped ratio",
+        "no EXIF camera slots — indistinguishable, on that signal alone, from every other member here",
+        "OCR recovers interface chrome and a status bar"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the missing EXIF, which is missing on every member of this bundle; the support is the display resolution and the OCR'd interface together",
+        "that being inside an export makes it a photograph, or that being a screenshot removes it from the export's grouping",
+        "an event from the album it was uploaded into, before the user accepts that name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "message_1.json",
+      "source_type": "code_structured",
+      "observations": [
+        "sits under an inbox path inside the export layout",
+        "entries carry participant names, timestamps, message bodies and attachment paths",
+        "attachment paths resolve to image members in the same bundle"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "people, or any folder level, from the participant list — 00 reads mail-shaped material \"treating addresses and message content as potentially sensitive\"",
+        "that correspondence inside a media export is this situation's material rather than the messenger sibling's",
+        "any of this content in a cloud dossier without the consent path the design requires"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "profile_photos/2016-03-12.jpg",
+      "source_type": "image",
+      "observations": [
+        "no EXIF; no sidecar pairs with this member",
+        "the containing folder is named by the export tool, and the basename is a date string",
+        "small platform-sized dimensions"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year from the basename date alone — a date in a name written by an export tool is a possible clue, not a labelled capture slot",
+        "an event from a tool-generated folder name, which is not the holder's curation",
+        "media_type = screenshot from the absent EXIF"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "contacts.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "sits inside the export layout beside the media folders",
+        "carries names, organizations, email addresses and phone numbers"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any folder proposal at all — 00 is explicit that VCF data \"should normally be privacy-protected rather than used to create folder proposals\"",
+        "people facts on the media members of the same bundle from the names in this address book",
+        "that arriving inside a photo export makes an address book photo material"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_2318.jpg",
+      "source_type": "image",
+      "observations": [
+        "member of the export with a sidecar beside it; no EXIF",
+        "OCR region carries travel-document wording and a document number — the holder once uploaded a photograph of a passport page"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event, an album level, or a capture_year folder level for a protected record — 00: such a file \"should enter a protected state immediately\", before any placement or model path",
+        "that being one member among thousands lowers the protection; 00 keeps these visible \"even when they do not meet a normal group-size threshold\"",
+        "any content of this file in a cloud dossier"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "my-portfolio-export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists nested folders and many JSON members, exactly the shape this situation looks for",
+        "the JSON members are package.json, a lockfile and configuration; a src path segment is present",
+        "image members exist under an assets path, none of them paired with a same-stem sidecar",
+        "the archive's own name contains the word export"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this situation applies — the collision fixture. The discriminating evidence is 00's own: \"A source-code archive may reveal a README.md, package.json, src directory, or Python package layout and can be recognized as a code project\", and no media member here pairs with a sidecar",
+        "an export_source fact from the word export in the archive's filename",
+        "photos-schema facts on the image members from their presence in an archive"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "export-request-2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest reads as password-protected; member paths are unavailable",
+        "declared uncompressed size is present and far larger than the compressed bundle",
+        "no marker of any kind can be read"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the archive is empty — 00 requires that such a file be represented rather than silently treated as empty, and \"Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone\"",
+        "that it is an export, from its filename",
+        "any attempt to force it open — 00 marks these \"unreadable or partially inspected rather than forced open\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.camera-events",
+      "signal": "The confusable evidence item is an archive of images inspected by manifest only — both situations meet the corpus that way, and 00 licenses reading \"the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers\" without unpacking either. The discriminator is the layout in the manifest: a camera-card tree with RAW and JPEG pairs and full EXIF behind every member on that side, versus an export root with per-service folders and an exact-stem sidecar beside each media member on this one. Reciprocal to the edge already authored on photos.camera-events, whose fixture is 2026-07-14_cardA.zip; the fixture on this side is takeout-20260118T090000Z-001.zip. The second, quieter half of the same collision is per-file: the same photograph often exists in both, once with EXIF in the roll and once stripped in the export, which is a duplicate family and a shared-material decision rather than two homes.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "The neighbour the roster required this row to consider, and the collision is real rather than polite. The confusable evidence item is an archive whose manifest shows nested folders and many JSON members — the exact shape this situation's layout signal looks for, and the exact shape 00 assigns to the code side: \"A source-code archive may reveal a README.md, package.json, src directory, or Python package layout and can be recognized as a code project.\" The discriminator is what the JSON members are: package manifests and configuration at a project root there, versus per-file metadata sidecars whose names contain the media members they describe here. Neither may be decided by the archive's own filename, which both catalogue 07 and 00's worked archive case refuse. Fixture: my-portfolio-export.zip.",
+      "provenance": "design"
+    },
+    {
+      "domain": "photos.messenger-export",
+      "signal": "Both situations are export bundles carrying JSON alongside media, and a whole-account export routinely contains a messages folder, so the same archive can carry both. The discriminator is what the JSON describes: per-media metadata sidecars keyed to a media filename here, versus conversation transcripts with participants, threads and attachment references there. The consequence is not symmetric — correspondence members are read \"treating addresses and message content as potentially sensitive\", so where the reading is uncertain the protective sibling's rules apply first. Fixture: message_1.json under an inbox path.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "The confusable evidence item is a media member with no EXIF of any kind. On the screenshot sibling that absence sits beside display-resolution and software-metadata evidence and supports a hypothesis; here the absence is universal, because the platform stripped every member on upload, and so it discriminates nothing at all — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\" and \"Messaging platforms and downloaded web images often strip metadata from real photographs\". The discriminator has to come from the member's own content and dimensions, and where they conflict the design's instruction is to abstain: \"conflicting signals should lead to abstention rather than an invented classification.\" Fixture: Screenshot_20240612-142233.png, which really is a screenshot and really is inside an export.",
+      "provenance": "design"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by absence: also_holds_with joins schemas only (CONNECTION.md section 5), and this is a template row. The co-holding this situation actually meets is carried on the file examples instead — IMG_2318.jpg with also_schema = identity, a member of the bundle whose OCR carries travel-document wording, on evidence disjoint from anything the export layout supplies. 00's licence: \"One file may hold facts from more than one domain without losing information\", and its ordering rule for this particular pair is protection first.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The commonest honest outcome here and the reason the roster lists it first. 00 defines the home for \"files whose meaning is partly understood but whose final location requires a future decision\", which is exactly a bundle recognised as an export whose members have not been read, and exactly a sidecar or index member that is real evidence about something else and no capture of its own. Fixtures: takeout-20260118T090000Z-001.zip, posts_1.json, archive_browser.html.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "00's description fits the unpaired member precisely: an image with \"no event, project, reference collection, or photo-family association\". An export returns a great many of these — profile images, one-off uploads, members whose sidecar is missing — and inventing an album for them would be the invention the residual library exists to prevent. Fixtures: profile_photos/2016-03-12.jpg, IMG_2201.jpg when no album resolves.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "This situation's characteristic failure, and one the sibling templates rarely meet at this scale: exports arrive password-protected, split, nested or simply too large to inspect. 00's residual covers \"password-protected archives, unreadable documents, damaged files, and unknown formats\", the design prefers representing such a file over moving it, and it requires the file be recorded rather than \"silently treated as empty\". Fixture: export-request-2026.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Not this situation's usual home, and unavoidable in it. A whole-account bundle carries the account: address books, account records and uploaded photographs of documents arrive beside the holiday photographs. 00 defines the home for \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\", which \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixtures: contacts.vcf, IMG_2318.jpg.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [],
+  "role_split_note": "Empty, and checked rather than skipped. 00's test is \"The system must separate roles that happen to contain the same entity type\", and the photos schema's six keys contain no such pair. The near-case this situation raises is an organization in two roles — the platform that produced the bundle versus an organization appearing inside a member's content — which is the shape of our_firm versus client. It is not authored, for two reasons: the platform side is the proposed export_source, which is not a canonical key and which this node does not write; and both halves would be destination-ineligible anyway under 00's own bar, \"A folder should not become a collection point for everything produced by the same person or organization.\" Recorded in the research notes rather than minted here.",
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A platform export is not a folder of photographs; it is an account. In one bundle the design's own protected categories arrive together with the media: contact data, which \"should normally be privacy-protected rather than used to create folder proposals\"; correspondence, read \"treating addresses and message content as potentially sensitive\"; and account records, which 00 says \"should enter a protected state immediately\". The media half carries the schema's usual exposure — the sidecars hold where the holder was, when, and whom they tagged — and 00 keeps those raw forms local: \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\", with display a user choice: \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\" Three rules follow for this row specifically, all inference from those sentences. A sidecar's people-tag list is search and privacy material and never a folder level. A bundle whose members are unread must not have its member paths shipped wholesale into a model prompt merely because the manifest is cheap to read — the design sends \"only a compact dossier relevant to the current question\". And a summary of an export may be shown where its member list may not, following 00's own split that a protected area \"should not display raw content in general group summaries\". Handling classes are not assigned here.",
+
+  "open_question": "Two, and the first is the one this node most wants answered because it decides how much of the situation is legible at all. (1) Does an exact-stem metadata sidecar write a fact onto the media member it names? The sidecar's slot is a labelled machine-structured slot, which is 00's own definition of direct evidence — \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field\" — but the slot sits on a different file, and 00's firewall says \"The graph does not automatically copy those missing facts onto sparse files.\" This node's position, taken so the row is usable and flagged so it can be overturned: the pairing is structural and named, not retrieved, so it is not the HW 3 case; the fact it produces on the media member is validated, by the exact-stem rule, never direct; and proximity never substitutes for the name match. Whether P6 accepts a cross-file labelled slot as fact-bearing at all is P6's and Joseph's, not this row's, and if the answer is no then every member of every export is a bare image and this situation collapses into One-Off Images. (2) Is an export's folder layout the holder's structure or the tool's? 00 protects the first — \"Existing folders must not be automatically flattened, renamed, or reorganized simply because a template would produce a different structure\" and \"The system learns from existing folders but must not silently reorganize them\" — and an export mixes both: the album names are the holder's, the service folders and date-named directories are the export tool's. Whether the bundle should be preserved whole as a packet, re-branched by the dimensions above, or split along that seam is a decision about someone's real filesystem and 00 gives no sentence for it."
+}

@@ -1,0 +1,443 @@
+{
+  "id": "photos.home-video",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Personal video and audio recordings",
+  "one_line": "The situation of a recording someone made rather than a frame someone shot: home movies, voice memos and event recordings whose evidence is container, codec, duration and an embedded creation time, and whose speech becomes readable only under an explicit privacy and compute policy.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test_note": "Applied honestly. DIMENSIONS: identical to photos.json's default (capture_year then event), and this row does not pretend otherwise — 00 states one order for capture-based media and a home movie is capture-based media. That limb earns nothing and is recorded as an R1c fork in open_question, the same fork photos.camera-events left open. The row survives on the other two limbs, both strongly. DETECTION SIGNALS: every sibling on the photos schema is fed by image evidence — EXIF slots, pixel dimensions, PNG format, display resolutions, perceptual hashes. None of that exists on this material. A voice memo has no pixels at all, and a home movie's capture time lives in a container tag, not in DateTimeOriginal. The signal set here is container/codec/duration/creation-time metadata, embedded tags, an existing caption or subtitle track, and chaptered-recording families — a fingerprint that appears on no image sibling and on the schema row only as one summary line. PRIVACY: this is the sharper limb. 00 gates one extraction step behind a policy and only one: \"only under an explicit privacy and compute policy\" applies to \"speech-to-text transcripts\" and to nothing an image sibling does. A recording also carries the voices of people who are not the holder, in continuous conversation, which no still does. That is a second privacy regime, not a narrowing of the schema's. The ownership line in the roster (\"Owns the audio_video family\") is a SOURCE_TYPE ownership, not a situation ownership: a macOS screen recording is audio_video by container and belongs to the screenshot sibling by situation, which is why that pair carries a collides_with here.",
+
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3). The legal fields here are photos.json's six — capture_year, event, location, people, camera_information, media_type — plus the universal facts. Nothing on this row widens a canonical field's destination_eligible flag.",
+
+  "proposed_fields": [
+    {
+      "field": "duration",
+      "type": "string",
+      "example": "00:41:12",
+      "reliability_ceiling": "direct",
+      "destination_eligible": false,
+      "provenance": "design",
+      "why_no_existing_key_works": "00 names it first in the audio/video sentence — \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\" — and the canonical list holds no key for it. It is not media_type (that is the kind of capture, and a home movie and a podcast episode share it), not capture_year (that is when, not how long), and not any universal fact. This row needs it as a stored fact rather than as loose evidence for two reasons that are this situation's own: an Apple motion-still sidecar and a standing home movie are the same container and the same stem family, and duration is the fact that separates the sidecar's fragment from a recording that stands on its own; and a corpus of recordings is unsearchable without it, which is exactly what 00 reserves the extra fields for — \"several additional fields used only for search, privacy protection, explanation, or later review\". Ceiling direct because the value comes from a labelled container slot, which is 00's own definition: \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field\". destination_eligible false deliberately: a duration is continuous, so a folder level on it would be either one child or a very large number of tiny ones, and 00 asks the tree to warn about both. No dimension on this row branches on it. Proposed for R1c, not authored — this node writes nothing into canonical_fields.json. This row also CONCURS with photos.camera-events' proposal of capture_date and does not re-propose it: the container creation-time tag is day- and second-grained here exactly as DateTimeOriginal is there, and one key should serve both."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "container, codec, duration and creation-time metadata read from the file's own header — 00's audio/video sentence names all four: \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\". This is the one signal band that separates this situation from every image sibling on the photos schema, because none of those siblings has it and this material has nothing else",
+      "an embedded creation-time tag parsed by an explicit pattern into a capture_year candidate — 00: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.\" The tag is a labelled container slot, so it is direct when it is the recording's own; when the container also carries an encoder or transfer producer string, the tag dates the encode and drops to a possible clue",
+      "embedded tags (title, album, track, artist, comment) read as labelled slots, and read as evidence only — an artist or author tag is authorship metadata, and 00 forbids the folder use outright: \"It should avoid using authorship or creator identity as a destination dimension.\"",
+      "a caption or subtitle track already present inside the container, read as text evidence at the transcript zone without any policy gate — 00 separates the two cases in one sentence, \"subtitles or captions where present\" on one side and \"speech-to-text transcripts\" behind \"only under an explicit privacy and compute policy\" on the other. A shipped caption track was authored by whoever made the file; a transcript is generated by this product from someone's voice, and only the second is gated",
+      "an embedded device make/model tag on a camera-produced clip, populating camera_information from a labelled slot rather than from EXIF",
+      "a chaptered recording family recognised as one recording rather than several — GoPro's chaptered stems (deferred catalogue 04, fnp-gopro-chaptered) split one continuous take across files that share a file number and differ by chapter. 00's structural rule is the one that holds them together: \"Structural relationships should retrieve nodes that contain a version family, duplicate family, archive family, photo event, or derived document set.\"",
+      "a recording filename convention recognised from deferred catalogue 04 — the Android video stem (fnp-android-vid), the Apple/DCF video sibling (fnp-dcf-mov), the GoPro stems (fnp-gopro-gopr, fnp-gopro-chaptered), the WhatsApp received-video stem (fnp-whatsapp-vid), the macOS screen-recording form (fnp-macos-screen-recording) — emitted at possible grade with no signal tier, corroborating a container-metadata hit and never standing in for one",
+      "a still and a clip sharing one stem and one creation second, joined as one capture's version family rather than as a recording plus a photograph — the Apple motion-still pairing, and catalogue 04's motion-photo row (fnp-android-mvimg) for the platform that names it in the filename instead",
+      "exact content-hash agreement across two copies of one recording, identifying a duplicate family — 00 draws the line this situation gets wrong most often: \"A content-hash match supports deduplication review; a filename match alone does not.\" A re-encode is not a duplicate; it is a version-family question",
+      "a curated folder the holder made and named around a set of recordings, supplying a candidate event LABEL for the user to accept — 00: \"A carefully curated existing folder should be treated as a strong expression of user intent.\" The name is evidence; it becomes an event value only on acceptance",
+      "a container the installed stack cannot parse, recorded as indexed-but-unreadable rather than as empty — 00: \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\", and for the wider class, \"default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved\""
+    ],
+    "needs_llm": [
+      "deciding whether a recording is something the holder made or something they consumed, when the embedded tags are absent or generic. This is the interpretive question this situation turns on, and the deterministic signals cannot answer it: a downloaded film and a forty-minute home movie present the same container, codec and duration. 00 bounds the call to exactly this kind of file — \"an LLM receives only compact evidence packets for files or groups that remain ambiguous, have multiple plausible domains, or contain language that requires interpretation\"",
+      "naming an occasion a user would recognise from a caption track, an accepted transcript, or a set of tags, when the metadata gives only a device and a date — 00 permits the label only after coherence is supported: \"it proposes a concise human-readable display label and a group category\"",
+      "deciding whether a recording of a lecture, an appointment or a meeting carries another active schema's facts as well as this situation's capture facts, and which fields belong to which reading",
+      "interpreting a caption or authorized transcript in a language or register where the text needs reading before any field can be filled"
+    ],
+    "never_alone": [
+      "duration alone, or a long duration alone, read as proof that a file is a personal recording. This is the tempting false file for this row and it is common in real corpora: podcast_ep_142.mp3 and a downloaded film present exactly the container, codec and duration a home movie presents. What separates them is a publisher-shaped embedded tag set, or nothing — in which case the correct outcome is that this situation does not fire, and 00 licenses that outcome: \"The model must be allowed to conclude that no meaningful association exists.\"",
+      "source_type = audio_video, or a .mp4 / .mov / .m4a extension, on its own — file_kind_plausible is constitutionally never-alone, and 00 requires the engine \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a container creation-time tag read as the capture time when a transfer, export or re-encode produced the file. The digitized-tape fixture is the case: the tag names the day someone ran the capture card, not the year on the tape",
+      "a filesystem creation or modification timestamp substituted for a missing container tag — a restore, a sync or a re-encode rewrites it, and 00 requires recomputation \"instead of assuming that time only moves forward\"",
+      "a bare four-digit number in a filename read as a capture_year — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\". Fixtures: family_tape_1994_transfer.mpg, Emma birthday 2019.mp4",
+      "an embedded artist, author or album tag read as the file's subject or as a folder level — 00: \"A folder should not become a collection point for everything produced by the same person or organization.\"",
+      "a VID_, MOV_, GOPR or Screen Recording filename stem with no container metadata behind it. Catalogue 04's own rule governs these rows: one observation at the filename zone, possible grade, no signal tier",
+      "absence of a device make/model tag read as proof the recording is not a personal capture. This is 00's EXIF caution transposed: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and a messaging platform or an editor strips container tags the same way",
+      "a calendar entry, a message thread or a photo run that falls in the same hour, read as this recording's event. That is a P9 neighbourhood, and 00's firewall holds: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+      "a parent folder named Videos, Movies, Music or Voice Memos read as an event — a generic container is not an occasion, unlike a folder the holder named",
+      "a bounded download session read as one occasion — 00: \"A session should never be treated as proof of topic\"",
+      "an assumed transcript. No speech-to-text evidence exists for a file unless the policy authorized the run, so a recognition rule may never be written as though the words were available"
+    ]
+  },
+
+  "work_types": [
+    "home movie",
+    "voice memo",
+    "event recording",
+    "interview or conversation recording",
+    "screen recording",
+    "chaptered take",
+    "motion-still sidecar",
+    "practice or performance recording",
+    "digitized tape transfer",
+    "caption or subtitle sidecar"
+  ],
+  "work_types_note": "These are VALUES of the photos schema's media_type field, not roster nodes and not a work_type field — the photos schema declares no work_type. 00's values rule governs them: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\"",
+
+  "grouping_reasons": [
+    "one occasion whose recordings share a device tag and a contiguous span of creation times, proposed for the user to accept",
+    "a chaptered take held together as one recording across the files a camera split it into",
+    "a still and its motion sidecar held as one capture's version family rather than as two members",
+    "an exact-hash duplicate family across a second copy or a re-import of the same recording",
+    "recordings already sitting inside a folder the holder curated and named",
+    "recordings the user accepted under one event label, which is how an event value is created here rather than inferred"
+  ],
+
+  "template": {
+    "dimension_order": ["capture_year", "event"],
+    "why": "This is capture-based media and 00 states the order and the reason for it against its own general rule: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders. Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" The parent-context test holds in this direction — 00: \"a parent dimension should provide the context required to understand the child\" — because an event value such as a birthday or a recital is intelligible under its year, while a year under an event would produce the one-child level 00 asks the tree to warn about: \"It should warn when a level produces only one child\". The schema's other destination-eligible fields are deliberately not dimensions here. location, because a recording's location evidence is usually a device tag rather than a GPS fix and 00 offers location as an alternative rather than an addition: \"whether photographs should branch by year, event, location, or remain mostly flat\". media_type, because splitting audio from video at the top is a real decision about someone's shelf that 00 gives no sentence for — it is recorded in open_question, not taken here. people and camera_information are destination-ineligible on their canonical rows, and 00 forbids the second class outright: \"It should avoid using authorship or creator identity as a destination dimension.\" Two shapes this situation needs more than its image siblings do. Flat is a legitimate answer and 00 asks for it to be offered when a level does not pay for itself — \"It should recommend flattening when a dimension does not materially improve retrieval\" — which is the common case for a small voice-memo shelf where no event ever resolves. And where the year is known but no occasion forms, the branch offers 00's scoped fallback rather than a global pile: \"a scoped General or Other branch within a meaningful parent.\" All of it is a recommendation and none of it is a path: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": true
+  },
+
+  "file_kinds": {
+    "source_types": ["audio_video", "text_document", "opaque_binary"],
+    "extensions": [".mov", ".mp4", ".m4v", ".m4a", ".mp3", ".wav", ".aac", ".aiff", ".avi", ".mpg", ".mts", ".3gp", ".srt", ".vtt"],
+    "never_alone": true
+  },
+  "file_kinds_note": "audio_video is this row's own family. text_document appears only for a caption or subtitle sidecar sitting beside a recording (.srt, .vtt) — the sidecar is text by extraction and belongs to this situation by association, never on its own. opaque_binary appears for a container the installed stack cannot parse, which 00 requires be kept as indexed-but-unreadable. calendar is deliberately ABSENT even though a .ics can name the occasion a recording captured: calendar is a SOURCE_TYPE, not a domain, and claiming it here would be the format-as-schema bug CONNECTION-EXAMPLES fixture 5 exists to forbid.",
+
+  "file_examples": [
+    {
+      "filename": "VID_20240115_103045.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "container and codec metadata present; duration present",
+        "creation-time tag present and consistent with the timestamp in the stem",
+        "embedded device make and model tag present",
+        "filename stem matches the Android video convention (deferred catalogue 04, fnp-android-vid)"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event from one recording — an occasion needs a set of recordings agreeing on device and a span of creation times, and then a label the user accepts",
+        "a transcript, or any fact that would require one",
+        "location, because no place evidence of any kind is present"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "New Recording 12.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "audio container; duration present; creation-time tag present",
+        "no pixel dimensions, no image metadata of any kind, no device make/model tag",
+        "embedded title tag repeats the default filename",
+        "no caption or subtitle track"
+      ],
+      "facts_legal": ["capture_year", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event from the sequence number in the default name",
+        "camera_information from a missing device tag",
+        "any fact derived from what is said in the recording — speech-to-text runs \"only under an explicit privacy and compute policy\" and no such text exists until it does"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Emma birthday 2019.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "container and codec metadata present; duration present",
+        "creation-time tag names a date years after the four-digit number in the filename, and an encoder producer string is present",
+        "filename carries an occasion-shaped phrase, a personal name token and a bare four-digit number",
+        "no device make/model tag survived the re-encode"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year from the bare four-digit number in the filename, and equally not from the creation-time tag, which dates the re-encode and not the recording — the two disagree and the correct outcome is that neither is asserted",
+        "event as a direct fact; the filename phrase is a possible clue that becomes an event value only on user acceptance",
+        "people from the personal name in the filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "GX010042.MP4",
+      "source_type": "audio_video",
+      "observations": [
+        "a sibling GX020042.MP4 sits beside it with a contiguous creation time and the same device tag",
+        "container, codec and duration present on both",
+        "stems match the GoPro chaptered convention (deferred catalogue 04, fnp-gopro-chaptered): the file number agrees and only the chapter differs",
+        "exact hashes differ"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type", "version_family"],
+      "must_not_conclude": [
+        "a folder path",
+        "two recordings, or two members of an occasion, from one continuous take the camera split at a file-size boundary",
+        "a duplicate family — the hashes differ, and 00 requires a hash match rather than a filename match before any merge",
+        "an event from the chapter sequence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screen Recording 2026-03-14 at 10.22.31.mov",
+      "source_type": "audio_video",
+      "observations": [
+        "container, codec and duration present; creation-time tag present",
+        "frame dimensions equal a known display resolution and reduce to no sensor-shaped ratio",
+        "producer metadata names a screen-capture tool; no device make/model tag",
+        "filename matches the macOS screen-recording form (deferred catalogue 04, fnp-macos-screen-recording)"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this situation applies — the file is audio_video by container, which is this row's family, and a screen capture by situation, which is the screenshot sibling's. Owning the format does not own the organizational question",
+        "capture_year as a capture fact, or camera_information, neither of which has a recording device behind it",
+        "an event from the date in the filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Lecture 08 recording.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "audio container; duration present; creation-time tag present",
+        "filename contains the academic context term \"lecture\" and a sequence number",
+        "no course-code-shaped token anywhere in the filename or the tags",
+        "sits in a folder alongside a syllabus and lecture slides that do carry a course code"
+      ],
+      "facts_legal": ["capture_year", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a subject fact — the context term is present and the course-code pattern is not, and 00's rule needs both: a course fact requires \"a course-code pattern together with academic context\"",
+        "a subject fact copied from the syllabus next to it, which is the exact write 00's grouping firewall forbids",
+        "an event; a class meeting is a coursework artifact, not a photo-schema occasion"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "2026-02-11 appointment.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "audio container; duration present; creation-time tag present and agreeing with the date in the filename",
+        "filename carries an appointment-shaped word and an explicit date pattern",
+        "no caption track; no transcript has been authorized, so nothing that was said is available as evidence"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the recording is clinical, from the word \"appointment\" alone — this row must be able to end at unresolved rather than guess, and guessing in either direction is wrong: a wrong protective call mislabels a dentist reminder, a wrong permissive call sends a consultation into a model prompt",
+        "a capture_year folder level or membership in an occasion once clinical content is established — protection precedes any placement or model path",
+        "any content of this file in a cloud dossier",
+        "people from a voice"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "family_tape_1994_transfer.mpg",
+      "source_type": "audio_video",
+      "observations": [
+        "tape-era container and codec markers; interlaced frame geometry",
+        "creation-time tag names a recent date; producer metadata names capture-card software",
+        "filename carries a bare four-digit number and the word transfer",
+        "duration runs to the length of a tape rather than of a clip"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year from the creation-time tag, which dates the transfer session and not the recording",
+        "capture_year from the bare four-digit number in the filename",
+        "camera_information from the capture-card producer string — that names the machine that digitized the tape, not the camcorder that shot it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "podcast_ep_142.mp3",
+      "source_type": "audio_video",
+      "observations": [
+        "audio container; duration present in the same shape a long home recording presents",
+        "embedded tags carry an artist, an album and a track number naming a publisher and a series",
+        "no device make/model tag",
+        "creation-time tag names the download rather than a capture"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this situation fires at all — the container evidence is identical to a home movie's and only the publisher-shaped tag set separates them; this is the collision fixture for the never-alone rule on duration",
+        "a folder level from the artist tag, or any use of it as a collection point",
+        "capture_year, because no capture slot exists behind the download timestamp"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "VID-20240115-WA0002.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "container re-encoded by a messaging platform; every embedded tag stripped except duration and codec",
+        "filename matches the WhatsApp received-video convention (deferred catalogue 04, fnp-whatsapp-vid)",
+        "it really is a recording someone made, on someone else's phone"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the absent device tag means this is not a recording — that is the transposed form of 00's EXIF caution and the file is the counterexample",
+        "camera_information or capture_year, because the slots are gone and the date in the stem is a possible clue, not a labelled slot",
+        "an event from the platform name or from the day in the stem"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_4821.MOV",
+      "source_type": "audio_video",
+      "observations": [
+        "shares its stem exactly with IMG_4821.HEIC sitting beside it",
+        "creation-time tag matches that still's capture second",
+        "duration is a fragment rather than a standing recording",
+        "device make/model tag matches the still's EXIF"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type", "version_family"],
+      "must_not_conclude": [
+        "a folder path",
+        "a home movie — the stem pairing and the matching creation second make this one capture's motion sidecar, and the still is the member of the camera event, not this file",
+        "a second member of any occasion",
+        "that duration alone decided it; the pairing did"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "birthday_2019.mp4 (container will not parse)",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the installed stack cannot read the container; no duration, no codec, no creation time",
+        "filesystem extraction yields path, size, timestamps and a content hash",
+        "the extension and the filename are all that is legible"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type from the extension alone",
+        "that the file is empty — 00 requires that such a file be \"recorded as indexed-but-unreadable rather than silently treated as empty\"",
+        "capture_year from the bare four-digit number in the filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Emma recital.srt",
+      "source_type": "text_document",
+      "observations": [
+        "a caption sidecar whose stem matches a recording sitting beside it",
+        "cue text and timecodes are readable without any policy gate, because the track was authored rather than generated",
+        "no container metadata of its own beyond filesystem facts"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this file is a recording; it is text that describes one, and it carries no capture slot",
+        "an event as a direct fact from the cue text or the stem, either of which is a possible clue",
+        "that an authored caption track licenses generating a transcript for the recording it accompanies — the policy gate covers the generated case only"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Emma recital.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event title, start and end time, location and organizer present in labelled slots",
+        "the start time falls inside the span of a recording in the same folder",
+        "no container, codec or duration metadata of a recording"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row applies to the file at all — calendar is a SOURCE_TYPE, not a domain, and this situation must not claim it",
+        "an event fact written onto the neighbouring recording because the times overlap; that is a P9 neighbourhood and the firewall holds",
+        "location on the recording from this file's location slot"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.camera-events",
+      "signal": "The confusable evidence item is a clip carrying the same device tag and the same span of creation times as the stills around it — the capture metadata is genuinely shared, which is why this is a collision and not a narrowing. The discriminator is whether the material is duration-led and stands on its own as a recording, or is a fragment whose meaning is the run it sits inside: a motion sidecar sharing a still's stem and capture second, or a short clip sequence-continuous with the stills either side, belongs to the camera-roll situation. Reciprocal to the edge that row already carries. Fixtures: IMG_4821.MOV here, MVI_0088.MOV there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.family-archive",
+      "signal": "The confusable item is the container creation-time tag on an audio_video file: it dates the recording for a contemporary home movie and the transfer session for a digitized tape, and nothing in the tag says which. The discriminator is container and codec provenance — tape-era encoding markers and capture-card or transfer producer strings on that side, a camera's own container and companion still files on this one. Neither side may take the timestamp alone. Reciprocal to the edge that row already carries. Fixtures: family_tape_1994_transfer.mpg here, MVI_0031.MPG there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "The confusable item is the audio_video container itself: a screen recording is this row's format family and the screenshot sibling's organizational situation, so format ownership cannot decide it. The discriminator is 00's own image signal hierarchy applied to frames rather than stills — \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\" — here as frame dimensions equal to a known display resolution together with a screen-capture producer string and no recording-device tag, against a device tag and sensor-shaped geometry on this side. 00's closing clause governs the ambiguous middle: \"conflicting signals should lead to abstention rather than an invented classification.\" Fixture: Screen Recording 2026-03-14 at 10.22.31.mov.",
+      "provenance": "design"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "The confusable item is a recording made in a clinical setting: it presents exactly the container, duration and creation-time evidence this situation runs on, and this row's signals alone would file it by year inside an occasion. The discriminator is clinical content, and this pair has a difficulty no image collision has — a photographed clinical letter is legible through OCR, while a recording's words exist only if the policy authorized speech-to-text, so the discriminating evidence is frequently unavailable by design. Where it is unavailable the correct outcome is abstention, not a guess in either direction. Where it is available, 00 settles the order of operations: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\", and protection precedes any model or placement path. Fixture: 2026-02-11 appointment.m4a.",
+      "provenance": "design"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by absence: also_holds_with joins schemas only (CONNECTION.md section 5), and this is a template row. Two pairs this situation genuinely meets are carried as also_schema on the fixtures instead — a recorded class meeting that is both a capture and coursework (Lecture 08 recording.m4a, also_schema academic) and a recording that is both a capture and a protected health record (2026-02-11 appointment.m4a, also_schema medical). 00's licence for the shape: \"One file may hold facts from more than one domain without losing information.\" Whether the photos <-> academic pair should be authored on the schema rows is R1c's to settle across the sibling nodes, not this row's.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The commonest outcome here, and the best fit among the nine for an isolated recording: 00's own description is \"files whose meaning is partly understood but whose final location requires a future decision\", which is exactly a home movie whose container facts resolved and whose occasion never did. Fixtures: VID_20240115_103045.mp4 with no run around it, New Recording 12.m4a, family_tape_1994_transfer.mpg.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "Offered for the motion-still sidecar and for a clip that belongs with a camera roll's leftovers, so a fragment does not get separated from the capture it came from. Marked inference and not design, because 00's wording for this home is image-shaped — \"images with no event, project, reference collection, or photo-family association\" — and a standing recording is not an image. The gap that opens under that reading is recorded in open_question rather than papered over here. Fixture: IMG_4821.MOV.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The characteristic hazard of this situation, and one that arrives without any visual cue: a recording can be a consultation, a legal conversation or an account call. 00 defines the home for \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\", which \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixture: 2026-02-11 appointment.m4a.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "This situation's other characteristic failure and a more frequent one than its image siblings meet, because a personal corpus accumulates codecs and containers no installed stack still parses. 00's residual covers \"password-protected archives, unreadable documents, damaged files, and unknown formats\" and prefers representation over movement. Fixture: birthday_2019.mp4 that will not parse.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "For consumed media rather than made recordings — a downloaded talk, lecture series or podcast episode whose publisher tags identify it as something the holder listens to. 00 scopes this home to saved material that \"appear to be reading material but have no active research, course, or project association\", so the fit is by extension to listening material and is marked inference. It matters because it gives the never-alone rule on duration somewhere to land other than a domain folder. Fixture: podcast_ep_142.mp3.",
+      "provenance": "inference"
+    }
+  ],
+
+  "role_split": [],
+  "role_split_note": "Empty, and checked rather than skipped. The near-case here is sharper than on any image sibling — the person recording and the people recorded are one entity type in two roles, which is 00's own test: \"The system must separate roles that happen to contain the same entity type.\" But the canonical list holds no such pair for captures: people is the only person-key on the photos schema and it is seeded destination-ineligible, and the recorder has no key beyond camera_information. Minting the pair to fill this slot would invent a field relationship the canonical list does not hold, and both candidate keys would be destination-ineligible anyway under 00's bar. Recorded in the research notes for R1c instead.",
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This situation's defining material is continuous recorded speech, which is the one form of evidence in the photos schema that captures people who are not the holder and did not choose to be indexed. 00 gates the step that would make it legible and gates nothing else in the audio/video sentence: transcripts run \"only under an explicit privacy and compute policy\", while an authored caption track already present in the container does not, and this row keeps those two apart in its recognition list rather than collapsing them. The wider boundary applies as it does across captures — \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\" — and an authorized transcript is extracted text under that sentence, so it stays local and its display stays a user choice: \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\" Two rules follow for this row specifically, both inference from those sentences: a recording must never be sent to a cloud model on the strength of a benign-looking filename, because the filename is routinely the only thing read before the decision; and a proposed event label derived from a recording's content is a suggestion for the user to accept or rename, never an asserted fact, since it may name a person or a place the holder would not file under. Handling classes are not assigned here.",
+
+  "open_question": "Three, all of them Joseph's or R1c's rather than this row's. First, and the one with a consumer waiting: none of 00's nine residual templates is written for a standalone recording. One-Off Images says \"images\", Temporary Screenshots says screenshots, Reference Clips is scoped to saved visual inspiration and short captures. An isolated home movie or voice memo therefore has no exact home, and this row routes it to Review Later — a real fit for \"partly understood\", but a queue rather than a destination, which means a shelf of them never settles. 00 leaves the door open (\"the library must support user-defined residual areas\") without naming one, so R3 either stretches One-Off Images to cover recordings, or a tenth name is proposed to Joseph. Recorded, not resolved. Second, an R1c merge fork this node must not settle alone: dimension_order here is identical to photos.json's default and to photos.camera-events', because 00 states one order for capture-based media. Either both rows keep it and the schema default is read as pointing at the camera-roll case, or the orders are consolidated and each row keeps only its detection signals and privacy rules; the node_test_note records why this row was built rather than refused, and the fork stays open. Third, a real-filesystem decision 00 gives no sentence for: whether media_type should open a level here, separating audio recordings from video. Every real shelf of this material mixes voice memos with home movies, and a user who wants them apart wants it at the top; but 00's Photos menu offers only \"whether photographs should branch by year, event, location, or remain mostly flat\", and a level nobody asked for is the one 00 warns about. The user's call at tree-design time, not a recommendation this row may freeze."
+}

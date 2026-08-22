@@ -1,0 +1,495 @@
+{
+  "id": "finance.crypto-assets",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Cryptocurrency and digital assets",
+  "one_line": "The digital-asset situation on the Finance schema: what a person keeps because they hold cryptocurrency or tokens - exchange account statements, transaction-history exports, deposit and withdrawal confirmations, staking and reward statements, gain-loss reports produced by a tax tool, and the on-chain receipts and wallet screenshots that document a transfer. Recommended institution, then record_type, with tax_year as an optional leaf only where a document carries its own labelled tax-year slot. Its defining privacy rule is a REFUSAL, not a filing: a seed phrase, recovery sheet, private key or keystore is credential-bearing identity material and is never a finance record here.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": "PROPOSAL, and the label matters: 00 never names cryptocurrency, digital assets, wallets or exchanges anywhere. What is 00's, quoted verbatim, is the vocabulary this row reuses - \"Finance files may use institution, account type, tax year, and record type\" - and the posture it inherits - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" 00 sizes the library this row belongs to (\"common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections\") and states what a template row owes: \"Each template should define the domain’s allowed fact fields, detection signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation constraints.\" The credential refusal is 00's too, by naming rather than by example: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" Everything below that is specific to exchanges, wallets, on-chain transfers or self-custody is this row's proposal and is marked as such - no clause about digital assets is attributed to 00.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "Tested against CONNECTION.md section 2 and KEPT, and the test is satisfied on all three clauses rather than one, which is why the row survives where a thinner 'crypto is a kind of money' framing would have failed. (a) Detection signals differ: the discriminators are a wallet-address-shaped or transaction-hash-shaped opaque string in a LABELLED destination/source/hash slot, an on-chain transfer vocabulary (send, receive, swap, stake, gas or network fee) in a labelled transaction-type column, and the ABSENCE of the settlement-date and securities-identifier pair that every other statement-shaped sibling has. (b) Recommended dimensions differ from the schema's default order: account_type is dropped from the standing levels because most material here carries no labelled account-descriptor slot at all, and 00 warns against exactly that level - \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders\". (c) Privacy rules differ in kind, not degree: the material a person stores alongside these records includes seed phrases, recovery sheets and keystores, which are not weaker finance records but a different domain's protected material, and this row's job is to refuse them rather than file them. Nothing was invented to keep the row: no field was proposed, no dimension was added, and the self-custody gap that would most tempt a new key is recorded in open_question instead.",
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3). The legal fields on any file this row recognizes are the Finance schema's - institution, account_type, tax_year, record_type - plus the schema row's proposed account_holder search-and-privacy key and the universal facts. Nothing here widens that set, and the two strings this material is full of (a wallet address, an asset ticker) are deliberately NOT fields; see open_question.",
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an EXCHANGE ACCOUNT-RECORD structure: a labelled statement-period or reporting-period slot co-occurring with a labelled account slot and a labelled asset-balance table whose header cells carry an asset label beside quantity and value labels, on a document whose letterhead or page-one heading carries an organization-gazetteer hit matched at word boundary. 00 makes the labelled slot the direct-fact source - \"Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field\" - and puts this material in tables: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\" R4 owns the gazetteer's contents and R6 the term patterns; this row names the rule family and writes neither a list nor a regex.",
+      "an ON-CHAIN TRANSFER structure: a labelled transaction-type column whose values are transfer-shaped (send, receive, swap, stake, reward, fee) co-occurring with a labelled destination or source column holding long opaque alphanumeric strings, or a labelled transaction-hash slot. PROPOSED, not design: 00 states the pattern-plus-context SHAPE for course codes only. The pair is the discriminator - a transfer vocabulary alone is a messaging or file-sync export, and an opaque string alone is any identifier.",
+      "the ABSENCE-PAIR discriminator against the securities sibling, stated positively so it can be tested: an asset/quantity/price/cost-basis table with NO settlement-date column and NO securities-identifier column, on a document with no custodian account number. The brokerage sibling already names this same file as the fixture that is not its own; the two rows agree on the discriminating evidence rather than each claiming it.",
+      "a spreadsheet or portal export whose header row carries asset, quantity, spot-price, fee and transaction-type labels, and - where an issuer is to be read at all - a venue or account column holding ONE value. 00's spreadsheet extractor supplies exactly these slots: \"sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.\"",
+      "an exchange notification email: the labelled sender slot resolving to an organization at word boundary, together with a deposit, withdrawal, order-filled or confirmation term in the labelled subject slot, and a labelled amount plus an asset label in the body. 00's email extractor yields \"sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context, while treating addresses and message content as potentially sensitive\"; source_type alone never fires (see never_alone).",
+      "an explicit tax-year pattern in a LABELLED tax-year slot - a venue's year-end form, or a gain-loss report's \"for tax year\" heading - distinct from an export's date range, a filename token and any timestamp column. Narrow by 00's own rule: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.\" R6 owns the pattern.",
+      "an archive whose manifest lists export-shaped or statement-shaped member names, read without unpacking - 00: \"Archives should be inspected without being unpacked to disk.\" The manifest is the evidence; the outer archive name is not. Where the manifest also lists keystore-shaped or key-shaped members, the credential rule below governs the archive, not this situation.",
+      "the CREDENTIAL REFUSAL, written as a deterministic signal because it must fire before anything else does: a labelled recovery-phrase, seed, private-key, keystore or mnemonic slot - or an encrypted container whose structure says the same - routes to protection and to the identity credentials situation, and writes NO finance fact. 00 names the class outright in its immediate-protection sentence (\"authentication key\") and again in the residual definition (\"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\"). This is the one signal on this row whose correct outcome is that this row does not fire."
+    ],
+    "needs_llm": [
+      "an unlabelled prose notice from a venue about an account action - a delisting, a network migration, an account-restriction or a withdrawal-freeze letter - with no labelled period, account or transaction slot. 00 lists \"unlabeled forms\" and \"unusual professional artifacts\" among the reasons rules alone are insufficient, and scopes the call: \"an LLM receives only compact evidence packets for files or groups that remain ambiguous, have multiple plausible domains, or contain language that requires interpretation.\"",
+      "an OCR'd screenshot of a wallet or exchange app: deciding from the OCR CONTENT that it shows an account or transfer record rather than a generic capture. 00 names the ambiguity for exactly this class of image - a PNG \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\" - and the format never decides it.",
+      "whether an export carrying no venue string belongs to an accepted account series, is a second venue, or is not this situation at all. That is the group-coherence question, answered from a dossier with citations: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "separating this situation from a blockchain software project. A repository can contain an addresses file, a token configuration and a transaction fixture that read exactly like holdings evidence; 00's own instruction is structural rather than semantic - \"Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text\" - so the model is asked only where the structural markers are absent or contradictory.",
+      "a spreadsheet with no header row and columns of asset-shaped tokens and bare numbers: whether it is a personal holdings sheet at all. 00 names \"a spreadsheet with unclear purpose\" among the material that reaches residual review, and it is a needs_llm case before it is a residual one.",
+      "a multilingual or non-domestic venue's record whose document-kind term has no gazetteer entry and whose slots are unlabelled; 00 names \"multilingual documents\" among the cases fixed patterns cannot capture.",
+      "a document that discusses an asset rather than reporting a holding - a research note, a whitepaper, a pitch deck. 00's ranking discipline applies rather than first-match acceptance: \"It should rank candidate matches instead of accepting the first match\"."
+    ],
+    "never_alone": [
+      "an asset ticker or a short uppercase token alone. This is this node's tempting-false rule and it is worse here than on the securities sibling, because the same three-to-five-letter shape is an airline or airport code, a gene symbol, a standards abbreviation, a project initialism, a currency code and a file-naming stub at once - which is why 00 requires that \"It should use word-boundary matching rather than substring matching\". A ticker means a holding only beside a labelled quantity, value or transaction-type slot.",
+      "a long opaque alphanumeric string alone, read as a wallet address or a transaction hash. The same shape is a content hash, an API key, a session token, a UUID, an order id, a git commit, a licence key and a device serial; each needs its own labelled slot, and reading one as a wallet address is how a credentials file gets filed as a money record.",
+      "an exchange, venue or protocol name alone. 00's ambiguity sentence is the reason - \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" - and a venue name is equally an employer on a resume, a cited organization in a news PDF, a sponsor on a conference deck, and a dependency in a package manifest.",
+      "a money figure, a quantity or a percentage alone. An offer letter states compensation, a grant states shares, a research note quotes returns, a receipt states a total; the figure discriminates nothing, and certainly not which finance situation this is.",
+      "a bare 4-digit token read as tax_year, from a filename, an export range, a quarter label or a timestamp column. 00: documents contain \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\". Only a labelled tax-year slot fills tax_year here.",
+      "a source_type of spreadsheet, email, image, ocr, archive, code_structured or opaque_binary alone. 00: the engine should \"treat the file extension as a routing signal rather than an assumption about meaning\" - a .csv is not a transaction export, a .json is not a keystore, a .zip is not a wallet backup.",
+      "membership in a download session that bundled several files from one venue's portal. 00: \"A session should never be treated as proof of topic\" - here it is precisely the clue that would wrongly absorb an unreadable export, or a neighbouring person's export, into an accepted series.",
+      "a venue's export filename stem on a file whose content cannot be read. 00 says the system \"should not infer a purpose from their filename alone\" for unreadable, encrypted, corrupted or unsupported files - and a stem is the ONLY thing an encrypted wallet file offers.",
+      "the absence of EXIF on an image of a balance screen, read as proof it is a screenshot. 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"conflicting signals should lead to abstention rather than an invented classification\".",
+      "an asset-shaped token inside a source file, a package manifest, a configuration file or a test fixture. That is the code seam: 00 instructs that code files be read from \"repository roots and package files\", and \"It should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod.\"",
+      "a transaction-type vocabulary alone, with no opaque destination string and no labelled amount. Send, receive and transfer are the vocabulary of a file-sync log, a messaging export and a shipping notice as much as of a ledger."
+    ],
+    "proposed_context_terms": [
+      "wallet",
+      "exchange account",
+      "transaction hash",
+      "on-chain",
+      "deposit",
+      "withdrawal",
+      "network fee",
+      "staking reward",
+      "cost basis",
+      "recovery phrase"
+    ],
+    "proposed_context_terms_note": "PROPOSED, not design. 00 states the pattern-plus-context SHAPE for course codes only (\"a course-code pattern together with academic context\"); these are this node's candidate context terms for R6 to own. The last one is listed because it is the term whose correct outcome is a REFUSAL to fire this situation, not a match. No regex, no list contents, no threshold is written here."
+  },
+  "work_types": [
+    "exchange or custodial account statement",
+    "transaction or activity history export",
+    "order or trade confirmation",
+    "deposit or withdrawal confirmation",
+    "on-chain transfer receipt",
+    "staking, reward or yield statement",
+    "mining or validator payout statement",
+    "gain-loss or cost-basis report from a tax tool",
+    "year-end tax form issued by a venue",
+    "holdings or portfolio summary",
+    "watch-only or public-address list",
+    "token or collectible purchase and sale record",
+    "account verification or identity-check correspondence",
+    "fee schedule or terms notice",
+    "airdrop, fork or corporate-action-style notice"
+  ],
+  "work_types_note": "These are VALUES of the schema's record_type field, discovered at runtime, never roster nodes. 00: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" Venue-specific and jurisdiction-specific form names are values from R5's one-jurisdiction catalogue (D4) - never field names, never dimensions. Note what is ABSENT from this list on purpose: a seed phrase, a recovery sheet, a private key and a keystore are not record_type values, because they are not records of this domain at all.",
+  "grouping_reasons": [
+    "one account at one venue across its statement or export series - the repeating export header plus a stable masked account tail is the anchor, never the venue name alone",
+    "one tax year: the venue's year-end forms, the tax tool's gain-loss report and the exports that fed it. Multi-membership with the finance.tax-filings situation, never a copied fact - 00: \"A file may validly belong to more than one accepted group\"",
+    "one transfer across its confirmation email, its on-chain receipt and the export row that reports it",
+    "one venue-migration or account-closure event across the withdrawal confirmations and the closing statement that document it",
+    "one export re-downloaded, or a corrected report re-issued - the universal duplicate_family and version_family facts, never a finance fact",
+    "a shared record supporting two purposes - a gain-loss report inside a tax-year packet and inside an accepted account series. Multi-membership, never a copied fact"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "record_type"
+    ],
+    "why": "institution first, because a record_type value such as statement or confirmation is unintelligible without knowing which venue issued it - 00's own parent-dimension rule, stated for coursework and general in form: \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" record_type second, as the leaf that separates statements from exports, confirmations, reward statements and reports. WHAT DIFFERS FROM THE SCHEMA'S DEFAULT ORDER, and why: account_type is dropped from the standing levels. On the schema row it earns its place because one bank runs several products for one person and a labelled account descriptor sits on the statement; most material here carries no labelled account-descriptor slot at all, so the level would open a branch the facts cannot fill and would produce a single child for most people - 00: \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders\", and \"It should recommend flattening when a dimension does not materially improve retrieval.\" tax_year is destination_eligible on the canonical row and is likewise not a standing level; year-first as a whole-branch order stays the tax-filings sibling's - \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" OPTIONAL BRANCH PATTERNS, all three of them 00's \"each branch should offer the dimensions that are actually present in its member groups\": (a) a tax_year leaf UNDER record_type for the year-scoped subset that carries its own labelled tax-year slot - venue year-end forms, gain-loss reports - never above institution and never filled from an export range, a quarter label or a filename token; (b) account_type restored between institution and record_type, returning to the schema's default order, where a labelled account-descriptor slot genuinely exists on the records - a retirement-wrapped or corporate account at the same venue is the case that asks for it; (c) NO institution level at all for the self-custody subset, because there is no issuing organization to name and inventing one would be a fabricated fact - that material sits at record_type under the parent, or under a scoped fallback of the kind 00 describes for a file with a meaningful parent and no recoverable child value (\"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder\"). Safety posture: shallow by intent. This is a recommendation over a protected area, not a filing tree - \"a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default\". A folder level named for a wallet address would publish an identifier on the filesystem, which is why no such level exists and no such key was proposed. The user may reverse, remove, add, or flatten all of it: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" account_holder, the schema row's proposed search-and-privacy key, is never a dimension - \"It should avoid using authorship or creator identity as a destination dimension.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary",
+      "code_structured"
+    ],
+    "extensions": [
+      ".pdf",
+      ".csv",
+      ".xlsx",
+      ".json",
+      ".txt",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true,
+    "note": "code_structured and .json are listed because this material genuinely arrives in those shapes (an export, a wallet metadata file) - and they are the two entries most likely to be misread, which is why the never_alone list carries a rule for each. A .json is a keystore, a package manifest, a notebook, a config and an API response before it is anything of this domain's."
+  },
+  "file_examples": [
+    {
+      "filename": "Exchange Account Statement 2026-Q1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead carries an organization name matched at word boundary",
+        "labelled slots: Reporting Period, Account ID (masked tail), Opening Balance, Closing Balance",
+        "a labelled holdings table with Asset, Quantity, Price and Value columns",
+        "a labelled activity table whose Type column holds buy, sell, deposit and withdrawal values",
+        "no settlement-date column and no securities-identifier column anywhere"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from the reporting period or from the 2026-Q1 token - a quarter is not a labelled tax-year slot, and the bare 4-digit run is 00's forbidden year candidate",
+        "account_type from the venue's product marketing or from the asset mix; no labelled account-descriptor slot appears on this page",
+        "a second institution fact from an asset name in the holdings table - a holdings table REFERENCES assets and belongs to one venue",
+        "a balance or quantity retained as a fact; an amount is content, not a schema field, and this is protected material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "exchange_transactions_2025.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row: Timestamp, Asset, Quantity, Spot Price, Fees, Transaction Type, Cost Basis, Destination",
+        "the Transaction Type column holds buy, sell, send and receive values",
+        "the Destination column holds long opaque alphanumeric strings",
+        "no settlement-date column, no securities identifier, no account-number column",
+        "no venue string appears in any cell, no sheet title, no metadata beyond the filesystem record",
+        "arrived in the same download session as two readable statements"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from the export stem, or from the download session that produced it - 00 caps a session at a possible-grade clue: \"A session should never be treated as proof of topic\"",
+        "institution from the most frequent asset in the Asset column; ranking one because it recurs is the polished-but-false move, and the assets are holdings, not the venue",
+        "tax_year from the filename's 4-digit token",
+        "a wallet-address fact from the Destination column - there is no such field, and the strings stay raw local evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "recovery phrase backup.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present: make, model, DateTimeOriginal; sensor-shaped pixel dimensions",
+        "OCR of the frame returns a numbered list of twelve common words and a labelled heading reading Recovery Phrase",
+        "no organization name, no amount, no date on the card itself"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information",
+        "capture_year",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "ANY finance fact. This is the refusal fixture and the reason this row exists in the shape it does: the material sits beside a person's exchange statements and is not a record of an account. It is credential-bearing identity material - 00's immediate-protection sentence names \"authentication key\" in the same breath as \"account record\", and the identity.credentials-passwords situation owns it",
+        "record_type = anything. There is no record here; there is a key",
+        "the OCR'd words retained as a normalized value, surfaced in a group summary, or included in any dossier - 00: \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\", and \"Protected material should not be included in cloud-model prompts by default\"",
+        "that camera EXIF makes this a photo event; the capture facts stand on their own evidence and settle nothing about what the frame contains",
+        "a folder path - and specifically not a deep one; 00: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\""
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "keystore-UTC--2026-02-11.json",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the file parses as structured data but every value field is an encrypted blob; no readable text, no organization string",
+        "filename stem carries a timestamp-shaped run and a wallet-tool naming convention",
+        "arrived in the same download session as a readable export"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "ANY finance fact. A keystore is a key. 00's own default for this class is metadata-only: \"disk images, executables, databases, encrypted containers, damaged files, and unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved\"",
+        "institution or record_type from the filename stem alone - 00: the system \"should not infer a purpose from their filename alone\" for unreadable files",
+        "membership in the accepted account series because the download session bundled it; a session is a possible-grade clue only",
+        "that .json makes it code or data; source_type is a routing signal and never alone",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Crypto Tax Report 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries a report name and a labelled tax-year slot reading 2025",
+        "a labelled short-term and long-term split with proceeds and cost-basis columns",
+        "the letterhead names a tax-software product, not a venue; a later section lists three venue names as data sources",
+        "a masked taxpayer identification slot in the recipient block"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "institution = the tax-software product from the letterhead. The tool produced the document and issued no account; and institution must not be filled from the three venue names in the sources section either, because the report belongs to none of them singly. This is the ugly case on this node: the strongest positional evidence is the wrong role",
+        "a jurisdiction field, or a field named after this report or a form - names are VALUES of record_type from R5's one-jurisdiction catalogue (D4); a field named for a form is the one-way move the contract forbids",
+        "account_type; the report aggregates across venues and describes no single account",
+        "that belonging to the accepted tax-year filing packet removes it from the venue account series - one file in two groups, never a fact copied between them",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-05-11 at 21.03.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution; no camera EXIF",
+        "filename carries the platform's default screenshot pattern",
+        "an OCR region reads an app name beside a labelled Total Balance, a truncated address string and a short list of assets with quantities"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the missing EXIF alone; the exact display resolution and the filename pattern are what may support it, and \"conflicting signals should lead to abstention rather than an invented classification\"",
+        "the balance or any holding size retained as a fact, and no truncated address retained as a value - this is protected material that must not reach a cloud prompt",
+        "that it is a member of the accepted account series because it names the same app; it may join the account neighbourhood without carrying the statement's facts",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Your withdrawal is complete.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a venue domain",
+        "labelled subject slot carries a withdrawal term",
+        "body carries a labelled Amount with an asset label, a labelled Network Fee, a labelled Transaction Hash and a masked account tail",
+        "no attachment"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = email; the labelled sender, subject and body slots are what fire, and file_kind_plausible is never alone",
+        "an account_type - the notification names no account descriptor",
+        "a transaction-hash fact; there is no such field, and the string is evidence that stays local",
+        "a contact fact used as a folder proposal; 00 keeps address-book data privacy-protected rather than a proposal basis",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "hardhat.config.ts",
+      "source_type": "code_structured",
+      "observations": [
+        "sits in a directory containing package.json, a contracts/ folder of .sol sources and a test/ folder",
+        "the file body holds a network map with RPC endpoint strings, one long hex constant and two asset-shaped uppercase tokens",
+        "a deploy script in the same tree references a token address constant"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY finance fact. This is the code collision fixture: an address-shaped constant, asset tokens and amounts are ordinary contents of a blockchain project, and 00's instruction is structural rather than semantic - \"Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text\"",
+        "institution from an RPC endpoint's organization string; a service the code calls is not a record's issuer",
+        "record_type from a fixture file that mimics an export",
+        "that the directory should be reorganized at all - 00: \"It should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod.\"",
+        "a folder path"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "wallet_backup.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists two keystore-shaped members, one transactions export, one address list and one README",
+        "manifest read without extraction to disk; member count and uncompressed size recorded",
+        "outer archive name carries no venue string and no year"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "member facts written onto the archive, or the archive's facts written onto members - 00's mixed-manifest shape; the manifest is evidence of a candidate set for review",
+        "record_type for the archive from the export member alone. The manifest names credential-shaped members, and the credential rule governs the whole container: an archive that carries keys is protected material before it is a record series",
+        "institution from the archive name",
+        "that the export member is therefore this situation's material by inheritance; it activates on its own evidence when it is read",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Holdings.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names: Exchanges, Wallets, Summary",
+        "labelled column headers: Asset, Quantity, Venue, Cost, Notes",
+        "the Venue column holds four distinct values, three of them venue names and one reading self-custody",
+        "hand-entered rows with inconsistent formatting; no export header, no account number, no timestamp column"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from the Venue column's several distinct values - a personally maintained sheet REFERENCES many venues and belongs to none; ranking one because it appears most often is the polished-but-false move",
+        "that the self-custody row supplies a venue value; it is the absence of one, and it is why this row's third optional branch pattern exists",
+        "an account_type; a self-custodied holding is not an account descriptor",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_5502.png",
+      "source_type": "image",
+      "observations": [
+        "no camera EXIF, no software metadata, dimensions that match no known display resolution",
+        "OCR returns fewer than a handful of unreadable fragments",
+        "no filename pattern beyond a camera-roll-shaped stem",
+        "no graph neighbour beyond two other images from the same folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the missing EXIF - 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "that it is this situation's material because it sits beside two wallet screenshots; the neighbourhood assembles context and 00 forbids the copy - \"The graph does not automatically copy those missing facts onto sparse files.\"",
+        "any fact at all beyond the universals; an empty activation set is the correct outcome here, and OCR arriving later re-runs the question under a new cache key",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Order confirmation - hardware wallet.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a retailer domain",
+        "labelled subject slot carries an order term and an order-shaped identifier",
+        "body carries a labelled Order Total, a shipping address block and one line item naming a hardware wallet device",
+        "no asset label, no transaction type, no account tail"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "that this is THIS situation's material because the product name contains a wallet term. It is a retail purchase and the finance.receipts-expenses sibling's material; the discriminating absence is that no asset, no transfer and no account appears anywhere",
+        "an account_type - a one-off retail purchase belongs to no account",
+        "that the device purchase evidences ownership of any holding",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.investment-brokerage",
+      "signal": "an exchange export and a securities export share asset, quantity, price, fee and cost-basis columns slot for slot. The discriminating evidence: a securities identifier plus a settlement date under a custodian account number is the brokerage situation; a labelled destination or transaction-hash slot holding an opaque address-shaped string, an on-chain transfer vocabulary, and NO settlement date is this one. The asset/quantity/price triple is the item that must not count for both. Reciprocates the edge already authored on finance.investment-brokerage, and names the same fixture from this side: exchange_transactions_2025.csv.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.credentials-passwords",
+      "signal": "the sharpest and most consequential collision on this row. A wallet keystore, a recovery-phrase photograph and an encrypted wallet container arrive in the same folder, the same archive and the same download session as this situation's statements and exports, and a venue name or a wallet-tool stem sits on both. The discriminating evidence: a labelled account, period, amount or transaction-type structure REPORTING on holdings is this situation; a labelled recovery-phrase, seed, private-key, keystore or mnemonic slot, or an encrypted container whose structure says the same, is credential material and this situation must not fire at all. One evidence item - the venue name, the wallet-tool filename stem - must never count for both, and getting it wrong is not a misfiling but an exposure. Fixtures: recovery phrase backup.jpg, keystore-UTC--2026-02-11.json, wallet_backup.zip.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "a venue's year-end form and a tax tool's gain-loss report carry an explicit labelled tax-year slot - the filing situation's own strongest signal. The discriminating evidence: a labelled tax-year slot read as the year's return support is the filing situation; the same document read as a venue account's year-end record, tied to a masked account tail in an accepted series, is this one. The YEAR is the single evidence item that must not count for both. The file legitimately belongs to two accepted groups; that is multi-membership, never a copied fact. Fixture: Crypto Tax Report 2025.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "a purchase paid in a digital asset, and a retail purchase OF wallet hardware, both read as this situation. The discriminating evidence: an asset label plus a transfer or account structure is this situation; a merchant, a line item and an order total with no asset and no account is a receipt. The money figure and the merchant name are the items that must not count for both. Fixture: Order confirmation - hardware wallet.eml.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "a blockchain repository contains address-shaped constants, asset tokens, amounts and export-shaped test fixtures - this situation's evidence vocabulary, inside code. The discriminating evidence is structural and 00 names it: a repository root or package manifest in the directory tree makes the file code, and no amount of asset-shaped content overrides that. Fixture: hardhat.config.ts.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "a screenshot of a wallet app and any other screenshot share the absence of EXIF, an exact display resolution and the platform filename pattern. The discriminating evidence is only the OCR content: an app name beside a labelled balance and an address fragment is an account record; capture properties with no such structure are a capture only. 00 forbids reading missing EXIF as proof either way. Fixtures: Screenshot 2026-05-11 at 21.03.44.png, IMG_5502.png.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "an operation that accepts digital-asset payment keeps exports that are simultaneously its ledger source. The discriminating evidence: a venue account or on-chain transfer structure is this situation; a ledger sheet with invoice numbers, client names and a chart-of-accounts column is bookkeeping. The transaction rows are the item that must not count for both.",
+      "provenance": "proposal"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by omission: CONNECTION.md section 5 restricts also_holds_with to schema-to-schema pairs, and this is a template row. The co-activations this situation produces are already authored on the finance schema row (identity, legal, academic, photos, medical); the file examples above record them per file in also_schema instead - recovery phrase backup.jpg, keystore-UTC--2026-02-11.json, wallet_backup.zip and Crypto Tax Report 2025.pdf with identity, the app screenshot with photos, hardhat.config.ts with code. The identity co-activation carries protection and no fields today (PR-6), which is exactly the outcome this row wants for credential material.",
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "00 names this situation's material in the definition itself - \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\" - and \"it should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". It is the home for BOTH halves of this node: the isolated venue statement with no accepted series, and the credential material this row refuses to file as a record. Fixtures: Exchange Account Statement 2026-Q1.pdf, Crypto Tax Report 2025.pdf, recovery phrase backup.jpg, keystore-UTC--2026-02-11.json, wallet_backup.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "00's definition covers the one-off transactional notice exactly: \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\". Fixtures: Your withdrawal is complete.eml, Order confirmation - hardware wallet.eml.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" - exactly the venue-less export and the hand-kept holdings sheet, where record_type resolved and institution did not. Fixtures: exchange_transactions_2025.csv, Holdings.xlsx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00 defines it for \"password-protected archives, unreadable documents, damaged files, and unknown formats\", and encrypted containers are ordinary in this material. Recorded WITH its tension rather than silently resolved: for a wallet container both this home and Protected Records fit, and the file examples send keystore-UTC--2026-02-11.json to Protected Records because 00's Protected Records definition names \"credentials\" outright while this one names only formats. Where a container is merely unreadable and carries no credential evidence, this is the home.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "00 defines it for \"screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship\" - a balance screen captured as a reminder, when no account group is accepted. Fixture: Screenshot 2026-05-11 at 21.03.44.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "00 defines it for \"images with no event, project, reference collection, or photo-family association\" - the unreadable capture-roll image that never resolved to anything. Fixture: IMG_5502.png.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty deliberately. role_split lives between canonical FIELD keys (CONNECTION.md sections 5 and 6), and the split this material needs most - the venue that ISSUED a record against the tax tool or software that PRODUCED it, both of which sit in a page-one letterhead - has no canonical counterpart key to split against. It is recorded in must_not_conclude on Crypto Tax Report 2025.pdf rather than minted here, because minting a producer-side key to solve one template's problem is the move that produced 2,295 private field names in the overnight pass. The finance schema row's existing splits (institution against school, institution against target_university) apply unchanged.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names this material inside its privacy sentence - the corpus \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and requires immediate protection: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" Both of that sentence's relevant nouns land on this one node at once, which is what makes it different from its siblings: an exchange statement is an \"account record\", and the seed phrase in the next file along is an \"authentication key\". \"Protected material should not be included in cloud-model prompts by default\", and the canvas shows it as a protected area: \"a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default.\" Only 00's phrase is asserted; the handling class is P7's and is not set here. Two consequences this row records rather than invents: a folder level named for a wallet address would publish an identifier on the filesystem, so no such level and no such key exists; and a recovery phrase is one of the few file contents whose disclosure is itself the harm, so its OCR text is evidence that stays local and never a normalized value - 00: \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\"",
+  "open_question": "Self-custody has no institution, and nothing in the canonical vocabulary can say so. The Finance schema gives institution the ISSUER role, and a person holding assets in their own wallet has no issuing organization at all - so under this row's recommended order, a real and common half of this material cannot open the first level, while the exchange half opens it cleanly. The three answers are different products: (a) the self-custody subset carries no institution fact and sits at record_type or under a scoped fallback, which is what this row recommends today and what optional branch pattern (c) encodes; (b) a custody-mode distinction is read into account_type, which makes that field carry a meaning it was not defined to carry and would merge two people's very different arrangements; (c) an account-identity or custody key is minted on the shared vocabulary, which is a decision about the product's field table and must not be made by one template row - and which would immediately raise whether a wallet identifier may ever be a folder level, where this row's answer is no. Recorded, not resolved: no field was proposed here. A second, smaller fork rides on the same answer - whether an encrypted wallet container's residual home is Protected Records (00 names \"credentials\") or Unsupported or Encrypted (00 names the format) - and this row states its preference and its reason in falls_through_to rather than treating it as settled."
+}

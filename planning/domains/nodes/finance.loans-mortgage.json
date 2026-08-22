@@ -1,0 +1,566 @@
+{
+  "id": "finance.loans-mortgage",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Loans and mortgages",
+  "one_line": "The borrowing-lifecycle situation on the Finance schema: one loan followed from its application and closing packet, through servicing statements and escrow, to payoff and release - with the institution changing mid-life when servicing transfers. Recommended account_type, then record_type, with institution as an optional level rather than the root. A safety situation whose application and closing packets carry other people's and other templates' protected material, so the posture is stricter than the schema's default.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "00 gives this template its field vocabulary outright - 'Finance files may use institution, account type, tax year, and record type' - and names financial records among the situations the library covers: 'common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections'. It names what a template row owes: 'Each template should define the domain’s allowed fact fields, detection signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation constraints.' It names the launch posture: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' 00 never uses the words loan, mortgage or escrow, so every sentence below that is specific to borrowing is an extension of a named domain and this row is provenance inference, not design. The two structures it leans on hardest are 00's, stated for other material and applied here: the purpose-coherent packet ('The documents are content-incoherent but purpose-coherent') and the parent-dimension rule ('A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it').",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "Passes CONNECTION.md section 2's test on two of its three clauses, not one. (a) Recommended dimensions DIFFER from the Finance schema's default and from finance.personal-records: both put institution first, and this situation must not, because one loan is commonly issued by an originator and then serviced by two different companies over its life - institution-first splits one loan across three sibling folders and produces exactly what 00 warns about, a level that 'repeats a concept already expressed in the parent' or 'creates a large number of tiny folders'. (b) Detection signals differ: the discriminator is an amortization structure - a labelled principal/interest split against a labelled remaining principal balance, with a loan identifier - which no other finance situation carries. (c) Privacy rules differ in kind, not degree: a loan application and closing packet aggregate identity documents, pay stubs, bank statements and a co-borrower's records into one bundle, so the packet is more disclosing than any of its members and must never be dossiered as a unit. No field, dimension or privacy rule was invented to justify the row; the one thing this situation genuinely lacks a key for - which loan, when a person holds two of the same kind - is recorded in open_question and NOT minted.",
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3). The legal vocabulary here is the Finance schema's institution, account_type, tax_year, record_type, plus that row's proposed account_holder and the universal facts.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. Three keys were tempting and all three were refused: a loan_number key (it is an identifier for grouping, not an organization dimension - and 00 forbids inventing fields to fill a familiar folder shape: 'it should not invent new fields automatically'), a property_address key (an address appears equally on a utility bill, a lease, an insurance policy and a delivery receipt, and a single template row must not widen the shared vocabulary), and a loan_kind key (that is account_type, already canonical - minting a synonym is the 574's defining failure). Collateral, property and loan identifiers stay EVIDENCE, usable by P9 to assemble a loan neighbourhood, and never become fields on the strength of this row.",
+  "recognition": {
+    "deterministic": [
+      "the amortization structure, as a PAIR of labelled slots on one document: a labelled principal-and-interest split (principal, interest, and commonly escrow) co-occurring with a labelled remaining or unpaid principal balance. This is the discriminator that separates this situation from every other finance record - a deposit statement has a balance and no principal split, a receipt has a total and neither. 00 makes the labelled slot the direct-fact source: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field', and names the location this material uses: 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.'",
+      "a labelled loan-identifier slot (loan number, account number on a servicing document) co-occurring with a labelled borrower block. The identifier alone means nothing (see never_alone); the pair is what fires.",
+      "a labelled escrow section - escrow balance, escrow disbursements, an annual escrow analysis with projected payments - beside a labelled payment breakdown. This is the property-loan signal, and it is also the seam with finance.household-property and finance.insurance-personal, because the escrow section names a tax authority and an insurer that are neither the issuer nor the account.",
+      "a credit-application form structure: labelled slots for the amount requested, the term, the rate, the collateral or property, together with labelled employment, income and assets blocks on the same form. The blocks are the tell - no other finance situation asks the holder to declare their own income on the record itself.",
+      "an organization-gazetteer hit matched at word boundary in the letterhead or page-one heading zone, together with a borrowing context term in a positionally weighted zone. 00: 'It should use word-boundary matching rather than substring matching', and 'a value in a filename or document title carries more meaning than the same value in a footer'. The gazetteer's contents are R4's and the term patterns are R6's; this row names the rule family and writes neither a list nor a regex.",
+      "an archive whose manifest lists closing-packet-shaped members together - a note, a security instrument, disclosure statements, an appraisal, a title document, an insurance binder, identification scans - read without unpacking. 00: 'Archives should be inspected without being unpacked to disk', and this is the same evidence shape 00 credits for an application packet, where the manifest of mixed members is what makes the packet legible.",
+      "a payoff or release structure: a labelled payoff amount with a labelled good-through date and a per-diem figure, or a release/satisfaction term with a recording or registration stamp. The release is the seam with legal.personal-legal-matters and finance.vehicle-records, and its date must not be read as a tax year.",
+      "a year-end interest structure: a labelled tax-year slot with a labelled interest-paid amount and a loan identifier on the same document. This is the only place in this situation where tax_year has a legal source; a payment date, a good-through date and an amortization year column are not it. Narrow by 00's own rule: 'Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.'",
+      "a spreadsheet whose header row carries period, payment, interest, principal and balance labels AND whose cells carry a borrower or institution value rather than formulas over an entered rate. 00's spreadsheet extractor supplies exactly these slots: 'sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.' Without the borrower or issuer value it is a calculator, not a record - see the Amortization Practice.xlsx fixture."
+    ],
+    "needs_llm": [
+      "an unlabelled prose letter announcing a servicing transfer, naming two institutions and an effective date: deciding that the two names are one loan changing hands rather than two accounts. 00 lists 'unlabeled forms' among the reasons rules alone are insufficient, and scopes the call: 'an LLM receives only compact evidence packets for files or groups that remain ambiguous, have multiple plausible domains, or contain language that requires interpretation.'",
+      "whether a heterogeneous bundle is one closing or application packet - 00's purpose-coherent, content-incoherent shape read off a manifest or a folder of scans, answered from a dossier with citations. 'A model that cannot cite sufficient evidence must return unknown.' The answer is a reviewable group membership, never a fact written onto the sparse members.",
+      "an OCR'd screenshot of a lender or servicer portal: deciding from the OCR content that it shows a loan account rather than a generic capture or a deposit-account balance.",
+      "a modification, forbearance or hardship agreement, where the prose is the whole document and the labelled slots are few: deciding it belongs to the loan's lifecycle rather than to the legal template's material.",
+      "a multilingual or non-domestic lender's document whose document-kind term has no gazetteer entry and whose slots are unlabelled; 00 names 'multilingual documents' among the cases fixed patterns cannot capture.",
+      "separating a loan agreement from a lease or a hire-purchase agreement where both carry parties, a term, a rate and a collateral description - the legal.leases-agreements seam, decided on whether the instrument creates a repayment obligation over a principal or grants use for rent."
+    ],
+    "never_alone": [
+      "the word loan or mortgage alone. This is the tempting-false-file rule for this node: a personal-finance article, a course reading, a rate-comparison PDF saved from a browser and a marketing mailer each carry it and none is a loan record. The material fixture is Mortgage Rates Explained.pdf, whose honest home is 00's Reading Inbox, not a finance branch.",
+      "an amortization-shaped table alone. Amortization Practice.xlsx from a personal-finance course carries period, payment, interest, principal and balance columns and formulas over an entered rate, with no institution, no borrower and no identifier. The columns are a calculation, not a record - and this is the fixture that keeps the collision with academic.coursework honest.",
+      "an institution or bank name alone. 00's ambiguity sentence is the reason, with a lender added to the readings: 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization'. A bank that also holds a deposit account, bills a fee and sends marketing is several readings of one string.",
+      "a digit string that looks like a loan number. It is equally an invoice id, a case number, a policy number, an order number or a device serial; it needs a labelled loan or account slot beside a borrower block to mean anything.",
+      "a property address alone. An address appears on a utility bill, a lease, an insurance declaration, a delivery receipt and a tax notice. It is not proof of a mortgage and it must not become a fact in a field this schema does not declare.",
+      "a money figure or a percentage rate alone. An offer letter states compensation, a proposal quotes a fee, a savings statement quotes an interest rate; neither the amount nor the rate discriminates.",
+      "a bare 4-digit token read as tax_year - from a good-through date, an amortization schedule's year column, a closing date or a filename. 00: documents contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'.",
+      "a source_type of spreadsheet, email, image, calendar, archive or opaque_binary alone. 00: the engine should 'treat the file extension as a routing signal rather than an assumption about meaning' - a .zip is not a closing packet, an .eml is not a payment record, and a calendar reminder titled with a payment date is a SOURCE_TYPE with content, not a domain.",
+      "membership in a download session that bundled a folder of closing PDFs. 00: 'A session should never be treated as proof of topic' - and here it is precisely the clue that would wrongly absorb an unrelated scan or another borrower's document into a packet.",
+      "a lender's export filename stem on a file whose content cannot be read. 00 says the system 'should not infer a purpose from their filename alone' for unreadable, encrypted, corrupted or unsupported files.",
+      "the absence of EXIF on a photographed closing page, read as proof it is a screenshot. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot', and 'conflicting signals should lead to abstention rather than an invented classification'.",
+      "an employer name and an income figure appearing inside a loan application, read as a career or payroll fact about the application. They are declared evidence on someone's credit form, not an employment record."
+    ],
+    "proposed_context_terms": [
+      "loan number",
+      "principal balance",
+      "interest paid",
+      "escrow",
+      "payoff amount",
+      "amortization",
+      "borrower",
+      "co-borrower",
+      "collateral",
+      "closing costs",
+      "annual percentage rate",
+      "servicer"
+    ]
+  },
+  "work_types": [
+    "loan application",
+    "offer or estimate of terms",
+    "disclosure statement",
+    "promissory note",
+    "security instrument",
+    "appraisal or valuation report",
+    "title or ownership report",
+    "closing or settlement statement",
+    "servicing statement",
+    "payment confirmation",
+    "escrow analysis",
+    "rate change notice",
+    "servicing transfer notice",
+    "year-end interest statement",
+    "modification or forbearance agreement",
+    "delinquency or default notice",
+    "payoff quote",
+    "release or satisfaction record"
+  ],
+  "work_types_note": "These are VALUES of the schema's record_type field, discovered at runtime, never roster nodes. 00: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.' Jurisdiction-specific instrument and form names - the local word for a security instrument, the local year-end interest form - are values from R5's one-jurisdiction catalogue (D4), never field names and never dimensions.",
+  "grouping_reasons": [
+    "one loan across its whole lifecycle - application, closing packet, servicing statements, escrow analyses, payoff and release. The anchor is the loan identifier plus the collateral described on the documents, NOT the shared institution name, because the institution changes when servicing transfers and the loan does not",
+    "one closing or application packet: 00's purpose-coherent, content-incoherent shape ('The documents are content-incoherent but purpose-coherent') read off a manifest or a scan folder. Members keep their own facts; the packet is a membership record",
+    "one escrow or interest year: the annual escrow analysis with the year-end interest statement and the payments they account for",
+    "one document re-downloaded, or an unsigned draft beside its executed copy - the universal duplicate_family and version_family facts, never a finance fact",
+    "a record that supports another purpose as well: a pay stub, a bank statement or an identity scan submitted with an application is also its own template's material. 00: 'A file may validly belong to more than one accepted group' - multi-membership, never a copied fact"
+  ],
+  "template": {
+    "dimension_order": [
+      "account_type",
+      "record_type"
+    ],
+    "why": "account_type first, holding the loan kind (mortgage, auto loan, student loan, personal loan), because it is the level that makes the leaf intelligible - 00's parent-dimension rule: 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.' A record_type value such as servicing statement or payoff quote is unreadable without knowing which borrowing it belongs to. record_type second, as the leaf that separates the application and closing material from the servicing series and from the end-of-life records. INSTITUTION IS DELIBERATELY NOT THE ROOT, and that is what distinguishes this template from the Finance schema's default and from finance.personal-records, which both open on institution. One loan is commonly originated by one company, sold to a second, and serviced by a third; institution-first scatters a single loan across sibling folders whose members belong together, and 00 warns against exactly that shape - 'It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders', and 'It should recommend flattening when a dimension does not materially improve retrieval.' Optional branch pattern: where a person holds several loans of the SAME kind - two student-loan servicers, two properties - institution is offered as a level BETWEEN account_type and record_type, never above account_type. Second optional pattern: the closing or application packet may be kept whole as one branch under account_type rather than split by record_type, which is 00's own allowance for a purpose-defined packet - 'The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design'. tax_year is destination_eligible on the canonical row and is NOT a level here: only the year-end interest statement carries a labelled tax-year slot, so a year level would open branches the facts cannot fill; where such a record exists, tax_year may appear as an optional leaf under record_type, never above it, and never filled from a payment date or a good-through date. Time is not first: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' account_holder, the schema row's proposed search-and-privacy key, is never a dimension - 'It should avoid using authorship or creator identity as a destination dimension' - which also settles the co-borrower question: a joint loan does not become two person-folders. Safety posture: shallow by intent, a recommendation over a protected area rather than a filing tree, and 'each branch should offer the dimensions that are actually present in its member groups'. The user may reverse, remove, add, or flatten all of it: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary",
+      "calendar"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true,
+    "note": "calendar and .ics are listed because this material genuinely produces payment-due reminders, and listing them is how the never-alone invariant gets stated for them rather than omitted: a reminder event activates nothing without content evidence, which is CONNECTION-EXAMPLES fixture 5's rule."
+  },
+  "file_examples": [
+    {
+      "filename": "Mortgage Statement Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "servicer name in the page-one letterhead, matched at word boundary",
+        "labelled slots: Statement Date, Payment Due Date, Amount Due, Principal Balance, Loan Number",
+        "a breakdown table labelled Principal, Interest, Escrow",
+        "a year-to-date column labelled Interest Paid",
+        "a footnote naming a different company as the originator"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from the year-to-date interest column or from the statement date - a running total inside a year is not a labelled tax-year slot, and a bare 4-digit run is 00's forbidden year candidate",
+        "institution = the originator named in the footnote; the letterhead names who issued THIS record, and a superseded issuer is history, not the record's fact",
+        "that this is the finance.personal-records situation because a labelled period-and-balance pair matched - the principal/interest/escrow breakdown and the loan number are the discriminator, and this fixture reciprocates that template's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Closing Disclosure.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled loan-terms table: Loan Amount, Interest Rate, Monthly Principal and Interest, Loan Term",
+        "labelled Closing Costs and Cash to Close blocks",
+        "a property address block and a borrower and seller block",
+        "lender name in a labelled slot, distinct from the settlement agent's name",
+        "signature lines on the final page"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a property or address fact - this schema declares no such field, and a template row may not mint one to hold a value it likes; the address stays evidence that P9 may use to assemble the loan neighbourhood",
+        "institution = the settlement agent or the title company; the lender slot is the issuer role, and 00 requires that roles sharing an entity type stay separate - 'The system must separate roles that happen to contain the same entity type'",
+        "tax_year from the closing date",
+        "that activating finance excludes the legal reading - an executed instrument creating an obligation activates legal on its own evidence, and both readings stand",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mortgage Interest Statement 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries a form name and a labelled tax-year slot reading 2025",
+        "labelled numbered boxes: Mortgage Interest Received, Points Paid, Property Taxes",
+        "labelled payer/borrower and recipient/lender blocks with masked identification numbers",
+        "a loan identifier in a labelled slot"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "institution",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a field named after this form, or a jurisdiction field. The form name is a VALUE of record_type from R5's one-jurisdiction catalogue (D4); a field named for a form is the one-way move the contract forbids",
+        "that belonging to a tax filing removes it from this loan's lifecycle - it is one document with two accepted memberships, which is 00's 'A file may validly belong to more than one accepted group', and neither membership copies a fact",
+        "account_type from the form alone unless a labelled loan-kind or collateral slot supports it",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Loan Application - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots: Loan Amount Requested, Term, Purpose of Loan, Collateral",
+        "labelled Employment, Income, Assets and Liabilities blocks completed by hand",
+        "an unmasked national identification number in a labelled borrower slot, and a second borrower block for a co-applicant",
+        "lender name in the page-one letterhead",
+        "signature and date block"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a career or payroll fact from the declared employer and income - those are declarations on a credit form, not an employment record, and the employer name is the one evidence item the career seam says must not count for both",
+        "an institution or account_type fact for the OTHER accounts listed in the assets block - a form that references several institutions belongs to none of them",
+        "a second account_holder value silently merged with the first; a co-applicant is another person, and 00 keeps this material protected rather than surfaced",
+        "a folder path, and no cloud dossier: unmasked identification in a labelled slot is 00's immediate-protection material"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "closing_packet_2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a note, a security instrument, three disclosure statements, an appraisal, a title report, an insurance binder, two pay stubs, two bank statements and two identification scans",
+        "manifest read without extraction to disk; member count and uncompressed size recorded",
+        "outer archive name carries a 4-digit token"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "member facts written onto the archive, or the archive's facts written onto members - the manifest is evidence of a candidate packet for review, the same way 00 reads submission.zip",
+        "that the identification scans are finance material because they arrived in this archive; each activates identity on its own evidence and is protected there",
+        "that the pay stubs and bank statements stop being their own templates' material - they are members of this packet AND records of their own situations",
+        "tax_year from the 4-digit token in the archive name",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "scan_0042.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one scanned page with a broken text layer; OCR returns a numbered clause fragment and the words initial here",
+        "no institution string, no labelled loan slot, no borrower block",
+        "arrived in the same folder as eleven other scans with sequential stems"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "institution, account_type or record_type from the neighbouring scans - this is the HW 3 shape: 'The graph does not automatically copy those missing facts onto sparse files'. It may join the closing-packet neighbourhood as a context-supported member while carrying none of the packet's facts",
+        "packet membership from the sequential filename stems alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Payoff Quote.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots: Payoff Amount, Good Through Date, Per Diem Interest, Loan Number",
+        "servicer name in the page-one letterhead",
+        "a note that the figure is void after the stated date"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "tax_year from the good-through date",
+        "that the loan is closed - a quote is an offer of a figure, and a release or satisfaction record is the document that ends the lifecycle",
+        "the payoff amount as a fact; an amount is content, not a schema field, and this is protected material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Servicing Transfer Notice.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two organization names in the body prose: the prior servicer and the company taking over, with an effective date",
+        "no labelled period, balance or breakdown table anywhere",
+        "a loan identifier appears once inside a paragraph",
+        "the letterhead names one of the two companies"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "that two institution names mean two loans or two accounts - it is one loan changing hands, which is why this template does not open on institution",
+        "account_type from the prose - no labelled loan-kind or collateral slot exists here",
+        "the prior institution silently overwritten; 00 keeps superseded values rather than erasing them - a newer result 'should supersede an earlier result while retaining the old observation and the reason it was superseded'",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Amortization Practice.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row: Period, Payment, Interest, Principal, Balance",
+        "every cell below the header is a formula over an entered rate and term in a labelled input block",
+        "no institution string, no borrower block, no identifier anywhere",
+        "sheet named Assignment 4"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY finance fact. This is the collision fixture: the amortization columns are exactly the evidence that tempts this template, and a calculation is not a record. The absent items are the discriminator - no issuer, no borrower, no identifier",
+        "record_type = servicing statement because a principal and interest split appears",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-06-02 at 21.10.04.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution; no camera EXIF",
+        "filename carries the platform's default screenshot pattern",
+        "an OCR region reads a servicer name beside labelled Next Payment Due and Principal Balance values and a masked loan tail"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the missing EXIF alone; the exact display resolution and the filename pattern are what may support it, and 'conflicting signals should lead to abstention rather than an invented classification'",
+        "account_type from the portal chrome unless the OCR carries a labelled loan-kind slot",
+        "that it is a member of the servicing series because it names the same servicer - it may join the loan neighbourhood without carrying the statements' facts",
+        "a folder path, and no cloud dossier for the captured balance"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Auto Loan Agreement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "parties block, recitals and numbered clauses",
+        "labelled slots: Amount Financed, Annual Percentage Rate, Number of Payments, Total of Payments",
+        "a collateral description naming a vehicle and its identification number",
+        "execution block with both signatures"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "that the finance reading and the legal reading exclude one another - an executed instrument is genuinely both, on disjoint evidence, and the schema-level also_holds_with edge that carries this lives on the finance schema row",
+        "a vehicle fact in a field this schema does not declare; the collateral description is evidence, and the vehicle-records seam is a collision, not a field",
+        "tax_year from the agreement date",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lease Agreement - 42 Oak St.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "parties block, a property address, a term with start and end dates",
+        "labelled Monthly Rent, Security Deposit and Late Fee slots",
+        "numbered clauses and an execution block",
+        "no principal, no interest, no amortization, no loan identifier"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY loan fact. This is the neighbour fixture: parties, a property address, a recurring payment and a signature block are shared with a loan agreement, and the discriminator is the absent principal-and-interest structure - a lease grants use for rent, a loan creates repayment of a principal. The record is legal.leases-agreements material",
+        "account_type = mortgage because the document concerns a property",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Student Loan Statement Jun 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "servicer name in the letterhead; a university name appears once, in a line naming the school the disbursement was made to",
+        "labelled slots: Current Balance, Interest Rate, Payment Due, Loan Group",
+        "a table of separate disbursements each with its own principal and accrued interest"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "institution = the university; the school is the disbursement destination, not the issuer of this record - one string, two roles, which is 00's reason for separating roles that happen to contain the same entity type",
+        "that student-related material belongs to the finance.student-financial-aid sibling by subject; the discriminator is the situation - award and eligibility documents are that template's, a repayment account being serviced is this one's",
+        "a school or term fact on this record from the university name alone; a university name alone activates nothing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Payment received - confirmation.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a servicer domain",
+        "labelled subject slot carries a payment term and a masked loan tail",
+        "body carries a labelled Payment Amount and a posted date",
+        "no principal balance and no breakdown table"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = email; the labelled sender and subject slots are what fire, and file_kind_plausible is never alone",
+        "account_type from the message alone",
+        "a contact fact used as a folder proposal; 00 keeps address-book data privacy-protected rather than a proposal basis",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "eClosing_docs_protected.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the PDF is password-protected: no text layer is reachable and no metadata beyond the filesystem record",
+        "filename stem resembles a closing-portal export",
+        "arrived in the same download session as two readable disclosures"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "institution, account_type or record_type from the filename stem - 00: the system 'should not infer a purpose from their filename alone' for unreadable files",
+        "membership in the closing packet because the session bundled it; 'It may be supported more weakly by a tightly bounded download session' is the ceiling, and a session is a possible-grade clue only",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.personal-records",
+      "signal": "a servicing statement matches the account-records structure slot for slot: an institution, a labelled period, an amount due, a balance. The discriminating evidence is the labelled principal/interest/escrow breakdown with a loan identifier, against a deposit or card account descriptor with a posted-transaction table. One evidence item - the institution name, the amount, the labelled balance - must never count for both. Reciprocates the edge already authored on finance.personal-records, whose own fixture is Mortgage Statement Mar 2026.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "a year-end interest statement carries a labelled tax-year slot with numbered boxes - the filing situation's exact signature - while also carrying a loan identifier and naming the servicer. The discriminating evidence is not the year: it is what the document reports on. A per-loan year-end summary issued by the servicer is this situation's, and its presence in an accepted filing packet is a second membership, not a transfer. Neither side may take a bare 4-digit token. Fixture: Mortgage Interest Statement 2025.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.student-financial-aid",
+      "signal": "the same borrowing seen at two life stages, both naming a school and a servicer. The discriminating evidence: aid applications, eligibility determinations, award and disbursement letters tied to a school and an academic cycle are the aid situation's; a repayment account with a principal balance, an interest rate and a servicer is this one's. The university name is the item that must not count for both. Fixture: Student Loan Statement Jun 2026.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "a home purchase produces both situations at once and the closing packet holds them side by side. The discriminating evidence: a document reporting on a serviced debt - principal, interest, escrow, payoff - is this situation's; ownership, improvement, warranty and tenancy records about the property itself are the household situation's. The property address is the shared item that must count for neither on its own.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-personal",
+      "signal": "the escrow section names an insurer, and a lender requires a binder at closing, so an insurance declaration arrives inside this situation's packet. The discriminating evidence: a policy or claim structure - coverage limits, premium, claim number - is the insurance situation's; an escrow line item referencing the same insurer is evidence on a loan record. The insurer name must not count for both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.vehicle-records",
+      "signal": "an auto loan names the vehicle and its identifier, and the vehicle file holds the title that the lender releases at payoff. The discriminating evidence: an amount financed with a payment schedule is this situation's; registration, title, service and ownership records are the vehicle situation's. The vehicle identifier is the shared item and proves neither. Fixture: Auto Loan Agreement.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "the must_consider_neighbors legal seam at template level: a loan agreement and a lease both carry parties, recitals, numbered clauses, a term, a periodic payment and an execution block. The discriminating evidence is the obligation's shape - repayment of a principal with interest and a payoff, against use of property for rent with a deposit and an end date. Fixture: Lease Agreement - 42 Oak St.pdf, which sits on the seam and is the neighbour's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "the must_consider_neighbors identity seam at template level: application and closing packets contain identification scans, and a loan application itself carries an unmasked national identification number in a labelled slot. The discriminating evidence is what the document IS - a credential that identifies a person is identity's, a credit record issued by a lender about a debt is this situation's - and neither an identification number nor a name proves either. Both are safety material, so a wrong call does not leak; it misfiles a passport as a loan document. Fixtures: Loan Application - Signed.pdf, closing_packet_2026.zip.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "personal-finance and accounting coursework produces amortization schedules, loan-comparison spreadsheets and worked mortgage problems that carry this situation's most distinctive structure. The discriminating evidence is everything a record has and an exercise does not: an issuer in a letterhead, a borrower block, a loan identifier. Where academic context terms are present the academic reading takes the file; where neither side has support, the correct outcome is that nothing activates. Fixture: Amortization Practice.xlsx.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by omission: CONNECTION.md section 5 restricts also_holds_with to schema-to-schema pairs, and this is a template row. The co-activations this situation produces - legal on an executed instrument, identity on an application or a packet scan, photos on a captured page, medical never - are already authored on the finance schema row, and the file examples record them per file in also_schema instead.",
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "the default home for this situation's leftovers. 00 defines the residual for exactly this material - 'sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials' - and requires the behaviour: it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. Fixtures: Loan Application - Signed.pdf and closing_packet_2026.zip where no loan group is accepted.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00's definition fits the one-off loan document with a durable purpose and no accepted series: 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group'. Fixtures: Payoff Quote.pdf, Servicing Transfer Notice.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: 'files whose meaning is partly understood but whose final location requires a future decision' - the unlabelled scan page from a packet whose membership is a reviewable candidate rather than a fact. Fixture: scan_0042.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00 defines it for 'password-protected archives, unreadable documents, damaged files, and unknown formats', and password-protected closing exports are ordinary here. 00 also forbids the shortcut that would rescue them: the system 'should not infer a purpose from their filename alone'. Fixture: eClosing_docs_protected.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "00's definition covers the isolated payment confirmation: 'isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents'. Fixture: Payment received - confirmation.eml when no loan group is accepted.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty deliberately. role_split lives between canonical FIELD keys (CONNECTION.md sections 5 and 6), and the two splits this material needs are already recorded on the finance schema row: institution against school (the university on a student-loan statement is the disbursement destination, not the issuer) and institution against target_university. The further tensions this situation surfaces - the originator against the current servicer, the borrower against the co-borrower - are the same key at two times and two people, which is a values-and-history question for P6, not a second field. Recorded in must_not_conclude on the relevant file examples rather than minted here.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names this material inside its privacy sentence - the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records' - and requires immediate protection: 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' 'Protected material should not be included in cloud-model prompts by default', and the canvas shows it as a protected area: 'a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default.' Only 00's phrase is asserted; the handling class is P7's and is not set here. This situation carries one case sharper than the schema's general posture, and it is the reason the row exists as a distinct privacy profile: an application or closing packet AGGREGATES - unmasked identification, income, employment, account balances, a property address and a second person's records in one bundle - so the packet discloses more than any member does alone, and a packet-level dossier is the thing that must never be assembled for a cloud call even where a single member might have been eligible. The co-borrower makes it a second person's data as well as the holder's.",
+  "open_question": "Which loan, when a person holds two of the same kind? Under the recommended order, two mortgages on two properties or two student-loan groups collapse into one account_type branch, and nothing in the canonical vocabulary distinguishes them: the loan number and the collateral are the identifiers a person actually uses, and neither is a field. The three answers are different products - (a) the loan is a P9 group and the folder stays coarse, which is what this row recommends and what keeps the shared vocabulary clean; (b) institution is promoted to a level, which this row argues against because servicing transfers split one loan across issuers; (c) a loan-identity key is minted, which is a change to the shared field table and must not be decided by one template row (00: the system 'should not invent new fields automatically'). Recorded, not resolved. The second half is Joseph's and is about a real filing shape: should a closing or application packet be kept whole as one branch - 00's own allowance, 'The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design' - or split by record_type like the rest of the lifecycle? A packet held whole is easier to find and harder to protect, because it keeps identity scans beside the loan documents."
+}

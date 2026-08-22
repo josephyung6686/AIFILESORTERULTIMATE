@@ -1,0 +1,487 @@
+{
+  "id": "career.consulting-client-engagement",
+  "kind": "template",
+  "schema_id": "career",
+  "parent_id": null,
+  "name": "Consulting and client engagements",
+  "one_line": "One piece of paid work done FOR another organization: the proposal that won it, the statement of work that scoped it, the decks, workbooks and reports delivered under it, and the correspondence around it. The situation 00 names in its own template-library sentence, and the one 00 uses to state the role split - the holder's own firm is on the file as its author, the client is on the file as its target, and only one of those two may ever become a folder level.",
+  "launch": "placeholder",
+  "provenance": "design",
+  "design_cite": "00 names this organizational situation in the template-library sentence: 'covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections'. 00 names it a second time as something a user creates a template for: 'create a new custom template for consulting engagements'. 00 states this situation's role split outright: 'A consulting document may mention the author’s firm and the client organization.' and 'distinct facets, such as authored_by and target_school, or our_firm and client'.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": "PASSES on two of the three grounds the node test names, and the passing grounds are the load-bearing ones. (1) Detection signals differ completely from the career default situation (career.recruiting): that situation reads resume/offer/interview structure about the holder, this one reads a two-organization role pair - a scope-and-deliverables document PREPARED FOR one named organization BY a different named organization. (2) Privacy rules differ: recruiting material is the holder's own; an engagement's deliverables and workbooks are largely another organization's confidential material sitting in the holder's corpus, which changes what may enter a cloud dossier before it changes any folder. (3) The recommended dimension order differs in prose - client first with our_firm explicitly barred as a level, against the recruiting recommendation of company first - though BOTH orders are today held as prose and both serialize as an empty dimension_order, because the career schema declares no field rows (D1 as narrowed, PR-6). The node is not carried by that third ground.",
+  "fields": [],
+  "proposed_fields": [],
+  "fields_note": "EMPTY BY CONTRACT, not by omission, and not because the fields are unknown. A template references its schema's fields and never copies them (_CONTRACT rule 12), and the career schema is a placeholder that declares none (D1 as narrowed; PR-6: the dimension recommendation is 'held as prose until the schema lands'). What this node contributes to that deferred decision is a finding rather than a field row: THREE of the four concepts this situation needs already exist as canonical keys with design provenance, so this template is closer to buildable than the career default is. `client` exists (destination_eligible true, gazetteer orgs, role_split_with our_firm). `our_firm` exists (destination_eligible FALSE, which is exactly right here - see template.why). `project` exists and can hold the engagement value without any new key, because 00 makes project a value-creating concept: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.' The one concept with no canonical home is the document type (proposal / statement of work / deliverable / status report), which is the same gap career.json already records in its open_question - so this node corroborates that question rather than minting a career document-type key of its own. No proposed_fields row is written: proposing a key here while the schema that would hold it is deferred would be reversing S3 as a side effect of a template.",
+  "recognition": {
+    "deterministic": [
+      "the two-organization role pair, which is this node's whole signature: one organization-gazetteer hit at a word boundary in a recipient-marked position (a 'prepared for' line, a cover-page addressee block, a title-slide client line) beside a DIFFERENT organization-gazetteer hit in a producer-marked position (letterhead, signature block, per-page footer), inside a document whose title or page-one heading carries a scope-of-work token. R4 owns the organization gazetteer's contents and R6 the term patterns; this row writes neither a list nor a regex. Word-boundary matching is 00's requirement: 'word-boundary matching rather than substring matching'",
+      "a statement-of-work or engagement-letter structure read from labelled document zones: section headings for scope, deliverables, fees or rates and term, together with a signature block carrying two countersigning organizations. 00's DOCX rule makes the labelled position the evidence, not the prose: 'The extractor must preserve the difference between a heading, a table label, a filename, and ordinary body text because those locations have different evidentiary weight'",
+      "a deck whose title slide names a client organization while a different firm name repeats in the per-slide footer - the producer/recipient pair expressed in presentation structure. 00: 'Presentations such as PPTX, PPT, ODP, and PDF slide decks should yield slide titles, text boxes, speaker notes where available, hyperlinks, embedded tables, and slide-level page boundaries'. Positional weighting decides which side is which, and 00 supplies it: 'a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference'",
+      "an email whose labelled sender slot resolves to one organization domain and whose labelled recipient slot resolves to a different organization domain, with a scope, deliverable or engagement term in the labelled subject slot. 00's email extraction yields these as structured slots: 'Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context, while treating addresses and message content as potentially sensitive'. The cross-organization sender/recipient pair is the role split in its most machine-readable form",
+      "an archive whose manifest lists a proposal beside a scoped agreement and one or more deliverables, read without unpacking - 00's own packet-from-manifest shape, stated for the application case: a ZIP 'may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague'",
+      "a workbook whose labelled sheet names and column headers carry a client-named data model beside a fees, rates or milestone sheet. 00: 'Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells'"
+    ],
+    "needs_llm": [
+      "deciding WHICH of two named organizations is the client and which is the holder's own firm, when no labelled slot marks the roles - a letterhead-less DOCX naming both in body prose. This is the judgement 00 requires be made at all ('The system must separate roles that happen to contain the same entity type'), and it is precisely the judgement rules cannot make from a gazetteer, because both strings are organizations. Abstention is the correct output when the roles are not marked; 00's general instruction covers it - 'conflicting signals should lead to abstention rather than an invented classification'",
+      "deciding whether an unlabelled prose document is a proposal addressed to a prospective client or an internal memo about the same industry. 00 lists this class of determination among the model's allowed ones: it 'may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain'",
+      "judging whether a heterogeneous set - a proposal deck, a signed scope document, an analysis workbook, a final report and a folder of meeting notes - is purpose-coherent as ONE engagement. 00 allows exactly this: the model 'may identify a shared purpose across a heterogeneous packet', and warns the pattern that makes it necessary: 'The documents are content-incoherent but purpose-coherent'",
+      "reading an OCR'd screenshot of a client portal, shared workspace or ticket queue and deciding it is engagement material rather than a generic image. 00's worked parallel is the admissions confirmation screenshot; the model must be free to conclude no association exists, and 00 says so for isolated captures: 'The model must be allowed to conclude that no meaningful association exists'",
+      "an unusual professional artifact whose document kind has no labelled slot at all - 00 names 'unusual professional artifacts' among the reasons fixed patterns are insufficient"
+    ],
+    "never_alone": [
+      "AN ORGANIZATION NAME ALONE - the never-alone rule that carries this node, and it is true of the tempting false file this template would otherwise swallow whole: a downloaded industry report published BY a large consulting firm carries that firm's name in the title, the letterhead, the footer of every page and the copyright line, plus scope, methodology and deliverable vocabulary throughout, and it is not an engagement of the holder's at all - it is reading material. 00 forbids the shortcut directly: 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization', and 'merely a cited organization' is what that report's firm is. What is missing in the false file is the ROLE PAIR: no second organization stands in the recipient position",
+      "the holder's own firm name alone, in any zone. It is the authorship side of 00's split and 00 bars it from placement twice: 'It should avoid using authorship or creator identity as a destination dimension' and 'A folder should not become a collection point for everything produced by the same person or organization.' A per-page footer bearing the holder's firm appears on every file the holder's firm ever produced, which is the definition of a collector",
+      "an authoring or producer metadata string naming a firm. 00 treats these as supporting evidence only and names the failure: 'a value such as python-docx, Mozilla/5.0, or a browser-generated producer string should not be mistaken for meaningful content'",
+      "an invoice number, an amount, or a payment-terms line. That is the finance neighbour's record even when the client name sits above it; the discriminating evidence is a labelled amount-due / payment-terms / ledger structure",
+      "a bare 4-digit number read as an engagement year or an engagement code. 00's narrow-date rule: filenames and documents contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'",
+      "a source_type of presentation, spreadsheet, email, archive or design_creative alone - file_kind_plausible is constitutionally never-alone, and a deck is a deck whether it is a client deliverable, a lecture or a pitch",
+      "membership in a download session that happened to bundle several client-looking PDFs. 00: 'A session should never be treated as proof of topic'",
+      "for an image of a whiteboard from a client workshop, the absence of EXIF as proof it is a screenshot. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'"
+    ]
+  },
+  "proposed_context_terms": [
+    "statement of work",
+    "scope of work",
+    "deliverable",
+    "engagement",
+    "prepared for",
+    "prepared by",
+    "master services agreement",
+    "retainer",
+    "milestone",
+    "change order",
+    "kickoff",
+    "steering committee",
+    "acceptance criteria",
+    "client confidential"
+  ],
+  "proposed_context_terms_note": "PROPOSED, and marked so deliberately. 00 states the pattern-plus-context SHAPE for one domain only - it requires 'a course-code pattern together with academic context' and then lists the five academic terms itself. This row copies the shape, not a list 00 wrote, and no term below is claimed as 00's. R6 owns the term patterns; nothing here is a regex and nothing here is a threshold.",
+  "work_types": [
+    "proposal",
+    "statement of work",
+    "engagement letter",
+    "master services agreement",
+    "non-disclosure agreement",
+    "kickoff deck",
+    "status report",
+    "interim deliverable deck",
+    "final report",
+    "analysis workbook",
+    "data model",
+    "interview guide",
+    "meeting notes",
+    "change order",
+    "acceptance sign-off",
+    "credentials or capabilities deck",
+    "case study writeup"
+  ],
+  "work_types_note": "These are VALUES of a document-type field, not nodes and not schemas - 00: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.' The career schema declares no field to hold them yet (see fields_note); they are recorded so R1c and P10 have the enum when it lands. `invoice` is deliberately absent: it is a value of the finance schema's record_type and belongs to the finance.small-business-bookkeeping neighbour.",
+  "grouping_reasons": [
+    "one engagement for one client - the whole point of the situation. 00 lists the single organizing reasons a coherent group may have as 'one course, project, application, recruiting process, photo event, or submission packet'; an engagement is the same shape as a recruiting process on the other side of the transaction. Provenance: inference, because 00 names client engagements as a template situation but does not write this group out",
+    "one deliverable across its draft and revision family - the universal version_family fact, not an engagement fact. Consulting decks and reports version heavily and the filename suffixes lie; 00's adversarial suite already names 'duplicate suffixes on unrelated files'",
+    "one client across several sequential engagements, where a later phase reuses the earlier phase's data model and language",
+    "a reusable asset that supports more than one engagement - a credentials deck, a methodology template, a boilerplate scope annex. 00's shared-material rule applies unchanged: 'a resume may support multiple recruiting processes' is the same shape, and 'A file may validly belong to more than one accepted group'. Multi-membership, never a copied client fact"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, matching career.json and for the identical reason: a dimension may only branch on a field its schema declares, and the career schema declares none (D1 as narrowed; _CONTRACT rules 12 and 15; PR-6 holds the recommendation 'as prose until the schema lands'). Serializing `client` here - a canonical, destination-eligible key - would open a tree level no fact can fill and would bypass the gate rather than satisfy it, so the recommendation is recorded as prose for R1c and P10 to restore. THE RECOMMENDATION: client first, then the engagement (a value of `project`), then document type. Client first because a document type such as a status report or a final deliverable is unintelligible without knowing whose work it reports on - the identical argument 00 makes for coursework, 'A work type such as Homework 3 is meaningful only after the course is known', and the general rule it states, 'a parent dimension should provide the context required to understand the child'. The engagement second because one client routinely runs several separate pieces of work, and merging them loses the boundary the scope document drew. Document type last. NOT time-first: 00 - 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' AND THE NEGATIVE HALF, which is the part this node exists to state: `our_firm` must NOT be a level, ever, even though it is the single most reliably extractable organization on these files. 00 bars it as a field - 'It should avoid using authorship or creator identity as a destination dimension' - bars it as a shape - 'A folder should not become a collection point for everything produced by the same person or organization.' - and bars it again in the validation rules for generated templates, which must not 'use an author or organization merely as a collector'. The canonical row for our_firm already carries destination_eligible false; this node's recommendation must never widen it. All of the above is a recommendation and not a filesystem: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "calendar"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Acme Corp - Statement of Work - Phase 2 (executed).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries a scope-of-work token and an organization-gazetteer hit at word boundary",
+        "a 'Prepared for' line naming one organization and a letterhead naming a different organization",
+        "labelled section headings: Scope, Deliverables, Fees, Term",
+        "signature block with two countersigning organization blocks and a date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any career-domain fact - the career schema declares no field rows (D1 as narrowed), so activating it legitimises the universal facts only. This is the honest state of this template today, not an oversight of this file example",
+        "a folder path from the two organization names",
+        "a finance fact from the Fees section: a scoped fee schedule is what will be billed, not a record of an account"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Proposal_v3 (final)(2).docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose: no letterhead, no heading, no form field; the body argues an approach to a problem and names two organizations in running text",
+        "filename carries a duplicate-style suffix and a version-style token",
+        "DOCX core properties name a document template producer rather than a person"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of the two named organizations is the client - no labelled slot marks the roles, so this is the needs_llm case and abstention is a correct outcome",
+        "a version_family fact from the '(2)' suffix alone; 00's adversarial suite names 'duplicate suffixes on unrelated files', and a content hash or a normalized stem family is what supports it",
+        "an organization fact from the DOCX producer metadata",
+        "any career-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Acme Corp Kickoff - final v7.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "title slide reads a client organization name plus 'Kickoff'",
+        "every slide's footer repeats a different firm name and a confidentiality line",
+        "speaker notes on three slides; an embedded table of workstreams and dates",
+        "six sibling files share the normalized stem 'Acme Corp Kickoff'"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a destination from the footer firm name - it is the authorship side, and 00 bars authorship as a destination dimension; positional weighting also puts a footer below a title slide",
+        "a term or event fact from the workstream dates in the embedded table",
+        "any career-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Acme_churn_model_v4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names: Raw, Cleaned, Model, Fees, Readme",
+        "column headers in the Cleaned sheet carry a client-specific data vocabulary",
+        "the Fees sheet has labelled rate and milestone rows",
+        "no organization name appears anywhere in the visible cell text"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a client fact from the filename token 'Acme' alone - a filename token that resembles an organization is exactly the substring hazard 00's word-boundary and ranking rules exist to stop, and no second role is present in this file",
+        "a finance fact from the Fees sheet - rates that will be charged are not an account record",
+        "any career-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE- Phase 2 scope change.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to one organization domain; labelled recipient slots resolve to a different organization domain",
+        "labelled subject slot carries a scope term and a phase token",
+        "thread identifier plus two attachment names: 'Change Order 2.pdf', 'Revised timeline.xlsx'"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that source_type = email makes this an engagement on its own - the cross-organization sender/recipient pair plus the subject term is what fires",
+        "a contact fact used as a folder proposal; 00 keeps address-book material 'privacy-protected rather than used to create folder proposals'",
+        "that the attachments inherit an engagement fact because they arrived on this message - that is a group relationship, not a fact write",
+        "any career-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "engagement-packet-2026-04.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Proposal.pdf, SOW signed.pdf, Kickoff.pptx, churn_model.xlsx, NDA executed.pdf",
+        "manifest read without extraction to disk",
+        "outer archive name carries a bare 4-digit-plus-month token and no organization name"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an engagement year from the '2026-04' token in the outer name - a bare number is never sufficient, and the outer name is the weakest zone the archive has",
+        "that the members share a purpose because they arrived in one archive; the packet reading is a candidate group for review. 00 makes the MANIFEST the evidence and says so for the parallel case: a ZIP 'may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague'",
+        "any career-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 09.14.51.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR region reads a client workspace header, a deliverable name and a status word",
+        "filename carries the platform's default screenshot pattern"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone - 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'. The exact display resolution plus the filename pattern are what may support it, and conflicting signals abstain",
+        "an engagement association from the workspace name alone - one workspace can hold several clients' work",
+        "any career-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Notes 3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "body reads 'Interview 3' and a list of unattributed quotes",
+        "no organization name, no scope term, no labelled slot anywhere in the file",
+        "strongest mutual-retrieval neighbours are the interview guide and the kickoff deck above"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a client fact copied from the engagement neighbourhood - this is the HW 3 case exactly, and 00 forbids the copy: 'The graph does not automatically copy those missing facts onto sparse files'",
+        "an engagement association strong enough to be a fact; the membership record may exist while the client fact does not",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Acme Corp - Invoice 2026-118.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "client organization name in a labelled Bill To block",
+        "labelled rows: invoice number, issue date, payment terms, amount due",
+        "a reference line quoting the phase-2 scope document"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "tax_year",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that this is engagement material because it carries the client name and quotes the scope document - it is the finance neighbour's record, and this file is this node's collision fixture",
+        "a tax_year from a bare 4-digit token; an explicit labelled year pattern is required",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "The Future of Work - Global Institute report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title page and every page footer carry one large consulting firm's name and a copyright line",
+        "body carries scope, methodology, exhibit and recommendation vocabulary throughout",
+        "no addressee, no signature block, no fee schedule, no second organization in a recipient position",
+        "arrived in a download session with four other PDFs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "download_session"
+      ],
+      "must_not_conclude": [
+        "an engagement of the holder's. This is the tempting false file, and the never-alone rule that stops it is the organization name: 00 - 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization', and here the firm is merely a cited - indeed the publishing - organization",
+        "a client fact from the publishing firm; there is no recipient role in this document at all",
+        "a shared purpose from the download session - 00: 'A session should never be treated as proof of topic'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "acme-churn/README.md",
+      "source_type": "code_structured",
+      "observations": [
+        "sits under a directory containing a package manifest and a .git directory",
+        "README first heading names the client organization and the engagement phase",
+        "sibling notebooks and a src directory"
+      ],
+      "facts_legal": [
+        "project",
+        "repository",
+        "programming_language",
+        "artifact_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "that the client name in the README makes this engagement material INSTEAD of code - both readings stand, and the code reading is the one with fact rows behind it today. 00 recognizes the structural evidence on its own terms: 'A source-code archive may reveal a README.md, package.json, src directory, or Python package layout and can be recognized as a code project'",
+        "that this repository should be reorganized into an engagement branch - 00 requires existing project structure be left alone and excludes descendants of software project roots from proposals",
+        "any career-domain fact - none is declared"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Mutual NDA - Acme Corp - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title carries a confidentiality-agreement token and one organization-gazetteer hit",
+        "two party blocks, an effective-date line, two signature blocks",
+        "a term and a governing-law clause"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that its engagement membership erases its legal reading, or the reverse - both stand. This is the also-holds case for this node, and today the legal side is a field-less safety placeholder, so the join carries protection rather than fields",
+        "any career-domain fact - none is declared",
+        "a folder path; the same file may later be organized client-first or agreement-first"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Weekly status - Acme - Thu 0900.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY slot carries an organization name and a recurring status-meeting title",
+        "labelled recurrence rule, organizer address on one organization domain, attendees split across two domains",
+        "labelled location slot names a video-call URL"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar; the content in the labelled SUMMARY and attendee slots is what fires, per CONNECTION-EXAMPLES fixture 5 - calendar is a SOURCE_TYPE, not a domain",
+        "an `event` fact in the photos sense; a recurring meeting is not a capture occasion",
+        "a client fact from the organization name in SUMMARY alone - the cross-domain attendee split is the second half of the evidence",
+        "any career-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "the client organization name is the shared evidence item and it must never count for both. An invoice issued for an engagement and the scope document that engagement runs under carry the same client name, the same phase reference and often the same filename stem. The discriminating evidence is structural: a labelled Bill To / invoice-number / payment-terms / amount-due block is the bookkeeping record; a scope, deliverables and countersignature structure is the engagement. 00 supplies the reason the confusion is easy - 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs' - both sides put their discriminating evidence in the same place."
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "the same deck can be the deliverable and the sample. The shared evidence item is the client-named title slide. The discriminating evidence is what surrounds it: a live deliverable carries the recipient pair, a confidentiality footer and a scope reference; a portfolio sample carries curation context - a portfolio parent folder, a redacted or anonymised client name, an outcome summary written after the fact. One title slide must not activate both, because the two situations imply opposite privacy handling: delivery material is the client's confidential work product, showcase material is material the holder has cleared to show."
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "a delivered analysis repository names the client in its README heading and its package name. The shared evidence item is that organization string. The discriminating evidence is structural and decisive on the code side: a repository root, a package manifest and a source layout evidence a code project, which 00 recognizes on structure alone; nothing in a repository evidences the engagement's scope, recipient pair or agreement. The collision exists so the client string in a README does not count as engagement proof while the code reading already stands on its own evidence - and so the repository is never scattered by an engagement branch."
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "a credentials or capabilities deck sent to win work and a portfolio-backed application deck sent to win a job are both persuasive decks naming one organization the holder does not belong to. The discriminating evidence is the target pair: a role title beside an employer, an offer or an interview term is recruiting; a scope, fee or deliverable proposition addressed to an organization as a buyer is an engagement. An organization name alone discriminates neither and activates neither."
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_note": "EMPTY BY CONTRACT: `also_holds_with` joins schemas only (CONNECTION.md section 5), and this row is a template. The genuine also-holds observations this node found are recorded where a template may record them - in file_examples[].also_schema - and they are three: an executed NDA or MSA that is engagement material and legal material at once (legal is a field-less safety placeholder, so the join carries protection, not fields); a delivered analysis repository that is engagement material and code material at once, where only the code side has fact rows today; and a signed scope document, which is the same legal pairing as the NDA. Where the prompt's edge table and CONNECTION.md disagree on whether a template may author this edge, CONNECTION wins - noted in research.md.",
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The roster's own must-consider residual for this id and the honest majority outcome. This situation's residue is partly-understood by construction - the unlabelled proposal draft with two organizations and no role markers, the client-named workbook with no second role in it, the sparse notes file - and that is 00's definition: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.' Fixtures: Proposal_v3 (final)(2).docx, Acme_churn_model_v4.xlsx, Notes 3.docx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.' An executed scope document outlives the engagement it scoped and belongs to no accepted group once that group is not formed; 00 also warns that 'An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path.' Fixture: Acme Corp - Statement of Work - Phase 2 (executed).pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "This node's defining false positive has a home and it is not this template. 00: 'Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.' A downloaded industry report published by a consulting firm is that file exactly - consulting vocabulary throughout, no recipient role anywhere. Fixture: The Future of Work - Global Institute report.pdf. Provenance inference: the residual is 00's, the routing from a firm-published report is this row's.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "00: 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials', and it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. An executed confidentiality agreement with no accepted engagement group is a legal form under an obligation, and it reaches this home rather than a shallow document folder. Fixture: Mutual NDA - Acme Corp - executed.pdf. Provenance inference: 00 names the residual and the material, not the routing from an engagement.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "client",
+      "other_field": "our_firm",
+      "neighbor": "career.recruiting",
+      "why": "The pair 00 states outright for this exact situation, and the reason this node is worth writing. On one consulting document BOTH roles are present at once - 'A consulting document may mention the author’s firm and the client organization.' - so the split cannot be read off the organization gazetteer, which hits both strings identically; it must be read off the document's own role markers. canonical_fields.json already records the pair reciprocally (client.role_split_with = [our_firm], our_firm.role_split_with = [client]) with client destination_eligible true and our_firm destination_eligible false, so this row references the split and mints nothing. The neighbour named is the sibling career template because there the same organization string carries a THIRD role - the employer a person applies to - which is why 00's ambiguity list, which includes 'employer', forbids resolving any of the three from the name alone.",
+      "design_cite": "distinct facets, such as authored_by and target_school, or our_firm and client",
+      "provenance": "design"
+    },
+    {
+      "field": "client",
+      "other_field": "institution",
+      "neighbor": "finance.small-business-bookkeeping",
+      "why": "Same entity type, different role: the organization an engagement is performed FOR versus the organization a financial record is issued to or by. One string is both across two files in the same folder - Acme is the client on the scope document and the billed party on the invoice - which is why the collision above is an evidence-item mutex rather than a topic difference. Recorded as a FINDING, not an edit: the canonical row for `institution` carries an empty role_split_with and `client` names only our_firm, so widening the canonical list is R1c's or Joseph's, never this node's.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This situation is unusual in the roster because most of the material is ANOTHER organization's confidential work product held in the holder's corpus: client data workbooks, interview transcripts, unannounced strategy, and agreements that contract the holder to keep exactly that material confidential. 00's own privacy sentence covers the corpus this sits in - the product processes material that 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records' - and executed agreements are legal records while engagement correspondence is private correspondence. The practical consequence 00 already specifies is about dossiers, not folders: when a cloud model is used the engine should send only 'a compact dossier relevant to the current question' and 'should not send full documents where a short heading or OCR excerpt is enough'. Only 00's phrase is asserted here; the handling class is P7's (_CONTRACT rule 5) and is not set.",
+  "open_question": "Two, and neither is this node's to resolve. (1) THE DOCUMENT-TYPE KEY. When S3/D1's deferral lifts, three of the four concepts this template needs already exist canonically - `client`, `our_firm` and `project` (holding the engagement as a value) - and the fourth, the document type, has no home: `work_type` is scoped to coursework artifacts, `record_type` to financial records, `artifact_type` to research and code artifacts, `application_document_type` to documents inside an admissions application. Does the career schema reuse one of those by widening its canonical role, or mint a career document-type key? This corroborates career.json's open_question from the consulting side rather than reopening it, and this node writes no field row either way. (2) WHETHER AN ENGAGEMENT BRANCH DEFAULTS TO PROTECTED HANDLING. The material is largely a third party's confidential work product, and the holder is usually under a signed obligation about it - a stronger claim than a mere preference for privacy. Defaulting the whole situation to protected would suppress the model interpretation this node's needs_llm list depends on (the two-organization role assignment is precisely the judgement rules cannot make); defaulting it to ordinary sends client material into cloud dossiers by policy. That is a decision about someone's real professional obligations and belongs to Joseph. Related and NOT reopened here: CONNECTION.md's NJ-3 names 'a consulting proposal packet' as the case of a purpose-coherent packet outside admissions that no schema legitimises `purpose` for; PR-1 holds, so this node mints no purpose clone."
+}

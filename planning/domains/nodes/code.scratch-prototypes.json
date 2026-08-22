@@ -1,0 +1,284 @@
+{
+  "id": "code.scratch-prototypes",
+  "kind": "template",
+  "schema_id": "code",
+  "parent_id": null,
+  "name": "Scratch scripts and prototypes",
+  "one_line": "REFUSED. Loose code with no repository root is defined by the ABSENCE of every signal that makes the Code schema plausible, so it has no detection signal of its own, no destination-eligible field it can fill, and no recommended dimensions - its honest home is the residual library (Review Later, Reference Clips), which 00 keeps deliberately outside the domain-template library.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the template half of the node test (CONNECTION.md section 2; ALIGNMENT.md: 'A template that would only repeat its schema’s fields and dimension_order **is not a node** — it is the schema’s default template.') on all three limbs, and fails a fourth test the other limbs hide: it can fill no dimension at all.\n\n1. DETECTION SIGNALS - this situation is the complement of the schema's, which is not a signal set. Every deterministic signal 00 gives this domain is a structural marker: the engine should 'reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod' (the marker list), and 'Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text', over 'structural indicators such as repository markers, package manifests, notebook metadata, and README files'. This id is precisely the material where none of those exists. What remains is a source-code extension and source_type = code_structured, and both are constitutionally never-alone (00: 'treat the file extension as a routing signal rather than an assumption about meaning'; CONNECTION.md section 5 invariant 2). A row detected by the failure of its schema's own detection is the empty activation set wearing a template id - CONNECTION.md section 4 step 7 already names that outcome and routes it: 'An empty set is a correct outcome, not a failure - the file routes to residual review'.\n\n2. RECOMMENDED DIMENSIONS - none are reachable, so there is no order to recommend. Of the Code schema's four fields, programming_language is not destination-eligible on its canonical row; repository is absent by definition of this situation; project is unreachable because the schema's own rule family for it is 'project-root marker plus directory-position context' (code.json) and no root exists. That leaves artifact_type alone, and a one-level artifact_type split over unanchored loose files is the split 00 tells the canvas to undo: 'It should warn when a level produces only one child' and 'It should recommend flattening when a dimension does not materially improve retrieval', with 'each branch should offer the dimensions that are actually present in its member groups'. 00's own instruction for this material is depth-less: 'An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path.' The Code schema row has already said the rest of it: its template.why records that artifact_type is 'the optional deepest level and is meaningful only for loose code artifacts that have no repository root of their own'. That sentence is this id's entire dimension content, already stored once.\n\n3. PRIVACY RULES - identical to the schema's, and the sharper version is a sibling's. A loose run.sh with an inline export TOKEN line raises exactly the rule code.json already carries (00 puts an 'authentication key' among the material that 'should enter a protected state immediately'), and the roster hands the credential-bearing-configuration situation to code.dotfiles-environment.\n\n4. THE COHESION SIGNAL DOES NOT RESCUE IT - it produces a group, not a fact. The one genuinely new structural signal this material offers is sibling-import resolution: several loose scripts in one user-named folder whose import targets resolve to each other, with no manifest above them. That is real local structural evidence and it is worth recording - but it establishes only that the files belong together, and belonging-together is P9's object: 'A group does not create a schema' (CONNECTION.md section 7) and groups are not roster nodes (section 2). To become a template it would have to yield a project VALUE, and the only candidate value is the enclosing folder's name, which is the name-alone case the Code schema already forbids ('The system learns from existing folders but must not silently reorganize them'). So the cluster is a grouping_reason owed to code.json, not a situation with a shape.\n\n5. WHERE THIS MATERIAL ACTUALLY GOES - the residual library, which is deliberately not a domain template. 00: 'Residual templates provide safe, intentionally broad destinations for files that have no reliable deeper association.' It names both homes for this exact material: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision', and - naming code outright - 'Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project'. CONNECTION.md section 7 forbids turning that into a row: 'Residual is not a domain. A residual home never carries a schema, never activates, and is reached by falls_through_to or by the empty activation set - never by detection signals of its own beyond 00's \"accepted evidence patterns\" slot (R3's content).' Minting this template would make the residual library a 575th domain, which is the named anti-goal.\n\nFIXTURE EVIDENCE that the id is a label: of the eleven files researched below, the code schema activates on none. Two are already fixtures on code.json (utils.py, and the credential case in its .env form); one belongs to the academic neighbour on its own evidence (pset4_solutions.py); one is the schema-level also_holds case with research (pva_rdp_prototype.py); one is an image and one is an email, neither of which is a code file at all; and the remaining five differ from each other only in which residual home is honest - which is R3's discrimination to author, not a folder shape.\n\nRefusing costs nothing downstream. A loose script still gets its universal facts, still reaches P9 as a context-supported member without a project fact being copied onto it ('The graph does not automatically copy those missing facts onto sparse files'), and still reaches a broad home through code.json's existing falls_through_to. What is genuinely missing - a Reference Clips edge on the schema row, and the snippet-versus-Review-Later discrimination - is recorded in open_question for R1c and R3, in the same way code.software-project recorded its schema-row findings.",
+
+  "fields": [],
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "A source-code extension alone (.py, .js, .ts, .sql, .sh). 00: the engine should 'treat the file extension as a routing signal rather than an assumption about meaning'. This is the tempting false file for this id specifically, because extension is the ONLY thing a loose script and a repository source file share, and it is the whole of what this situation would have to detect on.",
+      "source_type = code_structured alone - a file_kind_plausible signal, constitutionally never sufficient (CONNECTION.md section 5, invariant 2). 00 routes this whole family through 'a lighter structured-text extractor' - 'Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks, and configuration files' - which is an extraction tier, not a domain.",
+      "A parent folder whose NAME looks like a project, with no member carrying a root marker. 00: 'The system learns from existing folders but must not silently reorganize them.' A folder called experiments/ holding three cross-importing scripts is a grouping neighbourhood, not a project fact.",
+      "A repository, gist or organization name inside a comment header, a URL or a link. A saved snippet's provenance line names someone else's repository, on the same logic 00 uses for institutions - a name that can appear as author, provider, target or mere citation cannot carry a domain alone.",
+      "A version- or copy-shaped filename suffix (v2, final, (1), copy 3). 00's adversarial suite names 'duplicate suffixes on unrelated files' as an observed failure mode, and a suffix alone establishes neither a version_family nor a project.",
+      "A bare 4-digit number in a filename. 00 warns these are often 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' - and build and version numbers are exactly what scratch filenames carry.",
+      "Download-session membership. 00: 'A session should never be treated as proof of topic' - and a Downloads folder is where most of this material lives, so the session is the most available and least admissible signal here.",
+      "Code-shaped text inside another format - an OCR'd screenshot of a code block, a pasted function in an email body. The bytes are an image or a message; code-shaped text in them is content, not a code file."
+    ]
+  },
+
+  "work_types": [],
+
+  "grouping_reasons": [],
+
+  "template": {
+    "dimension_order": [],
+    "why": "No order is authored, because no destination-eligible field of this schema is reachable in this situation and 00's instruction for isolated material is to stay shallow: 'An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path.' repository is absent by definition; project has no rule family without a root marker and no admissible value without one (the folder name alone is never-alone); programming_language is not destination-eligible on its canonical row. Only artifact_type remains, and 00 tells the canvas to flatten exactly that kind of level - 'It should warn when a level produces only one child' and 'It should recommend flattening when a dimension does not materially improve retrieval'. The schema row already records the same conclusion in its own template.why, where artifact_type is 'the optional deepest level and is meaningful only for loose code artifacts that have no repository root of their own'. The user may of course still flatten or extend the schema default themselves - 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions' - which is a use of the default template, not a second template.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "utils.py (in Downloads)",
+      "source_type": "code_structured",
+      "observations": [
+        "extension .py; import statements and top-level def structure",
+        "no self-describing header and no name-shaped labelled slot",
+        "no project-root marker in the parent folder or anywhere above it",
+        "membership in a tightly bounded download session with unrelated files"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project - nothing in the file or its position names one",
+        "project from the download session it arrived in: 'A session should never be treated as proof of topic'",
+        "a code project from the extension, which is a routing signal only"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "Already fixture nine on code.json, where it is the schema's own unrooted case. The id's most canonical file is already claimed by the row it points at - the first sign that this is a label."
+    },
+    {
+      "filename": "scraper_v2 (1).py (on Desktop)",
+      "source_type": "code_structured",
+      "observations": [
+        "filename carries both a version-shaped token and a copy-shaped suffix",
+        "a scraper.py with a different content hash sits two folders away",
+        "no manifest, no repository marker, no README anywhere above",
+        "top-level script body with no module docstring"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "version_family from the filename suffix - 00's adversarial suite names 'duplicate suffixes on unrelated files', and a version family is a content relationship, not a naming one",
+        "project = scraper from the filename stem",
+        "a year fact from any 4-digit token: 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "gist_9f2c_quicksort.py (in Downloads)",
+      "source_type": "code_structured",
+      "observations": [
+        "first line is a comment containing a source URL with an owner and a gist id",
+        "one self-contained function, no imports of local siblings",
+        "no manifest and no repository marker above it",
+        "never modified since download time"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "repository or project from the URL's owner and repo path segments - that is the repository-name-in-a-link case",
+        "that a saved snippet is a project of this user"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips",
+      "note": "The design-cited fixture, and it points AWAY from a template: 00 puts this file in the residual library by name - Reference Clips holds 'saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project'. Discriminating a snippet from a partly-understood loose file is a residual accepted-evidence pattern (R3), not a folder dimension."
+    },
+    {
+      "filename": "Untitled-1.sql (in Downloads)",
+      "source_type": "code_structured",
+      "observations": [
+        "an editor's default untitled name plus an index",
+        "SELECT/JOIN keywords over table names with no schema qualifier",
+        "no manifest, no repository marker, no sibling files of the same shape",
+        "created and last modified within the same minute"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project or repository from a table or database name in the query text",
+        "a purpose from the filename - 00: 'the system should not infer a purpose from their filename alone'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "experiments/plot_test.py (beside experiments/helpers.py and experiments/run.py)",
+      "source_type": "code_structured",
+      "observations": [
+        "an import statement whose target resolves to a sibling file in the same directory",
+        "three loose .py files in one user-named folder, no manifest and no repository marker at or above it",
+        "the directory is not inside any of 00's excluded trees",
+        "the folder name is a generic English word"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project = experiments from the folder name - a folder name with no root marker is the name-alone case",
+        "a project fact from the cohesion itself: sibling-import resolution shows the files belong together, and 'The graph does not automatically copy those missing facts onto sparse files'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The fixture that decides the refusal. This is the only genuinely new structural signal the situation has, and what it yields is a P9 group, not a fillable dimension - 'A group does not create a schema' (CONNECTION.md section 7). Recorded in open_question as a grouping_reason owed to code.json."
+    },
+    {
+      "filename": "pset4_solutions.py (in a folder with a lecture PDF)",
+      "source_type": "code_structured",
+      "observations": [
+        "a course-code-shaped token in the module docstring",
+        "the docstring also carries the words instructor and semester beside a term-shaped token",
+        "no manifest and no repository marker anywhere above",
+        "a lecture PDF and a problem-set PDF sit in the same directory"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a code project from the .py extension",
+        "project from the course code",
+        "repository - none exists"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The collision fixture: a file that LOOKS like this id and is the academic neighbour's on its own evidence, by 00's course-code-plus-context rule. The evidence-item collision is between the academic schema and the CODE SCHEMA, and code.json currently declares collides_with research only - recorded in open_question as a schema-row finding, and deliberately not authored here (a refused row authors no edges)."
+    },
+    {
+      "filename": "pva_rdp_prototype.py (on Desktop)",
+      "source_type": "code_structured",
+      "observations": [
+        "module docstring naming a project identifier and a lab",
+        "a figure written to disk by the script's last lines",
+        "no manifest and no repository marker above it",
+        "sits beside a manuscript draft and a dataset"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "repository - none exists",
+        "that the project identifier makes this a code project rather than a research artifact on the strength of that one evidence item"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The also_holds fixture, and it is already the code schema's: code.json authors also_holds_with research and collides_with research on exactly this shared-project-identifier evidence. Nothing about the unrooted variant changes the edge."
+    },
+    {
+      "filename": "code_examples.zip (downloaded from a tutorial)",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest read without unpacking; members are ten flat .py files and a .txt",
+        "no README.md, no package manifest and no src directory in the manifest",
+        "outer name is generic",
+        "uncompressed size and file count available from the manifest"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a code project - 00's source-archive recognition needs a layout ('a README.md, package.json, src directory, or Python package layout'), and this manifest has none",
+        "facts about members the manifest does not list",
+        "anything requiring the archive to be extracted to disk"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The archive packet in its NEGATIVE form: code.json's graphify-main.zip is the same source_type with a layout, and it activates. The difference is the layout, which is the schema's rule - not a second situation."
+    },
+    {
+      "filename": "run.sh (on Desktop)",
+      "source_type": "code_structured",
+      "observations": [
+        "a shebang line",
+        "an export line whose left-hand name reads TOKEN, with a long opaque value",
+        "two command invocations referencing a relative path that does not exist beside the file",
+        "no manifest and no repository marker above it"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "the secret value itself as a stored value",
+        "a placement or proposal path that puts the filename or content into a cloud prompt - 00 puts an 'authentication key' among the material that 'should enter a protected state immediately'",
+        "project from the relative path fragment"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The privacy limb failing in the open: this is code.json's .env case with no root above it, and the roster gives the sharper credential-bearing-configuration rule to code.dotfiles-environment. Nothing here is this id's."
+    },
+    {
+      "filename": "Screenshot 2026-03-11 at 09.14.png (a code block from a Q&A site)",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at a screen-shaped pixel dimension, no camera EXIF",
+        "OCR text containing indented code-shaped lines and a site header",
+        "generic capture-tool filename with a date-time stamp"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF - 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'",
+        "project or repository from a path fragment in OCR text",
+        "that the file is code at all - the bytes are an image"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips",
+      "note": "A saved code snippet in image form. 00 names both the residual ('code snippets' under Reference Clips) and the restraint ('The model must be allowed to conclude that no meaningful association exists'). The capture side owns the routing decision; this row would only duplicate it."
+    },
+    {
+      "filename": "Re: quick script for the export.eml",
+      "source_type": "email",
+      "observations": [
+        "sender, subject, sent date and a short body",
+        "the body pastes a function definition inline",
+        "an attachment named export.py listed in the message",
+        "no other project-naming content"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a code project from code-shaped text in a message body",
+        "project from the subject line",
+        "that the message and its attachment are one file - the attachment is its own record, and it is the utils.py case"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "Included because 00 makes email a real source_type and this domain does see it. The email carries the only human explanation of what the script was for, which is why the honest outcome is 'leave in place, Review Later, or abstain' rather than an invented project."
+    }
+  ],
+
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [],
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded, and its sameness is the third limb of the refusal. Loose scripts are not sensitive as a class, but a scratch run.sh or config snippet routinely carries a pasted token, and 00 puts an 'authentication key' among the material that 'should enter a protected state immediately'. That is verbatim the reasoning already on code.json, and the sharper credential rule belongs to code.dotfiles-environment. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+
+  "open_question": "Three findings handed onward, none of which rescues this row. (1) FOR R1c, a schema-row edge: code.json's falls_through_to lists Review Later and Unsupported or Encrypted but not Reference Clips, even though 00 names 'code snippets' inside the Reference Clips sentence - a downloaded snippet and a partly-understood loose script have different honest homes, and the edge belongs on the schema row. (2) FOR R3: the discrimination between those two homes (a provenance-header'd snippet that was saved for later retrieval versus a file whose meaning is partly understood and whose location needs a decision) is a residual accepted-evidence pattern, and it is the one piece of real content this id had. (3) FOR R1c, a grouping_reason owed to code.json: sibling-import resolution among loose scripts in one directory with no manifest is genuine local structural evidence of cohesion, and code.json's grouping_reasons currently cover only rooted structural families. It yields a P9 group and never a project VALUE, because the only candidate value is the enclosing folder name, which the schema already treats as never-alone. Whether a user-confirmed label on such a group may become a project value is Joseph's call, not this node's."
+}

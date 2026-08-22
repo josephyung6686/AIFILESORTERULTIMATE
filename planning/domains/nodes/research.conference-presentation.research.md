@@ -103,7 +103,8 @@ the current canonical list the occurrence year has to live inside the **value** 
 That works, and it makes venue values inconsistent with journal values, which carry no year.
 
 The tempting move was to propose `conference_year` / `venue_edition`. That is exactly the failure
-`_CONTRACT.md` rule 8 names — "Do not invent fields to make the gate green" — and it is also the
+`_CONTRACT.md` rule 8 names in its closing sentence (do not invent fields to make the gate green,
+wrapped across two lines there and so paraphrased rather than quoted) — and it is also the
 574's mechanism (a private field per situation). So: **`proposed_fields: []`**, and the fork is
 recorded in `open_question` for Joseph. It is his because it decides whether someone's real folders
 read `ASCB 2026/` or `ASCB/2026/`.

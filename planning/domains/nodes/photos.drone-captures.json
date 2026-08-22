@@ -1,0 +1,381 @@
+{
+  "id": "photos.drone-captures",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Drone and aerial captures",
+  "one_line": "The situation of a flight: aerial stills and clips whose organizing unit is the sortie rather than the occasion, arriving with non-image companions — telemetry sidecars, flight logs and track exports — that no other photo situation ever sees.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test_note": "Applied honestly, and the row survives on two limbs of the three, not on its name. DIMENSIONS: identical to photos.json's default (capture_year then event), and this row does not pretend otherwise — 00 states one order for capture material and gives no sentence about aerial work. The row earns nothing here and says so. DETECTION SIGNALS: yes, and specifically. The photos schema's recognition list activates the SCHEMA; choosing among its nine sibling templates needs a positive fingerprint, and this situation's fingerprint is evidence that exists on no sibling: flight-attitude metadata (aircraft and gimbal orientation, an altitude expressed relative to the takeoff point) in a vendor XMP block, and a per-flight TELEMETRY SIDECAR or flight log that brackets the media run. FILE KINDS: this is the sharpest difference and it is structural, not cosmetic. The situation's members are not all captures. A flight deposits text_document, spreadsheet and opaque_binary files — a per-frame telemetry track beside a clip, a delimited flight log, a proprietary log the engine cannot parse — that the camera-roll, screenshot, scan, print, trip and export siblings never encounter. A template whose member set includes non-media files with their own SOURCE_TYPES is a different organizational situation, not a narrowing of an existing one. PRIVACY: differs in kind rather than degree. A still discloses one point; a flight log discloses a continuous path with a takeoff location that is normally a home or a client's property, and the frames routinely contain third parties who were not asked. That is recorded below as inference from 00's local-boundary sentence, not as a second privacy regime. WHAT WOULD HAVE REFUSED THIS ROW: if the only difference were the string 'drone' — a media_type value, or a camera make — this would be a value, not a node, and the correct output would be refuse_node. It is not the only difference; the sidecar and the log are.",
+
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3). The legal fields here are photos.json's six — capture_year, event, location, people, camera_information, media_type — plus the universal facts. 00's rule for why the set stays this small: \"Each domain activates only a small set of relevant fields\".",
+
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty, after considering three candidates and refusing all three. (1) A day-grained capture time IS needed here — the flight rule family brackets a run of captures against a log's contiguous timestamps, and a year cannot bound a run — but photos.camera-events already proposes capture_date for exactly that reason, with 00's own wording behind it. Minting a second key for one concept is the D6 defect this catalogue exists to avoid, so this row concurs and re-proposes nothing; the dependency is recorded in research.md for R1c. (2) An altitude or flight-attitude field was considered and refused: it is EVIDENCE that makes this situation recognisable, it never becomes a folder level, and 00 forbids the reflex — \"it should not invent new fields automatically\". (3) A flight or sortie identifier was considered and refused: a flight is a VALUE of event, exactly as \"The system may create new values when it sees a new course, project, company, university, or event\" describes, and a field for it would be a value promoted to a column.",
+
+  "recognition": {
+    "deterministic": [
+      "EXIF Make and Model slots naming an uncrewed-aircraft platform on a successfully decoded image, together with a populated DateTimeOriginal — the same tier-1 band every capture runs on (00: \"camera EXIF is strong photo evidence\"), with the platform identity landing in camera_information. Which makes and models resolve as aircraft is a device-gazetteer question owned by R4 and not authored here; the match is word-boundary only (00: \"It should use word-boundary matching rather than substring matching\")",
+      "a vendor XMP block on the image carrying flight-attitude slots — aircraft and gimbal orientation, and an altitude expressed relative to the takeoff point rather than to sea level. This is the one image-borne signal that appears on no sibling template, because it describes a flight rather than a shutter press. The exact namespace and slot names are R2's detector content, not this row's",
+      "a telemetry sidecar named for a clip it accompanies — a per-frame subtitle or delimited track whose rows carry coordinates, altitude and camera settings — read through the structured-text extractor 00 specifies (\"Text-bearing files such as Markdown, plain text, JSON, CSV, source code, notebooks, and configuration files should be handled through a lighter structured-text extractor\"). The stem match to its clip is a derivation link, not a duplicate",
+      "a flight log in the same directory as the media — a delimited or labelled log the operator app wrote — whose contiguous timestamp run brackets the media's capture times. 00's spreadsheet extractor is what reads a delimited one: \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\". This log is this situation's anchor, in the role a syllabus plays for a course",
+      "a track export beside the media whose bracket matches the media run — a text-bearing route file, read as text and never as a place name until a gazetteer resolves it",
+      "a run of captures on one platform whose capture times are contiguous and whose GPS fixes trace a PATH rather than settling into a point cluster. 00 licenses the clustering shape — \"Camera EXIF, GPS, and capture time can support deterministic photo-event proposals\" — and the path-versus-point reading is this row's inference on top of it, corroborating, never deciding alone",
+      "a bracketed exposure set or a stitched panorama's source frames sharing one platform and one contiguous second run, joined as one capture's version family rather than counted as several — 00: \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates\"",
+      "a RAW original and its JPG from one shutter actuation, matched on platform identity and capture second, collapsed to one capture",
+      "container, codec, duration and creation-time metadata on a clip whose creation time falls inside a log's bracket — 00: \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\"",
+      "a capture timestamp parsed out of the EXIF slot by an explicit pattern — 00: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.\" No fuzzy parsing, and no filesystem timestamp substituted for a missing slot",
+      "an EXIF GPS fix resolved to a place name through a gazetteer; the coordinate is never the stored value, and neither is the track",
+      "a vendor filename convention recognised from deferred catalogue 04 (entries fnp-dji and fnp-dji-timestamp) — emitted at possible grade with no signal tier, corroborating a metadata hit and never standing in for one",
+      "a folder the operator created and named for a site or a job, supplying a candidate event LABEL for the user to accept — 00: \"A carefully curated existing folder should be treated as a strong expression of user intent.\" It is evidence; it becomes an event value on acceptance",
+      "an archive whose manifest shows an aircraft card layout with paired RAW and JPG members and a log file, inspected by manifest only — 00 licenses reading \"the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers\", and \"the normal scan should never extract archive contents to the filesystem\""
+    ],
+    "needs_llm": [
+      "naming the flight a person would recognise when telemetry gives only a platform, a time span and a path — 00 bounds the model to exactly this and only once coherence is supported: \"it proposes a concise human-readable display label and a group category\"",
+      "deciding whether one afternoon's media is one sortie or several — batteries flown over the same site are contiguous in place and broken in time, and the break is not self-interpreting",
+      "deciding whether the material is a client deliverable rather than a personal capture, where the evidence is language in an adjacent brief, quote or report rather than anything in a metadata slot",
+      "deciding whether an aerial frame whose subject is a survey plot, a structure or a crop block also carries a research reading, which is a judgement about what the frame is OF and not about how it was made",
+      "reading a log or sidecar whose column labels are non-Latin or vendor-idiosyncratic, where interpretation precedes any field being filled"
+    ],
+    "never_alone": [
+      "a DJI_#### or DJI_YYYYMMDDHHMMSS_####_X filename with nothing behind it. This is the tempting false file, and deferred catalogue 04 refuses it in its own words — \"A pattern names a naming convention, never a media type\" — and its fnp-dji row records the mechanism, that the same convention is written by handheld gimbal cameras from the same vendor. The catalogue also refuses to give any filename a signal tier. Fixture: DJI_0113.JPG, shot from the ground on a handheld gimbal",
+      "an aerial-LOOKING composition — a high vantage point, a nadir view, a landscape from altitude. A photograph taken from an airplane window or a summit is a handheld capture with ordinary phone EXIF, and no amount of framing puts it in this situation. Fixture: IMG_5120.HEIC",
+      "an altitude value alone. Ordinary phone and camera captures also record an altitude slot, so altitude cannot by itself separate a hilltop photograph from a flight; what discriminates is the relative-to-takeoff framing sitting beside orientation slots, or a log",
+      "absence of EXIF — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and an aerial still re-encoded by a sharing platform loses its flight metadata the same way. Its correct fate is the camera-roll sibling or a residual home, never an asserted flight",
+      "OCR text density — 00: \"OCR text density is also not a reliable screenshot detector\"",
+      "source_type = image or audio_video, or any extension on its own — file_kind_plausible is constitutionally never-alone, and 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a single GPS fix. A coordinate is not a flight: a path is a shape across a run of files, and a property of no one file",
+      "a filesystem creation or modification timestamp read as a capture time; a card copy, a sync or a re-encode rewrites it, and 00 requires recomputation \"instead of assuming that time only moves forward\"",
+      "a bare four-digit number in a filename read as a capture_year — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a bounded download session, or one card copied in one sitting, read as one flight — 00: \"A session should never be treated as proof of topic\"",
+      "a folder named Drone, DCIM or a card's media directory read as an event; a generic container is not a sortie, unlike a folder the operator named for a site",
+      "a log or sidecar bracket used to write capture facts onto media it merely overlaps. The bracket assembles a neighbourhood; it does not fill fields — 00: \"The graph does not automatically copy those missing facts onto sparse files\""
+    ]
+  },
+
+  "work_types": [
+    "aerial photo",
+    "aerial video clip",
+    "aerial panorama",
+    "nadir or mapping frame",
+    "bracketed exposure set",
+    "hyperlapse or timelapse clip",
+    "raw aerial original",
+    "stitched aerial composite"
+  ],
+  "work_types_note": "These are VALUES of the photos schema's media_type field — the photos schema declares no work_type field — and they are not roster nodes. 00's values rule governs them: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" Note what is deliberately absent: the telemetry sidecar, the flight log and the track export are NOT media_type values. They are non-capture members of this situation carrying their own SOURCE_TYPES, and calling them media types would be the format-as-value error one step down from the format-as-schema error.",
+
+  "grouping_reasons": [
+    "one sortie bracketed by a flight log whose contiguous timestamps cover the media run",
+    "a media run on one platform whose GPS fixes trace a path rather than a point cluster",
+    "a clip and the telemetry sidecar named for it, held together as a derivation rather than a duplicate",
+    "a stitched composite and its source frames, or a RAW and JPG pair, as one capture's version family",
+    "an exact-hash or perceptual-hash duplicate family across a re-import or a second copy of the same card",
+    "media and logs already sitting inside a folder the operator curated and named for a site or a job",
+    "captures the user accepted under one flight or site label, which is how an event value is created rather than inferred"
+  ],
+
+  "template": {
+    "dimension_order": ["capture_year", "event"],
+    "why": "Deliberately the schema's own order, and the row does not pretend to have improved on it. 00 states one order for this material — \"a Photos template may define year → event\" — and states why time leads against its general rule: \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" The parent-context test holds in this direction (00: \"a parent dimension should provide the context required to understand the child\"): a flight or site value reads under its year, while a year under one flight is the level 00 tells the canvas to warn about — \"It should warn when a level produces only one child\". What the event VALUE denotes is this situation's real question and it is not settled here: a sortie, a flying day, or a job across several sorties are three different granularities and the choice belongs to the holder, so it is recorded in open_question rather than frozen. The schema's other destination-eligible fields are not dimensions here for stated reasons: location is offered by 00 as an ALTERNATIVE top rather than an addition (\"whether photographs should branch by year, event, location, or remain mostly flat\"), and is the branch worth offering when an operator flies the same few sites repeatedly — 00: \"each branch should offer the dimensions that are actually present in its member groups\"; media_type is destination-eligible on the schema but whether it may open a level is the schema row's recorded open question and this row does not resolve it; camera_information and people are destination-ineligible on the canonical list, and 00 forbids the first outright — \"It should avoid using authorship or creator identity as a destination dimension.\" Flat is a real answer for an operator with a handful of flights, and 00 says when to prefer it: \"It should recommend flattening when a dimension does not materially improve retrieval.\" For a year whose media never bracketed into a flight, the scoped fallback applies by inference from 00's mechanism — \"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder\". All of this is a recommendation and none of it is a path: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": true
+  },
+
+  "file_kinds": {
+    "source_types": ["image", "audio_video", "text_document", "spreadsheet", "archive", "opaque_binary"],
+    "extensions": [".jpg", ".jpeg", ".dng", ".mp4", ".mov", ".srt", ".txt", ".csv", ".gpx", ".kml", ".dat", ".zip"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "DJI_0042.JPG",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make and Model slots name an aircraft platform; DateTimeOriginal populated",
+        "EXIF GPS latitude and longitude present",
+        "a vendor XMP block carries aircraft and gimbal orientation slots and an altitude expressed relative to the takeoff point",
+        "filename stem matches deferred catalogue 04 entry fnp-dji"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event from one file — a flight needs a bracketed run, or a label the user accepts",
+        "people, from anyone visible in the frame",
+        "that resolving a place name licenses storing or sending the coordinate, still less the track"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "DJI_20260612093015_0007_D.DNG",
+      "source_type": "image",
+      "observations": [
+        "RAW original whose Make, Model and DateTimeOriginal second match a sibling .JPG in the same directory",
+        "exact hashes of the two files differ; perceptual hashes are near-identical",
+        "filename stem matches deferred catalogue 04 entry fnp-dji-timestamp; the fourteen-digit run is shape only and is not parsed as a date"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type", "version_family"],
+      "must_not_conclude": [
+        "a folder path",
+        "two captures in the flight from one shutter actuation",
+        "a capture_year read out of the filename's digit run instead of the EXIF slot",
+        "that the JPG is a duplicate to deduplicate away — the hashes differ, and a filename match is not a hash match"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "DJI_0042.MP4",
+      "source_type": "audio_video",
+      "observations": [
+        "container, codec and duration metadata present; creation-time tag present",
+        "a sidecar with the same stem sits beside it",
+        "creation time falls inside the bracket of a log file in the same directory"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a transcript — speech-to-text runs \"only under an explicit privacy and compute policy\"",
+        "location from the sidecar's rows without resolving them as this file's own evidence",
+        "an event before the run brackets and a label is accepted"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "DJI_0042.SRT",
+      "source_type": "text_document",
+      "observations": [
+        "text-bearing sidecar whose stem names the clip beside it",
+        "rows carry timestamps, coordinates, an altitude and camera settings",
+        "no image data of any kind"
+      ],
+      "facts_legal": ["capture_year", "location"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type — this file is not a capture, and giving a telemetry track a media type is a format-as-value error",
+        "that its rows may be written as capture facts onto the surrounding images; it is a derivation link to one clip, and the neighbourhood it helps assemble is P9's",
+        "a capture_year as a direct fact from row text — a labelled metadata slot is direct, parsed body text is not"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "flightlog_2026-06-12_1.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled columns for time, latitude, longitude, altitude and battery state",
+        "the timestamp column is contiguous and brackets the capture times of the media in the same directory",
+        "no filename evidence of a site or a job"
+      ],
+      "facts_legal": ["capture_year", "location"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event value — the log bounds a run, it does not name it",
+        "that every image in the directory belongs to this flight because its timestamp falls inside the bracket; that is a candidate membership for review, not a fact",
+        "media_type"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "FLY089.DAT",
+      "source_type": "opaque_binary",
+      "observations": [
+        "proprietary binary log the engine has no extractor for",
+        "size and timestamps read; no content parsed",
+        "sits beside the media of one flight"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the file is empty — 00 requires \"safe metadata-only indexing\" for unknown binary formats, and elsewhere that such a file be \"recorded as indexed-but-unreadable rather than silently treated as empty\"",
+        "a flight event from its filename",
+        "any capture fact at all"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "2026-06-12_site-survey.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an aircraft card layout with paired DNG and JPG members, a clip, a sidecar and a log",
+        "file count and uncompressed size available from the manifest",
+        "no member is extracted to disk",
+        "the archive's own timestamp is the day it was zipped"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture facts from the archive's own timestamp — the members' EXIF and the log are the evidence, and they are unread until the members are",
+        "one flight for the whole archive because it was copied in one sitting",
+        "a site or client from the archive name alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "DJI_0113.JPG",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make and Model name a handheld gimbal camera from the same vendor as the aircraft",
+        "DateTimeOriginal and GPS present",
+        "no flight-attitude slots and no relative-to-takeoff altitude anywhere in the metadata",
+        "filename stem matches deferred catalogue 04 entry fnp-dji, exactly as an aerial still would"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this file flew — the filename convention is shared, and catalogue 04's own rule is that \"A pattern names a naming convention, never a media type\"",
+        "membership in a flight because its sequence number falls between two aerial frames",
+        "an event from the vendor name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_5120.HEIC",
+      "source_type": "image",
+      "observations": [
+        "phone camera EXIF with Make, Model, DateTimeOriginal and GPS",
+        "the frame is a landscape seen from altitude, shot through an airplane window",
+        "no flight-attitude slots, no sidecar, no log anywhere in the directory"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that an aerial-looking composition is aerial capture evidence — composition is not a metadata slot",
+        "media_type = aerial photo",
+        "a flight from a GPS fix recorded at altitude"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "DJI_0221.JPG",
+      "source_type": "image",
+      "observations": [
+        "full aircraft EXIF and flight-attitude metadata, capture time and GPS over a field site",
+        "the frame is a nadir view of a marked survey plot; OCR of a ground marker board recovers a plot code and a project identifier",
+        "capture times contiguous with the rest of that day's run"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the research reading replaces the capture reading, or the reverse — the evidence is disjoint, flight metadata on one side and OCR'd marker text on the other, which is 00's \"One file may hold facts from more than one domain without losing information\"",
+        "a project fact on the neighbouring frames of the same run because this one carries it",
+        "people from anyone standing in the plot"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "north_elevation_roof_2026-06-12.jpg",
+      "source_type": "image",
+      "observations": [
+        "aircraft EXIF and flight-attitude metadata present; capture time and GPS at a residential address",
+        "the filename was renamed by the operator to an elevation and a date",
+        "an adjacent document is an inspection brief naming a client and a scope"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "any career field row — the career schema is a placeholder that writes no fields, so the career reading co-activates for protection and grouping and asserts nothing",
+        "the client's identity as a fact on this image because a neighbouring brief names one",
+        "a place name surfaced as a folder level when the coordinate is a private address, without the holder choosing it"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-06-12 at 10.31.02.png",
+      "source_type": "image",
+      "observations": [
+        "PNG at a known display resolution; software metadata names a screen-capture tool; no camera EXIF",
+        "OCR recovers a flight-app map view, a site name and a flight duration",
+        "sits in the same download directory as that day's media"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this situation applies at all — the photos schema activates, but the organizational situation is the screenshot sibling's",
+        "a location or event fact for the flight's images from this file's OCR'd site name",
+        "membership in the flight because it was saved in the same session — 00: \"A session should never be treated as proof of topic\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.camera-events",
+      "signal": "The confusable evidence item is populated camera EXIF on a still, which both situations run on, plus a shared vendor filename convention — the same vendor's handheld gimbal cameras write the DJI_#### stem that catalogue 04's fnp-dji row records. The discriminator is flight evidence and only flight evidence: flight-attitude slots in a vendor XMP block, or a telemetry sidecar or log bracketing the run. Where it is absent, the camera-roll reading is correct and no harm is done; the edge exists so the reverse never happens. Fixtures: DJI_0113.JPG, IMG_5120.HEIC. The reciprocal is already authored on photos.camera-events.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "photos.home-video",
+      "signal": "A drone clip and a home-video clip present the same evidence item — container, codec, duration and a creation-time tag — and 00 gives that list without distinguishing what shot it: \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\". The discriminator is the companion file: a stem-matched telemetry sidecar or a log whose bracket covers the clip. Duration alone separates nothing, because a long clip is the normal case on both sides. Fixture: DJI_0042.MP4 with DJI_0042.SRT beside it.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "travel.trip-photos",
+      "signal": "The shared evidence item is a contiguous run of captures whose GPS sits away from every routine cluster — flying somewhere and travelling somewhere produce the same shape. The discriminator is which unit organizes the material: a sortie bracketed by a log, versus a journey whose event value is the trip. Both readings can be true of one file, and this edge does not settle which branch the holder wants; it only forbids one evidence item from deciding for both. Fixture: an aerial run made during a trip, where the log brackets the sortie and the trip brackets the log.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "A flight-app screenshot or screen recording carries the site name, the path and the duration of the very flight this situation is trying to name, which makes it the most tempting file in the directory. 00's band comparison decides it and no OCR content may override it: \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis; conflicting signals should lead to abstention rather than an invented classification\", and the reminder that \"A screenshot is always a screenshot of something\" is exactly why its content is about the flight rather than of it. Fixture: Screenshot 2026-06-12 at 10.31.02.png.",
+      "provenance": "design"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by absence: also_holds_with joins schemas only (CONNECTION.md section 5) and this is a template row. Both pairs this situation actually meets are carried as also_schema on fixtures instead. photos <-> research is already authored on the photos schema row and the fixture here is DJI_0221.JPG, a survey frame whose flight metadata and whose OCR'd plot marker are disjoint evidence. photos <-> career is the second pair and it is deliberately not proposed as an edge from here: the career schema is a placeholder that writes no field rows (CONNECTION.md PR-6), so the career reading co-activates for protection and grouping and asserts no field; the fixture is north_elevation_roof_2026-06-12.jpg. 00's licence for both shapes: \"One file may hold facts from more than one domain without losing information.\"",
+
+  "falls_through_to": [
+    {
+      "residual_template": "One-Off Images",
+      "why": "00's description fits this situation's leftover exactly — images with \"no event, project, reference collection, or photo-family association\" — and it is the commonest outcome here, because an aerial still whose log is missing, or whose metadata was stripped by a re-encode, has nothing left to bracket it into a flight. Fixtures: DJI_0042.JPG when no run forms, DJI_0113.JPG, IMG_5120.HEIC.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — the shape of every non-capture member of this situation. A telemetry sidecar, a log, or a card archive whose members are unread is understood as to kind and unresolved as to home. Fixtures: DJI_0042.SRT, flightlog_2026-06-12_1.csv, 2026-06-12_site-survey.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "This situation meets unreadable files more often than any document domain does, because a flight deposits proprietary logs beside its media. 00's residual covers \"password-protected archives, unreadable documents, damaged files, and unknown formats\" and prefers representing them to moving them, and the design separately requires that such a file be recorded as indexed-but-unreadable rather than treated as empty. Fixture: FLY089.DAT.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [],
+  "role_split_note": "Empty after looking. 00's test is \"The system must separate roles that happen to contain the same entity type\", and this situation has one near-case: the place the aircraft took off from versus the place it photographed. They are the same entity type in different roles, and in a mapping flight they are genuinely different places. It is not authored as a role_split because role_split lives on the canonical field list and this row may not add to it, because the takeoff point is telemetry evidence rather than a fact anyone would file by, and because promoting it would create a destination-eligible field whose values are usually somebody's home address. Recorded in research.md for R1c instead.",
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This situation's defining companion file is a continuous track, which discloses materially more than the captures do. 00 already puts the raw forms behind the local boundary — \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\" — and makes their display a user choice: \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\" Three consequences follow for this row, all inference from those sentences rather than a second privacy regime. First, a log or sidecar is a path, not a point: it records where the aircraft launched, which is normally a home or a client's premises, so a resolved place name is the only form that may surface and the track itself never leaves the machine. Second, the frames routinely contain third parties and third-party property that nobody asked about, which is why people stays user_confirmed and destination-ineligible here as on the schema. Third, where a career reading co-activates, the site coordinate is a client's address and a machine-proposed event label can publish it as a folder name, so such a label is a suggestion for the holder to accept or rename, never an asserted fact. Handling classes are not assigned here.",
+
+  "open_question": "Two, both the holder's rather than this row's. First, what an event VALUE denotes for aerial work: one sortie, one flying day, or one job across several sorties. A survey operator flies the same site repeatedly and would file by site; a hobbyist flies many sites once each and would file by occasion; 00 offers the menu without choosing — \"whether photographs should branch by year, event, location, or remain mostly flat\" — and this is a decision about someone's real filesystem, so it is recorded rather than resolved. Second, where the non-capture members live once a branch is frozen: beside the media in the flight's own folder, or in a scoped subfolder under it. 00 gives no sentence for it; the nearest mechanism is the scoped fallback that lets \"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder\", applied by inference, and 00's warning against creating \"a large number of tiny folders\" is the reason a per-flight subfolder is not recommended here by default. Inherited and not re-opened: whether media_type may open a folder level at all is photos.json's recorded question, and this row branches on nothing that would pre-empt it."
+}

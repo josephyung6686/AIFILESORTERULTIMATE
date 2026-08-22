@@ -1,0 +1,536 @@
+{
+  "id": "finance.insurance-healthcare",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Health insurance coverage and claims",
+  "one_line": "The health-coverage situation on the Finance schema: the carrier that covers a person, the cards and plan documents that prove the coverage, and the claim record that says what was billed, what the plan paid, and what the person owes. Recommended institution, then record_type. A safety situation twice over - it is finance material by its claim-and-amounts evidence and it sits on medical material by its clinical evidence, so protection precedes any cloud prompt or placement path on both readings.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "The field vocabulary is 00's Finance sentence, named outright: \"Finance files may use institution, account type, tax year, and record type.\" The posture is named outright: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed\", and the material is named inside the immediate-protection sentence: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" What a template row owes is named outright: \"Each template should define the domain’s allowed fact fields, detection signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation constraints.\" 00 does NOT name insurance as a situation and does not name health coverage anywhere, so this row is provenance inference, not design: the licence for the row is CONNECTION.md PR-8 (\"insurance (personal / corporate / healthcare) is templates over the Finance schema vocabulary ... three organizational situations, not three schema slugs\") and CONNECTION-EXAMPLES fixture 8, which fixes this row's dimension_order at institution then record_type and puts the finance/medical also_holds_with edge on the SCHEMA rows.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "Passes CONNECTION.md section 2's disjunctive test on all three clauses, not one. (a) Recommended dimensions differ from the Finance schema row's default: institution then record_type, with account_type dropped as a default level - a household normally holds one health plan per carrier at a time, so the level would produce a single child, which is the shape 00 tells the canvas to warn about (\"It should warn when a level produces only one child\"). (b) Detection signals differ: the schema row's recognition is the union across every finance situation and fires on labelled period-and-balance pairs; this situation's discriminators are a labelled claim-number slot paired with billed / plan-paid / patient-responsibility slots, and a member-identifier paired with a group-number slot on a card - structures no other finance situation has. (c) Privacy rules differ: this is the one finance situation whose ordinary documents carry clinical content, so the medical safety domain co-activates on its own evidence and protection runs on both readings before any model path; the schema row's general finance posture does not say that. Nothing was invented to earn the row: fields empty, proposed_fields empty, and the one genuinely new facet this material needs (patient versus subscriber) is recorded as an open_question rather than minted.",
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3, _CONTRACT rule 12). The legal field set here is the Finance schema's - institution, account_type, tax_year, record_type - plus the account_holder key that row proposes and the universal facts. This row adds none.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. Two facets this material genuinely has - the PATIENT a claim is about (distinct from the subscriber whose name the plan is in) and the plan SPONSOR (an employer, distinct from the carrier that fills institution) - have no canonical key. Neither may be minted here. A patient key is a person-identifying field on health material, and medical is a field-less safety placeholder by D1 as narrowed and PR-6: writing a person-field for it from a finance template row is reversing that deferral through a side door. A sponsor key would be a second organization field beside institution with no 00 sentence behind it. Both are recorded in open_question and in must_not_conclude on the file examples where they bite, which is the honest place for them.",
+  "recognition": {
+    "deterministic": [
+      "the claim-adjudication structure, as a SET of labelled slots on one document: a labelled claim-number slot co-occurring with labelled amount-billed, plan-paid or allowed-amount, and patient-responsibility slots, together with a labelled date-of-service slot. 00 makes the labelled slot the direct-fact source - \"Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field\" - and names the location this material actually uses: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\" The SET is the discriminator, not any one slot: a provider bill has a total and no plan-paid column, a receipt has neither.",
+      "the coverage-card structure, as a PAIR: a labelled member-identifier slot together with a labelled group-number slot, plus a carrier organization matched at word boundary - as labelled slots on a document, or as OCR regions on a photographed or scanned card. The pair is what fires; a person's name beside one number is the identity collision and is struck by the never-alone rule below.",
+      "an organization-gazetteer hit matched at word boundary in a letterhead, page-one heading or labelled carrier slot, together with a coverage or claim context term in a positionally weighted zone. 00: \"It should use word-boundary matching rather than substring matching\", and \"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference\". The gazetteer's contents are R4's and the term patterns are R6's; this row names the rule family and writes neither a list nor a regex.",
+      "a labelled plan-benefit table: deductible, out-of-pocket maximum, coinsurance or copay column headers beside a labelled plan-name slot. This is the only admissible account_type source in this situation - from a labelled plan slot on the record, never from the carrier's name and never from marketing text elsewhere on the page.",
+      "an explicit tax-year pattern in a labelled tax-year slot on a payer-issued coverage form, distinct from a plan year, a coverage period and any date of service. Narrow by 00's own rule: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching\", because \"The product must not use fuzzy date parsing\".",
+      "a carrier notification email: the labelled sender slot resolving to a carrier organization at word boundary, together with a claim, benefits or coverage term in the labelled subject slot. 00's email extractor yields \"sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context, while treating addresses and message content as potentially sensitive\"; the source_type alone is never sufficient (see never_alone).",
+      "an archive whose manifest lists card-shaped, EOB-shaped and claim-shaped member names together, read without unpacking - 00: \"Archives should be inspected without being unpacked to disk.\" The manifest is the evidence of a candidate packet for review; the outer archive name is not."
+    ],
+    "needs_llm": [
+      "an unlabelled prose letter from a carrier whose subject is a coverage action - a denial, an appeal outcome, a termination or continuation-of-coverage notice, a coordination-of-benefits questionnaire - with no labelled claim, member or plan slot anywhere. 00 lists \"unlabeled forms\" among the reasons rules alone are insufficient, and scopes the call: \"an LLM receives only compact evidence packets for files or groups that remain ambiguous, have multiple plausible domains, or contain language that requires interpretation.\"",
+      "an OCR'd portal capture: deciding whether it shows claim status, a digital coverage card, or a generic capture, and doing so from the OCR content rather than from the format. 00 names the ambiguity for exactly this file shape - a PNG \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\".",
+      "deciding whether a heterogeneous set is purpose-coherent as ONE claim episode - the explanation of benefits, the provider bill for the same service, and the appeal correspondence - or as two unrelated claims at one carrier. The group-coherence question, answered from a dossier with citations: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "a non-domestic or multilingual carrier's document whose document-kind term has no gazetteer entry and whose slots are unlabelled; 00 names \"multilingual documents\" among the cases fixed patterns cannot capture.",
+      "separating this SITUATION from the medical neighbour when one document carries both structures - a benefits statement whose table also carries diagnosis or procedure codes. The question is which situation the file's organization belongs to, never which schemas may activate: both may, on disjoint evidence, and that is the schema-level also_holds join rather than anything this row decides."
+    ],
+    "never_alone": [
+      "a carrier, insurer or provider organization name alone. This is the tempting-false-file rule for this node: a plan-shopping marketing brochure downloaded while comparing coverage, a hospital parking receipt, and a news PDF about an insurer each carry one and none is a coverage record. 00's ambiguity sentence is the reason a name is never enough - \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" - and a carrier is one more reading of the same string.",
+      "a person's name beside an identifier number alone. That is equally a coverage card, a government credential, a library card and a hospital wristband; the identity.core-documents collision lives exactly here, and only the member-plus-group pair or an issuing-authority-plus-document-type structure separates them.",
+      "clinical vocabulary, or a procedure-code-shaped or diagnosis-code-shaped token, alone. An anatomy lecture deck, a nursing syllabus, a study protocol and a blank consent form all carry it end to end and none is anybody's coverage record - and where it IS someone's health material, the discriminating structure is a result-and-reference-range table or a dispensing label, which is the medical.personal-health-records situation, not this one.",
+      "a money figure or a currency symbol alone. A provider bill, a premium notice, a pharmacy receipt, an offer letter and a research grant budget all state amounts; the figure discriminates nothing and certainly not which situation this is.",
+      "a bare 4-digit token read as tax_year, whether it comes from a plan year, a coverage period, a date of service or the filename. 00: documents contain \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\". A plan year is not a tax year and a service date is not either.",
+      "a masked or unmasked digit string read as an account or member number. It is equally a claim id, an invoice number, a case number, a policy number or a device serial; it needs a labelled member, group or claim slot to mean anything.",
+      "a source_type of image, ocr, email, calendar, archive or opaque_binary alone. file_kind_plausible is constitutionally never-alone, and 00 says to \"treat the file extension as a routing signal rather than an assumption about meaning\": an .ics reminding a person of an appointment at a clinic is a calendar event, not a coverage record.",
+      "membership in a download session that bundled several PDFs from one carrier portal. 00: \"A session should never be treated as proof of topic\" - it is a purpose clue and a review aid, and here it is exactly the clue that would wrongly absorb an unreadable export, or a lab result, into a claim packet.",
+      "the absence of EXIF on an image of an insurance card, read as proof the image is a screenshot rather than a photograph of the card. 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"conflicting signals should lead to abstention rather than an invented classification\".",
+      "a producer or author metadata string naming a claims-processing or benefits-administration tool. 00 treats producer strings as supporting evidence only, and forbids authorship as a destination dimension outright: \"It should avoid using authorship or creator identity as a destination dimension.\""
+    ],
+    "proposed_context_terms": [
+      "member id",
+      "group number",
+      "claim number",
+      "date of service",
+      "amount billed",
+      "plan paid",
+      "patient responsibility",
+      "deductible",
+      "out-of-pocket maximum",
+      "coinsurance",
+      "copay",
+      "explanation of benefits",
+      "prior authorization",
+      "coverage period",
+      "subscriber"
+    ],
+    "proposed_context_terms_note": "PROPOSED, not design. 00 states the pattern-plus-context SHAPE for course codes only (\"a course-code pattern together with academic context such as\" five literal terms). These are this situation's candidate context terms in the same shape; R6 owns the patterns, R4 owns the gazetteers, and this row writes neither a regex nor a score."
+  },
+  "work_types": [
+    "coverage card",
+    "explanation of benefits",
+    "claim form submitted",
+    "claim denial or appeal letter",
+    "prior-authorization or referral approval",
+    "summary of benefits and coverage",
+    "plan or policy booklet",
+    "enrollment or election confirmation",
+    "premium invoice or billing notice",
+    "provider bill or patient statement",
+    "year-end coverage form issued by a payer",
+    "network or formulary directory",
+    "coordination-of-benefits questionnaire",
+    "coverage termination or continuation notice"
+  ],
+  "work_types_note": "These are VALUES of the schema's record_type field, discovered at runtime, never roster nodes. 00: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" Jurisdiction-specific coverage-form names are values from R5's one-jurisdiction catalogue (D4) - never field names, never dimensions.",
+  "grouping_reasons": [
+    "one claim episode across its explanation of benefits, the provider's bill for the same service, and any appeal correspondence - the labelled claim number and date-of-service pair is the anchor, never the shared carrier name",
+    "one plan year at one carrier across its card, its summary of benefits, its enrollment confirmation and its premium notices",
+    "one covered person's material inside a household plan - which is a MEMBERSHIP question and not a fact: a dependant's explanation of benefits names the subscriber and the patient in two different labelled slots, and neither name may be copied onto the other's files",
+    "one explanation of benefits re-downloaded, or a corrected copy re-issued - the universal duplicate_family and version_family facts, never a finance fact",
+    "a record that supports another purpose as well: an explanation of benefits inside a tax-year packet, or inside a legal injury-claim file. 00: \"A file may validly belong to more than one accepted group\" - multi-membership, never a copied fact"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "record_type"
+    ],
+    "why": "Fixed by CONNECTION-EXAMPLES fixture 8, which is binding on R1, and independently defensible. institution first, because a record_type value such as \"explanation of benefits\" is unintelligible without the carrier that issued it - 00's own parent-dimension rule, stated for coursework and general in form: \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" record_type second, as the leaf that separates cards from claim records from plan documents from premium notices. account_type is destination_eligible on the canonical row and is deliberately NOT a default level here, unlike the Finance schema's own order: a household normally holds one health plan per carrier at a time, so a plan level would open a branch with a single child, and 00 tells the canvas to warn about exactly that - \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders\" - and to \"recommend flattening when a dimension does not materially improve retrieval\". tax_year is likewise not a level: only a payer-issued year-end coverage form carries a labelled tax-year slot, so a year level would sit empty above everything else, and 00's ordering rule points the other way for record domains anyway - \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Optional branch patterns, offered only where the facts exist: (a) where a person has held two plans at one carrier and both fill a labelled plan slot, account_type may appear between institution and record_type; (b) where a payer-issued year-end form carries its own labelled tax-year slot, tax_year may appear as an optional leaf under record_type, never above institution and never filled from a plan year or a service date; (c) a household may prefer the claim episode as the branch instead of record_type, which is a P9 group surfaced as a branch rather than a new dimension. Safety posture: shallow by intent. This is a recommendation over a protected area, not a filing tree - \"a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default\" - and the co-activated medical reading recommends NO dimensions at all, so nothing clinical may become a folder label. Each branch \"should offer the dimensions that are actually present in its member groups\", and the user may reverse, remove, add or flatten all of it: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" account_holder, the schema row's proposed search-and-privacy key, is never a dimension - \"It should avoid using authorship or creator identity as a destination dimension.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "spreadsheet",
+      "archive",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".eml",
+      ".msg",
+      ".csv",
+      ".xlsx",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Explanation of Benefits 2026-03-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier name in the page-one letterhead, matched at word boundary",
+        "a page-one banner reading THIS IS NOT A BILL",
+        "labelled slots: Claim Number, Date of Service, Provider, Member ID (masked)",
+        "a table with labelled columns Amount Billed, Plan Discount, Plan Paid, Patient Responsibility",
+        "a coded procedure column beside the amounts"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from the date of service or from the filename's date token - a service date is not a tax-year slot, and a bare 4-digit run is 00's forbidden year candidate",
+        "account_type from the plan name printed in the header unless a labelled plan slot carries it",
+        "institution = the provider named in the labelled Provider slot; the provider rendered the service and the carrier issued the record, which is the role separation 00 requires - \"The system must separate roles that happen to contain the same entity type\"",
+        "a patient fact distinct from the subscriber; there is no canonical key for it and this row mints none",
+        "that the coded procedure column may travel in a cloud dossier - \"Protected material should not be included in cloud-model prompts by default\"",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "insurance card front.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present: make, model, DateTimeOriginal; sensor-shaped pixel dimensions",
+        "OCR regions read a carrier name, a labelled Member Name, a labelled Member ID, a labelled Group Number, a plan name, and pharmacy routing labels",
+        "a small copay grid in the lower third",
+        "a second file in the same folder shows the reverse of the same card"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "account_type",
+        "capture_year",
+        "camera_information",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "an identity-document fact from the name-beside-number pair. This is the identity.core-documents collision fixture: a coverage card and a government credential share that shape exactly, and only the member-plus-group pair versus an issuing-authority-plus-document-type structure separates them",
+        "that the camera EXIF settles the domain - it settles that this is a capture, not that it is or is not a coverage record; both fact sets stand on disjoint evidence, which is the schema-level photos join",
+        "the member identifier surfaced in a group summary, a thumbnail caption or a folder label; it is credential-grade material on a protected record",
+        "account_type from the pharmacy routing labels; the labelled plan slot is the only admissible source",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-02-03 at 14.22.10.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution; no camera EXIF",
+        "filename carries the platform's default screenshot pattern",
+        "an OCR region reads a carrier name beside a labelled Claim Status and a claim-shaped identifier",
+        "no amounts are legible in the captured region"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the missing EXIF alone; the exact display resolution and the filename pattern are what may support it, and \"conflicting signals should lead to abstention rather than an invented classification\"",
+        "that this file carries the claim's facts because it names the same carrier - it may join the claim neighbourhood as a context-supported member without the claim's facts being written onto it. 00: \"The graph does not automatically copy those missing facts onto sparse files\"",
+        "account_holder from a partially legible name region",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Summary of Benefits and Coverage.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier name and a labelled plan name in the page-one heading",
+        "a labelled coverage period slot",
+        "a benefit table with labelled columns for deductible, out-of-pocket maximum, coinsurance and copay",
+        "no person is named anywhere in the document",
+        "no claim number and no amounts owed"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "account_holder - nobody is named; this is the plan's own document and not anyone's record, which is why the co-activated medical reading does NOT fire here",
+        "tax_year from the labelled coverage period; a plan year is not a tax year",
+        "a claim fact from the example scenarios the document prints to illustrate benefits",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "benefits_enrollment_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an employer name in a labelled header slot and a carrier name in a separate labelled plan slot",
+        "labelled election rows: medical plan, dental plan, coverage tier, effective date",
+        "a per-pay-period premium deduction column",
+        "an employee identifier in a labelled slot, and a signature-and-date block"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "institution = the employer. The employer sponsors the plan and the carrier covers the person; institution holds the carrier. There is no canonical key for a plan sponsor and this row mints none - the tension is recorded in open_question rather than answered by collapsing two roles into one field",
+        "a payroll record_type from the per-pay-period deduction column; there is no labelled pay period and no gross/deductions/net table, which is the finance.payroll-received sibling's structure",
+        "an employment fact from the employer name - that name is the single evidence item the career.employment-records collision says must not count for both",
+        "tax_year from the 4-digit token in the filename",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lab Results.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a laboratory organization name in the page-one letterhead",
+        "a labelled patient-identification block with a record-number slot",
+        "a table with labelled columns Test, Result, Reference Range, Flag",
+        "an ordering-physician slot",
+        "no claim number, no amounts, no member or group slot",
+        "arrived in the same download session as two explanation-of-benefits PDFs"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY finance fact. This is the neighbour-collision fixture: a health-sector organization name plus a person's name plus clinical vocabulary is exactly the evidence that tempts this situation, and none of it is sufficient - there is no claim, coverage or amounts structure anywhere. The result-and-reference-range table is the medical.personal-health-records situation's own discriminator",
+        "membership in the claim packet because the download session bundled it with two EOBs - a session is a possible-grade clue only",
+        "institution from the laboratory's letterhead; a lab is not the file's carrier and this file has no carrier",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "HSA_Statement_2026-Q1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an administrator's organization name in the page-one letterhead",
+        "labelled slots: Statement Period, Beginning Balance, Ending Balance, Account Number (masked tail)",
+        "labelled rows for contributions, distributions and a year-to-date contribution total",
+        "a labelled account-descriptor cell naming a health savings account product",
+        "a distributions table whose rows reference dates of service"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "that this belongs to THIS situation because the material is health-related - the labelled statement-period-and-balance pair under a financial-account descriptor is the finance.personal-records sibling's structure, and there is no claim, member or coverage slot. This is the template-level collision fixture: the same evidence item fires for both and must count for only one",
+        "tax_year from the year-to-date contribution total or from the filename's 4-digit token; only a labelled tax-year slot supplies it",
+        "a clinical fact from the dates of service in the distributions table - a reimbursement row is not a health record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "1095-C 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries a form name and a labelled tax-year slot reading 2025",
+        "labelled employee and employer blocks, with a masked identification number in each",
+        "labelled numbered boxes and a month-by-month coverage row",
+        "a covered-individuals table listing dependants by name"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "institution",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a jurisdiction field, or a field named after this form. The form name is a VALUE of record_type from R5's one-jurisdiction catalogue (D4); a field named for a form is the one-way move the contract forbids",
+        "that the file therefore belongs to the finance.tax-filings situation rather than this one - it is legitimately a member of a tax-year packet as a GROUP, which is multi-membership and not a copied fact",
+        "account_type from the coverage row; a month-by-month coverage grid is not a labelled plan slot",
+        "dependant names surfaced in a group summary or a folder label; they are protected identity-adjacent material on a protected record",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Your claim has been processed.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a carrier domain at word boundary",
+        "labelled subject slot carries a claim term and a claim-shaped identifier",
+        "body is a short notice with a portal link and no amounts",
+        "one attachment named EOB.pdf",
+        "recipient address is the holder's personal mailbox"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = email; the labelled sender and subject slots are what fire, and file_kind_plausible is never alone",
+        "the attachment's facts written onto the message, or the message's facts onto the attachment - each carries its own evidence",
+        "a contact fact used as a folder proposal; 00 keeps address-book data privacy-protected rather than a proposal basis",
+        "amounts or a patient fact from a body that states none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "insurance docs.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists two card images, an explanation of benefits, a completed claim form, a provider bill and one lab result",
+        "manifest read without extraction to disk; member count and uncompressed size recorded",
+        "outer archive name is a bare phrase with no carrier and no year"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "facts about the MEMBERS written onto the outer archive, or the archive's facts written onto members; the manifest is evidence of a candidate packet for review",
+        "that the lab result is coverage material because it arrived in this archive - it activates on its own evidence and is the medical neighbour's material, protected there",
+        "institution from the archive name, which names none",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Annual wellness visit.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event title names a visit type; organizer resolves to a clinic domain",
+        "location slot carries a street address; a start and end time and a yearly recurrence rule",
+        "no member, group, claim or amounts slot exists in the format at all"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY finance fact. A calendar file is a SOURCE_TYPE, not a domain - 00 says to \"treat the file extension as a routing signal rather than an assumption about meaning\", and the never-alone rule strikes any schema whose whole support is a file-kind hit",
+        "institution from the organizer's clinic domain; a clinic is not a carrier and an organizer slot is not a letterhead",
+        "an event fact from the recurrence rule, or a location fact used as a folder proposal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "EOB_2026_03.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the PDF is password-protected: no text layer is reachable and no metadata beyond the filesystem record",
+        "filename stem resembles a carrier portal's export naming and carries a 4-digit token",
+        "arrived in the same download session as two readable explanation-of-benefits files"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "institution, record_type or tax_year from the filename stem alone - 00 says the system \"should not infer a purpose from their filename alone\" for unreadable files, while they \"should retain basic metadata and remain eligible for manual attachment to a user-created group\"",
+        "membership in the claim packet because the download session bundled it; a session is a possible-grade clue only",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "CVS receipt.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present; OCR reads a pharmacy chain name, dated line items, a labelled Total and a prescription-number slot",
+        "one line item carries a medication name and a quantity",
+        "no claim number, no member or group slot, no plan-paid column"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "capture_year",
+        "camera_information",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that this is a coverage record. A single labelled total with a purchase term and no claim or coverage structure is the finance.receipts-expenses sibling's material; the medication line is medical material on its own evidence, and neither makes it an insurance claim",
+        "account_type or a plan fact from the prescription-number slot",
+        "tax_year from the receipt date, even where the person intends to claim the expense later",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "both carry a person's name, a health-sector organization name and clinical vocabulary. The discriminating evidence is structural: a labelled claim-number slot with billed / plan-paid / patient-responsibility columns, or a member-plus-group card pair, is this situation; a result-and-reference-range table, a medication or dispensing structure, or a clinical narrative naming a patient is the health-records situation. The insurer or provider name alone, and clinical vocabulary alone, count for neither. The pair also co-activates at SCHEMA level (finance and medical hold together on one file), so this signal exists to keep ONE evidence item from counting twice at the situation level. Fixture: Lab Results.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.dependant-child-health",
+      "signal": "a dependant's explanation of benefits names the subscriber in one labelled slot and the patient in another, so both situations retrieve it. The discriminating evidence: the claim-and-amounts structure keeps the file here; a paediatric clinical record, an immunization record or a school health form naming the child as patient is theirs. Neither may read the subscriber's name as the patient's, and neither may copy a household member's name onto the other's files. Fixture: 1095-C 2025.pdf, whose covered-individuals table lists dependants without making any of them a patient.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "a health savings or flexible spending account statement carries the identical labelled statement-period-and-balance pair that defines the account-records situation. The discriminating evidence: a labelled financial-account descriptor with a balance pair is that situation; a labelled claim number with billed / plan-paid / patient-responsibility columns, or a coverage card, is this one. Being health-related is not the discriminator. Fixture: HSA_Statement_2026-Q1.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "a pharmacy, clinic or copay receipt carries a health-sector organization name and a money figure - this situation's tempting evidence. The discriminating evidence: a single labelled total with a purchase or order term and no claim, member or coverage structure is the receipt situation. Fixture: CVS receipt.jpg.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "a payer-issued year-end coverage form carries an explicit labelled tax-year slot and numbered boxes, which is the filing situation's own shape, while also carrying a carrier or sponsor block and a coverage grid, which is this situation's. One evidence item - the year - must not count for both; the file is legitimately a MEMBER of a tax-year packet, which is a group and not a copied fact. Fixture: 1095-C 2025.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-personal",
+      "signal": "sibling situations on one schema: both are policies and claims from a carrier. The discriminating evidence: a member-plus-group pair, a date-of-service slot, a provider slot, or a plan-benefit table with deductible and coinsurance columns is health coverage; a policy number beside an insured-property, vehicle or dwelling descriptor with a loss-date and adjuster slot is the personal-lines situation. A carrier that writes both lines is the same organization name on both, and that name discriminates nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "a group health plan document names a firm, which is also the corporate situation's shape. The discriminating evidence: a certificate of insurance evidencing liability, property or workers' coverage FOR a firm is corporate; a member-facing card, summary of benefits or explanation of benefits issued to a covered person under a firm's group plan is this one. The employer name is the item that must not count for both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "open-enrollment and benefits material arrives inside an HR onboarding packet, and both situations carry the employer name. The discriminating evidence: a labelled carrier slot with plan elections, coverage tier and premium amounts is this situation; an employment term - offer, acceptance, role title, start date, review - in a letterhead document is the employment record. The employer name is the single evidence item that must never count for both. Fixture: benefits_enrollment_2026.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "a coverage card pairs a person's name with an identifier number issued by an organization, which is exactly a government credential's shape. The discriminating evidence: an issuing-authority plus document-type structure, with a validity period and a photograph or signature panel, is identity; a member-identifier plus group-number pair with a plan name and a copay grid is this situation. A name beside a number discriminates nothing on its own, and both sides are protected either way. Fixture: insurance card front.jpg.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "a portal capture of claim status and any other screenshot share the missing EXIF, an exact display resolution and the platform filename pattern; a photographed card and any other phone photo share camera EXIF. The discriminating evidence is only the OCR content: a carrier beside a labelled claim or member slot is a coverage record; capture properties with no such structure are a capture only. 00 forbids reading missing EXIF as proof either way. Fixture: Screenshot 2026-02-03 at 14.22.10.png.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by omission. CONNECTION.md section 5 restricts also_holds_with to schema-to-schema pairs and this is a template row; CONNECTION-EXAMPLES fixture 8 places this situation's headline join - finance to medical, reciprocal - on the SCHEMA rows, where it is already authored on finance.json and on medical.json. The dispatch prompt's edge table invites a template to author also_holds_with; where the prompt and CONNECTION disagree, CONNECTION wins, and the disagreement is recorded in the research file. The co-activations this situation produces are recorded per file in also_schema above: medical on the explanation of benefits, the lab result, the archive and the pharmacy receipt; photos on the card photograph and the portal capture; identity on the year-end coverage form; career on the enrollment confirmation.",
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "the default home for this situation's material when no claim or plan group is accepted. 00 names it for \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\" - this material is two of those readings at once - and requires that it \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixtures: Explanation of Benefits 2026-03-14.pdf, insurance card front.jpg, Lab Results.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00's definition fits the one-off coverage document with a durable purpose and no series: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\". Fixtures: Summary of Benefits and Coverage.pdf, Your claim has been processed.eml.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "00 defines it for \"screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship\" - the claim-status capture taken as a reminder, when no claim group is accepted. Fixture: Screenshot 2026-02-03 at 14.22.10.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "00 defines it for \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\" - the isolated copay or pharmacy receipt, which is transactional and carries no coverage structure. Fixture: CVS receipt.jpg.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00 defines it for \"password-protected archives, unreadable documents, damaged files, and unknown formats\", and carrier portals routinely issue password-protected exports of exactly this material. 00 also forbids the shortcut that would otherwise rescue them: the system \"should not infer a purpose from their filename alone\". Fixture: EOB_2026_03.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" - the health-adjacent file whose record_type never resolved and whose carrier never appeared. Fixture: Annual wellness visit.ics.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty deliberately. role_split lives between canonical FIELD keys (CONNECTION.md sections 5 and 6), and the two splits this vocabulary already needs - institution against school, institution against target_university - are recorded on the finance schema row. The two further tensions this situation surfaces have no canonical counterpart key to split against: the plan SPONSOR (an employer) against the CARRIER that fills institution, and the PATIENT against the subscriber that account_holder would name. Minting either from a template row would be inventing a field to make a folder shape or a group question expressible, which is the overnight pass's failure. They are recorded in open_question and in must_not_conclude on benefits_enrollment_2026.pdf and Explanation of Benefits 2026-03-14.pdf instead.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names both of this material's readings inside one privacy sentence - the corpus \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and requires immediate protection for both: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" \"Protected material should not be included in cloud-model prompts by default\", and the canvas shows it as a protected area: \"a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default.\" Only 00's phrase is asserted; the handling class is P7's and is not set here. This situation carries two sharper cases than the finance schema row's general posture. First, its ordinary documents carry clinical content - a procedure or diagnosis column on an explanation of benefits - so the medical safety domain co-activates on its own evidence and protection runs on both readings before any model path; that is why the co-activated medical reading recommends no folder dimensions and nothing clinical may become a folder label. Second, a coverage card is credential-grade: a member identifier plus a group number is enough to transact against the plan, so it must not surface in a group summary, a thumbnail caption or a folder name even where the file itself is left in place.",
+  "open_question": "Who is a health claim ABOUT, and who sponsors the plan - and does either become a canonical field? A household explanation of benefits names a subscriber and a patient in two labelled slots, and an enrollment confirmation names an employer as sponsor beside a carrier as insurer. Under the current canonical list, institution takes the carrier, account_holder (itself only proposed, on the finance schema row) would take the subscriber, and the patient and the sponsor have no key at all. The three answers are different products: (a) leave both unmodelled, which is what this row does - the patient stays a P9 grouping question and the sponsor stays evidence, so no health-related person-field is ever written; (b) mint a patient or covered-person key, which is a person-identifying field on health material and therefore reverses D1 as narrowed and PR-6 (medical writes no field rows) through a template row rather than a decision; (c) mint a sponsor key, a second organization field beside institution with no 00 sentence behind it. Recorded, not resolved. It matters beyond this row because a household's protection policy depends on it: without a patient facet the product cannot express \"protect my dependant's records more tightly than my own\", and inventing the facet here would put a family member's name into the shared vocabulary as a side effect of a folder recommendation."
+}

@@ -1,0 +1,564 @@
+{
+  "id": "finance.insurance-corporate",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Corporate insurance",
+  "one_line": "The coverage a firm or a small operation buys, proves, and claims against: declarations and endorsements for each line of coverage, the certificates it issues outward to clients and landlords, premium invoices and audits, loss runs, claim files, and the renewal submission that gathers them all once a year. The organizing fact is that the named insured is an ORGANIZATION rather than a natural person, and that a certificate of insurance is a document a firm produces FOR someone else - neither shape exists in the personal insurance situation.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "00 supplies this template's entire field vocabulary and nothing of its situation: 'Finance files may use institution, account type, tax year, and record type'. It names financial records among the situations the template library covers - 'such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections' - and it names the launch posture for the whole domain: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' 00 nowhere names insurance, corporate or otherwise. The situation is CONNECTION.md's PR-8 ('insurance (personal / corporate / healthcare) is templates over the Finance schema vocabulary ... three organizational situations, not three schema slugs') and CONNECTION-EXAMPLES fixture 8, which is a contract document rather than 00. Provenance is therefore inference: an extension of a domain 00 names, marked as one.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3). The four Finance keys carry this situation with one strain worth recording rather than patching - account_type carries the LINE OF COVERAGE, because for insurance the policy IS the account: a declarations page or an ACORD certificate carries a labelled coverage-descriptor slot ('Type of Insurance', 'Coverage Part', 'Policy Type') in exactly the position the schema's account_type row describes as 'a labelled account-descriptor slot or table cell on the record itself'. The genuine gap is a POLICY PERIOD, which the Finance schema has no key for and which tax_year is not; it is recorded in open_question rather than minted here. The named-insured side rides on the account_holder key the finance schema node already proposed (00: 'A finance document may mention an account holder and an issuing bank'); this row seconds that proposal in research.md and does not re-mint it.",
+  "recognition": {
+    "deterministic": [
+      "an insurance declarations structure: a labelled Named Insured slot, a labelled Policy Number slot, a labelled Policy Period slot with two dates, and a labelled limits table, on a document whose page-one letterhead carries an organization name matched at word boundary in the issuer position. 00 makes the labelled slot the direct-fact source - 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field' - and names the table location for exactly this material: 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.' What makes it CORPORATE rather than the personal situation's is the named insured resolving to an organization - an entity-suffix token, a business classification or trade description, a business address - never a policy limit's size.",
+      "a certificate-of-insurance structure, which is this template's own signature and does not occur in the personal situation at all: a labelled Certificate Holder block naming a THIRD organization, a labelled Insured block naming the firm, a row-per-coverage table whose leftmost column is a labelled coverage-type descriptor, per-row insurer and policy-number columns, and a disclaimer paragraph stating the certificate confers no rights. Three organization roles sit on one page and only one of them is institution.",
+      "a workers-compensation structure: a labelled classification-code column beside a labelled estimated-payroll column and a labelled experience-modification or rate slot. The classification code is a labelled slot in a table, not a free digit string.",
+      "an endorsement or policy-form page: a labelled form-number-and-edition slot together with a labelled Policy Number slot and an amendatory phrase attaching it to a named coverage part. The form number is a VALUE of record_type, never a field name (D4).",
+      "a premium document: an organization-gazetteer hit at word boundary in the issuer or producer position together with a labelled premium, installment, or audited-premium slot AND a labelled policy-number slot. 00 requires the boundary discipline outright - 'It should use word-boundary matching rather than substring matching' - and the policy-number slot is what separates a premium invoice from every other invoice a firm receives.",
+      "a loss-run or claim-register structure: a repeating table with labelled Date of Loss, Claim Number, Status, Paid and Reserve columns under a labelled policy-number or account header. The repeating claim table is the anchor; a single claim number is not.",
+      "a renewal-submission archive whose manifest lists application-shaped, loss-run-shaped and schedule-shaped member names together, read without unpacking - 00: 'Archives should be inspected without being unpacked to disk.' The manifest is the evidence; the outer archive name is not.",
+      "a spreadsheet whose sheet names or column headers carry coverage-schedule labels (a location or vehicle schedule, a class-code and payroll pair, a limit-and-deductible pair, a premium column) with values in the labelled columns. 00's spreadsheet extractor supplies exactly these slots: 'sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.'"
+    ],
+    "needs_llm": [
+      "which of the three organization names on a certificate is the carrier, which is the named insured and which is the certificate holder, when the layout is unusual, the OCR is noisy, or the broker's own letterhead sits above all three. This is the template's defining model question and it is a role question, not a topic question - 00's ground for it: 'The system must separate roles that happen to contain the same entity type.'",
+      "whether a policy document belongs to the firm or to a person at the firm. An owner-operator's vehicle, a home office, or a sole trader's professional liability sits on the seam, and the named-insured token is sometimes a personal name doing business under a trade name. 00 lists 'unlabeled forms' among the reasons rules alone are insufficient.",
+      "whether a heterogeneous set of documents is purpose-coherent as ONE renewal submission or ONE claim file - 00's own shape, 'The documents are content-incoherent but purpose-coherent' - answered from a bounded dossier with citations, never as a free-form filing decision.",
+      "unlabelled prose correspondence from a carrier or a broker whose subject is a coverage action: a reservation-of-rights letter, a non-renewal notice, a coverage-position letter, a subrogation demand. These carry an organization name, a policy number in the reference line and no labelled slot anywhere else.",
+      "an OCR'd screenshot: deciding it shows a broker portal or a carrier's policy list rather than a generic image. 00 names this exact ambiguity - a PNG 'may be a screenshot of a receipt, application portal, conversation, code error, or research figure'.",
+      "a multilingual or non-domestic policy whose coverage-line term and form conventions have no catalogue entry; 00 names 'multilingual documents' among the cases fixed patterns cannot capture, and R5 ships one jurisdiction's values."
+    ],
+    "never_alone": [
+      "the word insurance, or a carrier name, alone. This is the template's most tempting false signal because a carrier is named on documents it did not issue: a client's contract requires the firm to carry coverage and names the carrier; a broker's marketing deck names ten of them; a lease names the landlord's; an employee handbook names the group plan's. 00's ambiguity sentence is the ground - 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' - and an insurer's name has the same six readings plus a seventh, the entity a document merely requires you to have.",
+      "an organization name in the named-insured position, read as institution. On every document in this situation the firm's own name is the HOLDER and the carrier is the issuer; filling institution from the named insured inverts the record and, worse, makes a firm's own name a folder level. The finance schema's own role sentence is the ground: 'A finance document may mention an account holder and an issuing bank.'",
+      "a certificate holder's name, read as institution OR as the record's owner. On an ACORD certificate the holder is a client or a landlord - a career-side client role, not a finance issuer - and it is the one string on the page that belongs to neither finance field.",
+      "a policy period, read as tax_year. A policy year commonly straddles two calendar years and answers for neither; only a labelled tax-year slot fills tax_year. 00's date rule is the constraint - 'Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching' - and documents are full of 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. Fixture: CGL Declarations 2026-2027 - Meridian Studio LLC.pdf.",
+      "a digit string that looks like a policy number, a claim number or a classification code. Each is equally an invoice id, a case number, a customer reference, a form edition or a device serial; each needs its labelled slot to mean anything.",
+      "a money figure. A quote, a limit, a deductible, a premium, a paid loss and a reserve are all money on a page, and so is a compensation figure on an offer letter and a fee on a proposal - the figure discriminates nothing. This is the same never-alone the finance schema records, and it is why the collision fixtures below turn on STRUCTURE.",
+      "a source_type of spreadsheet, presentation, email, archive, image or opaque_binary alone. file_kind_plausible is constitutionally never-alone: a spreadsheet is not a coverage schedule, an email is not a certificate, a .zip is not a renewal submission.",
+      "a parent folder named for insurance. A curated folder is a strong expression of user intent for TREE DESIGN, but it is not proof about a member file: an Insurance folder routinely holds a blank application, a broker's marketing deck, an employee's personal card and an unrelated lease. Provenance: inference - 00 states the curated-folder principle, not this consequence.",
+      "membership in a download session that pulled a broker's portal exports in one sitting. 00: 'A session should never be treated as proof of topic'.",
+      "the absence of EXIF on an image of a policy page, read as proof it is a screenshot. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot', and 'conflicting signals should lead to abstention rather than an invented classification'."
+    ],
+    "proposed_context_terms": [
+      "named insured",
+      "policy number",
+      "policy period",
+      "certificate holder",
+      "coverage",
+      "limits of liability",
+      "deductible",
+      "endorsement",
+      "premium",
+      "claim number",
+      "date of loss",
+      "additional insured"
+    ],
+    "proposed_context_terms_note": "PROPOSED, not design. 00 writes a context-term list for course codes only - 'a course-code pattern together with academic context' with its five literal terms - and this row copies that SHAPE, not a list 00 wrote. R6 owns the term patterns, R4 the organization gazetteer, R5 the one jurisdiction's coverage-line and form-name values; this row writes no regex and no catalogue."
+  },
+  "work_types": [
+    "declarations page",
+    "policy form or coverage part",
+    "endorsement",
+    "binder",
+    "certificate of insurance",
+    "additional-insured endorsement",
+    "insurance application or renewal submission",
+    "broker quote or proposal",
+    "premium invoice or installment notice",
+    "premium audit worksheet or audit result",
+    "loss run",
+    "claim notice or first report",
+    "claim correspondence or coverage-position letter",
+    "claim settlement or closure record",
+    "cancellation or non-renewal notice",
+    "risk or safety inspection report",
+    "surety bond",
+    "schedule of locations, vehicles or equipment"
+  ],
+  "work_types_note": "These are VALUES of the finance schema's record_type field, discovered at runtime - 00: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically'. Jurisdiction-specific form names and standard form numbers are values inside this same field, from R5's one-jurisdiction catalogue (D4): a field named after a form is the one-way move the contract forbids. The COVERAGE LINES (general liability, professional liability, workers compensation, property, cyber, directors and officers, commercial auto) are values of account_type, not of record_type and not a second work-type list - which is the whole reason this situation needs no field of its own.",
+  "grouping_reasons": [
+    "one policy across its life: the binder, the declarations, its endorsements, its premium invoices, its audit and its cancellation or renewal. The labelled policy number is the anchor; the carrier name alone is not",
+    "one coverage line across successive policy periods, including a change of carrier - the repeating declarations STRUCTURE plus a continuous coverage-line descriptor is the anchor, and this is the group a carrier change would silently split if institution were treated as the identity of the coverage",
+    "one renewal cycle: the application, the loss runs, the schedules, the broker's quotes and the binder that closes it. 00's purpose-coherent, content-incoherent shape - 'The documents are content-incoherent but purpose-coherent' - applied to a submission rather than an application packet",
+    "one claim across its notice, its correspondence, its loss-run rows and its settlement record; this is also the group most likely to co-hold legal and medical material on its own evidence",
+    "one certificate request across the client's email, the issued certificate and the additional-insured endorsement that backs it - a group that reaches across into the client-engagement neighbour",
+    "one policy PDF re-downloaded, or a corrected declarations re-issued: the universal duplicate_family and version_family facts, never a finance fact",
+    "a shared record that supports more than one purpose - a loss run inside a renewal submission and inside a claim file. 00: 'A file may validly belong to more than one accepted group'; multi-membership, never a copied fact"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "account_type",
+      "record_type"
+    ],
+    "why": "institution first, keeping the spine CONNECTION-EXAMPLES fixture 8 sketches for this situation and the spine the Finance schema's default template already uses: a record_type value such as 'declarations page' or 'endorsement' is unintelligible without knowing who issued it - 00's own argument for parent dimensions, 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.' account_type SECOND is this template's substantive recommendation: for insurance the policy is the account and account_type carries the LINE OF COVERAGE, so the level is filled from a labelled coverage-descriptor slot on nearly every member document, and without it a firm's General Liability and Workers Compensation endorsements land in one undifferentiated pile under the carrier. record_type last, as the leaf. tax_year is DELIBERATELY NOT in the recommended order even though it is destination-eligible, and this is where the fixture's illustrative sketch is not followed: a corporate insurance record's own time scope is the POLICY PERIOD, which this schema has no key for and which tax_year is not (see never_alone and open_question). A tax_year level would be empty for declarations, endorsements, certificates, loss runs and claim files - everything except a premium record retained for a filing, which is the finance.tax-filings situation's - and 00 tells the canvas to warn about exactly that outcome: 'It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders', and 'It should recommend flattening when a dimension does not materially improve retrieval.' It stays available as an OPTIONAL level for a firm whose premium and audit records are genuinely filed by filing year. account_holder, if it becomes canonical, is never a dimension here - it holds the firm's own name, and 00 is direct: 'It should avoid using authorship or creator identity as a destination dimension.' A scoped fallback belongs under the coverage line rather than at the root for a member with no recoverable record_type - 00: 'It should also support a scoped General or Other branch within a meaningful parent.' All of it is a recommendation: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions' - and a firm that changes carriers annually will reasonably reverse the first two levels, which is the honest cost of institution-first here and is stated rather than hidden.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".jpg"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "CGL Declarations 2026-2027 - Meridian Studio LLC.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead carries a carrier name matched at word boundary in the issuer position",
+        "labelled slots: Named Insured, Mailing Address, Policy Number, Policy Period (two dates), Form of Business",
+        "a labelled coverage-descriptor line reading Commercial General Liability and a labelled limits table with per-occurrence and aggregate rows",
+        "a producer block naming a broker agency, distinct from the letterhead",
+        "the named-insured token carries an entity suffix and a business classification description"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from either half of the policy period. A policy year straddling two calendar years answers for neither, and the bare digits are 00's forbidden year candidate",
+        "institution = the named insured. The firm is the holder; the carrier is the issuer; inverting them makes a firm's own name a folder level",
+        "institution = the producer agency in the broker block, and no institution fact from the producer metadata either - 00 treats producer strings as supporting evidence only",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ACORD 25 - Certificate of Insurance - Northwind Tower LLC.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled Producer block, a labelled Insured block naming the firm, and a labelled Certificate Holder block naming a third organization",
+        "a row-per-coverage table whose leftmost column is a labelled Type of Insurance descriptor, with per-row insurer, policy-number, effective-date and limit columns",
+        "an Insurers Affording Coverage legend listing several carrier names against letter codes",
+        "a disclaimer paragraph stating the certificate is issued as a matter of information only and confers no rights",
+        "a Description of Operations line naming a project and an additional-insured requirement"
+      ],
+      "facts_legal": [
+        "record_type",
+        "account_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "institution = the certificate holder, or institution = the named insured. Three organization roles sit on this page and only the carriers are the issuing side; the holder is a client-side role the finance schema has no key for",
+        "one institution value when the coverage table lists several carriers - the honest outcome is one fact per coverage row or abstention, and 00 requires abstention where signals conflict rather than an invented classification",
+        "account_type from the Description of Operations prose rather than the labelled Type of Insurance column",
+        "a folder path",
+        "that the client-side reading erases the finance one, or the reverse: the certificate is a coverage record AND a deliverable of an engagement, on disjoint evidence"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Endorsement 007.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled form-number-and-edition slot in the page footer",
+        "a labelled Policy Number slot at the head of the page",
+        "amendatory prose beginning 'This endorsement modifies insurance provided under the following:' with the coverage part left on a line the extractor reads as free text",
+        "no carrier letterhead, no named insured block, no dates"
+      ],
+      "facts_legal": [
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "institution or account_type from the accepted group's declarations page. This is the sparse-member fixture and it is 00's HW 3 shape exactly: the page may join the policy neighbourhood as a context-supported member without gaining the carrier or coverage fact, because 'The graph does not automatically copy those missing facts onto sparse files'",
+        "a coverage line from the form number alone; a form number is a record_type value, not a coverage descriptor",
+        "a folder path - and note the consequence honestly: under the recommended order this member has no institution and no account_type to file under until a validated fact or a user decision supplies one, so its legal homes are the accepted policy group's scoped General branch or review"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "WC 2026 - class codes and payroll schedule.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier letterhead and a labelled Policy Number slot",
+        "a labelled coverage descriptor reading Workers Compensation and Employers Liability",
+        "a table with labelled Class Code, Description, Estimated Payroll and Rate columns",
+        "a labelled experience-modification factor slot",
+        "a state-by-state coverage schedule"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "people facts from any employee names in the payroll schedule, nor an account_holder value from them - the payroll schedule is content, and 00 keeps person-identifying data privacy-side rather than proposal-side",
+        "a career fact from the firm's name; the labelled policy-number and class-code structure is what makes this an insurance record, and the firm's name is the one evidence item the career collision says must not count for both",
+        "tax_year from the policy year, and no jurisdiction FIELD from the state schedule - what varies by jurisdiction is VALUES (D4)",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Loss Run 2021-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier letterhead and a labelled account or policy-number header",
+        "a repeating table with labelled Date of Loss, Claim Number, Claimant, Status, Paid and Reserve columns",
+        "a free-text Description of Loss column carrying injury descriptions on several rows",
+        "a labelled valuation-date slot and a total row"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "people facts from the claimant column. These are third parties and employees; the column is protected content, not a folder dimension, and a claimant name must never become an organizing value",
+        "that a finance reading excludes a medical one - the injury descriptions are the medical safety domain's own evidence, activating protection on their own terms while medical remains a field-less placeholder writing no fields",
+        "tax_year from the multi-year span in the filename or from the valuation date",
+        "a folder path, and no cloud dossier by default: 00 permits only 'a compact dossier relevant to the current question', and for this material that means no claimant names"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Premium Audit Worksheet FY2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names: Payroll by Class, Subcontractors, Sales, Summary",
+        "labelled column headers: Class Code, Description, Estimated Payroll, Audited Payroll, Rate, Premium",
+        "a labelled Policy Number cell on the Summary sheet beside a labelled Audit Period pair of dates",
+        "several formula cells and a computed additional-premium total"
+      ],
+      "facts_legal": [
+        "record_type",
+        "account_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from a Subcontractors sheet's column of organization names - a worksheet REFERENCES many organizations and is issued by none; ranking the most frequent one is the polished-but-false move 00's ranking-and-margin discipline exists to prevent. The carrier fact needs the labelled issuer position, which this file may not have",
+        "tax_year from the FY2026 token in the filename; a fiscal-year label in a filename is not a labelled tax-year slot",
+        "that a spreadsheet activates the schema - a spreadsheet is not a coverage schedule and source_type is never alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Renewal Submission 2027.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an application-shaped member, three loss-run-shaped members, a schedule-of-locations spreadsheet, an employee census spreadsheet, a financial statement and a signed warranty page",
+        "manifest read without extraction to disk; member count and uncompressed size recorded",
+        "a year token appears in the archive name and in several member names",
+        "one member name is a broker agency's export convention"
+      ],
+      "facts_legal": [
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "facts about the MEMBERS written onto the outer archive, or the archive's facts written onto members. The manifest is evidence of a candidate packet for review, exactly as 00's submission.zip is evidence of an application packet",
+        "that the employee census is insurance material because it arrived here - it carries person-identifying data and activates on its own evidence, protected there",
+        "that the financial statement is only this situation's; it is also the bookkeeping neighbour's, and membership in this packet erases neither",
+        "institution or account_type from the archive name or from a member name; nothing in a manifest is a labelled slot",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "COI request - Acme Corp.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a client organization's domain",
+        "labelled subject slot carries a certificate-of-insurance term and a project name",
+        "body requests specific limits and an additional-insured status, quoting a contract clause",
+        "no attachment; a reply in the thread carries one named Certificate.pdf"
+      ],
+      "facts_legal": [
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "institution from the sender's domain. The requester is a client, not a carrier - the single most damaging inversion available on this file",
+        "activation from source_type = email; the labelled sender and subject slots are what fire, and file_kind_plausible is never alone",
+        "an account_type from the limits quoted in the body - a contract's REQUIREMENT is not the firm's coverage",
+        "a contact fact used as a folder proposal; 00 keeps address-book data privacy-protected rather than a proposal basis",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Broker presentation - 2027 renewal strategy.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles naming coverage lines and a market overview",
+        "a comparison table of several carrier names against indicative premiums",
+        "speaker notes naming the firm and its renewal date",
+        "a broker agency's template branding on every slide master"
+      ],
+      "facts_legal": [
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "institution from the carrier comparison table. A deck that NAMES ten carriers is issued by none of them, and this is the never-alone case in its purest form: a carrier name on a page is not an issuer",
+        "account_type from a slide title; a coverage line needs a labelled descriptor on a record about the firm's own policy, not a market slide",
+        "a folder path",
+        "that a presentation cannot be this situation's material - it can, and 00 requires slide extraction rather than silent unsupported handling"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-06-02 at 11.20.10.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution; no camera EXIF",
+        "filename carries the platform's default screenshot pattern",
+        "OCR region reads a broker portal header, a list of policy rows with coverage descriptors, policy numbers and expiry dates",
+        "a masked account tail appears in a sidebar"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution",
+        "account_type"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the missing EXIF alone; the exact display resolution and the filename pattern are what may support it, and 'conflicting signals should lead to abstention rather than an invented classification'",
+        "one institution when the portal lists several carriers across rows",
+        "a folder path",
+        "that this is a generic capture: 00's worked parallel is decisive, an admissions confirmation screenshot is returned to its accepted group rather than filed as an image"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "policy_bundle_locked.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the PDF is password-protected: no text layer is reachable and no metadata beyond the filesystem record",
+        "filename stem resembles a broker portal's export naming",
+        "arrived in the same download session as two readable declarations pages"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "institution, account_type or record_type from the filename stem - 00 is explicit for unreadable files: the system 'should not infer a purpose from their filename alone'",
+        "membership in the policy group because the download session bundled it; a session is a possible-grade clue only",
+        "that the file should be forced open - 00: 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open'",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Homeowners Policy Declarations 2026-2027.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier letterhead and a labelled Policy Number slot",
+        "labelled Named Insured slot resolving to two natural-person names, with a residential address",
+        "a labelled coverage descriptor reading Homeowners and a labelled dwelling-limit table",
+        "no business classification, no entity suffix, no class codes"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY fact of THIS template. It is the collision fixture: a declarations page is byte-for-byte the same document shape on both sides of the personal / corporate seam, and the carrier name, the policy number and the limits table discriminate nothing. The discriminating evidence is the NAMED INSURED resolving to natural persons at a dwelling rather than to an organization - and the personal-insurance situation is where it belongs",
+        "that the finance SCHEMA is wrong here - it is right; the schema activates and the template choice is the thing that differs, which is why this pair is a template-to-template collision and not a schema one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Group Health Plan - Summary of Benefits and Coverage 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an insurer or plan administrator name in the letterhead",
+        "labelled slots: Coverage Period, Coverage For, Plan Type",
+        "a benefits table of deductibles, copays and coinsurance against service categories",
+        "a line naming the sponsoring employer as the plan sponsor"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "that this template owns the file outright. It sits squarely on the seam with the health-insurance situation: read as the firm's benefits program it is corporate, read as an individual's coverage document it is healthcare, and the discriminating evidence is whose copy this is - a plan-sponsor packet with rate tables and enrolment counts is this template's, an enrolled person's own card or benefits summary is not",
+        "clinical facts of any kind; the benefits table is a schedule of prices, not a record of care, and the medical placeholder co-activates on clinical evidence it does not find here",
+        "tax_year from the coverage period",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Settlement Agreement and Release - Claim 88213.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title naming an agreement and a release",
+        "a parties block naming the firm, a claimant and the carrier",
+        "recitals, numbered clauses, a governing-law clause and an execution block with signature lines",
+        "a labelled claim-number reference in the header and a settlement amount in a numbered clause"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "that the carrier name and the settlement amount make this an insurance record rather than a legal one. The discriminating evidence is structural - parties, recitals, numbered clauses and an execution block create an obligation, which is the legal situation's shape; a labelled policy-period and limits structure reports on existing coverage, which is this one's. Both readings are legitimate on their own evidence and neither may consume the other's",
+        "people facts from the claimant name",
+        "a folder path, and no cloud dossier by default: this is protected material under an open matter"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.insurance-personal",
+      "signal": "a declarations page, an endorsement, a premium invoice and a claim notice have the SAME document structure on both sides of this seam, and every field the schema offers - carrier, coverage descriptor, policy number, limits - fills identically. One evidence item, the carrier name or the labelled policy structure, must count for neither template until the discriminator lands: the NAMED INSURED resolving to an organization (entity-suffix token, business classification, trade description, class codes, a business address) is this template's; a natural person or a household at a dwelling is the personal situation's. A sole trader, an owner-operated vehicle and a home office sit genuinely on the seam and are the needs_llm case. Fixture: Homeowners Policy Declarations 2026-2027.pdf, which belongs to the personal situation even when it arrives in a firm's folder.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-healthcare",
+      "signal": "an employer-sponsored group plan is one document set read two ways: the firm's benefits program, or an individual's coverage. The discriminating evidence is whose copy the document is - a plan-sponsor packet carrying rate tables, enrolment counts and an employer contribution schedule is this template's; an enrolled person's card, benefits summary or explanation of benefits is the healthcare situation's, and that is also where the medical co-activation lives. The insurer name, the plan name and the benefits table discriminate nothing. Fixture: Group Health Plan - Summary of Benefits and Coverage 2026.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "a certificate of insurance is produced BY the engagement and names the client as certificate holder, so one page carries an engagement's client role and a coverage record's carrier role at once. One evidence item - the client's organization name - must never count for both: filling institution from the certificate holder inverts the record. The discriminator is position, not content: the labelled Certificate Holder block is the engagement side, the Insurers Affording Coverage legend is this side. The pair genuinely co-holds on disjoint evidence too, which is recorded in also_holds_with_note rather than authored here. Fixtures: ACORD 25 - Certificate of Insurance - Northwind Tower LLC.pdf, COI request - Acme Corp.eml.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "a client contract, a commercial lease and a vendor agreement all carry an insurance-requirements clause naming coverage lines, limits and sometimes a carrier - and a firm files those clauses beside its actual certificates. One evidence item, a coverage-line term with a limit figure, supports both readings and must count for neither alone. The discriminator: a labelled Named Insured / Policy Number / Policy Period structure reporting on coverage that EXISTS is this template's; parties, recitals and numbered clauses REQUIRING coverage is the agreements situation's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "a liability claim becomes a legal matter, and its settlement agreement, reservation-of-rights letter and demand correspondence carry the carrier's name, the claim number and an amount on every page. The discriminator is structural: an execution block, recitals and numbered clauses creating an obligation is the legal situation's; a labelled policy or claim-register structure reporting on coverage is this one's. Both are protected material, so a wrong call does not leak - but it files an open matter as a policy document. Fixture: Settlement Agreement and Release - Claim 88213.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "workers-compensation material and employee-benefits material name the firm, name employees and carry money figures, which is exactly the evidence an employment file wants. The discriminator: a labelled policy number with class codes, payrolls and an experience-modification factor is this template's; an agreement, a role title, a review or a separation record is the employment situation's. The firm's own name and an employee's name must never count for both readings. Fixture: WC 2026 - class codes and payroll schedule.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "premium invoices, installment notices and audit results are payables that land in the same inbox as every other supplier invoice, and a bookkeeping ledger references the carrier by name in a payee column. The discriminator: a labelled policy-number slot on the document is this template's; a labelled invoice-and-line-item structure with no policy reference, or a ledger that references many organizations and is issued by none, is the bookkeeping situation's. Fixture: Premium Audit Worksheet FY2026.xlsx sits on this seam and needs its labelled Policy Number cell to land here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.vehicle-records",
+      "signal": "a commercial auto policy and its schedule of vehicles read identically to a vehicle's own ownership-and-service file: same vehicle identifiers, same carrier, same year tokens. The discriminator: a labelled Named Insured organization with a fleet schedule under one policy number is this template's; a title, registration, purchase or service record about one vehicle is the vehicle situation's. Neither the vehicle identifier nor the carrier name discriminates.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "directors-and-officers material sits between the two: a D&O declarations page is coverage, while the board minutes, indemnification agreements and valuation reports that accompany it are equity-and-governance paperwork carrying the same officer names and the same firm name. The discriminator: a labelled policy structure is this template's; a share, option, grant or valuation structure is the equity situation's. The officer names must not count for both.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "EMPTY BY CONTRACT, NOT BY OMISSION. CONNECTION.md section 5 scopes also_holds_with to schema-to-schema only, and this is a template row; fixture 8 illustrates the edge on an insurance template while authoring it between finance and medical. The joins this situation lives on are recorded on the finance SCHEMA node and are pointed at rather than re-asserted: finance/medical (a loss run's injury descriptions, a group health plan), finance/legal (a settlement agreement, a coverage-position letter), finance/identity (an employee census or a signed warranty page inside a renewal submission). ONE JOIN THIS SITUATION NEEDS IS MISSING FROM THE SCHEMA ROWS: finance and career currently carry collides_with and no also_holds_with, yet a certificate of insurance is genuinely a coverage record and an engagement deliverable at once, on disjoint evidence - the carrier legend and the certificate-holder block. That is R1c's edge to author reciprocally on the two schema rows, and it is recorded here and in research.md rather than smuggled onto a template.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "the default home for this template's readable, non-identifying leftovers, and the residual the roster row names for it. 00's definition fits the material exactly: 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group' - a one-off certificate, an expired declarations page, a cancellation notice, a blank application. Fixtures: CGL Declarations 2026-2027 - Meridian Studio LLC.pdf, ACORD 25 - Certificate of Insurance - Northwind Tower LLC.pdf, COI request - Acme Corp.eml.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "ADDED BEYOND THE ROSTER ROW'S SINGLE RESIDUAL, and the reason is the finding this node is most confident about: a firm's insurance file is not uniformly a business record. Loss runs carry claimant names and injury descriptions, workers-compensation material carries employee payroll, a renewal submission carries an employee census, and a claim file carries allegations - 00's own corpus sentence names those categories together, the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. 00 also allows this residual to surface a lone item: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold', and requires it to behave - it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. Fixtures: Loss Run 2021-2026.pdf, WC 2026 - class codes and payroll schedule.pdf, Renewal Submission 2027.zip, Settlement Agreement and Release - Claim 88213.pdf, Group Health Plan - Summary of Benefits and Coverage 2026.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "for the partly-understood member: a policy number and a money shape but no issuer, no coverage descriptor and no accepted group. 00: 'files whose meaning is partly understood but whose final location requires a future decision'. Fixtures: Endorsement 007.pdf, Premium Audit Worksheet FY2026.xlsx, Broker presentation - 2027 renewal strategy.pptx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "broker portals routinely export password-locked policy bundles, so this is an ordinary outcome here rather than an edge case. 00 defines the residual for 'password-protected archives, unreadable documents, damaged files, and unknown formats', and allows it to represent them without moving them. Fixture: policy_bundle_locked.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "for an isolated premium payment confirmation with no policy reference - 00's own list is the fit: 'isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents'. Offered last, and only where the document carries no policy or claim reference; where it does, the record belongs to an accepted policy group instead.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "for a portal capture that resolves to nothing - 00 defines the residual for screenshots that 'appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship'. Fixture: Screenshot 2026-06-02 at 11.20.10.png, when its OCR yields no policy reference.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "institution",
+      "other_field": "client",
+      "neighbor": "career.consulting-client-engagement",
+      "why": "a certificate of insurance carries three organization roles on one page and the canonical list has keys for only two of them: the carrier is the finance issuer (institution) and the certificate holder is the engagement's counterparty (client). 00's wording for the pair is 'distinct facets, such as authored_by and target_school, or our_firm and client', and the consequence here is strict in both directions - a certificate holder must never fill institution, and a carrier must never fill client. Both keys are already canonical; this row references the split rather than minting anything. Provenance: inference - 00 names the mechanism and the consulting pair, not this three-role page.",
+      "provenance": "inference"
+    },
+    {
+      "field": "institution",
+      "other_field": "our_firm",
+      "neighbor": "career.consulting-client-engagement",
+      "why": "on every document in this situation the firm's own name stands in the NAMED INSURED position - the holder side - while the carrier issues the record. our_firm is the canonical key for the firm's own role and is destination-ineligible, which is the correct outcome: 00 is direct that 'It should avoid using authorship or creator identity as a destination dimension', and a firm's own name as a folder level would be a collector, not a dimension. Recording the split is what stops the named insured from being read as an issuer - the inversion this template's never_alone list names first. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "field": "institution",
+      "other_field": "school",
+      "neighbor": "academic.teaching",
+      "why": "a school, a university or a clinic is itself an insured organization, so one institution string can be the entity that issued a coverage record in one role and the entity a person attends or teaches at in another. 00 states the mechanism in the same paragraph that names this domain's own pair: 'The system must separate roles that happen to contain the same entity type' and 'A finance document may mention an account holder and an issuing bank'. Both keys are canonical. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names this material in its own corpus sentence, which is the only claim asserted here: the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records' - and a firm's insurance file reaches three of those categories at once, because loss runs and workers-compensation records carry employee names, payrolls and injury descriptions, and claim files carry allegations under an open matter. The handling class is P7's and is not set here (_CONTRACT rule 5). Two consequences ride on the safety flag rather than on anything invented here: P7 classification precedes any model path, and a model call sends only what 00 permits - 'the engine should send only a compact dossier relevant to the current question', which for a loss run means no claimant names. The canvas shows the branch as a protected area - 'a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default' - and no deep template unlocks from safety activation (PR-2). Worth stating plainly because the roster row implies otherwise by naming only Independent Records: this situation is NOT uniformly less sensitive than personal insurance. Its declarations pages are ordinary business records; its claim and workers-compensation material is some of the most sensitive third-party data a small firm holds, because the people in it never chose to hand the firm their data.",
+  "open_question": "The Finance schema has no key for a POLICY PERIOD, and tax_year is not one. Every document in this situation is scoped by a policy term that commonly straddles two calendar years, and it is the fact a firm actually files by - 'the 2026-27 general liability policy' - yet the only time key available answers a different question, so the recommended order here drops time entirely while CONNECTION-EXAMPLES fixture 8 sketches tax_year as this template's third level. Three ways out and none of them is this node's to take: a canonical period-scope field shared with any situation whose records have a term rather than a date (a policy year, a plan year, a lease term, a fiscal year), which is a decision about the product's shared vocabulary; or record_type values that encode the term, which puts a date inside an enum and is the D4 shape done badly; or the honest current answer, that a firm files by carrier and coverage line and finds the year by reading the declarations - which is what dimension_order recommends today. A second, smaller fork: on an ACORD certificate several carriers appear in one labelled legend, so institution is genuinely multi-valued on one file, and whether the values table takes one fact per coverage row or the file abstains on institution is unsettled for every multi-issuer record, not only this one. Recorded, not resolved."
+}

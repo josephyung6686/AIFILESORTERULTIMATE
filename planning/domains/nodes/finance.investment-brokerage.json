@@ -1,0 +1,515 @@
+{
+  "id": "finance.investment-brokerage",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Investment and brokerage accounts",
+  "one_line": "The securities-account situation on the Finance schema: what a custodian issues about an account that HOLDS positions rather than cash - brokerage statements with holdings tables, trade confirmations, cost-basis and realized gain-loss reports, and the retirement-plan paperwork (contributions, rollovers, distributions, beneficiary designations) that rides on the same account. Recommended institution, then account_type, then record_type, with tax_year as an optional leaf only where a document carries its own labelled tax-year slot. A safety situation: local-only extraction, protection before any cloud or placement path.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "The field vocabulary is 00's, named outright: \"Finance files may use institution, account type, tax year, and record type.\" The posture is 00's, named outright: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" 00 sizes and scopes the library this row belongs to - \"common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections\" - and states what a template row owes: \"Each template should define the domain’s allowed fact fields, detection signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation constraints.\" Provenance is INFERENCE, not design: 00 names \"financial records\" as a situation and never names a securities-account situation inside it. Everything specific to holdings, trades, cost basis and retirement plans below is inference from the named Finance domain, or proposal, and is marked as such.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "Tested against CONNECTION.md section 2 and kept, on the detection-signal clause of the disjunctive test - the same licence the finance.personal-records sibling records, and the reasoning is written out in the research file rather than assumed. The recommended dimension_order is the Finance schema row's default (institution, account_type, record_type) and the privacy rules are the schema's (safety domain, local-only); what differs is (a) the detection signals, which key on a positions/holdings or trade-confirmation structure the schema row's union cannot express because activation outputs schema ids only, and (b) an optional branch pattern the schema row does not carry - a tax_year leaf for the year-scoped subset, and an account_type-first inversion for a continuing retirement account whose custodian changed. No field, no dimension and no privacy rule was invented to justify the row; account_type stays second in the recommendation even though this situation leans on it hardest, because moving it would have been a change made to look different rather than because the material asked for it.",
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3). The legal fields on any file this row recognizes are the Finance schema's - institution, account_type, tax_year, record_type - plus the schema row's proposed account_holder search-and-privacy key and the universal facts. Nothing here widens that set.",
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a HOLDINGS structure: a labelled positions or holdings table whose header cells carry a security-identifier label beside quantity and market-value labels, on a document that also carries a labelled account slot. This is the discriminator against every sibling that shares the statement shape - a cash account's table reports posted transactions and a running balance, this one reports what is owned. 00 puts this material in exactly this location: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\"",
+      "a TRADE-CONFIRMATION structure: a labelled trade-date slot co-occurring with a labelled settlement-date slot, a buy/sell action label, a security identifier and labelled quantity and price slots. 00 makes the labelled slot the direct-fact source - \"Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field\" - and the trade-date/settlement-date PAIR is what no other finance situation produces.",
+      "a COST-BASIS structure: labelled acquisition-date and disposition-date columns beside labelled proceeds and cost-basis columns, with a short-term / long-term split label. A realized gain-loss report is not a statement and not a receipt; the paired dates are the pattern.",
+      "a retirement or plan account descriptor in a labelled account-descriptor or plan-name slot, together with a plan, custodian or contribution context term on the same document - the account_type source. It must come from a labelled slot on the record, never from the custodian's name or from product marketing elsewhere on the page: one custodian runs a taxable account, a traditional retirement account, a Roth retirement account and an employer plan for the same person, which is exactly why account_type is a level here.",
+      "an organization-gazetteer hit matched at word boundary in the letterhead or page-one heading zone, together with a labelled account slot on the same document. 00: \"It should use word-boundary matching rather than substring matching\", and \"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference\". The gazetteer's contents are R4's and the term patterns are R6's; this row names the rule family and writes neither a list nor a regex.",
+      "a spreadsheet or portal export whose header row carries security-identifier, quantity, cost-basis and market-value labels - and, where an issuer is to be read at all, an account column holding ONE value. 00's spreadsheet extractor supplies exactly these slots: \"sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.\"",
+      "an explicit tax-year pattern in a LABELLED tax-year slot - a payer-issued year-end form's tax-year box, or a contribution confirmation's \"for tax year\" slot - distinct from a statement period and from any date in the filename. Narrow by 00's own rule: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.\" R6 owns the pattern.",
+      "an archive whose manifest lists plan-enrollment-shaped or statement-series-shaped members, read without unpacking - 00: \"Archives should be inspected without being unpacked to disk.\" The manifest is the evidence; the outer archive name is not."
+    ],
+    "needs_llm": [
+      "an unlabelled prose letter or note from a custodian or adviser about a portfolio action - a fund closure and mandatory exchange, a share-class conversion, an advisory-fee change - with no labelled holdings table, trade dates or account-descriptor slot. 00 lists \"unlabeled forms\" and \"unusual professional artifacts\" among the reasons rules alone are insufficient, and scopes the call: \"an LLM receives only compact evidence packets for files or groups that remain ambiguous, have multiple plausible domains, or contain language that requires interpretation.\"",
+      "an OCR'd screenshot of a brokerage or trading app: deciding from the OCR CONTENT that it shows an account record rather than a generic capture. 00 names the ambiguity for exactly this class of image - a PNG \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\" - and the format never decides it.",
+      "whether a positions or activity export carrying no issuer string belongs to an accepted account series, or is a second account, or is not this situation at all. That is the group-coherence question, answered from a dossier with citations: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "separating this situation from siblings whose structure is genuinely shared: a digital-asset exchange export and a securities export both list an asset, a quantity, a price and a cost basis; an employer equity grant and a holdings line both state a share count and a price. Only the presence of a custodian account and a settlement or trade-date pair says which one it is.",
+      "a non-domestic or multilingual custodian's statement whose document-kind term has no gazetteer entry and whose slots are unlabelled; 00 names \"multilingual documents\" among the cases fixed patterns cannot capture.",
+      "an adviser's portfolio-review deck: deciding whether its charted holdings are the holder's actual positions or an illustrative model portfolio. 00's ranking discipline applies rather than first-match acceptance - \"It should rank candidate matches instead of accepting the first match\"."
+    ],
+    "never_alone": [
+      "a ticker-shaped uppercase token alone. This is the tempting-false rule specific to this node: a short all-caps token is equally an airline or airport code, a gene symbol, a chemical or standards abbreviation, a project initialism, or a file-naming stub - and 00's word-boundary rule exists because exactly this shape produced \"MIT inside “submit”\" and \"UNC inside “uncertainty”\". A ticker means a holding only beside a labelled quantity or market-value slot in an account-bearing document.",
+      "a security identifier read as an account number, or an account number read as a security identifier. Both are opaque alphanumeric runs in this material; each needs its own labelled slot.",
+      "a custodian, brokerage or fund-family name alone. 00's ambiguity sentence is the reason - \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" - and a fund company is also a cited organization in a news PDF, an employer on a resume, and a sponsor on a conference deck.",
+      "a money figure, a share count, or a percentage alone. An offer letter states compensation, an equity grant states shares and a strike price, a research paper quotes returns, a proposal quotes a fee; the figure discriminates nothing and certainly not which finance situation this is.",
+      "a bare 4-digit token read as tax_year, whether it comes from the filename, a statement period, a quarter label or an export stem. 00: documents contain \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\". Only a labelled tax-year slot fills tax_year here.",
+      "a source_type of spreadsheet, presentation, email, image, archive or opaque_binary alone. 00: the engine should \"treat the file extension as a routing signal rather than an assumption about meaning\" - a .csv is not a positions export, a .pptx is not a portfolio review, a .zip is not a plan packet.",
+      "membership in a download session that bundled several PDFs from one custodian portal. 00: \"A session should never be treated as proof of topic\" - here it is precisely the clue that would wrongly absorb an unreadable export, or a neighbouring account's statement, into an accepted series.",
+      "a custodian's export filename stem on a file whose content cannot be read. 00 says the system \"should not infer a purpose from their filename alone\" for unreadable, encrypted, corrupted or unsupported files.",
+      "the absence of EXIF on an image of a portfolio screen, read as proof it is a screenshot. 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"conflicting signals should lead to abstention rather than an invented classification\".",
+      "an employer name beside a share quantity and a price. That is the equity-grant seam, not this situation: an unexercised grant has an employer, a vesting schedule and no custodian, no account number and no settlement date.",
+      "an adviser's or fund's illustrative model portfolio read as the holder's positions. A table of holdings inside a marketing or review document is content about a hypothetical, not an account record."
+    ],
+    "proposed_context_terms": [
+      "holdings",
+      "positions",
+      "cost basis",
+      "trade date",
+      "settlement date",
+      "shares",
+      "market value",
+      "contribution",
+      "rollover",
+      "beneficiary designation"
+    ],
+    "proposed_context_terms_note": "PROPOSED, not design. 00 states the pattern-plus-context SHAPE for course codes only (\"a course-code pattern together with academic context\"); these are this node's candidate finance-securities context terms for R6 to own. No regex, no list contents, no threshold is written here."
+  },
+  "work_types": [
+    "brokerage or investment account statement",
+    "trade confirmation",
+    "holdings or positions report",
+    "cost-basis or realized gain-loss report",
+    "activity or transaction export",
+    "dividend, interest or income summary",
+    "year-end tax form issued by a custodian",
+    "contribution confirmation",
+    "rollover or transfer-of-assets form",
+    "distribution or required-minimum-distribution notice",
+    "beneficiary designation form",
+    "plan summary or enrollment document",
+    "fee, commission or advisory-agreement disclosure",
+    "proxy or corporate-action notice",
+    "adviser portfolio review"
+  ],
+  "work_types_note": "These are VALUES of the schema's record_type field, discovered at runtime, never roster nodes. 00: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" Jurisdiction-specific form and plan names are values from R5's one-jurisdiction catalogue (D4) - never field names, never dimensions.",
+  "grouping_reasons": [
+    "one account at one custodian across its statement series - the repeating holdings structure plus a stable masked account tail is the anchor, never the custodian name alone",
+    "one continuing account across a custodian change: the transfer-of-assets form, the closing statement at the old custodian and the opening statement at the new one. Two institution values, one account - which is why this row's open_question exists rather than a minted key",
+    "one tax year: the custodian's year-end forms, the realized gain-loss report and the contribution confirmations that support one filing. Multi-membership with the finance.tax-filings situation, never a copied fact - 00: \"A file may validly belong to more than one accepted group\"",
+    "one trade across its confirmation, the statement line that reports it and the year-end proceeds row that closes it",
+    "one plan's enrollment set: the plan summary, the investment election and the beneficiary designation issued together",
+    "one statement re-downloaded, or a corrected year-end form re-issued - the universal duplicate_family and version_family facts, never a finance fact"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "account_type",
+      "record_type"
+    ],
+    "why": "institution first, because a record_type value such as statement or confirmation is unintelligible without knowing which custodian issued it - 00's own parent-dimension rule, stated for coursework and general in form: \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" account_type second, and it carries more weight in this situation than anywhere else on this schema: one custodian commonly holds a taxable account, a traditional retirement account, a Roth retirement account and an employer plan for the same person, and those are different tax containers whose statements must not sit in one folder. record_type last, as the leaf that separates statements from confirmations, cost-basis reports, notices and exports. tax_year is destination_eligible on the canonical row and is deliberately NOT a standing level: most brokerage records carry no labelled tax-year slot, so the level would open a branch the facts cannot fill, and 00 warns against exactly that - \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders\" and \"It should recommend flattening when a dimension does not materially improve retrieval.\" Year-first as a whole-branch order stays the tax-filings sibling's, not this one's: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" OPTIONAL BRANCH PATTERNS, both of them 00's \"each branch should offer the dimensions that are actually present in its member groups\": (a) a tax_year leaf UNDER record_type for the year-scoped subset that carries its own labelled tax-year slot - custodian year-end forms, realized gain-loss reports, contribution confirmations - never above institution and never filled from a statement period, a quarter label or a filename token; (b) account_type ABOVE institution where a household holds one continuing retirement account across successive custodians, because a transfer changes the institution value while the account continues, and institution-first splits one account into two branches at the transfer. Safety posture: shallow by intent. This is a recommendation over a protected area, not a filing tree - \"a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default\" - and a household with one account per custodian should flatten account_type away. The user may reverse, remove, add, or flatten all of it: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" account_holder, the schema row's proposed search-and-privacy key, is never a dimension - \"It should avoid using authorship or creator identity as a destination dimension.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".csv",
+      ".xlsx",
+      ".ofx",
+      ".qfx",
+      ".pptx",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Brokerage_Statement_2026Q1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead carries an organization name matched at word boundary",
+        "labelled slots: Statement Period, Account Number (masked tail), Beginning Account Value, Ending Account Value",
+        "a labelled header cell reads Roth IRA",
+        "a labelled holdings table with Symbol, Description, Quantity, Price, Market Value and Cost Basis columns",
+        "an income summary table labelled Dividends and Interest"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from the statement period or from the 2026Q1 token - a quarter is not a labelled tax-year slot, and the bare 4-digit run is 00's forbidden year candidate",
+        "institution = a fund company or issuer name read out of a holdings row; a security's issuer inside the table is not the record's custodian",
+        "a second institution fact because the holdings table names many issuers - a positions table REFERENCES issuers and belongs to one custodian",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Trade Confirmation 20260212.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots: Trade Date, Settlement Date, Action (Bought), Symbol, CUSIP, Quantity, Price, Principal Amount, Commission",
+        "a labelled account slot with a masked tail and a header cell reading Individual Brokerage",
+        "custodian name in the page-one letterhead"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "institution = the security's issuer named in the Description line; the custodian issued this document and the issuer did not",
+        "the CUSIP or the symbol read as an account number - both are opaque runs and each needs its own labelled slot",
+        "tax_year from the trade or settlement date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Composite Tax Statement 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries a form name and a labelled tax-year slot reading 2025",
+        "labelled payer and recipient blocks with masked identification numbers",
+        "numbered boxes with amounts, plus a proceeds-and-cost-basis detail section split short-term and long-term",
+        "a labelled account number with a masked tail matching the statement series"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "institution",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a jurisdiction field, or a field named after this form - the form name is a VALUE of record_type from R5's one-jurisdiction catalogue (D4); a field named for a form is the one-way move the contract forbids",
+        "account_type from the form alone unless a labelled account-descriptor slot supports it - a year-end form reports on an account without always naming what kind it is",
+        "that belonging to the accepted tax-year filing packet removes it from the account series; it is one file in two groups, not a fact copied between them",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "positions_export.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row: Symbol, Description, Quantity, Last Price, Market Value, Cost Basis, Gain/Loss, Account Type",
+        "the Account Type column holds one repeated value; no account number column",
+        "no institution string appears in any cell, no sheet title, no metadata beyond the filesystem record",
+        "arrived in the same download session as two readable statements"
+      ],
+      "facts_legal": [
+        "record_type",
+        "account_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from the export stem, or from the download session that produced it - 00 caps a session at a possible-grade clue: \"A session should never be treated as proof of topic\"",
+        "institution from the most frequent issuer in the Symbol column - ranking one because it recurs is the polished-but-false move, and the issuers are holdings, not the custodian",
+        "tax_year from any date-shaped token",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-06-03 at 14.22.10.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution; no camera EXIF",
+        "filename carries the platform's default screenshot pattern",
+        "an OCR region reads a custodian name beside a labelled Portfolio Value, a masked account tail and a short list of symbols with quantities"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the missing EXIF alone; the exact display resolution and the filename pattern are what may support it, and \"conflicting signals should lead to abstention rather than an invented classification\"",
+        "the portfolio value or any position size as a fact - an amount is content, not a schema field, and this is protected material that must not reach a cloud prompt",
+        "that it is a member of the accepted statement series because it names the same custodian; it may join the account neighbourhood without carrying the statement's facts",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "confirm_0212.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scanned page with no text layer; OCR returns a table fragment with a symbol, a quantity and a price, and the word Confirmation",
+        "the letterhead band is cropped out of the scan: no organization string is recoverable",
+        "no account number is legible",
+        "mutual retrieval links to the accepted statement series and to Trade Confirmation 20260212.pdf"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "institution or account_type from the neighbourhood. This is the sparse-file case: 00 - \"The graph does not automatically copy those missing facts onto sparse files.\" The file may be a reviewable context-supported member of the account group while carrying no custodian fact of its own",
+        "a trade-date fact from the filename's digit run",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "retirement_plan_enrollment.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a plan summary document, an investment election form, a beneficiary designation form and a fee disclosure",
+        "manifest read without extraction to disk; member count and uncompressed size recorded",
+        "outer archive name carries no institution string and no year"
+      ],
+      "facts_legal": [
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "member facts written onto the archive, or the archive's facts written onto members - the manifest is evidence of a candidate enrollment set for review",
+        "institution or account_type from the archive name",
+        "that the beneficiary designation is only this situation's material - an executed designation directs an asset on death and activates legal on its own evidence; both readings may stand",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Contribution received for tax year 2025.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a custodian domain",
+        "labelled subject slot carries a contribution term and a labelled tax-year phrase",
+        "body carries a labelled Contribution Amount, a labelled account descriptor and a masked account tail",
+        "no attachment"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "tax_year",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = email; the labelled sender, subject and body slots are what fire, and file_kind_plausible is never alone",
+        "that the tax_year here transfers to the account's statements - it is a fact of THIS document's labelled slot",
+        "a contact fact used as a folder proposal; 00 keeps address-book data privacy-protected rather than a proposal basis",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Portfolio Review Q2.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles carry an advisory-firm name and a review term; the firm name also sits in the deck's footer on every slide",
+        "an embedded table of holdings with weights and a chart of projected returns",
+        "speaker notes reference a meeting date",
+        "one slide is titled Sample Allocation",
+        "no account number and no statement period anywhere"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "account_type or a holdings conclusion from the Sample Allocation slide - an illustrative model portfolio is content about a hypothetical, not this holder's account record",
+        "institution from the repeated footer rather than the slide title; 00: \"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference\"",
+        "a projected return figure as a fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Stock Option Grant Agreement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead carries an employer name matched at word boundary",
+        "labelled body lines: number of shares, exercise price, grant date, vesting schedule",
+        "numbered clauses referencing a plan document, and an execution block with a countersignature line",
+        "no custodian, no account number, no settlement date, no holdings table"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY fact of THIS situation. This is the collision fixture: a share count plus a price plus an organization name is exactly the evidence that tempts a brokerage reading, and none of it is sufficient without a custodian account. An unexercised grant is the finance.cap-table-equity sibling's material and, executed, legal material",
+        "record_type = trade confirmation because a share quantity and a price appear",
+        "institution = the employer; the employer granted an award and issued no account",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "exchange_transactions_2025.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row: Timestamp, Asset, Quantity, Spot Price, Fees, Transaction Type, Cost Basis",
+        "the Asset column holds short uppercase tokens and the Transaction Type column holds buy, sell, send and receive values",
+        "a column of long alphanumeric strings labelled Destination",
+        "no settlement-date column, no CUSIP-shaped identifier, no custodian account number"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that this is THIS situation's material because it has assets, quantities, prices and a cost basis. The discriminators are absent: no settlement date, no securities identifier, no custodian account. It is the finance.crypto-assets sibling's export - the second collision fixture",
+        "institution from the filename stem",
+        "an account_type; a self-custodied wallet is not an account descriptor",
+        "tax_year from the filename's 4-digit token",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "eStmt_locked.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the PDF is password-protected: no text layer is reachable and no metadata beyond the filesystem record",
+        "filename stem resembles a custodian's export naming",
+        "arrived in the same download session as two readable brokerage statements"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "institution, account_type or record_type from the filename stem alone - 00: the system \"should not infer a purpose from their filename alone\" for unreadable files",
+        "membership in the accepted statement series because the download session bundled it; a session is a possible-grade clue only",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "529 Plan Statement Fall 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "plan administrator name in the page-one letterhead",
+        "labelled slots: Account Number (masked), Statement Period, Beginning Value, Ending Value",
+        "a labelled holdings table of age-based portfolio units",
+        "a labelled Beneficiary slot naming a student, and a labelled Qualified Withdrawal row naming a school",
+        "a labelled account-descriptor cell naming the education savings plan"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "school"
+      ],
+      "must_not_conclude": [
+        "that institution and school are the same fact because both are organizations on one page - they are different roles, which is 00's whole reason to separate \"roles that happen to contain the same entity type\"",
+        "that this situation excludes the finance.student-financial-aid sibling; the holdings table is this situation's evidence and the beneficiary-and-withdrawal structure is that one's, and one evidence item must not count for both",
+        "target_university; nothing here is addressed to an admissions office",
+        "tax_year from the Fall 2026 term token; a term pattern is not a tax-year pattern",
+        "a folder path - the same facts may later be organized custodian-first or account-type-first"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.personal-records",
+      "signal": "a brokerage statement carries the identical labelled period-and-value structure as a deposit or card statement. The discriminating evidence: a labelled holdings or positions table with security identifiers, quantities and market values, or a trade-date/settlement-date pair, is this situation; a posted-transaction table with a running cash balance under a deposit or card descriptor is that one. One evidence item - the custodian name, the period, the amount - must never count for both. Reciprocates the edge already authored on finance.personal-records. Fixture: Brokerage_Statement_2026Q1.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "a custodian's year-end form and a realized gain-loss report carry an explicit labelled tax-year slot - the filing situation's own strongest signal. The discriminating evidence: a labelled tax-year slot with numbered form boxes read as the year's return support is the filing situation; the same document read as the account's year-end record, tied to a masked account tail in an accepted series, is this one. The YEAR is the single evidence item that must not count for both. The file legitimately belongs to two accepted groups; that is multi-membership, never a copied fact. Fixture: Composite Tax Statement 2025.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "an equity grant, an exercise notice and a vesting schedule all state share counts and prices, which is this situation's holdings vocabulary. The discriminating evidence: a custodian account number plus a settlement or trade-date pair is this situation; an employer name, a plan reference, a vesting schedule and an execution block with no custodian is the cap-table situation. The share count and the price are the items that must not count for both. Fixture: Stock Option Grant Agreement.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.crypto-assets",
+      "signal": "an exchange export and a securities export share asset, quantity, price, fee and cost-basis columns slot for slot. The discriminating evidence: a securities identifier and a settlement date under a custodian account is this situation; wallet-address-shaped strings, on-chain transfer types and no settlement date are the digital-asset situation. Fixture: exchange_transactions_2025.csv.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.student-financial-aid",
+      "signal": "an education savings account is a custodial investment account whose whole purpose is a student's schooling, so both situations read it. The discriminating evidence: a labelled holdings table under a plan account descriptor is this situation; a labelled beneficiary-student slot with a school-payment or award structure is the aid situation. Fixture: 529 Plan Statement Fall 2026.pdf, which carries both structures on one page.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.payroll-received",
+      "signal": "an employer retirement plan appears on both sides: a deferral line on a pay statement and a contribution on a plan statement. The discriminating evidence: a labelled pay period with gross, deductions and net rows is payroll; a labelled plan account with a holdings table or a contribution confirmation is this situation. The employer name is the item that must not count for both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.estate-planning",
+      "signal": "the must_consider_neighbors legal seam, at template level: a beneficiary designation, a transfer-on-death registration and a trust-titled account form are issued by a custodian on an account AND direct an asset on death. The discriminating evidence: a labelled account descriptor with a holdings or contribution structure is this situation; parties, a trust or estate instrument reference, and an execution block creating a direction is the estate situation. The pair reads one document two ways, which is why the discriminating signal is named. Fixture: retirement_plan_enrollment.zip, whose manifest lists a beneficiary designation among plan documents.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "a screenshot of a trading app and any other screenshot share the absence of EXIF, an exact display resolution and the platform filename pattern. The discriminating evidence is only the OCR content: a custodian name beside a labelled portfolio value and a masked account tail is an account record; capture properties with no such structure are a capture only. 00 forbids reading missing EXIF as proof either way. Fixture: Screenshot 2026-06-03 at 14.22.10.png.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by omission: CONNECTION.md section 5 restricts also_holds_with to schema-to-schema pairs, and this is a template row. The co-activations this situation produces are already authored on the finance schema row (identity, legal, academic, photos, medical); the file examples above record them per file in also_schema instead - Composite Tax Statement 2025.pdf with identity, retirement_plan_enrollment.zip with legal, 529 Plan Statement Fall 2026.pdf with academic, the app screenshot with photos.",
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "00 names this situation's material in the definition itself - \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\" - and \"it should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixtures: Brokerage_Statement_2026Q1.pdf, Trade Confirmation 20260212.pdf and Composite Tax Statement 2025.pdf where no account group is accepted.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00's definition fits the one-off custodian document that has a durable purpose and no series: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\". Fixtures: Contribution received for tax year 2025.eml, Portfolio Review Q2.pptx, and a distribution notice arriving alone.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" - exactly the issuer-less positions export and the cropped scan, where record_type resolved and institution did not. Fixtures: positions_export.csv, confirm_0212.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00 defines it for \"password-protected archives, unreadable documents, damaged files, and unknown formats\", and password-protected custodian exports are ordinary in this situation. 00 also forbids the shortcut that would otherwise rescue them: the system \"should not infer a purpose from their filename alone\". Fixture: eStmt_locked.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "00 defines it for \"screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship\" - the portfolio screen captured as a reminder, when no account group is accepted. Fixture: Screenshot 2026-06-03 at 14.22.10.png.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty deliberately. role_split lives between canonical FIELD keys (CONNECTION.md sections 5 and 6), and the two splits this material needs - institution against school on the education-savings fixture, institution against target_university on an application-fee receipt - are already recorded on the finance schema row. The further tension this situation surfaces, the security ISSUER named inside a holdings row versus the CUSTODIAN that issued the record, has no canonical counterpart key to split against and is recorded in must_not_conclude on the statement and confirmation fixtures rather than minted here.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names this material inside its privacy sentence - the corpus \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and requires immediate protection: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" \"Protected material should not be included in cloud-model prompts by default\", and the canvas shows it as a protected area: \"a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default.\" Only 00's phrase is asserted; the handling class is P7's and is not set here. This situation carries two sharper cases than the schema row's general posture: a statement here discloses net worth composition rather than a month's spending, and the custodian year-end forms carry masked taxpayer identification in labelled slots, which is why the identity co-activation on the schema row matters for this material.",
+  "open_question": "Does a continuing account that changes custodian keep one identity, and what fills the branch if it does? The canonical list gives institution the ISSUER role, and a transfer of assets ends one issuer's statements and begins another's - so under this row's recommended order, one retirement account a person has held for a decade splits into two branches at the transfer, and the accepted P9 group that spans the transfer has no dimension to sit on. The three answers are different products: (a) institution stays first and the continuing account lives as a P9 group rather than a folder level, which is what this row recommends today; (b) the optional account_type-first branch pattern becomes the default for retirement accounts, which makes account_type carry an identity it was not defined to carry (a person with two traditional retirement accounts at two custodians would see them merge); (c) an account-identity key is minted on the shared vocabulary, which is a decision about the product's field table and must not be made by one template row - and which would also need a rule for a masked tail that changes at transfer. Recorded, not resolved: no field was proposed here, because minting a key to make a familiar folder shape expressible is exactly the move that produced 2,295 private field names in the overnight pass."
+}

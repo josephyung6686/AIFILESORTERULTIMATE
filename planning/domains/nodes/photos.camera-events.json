@@ -1,0 +1,453 @@
+{
+  "id": "photos.camera-events",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Camera photos by event",
+  "one_line": "The situation of a camera roll: born-digital captures whose EXIF names a camera, a capture moment and often a place, clustered into the occasions a person would recognise, and recommended as capture_year then event.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "a Photos template may define year → event",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test_note": "Applied honestly, and the row survives on one limb, not three. DIMENSIONS: identical to photos.json's default, and deliberately so — 00 states one order for this material (\"a Photos template may define year → event\") and this is the situation that order was written for. Writing it twice is recorded as the R1c fork in open_question. PRIVACY: the same schema-level rules; the one addition below (a GPS-derived event label can name a residence) is inference, not a second regime. DETECTION SIGNALS: this is where the row earns its place, and not by narrowing alone. The photos schema's recognition list activates the SCHEMA across nine sibling templates — screenshots, scans, prints, drone, video, exports. Choosing among those nine needs a positive fingerprint for the camera-roll case, and this row holds signals that appear on no sibling and on the schema row only as a summary: tier-1 EXIF make/model with DateTimeOriginal on a born-digital file, sensor aspect ratios (deferred catalogue 03), camera filename conventions carried at possible grade with catalogue 04's recorded caveat that iOS gives screenshots the same IMG_#### stem, RAW+JPEG pairing, burst and edited-derivative families (IMG_E####, .AAE sidecars) collapsing to one capture rather than several, and spatio-temporal clustering of a RUN of captures into an event proposal. Contrast research.project-workspace, which refused because every signal it could claim was a named sibling's — here the siblings are the deviations and this row is the positive core. The discriminating value is real: without it, the IMG_4602.PNG fixture (camera-shaped filename, screen-shaped everything else) has no row to be adjudicated against.",
+
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them (CONNECTION.md section 3). The legal fields here are photos.json's six — capture_year, event, location, people, camera_information, media_type — plus the universal facts.",
+
+  "proposed_fields": [
+    {
+      "field": "capture_date",
+      "type": "date",
+      "example": "2026-07-17",
+      "reliability_ceiling": "direct",
+      "destination_eligible": false,
+      "provenance": "design",
+      "why_no_existing_key_works": "00 names this fact twice, in its own words, and the canonical list has no key for it. \"A fact is a statement such as subject = BUSIB 4300, term = Spring 2026, work type = syllabus, capture date = 2026-07-17, or purpose = university application\", and the observation/fact split is demonstrated on exactly this field: \"an EXIF field called DateTimeOriginal is raw metadata; capture date = 2026-07-17 is the file fact derived from it\". Neither existing key holds it. capture_year is the Photos field sentence's key and is year-grained, so it cannot carry the day. creation_date is the universal filesystem/document timestamp, and its own canonical row separates the two concepts; 00 also makes the filesystem timestamp untrustworthy as a capture time, requiring the engine to recompute \"instead of assuming that time only moves forward\" after restores and migrations. This template needs the day-grained fact because its event rule family clusters a run of captures by camera identity, contiguous capture time and GPS — with only a year, no run can be bounded. Ceiling direct because the value comes from a labelled metadata slot. destination_eligible false deliberately: 00's Photos order is year then event, and day-level folders are the case 00 warns about — a level that creates \"a large number of tiny folders\". Proposed for R1c, not authored: this node writes nothing into canonical_fields.json and no dimension branches on it."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "EXIF Make and Model slots populated on a successfully decoded image, together with a populated DateTimeOriginal slot — 00's top band: \"camera EXIF is strong photo evidence; capture time, GPS, and sensor-shaped dimensions reinforce it\". This is the one signal that separates this situation from every sibling on the photos schema",
+      "a run of captures sharing one camera identity whose capture times are contiguous and whose GPS fixes cluster, proposed as one occasion — 00: \"Camera EXIF, GPS, and capture time can support deterministic photo-event proposals\", and for the group seed: \"For a photo group, it might be a deterministic event created from camera, time, and GPS metadata\"",
+      "pixel dimensions reducing to a sensor-shaped aspect ratio, reinforcing a camera-EXIF hit (deferred catalogue 03, whose own rule is reinforcement never proof; 00 puts it in the reinforcing band, not the deciding one)",
+      "HEIC decoded explicitly rather than skipped, so an Apple camera roll is not silently absent from the corpus — 00: \"HEIC support must be included explicitly\"",
+      "a RAW and JPEG pair, or a burst, sharing one camera identity and one capture second, joined into a single capture rather than several — 00: \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates\" and \"Structural relationships should retrieve nodes that contain a version family, duplicate family, archive family, photo event, or derived document set.\"",
+      "an edited derivative beside its original — an IMG_E#### stem, or an .AAE edit sidecar sitting next to the stem it names — read as a version family on one capture, not as a second capture in the event",
+      "an EXIF GPS fix resolved to a place name through a gazetteer matched at word boundaries (00: \"It should use word-boundary matching rather than substring matching\"); the coordinate itself is never the stored value and never leaves the machine",
+      "a capture timestamp parsed out of the EXIF slot by an explicit pattern — 00: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.\" No fuzzy parsing, and no filesystem timestamp substituted for a missing slot",
+      "a camera filename convention recognised from deferred catalogue 04 (Apple/DCF IMG_####, Nikon DSC_####, the Android timestamp stem) — emitted at possible grade with no signal tier, corroborating a metadata hit and never standing in for one",
+      "container, codec, duration and creation-time metadata on a clip sitting inside the same camera roll as the surrounding stills — 00: \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\"",
+      "a curated folder the holder made around a run of captures, supplying a candidate event LABEL for the user to accept — 00: \"A carefully curated existing folder should be treated as a strong expression of user intent.\" The folder name is evidence, and it becomes an event value only on acceptance"
+    ],
+    "needs_llm": [
+      "naming the occasion a user would recognise when the metadata gives only a device, a date span and a coordinate cluster — 00 bounds the model to exactly this: only after coherence is supported, \"it proposes a concise human-readable display label and a group category\"",
+      "deciding whether one continuous run is one occasion or two — a day out inside a longer trip — where camera identity and time never break",
+      "deciding whether a camera photograph whose subject is a document belongs to this situation at all, or whether its facts belong to another active schema once OCR has run",
+      "confirming a place from an OCR'd sign, menu or landmark when no GPS fix exists, where the reading is language interpretation rather than a lookup"
+    ],
+    "never_alone": [
+      "an IMG_#### or DSC_#### filename with no metadata behind it. This is the tempting false file and 00 names it outright: \"IMG_4821.png may be a screenshot of a receipt, application portal, conversation, code error, or research figure\" — deferred catalogue 04 records the mechanism, that iOS gives screenshots saved to Photos the same Apple/DCF stem, and refuses to let the pattern imply a media type. Fixture: IMG_4602.PNG",
+      "absence of EXIF — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"Messaging platforms and downloaded web images often strip metadata from real photographs\". Fixture: WhatsApp Image 2026-05-02 at 19.44.10.jpeg, a real photograph with nothing left in its slots",
+      "OCR text density — 00: \"OCR text density is also not a reliable screenshot detector\"",
+      "source_type = image, or an image or RAW extension, on its own — file_kind_plausible is constitutionally never-alone",
+      "a filesystem creation or modification timestamp read as a capture time; a restore, a sync or a re-encode rewrites it, and 00 requires recomputation \"instead of assuming that time only moves forward\"",
+      "a bare four-digit number in a filename read as a capture_year — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a bounded download session, or a card-dump archive downloaded in one sitting, read as one event — 00: \"A session should never be treated as proof of topic\"",
+      "a parent folder named Photos, DCIM or 100APPLE read as an event; a generic container is not an occasion, unlike a curated folder the holder named",
+      "a GPS fix alone, with no camera identity and no capture time agreeing with it, proposing an event",
+      "perceptual-hash similarity alone merging two runs into one occasion — near-duplicate is a version relationship, not an event boundary"
+    ]
+  },
+
+  "work_types": [
+    "photo",
+    "live photo",
+    "burst",
+    "panorama",
+    "raw original",
+    "edited derivative",
+    "camera-roll video clip",
+    "time-lapse or slow-motion clip"
+  ],
+  "work_types_note": "These are VALUES of the photos schema's media_type field, not roster nodes and not a work_type field — the photos schema declares no work_type. 00's values rule governs them: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\"",
+
+  "grouping_reasons": [
+    "one occasion proposed deterministically from agreeing camera identity, contiguous capture time and clustered GPS",
+    "a burst, a RAW and JPEG pair, or an edited derivative and its original, held together as one capture's version family",
+    "an exact-hash or perceptual-hash duplicate family across a re-import or a second copy of the same card",
+    "a run of captures already sitting inside a folder the holder curated and named",
+    "captures the user accepted under one event label, which is how an event value is created rather than inferred"
+  ],
+
+  "template": {
+    "dimension_order": ["capture_year", "event"],
+    "why": "00 states this order for this material outright — \"a Photos template may define year → event\" — and states the reason time leads here, against its own general rule: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders. Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" The parent-context test holds in this direction too: an event value such as Japan Trip 2025 is intelligible under its year, while a year under an event would produce the one-child level 00 warns about — \"It should warn when a level produces only one child\". The schema's other destination-eligible fields are deliberately not dimensions here: location because 00 offers it as an ALTERNATIVE rather than an addition, media_type because this situation is single-valued on it, and people and camera_information because the canonical list seeds them destination-ineligible and 00 forbids the second outright — \"It should avoid using authorship or creator identity as a destination dimension.\" Optional branch patterns 00 itself puts on this branch: \"They can confirm Photos first, then decide whether photographs should branch by year, event, location, or remain mostly flat.\" Flat is a real answer here and 00 says when to prefer it — \"It should recommend flattening when a dimension does not materially improve retrieval.\" The scoped fallback belongs to this situation too, for a year whose captures never clustered into an occasion: 00's mechanism is that \"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder\", applied here by inference to a year-level General. All of it is a recommendation and none of it is a path — \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": true
+  },
+
+  "file_kinds": {
+    "source_types": ["image", "ocr", "audio_video", "archive"],
+    "extensions": [".heic", ".heif", ".jpg", ".jpeg", ".png", ".dng", ".cr2", ".cr3", ".nef", ".arw", ".raf", ".tif", ".aae", ".mov", ".mp4", ".zip"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "IMG_4821.HEIC",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make and Model slots carry a phone make and model",
+        "EXIF DateTimeOriginal slot carries a timestamp",
+        "EXIF GPS slots carry a coordinate",
+        "lens, ISO and focal-length slots populated",
+        "pixel dimensions reduce to a sensor-shaped aspect ratio",
+        "filename stem matches the Apple/DCF camera-roll convention",
+        "HEIC decoded by an explicitly configured image stack"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event from one file — an occasion needs a run of captures agreeing on camera identity, time and place, and then a label the user accepts",
+        "people from a face appearing in the frame",
+        "that the resolved place name licenses storing or sending the coordinate"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_4820.DNG",
+      "source_type": "image",
+      "observations": [
+        "RAW file with full EXIF: same Make, Model and DateTimeOriginal second as a sibling IMG_4820.JPG",
+        "perceptual hashes of the two files are near-identical; exact hashes differ",
+        "no GPS slot on this body"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type", "version_family"],
+      "must_not_conclude": [
+        "a folder path",
+        "two captures, or two members of an event, from one shutter actuation",
+        "location, because no GPS fix and no place evidence exists",
+        "that the JPEG is a duplicate to be deduplicated away — the hashes differ and 00 requires a hash match, not a filename match, before any merge"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_E4821.HEIC",
+      "source_type": "image",
+      "observations": [
+        "stem differs from IMG_4821.HEIC only by an E marker",
+        "an IMG_4821.AAE sidecar sits beside both files",
+        "DateTimeOriginal identical to the original; software metadata names an editing pass",
+        "perceptual hash close to the original, exact hash different"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type", "version_family"],
+      "must_not_conclude": [
+        "a folder path",
+        "a second capture in the occasion",
+        "a later capture_year from the edit timestamp",
+        "media_type = screenshot from the presence of editing software metadata — that band is a screenshot hypothesis only when camera EXIF is absent, and here it is present"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "DSC_0342.NEF",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make and Model name a DSLR body; LensModel, ISO and focal length present",
+        "DateTimeOriginal present",
+        "no GPS slot present",
+        "filename stem matches the Nikon camera convention"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "location, because no GPS fix and no place evidence exists",
+        "that a missing GPS slot weakens the capture reading — the top band is already satisfied by camera EXIF",
+        "an event from the filename sequence number"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_4602.PNG",
+      "source_type": "image",
+      "observations": [
+        "Apple/DCF camera-roll filename stem, identical in shape to the camera captures beside it",
+        "PNG format; pixel dimensions equal a known display resolution and reduce to no sensor-shaped ratio",
+        "no EXIF camera slots of any kind",
+        "software metadata naming a screen capture"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = photo from the camera-shaped filename — this is the collision fixture, and the filename carries no signal tier",
+        "membership in the surrounding camera event because the sequence number falls between two captures",
+        "capture_year, camera_information or location, none of which has a slot behind it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-03-14 at 10.22.31.png",
+      "source_type": "image",
+      "observations": [
+        "PNG format, dimensions equal to a known display resolution",
+        "software metadata naming a screen-capture tool",
+        "no camera EXIF slots present",
+        "filename carries an explicit date pattern"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this situation applies at all — the photos schema activates, but the organizational situation is the screenshot sibling's",
+        "media_type = screenshot from the missing EXIF; the support is resolution, format and software metadata together",
+        "an event, or a capture_year folder level, from the filename date"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "WhatsApp Image 2026-05-02 at 19.44.10.jpeg",
+      "source_type": "image",
+      "observations": [
+        "JPEG re-encoded by a messaging platform with every EXIF slot stripped",
+        "pixel dimensions sensor-shaped but downscaled",
+        "filename carries a platform name and an explicit date pattern",
+        "it really is a photograph someone took"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absent EXIF — 00 lists this exact adversarial case, \"stripped EXIF on messaging-app photographs\"",
+        "camera_information or capture_year, because the slots are gone and a filename date is a possible clue, not a labelled slot",
+        "an event from the platform name or from the day in the filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "MVI_0088.MOV",
+      "source_type": "audio_video",
+      "observations": [
+        "container, codec and duration metadata present; creation-time tag present",
+        "the same camera model as the stills either side of it in the same folder",
+        "sequence number continuous with those stills"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a transcript — speech-to-text runs \"only under an explicit privacy and compute policy\"",
+        "an event from the clip alone, before the surrounding run clusters and a label is accepted",
+        "that a clip in a camera roll is the home-movie situation; the sibling template owns duration-led material"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_5512.HEIC",
+      "source_type": "image",
+      "observations": [
+        "full camera EXIF including GPS; capture times run across several consecutive days",
+        "GPS fixes cluster far from every other cluster in the corpus",
+        "sits inside a folder the holder created and named Japan Trip 2025"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type", "event"],
+      "must_not_conclude": [
+        "a folder path — Japan Trip 2025 is 00's example of a VALUE, and the folder that carries it is evidence, not a destination this row may assert",
+        "event as a direct fact; the curated folder name is strong user-intent evidence that becomes an event value once the user accepts it",
+        "that the trip reading and this row's reading are settled — a bounded away-from-routine span is the trip sibling's discriminator"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_7788.HEIC",
+      "source_type": "image",
+      "observations": [
+        "full camera EXIF, capture time and GPS at a conference venue",
+        "OCR of the frame recovers a poster title and a project identifier",
+        "capture times contiguous with a run of other captures that day"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the research reading replaces the capture reading, or the reverse — the evidence is disjoint, EXIF on one side and OCR'd poster text on the other",
+        "a project fact on the neighbouring captures in the same run because this one carries it"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_2231.jpg",
+      "source_type": "image",
+      "observations": [
+        "genuine camera EXIF: Make, Model and DateTimeOriginal all present, GPS present",
+        "the frame is a photographed passport page; the OCR region carries travel-document wording and a document number"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event, or membership in the surrounding camera run, for a protected record",
+        "a capture_year folder level — 00 requires that such a file \"should enter a protected state immediately\", before any placement or model path",
+        "any content of this file in a cloud dossier"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_3390.jpg",
+      "source_type": "image",
+      "observations": [
+        "genuine camera EXIF including DateTimeOriginal",
+        "OCR region carries clinical result wording and a patient-name line"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "people from the OCR'd name line",
+        "membership in a photo event, or a capture_year level, for a protected record",
+        "any content of this file in a cloud dossier"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "2026-07-14_cardA.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a DCIM/100CANON folder layout with paired CR3 and JPG members",
+        "file count and uncompressed size available from the manifest",
+        "no member is extracted to disk",
+        "the archive's own timestamp is the day it was zipped"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture facts from the archive's own timestamp — the members' EXIF is the capture evidence, and it is unread until the members are",
+        "one event for the whole card because it was copied in one sitting",
+        "that a DCIM card dump is a platform export; the export sibling's discriminator is a takeout layout with per-file sidecars"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_9004.CR3",
+      "source_type": "image",
+      "observations": [
+        "RAW format the installed image stack cannot decode; no thumbnail rendered",
+        "no EXIF read because the container was not parsed",
+        "filename stem matches a camera convention"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type from the extension alone",
+        "that the file is empty — 00 requires that \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\"",
+        "an event from its position between two readable captures"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "The confusable evidence item is an image sitting in a camera roll with a camera-shaped filename. The discriminator is 00's own signal hierarchy, and it is a band comparison rather than a topic comparison: \"camera EXIF is strong photo evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis; conflicting signals should lead to abstention rather than an invented classification.\" The filename belongs to neither band. Fixtures: IMG_4602.PNG, Screenshot 2026-03-14 at 10.22.31.png.",
+      "provenance": "design"
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "A photographed page carries exactly the tier-1 camera EXIF this situation runs on, so the capture evidence cannot separate them. The discriminator is what OCR recovers from the frame: document structure and labelled slots rather than a scene. 00 makes the recovery route explicit — a file that yields no usable text routes to OCR, and \"A screenshot is always a screenshot of something\" is the same discipline applied to opaque images. Fixture: IMG_2231.jpg, which is a real photograph and still not a photo event.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "travel.trip-photos",
+      "signal": "The same evidence item — camera EXIF plus GPS plus a contiguous date span — supports both, which is why this is a collision and not a narrowing. The discriminator is the shape of the span: a bounded run whose GPS cluster sits away from every routine cluster, or a trip label the user accepted, belongs to the trip situation; an ordinary occasion inside routine places belongs here. Neither may take a GPS cluster alone. Fixture: IMG_5512.HEIC in a curated Japan Trip 2025 folder.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.family-archive",
+      "signal": "Both situations end in year-then-event dimensions, so the dimensions cannot separate them. The discriminator is provenance of the pixels: born-digital capture with populated EXIF here, versus a rephotographed or scanned print whose EXIF describes the scanning act, or is absent entirely. The absence must never be read the other way — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and the same caution applies to reading it as proof of an old print.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.home-video",
+      "signal": "A clip shot on the same camera in the middle of an occasion carries the same camera identity and capture time as the stills around it, so the capture metadata is shared evidence. The discriminator is whether the material is duration-led and stands on its own as a recording, versus a clip whose meaning is the run it sits inside. Fixture: MVI_0088.MOV, sequence-continuous with the stills either side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.drone-captures",
+      "signal": "Aerial stills carry camera EXIF and GPS in the same slots, and would activate this situation's whole deterministic set. The discriminator is aerial and flight-log metadata — altitude, gimbal and flight-record fields — which no handheld capture carries. Without it, a drone still is simply a capture in the event and no harm is done; the edge exists so the reverse never happens.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "photos.social-media-export",
+      "signal": "Both situations can arrive as an archive of images with adjacent metadata, inspected by manifest only. The discriminator is the layout in the manifest: a DCIM camera-card tree with RAW and JPEG pairs here, versus an export tool's folder layout with per-file JSON sidecars there — 00 licenses reading exactly this without unpacking, storing \"the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers\". Fixture: 2026-07-14_cardA.zip.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "A phone photograph of a passport page is a genuine camera capture — tier-1 EXIF, real capture time, real GPS — and this situation's signals would propose capture facts and an event home for a protected record. The discriminating evidence is document-identity wording in the OCR region, and 00 settles the order of operations: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\", and \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" Fixture: IMG_2231.jpg.",
+      "provenance": "design"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "The same shape with clinical wording: a photographed result letter or prescription carries camera EXIF and a capture time that alone would file it by year inside an occasion. The discriminator is clinical content in the OCR region, and protection precedes any model or placement path, so the capture reading must never decide the file's home. Fixture: IMG_3390.jpg.",
+      "provenance": "design"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by absence: also_holds_with joins schemas only (CONNECTION.md section 5), and this is a template row. The pair this situation actually meets — a capture that is also a research artifact, on disjoint EXIF-versus-content evidence — is authored on the photos schema row as photos <-> research, and the fixture is carried here as IMG_7788.HEIC with also_schema = research. 00's licence for it: \"One file may hold facts from more than one domain without losing information.\"",
+
+  "falls_through_to": [
+    {
+      "residual_template": "One-Off Images",
+      "why": "00's own description is this situation's leftover exactly: images with \"no event, project, reference collection, or photo-family association\". It is the commonest outcome here, because a camera roll's isolated captures never cluster into a run. Fixtures: IMG_4821.HEIC when no occasion forms, DSC_0342.NEF, the stripped WhatsApp photograph, MVI_0088.MOV when its run is not accepted.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — the card-dump archive whose members have not been read, where media_type resolved and no capture fact has yet been recovered. Fixture: 2026-07-14_cardA.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The characteristic hazard of this situation: a camera is the commonest way another domain's protected content enters a corpus. 00 defines the home for \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\", which \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixtures: IMG_2231.jpg, IMG_3390.jpg.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "This situation's other characteristic failure, and one the document domains rarely meet: a RAW container or an unconfigured HEIC stack that yields nothing. 00's residual covers \"password-protected archives, unreadable documents, damaged files, and unknown formats\" and prefers representation over movement; the design also insists such a file be \"recorded as indexed-but-unreadable rather than silently treated as empty\". Fixture: IMG_9004.CR3.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [],
+  "role_split_note": "Empty, and deliberately so rather than for lack of looking. The photos schema's six fields contain no two keys naming the same entity type in different roles, which is 00's test for the split: \"The system must separate roles that happen to contain the same entity type.\" The near-case in this situation is the photographer versus the people in the frame — one entity type, two roles — but the canonical list holds no such pairing, the photographer has no key here beyond camera_information, and both candidate keys are already destination-ineligible under 00's own bar: \"It should avoid using authorship or creator identity as a destination dimension.\" Minting the pair to fill this slot would be inventing a field relationship the canonical list does not hold, so it is recorded in the research notes instead.",
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This situation's defining evidence is where someone was and when, and often who was with them. 00 puts the raw forms behind the local boundary — \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\" — and makes their display a user choice: \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\" Two rules follow for this row specifically, both inference from those sentences: a place name resolved for a folder level is the only form of a GPS fix that may surface, never the coordinate; and an event proposed from a routine GPS cluster can name a residence, so a machine-proposed event label is a suggestion for the user to accept or rename, never an asserted fact. A camera is also the commonest carrier of another domain's protected content, which is what the identity and medical collisions above encode. Handling classes are not assigned here.",
+
+  "open_question": "Two, both Joseph's rather than this row's. First, an R1c merge question this node must not settle alone: dimension_order here is identical to photos.json's default, because 00 states one order for photo material and this is the situation it was written for. Either this row keeps the order and the schema row's default is read as pointing at it, or the row is folded into the schema default and the camera-roll detection signals move onto the schema row — where they would then have to activate the schema and choose among nine sibling templates at the same time. The node_test_note records why this row was built rather than refused; the fork itself stays open. Second, a real-filesystem decision 00 gives no sentence for: an occasion that crosses midnight on 31 December breaks under a capture_year-first order, and 00's own menu offers the alternatives without choosing between them — \"whether photographs should branch by year, event, location, or remain mostly flat\". Whether the year level should yield to the event when a run spans a boundary is the user's call at tree-design time, not a recommendation this row may freeze."
+}

@@ -1,0 +1,445 @@
+{
+  "id": "career.portfolio-work-samples",
+  "kind": "template",
+  "schema_id": "career",
+  "parent_id": null,
+  "name": "Portfolio and work samples",
+  "one_line": "Work the holder made, selected and framed to be SHOWN to someone - a portfolio document, a case study, the design/CAD/reel source files behind them, and the exports cut from those sources. The purpose (showing) is what makes the situation, not the subject matter: the same bytes sitting in a live engagement, a repository or a course folder are that situation's material, and become a work sample only when curation evidence exists. Carries design_creative as its file_kind_owner because 00 names creative projects as an organizational situation and this roster has no creative schema (ROSTER.md hole 1 / NJ-R1a-1).",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "00 names the situation in its own library sentence - the library covers 'common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections' - and names the file kinds this row owns: 'Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text'. 00 does NOT name a portfolio template or a creative schema, so this row is an extension of a named launch domain (career), not a design assertion: provenance inference.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "A curation document: a page-one title block or filename carrying a showcase token ('Portfolio', 'Selected Works', 'Work Samples', 'Case Study') ABOVE a repeating spread structure - an image or figure with a caption block, repeated across pages, each spread naming a different piece. The repetition is the evidence, not the token: a single-project document with the word portfolio in it is not a showcase. PROPOSED context terms - 00 states the pattern-plus-context SHAPE only for course codes ('a course-code pattern together with academic context'), and this row copies the shape, never claiming 00 wrote this list. R6 owns the term patterns; no regex is written here.",
+      "A design or creative source file whose extractor yields 00's own design_creative slots - 'filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text' - co-occurring with an export sibling sharing its normalized filename stem (the universal version_family / duplicate_family evidence, which 00 grounds in 'Exact hashes and perceptual hashes can identify duplicates and near-duplicates'). The source-plus-export pair is the signal; the extension alone is never one (see never_alone).",
+      "A case-study document: labelled section headings running a situation / approach / outcome sequence over one named engagement, with an outcome section carrying figures. PROPOSED terms and PROPOSED heading sequence; the discriminating structure against a client deliverable is retrospective framing for an outside reader rather than a delivery artefact (no SOW reference, no distribution list, no delivery date block).",
+      "An existing user-created folder whose name carries a showcase token, holding files with their own curation or source-plus-export evidence. This is 00's strongest purpose signal and it is quoted, not invented: 'Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal', and 'A carefully curated existing folder should be treated as a strong expression of user intent.' The folder alone still proves nothing about a given member (see never_alone).",
+      "An archive whose manifest lists exported images beside a showcase PDF and a resume, read WITHOUT unpacking - 00's own packet-from-manifest shape, and 00's hard rule that 'the normal scan should never extract archive contents to the filesystem'.",
+      "A rendered or edited audio_video file whose container metadata yields 'duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present' with an embedded title tag carrying a showcase token, and NO camera-shaped capture metadata - the edit-output shape rather than the capture shape."
+    ],
+    "needs_llm": [
+      "The load-bearing interpretive call of this whole row: deciding whether a design source file, deck or drawing is CURATED work being shown, or live production material that merely looks the same. 00 puts exactly this class of judgement inside the model's allowed determinations - it 'may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain' - and 00 gives the reason rules alone cannot: real collections contain 'unusual professional artifacts'.",
+      "Whether a heterogeneous set (a PDF, a layered source file, a reel, a drawing sheet) is purpose-coherent as ONE showcase. This is 00's purpose shape restated on this situation: 'The documents are content-incoherent but purpose-coherent', assembled from 'measurable clues' rather than from a vague question to the model.",
+      "An unlabelled deck: showcase, client deliverable, or internal status deck. All three carry slide titles, images and speaker notes; only the framing separates them, and 00 keeps that call for language interpretation.",
+      "An OCR'd portfolio-platform capture: deciding it is a publish or submission confirmation for the holder's own work rather than a generic image or someone else's page. 00's worked parallel is the admissions screenshot; the model must be able to conclude that no meaningful association exists."
+    ],
+    "never_alone": [
+      "A design_creative source_type, or a .psd / .ai / .dwg / .indd extension, alone. THIS IS THE TEMPTING FALSE FILE for this row: the roster makes it file_kind_owner of design_creative, and read as proof that would swallow every layered file in a live production directory - a client's working artwork, a colleague's shared template, an in-progress job. file_kind_plausible is constitutionally never-alone (CONNECTION.md section 5), and 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning'. Ownership is a shelving claim about where the extractor's output is best interpreted; it is not evidence.",
+      "A parent folder named Portfolio, Work, Samples or Showcase alone, with no member file carrying its own curation or source-plus-export evidence. 00 keeps folder context a clue and never a licence: 'The system learns from existing folders but must not silently reorganize them', and 'Existing folders must not be automatically flattened, renamed, or reorganized simply because a template would produce a different structure.' The folder may make the PURPOSE plausible without making any particular member a work sample.",
+      "A company, client or university name alone. 00: 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' - and on a portfolio the name is usually a caption for whom the work was done, which is a value in a caption, not an activation.",
+      "A bare 4-digit number read as a year, a cycle or a project id. 00's narrow-date rule names the trap - filenames carry 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' - and this situation adds its own: sheet numbers (A-101), canvas dimensions (48x36), version suffixes (v12) and export scale factors (@2x) are all 4-digit-adjacent tokens that are not dates.",
+      "The absence of EXIF on a platform capture, as proof of a screenshot. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot.' An export from a design tool has no camera EXIF either.",
+      "Membership in a download session that happened to bundle several images. 00: 'A session should never be treated as proof of topic', and 'A tight download session alone is never sufficient'.",
+      "A software or producer metadata string naming a design tool, or an authoring-identity string naming the holder. 00: 'Author and creator fields may be stale, generic, or generated by a tool rather than a person', and 'It should avoid using authorship or creator identity as a destination dimension.' A folder of everything a person produced is the collector this rule forbids - which matters here more than anywhere, because a portfolio is by definition one person's own output.",
+      "A repository marker's absence or presence read casually. Where package manifests and repo roots sit above a file, 00's structural precedence governs: 'Code-related files should rely heavily on local structural evidence, including repository roots and package files', and the scan 'should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod'. A portfolio website is a repository first.",
+      "An unreadable proprietary source file's filename. 00: 'the system should not infer a purpose from their filename alone', and such a file is 'recorded as indexed-but-unreadable rather than silently treated as empty'."
+    ]
+  },
+  "work_types": [
+    "portfolio document",
+    "case study",
+    "work sample",
+    "design source file",
+    "export or render",
+    "showreel",
+    "writing sample",
+    "drawing set sheet",
+    "project one-pager",
+    "sample code excerpt"
+  ],
+  "grouping_reasons": [
+    "One showcase assembled for one audience - the portfolio version sent to one recipient, with its exports and its cover. Purpose-coherent and content-incoherent in 00's exact sense; the group is assembled from measurable clues (a user-created showcase folder, a manifest, a shared export stem), never from the model being asked what these files are for.",
+    "One work sample across its source file, its exports and its revisions - the universal version_family and duplicate_family facts, not a career fact. 00: 'Exact hashes and perceptual hashes can identify duplicates and near-duplicates.'",
+    "One underlying piece of work across the situation that produced it and the showcase that reuses it - and this membership is DUAL, never a rewrite. 00: 'A file may validly belong to more than one accepted group', and the firewall holds: 'The graph does not automatically copy those missing facts onto sparse files.' A deliverable that becomes a sample keeps the engagement's facts and gains no career fact, because the career schema declares none."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, not by refusal - and empty for a second, sharper reason than the schema row's. First reason (shared with career.json): the career schema declares no field rows (S3 / D1 as narrowed; _CONTRACT rule 10 and 15; CONNECTION PR-6), a dimension may only branch on a field its schema declares, so no dimension is authorable here at all. Second reason, specific to this situation: 00's recorded career recommendation - 'a Career template may define company → role or recruiting cycle → document type' - is the RECRUITING situation's order and does not fit a showcase. A work sample's parent is the piece of work, not an employer: many portfolios contain personal, academic and speculative work with no company, and a file named Hero_v12.psd or Sheet A-101.dwg is unintelligible until the piece it belongs to is known, which is 00's own ordering test ('A work type such as Homework 3 is meaningful only after the course is known'). The honest recommendation, held as PROSE until the career schema lands: the piece of work first, then the artefact role (source file / export / case study / cover), with the showcase occasion as an optional first level only where a person genuinely maintains several versions for several audiences. Not time-first - 00: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The candidate keys for those two dimensions already exist canonically (project, artifact_type, and client for the commissioned case) but belong to other schemas' rows today; whether career may reference them, or whether a work sample is really the portfolio face of the refused creative schema, is the open_question below, and this row resolves neither. Whatever lands, it is a recommendation the user may reverse or flatten, never a filesystem.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "design_creative",
+      "text_document",
+      "presentation",
+      "image",
+      "audio_video",
+      "archive",
+      "ocr",
+      "code_structured"
+    ],
+    "extensions": [
+      ".psd",
+      ".ai",
+      ".svg",
+      ".dwg",
+      ".indd",
+      ".pdf",
+      ".pptx",
+      ".mp4",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Portfolio_JYung_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a showcase token and a 4-digit token",
+        "page-one title block reads Selected Works over a contact line with an email address and a personal URL",
+        "pages repeat an image-plus-caption spread structure; each caption names a different piece and, on four of them, a different organization",
+        "PDF producer metadata names a design application, not a person",
+        "a sibling file Portfolio_JYung_2026_v2.pdf shares the normalized filename stem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any career-domain fact: the career schema declares no field rows, so activation legitimises the universal facts only",
+        "an employer or client fact from the organizations named in the captions - the document LISTS them, it does not belong to one (the same error as reading the newest job off a resume)",
+        "a year from the 4-digit filename token alone",
+        "an authorship dimension from the producer metadata"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Hero_v12.psd",
+      "source_type": "design_creative",
+      "observations": [
+        "proprietary layered format; the extractor yields canvas dimensions, layer or artboard names and linked asset names where accessible, and may yield none of them",
+        "filename carries a version suffix",
+        "two siblings share the normalized stem: Hero_v12@2x.png and Hero_v12_export.jpg",
+        "sits in a directory beside eleven other layered files"
+      ],
+      "facts_legal": [
+        "file_type",
+        "version_family",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any career-domain fact - none is declared",
+        "that this is a work sample because its source_type is design_creative; that is this row's file_kind_owner assignment, and file_kind evidence is never alone",
+        "an empty extraction where the format is simply unreadable - 00: 'unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty'",
+        "a year or a cycle from the v12 suffix"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Case Study - Onboarding Redesign.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled heading sequence: Context, Approach, What shipped, Outcome",
+        "the Outcome section carries percentage figures in a small table",
+        "an organization name appears once, in the first line of Context",
+        "no statement-of-work reference, no delivery date block, no distribution list",
+        "DOCX core properties name a template producer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any career-domain fact - none is declared; client, our_firm and project are canonical keys the career schema does not reference",
+        "a finance fact from the percentage figures - a results table is not an account record",
+        "an organization fact from a single mention in body prose, positionally weak and never alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Selected Works.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Portfolio.pdf, four PNG exports sharing two stems, README.txt and Resume.pdf",
+        "outer archive name carries a showcase token",
+        "manifest read without extraction to disk",
+        "file count and uncompressed size recorded"
+      ],
+      "facts_legal": [
+        "file_type",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any career-domain fact - none is declared",
+        "that the members share a showcase purpose because they arrived in one archive; the manifest is the evidence 00 credits, and the packet reading remains a reviewable candidate group",
+        "that the Resume.pdf member is a work sample because of its neighbours - it is career.recruiting material sharing a container"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Reel_2025_final.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "container metadata yields duration, codec and creation time; an embedded title tag reads Showreel",
+        "no camera-shaped capture metadata, no GPS",
+        "filename carries a 4-digit token and a finality word",
+        "an earlier sibling Reel_2025_v3.mp4 shares the stem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any career-domain fact - none is declared",
+        "capture_year or event in the photos sense - this is an edit output, not a capture, and the container creation time is not a DateTimeOriginal",
+        "media_type from the absence of camera metadata; conflicting signals abstain",
+        "a stage or an artifact_type fact from the word final"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Sheet A-101 - Riverside House - Plans.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "proprietary CAD format; the extractor may yield canvas properties, layer names and linked asset (xref) names, or nothing readable at all",
+        "filename carries a sheet-number-shaped token and a project-shaped name",
+        "sits among forty sibling sheets in a numbered issue set with a transmittal PDF",
+        "no showcase token, no caption structure, no export sibling"
+      ],
+      "facts_legal": [
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is a work sample - it is live production material in an issue set, and this row's own curation evidence is absent; a design_creative extension plus a proprietary format is exactly the never-alone case",
+        "a year or a cycle from A-101, or from a canvas dimension token",
+        "any career-domain fact - none is declared",
+        "an empty extraction where the format is unreadable"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "portfolio-site/src/pages/index.astro",
+      "source_type": "code_structured",
+      "observations": [
+        "a package manifest and a repository marker sit at the directory root above it",
+        "the repository directory name carries a showcase token",
+        "the file is a page template; a sibling content/ directory holds markdown case studies",
+        "node_modules/ sits beside it"
+      ],
+      "facts_legal": [
+        "project",
+        "repository",
+        "artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the word portfolio in the repository name makes this row plausible - 00's structural precedence governs: 'Code-related files should rely heavily on local structural evidence, including repository roots and package files', and the scan 'should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod'. This is the collision fixture with code.software-project",
+        "any career-domain fact - none is declared",
+        "that the markdown case studies inside the repository may be branched out of it; 00: existing folder structures should mainly be preserved"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Poster_PVA-RDP_ASCB2026_48x36.ai",
+      "source_type": "design_creative",
+      "observations": [
+        "layered vector source at poster canvas dimensions",
+        "readable text objects name a project token, a venue-shaped token and an author list",
+        "sits beside an abstract PDF and a submission-confirmation email",
+        "no showcase token, no caption spread structure"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "venue"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that design_creative routes it here - this row owns the SOURCE_TYPE's interpretation, not every file that carries it; format-as-schema is the forbidden move and research.conference-presentation is the situation with the venue and submission evidence",
+        "a year from the 48x36 canvas token or from the venue token's digits",
+        "that a designer later including this poster in a showcase would rewrite its research facts - that is a second group membership, and the career schema declares no fact for it to gain"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Acme_Q3_Strategy_FINAL.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles, text boxes and speaker notes extractable; a client logo image on the title slide",
+        "a footer repeated on every slide carries a confidentiality line",
+        "an embedded table names a delivery date and a distribution list",
+        "a byte-identical copy exists inside a directory named Work Samples"
+      ],
+      "facts_legal": [
+        "file_type",
+        "duplicate_family",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any career-domain fact - none is declared, on either side of the boundary",
+        "that the copy inside the showcase directory is a different, less sensitive object: identity is the content hash, the confidentiality footer travels with the bytes, and 00 requires protected material to stay out of cloud prompts by default",
+        "which situation owns it from the folder name alone - the SOW reference, delivery date and distribution list are the engagement's structure, and this is the collision fixture with career.consulting-client-engagement"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Portfolio - MArch application - Columbia.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a showcase token, an application term and a university-gazetteer hit at a word boundary",
+        "page-one cover names a degree programme and an admissions cycle in a labelled line",
+        "body is the same image-plus-caption spread structure as the general portfolio, reordered and shortened",
+        "shares several exported images, by content hash, with Portfolio_JYung_2026.pdf"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_cycle",
+        "application_document_type",
+        "purpose",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the university name - it is the target role, not the holder's own institution (the canonical role split)",
+        "that the application facts erase the showcase reading, or that the showcase reading suppresses them; this is the also-holds case on 00's own shape (an abstract that is a research artifact AND an application supporting document), and the career side contributes no fact today because no field is declared",
+        "any career-domain fact"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-05-02 at 14.02.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR region reads a portfolio platform's page chrome beside three of the holder's own project titles and a Published label",
+        "filename carries the platform's default screenshot pattern"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone; the exact display resolution plus the filename pattern are what may support it, and conflicting signals abstain",
+        "any career-domain fact - none is declared",
+        "that the platform's name is a company or employer fact",
+        "that the three project titles may be written as facts onto the source files they name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_2201.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF: make, model, lens, DateTimeOriginal, GPS",
+        "the frame shows a finished physical piece on a studio table",
+        "stored inside a directory named Portfolio",
+        "no OCR-usable text"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "location"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that it is a work sample because of the directory it sits in - the folder is a purpose clue about the set, not evidence about this file, and camera EXIF is the strong photo signal here; this is the collision fixture with photos.camera-events",
+        "any career-domain fact - none is declared",
+        "a raw GPS value surfaced outside the device; only a resolved place name may be shown"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "code.software-project",
+      "signal": "A personal portfolio website. One evidence item - a showcase token in a path or a repository name - supports both. The discriminating evidence is structural and 00 already settles which side wins: repository markers and package manifests at the directory root make it a code project ('Code-related files should rely heavily on local structural evidence, including repository roots and package files'), and the scan 'should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod'. A curation document with a caption-spread structure and no repo markers is this row's. Fixture: portfolio-site/src/pages/index.astro.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.conference-presentation",
+      "signal": "A poster or figure source file. One evidence item - a layered design_creative file carrying a project token and an author list - supports both, and this row is the file_kind_owner of design_creative, which is precisely why the collision must be written down: ownership must not be read as proof. The discriminating evidence is venue-and-submission structure (a venue token, an abstract id, a session or poster-board term, a conference-management sender) on the research side, against curation structure (a showcase title block, an audience-facing caption spread, a source-plus-export family) on this side. Fixture: Poster_PVA-RDP_ASCB2026_48x36.ai.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "The same deliverable in two situations, often as two byte-identical copies. The discriminating evidence is delivery structure - a statement-of-work reference, a delivery date block, a distribution list, a confidentiality footer - which belongs to the engagement, against retrospective showcase framing (a case-study heading sequence written for an outside reader, or membership in a curated selection). One evidence item, the client's name, discriminates nothing and must count for neither. Sensitivity travels with the bytes in both readings. Fixture: Acme_Q3_Strategy_FINAL.pptx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "A portfolio submitted with a job application, and a resume shipped inside a showcase archive. Both situations sit on the same schema, so no field discriminates them; the evidence does. A role title beside an employer with application or interview language is the recruiting situation; a curation document or a source-plus-export family is this one. 00's shared-material rule keeps the same file in both groups without a fact being copied: 'a resume may support multiple recruiting processes', and 'A file may validly belong to more than one accepted group'. Fixture: the Resume.pdf member inside Selected Works.zip.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.camera-events",
+      "signal": "A photograph of finished physical work, stored in a showcase folder. The discriminating evidence is capture metadata: 00 makes camera EXIF the strong photo signal ('Camera EXIF, GPS, and capture time can support deterministic photo-event proposals'), while this row's evidence is curation and source-plus-export structure, which a camera file has none of. The folder name is a purpose clue about the set, never evidence about the frame. Fixture: IMG_2201.HEIC.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The roster's own must-consider residual for this id and the honest majority outcome, because this row's central question - curated sample or live production material - is exactly 00's definition: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.' Fixtures: Hero_v12.psd, Sheet A-101 - Riverside House - Plans.dwg, Reel_2025_final.mp4, Selected Works.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.' A single finished portfolio PDF or case study with no accepted showcase group is that shape - durable, self-contained, not transactional. Fixtures: Portfolio_JYung_2026.pdf, Case Study - Onboarding Redesign.docx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "00: 'One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.' An export or a photograph of finished work that joins no accepted group is precisely an image with no association, and sending it to a showcase branch on its neighbours alone is the invented narrative 00 warns against. Fixture: IMG_2201.HEIC.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The platform capture whose OCR resolves nothing the engine can use. 00 defines the category for screenshots that 'appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship'. Fixture: Screenshot 2026-05-02 at 14.02.11.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "This situation produces more unreadable material than any other on the career schema: proprietary design and CAD formats that yield nothing, and password-protected delivery archives. 00 requires both to be represented rather than forced or emptied - 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open', and 'unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty'. Fixtures: an unreadable .indd, a protected client delivery .zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "The look-alike this row must NOT absorb: saved inspiration - other people's work collected as reference. 00 puts it here by name: 'saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project'. Written as a fallthrough because a showcase folder routinely contains both the holder's work and a mood-board of other people's, and the residual is where the latter belongs.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00's privacy sentence covers this material twice over: the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. A portfolio is employment material, its cover carries contact details, and its photographs of physical work carry GPS metadata. The rule that is genuinely this row's rather than the schema's: a work sample frequently EMBEDS a third party's confidential material - a client deliverable with a confidentiality footer, an employer's unreleased product, a participant's likeness - so the sensitivity of the copy is the sensitivity of the original bytes, and a curated location never lowers it. Only 00's phrase is asserted; the handling class is P7's and is not set here.",
+  "open_question": "Two, neither resolvable at this row. (1) Inherited from career.json: which canonical keys the career schema gets when S3/D1's deferral lifts. This situation makes the question concrete, because its two natural dimensions map to keys that already exist canonically but sit on other schemas' rows - project (research/code) for the piece of work, artifact_type (research/code) for source-vs-export-vs-case-study, and client (the our_firm role split) for the commissioned case. No NEW key is needed, which is why proposed_fields is empty; the decision is whether career may REFERENCE existing keys, and that is a shared-vocabulary decision, not a per-node one. (2) The sharper fork, which is ROSTER.md's own NJ-R1a-1: is a work sample a career object at all? 00 lists 'creative projects' as an organizational situation and this roster has no creative schema, so the portfolio face was attached to career as the only available host and handed design_creative ownership. If Joseph answers NJ-R1a-1 with a creative schema, this row's honest home is that schema, its dimensions become project then artifact_type on real fields, and the design_creative ownership moves with it - so R1c should treat this row's schema_id as provisional rather than settled."
+}

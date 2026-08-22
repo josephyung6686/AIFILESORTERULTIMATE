@@ -1,0 +1,372 @@
+{
+  "id": "code.dotfiles-environment",
+  "kind": "template",
+  "schema_id": "code",
+  "parent_id": null,
+  "name": "Dotfiles and environment configuration",
+  "one_line": "The situation where the code evidence is a machine's own configuration rather than a project's — shell and editor dotfiles, environment and tool config files, a dotfiles collection kept under version control — recognized by naming convention and directory position instead of by a project-root marker, and governed first by a privacy rule, because the ordinary member of this set is the file whose values are credentials.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": "Passes on all three limbs, and the three differ from the Code schema's default in different directions. (1) DETECTION: the schema's anchor is a project-root marker — 00 asks the engine to 'reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod' and to rely on 'structural indicators such as repository markers, package manifests, notebook metadata, and README files'. This situation's files carry none of those and sit where no such marker exists; they are recognized by a dot-prefixed naming convention read together with a home- or config-directory position, and by a labelled key=value structure. A signal set that fires exactly where the schema's own anchor is absent is not the schema's signal set. (2) DIMENSIONS: the schema recommends project, repository, artifact_type; here project is absent by definition — a shell config belongs to a machine and a tool, not to a project — so the recommendation is repository, artifact_type, one level shorter and led by a different field. (3) PRIVACY: the schema row's posture is that code projects are not sensitive as a class and credentials are the exception; here the credential-bearing file is the ordinary member, so protection runs before placement for the whole set and the honest fallthrough is a local-only residual. The roster's own hint states the same ordering: privacy rules matter more than folder shape.",
+
+  "fields": [],
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "the exclusion test runs FIRST and can only remove: a configuration file whose path lies inside one of 00's named excluded directories is out of organization entirely before any signal below is read — 00: the engine should ignore 'node_modules, .git, venv, build, dist, target, vendor, Pods, site-packages, Library, __pycache__, build artifacts, caches, auto-save folders, previews, and generated dependency trees'. On macOS this strikes the largest single population of files that look like this template's: an application's own preference and settings files under Library",
+      "a dot-prefixed filename at the root of a home or user directory that carries no project-root marker, read together with the file's own internal structure (assignment lines, section headers, or a settings map). Position plus naming convention plus internal shape — none of the three alone, which is why each appears again in never_alone",
+      "a per-tool configuration directory layout: one directory whose immediate members are per-tool subdirectories, each holding that tool's configuration file, with no package manifest anywhere above it. This is the project-root analogue for a situation that has no manifest, and it is structural in 00's sense — 'Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text'",
+      "a dotfiles-collection repository: a repository marker at a directory whose tracked members are predominantly dot-prefixed configuration files together with a bootstrap or install script or a symlink manifest. The marker yields repository directly; what it does NOT yield is a project value per configured tool",
+      "an environment file's left-hand slot names read as a labelled structure — 00's 'labeled form field' shape. This establishes the artifact kind, and where those slot names are credential-shaped it is also the protection trigger. The right-hand values are evidence that protection is needed and are never stored as values",
+      "an archive manifest listing dot-prefixed configuration filenames, read without unpacking — 00: 'the normal scan should never extract archive contents to the filesystem'"
+    ],
+    "needs_llm": [
+      "whether a generic .json, .yaml, .toml or .ini file in a home directory is a tool's configuration, an application's saved state, or a data export — the three are indistinguishable by format and often by filename",
+      "whether a dotfiles-shaped repository is the user's own machine configuration or a clone of someone else's dotfiles kept for reference; the directory shape, the marker and the file names are identical in both",
+      "whether an environment-shaped file holds live credentials or placeholder examples, when the filename does not say and the values are opaque strings",
+      "whether a README or markdown file inside a configuration collection documents this machine's setup or is a saved article about someone else's",
+      "an OCR'd screenshot of a terminal, a settings pane or an editor: whether it shows this user's own configuration at all, or is a generic reference image"
+    ],
+    "never_alone": [
+      "a leading dot in a filename alone. This is the tempting false file for this template and it is common: a .gitignore or .gitkeep inside a downloaded third-party repository, or a .DS_Store written by the operating system, is dot-prefixed and is nobody's machine configuration. A dot is a naming convention, not evidence",
+      "the ABSENCE of a credential-shaped slot name is not proof a configuration file is safe. An opaque value in an unrecognised slot may still be a secret, and a filename claiming to be an example is a claim, not a check — the same shape of error 00 names for captures, where 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'",
+      "a .json, .yaml, .toml, .ini or .conf extension alone. 00: 'treat the file extension as a routing signal rather than an assumption about meaning'. These formats carry application state, data exports and spreadsheets in the same corpus",
+      "source_type = code_structured alone, which is a file_kind_plausible signal and is constitutionally never sufficient",
+      "one of 00's four project-root marker filenames appearing loose in a home directory. A requirements.txt at the top of a home folder does not make the home folder a project; the root test is part of the rule",
+      "a repository marker alone on a configuration-shaped directory. It establishes that a repository exists, not whose machine it configures — the cloned-third-party-dotfiles case above",
+      "a parent folder NAMED like a configuration collection, with no member carrying either a marker or a config structure. 00: 'The system learns from existing folders but must not silently reorganize them'",
+      "download-session membership — 00: 'A session should never be treated as proof of topic'",
+      "a bare 4-digit number in a configuration filename. 00 warns these are often 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values', and tool-version numbers are exactly what config filenames carry"
+    ]
+  },
+
+  "work_types": [
+    "shell configuration",
+    "editor configuration",
+    "environment file",
+    "tool or client configuration",
+    "machine package manifest",
+    "bootstrap or install script",
+    "machine setup documentation",
+    "application preference file",
+    "key or credential material"
+  ],
+  "work_types_note": "These are VALUES of the canonical artifact_type key for this situation, not roster nodes and not fields. 00: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.' The value key-or-credential-material is listed because the value must be expressible for protection to be explainable, not because such a file should be filed here — its fallthrough is Protected Records.",
+
+  "grouping_reasons": [
+    "one machine's configuration set held as a structural family — the collection's repository marker together with its tracked members and its bootstrap script. Structural, in the same sense as a repository root: not a semantic cluster",
+    "one tool's configuration across its own version family — a config and the timestamped backup a tool wrote beside it before rewriting it",
+    "a configuration file together with the project root it sits inside, when a root exists — which is the software-project situation's group, reached through that structure and not through this template",
+    "NOT a shared credential-shaped slot name. Every environment file in a corpus contains a slot called TOKEN; grouping on it would build precisely the collector 00 warns against when it says the system should 'avoid using authorship or creator identity as a destination dimension' — a hub that gathers unrelated material because one high-frequency string is common to it. It is a protection trigger, never a grouping reason",
+    "NOT a shared programming language: language is a search field on this schema and is not destination-eligible"
+  ],
+
+  "template": {
+    "dimension_order": ["repository", "artifact_type"],
+    "why": "Both fields are declared by the code schema and both are destination-eligible on their canonical rows. repository leads because in this situation it names the machine-configuration collection — the thing a repository marker actually identifies when its tracked members are dotfiles — and because 00's parent rule applies literally: 'a parent dimension should provide the context required to understand the child'. A branch whose label is the bare value environment file is unreadable on its own; under the collection that holds it, it is a machine's environment. project is deliberately absent, and its absence is the whole difference from the Code schema's default order: a shell or editor configuration belongs to a machine and a tool, not to a project, so the default's leading dimension has no value to take. Where a configuration file DOES sit inside a project root, that file is interior to a structure 00 asks to preserve — 'existing folder structures should mainly be preserved' — the software-project situation applies, and this template does not fire. That is the collision recorded below, and it is checkable on disk rather than by wording. Time is not a dimension: 00 — 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders'. programming_language is absent because it is not destination-eligible on the canonical row. The order is a recommendation — 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions' — and for the very common case of a handful of loose dotfiles with no collection above them, the honest recommendation is to flatten to nothing and leave them where they are: 00 asks the canvas to 'recommend flattening when a dimension does not materially improve retrieval' and to warn 'when a level produces only one child', and it says of isolated files that 'An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path.' A dotfile that the machine reads from a fixed location is the strongest form of that case, because moving it breaks the tool that reads it.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["code_structured", "filesystem", "text_document", "archive", "opaque_binary", "ocr"],
+    "extensions": ["(no extension — dot-named)", ".json", ".yaml", ".yml", ".toml", ".ini", ".conf", ".cfg", ".sh", ".lua", ".vim", ".plist", ".zip", ".gpg"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": ".zshrc (at the root of a home directory)",
+      "source_type": "code_structured",
+      "observations": [
+        "dot-prefixed filename with no extension, at the root of a home directory",
+        "alias, function and export lines; one export's right-hand side is a long opaque string",
+        "no project-root marker in this directory and none above it",
+        "a sibling .zshrc.pre-oh-my-zsh written by a tool's installer"
+      ],
+      "facts_legal": ["artifact_type", "version_family"],
+      "must_not_conclude": [
+        "a folder path",
+        "project — nothing in the file or its position names one, and the home directory's own name is not a project value",
+        "the exported opaque value itself as a stored value; it is evidence that protection is needed",
+        "programming_language as a direct fact from a shell-shaped body: the code schema takes that field direct only from an explicit labelled slot"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "version_family is a universal fact, not a code-schema field; it is legal here because the installer's backup sibling is exactly 00's version-family case."
+    },
+    {
+      "filename": "dotfiles/nvim/init.lua (inside a version-controlled configuration collection)",
+      "source_type": "code_structured",
+      "observations": [
+        "a repository marker at the collection's root",
+        "the collection's tracked members are predominantly dot-prefixed config files plus an install.sh and a README.md",
+        "per-tool subdirectories: nvim, zsh, git",
+        "no package manifest anywhere above the file"
+      ],
+      "facts_legal": ["repository", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project = nvim — a configured tool is not a project; the per-tool subdirectory is a value-level distinction inside artifact_type, or user-created depth, not a fact",
+        "that the collection may be re-filed internally — 00: 'Existing folders must not be automatically flattened, renamed, or reorganized simply because a template would produce a different structure.'",
+        "repository from the directory name alone had no marker been present"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The fixture the recommended dimension_order is built on: repository is the collection, artifact_type separates an editor config from a shell config."
+    },
+    {
+      "filename": ".env (beside a package.json at a project root)",
+      "source_type": "code_structured",
+      "observations": [
+        "key=value lines whose left-hand slot names include API_KEY and DATABASE_URL",
+        "sits in the same directory as a project-root marker, which is not inside an excluded tree",
+        "no readable prose"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "the secret values themselves as stored values",
+        "any placement or proposal path that puts the filename or content into a cloud prompt — 00 places an 'authentication key' among the material that 'should enter a protected state immediately'",
+        "that this template's machine-scoped recommendation applies: a config interior to a preserved project root is the software-project situation, and project is legal here because of the root marker, not because of anything this template contributes"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records",
+      "note": "The collision fixture against code.software-project, and the discriminator is checkable on disk: a project-root marker above the file. Also already a fixture on code.json, reproduced because the boundary is this template's edge."
+    },
+    {
+      "filename": ".env.example (beside the .env above)",
+      "source_type": "code_structured",
+      "observations": [
+        "the same left-hand slot names as its neighbour",
+        "right-hand values are short placeholder words",
+        "the filename carries a suffix asserting that it is a sample"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the file is safe because its name says example — a filename is a claim, and the second never_alone entry exists for this pair",
+        "that the file is credential-bearing because its slot names are credential-shaped — the slot names are identical to its neighbour's and decide nothing by themselves"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The privacy-rule adversarial pair. Two files with identical structure and opposite handling; only the values discriminate, and reading them is what the local-only rule is for. 00: 'conflicting signals should lead to abstention rather than an invented classification.'"
+    },
+    {
+      "filename": "Library/Application Support/Code/User/settings.json",
+      "source_type": "code_structured",
+      "observations": [
+        "a settings map whose keys are a known editor's option names",
+        "path lies under Library — one of 00's named excluded directories",
+        "written and rewritten by the application rather than by the user directly"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "artifact_type = editor configuration as an organizational fact — the file is excluded from organization before the question is asked",
+        "that an editor's settings map anywhere is this template's material regardless of position"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": null,
+      "note": "Excluded rather than routed, which is why falls_through_if_inactive is null. The largest false-positive population for this template on a macOS corpus, removed by 00's own exclusion list before any signal is read: 'This prevents the proposal engine from mistaking a dependency subdirectory for a meaningful personal destination.'"
+    },
+    {
+      "filename": "id_ed25519 (in a .ssh directory)",
+      "source_type": "code_structured",
+      "observations": [
+        "no extension; a PEM-style header line and a base64 body",
+        "a sibling id_ed25519.pub and a sibling config file",
+        "sits in a dot-prefixed directory in the home folder"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "artifact_type from this template — the key itself is credential material, and 00 puts an 'authentication key' among the material that 'should enter a protected state immediately'",
+        "any value from the key body",
+        "a project or repository from the remote host names that appear in its sibling config"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records",
+      "note": "The neighbour-collision fixture against identity.credentials-passwords. Its sibling config file — a tool configuration listing hosts — IS this template's material; the private key beside it is not, and the discriminator is the file's own content structure, not the directory they share."
+    },
+    {
+      "filename": ".gitconfig (at a home directory root)",
+      "source_type": "code_structured",
+      "observations": [
+        "INI-style section headers with a user section carrying a name and an email address",
+        "a credential.helper entry naming an external store",
+        "dot-prefixed, at a home root, no project-root marker present"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "authored_by as a destination dimension — 00: 'It should avoid using authorship or creator identity as a destination dimension.'",
+        "project or repository from remote URLs recorded in the file: a repository name in a config's body text is the name-alone case",
+        "that a credential.helper naming a store means the credential itself is in this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Brewfile (at a home directory root)",
+      "source_type": "code_structured",
+      "observations": [
+        "manifest-shaped lines listing package names, one per line",
+        "no labelled name slot of its own",
+        "sits loose at a home root with no src directory, no README and no repository marker"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project — a machine package manifest declares the machine's installed tools, not a project; and the home directory is not a project root",
+        "that the listed package names are projects of this user, on the same logic that a dependency list is not a set of the user's projects",
+        "repository"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The manifest-shaped false friend. It is the file that most resembles the Code schema's strongest signal while being this template's material, and 00's root test is what separates them."
+    },
+    {
+      "filename": "dotfiles-backup.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists .zshrc, .vimrc, .gitconfig and a config directory — read without unpacking",
+        "file count and uncompressed size available from the manifest",
+        "outer name is descriptive of a configuration backup"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "facts about members the manifest does not list",
+        "anything requiring extraction — 00: 'the normal scan should never extract archive contents to the filesystem'",
+        "repository: a backup archive of dotfiles is not itself a version-controlled collection"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "secrets.yaml.gpg (inside a configuration collection)",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted container; no readable content",
+        "the filename asserts both a format and a purpose",
+        "a sibling .sops.yaml configuration file is readable"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any content-derived fact — 00: 'unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved'",
+        "a purpose from the filename — 00: 'the system should not infer a purpose from their filename alone'",
+        "that the container should be forced open"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted",
+      "note": "Two residual homes are defensible for this file and both are authored as edges: Unsupported or Encrypted for the unreadability, Protected Records for what the sibling makes plausible about its content. 00 keeps such a file addressable either way — 'Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group'."
+    },
+    {
+      "filename": "IMG_2201.png (a screenshot of a terminal showing an exported key)",
+      "source_type": "ocr",
+      "observations": [
+        "no camera EXIF",
+        "PNG at a screen-shaped pixel dimension",
+        "OCR text containing an export line and a long opaque token"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF — 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'",
+        "project or repository from a shell prompt path fragment in OCR text alone",
+        "the token itself as a stored value, and no dossier carrying it may leave the device — 00: 'Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.'"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records",
+      "note": "The capture-side fallthrough for an ordinary screenshot belongs to the photos side, not to this schema; this one routes to Protected Records because of what the OCR shows, not because of what the file is."
+    },
+    {
+      "filename": "docker-compose.yml (at a project root, beside a package.json)",
+      "source_type": "code_structured",
+      "observations": [
+        "a labelled service map with image names, ports and an environment block",
+        "the environment block references variable names rather than carrying values",
+        "sits in the same directory as a project-root marker"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this template applies: the file is interior to a preserved project root, which is the software-project situation",
+        "credential values — the block names variables, and a reference is not a secret",
+        "programming_language from the image names it lists"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The second half of the boundary this template's collision edge draws: environment-shaped content is not by itself this situation, and position decides."
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "code.software-project",
+      "signal": "one evidence item — a config file with environment-shaped or settings-shaped content — supports both templates on the one Code schema. The discriminating evidence is 00's own root test: a project-root marker at a real root above the file, 'files such as package.json, requirements.txt, Cargo.toml, or go.mod'. With such a root the file is interior to a structure 00 asks to preserve and the software-project order applies; with no marker anywhere above it and a home- or config-directory position instead, this template applies. Fixtures: .env and docker-compose.yml beside a package.json sit on the software-project side; .zshrc and .gitconfig at a home root sit here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.credentials-passwords",
+      "signal": "one evidence item — a credential-shaped slot name or an opaque high-entropy value — supports both rows, and getting it wrong costs protection rather than tidiness. The discriminating evidence is what the file's own structure IS: a tool's configuration that happens to carry or reference a secret is this template's (a .env, a .gitconfig with a credential helper, an .ssh config listing hosts); a file whose entire content is key or credential material is that row's (a private key body, a password-manager export, recovery codes). Neither side may take the shared item alone, and where the reading is unresolved the protective side wins, because 00 puts an 'authentication key' among the material that 'should enter a protected state immediately'. Fixtures: .ssh/config sits here; the id_ed25519 beside it sits there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.scratch-prototypes",
+      "signal": "a loose .json, .yaml or .sh file in Downloads with no repository root satisfies both rows' file kinds, and both rows' never-alone rules leave it unanchored. The discriminator is position and readership: a file at a location a tool reads from — a home root, a per-tool config directory, a configuration collection — is this template's; the same file sitting in a download landing spot with no tool reading it is a one-off whose honest destination is a broad residual home, which is that row's situation. Fixture: a downloaded config.yaml in Downloads sits on the scratch side until its position or a collection above it says otherwise.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.pkm-vault",
+      "signal": "a dot-prefixed configuration directory inside a markdown vault (the vault application's own settings folder) reads as either row's anchor: it is dot-named tool configuration, and it is also the marker that identifies the vault. The discriminating evidence: the surrounding directory's members. Where the members are notes and the config directory is one small child, the vault is the structural unit to preserve and that row applies; where a config directory stands alone among other per-tool config directories, this row applies. Fixture: a vault's own settings folder sits on the vault side even though every file in it is configuration.",
+      "provenance": "proposal"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by omission. CONNECTION.md section 5 restricts also_holds_with to schema-to-schema pairs, and this row is a template. The co-holding this situation genuinely produces — a credential-bearing configuration file that is legally BOTH a code artifact and protected identity material, 00: 'One file may hold facts from more than one domain without losing information' — is already authored on the code schema row as also_holds_with identity, with the .env fixture attached. Restating it here would duplicate a schema-level edge under a template id and would fail reciprocity, since identity cannot name a template back.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "the ordinary outcome for a readable machine configuration file with no collection above it and no project around it. 00: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.' The kind of the file is readable; where it should live is a decision about the user's machine, not about the file. Fixtures: .gitconfig, Brewfile, dotfiles-backup.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "the credential-bearing member of this set, which is why this template's privacy rule is stated before its folder shape. 00 lists 'credentials' among the highly personal content the corpus can hold, names them again in this residual's own sentence — 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials' — and binds the home to a local-only rule: it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. Fixtures: a live .env, the terminal screenshot showing a token.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "encrypted secret stores, binary preference files and keychain-shaped containers are a normal member of a configuration set and cannot be read safely. 00 gives this residual 'password-protected archives, unreadable documents, damaged files, and unknown formats', and requires that 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open'. Fixture: secrets.yaml.gpg.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the limb of the node test that most separates this row from the Code schema's default. The schema row's position is that code projects are not sensitive as a class and that credential-bearing configs are the exception within them; in this situation the credential-bearing file is the ordinary member — an environment file, a client config with a stored token, a key directory. 00 lists 'credentials' among the corpus content that makes the local-first posture necessary ('identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence') and places an 'authentication key' among the material that 'should enter a protected state immediately'. The operative consequence is ordering, not a label: protection precedes any model or placement path for this set, values are never stored, and a dossier that would carry them does not leave the device. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+
+  "open_question": "The dimension a user of this material would actually reach for is WHICH TOOL a config belongs to — dotfiles collections on real machines are laid out zsh/, nvim/, git/. No canonical key names it. artifact_type absorbs the distinction at a coarse grain (shell configuration vs editor configuration vs environment file) and that is what this row recommends, but it does not separate two editors. Minting a tool or host key would be a fine-grained near-duplicate of artifact_type and a new field, so this row does not propose one — 00: the system 'should not invent new fields automatically'. The fork for Joseph: is per-tool depth left to values and to user-created depth on the canvas (this row's recommendation), or does the Code schema owe a tool key? A second, smaller fork rides on the same answer: a dotfile is read by a tool from a fixed absolute location, so MOVING it breaks the machine. This template may be one whose correct default is represent-and-leave-in-place rather than propose-a-destination — 00 allows exactly that posture for residual material ('a policy that tells the system to leave files in place'), but it says it of residual templates, not of domain templates, so extending it to a domain template is Joseph's call and not this node's."
+}

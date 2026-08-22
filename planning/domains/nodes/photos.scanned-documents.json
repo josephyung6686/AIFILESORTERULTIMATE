@@ -1,0 +1,415 @@
+{
+  "id": "photos.scanned-documents",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Scans and photographed documents",
+  "one_line": "The organizational situation of a capture whose subject is a document rather than a scene — a flatbed or MFP scan, a mobile scanning-app PDF, a phone photograph of a page, a PDF with no usable text layer routed to OCR — where the capture facts are true but shallow, the facts that matter belong to whatever domain the recovered text activates, and the file's real destination is usually somewhere else entirely.",
+  "launch": "full",
+  "provenance": "inference",
+  "design_cite": "A PDF with no extractable text and evidence of being created from a photographed page can route directly to OCR.",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+  "proposed_fields": [],
+
+  "node_test": "Passes on all three axes the node test names, against the photos schema's own default template (capture_year then event, time_first true, camera-EXIF event clustering). (1) Detection signals are different in kind: the default template's signals are camera EXIF, GPS and capture time agreeing across a run of images; this template's are the absence or brokenness of a text layer, scanner and scanning-app producer metadata, full-page image geometry, and document structure inside the OCR region. 00 gives the route outright — \"A file with no text should route directly to OCR\" — and separately requires the two cases to be distinguished: \"The system should also distinguish between a PDF with no text layer and one with a broken text layer.\" (2) Recommended dimensions are different and, more importantly, sit on the opposite side of 00's own time-first exception. The default template is time-first because \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" A scan's defining aspect is the document, not the scan date, so the rule that applies here is the other one: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" This template therefore recommends media_type before capture_year and sets time_first false — a direct reversal of its schema's default. (3) Privacy rules are different: a scan is the commonest physical carrier of another domain's protected content, and 00's protection sentence begins with this exact material — \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" The default photo-event template has no equivalent constraint. The node is not a work type and not a file format: 'scan' is a value of media_type, and .pdf is a routing signal, never a domain.",
+
+  "recognition": {
+    "deterministic": [
+      "a PDF whose text extraction yields no text layer at all, whose pages are each a single full-page image, routed to OCR by 00's own rule — \"A file with no text should route directly to OCR\" and \"A PDF with no extractable text and evidence of being created from a photographed page can route directly to OCR.\" The no-text-layer state is the signal; the OCR text that follows is what decides which other schema, if any, activates",
+      "a PDF that technically produces text but whose extracted evidence yields no usable facts, receiving targeted OCR as a fallback and being recorded as the broken-text-layer case rather than the no-text-layer case — 00: \"a file that technically produces text but yields no usable facts may receive targeted OCR as a fallback because scanned PDFs can contain unreadable or corrupted extracted text\", and the two states must stay distinguishable. The judgement is per-file evidence, never a global language-quality check: \"The system should not use unreliable global language-quality checks that incorrectly punish multilingual or mathematics-heavy documents.\"",
+      "PDF producer or creator metadata naming a scanner, a multifunction device or a mobile scanning application, in the metadata zone, together with the page-image geometry above. Never the metadata alone — 00: \"PDF metadata should be treated as supporting evidence, not as truth\", and a producer string may be stale or tool-generated",
+      "page geometry consistent across pages: every page one image at a standard paper aspect, or an image frame filled edge-to-edge by a rectangular light page with visible paper edges and perspective distortion, which is what separates a photographed page from a screen capture and from scene content",
+      "document structure inside the OCR region — a page-one heading, labelled field slots, a signature or amount block, running heads repeating across pages — occupying the frame, rather than scene content. This is what makes the capture a document capture, and it is recorded with its zone and page: \"Each observation should therefore record a document zone, page number, text offset, surrounding context, and occurrence count.\"",
+      "a scanner counter filename pattern (a fixed stem with an incrementing index) shared by consecutive files that also share one producer string and one creation-timestamp window — evidence of one scanning run, and never on its own evidence of what any member contains",
+      "camera EXIF make, model and DateTimeOriginal present on an image whose OCR region carries document structure: the capture facts are direct (\"camera EXIF is strong photo evidence\"), and media_type is what the frame's content settles",
+      "an archive manifest whose member names are scan-shaped (scanner counter stems, scan-app date stems, or document names) read without unpacking — \"the normal scan should never extract archive contents to the filesystem\""
+    ],
+    "needs_llm": [
+      "deciding what the captured document IS once OCR text exists, which is the whole point of running OCR here — 00 states the principle for the neighbouring case and it holds identically for a photographed page: \"A screenshot is always a screenshot of something\", and \"OCR should therefore run when a file yields no usable text and no usable metadata, including scanned PDFs, confirmed screenshots, and opaque images without EXIF.\" The model's job is to say which roster schema the recovered text makes plausible, citing the OCR region; it is not to name a folder",
+      "a photographed page in a non-Latin script or in handwriting, where the OCR output needs interpretation before any field on any schema can be filled",
+      "separating a photographed page from a photographed whiteboard, notebook spread or poster, where the frame is dense text but is not a document — the deciding evidence is content, not density, and conflicting signals abstain",
+      "judging whether a set of scans is one purpose packet rather than a scanning run that happened in one sitting — 00's own case is a bundle of scans: \"A ZIP file named submission.zip may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague.\""
+    ],
+    "never_alone": [
+      "dense OCR text. 00 names this template's tempting false positive outright: \"OCR text density is also not a reliable screenshot detector because receipts, document scans, whiteboards, and photographs of pages can all contain dense text.\" The same sentence is why density cannot separate a scan from a screenshot of a document, from a photographed whiteboard, or from a photograph that happens to contain a sign",
+      "the absence of EXIF — \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and the same non-inference forbids reading stripped metadata as proof of a scan",
+      "source_type ocr or image, or a .pdf / .jpg extension, on its own: file kinds are constitutionally never-alone, and 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a filename containing a scan word. Scanned copy of contract.pdf is frequently a born-digital export someone named that way, and Scan.pdf is frequently a receipt someone renamed; the filename is a high-weight zone but not a second signal",
+      "PDF producer or creator metadata on its own — \"PDF metadata should be treated as supporting evidence, not as truth\", and 00 warns specifically that \"a value such as python-docx, Mozilla/5.0, or a browser-generated producer string should not be mistaken for meaningful content\"",
+      "a standard paper page aspect or a page count, since a born-digital A4 PDF has exactly the same geometry as a scan of one",
+      "a bare 4-digit number in a scanner or scan-app filename read as capture_year — \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "an email subject line naming a scanner device, read as evidence about what the attachment contains"
+    ]
+  },
+
+  "proposed_context_terms": [
+    "scanned",
+    "page N of M running head",
+    "signature block wording",
+    "seal or stamp caption",
+    "form field label wording"
+  ],
+  "proposed_context_terms_note": "Proposal, not design: 00 supplies literal context terms only for the academic course-code rule (syllabus, lecture, credits, instructor, semester) and this template must not pretend it listed any for captures. These are candidate context shapes for R2/R6 to turn into patterns; no regex, no gazetteer content and no threshold is authored here. Every one of them is a second signal for the geometry and no-text-layer evidence above, never a first one — a filename or heading carries more weight than a late body reference, per 00's positional rule: \"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference\".",
+
+  "work_types": [
+    "flatbed or MFP scan",
+    "mobile scanning-app capture",
+    "photographed page",
+    "photographed receipt or slip",
+    "photographed handwritten note",
+    "book or article page scan",
+    "faxed document received as an image",
+    "multi-page scan batch"
+  ],
+  "work_types_note": "On the photos schema these are values of media_type, not of work_type — the photos schema declares no work_type field (that key is the academic one). 00 makes the enum a runtime object either way: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" None of these is a roster node.",
+
+  "grouping_reasons": [
+    "one scanning run: consecutive scanner-counter filenames sharing one producer string and one creation-timestamp window. This is a structural family, so it groups the files without saying anything about what any member contains",
+    "one physical document across its pages: a sequence of page images belonging to one original, joined by page geometry, producer and counter order",
+    "one document across its representations: a born-digital PDF, a scan of the paper copy and a phone photograph of the same page, joined by the universal duplicate_family and version_family and by perceptual hash — 00: \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates\" — and never by a capture fact",
+    "a set of scans assembled for one purpose, which is a purpose group owned by the applications, finance or legal side rather than by this template; this template contributes only that each member is a capture of a document"
+  ],
+
+  "template": {
+    "dimension_order": ["media_type", "capture_year"],
+    "why": "Both dimensions are destination-eligible fields the photos schema declares, and the order deliberately inverts the schema's default. 00's time-first licence is explicitly about capture-defined material — \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material\" — and a scan is the case where that reasoning stops applying: the defining aspect is the document in the frame, and the scan date is often just the day someone cleared a paper tray. The rule that governs instead is 00's other one: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" So media_type leads, giving the parent that makes the child intelligible under 00's parent-context rule — a folder of years inside a photo branch tells a user nothing about why these files are not photographs, while Scans then a year is complete. capture_year is second and genuinely optional: 00 asks for exactly this judgement — \"It should recommend flattening when a dimension does not materially improve retrieval\" — and for a few dozen scans the year level buys nothing. event and location are dropped rather than merely omitted: an event value on a scan would be the scanning session, and a scanning session is not an occasion; location resolved from a scanner has no meaning, and location resolved from a phone photograph of a page is where the paper was, which is not where the document belongs. Optional branch patterns this situation really offers: (a) flat, media_type only, which is the honest default for a small pile — \"An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path\"; (b) media_type then capture_year for a decade of accumulated household scanning; (c) the deferral pattern, which is this template's most common outcome and the reason it exists — when the recovered OCR activates another schema, that schema's template governs the placement and this template contributes media_type as a search fact only, so the scanned tax statement lands in the finance branch and the photographed homework page lands under the course, not under Scans. None of this is frozen: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions\", and \"The product should not force every branch to use the full template or have the same number of levels.\"",
+    "time_first": false
+  },
+
+  "privacy_rules": [
+    "A scan is a document reproduced whole, so its OCR output is the document's entire content, and that content stays behind the local boundary: \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\"",
+    "A capture whose OCR carries identity, clinical, credential or account wording enters protection before any model or placement path runs — 00's sentence names this material first: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" The capture reading must never be the one that decides such a file's home.",
+    "When a model call is genuinely needed to say what the capture is of, it receives a bounded excerpt and not the page: \"It should not send full documents where a short heading or OCR excerpt is enough to resolve the question.\" A protected scan receives no cloud call at all, and its residual home \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\".",
+    "Display is the user's choice, which matters more here than for scene photographs because a thumbnail of a scan is legible: \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\"",
+    "An email carrying a scan attachment is itself potentially sensitive — 00 requires email extraction to treat \"addresses and message content as potentially sensitive\" — so the attachment's capture facts never license exposing the message."
+  ],
+
+  "file_kinds": {
+    "source_types": ["ocr", "image", "text_document", "archive", "email", "opaque_binary"],
+    "extensions": [".pdf", ".jpg", ".jpeg", ".heic", ".png", ".tif", ".tiff", ".zip", ".eml"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Scan_2026-04-03_0001.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "PDF text extraction returns no text layer at all",
+        "each page is a single full-page image at a standard paper aspect",
+        "producer metadata in the metadata zone names a multifunction office device",
+        "filename is a scanner stem with a date and an incrementing counter",
+        "OCR recovers a letterhead heading, a product registration block and a signature line"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year as a direct fact from the PDF creation or producer metadata — that metadata is supporting evidence, not truth; the value stays a possible clue unless a labelled capture slot supports it",
+        "an event, because a scanning session is not an occasion",
+        "location, because a scanner has no place evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_5512.HEIC",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make, Model and DateTimeOriginal slots are populated by a phone",
+        "pixel dimensions are sensor-shaped",
+        "the frame is filled edge-to-edge by a rectangular light page with visible paper edges and perspective distortion",
+        "OCR of the frame carries clause headings, a party block and a signature line",
+        "no GPS slot present"
+      ],
+      "facts_legal": ["media_type", "capture_year", "camera_information"],
+      "must_not_conclude": [
+        "a folder path",
+        "membership in a photo event because the capture time falls inside one",
+        "people from the party names or the signature block",
+        "location, because no GPS fix exists and the place the paper was photographed is not a fact about the document"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CamScanner 04-12-2026 14.31.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "producer metadata names a mobile scanning application",
+        "pages are contrast-enhanced full-page images with cropped paper edges",
+        "a text layer exists but was written by the application's own recognition pass over the page image",
+        "filename carries the application name and a date-and-time stem",
+        "the text layer's characters do not align with the page image in places"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the presence of a text layer proves the file is born-digital — this is the broken-text-layer case, which 00 requires be distinguished from the no-text-layer case",
+        "capture_year as a direct fact from the filename stem",
+        "facts read out of the misaligned text layer without a targeted OCR pass to confirm them"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "passport_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no text layer; one full-page image at a passport-page aspect",
+        "producer metadata names a flatbed scanner",
+        "OCR region carries travel-document wording and machine-readable-zone characters",
+        "filename contains a document word and a scan word"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture_year or any other capture field as a folder level for a protected record",
+        "an event, or membership in a photo event",
+        "any content or filename of this file inside a cloud dossier"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "receipt_2026-03-02.jpg",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make, Model and DateTimeOriginal present",
+        "the frame is a narrow creased paper slip against a table surface",
+        "OCR carries a merchant line, item rows, a total and a transaction timestamp",
+        "filename carries an explicit date pattern"
+      ],
+      "facts_legal": ["media_type", "capture_year", "camera_information"],
+      "must_not_conclude": [
+        "a folder path",
+        "the merchant name as an event value",
+        "media_type from the OCR density — the deciding evidence is the paper geometry plus the camera EXIF, not how much text was recovered",
+        "a transaction fact on the capture side; that belongs to the finance schema if the finance side activates on its own evidence"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Hw 5.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "00's own file: \"Hw 5.pdf may be a photographed homework page with no usable text layer\"",
+        "no text layer; pages are photographs of a handwritten sheet, not flatbed scans",
+        "OCR recovers equations and the phrase Homework 5",
+        "no EXIF survives the PDF wrapper",
+        "no course-code-shaped token and none of the academic context terms appear anywhere in the file"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a subject fact — not from this file, and not from a syllabus in the neighbourhood: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+        "capture_year, because no capture slot survived the wrapper",
+        "that the capture reading and the coursework reading are the same fact about the file"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists members whose names are scan-shaped: a scanner-counter stem, a scan-app date stem and two document names",
+        "member extensions are PDF and JPEG; uncompressed sizes are page-image sized",
+        "no member is extracted to disk",
+        "the outer archive name says nothing about content"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a purpose fact from the outer archive name — 00 puts the evidence in the member list, not the name",
+        "any member's facts before the members are read as their own evidence records",
+        "one capture_year for the archive from the archive's own timestamp"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Chapter 3 pp 41-78.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no text layer; many pages, each a two-page book spread photographed or platen-scanned",
+        "producer metadata names a flatbed scanner",
+        "running heads repeat a book title and a chapter number across pages",
+        "the OCR run stopped at its page cap, so the extraction outcome is recorded as capped rather than complete",
+        "a 4-digit number appears in the running head"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact drawn from a capped OCR read as if the read were complete — 00 requires the record to preserve \"whether extraction was complete or capped\"",
+        "capture_year from the 4-digit number in the running head",
+        "a research or course association from the subject matter of the chapter"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-05-09 at 09.14.02.png",
+      "source_type": "image",
+      "observations": [
+        "PNG whose pixel dimensions equal a known display resolution",
+        "software metadata names a screen-capture tool",
+        "OCR carries a full invoice's text plus a window toolbar strip and a scroll indicator",
+        "no camera EXIF slots present",
+        "the page inside the frame has no paper edges and no perspective distortion"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "media_type = scan — this is the collision fixture for this template; document-dense OCR is exactly what 00 says cannot separate the two",
+        "a folder path",
+        "capture_year as a direct fact from the filename date",
+        "that this file belongs to this template at all: the resolution, format and capture-tool metadata put it on the screenshot side"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "scans_2019.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "PDF header present, contents encrypted; no page tree readable",
+        "no text, no images and therefore no OCR is possible",
+        "filename carries a plural scan word and a 4-digit token",
+        "the file is indexed at metadata level and marked unreadable rather than treated as empty"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "media_type = scan from the filename alone",
+        "capture_year from the 4-digit token",
+        "a folder path",
+        "anything at all by forcing the file open — 00: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\", and an unreadable file must never be silently treated as an empty document"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_7719.jpg",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make, Model and DateTimeOriginal present",
+        "the frame contains a whiteboard with handwriting, plus room edges, a marker tray and reflected light",
+        "OCR recovers dense handwritten text",
+        "no paper geometry: no page edges, no standard aspect, no consistent margins"
+      ],
+      "facts_legal": ["capture_year", "camera_information"],
+      "must_not_conclude": [
+        "media_type — the signals conflict (camera EXIF says photograph, dense OCR says document) and 00 requires that \"conflicting signals should lead to abstention rather than an invented classification\"",
+        "a folder path",
+        "media_type = scan from the density; 00 lists whiteboards beside document scans in exactly that sentence",
+        "a subject or project from the handwriting's topic"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Fwd_ Scanned document from office printer.eml",
+      "source_type": "email",
+      "observations": [
+        "subject line names a scanning device",
+        "attachment name is a scanner-counter stem with a PDF extension",
+        "message body is empty apart from a device-generated line",
+        "sender, recipients and sent date are present in labelled slots"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "media_type on the email itself — the capture is the attachment, and the attachment is its own file record",
+        "a folder path",
+        "what the attachment contains from the subject line, which is device boilerplate",
+        "exposing addresses or message body, which 00 treats as potentially sensitive"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "The confusable evidence item is one dense, document-shaped OCR block filling the frame. 00 forbids either side from taking it: \"OCR text density is also not a reliable screenshot detector because receipts, document scans, whiteboards, and photographs of pages can all contain dense text.\" The discriminating evidence is the capture's physical shape, not its text: an exact known display resolution together with PNG format and screen-capture software metadata puts the item on the screenshot side, while paper geometry — page edges, a standard paper aspect, perspective distortion, a scanner or scan-app producer string, or the absence of any text layer in a PDF — puts it on this side. Where both appear, neither takes the item: \"conflicting signals should lead to abstention rather than an invented classification.\" Fixture: Screenshot 2026-05-09 at 09.14.02.png, a screen capture of an invoice, which belongs to the screenshot side despite OCR indistinguishable from a scan of the same invoice.",
+      "provenance": "design"
+    },
+    {
+      "domain": "photos.camera-events",
+      "signal": "The confusable evidence item is camera EXIF — make, model and DateTimeOriginal — on a phone image, which is 00's strongest photo signal (\"camera EXIF is strong photo evidence\") and which on its own would pull a photographed page into a photo event by year. The discriminating evidence is what fills the frame: a rectangular page with paper edges and document structure in the OCR region, versus scene content. This edge matters because the wrong resolution is silently destructive — a lease page or a medical letter absorbed into a holiday event by capture date is both a bad folder and a privacy failure. Fixtures: IMG_5512.HEIC (photographed lease page, camera EXIF, belongs here) against IMG_7719.jpg (photographed whiteboard, camera EXIF, belongs to neither until the conflict resolves).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "The confusable evidence item is a page image plus its OCR: a passport or ID scan is genuinely a capture of a document, and this template's own detection signals fire on it perfectly. The discriminating evidence is identity-document wording in the OCR region — travel-document headings, machine-readable-zone characters, labelled national-id slots — and where it appears, the item counts for the identity side only, because protection precedes placement: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" 00 also allows the identity side to surface such a file alone: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" Fixture: passport_scan.pdf.",
+      "provenance": "design"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "Same shape as the identity seam and equally one-directional: a photographed clinical letter, prescription or result sheet carries real camera EXIF and real page geometry, so this template's signals fire while the file's content is protected material. The discriminating evidence is clinical wording — a result table, a clinician or facility letterhead, a patient-identifier line — in the OCR region; where it appears the capture reading must not decide the file's home, and no cloud call is made on it. Fixture: a phone photograph of a lab result letter, whose only capture fact worth keeping is media_type.",
+      "provenance": "design"
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "The confusable evidence item is a photographed paper slip: paper geometry and dense OCR, which is this template's signature and also exactly what a receipt capture looks like. The discriminating evidence is transaction structure inside the OCR — a merchant line, item rows, a total and a transaction timestamp — which sends the item to the finance side, where record_type and institution are the fields that can hold it. This template keeps only that the file is a capture of a document; it must not take the transaction. Fixture: receipt_2026-03-02.jpg.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "The confusable evidence item is 00's own file, a photographed homework page with no usable text layer, which arrives here through the OCR route and could be read as a coursework document or as a document capture. The discriminating evidence is a course-code-shaped token together with 00's named academic context — \"a course-code pattern together with academic context such as\" the five terms 00 then lists (syllabus, lecture, credits, instructor, semester) — which the coursework side needs and Hw 5.pdf does not supply. Neither side may take a bare homework filename as a course fact, and the neighbourhood may still attach the file for review without writing the course onto it. Fixture: Hw 5.pdf.",
+      "provenance": "design"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by finding. CONNECTION.md restricts also_holds_with to schema pairs, and this row is a template; where the dispatch prompt suggests a template may author it, CONNECTION wins. The co-holding is real and is recorded in the two places that can carry it: the photos schema row states it (a capture that is also a research artifact, and the identity and medical seams), and every file example here carries also_schema — legal on the photographed lease, identity on the passport scan, finance on the receipt photograph, academic on Hw 5.pdf, college_applications on submission.zip. That is 00's shape, \"One file may hold facts from more than one domain without losing information\", expressed at the level allowed to express it. If R1c decides a template-level also_holds_with is wanted, the pairs above are the candidates.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "One-Off Images",
+      "why": "The roster's own first residual for this row, and the right home for an image-shaped capture that resolved to nothing: \"One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.\" A photographed page whose OCR activated no schema is exactly an image with no association. Fixtures: receipt_2026-03-02.jpg when the finance side does not activate, IMG_7719.jpg when the media_type conflict does not resolve.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The document-shaped counterpart, and 00's description reads like this template's leftovers: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" A scanned warranty letter, notice or form that belongs to no accepted group is that, and it is a PDF rather than a loose image, so sending it to a Photos residual would bury it. Fixture: Scan_2026-04-03_0001.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The roster's second residual for this row, and the mandatory home for the material 00 names first when it defines protection: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\". 00 constrains the home's behaviour too — it \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixtures: passport_scan.pdf, IMG_5512.HEIC, and any capture whose OCR carries clinical or account wording.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "This template's most characteristic residual, because its files are usually half-understood by construction: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" The shape is a capture whose media_type resolved and whose content did not — a capped OCR on a long scan, a misaligned scan-app text layer, an archive of scans whose members have not been read. Fixtures: Chapter 3 pp 41-78.pdf, CamScanner 04-12-2026 14.31.pdf, submission.zip, Hw 5.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The scan pile reliably contains files nothing can open: \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\" 00 prefers representation over movement here, and requires that such a file keep basic metadata rather than be treated as empty. Fixture: scans_2019.pdf.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A scan reproduces a document whole, so the capture carries the document's entire content, and 00's protection sentence names this material first: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" The residual definition names it again — \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\". The OCR output that makes such a file legible is itself on the local side of 00's boundary (\"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\"), and a scan's thumbnail is readable in a way a scene photograph's is not, which is why display stays the user's choice. Handling classes are not assigned here.",
+
+  "open_question": "When a scan's OCR does activate another schema, does media_type = scan still deserve a folder level anywhere? This template's most common outcome is deferral — the scanned tax statement belongs in the finance branch, the photographed homework page under its course — which leaves two designs 00 does not choose between: a Scans branch that holds only the captures nothing claimed, or no Scans branch at all, with media_type kept as a search and explanation fact while every resolved capture lives in the domain that claimed it. 00 supports both readings (\"Templates use validated facts to create folder proposals\" on one side, \"It should recommend flattening when a dimension does not materially improve retrieval\" on the other) and states neither, and the answer changes where several hundred of someone's real files live. Recorded rather than resolved. It is the same fork the photos schema row already logged about media_type opening a folder level, arriving here in its sharpest form."
+}

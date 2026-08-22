@@ -1,0 +1,486 @@
+{
+  "id": "finance.tax-filings",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Tax filings by year",
+  "one_line": "The material a person or a small operation assembles, files, and keeps for one tax year: the return copy as filed, the payer-issued year-end forms, the authority's notice or assessment, the payment or refund record, and the supporting receipts retained to justify a line on the return. It is the one Finance situation where time is the record's own scope rather than a calendar bucket over it, so the recommended order is tax_year first - and it is the Finance situation that concentrates taxpayer identification, income totals and dependants' names in one packet, so the safety posture is stricter here than on the schema's default template.",
+  "launch": "safety",
+  "provenance": "inference",
+  "design_cite": "00 gives this template its field vocabulary outright - 'Finance files may use institution, account type, tax year, and record type' - and names financial records among the situations the template library covers: 'financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections'. It names the launch posture: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed', and names this material specifically in its protection sentence: 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' 00 does NOT name a tax-filings template and does not license year-first outside photos - 'Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material' - so the year-first recommendation below is an extension of a named domain and this row is provenance inference, not design. The tension is stated openly in template.why rather than papered over.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an explicit year pattern sitting in a LABELLED tax-year slot or a page-one heading - a tax-year, assessment-year, or year-ended label carrying the year - together with a return, filing, or declaration term in a positionally weighted zone. Both halves are required and neither is sufficient: 00's date rule is the constraint - 'Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching' - because documents are full of 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. R6 owns the pattern; this row writes no regex.",
+      "the structure of a payer-issued year-end information form: a labelled payer block and a labelled recipient block, masked identification numbers, and a set of numbered or lettered amount boxes, on a document whose page-one heading carries a form-name term. 00 makes the labelled slot the direct-fact source - 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field' - and names the table location for exactly this material: 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.' The form NAME is a VALUE of record_type from R5's one-jurisdiction catalogue (D4), never a field name and never a dimension.",
+      "the structure of a return as filed: a labelled filing-status or taxpayer-identification slot together with a computed total, refund, or amount-owed line and a declaration or signature block naming the filer as the taxpayer. This is the shape that separates a filing from every other document that mentions a year and an amount.",
+      "an issued notice or assessment: an organization-gazetteer hit matched at word boundary standing in the ISSUER position (letterhead, page-one heading, labelled issuer slot) together with a labelled reference or assessment number AND an explicit year or period slot. 00 requires the boundary discipline outright - 'It should use word-boundary matching rather than substring matching' - and the issuer position matters because the same authority name appears on the return as the ADDRESSEE, which is a different role.",
+      "an archive whose manifest lists a return-shaped member name alongside payer-form-shaped member names and a year token, read without unpacking - 00: 'Archives should be inspected without being unpacked to disk.' 00's own worked archive is the shape being copied: 'A ZIP file named submission.zip may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague.' The manifest is the evidence; the outer archive name is not.",
+      "a spreadsheet whose sheet names or column headers carry filing-worksheet labels (a year label, a form or schedule label, a category-and-amount pair, an estimated-payment column) with values in the labelled columns. 00's spreadsheet extractor supplies exactly these slots: 'sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.'"
+    ],
+    "needs_llm": [
+      "whether a heterogeneous set of documents is purpose-coherent as ONE tax-year filing packet rather than a general account archive. This is the defining model question for this template and it is 00's own shape - 'The documents are content-incoherent but purpose-coherent' - answered from a bounded dossier with citations, as a group-coherence judgement and never as a free-form filing decision.",
+      "whether a supporting document that carries no tax-year slot at all - a donation acknowledgement, a medical-expense receipt, a mileage log, a childcare invoice - was retained FOR a filing. The model may return a reviewable MEMBERSHIP; it may not thereby write a tax_year fact onto the document (see never_alone and the open_question).",
+      "a multilingual or non-domestic filing whose form name has no catalogue entry and whose labels are in another language; 00 names 'multilingual documents' among the cases fixed patterns cannot capture, and R5 ships one jurisdiction's values.",
+      "an OCR'd screenshot: deciding it shows an e-filing confirmation or an authority's online account rather than a generic image. 00 names this exact ambiguity - a PNG 'may be a screenshot of a receipt, application portal, conversation, code error, or research figure' - and its worked parallel is an admissions confirmation returned to its group rather than filed as an image.",
+      "unlabelled prose correspondence from an authority or a preparer whose subject is a filing - a query, a reminder, an explanation of a change - with no labelled slot anywhere. 00 lists 'unlabeled forms' among the reasons rules alone are insufficient."
+    ],
+    "never_alone": [
+      "a 4-digit year token in a filename or a folder name, read as tax_year. This is the single most tempting false signal for this template: Expenses 2026.xlsx, Statement 2025-03.pdf and Photos 2024/ all carry one. 00: documents contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'.",
+      "a FILING date read as tax_year. An amended return filed in one year answers for an earlier one, and an authority's notice about a year is dated later still. Two dates, two facts; only a labelled tax-year slot fills tax_year. Fixture: Amended return 2022 - filed 2025.pdf.",
+      "a statement or transaction period that falls inside a year, read as that year's tax record. A monthly bank statement is finance.personal-records material that happens to sit in a calendar year; it becomes tax material only if a filing structure or an accepted packet says so. Fixture: Chase Statement 2026-03.pdf.",
+      "a year-to-date tax-withholding figure on a pay statement, read as a year-end tax form. The pay statement carries a labelled PAY-PERIOD slot; the year-end form carries a labelled TAX-YEAR slot and numbered boxes. Fixture: Pay Statement Mar 2026.pdf, which is the finance.payroll-received neighbour's.",
+      "an institution or tax-authority name alone. 00's ambiguity sentence applies with the issuer and addressee roles added to the readings - 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' - and the same ambiguity that forbids a name as group proof forbids it as sole activation proof here.",
+      "a digit string that looks like a taxpayer identification number. It is equally an invoice id, a case number, a policy number, a customer reference or a device serial; it needs a labelled identification slot and a filing context to mean anything - and where it IS one, it is protected material that the identity safety schema also reads on its own evidence.",
+      "a parent folder named for taxes. 00 treats a curated existing folder as a strong expression of user intent for TREE DESIGN, but a folder is not proof about a member file: a Taxes folder routinely holds a blank form, a login note, a scanned ID page and an unrelated bank letter. Folder context is one signal among several, never sole activation proof. Provenance: inference - 00 states the curated-folder principle, not this consequence.",
+      "a source_type of archive, spreadsheet, email, image or opaque_binary alone, including an archive whose NAME contains a year and a tax term. file_kind_plausible is constitutionally never-alone: the manifest is the evidence, not the wrapper.",
+      "membership in a download session that pulled several documents off an institution's site during filing season. 00: 'A session should never be treated as proof of topic', and 'A tight download session alone is never sufficient'.",
+      "the absence of EXIF on an image of a form, read as proof it is a screenshot. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot', and 'conflicting signals should lead to abstention rather than an invented classification'."
+    ],
+    "proposed_context_terms": [
+      "tax year",
+      "return",
+      "filing",
+      "taxpayer",
+      "refund",
+      "amount owed",
+      "assessment",
+      "withholding",
+      "deduction",
+      "declaration",
+      "payer",
+      "recipient"
+    ],
+    "proposed_context_terms_note": "PROPOSED, not design. 00 writes a context-term list for course codes only - 'a course-code pattern together with academic context' with its five literal terms - and this row copies that SHAPE, not a list 00 wrote. R6 owns the term patterns and R5 owns the one jurisdiction's form-name values; this row writes neither a regex nor a form catalogue."
+  },
+  "work_types": [
+    "return copy as filed",
+    "amended return",
+    "payer-issued year-end information form",
+    "authority notice or assessment",
+    "refund record",
+    "tax payment record",
+    "estimated-payment record",
+    "filing acknowledgement or receipt",
+    "extension request",
+    "preparer worksheet or computation",
+    "withholding or residency certificate on file",
+    "deduction supporting receipt",
+    "charitable donation acknowledgement",
+    "carry-forward or loss schedule",
+    "foreign income or treaty declaration",
+    "audit or query correspondence"
+  ],
+  "work_types_note": "These are VALUES of the finance schema's record_type field, discovered at runtime - 00: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically'. Jurisdiction-specific form names are values inside this same field, from R5's one-jurisdiction catalogue (D4): a field named after a form is the one-way move the contract forbids.",
+  "grouping_reasons": [
+    "one tax year across the documents that support one filing - 00's purpose-coherent, content-incoherent shape applied to a filing rather than an application packet: 'The documents are content-incoherent but purpose-coherent'. A return copy, three payer forms, a donation receipt and a preparer worksheet share no topic and one purpose",
+    "one filing across its life cycle: the return as filed, its amendment, the authority's assessment of it, and the refund or payment record. These span several years of calendar time and one tax_year value, which is exactly why the calendar date is not the fact",
+    "one payer's year-end form across successive years - the repeating form STRUCTURE is the anchor, never the payer name alone",
+    "one return re-downloaded, or a corrected copy re-issued: the universal duplicate_family and version_family facts, never a finance fact",
+    "a shared record that supports more than one purpose - a payer form inside a tax-year packet and inside a loan application. 00: 'A file may validly belong to more than one accepted group'; multi-membership, never a copied fact"
+  ],
+  "template": {
+    "dimension_order": [
+      "tax_year",
+      "record_type"
+    ],
+    "why": "TIME FIRST, AND THE EXCEPTION IS ARGUED RATHER THAN ASSUMED. 00's default for this kind of material points the other way: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders', and it licenses only one exception by name - 'Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material'. The argument for extending it here is that tax_year is not a calendar bucket laid over the material: it is the SCOPE OF THE RECORD ITSELF, the thing every member document answers for. Year-first scatters related work when the year is incidental to the document; it cannot scatter a filing, because the filing IS the year. That reasoning is mine, not 00's, and this row is marked inference for exactly that reason. record_type second, as the leaf, because a folder named Payer Forms or Assessment is intelligible once the year is known - 00's parent-context rule read forwards: 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.' institution is deliberately NOT a default level even though it is destination-eligible: one year's payer forms typically come from several institutions one document at a time, and a third level would produce the many-tiny-folders outcome 00 tells the canvas to warn about; it is offered as an OPTIONAL third level only where one year actually holds several documents per institution, and 00's live structural feedback is what should decide that per branch. account_type is metadata_only for this situation (P10's per-dimension mechanism): a filing is not per-account, and a Checking level under a tax year would be empty for most members. account_holder is never a dimension - 00: 'It should avoid using authorship or creator identity as a destination dimension.' A scoped fallback belongs under the year rather than at the root when a member has no recoverable record_type - 00: 'It should also support a scoped General or Other branch within a meaningful parent.' SAFETY POSTURE: this is a shallow recommendation, not a filing tree. 00 shows this material to the user as a protected area - 'a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default' - and no deep template unlocks from safety activation (PR-2). All of it is a recommendation: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": true
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "spreadsheet",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Return 2025 - filed copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries a form-name term and a labelled tax-year slot reading 2025",
+        "labelled filing-status slot and a masked taxpayer identification slot",
+        "computed lines labelled Total Income, Total Tax, Amount Owed",
+        "a declaration block with a signature line and a preparer block naming a firm",
+        "producer metadata names a filing application"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "institution from the tax authority named as the ADDRESSEE - the return is addressed TO the authority, not issued BY it; that is the issuer-versus-addressee role distinction, the same shape as school versus target_university",
+        "institution from the preparer firm in the signature block, or from the producer metadata naming the filing application - 00 treats producer strings as supporting evidence only",
+        "a jurisdiction field, or a field named after this form; the form name is a VALUE of record_type (D4)",
+        "tax_year from the creation_date, which is the filing date and a different fact"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "W-2 2025 - Acme Corp.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries a form-name term and a labelled tax-year slot",
+        "a labelled employer/payer block and a labelled employee/recipient block, both with masked identification numbers",
+        "numbered boxes holding wage and withholding amounts",
+        "an organization name matched at word boundary in the organizations gazetteer, standing in the payer position"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "institution",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a career fact from the employer name. This is the career collision fixture: the employer string is ONE evidence item and it must not count for both readings - the labelled tax-year slot and the numbered amount boxes are what make this a tax record, and an employment file needs an agreement, a role or a review structure",
+        "account_type - a year-end income form does not say which account anything was paid into",
+        "a folder path",
+        "a field named after this form (D4); the form name is a record_type value from R5's one-jurisdiction catalogue"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Amended return 2022 - filed 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries an amendment term and a labelled tax-year slot reading 2022",
+        "a second labelled date slot, the signature date, reading a 2025 date",
+        "columns labelled As Originally Reported and Corrected Amount",
+        "the filename carries two 4-digit tokens"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "tax_year = 2025 from the filing date or from the later filename token. This is the never-alone fixture for the two-date problem: only the labelled tax-year slot fills tax_year, and a document may carry several year-shaped tokens that are different facts",
+        "a folder path - and note the consequence of the recommended order, which is honest rather than hidden: under tax_year-first this document files under 2022 while its calendar neighbours file under 2025",
+        "that the original return and this amendment are duplicate_family members; they are different documents about one year, not copies",
+        "institution from the addressed authority"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "tax-2024-filing.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a return-shaped member name, two payer-form-shaped member names, a mortgage-interest-statement member, a tuition-statement member, a donation receipt and a scanned identity page",
+        "manifest read without extraction to disk; member count and uncompressed size recorded",
+        "a year token appears in the archive name and in several member names"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "facts about the MEMBERS written onto the outer archive, or the archive's facts written onto the members. The manifest is evidence of a candidate packet for review, exactly as 00's submission.zip is evidence of an application packet",
+        "that the mortgage-interest statement is only tax material - it is also the finance.loans-mortgage situation's, and the tuition statement carries school and term on its own academic evidence; membership in this packet erases neither",
+        "that the identity page is tax material because it arrived in this archive; it activates identity on its own evidence and is protected there",
+        "tax_year on the donation receipt from the archive name",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Charitable donation receipt - Feb 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an organization name in a letterhead, matched at word boundary",
+        "labelled slots: Date of Gift, Amount, Receipt Number",
+        "a line stating that no goods or services were provided in exchange",
+        "no labelled tax-year slot anywhere"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "tax_year from the gift date. This is the template's hardest real case: the document is retained FOR a filing and carries no year scope of its own. It may join an accepted filing packet as a context-supported member WITHOUT gaining a tax_year fact - 00's grouping firewall: 'The graph does not automatically copy those missing facts onto sparse files'",
+        "a folder path - and note that under tax_year-first this file has no year to file under until the user or a validated fact supplies one; the honest outcomes are the packet's scoped General branch, review, or the Receipts and Confirmations residual",
+        "that this is the finance.receipts-expenses situation's file merely because it is a receipt, nor this template's merely because donations are often deductible; the discriminating evidence is accepted packet membership or an explicit deductibility statement"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Screenshot 2026-04-10 at 21.03.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution; no camera EXIF",
+        "filename carries the platform's default screenshot pattern",
+        "OCR region reads an acceptance message, a submission reference and a labelled tax-year line",
+        "a masked identification tail appears beside the reference"
+      ],
+      "facts_legal": [
+        "record_type",
+        "tax_year",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the missing EXIF alone; the exact display resolution and the filename pattern are what may support it, and 'conflicting signals should lead to abstention rather than an invented classification'",
+        "a folder path",
+        "that this is a generic capture. 00's worked parallel is decisive: an admissions confirmation screenshot is returned to its accepted group rather than filed as an image, and the same reasoning returns this one to its filing group",
+        "the submission reference as an account number"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Scan_20260315_112233.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no reachable text layer; targeted OCR returns text with recognition noise",
+        "OCR text includes an authority name in a header position, a labelled reference number, a labelled period line and an amount described as payable",
+        "page geometry and skew consistent with a photographed or scanned paper page"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution",
+        "tax_year"
+      ],
+      "must_not_conclude": [
+        "tax_year unless the labelled period line resolves to an explicit year pattern; OCR noise inside a number is a reason to abstain, not to guess",
+        "a folder path",
+        "that a scanned page with no text layer is unreadable material - 00 routes it to OCR rather than to the unsupported residual",
+        "an account_type from the reference number"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Tax estimate worksheet.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names: Q1, Q2, Q3, Q4, Summary",
+        "labelled column headers: Date, Category, Amount, Rate, Estimated Payment",
+        "a labelled cell reading Tax Year with a year value beside it on the Summary sheet",
+        "several formula cells"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from a Category or payee column - a worksheet REFERENCES many organizations and is issued by none; ranking the most frequent one is the polished-but-false move 00's ranking-and-margin discipline exists to prevent",
+        "a folder path",
+        "tax_year from the filename or from a sheet name alone; here it is the LABELLED Summary cell that fills it",
+        "that a spreadsheet activates the schema - a spreadsheet is not a ledger and source_type is never alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Your 2025 tax documents are ready.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to an institution's domain",
+        "labelled subject slot carries a tax-document term and a year token",
+        "body carries a portal link and no amounts; one attachment named 1099-INT.pdf",
+        "sent date falls in the following calendar year"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "tax_year from the subject-line year token alone - a subject line is free text, not a labelled tax-year slot; the ATTACHMENT is where the labelled slot lives, and the attachment is its own file with its own facts",
+        "activation from source_type = email; the labelled sender and subject slots are what fire, and file_kind_plausible is never alone",
+        "a contact fact used as a folder proposal; 00 keeps address-book data privacy-protected rather than a proposal basis",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Pay Statement Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an employer name in a labelled header cell",
+        "table rows labelled Gross Pay, Deductions, Net Pay, Pay Period",
+        "a Year-to-Date column holding cumulative tax-withholding figures",
+        "no labelled tax-year slot and no numbered amount boxes"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY fact of this template. This is the collision fixture that most tempts it: a year-to-date withholding figure looks exactly like year-end tax data, and it is not. The discriminating evidence is structural - a labelled PAY-PERIOD slot is the finance.payroll-received situation; a labelled TAX-YEAR slot with numbered boxes is this one",
+        "tax_year from Mar 2026 or from the year-to-date column",
+        "record_type = payer-issued year-end information form",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "2025_return_locked.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the PDF is password-protected: no text layer is reachable and no metadata beyond the filesystem record",
+        "filename stem resembles a filing application's export naming and carries a year token",
+        "arrived in the same download session as two readable payer forms"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "tax_year from the filename token, or record_type from the stem - 00 is explicit for unreadable files: the system 'should not infer a purpose from their filename alone'",
+        "membership in the filing group because the download session bundled it; a session is a possible-grade clue only",
+        "that the file should be forced open - 00: 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open'",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Steuerbescheid 2024.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an authority name in a letterhead position, in a language other than the deployment's",
+        "labelled slots whose labels have no entry in the shipped one-jurisdiction catalogue",
+        "a labelled reference number and a year token in a heading position",
+        "dense tabular amounts"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "tax_year from the heading token when no labelled tax-year slot is recognised in this language; the honest outcome is abstention plus a review row, not a guess",
+        "that a foreign filing is not this template's situation - it is, and 00 warns against language checks that punish multilingual documents; what is missing is the catalogue, which is R5's and ships one jurisdiction",
+        "a jurisdiction FIELD to carry the difference (D4) - the difference lives in record_type's values and in R4/R5's per-deployment catalogues",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.personal-records",
+      "signal": "the schema's default template and this one hold the same institution-issued documents and share every field. One evidence item - an institution name plus an amount plus a year-shaped token - supports both and must count for neither until the discriminator lands: a LABELLED tax-year slot, a return or year-end-form structure, or accepted filing-packet membership is this template's; a labelled statement-period slot with a balance is the default template's. This is the pair the node test is decided on: the two differ in recommended order (tax_year-first versus institution-first), in detection signal, and in privacy posture. Fixture: Chase Statement 2026-03.pdf belongs to the default template even in filing season.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.payroll-received",
+      "signal": "a pay statement's year-to-date withholding column and a year-end income form carry the same employer name, the same withholding concept and the same masked identification. The discriminating evidence is the labelled slot: a PAY-PERIOD slot and a per-period table is payroll; a TAX-YEAR slot with numbered aggregate boxes is a filing document. Fixture: Pay Statement Mar 2026.pdf versus W-2 2025 - Acme Corp.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "the employer name is one evidence item that both readings want. 00's rule about roles that share an entity type is what keeps them apart - 'The system must separate roles that happen to contain the same entity type' - and the discriminator is structural: an agreement, a role title, a review or a separation record is the employment file; a labelled tax-year slot with numbered amount boxes is a tax document. The employer name alone must never count for both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "a donation, medical or childcare receipt retained for a filing is byte-for-byte the same document as an isolated receipt. The discriminating evidence is not the receipt: it is accepted filing-packet membership or an explicit deductibility or acknowledgement statement on the document. Without one of those, the receipt is the receipts situation's and its isolated home is the Receipts and Confirmations residual. Fixture: Charitable donation receipt - Feb 2026.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "a small operation's ledgers and issued invoices FEED a filing and are constantly mistaken for it, especially when a worksheet carries a year label. The discriminator: a filing document is addressed to or issued by an authority and carries a labelled tax-year scope; a ledger or invoice records ongoing operations and carries a transaction or billing period. Fixture: Tax estimate worksheet.xlsx sits on this seam and needs its labelled Summary cell to land on this side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.investment-brokerage",
+      "signal": "a brokerage's year-end tax summary and its monthly statements arrive from one institution in one export, often in one archive. The discriminator: a labelled tax-year slot and a cost-basis or gains summary presented as a year-end tax document is this template's; a labelled statement-period slot with holdings and a balance is the brokerage situation's. The institution name and the archive name discriminate nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "a tax dispute produces documents that read as both: an authority's name, a reference number, an amount and a deadline. The discriminating evidence is the document's own structure - a labelled tax-year and amount slot on an issued assessment is this template's; parties, numbered clauses, a tribunal or case reference and a legal-representation block is the legal situation's. Both are safety material, so a wrong call does not leak, but it files a dispute as a receipt or a notice as litigation.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "EMPTY BY CONTRACT, NOT BY OMISSION. CONNECTION.md section 5 scopes also_holds_with to schema-to-schema only, and CONNECTION-EXAMPLES fixture 8 shows the edge authored between finance and medical even when it is illustrated on a template row. The joins this situation genuinely needs are already recorded on the finance SCHEMA node: finance/identity (a return and a payer form carry taxpayer identification in their own labelled slots - the clearest case in the whole schema and the one this template lives on), finance/academic (a tuition statement used for an education credit), finance/legal (an executed agreement inside a filing packet), and finance/medical (medical-expense records retained as deductions). This row asserts none of them again; it points at them.",
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "the default home for this template's leftovers, and the reason its posture is stricter than the schema's default template. 00 names this material in the protection sentence - 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately' - and defines the residual for exactly it: 'sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials'. It must behave: it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. 00 also allows it to surface alone: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' Fixtures: Return 2025 - filed copy.pdf, W-2 2025 - Acme Corp.pdf, Amended return 2022 - filed 2025.pdf, Scan_20260315_112233.pdf, Steuerbescheid 2024.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "for the supporting receipts that never attach to a filing. 00's own list is the fit: 'isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents'. Fixtures: Charitable donation receipt - Feb 2026.pdf, Your 2025 tax documents are ready.eml.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "filing applications routinely export password-locked PDFs, so this is a common outcome here rather than an edge case. 00 defines the residual for 'password-protected archives, unreadable documents, damaged files, and unknown formats', and says it may represent them rather than move them. Fixture: 2025_return_locked.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "for the partly-understood member: a year token and a money shape but no filing structure and no accepted packet. 00: 'files whose meaning is partly understood but whose final location requires a future decision'. Fixture: Tax estimate worksheet.xlsx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "for the durable, non-identifying leftover that is not worth protecting and not worth a year folder - a blank form, a public rate schedule, an acknowledgement carrying no identification. 00: 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group'. Offered LAST and only where the document carries no taxpayer identification: where it does, the Protected Records route above wins, because the safety posture is not a preference here.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "institution",
+      "other_field": "school",
+      "neighbor": "academic.coursework",
+      "why": "a tuition statement retained for an education credit carries one university string in two roles at once: the entity that issued and billed the record, and the entity the filer attends. 00 states the mechanism in the same paragraph that names this domain's own pair - 'The system must separate roles that happen to contain the same entity type' and 'A finance document may mention an account holder and an issuing bank'. Both keys are already canonical; this row references the split rather than minting anything. Provenance: inference - 00 names the mechanism and the account-holder/issuing-bank pair, not the institution/school pair.",
+      "provenance": "inference"
+    },
+    {
+      "field": "institution",
+      "other_field": "client",
+      "neighbor": "career.consulting-client-engagement",
+      "why": "on a self-employed filing the organization that issued a payment form is the same organization the holder's engagement records call the client. 00's own wording for the pair is 'distinct facets, such as authored_by and target_school, or our_firm and client', and the consequence here is that a payer form must not fill client, nor an engagement's client fill institution: the payer role belongs to the record, the client role belongs to the engagement. Both keys are canonical. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names this material twice, in its own words: the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records', and 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately'. Only 00's phrase is asserted; the handling class is P7's and is not set here (_CONTRACT rule 5). What this template adds over the schema's default posture is concentration rather than a new rule: a filing packet gathers taxpayer identification, total income, dependants' names and an address into one accepted group, so the group summary is as sensitive as any member. The consequences ride on the safety flag, not on anything invented here: P7 classification precedes any model path; no deep template unlocks from safety activation (PR-2); a model call sends only what 00 permits - 'the engine should send only a compact dossier relevant to the current question' - and for this material that means no filenames and no content by default; and the canvas shows the branch as a protected area - 'a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default'.",
+  "open_question": "Does an accepted filing packet ever fill tax_year on a supporting document that carries no tax-year slot of its own - a donation receipt, a medical-expense receipt, a childcare invoice - or does membership stay a membership record only, the HW 3 shape? The firewall says the latter ('The graph does not automatically copy those missing facts onto sparse files'), and this template makes the consequence concrete rather than theoretical: under a tax_year-first order, a supporting document with no year fact has no legal branch, so most of a real filing's supporting material would land in a scoped General branch or in review rather than under its year. Either the answer is that a user-confirmed packet membership is itself the licence for a user_confirmed tax_year fact, or the recommended order needs an explicit fallback level, or year-first is wrong for this situation after all. A second, smaller fork rides on the same field: where a jurisdiction's tax year is not the calendar year, two tax_year values written in different jurisdictions' conventions are not comparable, and whether the value is normalised or kept as raw wording is a values-table decision (00 keeps the raw observation and lets a resolver normalise) that nobody has taken for this field. Recorded, not resolved."
+}
