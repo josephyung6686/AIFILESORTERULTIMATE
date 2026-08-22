@@ -1,0 +1,477 @@
+{
+  "id": "research.conference-presentation",
+  "kind": "template",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Conference abstracts, posters and talks",
+  "one_line": "One meeting occurrence's research outputs — the submitted abstract, the poster, the talk deck and the submission correspondence that names the same abstract id — recommended venue-first, with the registration, travel and photo material that surrounds a conference deliberately excluded rather than absorbed.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Extends 00's named Research domain; none of the spans below names a conference, and none is quoted as though it did. Schema anchor: \"Research files may use project, stage, artifact type, lab, and venue\" — venue is the field this situation is scoped by. Default-template anchor this row departs from: \"a Research template may define project → stage → artifact type\". Template-object anchor: \"Each template should define the domain’s allowed fact fields, detection signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation constraints.\" Extraction anchor for the owned source_type: \"Presentations such as PPTX, PPT, ODP, and PDF slide decks should yield slide titles, text boxes, speaker notes where available, hyperlinks, embedded tables, and slide-level page boundaries\".",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": {
+    "passes": true,
+    "limb_detection_signals": "DIFFERENT. The research schema row's venue signal is journal-shaped — a venue gazetteer hit in a cover-letter salutation or an editorial email's subject — and its stage signal is the manuscript lifecycle (cover letter, response to reviewers, revision, proof). This situation's signals are meeting-shaped and appear on none of them: a submission or abstract id paired with a presentation-format word, a session or track code, a presenting-author line, a poster board number, a conference-management sender domain, and a title slide carrying a venue token beside the project. A file can fire every signal on this row and none on the schema row (ASCB 2026 abstract submission A-2431 received.eml), which is what makes the signal set this row's and not a restatement.",
+    "limb_dimensions": "DIFFERENT. The schema's default order is [project, stage, artifact_type] and the landed research schema node (planning/domains/nodes/research.json, not 00) states outright that venue is a legal fact there and deliberately not a dimension, belonging instead to what its own template.why calls a venue-scoped conference bundle held as a separate template row. This row recommends [venue, project, artifact_type]: venue promoted to the head, stage dropped. Dropping stage is not cosmetic — inside an accepted meeting bundle stage carries one value for nearly every member, and 00 warns the canvas should \"warn when a level produces only one child\".",
+    "limb_privacy": "WEAKEST OF THE THREE, and recorded as weak rather than padded. The delta that is real: this situation's neighbourhood contains a registration record, a badge or ticket carrying a personal address, and a book of abstracts that is a bulk list of other people's names and affiliations — material the schema row never contemplates. The rule this row adds is exclusionary (do not absorb the receipt, do not treat the attendee list as evidence), not a new handling class. The pass rests on the first two limbs; this one supports it.",
+    "not_a_node_check": "The row is not a work type and not a file format. abstract, poster and presentation slides are VALUES of artifact_type, already enumerated on the research schema row; .pptx is an extension and presentation is a SOURCE_TYPE. The roster's file_kind_owner: [presentation] on this id is a shelving claim about which row researches that source_type, and it is written into never_alone below as evidence of nothing."
+  },
+
+  "fields": [],
+  "fields_note": "Empty by design, not by omission: a template references its schema and never copies the field list (CONNECTION.md section 3, _CONTRACT rule 12). The legal fields here are the research schema's five — project, stage, artifact_type, lab, venue — plus its search-side authored_by.",
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "a conference, meeting or society name matched at a word boundary (R4's orgs gazetteer content) in a high-weight zone — filename, title slide, page-one header, an abstract header block, or an email subject — CO-OCCURRING with a meeting-participation term in the same zone or document: abstract, poster, session, track, presenting author, oral presentation, programme entry, board number. 00 requires the boundary discipline outright: \"It should use word-boundary matching rather than substring matching.\"",
+      "a submission-identifier slot paired with a presentation-format word — an abstract id or submission number beside 'poster', 'oral', 'lightning' or 'accepted' — read from a labelled slot or an email subject; the labelled-slot path is 00's direct-fact route for \"a labeled form field\", the subject-line path is validated by the pattern-plus-context rule and never by the id alone",
+      "a presentation source_type whose slide titles carry a project identifier AND whose title slide carries a venue token, with speaker notes present — 00's own extractor contract for this format: \"Presentations such as PPTX, PPT, ODP, and PDF slide decks should yield slide titles, text boxes, speaker notes where available, hyperlinks, embedded tables, and slide-level page boundaries\"",
+      "a single-page document whose page or canvas dimensions are poster-shaped, carrying a title banner, a sectioned figure-and-caption layout and an affiliation strip — artifact_type = poster is confirmed by that structure, never by the page size and never by the extension; for the native design file 00 supplies the readable evidence: \"Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text\"",
+      "an email whose sender sits at a conference-management or society domain and whose subject carries both a venue token and a submission id plus a receipt or decision word — 00: \"Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context\"",
+      "an archive manifest, read without unpacking, whose members combine an abstract text, a poster file, a slide deck and a figure set that share one venue token — 00: \"Archives should be inspected without being unpacked to disk.\" and \"the normal scan should never extract archive contents to the filesystem\"",
+      "a journal-lifecycle precedence check that runs BEFORE this situation is preferred on a venue hit: where the same file also carries cover-letter, response-to-reviewers, revision or proof structure, the manuscript situation holds the evidence item and this row does not"
+    ],
+    "needs_llm": [
+      "which of four structurally identical decks this is when the title slide names no venue: a conference talk, an internal lab-meeting status deck, a taught lecture, or a job talk. Slide titles plus speaker notes plus embedded figures describe all four, and 00 gives the model exactly this job — to \"interpret an unusual research artifact\"",
+      "whether a venue token names a meeting the holder PRESENTED at or one merely attended or cited — the role question a gazetteer cannot answer, and the one 00 names for this exact entity class: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\"",
+      "whether a conference-shaped PDF is the holder's own output at all, or a programme book / book of abstracts listing hundreds of other people's talks",
+      "whether a poster-shaped large-canvas file is a scientific poster or a printed flyer, infographic or event banner from another domain",
+      "whether an OCR'd portal screenshot is a submission confirmation for this meeting or an unrelated web page — 00: an opaque image \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\"",
+      "whether a proceedings paper carrying the venue is the holder's own contribution or downloaded reading material, when the author list cannot be matched"
+    ],
+    "never_alone": [
+      "the presentation source_type, or a .pptx / .key / .odp extension, ALONE. This is the tempting false file for precisely this row, because the roster names it file_kind_owner of presentation: a taught lecture deck, an internal lab-meeting deck, a student class-project deck and a job talk are all presentations with slide titles and speaker notes. 00: \"treat the file extension as a routing signal rather than an assumption about meaning\". Fixture: Lecture 08 - Cell Motility.pptx.",
+      "a conference, society or university name ALONE — 00's own ambiguity sentence puts research venue in the list of roles one organization string can play: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\"",
+      "a heading or filename token reading 'abstract' ALONE — an Abstract heading sits on every manuscript, thesis chapter and downloaded journal paper; it is a structure this schema sees constantly and it names no venue",
+      "a programme book, book of abstracts or attendee list treated as evidence about the holder — it is the generic hub of this domain, and 00 requires exactly that suppression: rules should \"suppress generic hubs such as a personal email address or broad university domain\". Its hundreds of institution and author strings must produce no lab, no venue role and no authored_by for the holder. Fixture: ASCB2026_program_book.pdf.",
+      "a bare 4-digit number as an occurrence year or an abstract id — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"; here it is as likely a session number, a board number or a room number",
+      "a large page or canvas size ALONE as poster proof — a banner, a floor plan, a printed map and an architectural sheet share it; the sectioned title-banner-plus-figure structure is what confirms it",
+      "a hotel, flight or registration confirmation naming the conference city or name — it is a transactional record, which 00 shelves elsewhere: \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\", and warns against exactly this over-reading: \"It must not invent a folder called Travel/Flight Gate B12\"",
+      "a venue gazetteer hit whose only occurrence is in a reference list — 00: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\"",
+      "a filename ALONE on an unreadable file — 00: \"the system should not infer a purpose from their filename alone\""
+    ]
+  },
+
+  "work_types": [
+    "abstract",
+    "poster",
+    "presentation slides",
+    "speaker notes",
+    "conference paper",
+    "book of abstracts",
+    "session recording",
+    "figure"
+  ],
+  "work_types_note": "VALUES of the research schema's artifact_type field, discovered at runtime; none is a roster node and none licenses a child schema. Five of the eight are already enumerated on research.json. The three it does not list — conference paper, book of abstracts, session recording — are a value-list gap for R1c to fold into the schema row, not a reason for a field or a node here.",
+
+  "grouping_reasons": [
+    "one meeting occurrence's outputs: the submitted abstract, the poster, the talk deck and the confirmation correspondence that share one venue token and one submission id",
+    "one submission id across its correspondence chain — received, accepted, scheduled — where the id is the anchor and the venue is stated in each message",
+    "one project presented at several meetings: the poster's version family, re-cut with new data for each occurrence, held together by project rather than by venue",
+    "a sparse deck or unlabelled figure joins a meeting neighbourhood as a context-supported member WITHOUT acquiring a venue fact — 00: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+    "an accepted abstract that is also an application supporting document belongs to two groups at once — 00: \"A file may validly belong to more than one accepted group\""
+  ],
+
+  "template": {
+    "dimension_order": ["venue", "project", "artifact_type"],
+    "why": "Venue leads because in this situation the meeting occurrence is what makes the child intelligible, which is 00's stated ordering rule: \"a parent dimension should provide the context required to understand the child\". A branch named Poster is meaningless on its own — a lab may present the same project as a poster at one meeting and a talk at the next, and the abstract, poster, deck and programme entry cohere only as what was presented at one meeting. project sits second because it is what distinguishes two deliverables inside one meeting and what holds a re-cut poster together across occurrences. artifact_type is last for the same reason it is last in the schema's default order. stage is deliberately NOT a dimension here: inside an accepted meeting bundle it carries one value for nearly every member, and 00 tells the canvas to \"warn when a level produces only one child\". lab is deliberately not a dimension either — the research schema row already flags that a PI-named lab folder is one step from the authorship collector 00 forbids: \"It should avoid using authorship or creator identity as a destination dimension.\" THE HONEST COUNTER-CASE, recorded rather than hidden: 00's general rule is that \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\", and a conference occurrence is quasi-temporal. For a holder with one project shown at five meetings, project-first keeps the work together and venue-first scatters it; for a holder who attends one meeting a year with several projects, venue-first is plainly right. This row recommends venue-first because the situation the roster names is venue-scoped, and 00 leaves the fork with the user: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" Depth should also stay uneven — \"each branch should offer the dimensions that are actually present in its member groups\" and \"The product should not force every branch to use the full template or have the same number of levels.\" — so a one-project meeting flattens project away entirely. Nothing here is a folder path.",
+    "time_first": false,
+    "time_first_why": "Not time-first even though a meeting has a date: 00 reserves that for capture-based material, where capture date is the defining aspect. The occurrence's year rides inside the venue VALUE rather than as its own level — see open_question, which is a real fork and not settled here."
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "presentation",
+      "text_document",
+      "design_creative",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "audio_video",
+      "calendar"
+    ],
+    "extensions": [".pptx", ".key", ".pdf", ".docx", ".ai", ".svg", ".zip", ".eml", ".ics", ".heic", ".png", ".mp4"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "ASCB2026_abstract_PVA-RDP_final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a venue-shaped token, a project-shaped token and a finality word",
+        "page-one header block holds labelled slots reading Title, Presenting Author, Category and Word Count",
+        "a line beneath the header names a submission category and a preferred presentation format",
+        "body is a single unsectioned structured summary of results",
+        "core properties name a document author"
+      ],
+      "facts_legal": ["venue", "project", "artifact_type", "stage", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "stage from the word final in the filename — that is a version_family signal, not a workflow position",
+        "lab from the Presenting Author slot; that slot is authorship, and authored_by is never a destination dimension",
+        "term or subject — a submission category is not a course"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ASCB2026_talk_PVA-RDP.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "title slide names the meeting, the session code and the project",
+        "slide titles run Background, Methods, Results, Next steps",
+        "speaker notes carry timing cues and an anticipated question",
+        "an acknowledgements slide shows funder and institute logos",
+        "embedded figure images repeat panels that also appear in a manuscript file elsewhere"
+      ],
+      "facts_legal": ["venue", "project", "artifact_type", "stage", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the presentation source_type contributed anything on its own — the roster's file_kind_owner claim is shelving, not evidence",
+        "authored_by as a destination dimension from the acknowledgements slide",
+        "a second venue from a logo on the acknowledgements slide, which names a funder"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Poster_PVA-RDP_ASCB2026_48x36.ai",
+      "source_type": "design_creative",
+      "observations": [
+        "proprietary format; canvas properties report a single very large artboard",
+        "artboard and layer names read Title banner, Methods, Results panel, Acknowledgements",
+        "preview text carries the project token and an author-and-affiliation strip",
+        "linked asset names match the talk deck's figure files"
+      ],
+      "facts_legal": ["project", "artifact_type", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "artifact_type = poster from the canvas size alone — the sectioned banner-and-panel structure is what confirms it",
+        "venue from the filename token alone when the file's own readable content names no meeting",
+        "an empty extraction where the format is simply unreadable — 00: \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ASCB 2026 abstract submission A-2431 received.eml",
+      "source_type": "email",
+      "observations": [
+        "sender address sits at a conference-management domain",
+        "subject carries a venue token, a submission id and a receipt word",
+        "body states the presentation format assigned and a session code",
+        "a reply chain contains a later acceptance message with the same id",
+        "recipient addresses are present"
+      ],
+      "facts_legal": ["venue", "stage", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the submission id alone — the id resolves to a project only where a file already evidences that project",
+        "authored_by as a destination dimension from the sender",
+        "that addresses and body text are ordinary content — 00 requires mail handled \"while treating addresses and message content as potentially sensitive\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ASCB2026_program_book.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "several hundred pages of a schedule grid",
+        "the venue name appears in the running header of every page",
+        "thousands of author names, institution strings and talk titles",
+        "an attendee and exhibitor list at the back",
+        "one talk title matching the holder's project appears once, on an interior page"
+      ],
+      "facts_legal": ["venue", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "lab from any of the institution strings — the document is the generic hub 00 tells the engine to suppress: \"suppress generic hubs such as a personal email address or broad university domain\"",
+        "authored_by, or any fact about the holder, from an author list that is mostly other people",
+        "project from the one matching talk title — an interior-page occurrence in a directory of everybody's talks is not project evidence about this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "ASCB2026_submission_bundle.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an abstract document, a poster PDF, a slide deck, four figure files and a signed disclosure form",
+        "member names share one venue-shaped token and one project-shaped token",
+        "uncompressed size is reported; no member is extracted to disk",
+        "one member is password-protected"
+      ],
+      "facts_legal": ["venue", "project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact from a member that was not inspected — the manifest is the evidence, and 00: \"the normal scan should never extract archive contents to the filesystem\"",
+        "that the protected member was read — 00: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected\"",
+        "that the outer archive name means anything on its own"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Lecture 08 - Cell Motility.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles run a numbered lecture sequence",
+        "a course-code-shaped token appears on the title slide beside the words instructor and semester",
+        "speaker notes carry reading assignments and a homework reminder",
+        "figures are reproduced from textbooks with source lines",
+        "no venue token, no submission id, no session code"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this template from the presentation source_type — the discriminating evidence is 00's academic pattern, \"a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”\", which puts the file on the academic schema",
+        "venue from the institution named on the title slide",
+        "project from the lecture topic"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Jobtalk_PVA-RDP_v2.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles and figures are largely those of the conference talk deck",
+        "a closing slide reads Future Directions and Lab Vision with a five-year plan",
+        "the title slide names a department and a date but no meeting, session or submission id",
+        "sits beside an application letter and an interview schedule addressed to that department"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "venue from the department name — a hiring department is not a meeting the holder presented at",
+        "stage from the v2 suffix",
+        "that the shared slides make this a conference deliverable; the neighbouring application evidence is what this file is FOR"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_7788.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present: make, model, lens, DateTimeOriginal, GPS at a convention-centre coordinate",
+        "sensor-shaped pixel dimensions",
+        "the frame shows a printed poster on a board, readable only in part",
+        "filename is a camera sequence name carrying no words"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a research artifact_type because a poster is depicted — 00: \"camera EXIF is strong photo evidence\", and the photos schema is what that evidence activates",
+        "venue from the GPS coordinate",
+        "project from the partially readable poster title, or from the fact that the poster file sits in the same neighbourhood"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-01-14 at 22.03.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR regions read a submission portal header, a venue token, an abstract id and the words Submission complete",
+        "OCR also reads a browser tab strip and a navigation menu",
+        "some regions return low confidence"
+      ],
+      "facts_legal": ["venue", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "project from the abstract id alone",
+        "any fact from a low-confidence OCR region without a second supporting observation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Hilton_ASCB2026_reservation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a reservation code, check-in and check-out dates, a nightly rate and a total",
+        "the conference name appears once, in a rate-code line reading conference block",
+        "a hotel address in the meeting's city",
+        "no project token, no abstract id, no session code"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "venue as a research fact from the conference name in the rate-code line — the record's own structure is transactional, and 00 shelves it accordingly: \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\"",
+        "project or artifact_type from the trip's reason",
+        "a trip-specific destination — 00: \"It must not invent a folder called Travel/Flight Gate B12\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "NeurIPS2024_proceedings_Chen_et_al.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a conference masthead and a proceedings citation line on page one",
+        "an author list that does not include the holder",
+        "a DOI and a camera-ready page layout",
+        "no project token anywhere in the document",
+        "downloaded in a bounded session with six other proceedings papers"
+      ],
+      "facts_legal": ["authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "venue as a fact about the holder's own research output — the masthead describes this paper's publication, and whether the holder presented there is exactly the role question the gazetteer cannot answer",
+        "lab from the paper's own affiliations",
+        "a topic for the session — 00: \"A session should never be treated as proof of topic\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "ASCB2026_session4B_recording.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "container metadata gives duration, codec and a creation time",
+        "embedded tags carry a session code and a venue token",
+        "no captions or subtitle track present",
+        "no speech-to-text transcript produced"
+      ],
+      "facts_legal": ["venue", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project or a speaker identity from the audio — a transcript exists only \"under an explicit privacy and compute policy\" and none was run",
+        "stage from the creation time",
+        "that the holder is the speaker"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ASCB2026_my_schedule.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY fields name sessions and a poster slot; one carries the holder's own board number",
+        "LOCATION fields name halls in the convention centre",
+        "organizer address sits at the conference-management domain",
+        "recurrence metadata absent; the events span four consecutive days"
+      ],
+      "facts_legal": ["venue"],
+      "must_not_conclude": [
+        "a folder path",
+        "that calendar as a source_type makes this situation plausible by itself — CONNECTION's canonical violation, and 00 treats the format as a routing signal only: \"Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata\"",
+        "project from a session title",
+        "lab from an organizer or attendee address"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "research.manuscript-publication",
+      "signal": "One evidence item — a venue gazetteer hit plus a submission id — supports both. The discriminator is which lifecycle the surrounding structure belongs to: journal terms (cover letter, response to reviewers, revision, proof, camera-ready) with an editorial-office sender go to the manuscript situation; meeting terms (session, track, presenting author, poster board, oral/poster format) with a conference-management sender come here. A conference PROCEEDINGS paper genuinely sits on the seam and should abstain rather than be forced — 00: \"conflicting signals should lead to abstention rather than an invented classification\". Fixtures: ASCB 2026 abstract submission A-2431 received.eml here, an editorial decision email there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.teaching",
+      "signal": "A presentation carrying slide titles, speaker notes and figures supports both, and this row is the roster's file_kind_owner of that source_type, which makes the confusion structural rather than incidental. The discriminator is 00's own academic pattern — \"a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”\" — against a venue token plus meeting-participation structure. Fixture: Lecture 08 - Cell Motility.pptx.",
+      "provenance": "design"
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "The same presentation confusion from the student side: a class project deck has slide titles, speaker notes and result figures and often names an institution. Same discriminator as above — course code plus academic context terms versus a venue token plus a submission id or session code. The failure this prevents is a coursework deck being shelved as a conference talk because a university name appeared on its title slide, which 00 forbids on its own terms: a university name can be \"an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\".",
+      "provenance": "design"
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "A research talk re-cut as a job talk shares almost every slide with the conference deck, so the slide content supports both. The discriminator is the addressed target: a hiring department or employer plus application-stage evidence (a posting, an interview schedule, an application id) belongs to recruiting; an accepted-abstract id, a session code and a named meeting belong here. Fixture: Jobtalk_PVA-RDP_v2.pptx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "travel.bookings-confirmations",
+      "signal": "A booking confirmation naming the conference name and city supports both, because the meeting is literally why the trip exists. The discriminator is the record's own structure: a reservation code, itinerary dates and an amount make it a transactional record — 00's residual sentence names \"booking records, boarding passes, purchase receipts, event tickets\" — and the venue string inside it is context, not research-artifact evidence. Fixture: Hilton_ASCB2026_reservation.pdf.",
+      "provenance": "design"
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "A registration-fee receipt or a reimbursement claim carries the venue name beside a currency amount, supporting both. Same discriminator as travel: an amount-plus-payer structure is a transactional record; only a research deliverable belongs here. Finance is a safety domain, so on a genuine tie its protection path runs regardless of which situation wins the item.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.camera-events",
+      "signal": "A photograph of a poster board or a session slide is a picture OF this situation's material, which tempts a filename-and-neighbourhood match. The discriminator is metadata, and 00 ranks it explicitly — \"camera EXIF is strong photo evidence\" — so a HEIC with make, model, lens and DateTimeOriginal activates photos and this row must not claim it. The reverse guard matters equally: 00 warns that \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\". Fixture: IMG_7788.HEIC.",
+      "provenance": "design"
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "A proceedings paper downloaded from the same conference's site carries the venue in its masthead exactly as the holder's own contribution would. The discriminator is authorship: whether the holder appears in the author list, which is why the research schema keeps authored_by as a search-side field. With no authorship link and no project token, 00's own residual sentence applies — papers \"that appear to be reading material but have no active research, course, or project association\". Fixture: NeurIPS2024_proceedings_Chen_et_al.pdf.",
+      "provenance": "design"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty because CONNECTION.md section 5 restricts also_holds_with to schema-to-schema pairs, and this is a template row (the dispatch prompt's looser wording loses to CONNECTION, as its own closing rule requires). The co-activations this situation raises are already carried on the research SCHEMA row: college_applications for the abstract that is also an application supporting document, and code for computational work. The one this row adds as evidence rather than as an edge is the job-talk case, recorded on Jobtalk_PVA-RDP_v2.pptx as also_schema: career — career being a field-less placeholder, that co-activation changes what is shelved, not what is extracted.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The roster's own must-consider residual for this id, and 00's phrase fits the leftovers exactly: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\" — a certificate of presentation, a standalone acceptance letter, a travel-award notice with no project association. Fixtures: the acceptance-letter shape, ASCB2026_my_schedule.ics.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The registration receipt, the hotel booking and the conference ticket that surround every meeting bundle but are not research deliverables — 00 names them: \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\". Fixture: Hilton_ASCB2026_reservation.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Proceedings papers and programme books collected from the meeting but authored by others — 00: papers \"that appear to be reading material but have no active research, course, or project association\". Fixtures: NeurIPS2024_proceedings_Chen_et_al.pdf, ASCB2026_program_book.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest home for a deck, poster file or recording whose venue is unreadable or unresolved — meaning is partly understood and the location needs a later decision. Fixtures: Poster_PVA-RDP_ASCB2026_48x36.ai, ASCB2026_session4B_recording.mp4.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The submission-portal screenshot with no readable venue or abstract id, which is 00's stated shape for the category and its stated warning: an unreadable screenshot must not have a narrative invented for it. Fixture: Screenshot 2026-01-14 at 22.03.11.png.",
+      "provenance": "inference"
+    }
+  ],
+
+  "role_split": [
+    {
+      "field": "venue",
+      "other_field": "school",
+      "other_domain": "academic",
+      "why": "Same entity type, different role, and this situation produces it constantly: a meeting hosted on a university campus puts that university's name in the title slide and the schedule, where it is the HOST of the venue and not the institution the holder attends. 00 states the ambiguity for the identical string — \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" — and both roles are in that list. Recorded as a finding for R1c: the canonical rows for venue and school both carry empty role_split_with, and widening the canonical list is R1c's or Joseph's, never this node's.",
+      "provenance": "inference"
+    }
+  ],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Three reasons, none of which is a handling class. An unsubmitted or embargoed abstract and its poster carry unpublished results. The submission and scheduling correspondence is mail, which 00 requires be handled \"while treating addresses and message content as potentially sensitive\". And the material that surrounds a meeting — a badge, a registration record, a book of abstracts and an attendee list — is bulk personal data about other people, which is a reason to keep it out of dossiers rather than a reason to file it here. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned.",
+
+  "open_question": "TWO forks, neither resolved here. (1) THE OCCURRENCE PROBLEM. This row recommends venue as the head dimension, but ASCB 2026 and ASCB 2025 are two occurrences of one venue, and the research schema has no destination-eligible time field — term belongs to academic, capture_year to photos, tax_year to finance. So the occurrence year has to live inside the venue VALUE (\"ASCB 2026\"), which works but makes venue values inconsistent with journal values that carry no year. 00 states the analogous rule for a different entity — \"A course code alone should not merge different semesters; course packet identity should include a term when it is available\" — and that reasoning transfers, but the fix does not: minting a conference-year field here would be inventing a field to make a dimension work, which the contract forbids outright. Joseph's call: does a conference occurrence stay a venue value, or does the Research schema owe a time field? It decides whether someone's conference folders read ASCB 2026 or ASCB/2026. (2) FILE_KIND_OWNER SEMANTICS, seconding the finding research.project-workspace already filed. The roster makes this row file_kind_owner of presentation, yet an internal lab-meeting status deck, a taught lecture deck and a job talk are all presentations that belong elsewhere. This node treats the ownership as a research-assignment claim and writes it into never_alone as evidence of nothing. If a later reviewer reads file_kind_owner as exclusive, those decks are mis-shelved. Whether it means exclusivity or primary interest is R1c's to settle."
+}

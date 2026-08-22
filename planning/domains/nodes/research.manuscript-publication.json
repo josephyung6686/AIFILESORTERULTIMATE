@@ -1,0 +1,469 @@
+{
+  "id": "research.manuscript-publication",
+  "kind": "template",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Manuscript preparation and publication",
+  "one_line": "One manuscript carried through one venue's review lifecycle: drafts and their version family, the submission packet, editorial correspondence, referee reports, the response to reviewers, proofs and the licence that closes it.",
+  "launch": "full",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": {
+    "differs_from_schema_default": true,
+    "why": "The Research schema's default situation is research.project-workspace, whose recommended order is 00's own \"a Research template may define project → stage → artifact type\". This node differs on all three of the node test's axes. Detection: the signals here are submission-lifecycle ones that do not fire on workspace material at all — a venue-issued manuscript-id token, a cover letter addressed to an editor, an editorial-office reply chain, a referee report, a typeset proof with author queries, a submission archive manifest. Dimensions: venue enters the recommended order, which the schema row deliberately excluded, its own template note reserving venue and lab for situations that are separate template rows on this schema. Privacy: an unpublished manuscript under embargo and a confidential referee report are not the same review surface as a project's working figures, and the editorial correspondence arrives as mail, which 00 requires be handled \"while treating addresses and message content as potentially sensitive\". No child node is proposed for any lifecycle step: cover letter, referee report, response to reviewers and proof are VALUES of artifact_type, and the workflow position is a value of stage."
+  },
+
+  "fields": [],
+  "fields_note": "A template references its schema's fields and never copies them. The five keys this situation actually uses are the Research schema's own: project, venue and stage as the recommended dimensions, artifact_type as the leaf fact that is deliberately flattened out of the order, and lab as a legal-but-metadata fact. authored_by is used here only as the discriminator that separates the holder's own manuscript from a downloaded paper, and 00 forbids it as a folder level: \"It should avoid using authorship or creator identity as a destination dimension.\"",
+
+  "proposed_fields": [
+    {
+      "key": "manuscript_id",
+      "type": "identifier",
+      "example": "the tracking token an editorial system issues for one submission and repeats in the subject line, the proof header and the portal page",
+      "destination_eligible": false,
+      "role_split_with": [],
+      "provenance": "proposal",
+      "why_no_existing_key_works": "This situation's strongest join handle is the submission tracking token, and no canonical key holds it. `project` is the research project and one project produces many submissions; `venue` is the journal and one venue receives many of the holder's manuscripts; `version_family` is the universal draft-family fact, computed from content and stem, whereas this token is an observed labelled value that spans several version families (the original and the revision are the same submission under different stems). Without a key to hold it, the evidence that actually ties the editorial email, the proof, the portal capture and the response document together has no shared validated fact to be shared, so the tie can only be expressed as retrieval similarity — which 00 says is never enough on its own. Recorded because 00's rule is that fields are the stable vocabulary: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\"",
+      "not_authored_here": "This node does not write the key into canonical_fields.json and does not put it in dimension_order — a template may only branch on fields its schema declares, and a folder level per submission id would be exactly the split 00 warns the canvas about: a level that \"creates a large number of tiny folders\". If R1c or Joseph adopts it, it belongs on the Research schema as a search and grouping field with destination_eligible false. Until then this node recommends nothing that depends on it, and the recognition signals below treat a manuscript-id-shaped token as evidence, never as a fact."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "a submission-lifecycle term (cover letter, response to reviewers, revision, referee report, proof, camera-ready) co-occurring with venue evidence or a manuscript-id-shaped token in a filename, title, page-one heading or an email subject zone — the pattern-plus-context shape, not the term alone",
+      "an editorial-office message: a subject carrying a manuscript-id-shaped token beside a decision word, from a sender at a venue-shaped domain, read from the fields 00 requires the mail extractor to yield — \"sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context\"",
+      "an archive manifest whose members combine a manuscript, a cover letter, a figure sequence and supplementary material, read without unpacking — 00: \"the normal scan should never extract archive contents to the filesystem\", and the manifest is what the archive extractor stores: \"the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\"",
+      "a venue gazetteer hit matched at a word boundary in a filename, title, page-one heading or a cover-letter salutation, and not a hit whose only occurrence is in the reference-list zone — 00: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\"",
+      "a proof structure: a publisher-branded typeset layout carrying numbered author-query boxes and an article-id running header, which no working draft has",
+      "a version-family signal over one manuscript stem (00's \"duplicate and version-family signals\") — this establishes the family and the review surface, and it never establishes stage",
+      "a labelled slot in a structured source naming the manuscript title, the corresponding author or the submission date — a form field on a licence agreement or a portal export cell — which is 00's \"labeled form field\" direct-fact path"
+    ],
+    "needs_llm": [
+      "whether a draft is pre-submission working material (the project-workspace situation) or a submitted version, when no lifecycle term, venue or manuscript-id evidence fires anywhere in the file",
+      "stage read from unlabelled prose — a sentence saying the reviewers' comments have been addressed, or that this is the version for typesetting — which is the interpretation 00 assigns the model: \"interpret an unusual research artifact\"",
+      "whether a journal-formatted PDF is the holder's own output or somebody else's reading material, when the author list is only recoverable through OCR",
+      "whether a heterogeneous archive is one venue's submission packet or an unrelated download bundle",
+      "whether an OCR'd capture is a submission portal status page, a proof page, or an unrelated screen — 00 lists the alternatives an opaque image holds: it \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\""
+    ],
+    "never_alone": [
+      "a venue or journal name alone. The tempting false file is the downloaded paper Ravikumar_2019_NatureMethods.pdf: it carries a masthead, a DOI and a journal name in high-weight zones and is reading material, for which 00 names a residual home — \"papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association\". The role question is 00's own: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\"",
+      "a DOI or a citation string alone",
+      "a finality or version token alone as stage — final, FINAL, v7, REV2, camera-ready in a filename are version-family evidence, and 00 warns off exactly these numbers: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a bare four-digit number alone as a year, an article number or a manuscript id",
+      "a source_type alone: archive, email, image, ocr and text_document all appear here and none of them proves this situation; the extension is a routing signal",
+      "the absence of camera EXIF alone as proof that a portal capture is a screenshot — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+      "a filename alone on an unreadable or password-protected submission archive — 00: \"the system should not infer a purpose from their filename alone\""
+    ]
+  },
+
+  "work_types": [
+    "manuscript draft",
+    "submitted manuscript",
+    "cover letter",
+    "referee report",
+    "editorial decision letter",
+    "response to reviewers",
+    "revised manuscript",
+    "proof",
+    "camera-ready version",
+    "published version",
+    "preprint",
+    "supplementary material",
+    "figure",
+    "licence or copyright agreement",
+    "submission packet"
+  ],
+  "work_types_note": "These are VALUES of the Research schema's artifact_type field, discovered at runtime. None is a roster node and none licenses a child template. The workflow position each implies (submitted, under review, revision, accepted, in proof) is likewise a value of stage.",
+
+  "grouping_reasons": [
+    "one manuscript's version family across its drafts, the submitted version, the revision and the proof — the universal version-family fact is the anchor, and 00 keeps identity on the bytes, not the name: \"If a file retains its name but its content hash changes, the system treats it as a new version\"",
+    "one submission to one venue: the packet's archive members, the cover letter, the decision message, the referee reports and the response document, tied by a repeated manuscript-id-shaped token",
+    "one manuscript across successive venues after a rejection — the same project and the same version family, two venue-scoped submission neighbourhoods",
+    "one manuscript's figure set: panel files that repeat inside the manuscript and the submission manifest",
+    "00's own label for this neighbourhood is a research one, not a venue one: \"PVA/RDP — Manuscripts and Figures\"",
+    "a sparse lifecycle file (a response document or a figure panel with no project token) joins the neighbourhood as a context-supported member and acquires no project fact — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+
+  "template": {
+    "dimension_order": ["project", "venue", "stage"],
+    "why": "A recommendation for one organizational situation, not a filesystem: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" project stays first for 00's stated reason — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" — and because it is the fact that survives a rejection and a resubmission. venue is the level this template adds and the schema's default order deliberately leaves out: a manuscript that goes to one journal, is rejected, and goes to another produces two complete submission families whose stage values repeat, so putting stage above venue interleaves two submissions under one Revision folder. It is also the parent-makes-the-child-intelligible rule applied to this material — 00 states it as \"A work type such as Homework 3 is meaningful only after the course is known\", and a file named Response to Reviewers is meaningless until the reader knows whose reviewers. stage is the leaf because it is the axis the user actually navigates while the work is live. artifact_type is a legal fact and is deliberately NOT a fourth level: at the stage leaf most branches would hold a handful of files and 00 asks the canvas to warn when a level \"produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders\". The same warning is the honest caveat on venue itself: a manuscript that only ever went to one journal makes venue a one-child level, and flattening it is the expected user edit, which the canvas can show before the user commits because it reports the branch counts each split would create. lab is legal here and is metadata only — a manuscript's producing lab is constant across the whole branch, so a level on it would repeat the parent.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "code_structured",
+      "design_creative",
+      "presentation"
+    ],
+    "extensions": [".docx", ".pdf", ".eml", ".zip", ".tif", ".png", ".tex", ".bib", ".ai", ".pptx"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "PVA-RDP_manuscript_v7_JR-comments.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a project-shaped token, a version suffix and an initials suffix",
+        "DOCX revision and comment metadata are present, with a comment author string",
+        "a manuscript title block over sectioned body text: Abstract, Methods, Results, Discussion",
+        "core properties name an author who is not the holder",
+        "no journal name anywhere except a reference list on a late page"
+      ],
+      "facts_legal": ["project", "artifact_type", "version_family", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "stage from the v7 suffix — a version suffix is version-family evidence, not a workflow position",
+        "venue from the journal names in the reference list",
+        "a destination dimension from authored_by or from the comment author"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Cover letter — Nature Methods.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a salutation addressed to an editor by title",
+        "a venue-shaped token in the filename and again in the salutation zone",
+        "first paragraph quotes the manuscript title and states it is submitted for consideration",
+        "an institutional letterhead line naming a department"
+      ],
+      "facts_legal": ["venue", "stage", "artifact_type", "project", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "lab from the letterhead institution alone — 00: a name can be \"an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\"",
+        "that the venue token means the manuscript was published there — a cover letter records a submission, not an outcome"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "submission_PVA-2026-0417.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a manuscript PDF, a cover-letter PDF, four figure TIFFs, a supplementary DOCX and a response document",
+        "a venue-shaped token appears in one member name",
+        "the filename carries a manuscript-id-shaped token",
+        "no member is extracted to disk"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage", "venue"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact from a member that was not inspected — the manifest is the evidence",
+        "that the outer archive name proves the packet's venue on its own"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Decision on manuscript PVA-2026-0417.eml",
+      "source_type": "email",
+      "observations": [
+        "subject carries a manuscript-id-shaped token beside a decision word",
+        "sender is an editorial office at a venue-shaped domain",
+        "body quotes referee comments and a reply chain is present",
+        "an attachment name repeats the manuscript stem"
+      ],
+      "facts_legal": ["venue", "stage", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the manuscript-id token alone",
+        "authored_by as a destination dimension from the sender address",
+        "that message content may leave the device by default — 00 requires mail be handled \"while treating addresses and message content as potentially sensitive\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Reviewer_reports_R1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered sections headed Reviewer 1 and Reviewer 2 with no author names",
+        "a manuscript-id-shaped token in the running header",
+        "a decision paragraph above the reviewer sections",
+        "the reviewers' own comments cite other journals by name"
+      ],
+      "facts_legal": ["stage", "artifact_type", "venue"],
+      "must_not_conclude": [
+        "a folder path",
+        "authored_by from a Reviewer 2 heading — anonymised reviewer labels are not an identity",
+        "venue from the journals cited inside the reviewers' comments, which are the same late-zone hits 00's positional rule discounts",
+        "project from the manuscript-id token alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Response to Reviewers.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a point-by-point structure quoting reviewer comments in one style and replies in another",
+        "prose stating that the reviewers' comments have been addressed",
+        "no project token, no venue name and no manuscript id anywhere in the file",
+        "sits in the same directory as the manuscript stem's other versions"
+      ],
+      "facts_legal": ["artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the neighbouring manuscript — that is neighbourhood context, not this file's evidence",
+        "venue from the sibling cover letter"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "nmeth-2026-0417_proof.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "publisher-branded typeset two-column layout with a page-one masthead",
+        "numbered author-query boxes in the margins",
+        "an article-id running header and a DOI stub",
+        "producer metadata naming a typesetting tool"
+      ],
+      "facts_legal": ["venue", "stage", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the DOI alone establishes this as the holder's own output — the never-alone rule strikes it, and the discriminating evidence is the author-query structure",
+        "a year from the bare article number",
+        "authored_by from the producer metadata, which 00 warns \"may be stale, generic, or generated by a tool rather than a person\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Proof_marked_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no text layer, and evidence of a photographed or scanned page — 00: \"A PDF with no extractable text and evidence of being created from a photographed page can route directly to OCR\"",
+        "OCR recovers a running header and handwritten margin marks at low confidence",
+        "no readable masthead"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "venue from a low-confidence OCR masthead alone",
+        "stage from handwriting",
+        "that a broken text layer is an empty document — 00 asks the system to \"distinguish between a PDF with no text layer and one with a broken text layer\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_5512.png",
+      "source_type": "image",
+      "observations": [
+        "no camera EXIF; PNG at an exact display resolution",
+        "an OCR region reads a manuscript-id-shaped token beside a status line reading Under Review",
+        "another OCR region reads a journal masthead and a submitting-author name"
+      ],
+      "facts_legal": ["stage", "venue"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone",
+        "project from the manuscript-id token unless that token resolves to a project already evidenced in this same file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "main.tex",
+      "source_type": "code_structured",
+      "observations": [
+        "a journal document-class line at the top of the file",
+        "title and author macros naming the manuscript and a project-shaped token",
+        "a bibliography file and a journal class file sit beside it in the same directory",
+        "no package manifest and no repository marker anywhere above it"
+      ],
+      "facts_legal": ["project", "artifact_type", "venue"],
+      "must_not_conclude": [
+        "a folder path",
+        "repository or programming_language, because the structural evidence 00 puts on the code side is absent here: \"Code-related files should rely heavily on local structural evidence, including repository roots and package files\"",
+        "stage from a finality word in a sibling filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fig2_revised.tif",
+      "source_type": "image",
+      "observations": [
+        "a figure-shaped token and a revision word in the filename",
+        "no EXIF camera fields; large pixel dimensions consistent with a print figure",
+        "sits beside the manuscript's other panel files and repeats inside the submission manifest"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project or venue from the sibling filenames or from the manifest that lists it — membership is not a fact",
+        "stage from the word revised"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Signed_License_to_Publish_nmeth.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a publisher-branded agreement under a licence heading",
+        "labelled slots holding the manuscript title, the article id and the corresponding author",
+        "a signature block and a date",
+        "a venue-shaped token in the filename and the letterhead"
+      ],
+      "facts_legal": ["venue", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "that a signed agreement makes this a personal legal matter — the discriminating evidence is that the agreement's subject is this manuscript at this venue",
+        "an account or institution reading of the publisher name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PVA_manuscript_final_FINAL_v2 (1).docx",
+      "source_type": "text_document",
+      "observations": [
+        "three finality tokens and a copy suffix in one filename",
+        "content hash differs from the sibling that shares the stem",
+        "the same title block and section structure as that sibling",
+        "modification timestamp is older than the sibling's"
+      ],
+      "facts_legal": ["project", "artifact_type", "version_family", "duplicate_family"],
+      "must_not_conclude": [
+        "a folder path",
+        "stage from final or FINAL",
+        "that the more emphatic name holds the newer content — identity is the content hash, and 00 resolves this by \"placing an older version into a version family review\"",
+        "that two files sharing a filename are the same file — 00: \"A content-hash match supports deduplication review; a filename match alone does not\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Ravikumar_2019_NatureMethods.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a DOI on page one, a journal masthead and an author list that does not include the holder",
+        "no project token, no manuscript-id token and no lifecycle term anywhere",
+        "downloaded in a bounded session with three other papers"
+      ],
+      "facts_legal": ["authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "venue as a fact about the holder's own output — the masthead describes the paper's own publication",
+        "stage, because there is no lifecycle evidence for the holder",
+        "a topic for the download session — 00: \"A session should never be treated as proof of topic\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Abstract_PVA-RDP_UChicago.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an Abstract heading over a single-page structured summary",
+        "the project token in the filename and in the heading",
+        "a page-one line addressing a named university's programme with submission language",
+        "no journal name and no manuscript id"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "venue from the university named in the addressed-to line — that is the application target role, not a publication venue",
+        "that the research facts are dropped because application facts also fired; 00 keeps both, and the file is its own dual-group example: \"A file may validly belong to more than one accepted group\""
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "research.project-workspace",
+      "signal": "The same project token, the same manuscript stem and the same drafts support both, so project, artifact_type and version_family evidence discriminates neither. The discriminating evidence is submission-lifecycle evidence about the file itself: a salutation addressed to an editor, a venue-issued manuscript-id token, a referee report, an author-query proof structure, or a submission manifest. A pre-submission draft carrying none of those is workspace material and this template must not take the item. Fixture: PVA-RDP_manuscript_v7_JR-comments.docx sits on the workspace side until a venue or a lifecycle term appears.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.conference-presentation",
+      "signal": "Both situations are venue-scoped, so a venue gazetteer hit and an abstract structure support both. The discriminating evidence is which lifecycle the file belongs to: peer-review correspondence (referee reports, a response document, proofs, a licence agreement) is this template; a presentation artifact (poster, slide deck, abstract-book entry, registration record) is the conference one, which the roster also gives ownership of the presentation source_type. A conference paper that then goes through journal review is two situations on one project, not one item counting twice.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "A journal masthead, a DOI, a venue name and an academic paper structure support both sides identically — this is the tempting false file for this template. The discriminating evidence is authorship plus lifecycle: the holder's own manuscript carries a manuscript-id token, a submission packet, an editorial thread or an author-query proof; a collected paper carries a DOI and an author list without the holder and no lifecycle evidence at all. Absent lifecycle evidence the reading side is the better-supported one. Fixture: Ravikumar_2019_NatureMethods.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.thesis-dissertation",
+      "signal": "A thesis chapter and a journal manuscript are often the same text, so project, stage, artifact_type and a heavy version family support both. The discriminating evidence is which body is reviewing it: a committee, a defense schedule, a degree programme's formatting or submission rules put the file on the thesis side; an editorial office, a venue, referee reports and proofs put it here. A chapter that is also a submitted paper legitimately holds both situations on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "A term paper or lab report written in journal form carries the same Abstract, Methods, Results and Discussion structure a manuscript carries, and both talk about results and figures. The discriminating evidence is which pattern the item sits beside: a course-code pattern with academic context (00's five terms) puts the file on coursework, while a venue or manuscript-id token with submission-lifecycle evidence puts it here. A student paper that names a journal in its bibliography is not a submission.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "A LaTeX or notebook manuscript source sitting inside a version-controlled directory supports both, because a manuscript source IS source text. The discriminator is the one 00 states: \"Code-related files should rely heavily on local structural evidence, including repository roots and package files\" — a repository root or package manifest above the file counts for the code side; a journal document class, a cover letter and a submission manifest count here. Fixture: main.tex, where the repository markers are explicitly absent.",
+      "provenance": "design"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by omission: also_holds_with joins schemas only (CONNECTION.md), and this is a template row. The co-activations this situation actually produces are already carried on the Research schema row — research also_holds_with college_applications (fixture Abstract_PVA-RDP_UChicago.pdf, recorded here as that example's also_schema) and research also_holds_with code (fixture main.tex under a repository marker).",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "00: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\" — an acceptance letter, a signed licence agreement or a stranded proof whose project and venue never resolve. Fixtures: Signed_License_to_Publish_nmeth.pdf, Cover letter — Nature Methods.docx with no recoverable project.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — the sparse lifecycle files this situation produces in quantity: a response document with no project token, a marked-up proof scan, an unlabelled figure panel. Fixtures: Response to Reviewers.docx, Proof_marked_scan.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The collision with research.reading-library resolves here when the file is somebody else's paper: 00 defines the residual for exactly that — papers \"that appear to be reading material but have no active research, course, or project association\". Fixture: Ravikumar_2019_NatureMethods.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Submission and proof material arrives compressed and is sometimes password-protected, and 00 requires such an archive to be represented rather than forced: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\". An unreadable submission_*.zip is represented, never guessed at from its name.",
+      "provenance": "inference"
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Not because publication is private, but because this situation holds unpublished manuscripts before they are public, confidential referee reports and editorial decision correspondence, and that correspondence arrives as mail, which 00 requires be handled \"while treating addresses and message content as potentially sensitive\". Referee anonymity is a second reason: a report's evidence must not be mined for an identity. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+
+  "open_question": "Should venue be a folder level at all, or metadata only? This node recommends project → venue → stage because a rejected-then-resubmitted manuscript produces two complete submission families whose stage values otherwise interleave. But a researcher whose manuscripts each go to one journal gets a one-child level, which is precisely what 00 asks the canvas to warn about, and some people file by manuscript with the venue living in the filename instead. The fork decides a real folder structure and is Joseph's: does the recommendation lead with venue included and let the canvas offer flattening, or lead flat (project → stage) and offer venue as an optional split for multi-venue manuscripts?"
+}

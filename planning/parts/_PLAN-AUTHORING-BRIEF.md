@@ -200,7 +200,13 @@ a decision made by an author instead of by Joseph.
 ## 10. The `SensitivityFacts` rename applies to EVERY task that names it
 
 The settled D2 paragraph in P7's skeleton names Tasks 4, 12, 13 and 14. That list is incomplete —
-**Tasks 17 and 18 also carry `facts_seam.SensitivityFacts` in their `Consumes`.** The rule is not a
+**Tasks 16, 17 and 18 also carry `facts_seam.SensitivityFacts` in their `Consumes`.**
+
+> **Corrected 2026-08-22.** This section originally said "Tasks 17 and 18" and was itself one task
+> short: the identifier appears at `PLAN-SKELETON.md:1095` (**Task 16**), `:1124` (Task 17) and
+> `:1149` (Task 18), besides `:716-722` (Task 4). The full list is **4, 16, 17, 18**. A P7 section
+> author had it right and this brief had it wrong — which is the reason the rule below is stated as a
+> rule and not as a list of task numbers. The rule is not a
 list of task numbers; it is: wherever `facts_seam.SensitivityFacts` appears, read
 `classification_store.ClassificationStore` — a concrete store over a table P7 owns, no injection,
 no protocol, no fixture standing in for P6.
@@ -479,8 +485,19 @@ Both files carry a `### Task 11`. Verified by reading both:
   shape as "an unset ceiling cannot deny". Task 20's fixtures 4 and 16 need one more line to replay.
 
 **Good discipline worth copying:** `SENSITIVE_CLASSES` was *removed* from that author's own earlier
-draft, because publishing it would have answered NEEDS-JOSEPH C24 in code. The consent branch reads
-`ClassificationRecord.protected` per SPEC §2 instead.
+draft, because publishing it would have answered a NEEDS-JOSEPH question in code. The consent branch
+reads `ClassificationRecord.protected` per SPEC §2 instead.
+
+> **Corrected 2026-08-22 — the label here was mine and it was wrong.** This said the removal avoided
+> answering **C24**. It does not: `PLAN-tasks-11.md:306` and `:1776` cite **C5** — *"is `protected`
+> exactly the top two handling classes?"* — and quote its substance, so **the task author's label is
+> right and this brief's was loose.** The two questions are adjacent and distinct. **D7 closes C24;
+> C5 remains OPEN**, so the restraint still stands and `SENSITIVE_CLASSES` must stay unpublished.
+> Do not renumber those citations, and do not read D7 as licence to publish the set.
+>
+> That is twice this brief has been corrected by a section author reading it against the source —
+> see also §10, which was one task short. Both corrections went the same way, which is the argument
+> for §3's precedence order rather than for trusting the brief.
 
 ---
 

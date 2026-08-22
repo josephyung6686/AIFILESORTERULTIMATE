@@ -4680,51 +4680,6 @@ git commit -m "feat(P6): §3.4's five-part fact cache key — a rename is free, 
 
 ---
 
-## Contract ambiguities these two tasks hit and did not resolve
-
-Five, reported rather than patched, because each one belongs to a file another author owns.
-
-1. ~~**`get_field(conn, field_key)` must return a `field_id`.**~~ **RESOLVED by brief §17 exactly as
-   this author predicted.** The reasoning was right and the prediction was right: *"if Task 2's
-   catalogue keys on `field_key` alone, that one line and Task 4's equivalent change together."*
-   Task 2's catalogue now keys on `field_key` alone — its first draft carried BOTH `field_id` and
-   `field_key` holding the identical string, and that second column is deleted. So `values`,
-   `file_facts` and `unresolved` all carry `field_key`, `get_field(...)["field_key"]` is what the
-   one-line helper reads, and `PLAN-tasks-16-19.md`'s `old["field_id"]` is corrected with them.
-   The column exists in all of them under one name, which is the "in both tables or in neither"
-   this item asked for.
-2. **One design sentence, two cache-key functions.** §3.4 describes one key; the built system has
-   `extractors.runs.cache_key` and `facts.cache.fact_cache_key`, because P4's observation/fact split
-   gave the sentence two subjects after §3.4 was written. Task 6's test pins them apart rather than
-   reconciling them. Reconciling them would be a P4/P5/P6 seam change.
-3. **The cross-table supersede back-pointer does not exist and cannot, through P1's surface.**
-   `mark_superseded(conn, table, *, old_id, new_id, reason)` takes **one** table, so superseding an
-   `unresolved` row with a `file_facts` row records `superseded_by` on the abstention and leaves
-   `file_facts.supersedes` as `None` — verified by execution, silently, with no error raised. Task 5
-   asserts the half that Done-means 19 and SPEC rule 3 require. Whether the fact should also point
-   back at the refusal it replaced is `facts/supersede.py`'s question (Task 23).
-4. **A fabricated quotation lives in P6's SPEC and in the skeleton, and is not repaired here.**
-   Both attribute to §8.6 the sentence *"visible as deferred, never as 'understood and found
-   unimportant'"*. The design contains no such sentence. Its actual words, grepped: *"If the budget
-   is exhausted, the product should retain extracted evidence, mark the deferred stage, and leave the
-   file or group in review rather than guessing"*, *"Cost exhaustion must never turn into
-   lower-quality automatic classification"*, *"The user interface should show the difference between
-   completed work and deferred work"*, and *"avoids the false impression that an unprocessed file was
-   understood and found unimportant"*. The paraphrase is faithful in substance, which is why it
-   spread; it is still not a quotation. These two tasks quote the design's words instead. **The SPEC
-   and `PLAN-SKELETON.md` still carry it** — they are not this author's files, and the same phrase
-   should be expected in the other P6 and P7 task documents written against the same skeleton.
-
-5. **The multi-observation reconciliation is stated in five places and owned by none.** A fact built
-   from several observations has several extractor versions and several analysis tiers;
-   `PLAN-tasks-07-09.md` and `PLAN-tasks-14-15.md` both state the same collapse rule
-   (`extractor_version` = `canonical_json` of the sorted distinct `[name, version]` pairs;
-   `analysis_tier` = the last tier present in `ANALYSIS_TIERS` order) and both flag that it belongs
-   in `facts.cache`. **Task 6 deliberately does not build it.** Its `Interfaces:` block publishes
-   three names and a collapse helper is not one of them, and adding a fourth would change a contract
-   four parallel authors are already writing against. It is the resolver's (Task 24) or a follow-up
-   to this task, and the decision needs the lead rather than an author working alone.
-
 ---
 
 ### Task 7: The evidence read — observation keys, the context pair, and `context_truncated`
@@ -6908,46 +6863,6 @@ git commit -m "feat(P6): §2.2/§2.3 producer discount — suppression, demotion
 ```
 
 ---
-
-## Contract ambiguities these two tasks hit and did not resolve
-
-Reported here rather than decided, because each belongs to a task or a part this one does not own.
-
-1. **The §3.4 cache-key reconciliation now has a sixth and seventh copy.** `PLAN-tasks-07-09.md`
-   states the rule once for Tasks 8 and 9 and counts the copies at five; these two modules make it
-   seven, in `facts.direct` and `facts.discount`, character for character. §3.4 names one extractor
-   version and one analysis tier, a record built from several observations has several of each, and
-   the reconciliation belongs in `facts.cache` — **Task 6's module**, which neither task may add to
-   without breaking its contract. One helper in `facts.cache` taking `(conn, content_hash,
-   observations)` would delete all seven.
-
-2. **`DirectSlots` has no catalogue behind it (F8, extended).** F8 reported that P5 spells no EXIF
-   tag name. Checking the shipped extractor extends it: `extractors.filesystem.METADATA_SLOTS` is
-   `("normalized_filename", "extension", "mime_type")` — so §3.13's **filesystem timestamp** slot,
-   which Done-means-adjacent prose and this task's own test both need, has **no publisher**, and
-   §3.5's **content hash** slot cannot produce a fact at all because M14 admits no citation that is
-   not an `observation_key` and P1's `files.content_hash` is a column. §3.5's **document title** slot
-   has a publisher (fixture 2) and no catalogue field. Two of §3.5's four slots therefore reach a
-   fact today. The catalogue is the same shape as catalogue 01 and belongs beside it.
-
-3. **Catalogue 01's `boundary_rule` is prose, so its compiler has no home.** 86 of the 115 entries
-   are `match_kind: "prefix"` and 16 are `regex`; the boundary-character set, the version-tail rule
-   and `tail_required` are stated only in an English `boundary_rule` string. Task 9 takes compiled
-   predicates so that `facts` holds no regex catalogue and a catalogue v2.0 needs no P6 change, which
-   means **something must compile 115 entries and nothing in P6's plan does**. It is the loader's,
-   next to the flattening of `property_names`, and it does not exist.
-
-4. **`target_school` (§3.8) and `target university` (§3.11) are one concept with two spellings.**
-   Done-means 2 requires both to be present. Under the one-key-per-concept rule one of them is the
-   key and the other an alias, and the decision is **Task 2's**. `AUTHORSHIP_FIELDS` names neither,
-   so nothing here pre-empts it.
-
-5. **Nothing in this plan orders the discount before the direct producer.** Task 9's suppression is
-   what stops a `Producer` slot turning `python-docx` into a `direct` fact, and Task 8 imports
-   nothing from `facts.discount` — its `Consumes:` block does not list it. The ordering is
-   `facts.resolver`'s (Task 24). Until that task lands, a caller who declares a metadata-property
-   slot in its `DirectSlots` gets the fact §2.2 forbids, and no test in either of these two files
-   would see it.
 
 ---
 
@@ -9440,70 +9355,6 @@ git commit -m "feat(P6): §3.11 domain activation — several domains on one fil
 ```
 
 ---
-
-## Contract ambiguities — reported, not resolved
-
-Five, each verified against the source rather than reconstructed, ordered by what it costs if
-nobody looks at it.
-
-**1. `Candidate` needs two fields the skeleton's shape does not give it.** The skeleton publishes
-`Candidate(value, score, evidence_refs)` and `rank(candidates, *, zone_weight, tier_weight)`. A
-weight map has nothing to weight unless the contribution says which zone and which signal tier it
-came from, and `rank` has no `conn` with which to resolve the evidence refs back to observations.
-Task 11 therefore appends `zone: str | None = None` and `signal_tier: int | None = None` after the
-published three, in that order, defaulted, and clears both on the aggregate `rank` returns. The
-three published names, their order and their meaning are unchanged, so no parallel author is broken.
-**If the reviewer prefers, the alternative is to give `rank` a `conn` and resolve zones from the
-cited observations** — one more database read per candidate and one more reason for a pure function
-to need a connection. Recommendation: keep the descriptors.
-
-**2. Two cache-key rules now exist across the P6 plan, and they disagree.** This document keys a
-fact and an abstention on **every observation of the file version** (see *Two conventions*, above);
-`PLAN-tasks-14-15.md` keys a fact on **the observations that fact cites**. Both are readings of
-§3.4's five parts and neither is wrong on its own terms. The difference is visible at pass 4: under
-this document's rule every pass-4 fact lands in a new cache slot and supersedes; under the sibling's,
-only a fact that cited an OCR observation does. This document's rule additionally answers the case
-the sibling's cannot — an `unresolved` row with no citations still needs a key, and the SPEC requires
-it to have *"same composition as `file_facts`"*. **`facts.cache` (Task 6) owns the reconciliation and
-neither of us may add to it.** Whoever executes Task 6 should publish one helper and both plans
-should call it. Recommendation: the pass-level rule, because the abstention case forces it.
-
-**3. `DateMatch` is an addition to Task 12's published surface.** Done-means 10 requires the three
-academic terms to be matched by dedicated patterns *"asserted by pattern identity in the result
-rather than by the value alone"*, and `Candidate` has no field for a pattern id. `date_candidates`
-keeps the skeleton's exact signature and is defined as `date_matches` projected onto §3.7's shape,
-so nothing that consumes the published name sees a change.
-
-**4. §3.7's "case discipline" is referred to and never stated.** The SPEC says the §3.5
-case-insensitivity of N-6 *"does not relax §3.7 facet matching, whose case discipline is stated below
-and unchanged"* — and the section below states word boundaries, positional weighting, ranking,
-thresholds and validated gazetteers, and no case rule at all. `word_boundary_match` folds case, on
-the reading that §3.7's two named cases (`MIT` in "submit", `UNC` in "uncertainty") are decided by
-the boundary and not by case, and that a second, case-sensitive matcher would be a second home for
-the one word-boundary rule the skeleton says binds facets **and** context terms. Both named refusals
-are asserted under case folding in `test_case_folding_does_not_relax_the_boundary`. **If the intended
-discipline was case-sensitive facet matching, this is the line to change**, and the change is one
-flag on one function — but it would then need a second decision about how the §3.5 context check
-reaches a case-insensitive matcher without owning one.
-
-**5. `fill_or_abstain` cannot be told which reliability state to write.** The skeleton's signature
-has no state parameter, so Task 11 writes `validated` for every filled facet, on §3.13's definition
-(*"found by a deterministic rule and passed contextual checks"*). Task 16's `media_type` uses this
-function and wants `validated`, so nothing is broken today. But §3.11's Photos `people`, and any
-future field whose ranked fill should be `possible` rather than `validated`, would need a keyword
-this signature does not have. Not changed here, because changing a published signature is exactly
-what the `Interfaces:` block exists to prevent. Flagged for whoever owns the next facet-producing
-task.
-
-## What these four tasks do NOT do
-
-Stated so a reviewer does not look for it: no module here reads `files`, `learning_records`, an
-`events` row or a P3 timestamp; none writes an §8.2 event (Task 4 writes `fact creation` when
-`write_fact` is called and that is its own task's contract); none branches on `source_type` or
-`extractor_name`; none imports `planning/domains/`, `planning/deferred-catalogues/`, a grouping,
-tree, placement or model module; none touches a file outside `src/facts/` and `tests/p6/`; and none
-contains a model call of any kind — every fact produced by these four is deterministic and Done-means
-17 holds over all of them with P8 absent.
 
 ---
 
@@ -13673,54 +13524,6 @@ git commit -m "feat(P6): M11 no_usable_facts and the recorded pass — a read su
 ```
 
 ---
-
-## Contract notes for Tasks 16–19
-
-Reported, not resolved. Each is a decision someone owes; none is answered inside an implementation.
-
-1. **`normalize` and `contradicts` have no owner (round 4, C-5, Task 17).** P8's SPEC names both as
-   things it receives *from* P6, and files their domain logic back to P6 in its own Deferred table;
-   P6's Task 17 says P6 owns none of the checking. Neither part builds them. Task 17 supplies the
-   four inputs as the skeleton says, publishes neither function, and pins that with a test.
-   **Owed: a ruling before P8 is planned.** If the answer is P6, it is a new P6 task — the request
-   shape does not change either way.
-
-2. **`facts` imports one name from `extractors` (Task 19).** `extractors.failure.ContractViolation`,
-   as `FactPassNotRun`'s base class, and nothing else. It creates no cycle and carries no per-format
-   knowledge, but it is an edge that did not exist in the skeleton's dependency picture. **Task 25's
-   no-invention guard should permit exactly this import and no other from `extractors`.**
-
-3. **The skeleton says four tables; Task 19 adds a fifth (Task 19).** `fact_passes` is P6-internal,
-   read by no neighbour, and carries no claim about any file. The clause that binds — *"creates none
-   of anyone else's"* — is untouched. Stated so a reviewer counting tables is not surprised.
-
-4. **`FactPassNotRun`'s base class differs from the skeleton's `Exception` (Task 19).** Changed to
-   `ContractViolation` on the ratified ruling, because a plain `Exception` is swallowed by
-   `orchestrator._extract_one` into a `failed` run and the guard stops guarding.
-
-5. **The tier-3-only refusal is a reading, and it is the one rule Task 16 states that §3.7's
-   arithmetic cannot reach.** §2.6's *"must not mistake the absence of EXIF for proof that an image
-   is a screenshot"* is unconditional and A07 is a Done-means-grade prohibition, so it cannot rest on
-   an injected number. The reason is `below_margin` because the SPEC files *"the
-   conflicting-image-signal case (§2.6)"* there by name. If a reviewer prefers a different reason, it
-   is a one-word change in `media_type` and one word in the test.
-
-6. **Task 16 assumes `fill_or_abstain` measures the margin against an absent second-best as zero
-   (Task 11's contract).** A file carrying only photo-band observations passes one candidate. If
-   Task 11 instead refuses a single-candidate list, `test_a_missing_signal_contributes_nothing_to_
-   either_candidate` fails and the two authors reconcile — which is the correct place for a
-   cross-task disagreement to surface, and is why it is written as a test rather than as an
-   assumption in prose.
-
-7. **`ActivationSignals`' shape is Task 13's (Task 17).** The test builds an empty one from the
-   dataclass's own field list and annotations rather than hard-coding a shape it does not own; if
-   Task 13 declares a field type outside the small map, the assertion fails with that field's name.
-
-8. **The §3.4 cache-key reconciliation is still written out per producer.** Task 16 repeats the rule
-   `PLAN-tasks-14-15.md` states once, for the same reason: `facts.cache` is Task 6's module and these
-   tasks cannot add to it without breaking its contract. Task 17 is the one place in this file where
-   `model_identifier` and `prompt_fingerprint` are not `None`, and its tier is `ANALYSIS_TIERS[-1]`
-   unconditionally.
 
 ---
 
@@ -18055,50 +17858,6 @@ git commit -m "feat(P6): the no-invention guard — six questions held open, two
 
 ---
 
-## Contract notes from Tasks 24 and 25
-
-Reported, not unilaterally resolved. Each was found while writing these two tasks and each belongs to
-someone else's decision.
-
-**N1 — Task 1's "no state literal anywhere else in `facts`" is already contradicted by four
-sibling tasks, and this guard adopts the narrower rule.** Task 1's skeleton entry asks for *"the
-absence of any string literal spelling a state name anywhere else in `facts`"*. As written,
-`facts.families` publishes `VERSION_FAMILY_STATES = ("validated", "possible")`, `facts.session`
-publishes `SESSION_STATE = "possible"`, `facts.photo_event` publishes `EVENT_STATE = "validated"`
-and `facts.llm_seam` publishes `LLM_STATES = ("llm_supported", "possible")`. A guard enforcing Task
-1's clause literally would fail on the day this plan is executed — the exact failure mode that made
-OQ4's and OQ11's inversions necessary. **What actually matters is the value, not the literal:**
-§3.13's risk is a seventh spelling (`LLM-supported`, `User-confirmed`) reaching the database, and
-that is closed already — P4's `check` refuses anything outside the six, and every one of the four
-constants above is a member of `STATES`. Task 24 nonetheless spells none: `PROPOSAL_ELIGIBLE_STATES`
-is derived from `STRENGTH_ORDER`, which is the shape Task 1 wanted. **Owner: Task 1**, to narrow its
-clause to "no state name is spelled outside `STATES`'s six members" or to have Tasks 14, 15, 16 and
-17 derive theirs by index as Task 24 does.
-
-**N2 — `DECLARED_VOCABULARIES` names two constants no task's `Produces:` line declares.**
-`UNRESOLVED_COLUMNS` and `FACTS_TABLES` are listed because Task 5's and Task 4's tests read
-`PRAGMA table_info` and Task 19 modifies `schema.py`, so a table-name or column-name tuple is the
-natural shape for them — but neither is on a `Produces:` line, so neither is certain. If they are not
-built, the two lines are dead entries in an allowlist, which costs nothing. If they are built under
-different names, the guard goes red on first run and the fix is one line. **This is the guard
-behaving correctly**, and it is written here so that first red is not mistaken for a defect.
-
-**N3 — Task 24 fixes four keyword lists the skeleton left as `...`.** `active_allowlist_for`,
-`unresolved_for`, `event_facts`, `session_facts` and `family_facts` are spelled out in this task's
-`Interfaces:` block. Nothing is renamed and no signature that another task consumes is changed;
-these five are published *by* Task 24 and consumed only by P9–P13, none of which exist.
-
-**N4 — `evidence_chain` and `values_with_counts` are the only two functions in P6 that read another
-task's table with SQL.** Both are unavoidable: `evidence_chain` is addressed by `fact_id` alone and
-no module publishes a by-`fact_id` read, and `values_with_counts` needs one corpus-wide aggregate.
-They read `file_facts`, which is P6's own table, and they write nothing. If Task 4 later publishes
-`fact_by_id(conn, fact_id)`, `evidence_chain` should use it. **Owner: Task 4**, optional.
-
-**N5 — the four-pass ordering is not asserted here and must not be.** D5 cut Task 26, so
-`no_usable_facts_for` is a read surface P6's own tests exercise and the caller keeps passing
-`orchestrator.TARGETED_OCR_UNAVAILABLE`. This guard asserts `facts` imports no `orchestrator`, which
-is the correct and only enforceable statement of that today. Wiring it is later, separate work.
-
 ---
 
 ### Task 27: Deterministic operation, and the walking-skeleton P6 step
@@ -18932,3 +18691,386 @@ git commit -m "test(P6): deterministic operation with P8 absent, and the walking
 ```
 
 ---
+
+---
+
+# Appendix — what the section authors reported rather than resolved
+
+Each section closed by naming its own contradictions instead of silently resolving them. That is the
+mechanism that found this project's defects, so the reports are kept verbatim, grouped by the section
+that made them. **They are dated and they are not all still true** — several were closed by rulings
+made after they were written, and where a report is now overruled the ruling is stated inline. Read
+the preamble first; it wins.
+
+`PLAN-tasks-07-09.md`'s appendix covers Tasks 7, 8 **and** 9, though only Task 7 came from that file.
+Its Task 8/9 rows are kept because they are evidence about the tasks, not about the file — but the
+tasks themselves come from `PLAN-tasks-08-09.md`, whose own appendix follows.
+
+
+---
+
+# Reported by the Tasks 5–6 section
+
+
+## Contract ambiguities these two tasks hit and did not resolve
+
+Five, reported rather than patched, because each one belongs to a file another author owns.
+
+1. ~~**`get_field(conn, field_key)` must return a `field_id`.**~~ **RESOLVED by brief §17 exactly as
+   this author predicted.** The reasoning was right and the prediction was right: *"if Task 2's
+   catalogue keys on `field_key` alone, that one line and Task 4's equivalent change together."*
+   Task 2's catalogue now keys on `field_key` alone — its first draft carried BOTH `field_id` and
+   `field_key` holding the identical string, and that second column is deleted. So `values`,
+   `file_facts` and `unresolved` all carry `field_key`, `get_field(...)["field_key"]` is what the
+   one-line helper reads, and `PLAN-tasks-16-19.md`'s `old["field_id"]` is corrected with them.
+   The column exists in all of them under one name, which is the "in both tables or in neither"
+   this item asked for.
+2. **One design sentence, two cache-key functions.** §3.4 describes one key; the built system has
+   `extractors.runs.cache_key` and `facts.cache.fact_cache_key`, because P4's observation/fact split
+   gave the sentence two subjects after §3.4 was written. Task 6's test pins them apart rather than
+   reconciling them. Reconciling them would be a P4/P5/P6 seam change.
+3. **The cross-table supersede back-pointer does not exist and cannot, through P1's surface.**
+   `mark_superseded(conn, table, *, old_id, new_id, reason)` takes **one** table, so superseding an
+   `unresolved` row with a `file_facts` row records `superseded_by` on the abstention and leaves
+   `file_facts.supersedes` as `None` — verified by execution, silently, with no error raised. Task 5
+   asserts the half that Done-means 19 and SPEC rule 3 require. Whether the fact should also point
+   back at the refusal it replaced is `facts/supersede.py`'s question (Task 23).
+4. **A fabricated quotation lives in P6's SPEC and in the skeleton, and is not repaired here.**
+   Both attribute to §8.6 the sentence *"visible as deferred, never as 'understood and found
+   unimportant'"*. The design contains no such sentence. Its actual words, grepped: *"If the budget
+   is exhausted, the product should retain extracted evidence, mark the deferred stage, and leave the
+   file or group in review rather than guessing"*, *"Cost exhaustion must never turn into
+   lower-quality automatic classification"*, *"The user interface should show the difference between
+   completed work and deferred work"*, and *"avoids the false impression that an unprocessed file was
+   understood and found unimportant"*. The paraphrase is faithful in substance, which is why it
+   spread; it is still not a quotation. These two tasks quote the design's words instead. **The SPEC
+   and `PLAN-SKELETON.md` still carry it** — they are not this author's files, and the same phrase
+   should be expected in the other P6 and P7 task documents written against the same skeleton.
+
+5. **The multi-observation reconciliation is stated in five places and owned by none.** A fact built
+   from several observations has several extractor versions and several analysis tiers;
+   `PLAN-tasks-07-09.md` and `PLAN-tasks-14-15.md` both state the same collapse rule
+   (`extractor_version` = `canonical_json` of the sorted distinct `[name, version]` pairs;
+   `analysis_tier` = the last tier present in `ANALYSIS_TIERS` order) and both flag that it belongs
+   in `facts.cache`. **Task 6 deliberately does not build it.** Its `Interfaces:` block publishes
+   three names and a collapse helper is not one of them, and adding a fourth would change a contract
+   four parallel authors are already writing against. It is the resolver's (Task 24) or a follow-up
+   to this task, and the decision needs the lead rather than an author working alone.
+
+---
+
+# Reported by the Tasks 7–9 section
+
+
+> **Item 2 below is OVERRULED and must not be followed.** It recommends addressing the six
+> reliability states **by index** into P4's tuple. Brief §11 ruled the opposite: Task 1 publishes one
+> **named constant** per state and every other module imports it — never a bare string, never an
+> index, because an index silently couples every consumer to the tuple's order. The *problem* item 2
+> identifies is real and was fixed; the *recommendation* it makes is not the fix. Item 1's cache-key
+> reconciliation is likewise closed — one helper in `facts.cache`, Task 6's, keyed per file version
+> and pass. Item 3 (the A04 fixture) is still open and is carried in `../_ASSEMBLY-RULINGS.md` §4.7.
+
+
+## Contract additions — names these three tasks publish beyond the skeleton's blocks
+
+The skeleton's `Interfaces:` blocks are a contract with the authors writing Tasks 1–6, 10–13 and
+14–27 in parallel. **No name in any of those blocks changed.** Six names are *added*, each because
+the skeleton's own `Consumes:` line or `Produces:` type demanded something it did not name. They are
+listed here so a parallel author sees them without reading the code.
+
+| Task | Added | Why it had to exist |
+|---|---|---|
+| 7 | `UnknownRun` | `analysis_tier_for_observation` must fail rather than guess: an inferred tier lands in §3.4's cache key, and a wrong cache key is a fact that never invalidates |
+| 8 | `DirectSlot` | `DirectSlots` is "a frozen dataclass of slot-name predicates"; a dataclass of things needs the thing |
+| 8 | `SLOT_KINDS` | §3.5's four names, read off `dataclasses.fields(DirectSlots)` so there is no second spelling of them |
+| 9 | `DISCOUNT_OUTCOMES` | `discount()` returns one of three literals; publishing the tuple stops every caller re-spelling them |
+| 9 | `may_populate` | The demotion tier is a routing rule other producers must consult; a rule with no way to ask it is a comment |
+| 9 | `suppress_tool_metadata` | The skeleton gives Task 9 `write_unresolved` in `Consumes:` and no writer to use it in. This is the pre-ranking gate and the suppression tier's only write |
+
+**Task 9 writes no fact.** Its `Consumes:` block names `write_unresolved` and not `write_fact`, and
+that is read as deliberate: the demotion tier decides *which field a value may fill*, and the fact
+write belongs to whichever producer fills it. `tests/p6/test_p6_discount.py` drives `write_fact`
+itself to prove Done-means 22's second half end to end.
+
+---
+
+## Contract ambiguities and conflicts found
+
+Reported, not unilaterally resolved. Each was checked against the source or by execution on
+2026-08-22.
+
+**1 (carried, now worse). The §3.4 cache-key reconciliation has no owner and now appears five
+times.** §3.4 names one extractor version and one analysis tier; a fact citing several observations
+has several of each. `PLAN-tasks-14-15.md` wrote the rule out three times with a note; Tasks 8 and 9
+make five. It belongs in `facts.cache` (Task 6) as
+`fact_cache_key_for(conn, *, content_hash, observations)`. Five copies of a rule is four chances for
+one of them to drift.
+
+**2 (HIGH, unresolved by anyone). `PLAN-tasks-14-15.md` spells reliability states as string literals,
+which Task 1's guard forbids.** `families.py` in that document contains
+`reliability_state="direct"` and `reliability_state="possible"`. Task 1's stated proof is *"the
+absence of any string literal spelling a state name anywhere else in `facts`"* — a guard the sibling
+plan's code fails on its face. Tasks 8 and 9 here address the six states **by index** into
+`facts.states.STATES` (`STATES[1]` is `direct`, `STATES[4]` is `possible`, in §3.13's published
+order) so the spelling stays in one module. **Either the sibling's literals change or Task 1's guard
+does; they cannot both stand.** Recommendation: index, because §3.13's order is contract and P4's
+tuple is the one copy.
+
+**3 (HIGH, F5, unchanged). A04 as built asserts the demotion tier for values that are the suppression
+tier.** `tests/eval/fixtures/adversarial/A04.json` names `python-docx`, `Mozilla/5.0` and browser
+producer strings and carries `expected_outcome_kind: "produced"` with
+`expected_value: {"retained_as": "supporting_evidence"}`. Done-means 22 requires `abstained` and no
+fact in any field for exactly those values. Task 9 implements Done-means 22. The fixture is P2's and
+is not edited here. **One of the two must move**; the design's §2.2 sentence backs Done-means 22.
+
+**4 (MEDIUM, F8, now half-closed).** `12-academic-capture-patterns/04-narrow-date-families.json`
+(authored 2026-08-22) supplies the EXIF and labeled-date slot families for two of §3.5's four slots
+and names *"Task 8's direct-fact slot list"* in its own `owner` field. The **document title** and
+**content hash** slots still have no catalogue. Reported, not authored: `planning/deferred-catalogues/`
+is another agent's.
+
+**5 (MEDIUM, new). §3.5 names the content hash a direct source, and no observation carries it.**
+`src/extractors/filesystem.py` emits `normalized_filename`, `extension` and `mime_type` as labeled
+`metadata` observations and deliberately emits **no** content-hash observation — its own comment says
+so: *"G5 gives duplicate and version-family signals to P6 'from P1's content hashes' … P6 reads those
+from `files`; a second copy here would be two homes for one value."* But P6's rule 1 requires every
+non-user fact to cite an observation key, so a content-hash fact has nothing to cite. **Task 8
+therefore supports the content-hash slot when the caller supplies one and cross-checks it against
+P1's column, and the production `DirectSlots` passes an empty tuple for it**; the fact the content
+hash actually supports is Task 14's duplicate family, which cites the observations the family members
+share. Nothing is broken; the design's four-slot sentence just has one slot with no producer, and it
+should be said out loud rather than discovered.
+
+**6 (LOW, new). §3.5's fourth slot is "labeled form field", and the SPEC's extra direct source is
+"filesystem timestamps".** Neither is a form. Catalogue 12/04 calls its two direct families
+`metadata_slot` and justifies them from §3.13's *"labeled form field"*; P5's `METADATA_SLOTS` writes
+filesystem values the same way. Task 8 reads §3.5's fourth slot as **any explicitly labeled slot
+whose label the format itself supplies**, which is what P4 D7 stores and what both of those describe,
+and the caller's `DirectSlots.labeled_form_field` carries them. If that reading is wrong the fix is a
+fifth member on `DirectSlots`, not a change anywhere else.
+
+**7 (LOW, new). The SPEC restricts P3 input to "exactly two computations", both for the bounded
+session.** So a filesystem timestamp must reach Task 8 as an **observation**, never by reading
+`files.observed_timestamps` — that would be a third computation the Contract in forecloses. Task 8
+reads P1's row for `content_hash` only. This is the same class of tension F10 records for §3.9's
+folder-name evidence and is noted so nobody "fixes" Task 8 by reaching into P3's column.
+
+**8 (LOW, informational). `unit_for_observation` is in Task 7's `Consumes:` and is not called.** The
+text unit is the span substrate §3.6's quote check needs, which is Task 17's; re-deriving context P4
+already split is what M5 forbids. Every name in `Produces:` is delivered unchanged.
+
+---
+
+# Reported by the Tasks 8–9 section
+
+
+## Contract ambiguities these two tasks hit and did not resolve
+
+Reported here rather than decided, because each belongs to a task or a part this one does not own.
+
+1. **The §3.4 cache-key reconciliation now has a sixth and seventh copy.** `PLAN-tasks-07-09.md`
+   states the rule once for Tasks 8 and 9 and counts the copies at five; these two modules make it
+   seven, in `facts.direct` and `facts.discount`, character for character. §3.4 names one extractor
+   version and one analysis tier, a record built from several observations has several of each, and
+   the reconciliation belongs in `facts.cache` — **Task 6's module**, which neither task may add to
+   without breaking its contract. One helper in `facts.cache` taking `(conn, content_hash,
+   observations)` would delete all seven.
+
+2. **`DirectSlots` has no catalogue behind it (F8, extended).** F8 reported that P5 spells no EXIF
+   tag name. Checking the shipped extractor extends it: `extractors.filesystem.METADATA_SLOTS` is
+   `("normalized_filename", "extension", "mime_type")` — so §3.13's **filesystem timestamp** slot,
+   which Done-means-adjacent prose and this task's own test both need, has **no publisher**, and
+   §3.5's **content hash** slot cannot produce a fact at all because M14 admits no citation that is
+   not an `observation_key` and P1's `files.content_hash` is a column. §3.5's **document title** slot
+   has a publisher (fixture 2) and no catalogue field. Two of §3.5's four slots therefore reach a
+   fact today. The catalogue is the same shape as catalogue 01 and belongs beside it.
+
+3. **Catalogue 01's `boundary_rule` is prose, so its compiler has no home.** 86 of the 115 entries
+   are `match_kind: "prefix"` and 16 are `regex`; the boundary-character set, the version-tail rule
+   and `tail_required` are stated only in an English `boundary_rule` string. Task 9 takes compiled
+   predicates so that `facts` holds no regex catalogue and a catalogue v2.0 needs no P6 change, which
+   means **something must compile 115 entries and nothing in P6's plan does**. It is the loader's,
+   next to the flattening of `property_names`, and it does not exist.
+
+4. **`target_school` (§3.8) and `target university` (§3.11) are one concept with two spellings.**
+   Done-means 2 requires both to be present. Under the one-key-per-concept rule one of them is the
+   key and the other an alias, and the decision is **Task 2's**. `AUTHORSHIP_FIELDS` names neither,
+   so nothing here pre-empts it.
+
+5. **Nothing in this plan orders the discount before the direct producer.** Task 9's suppression is
+   what stops a `Producer` slot turning `python-docx` into a `direct` fact, and Task 8 imports
+   nothing from `facts.discount` — its `Consumes:` block does not list it. The ordering is
+   `facts.resolver`'s (Task 24). Until that task lands, a caller who declares a metadata-property
+   slot in its `DirectSlots` gets the fact §2.2 forbids, and no test in either of these two files
+   would see it.
+
+---
+
+# Reported by the Tasks 10–13 section
+
+
+## Contract ambiguities — reported, not resolved
+
+Five, each verified against the source rather than reconstructed, ordered by what it costs if
+nobody looks at it.
+
+**1. `Candidate` needs two fields the skeleton's shape does not give it.** The skeleton publishes
+`Candidate(value, score, evidence_refs)` and `rank(candidates, *, zone_weight, tier_weight)`. A
+weight map has nothing to weight unless the contribution says which zone and which signal tier it
+came from, and `rank` has no `conn` with which to resolve the evidence refs back to observations.
+Task 11 therefore appends `zone: str | None = None` and `signal_tier: int | None = None` after the
+published three, in that order, defaulted, and clears both on the aggregate `rank` returns. The
+three published names, their order and their meaning are unchanged, so no parallel author is broken.
+**If the reviewer prefers, the alternative is to give `rank` a `conn` and resolve zones from the
+cited observations** — one more database read per candidate and one more reason for a pure function
+to need a connection. Recommendation: keep the descriptors.
+
+**2. Two cache-key rules now exist across the P6 plan, and they disagree.** This document keys a
+fact and an abstention on **every observation of the file version** (see *Two conventions*, above);
+`PLAN-tasks-14-15.md` keys a fact on **the observations that fact cites**. Both are readings of
+§3.4's five parts and neither is wrong on its own terms. The difference is visible at pass 4: under
+this document's rule every pass-4 fact lands in a new cache slot and supersedes; under the sibling's,
+only a fact that cited an OCR observation does. This document's rule additionally answers the case
+the sibling's cannot — an `unresolved` row with no citations still needs a key, and the SPEC requires
+it to have *"same composition as `file_facts`"*. **`facts.cache` (Task 6) owns the reconciliation and
+neither of us may add to it.** Whoever executes Task 6 should publish one helper and both plans
+should call it. Recommendation: the pass-level rule, because the abstention case forces it.
+
+**3. `DateMatch` is an addition to Task 12's published surface.** Done-means 10 requires the three
+academic terms to be matched by dedicated patterns *"asserted by pattern identity in the result
+rather than by the value alone"*, and `Candidate` has no field for a pattern id. `date_candidates`
+keeps the skeleton's exact signature and is defined as `date_matches` projected onto §3.7's shape,
+so nothing that consumes the published name sees a change.
+
+**4. §3.7's "case discipline" is referred to and never stated.** The SPEC says the §3.5
+case-insensitivity of N-6 *"does not relax §3.7 facet matching, whose case discipline is stated below
+and unchanged"* — and the section below states word boundaries, positional weighting, ranking,
+thresholds and validated gazetteers, and no case rule at all. `word_boundary_match` folds case, on
+the reading that §3.7's two named cases (`MIT` in "submit", `UNC` in "uncertainty") are decided by
+the boundary and not by case, and that a second, case-sensitive matcher would be a second home for
+the one word-boundary rule the skeleton says binds facets **and** context terms. Both named refusals
+are asserted under case folding in `test_case_folding_does_not_relax_the_boundary`. **If the intended
+discipline was case-sensitive facet matching, this is the line to change**, and the change is one
+flag on one function — but it would then need a second decision about how the §3.5 context check
+reaches a case-insensitive matcher without owning one.
+
+**5. `fill_or_abstain` cannot be told which reliability state to write.** The skeleton's signature
+has no state parameter, so Task 11 writes `validated` for every filled facet, on §3.13's definition
+(*"found by a deterministic rule and passed contextual checks"*). Task 16's `media_type` uses this
+function and wants `validated`, so nothing is broken today. But §3.11's Photos `people`, and any
+future field whose ranked fill should be `possible` rather than `validated`, would need a keyword
+this signature does not have. Not changed here, because changing a published signature is exactly
+what the `Interfaces:` block exists to prevent. Flagged for whoever owns the next facet-producing
+task.
+
+## What these four tasks do NOT do
+
+Stated so a reviewer does not look for it: no module here reads `files`, `learning_records`, an
+`events` row or a P3 timestamp; none writes an §8.2 event (Task 4 writes `fact creation` when
+`write_fact` is called and that is its own task's contract); none branches on `source_type` or
+`extractor_name`; none imports `planning/domains/`, `planning/deferred-catalogues/`, a grouping,
+tree, placement or model module; none touches a file outside `src/facts/` and `tests/p6/`; and none
+contains a model call of any kind — every fact produced by these four is deterministic and Done-means
+17 holds over all of them with P8 absent.
+
+---
+
+# Reported by the Tasks 16–19 section
+
+
+## Contract notes for Tasks 16–19
+
+Reported, not resolved. Each is a decision someone owes; none is answered inside an implementation.
+
+1. **`normalize` and `contradicts` have no owner (round 4, C-5, Task 17).** P8's SPEC names both as
+   things it receives *from* P6, and files their domain logic back to P6 in its own Deferred table;
+   P6's Task 17 says P6 owns none of the checking. Neither part builds them. Task 17 supplies the
+   four inputs as the skeleton says, publishes neither function, and pins that with a test.
+   **Owed: a ruling before P8 is planned.** If the answer is P6, it is a new P6 task — the request
+   shape does not change either way.
+
+2. **`facts` imports one name from `extractors` (Task 19).** `extractors.failure.ContractViolation`,
+   as `FactPassNotRun`'s base class, and nothing else. It creates no cycle and carries no per-format
+   knowledge, but it is an edge that did not exist in the skeleton's dependency picture. **Task 25's
+   no-invention guard should permit exactly this import and no other from `extractors`.**
+
+3. **The skeleton says four tables; Task 19 adds a fifth (Task 19).** `fact_passes` is P6-internal,
+   read by no neighbour, and carries no claim about any file. The clause that binds — *"creates none
+   of anyone else's"* — is untouched. Stated so a reviewer counting tables is not surprised.
+
+4. **`FactPassNotRun`'s base class differs from the skeleton's `Exception` (Task 19).** Changed to
+   `ContractViolation` on the ratified ruling, because a plain `Exception` is swallowed by
+   `orchestrator._extract_one` into a `failed` run and the guard stops guarding.
+
+5. **The tier-3-only refusal is a reading, and it is the one rule Task 16 states that §3.7's
+   arithmetic cannot reach.** §2.6's *"must not mistake the absence of EXIF for proof that an image
+   is a screenshot"* is unconditional and A07 is a Done-means-grade prohibition, so it cannot rest on
+   an injected number. The reason is `below_margin` because the SPEC files *"the
+   conflicting-image-signal case (§2.6)"* there by name. If a reviewer prefers a different reason, it
+   is a one-word change in `media_type` and one word in the test.
+
+6. **Task 16 assumes `fill_or_abstain` measures the margin against an absent second-best as zero
+   (Task 11's contract).** A file carrying only photo-band observations passes one candidate. If
+   Task 11 instead refuses a single-candidate list, `test_a_missing_signal_contributes_nothing_to_
+   either_candidate` fails and the two authors reconcile — which is the correct place for a
+   cross-task disagreement to surface, and is why it is written as a test rather than as an
+   assumption in prose.
+
+7. **`ActivationSignals`' shape is Task 13's (Task 17).** The test builds an empty one from the
+   dataclass's own field list and annotations rather than hard-coding a shape it does not own; if
+   Task 13 declares a field type outside the small map, the assertion fails with that field's name.
+
+8. **The §3.4 cache-key reconciliation is still written out per producer.** Task 16 repeats the rule
+   `PLAN-tasks-14-15.md` states once, for the same reason: `facts.cache` is Task 6's module and these
+   tasks cannot add to it without breaking its contract. Task 17 is the one place in this file where
+   `model_identifier` and `prompt_fingerprint` are not `None`, and its tier is `ANALYSIS_TIERS[-1]`
+   unconditionally.
+
+---
+
+# Reported by the Tasks 24–25 section
+
+
+## Contract notes from Tasks 24 and 25
+
+Reported, not unilaterally resolved. Each was found while writing these two tasks and each belongs to
+someone else's decision.
+
+**N1 — Task 1's "no state literal anywhere else in `facts`" is already contradicted by four
+sibling tasks, and this guard adopts the narrower rule.** Task 1's skeleton entry asks for *"the
+absence of any string literal spelling a state name anywhere else in `facts`"*. As written,
+`facts.families` publishes `VERSION_FAMILY_STATES = ("validated", "possible")`, `facts.session`
+publishes `SESSION_STATE = "possible"`, `facts.photo_event` publishes `EVENT_STATE = "validated"`
+and `facts.llm_seam` publishes `LLM_STATES = ("llm_supported", "possible")`. A guard enforcing Task
+1's clause literally would fail on the day this plan is executed — the exact failure mode that made
+OQ4's and OQ11's inversions necessary. **What actually matters is the value, not the literal:**
+§3.13's risk is a seventh spelling (`LLM-supported`, `User-confirmed`) reaching the database, and
+that is closed already — P4's `check` refuses anything outside the six, and every one of the four
+constants above is a member of `STATES`. Task 24 nonetheless spells none: `PROPOSAL_ELIGIBLE_STATES`
+is derived from `STRENGTH_ORDER`, which is the shape Task 1 wanted. **Owner: Task 1**, to narrow its
+clause to "no state name is spelled outside `STATES`'s six members" or to have Tasks 14, 15, 16 and
+17 derive theirs by index as Task 24 does.
+
+**N2 — `DECLARED_VOCABULARIES` names two constants no task's `Produces:` line declares.**
+`UNRESOLVED_COLUMNS` and `FACTS_TABLES` are listed because Task 5's and Task 4's tests read
+`PRAGMA table_info` and Task 19 modifies `schema.py`, so a table-name or column-name tuple is the
+natural shape for them — but neither is on a `Produces:` line, so neither is certain. If they are not
+built, the two lines are dead entries in an allowlist, which costs nothing. If they are built under
+different names, the guard goes red on first run and the fix is one line. **This is the guard
+behaving correctly**, and it is written here so that first red is not mistaken for a defect.
+
+**N3 — Task 24 fixes four keyword lists the skeleton left as `...`.** `active_allowlist_for`,
+`unresolved_for`, `event_facts`, `session_facts` and `family_facts` are spelled out in this task's
+`Interfaces:` block. Nothing is renamed and no signature that another task consumes is changed;
+these five are published *by* Task 24 and consumed only by P9–P13, none of which exist.
+
+**N4 — `evidence_chain` and `values_with_counts` are the only two functions in P6 that read another
+task's table with SQL.** Both are unavoidable: `evidence_chain` is addressed by `fact_id` alone and
+no module publishes a by-`fact_id` read, and `values_with_counts` needs one corpus-wide aggregate.
+They read `file_facts`, which is P6's own table, and they write nothing. If Task 4 later publishes
+`fact_by_id(conn, fact_id)`, `evidence_chain` should use it. **Owner: Task 4**, optional.
+
+**N5 — the four-pass ordering is not asserted here and must not be.** D5 cut Task 26, so
+`no_usable_facts_for` is a read surface P6's own tests exercise and the caller keeps passing
+`orchestrator.TARGETED_OCR_UNAVAILABLE`. This guard asserts `facts` imports no `orchestrator`, which
+is the correct and only enforceable statement of that today. Wiring it is later, separate work.

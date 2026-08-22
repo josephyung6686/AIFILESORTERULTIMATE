@@ -87,7 +87,7 @@ transaction (P12, §8.3); node privacy storage (P10, §5.12); the six reliabilit
 | **P3** | The corpus. Files excluded at scan never reach the gate | §1.1, §1.2 |
 | **P4** | Observation records whose `Location` is precise enough to address a **bounded span** — document zone, page number, text offset (§2.2); table/row/cell (§2.3); EXIF field or OCR region (§2.8). The gate materialises excerpts by `(observation_key, span)` — P4's content-addressed citation handle, never the per-row `observation_id`, which dies on extractor upgrade (M14). It cannot honour "send the excerpt" if the observation is not span-addressable. | §2.8, §2.2 |
 | **P5** | `reliability state` on each observation, and the *"indexed-but-unreadable"* marking for unsupported proprietary formats (§2.9). An unreadable extraction result maps to handling class `unreadable_unclassified`, and is distinct from an empty one — §2.4: *"an empty extraction result is different from an extractor that does not yet exist."* | §2.9, §2.4 |
-| **P6** | The `sensitivity` field (§3.12) with the five class values; `file_facts` rows carrying evidence links; the six reliability states (§3.13), so a user reclassification is a `user_confirmed` fact that outranks a `validated` detector fact by the design's own ordering — P6's canonical snake_case literals, never a respelling. **P6 must accept `sensitivity` as a first-class universal field** (§3.11) rather than a domain-scoped one. | §3.11, §3.12, §3.13 |
+| **P6** | **Nothing. Amended by D7, 2026-08-22.** This row required *"P6 must accept `sensitivity` as a first-class universal field (§3.11)"* and named a P6 `sensitivity` field, `file_facts` rows and P6's six reliability states as P7's inputs. **D2 made P7's `ClassificationRecord` authoritative and D7 closed the question behind it: P6 creates no `sensitivity_status` row, so there is no P6 surface here to consume.** §3.11's mention of `sensitivity status` describes an attribute; it does not commission a field. Task 21 asserts the amended shape from the other side — *"P7 reads no P6 surface, holds no `file_facts`"* — and the L2 guard set is `{evidence_shape, orchestrator, privacy}`, with no `facts`. **Consequence, and it is open: the reliability-state and basis literals P7 writes (`user_confirmed`, `user`) now have no published home**, because P7 must not import P6. Task 2 is the obvious owner and has not been told to build them. | D7, D2 |
 | **P8** | Compliance with the calling discipline below: requests carry references, never materialised content. P8's transport exposes no string-prompt entry point. P8 calls `Gate.release` under the signature published in Contract out §6 — that signature is adopted verbatim on both sides (B2). P8 also measures `Maximum dossier tokens per model call` **before** it calls the gate and runs §8.6's reduction ladder there; the gate's `dossier_over_budget` denial is a backstop only (M9, below). | §8.4, §8.6 |
 | **P10** | Node type `protected` (§5.12) and per-node privacy restrictions on the destination profile (§6.1), populated from P7's policy rather than authored independently. | §5.12, §6.1 |
 | **P2** | A replay bundle slot for *"policy settings"* (§8.5). | §8.5 |
@@ -404,8 +404,18 @@ Nothing below is invented here. Each names what is deferred and which § defines
 
 1. Five handling classes and four operation modes exist as closed vocabularies; an out-of-vocabulary
    value is a load error (§8.4).
-2. Every file the gate can be asked about resolves to exactly one current `sensitivity` fact through P6,
-   and absence resolves to `unreadable_unclassified` — never to `public_low` (§8.4, §8.6).
+2. Every file the gate can be asked about resolves to exactly one current classification through P7's
+   own `ClassificationRecord`, and absence resolves to `unreadable_unclassified` — never to
+   `public_low` (§8.4, §8.6).
+
+   > **Amended by D7, 2026-08-22.** This item said *"through P6"*. Under D2 the authoritative record
+   > is P7's, and under D7 there is no P6 `sensitivity_status` row for it to resolve through — so as
+   > written the item was **knowingly unsatisfiable**, the only one in either part in that state. It
+   > is now satisfiable by Task 16's `reclassify` superseding through `current_fact_id`, which is what
+   > that task already claims. **Nothing in any task body changes**; the clause that could not hold
+   > is gone. `files.sensitivity_state` remains the projection, written through P1's published
+   > `set_sensitivity_state`, and `unreadable_unclassified` stays a gate outcome that never enters
+   > that column.
 3. **Static property:** the model/connector transport has exactly one entry point and its only content
    parameter is a `Released`. No transport function accepts a string, a file path, or an
    observation record. Provable by inspection of the transport's signature, not by review discipline
