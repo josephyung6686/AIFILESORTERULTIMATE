@@ -1,12 +1,22 @@
 ### Task 11: `Gate.release` — the request, the three-branch union, and no override parameter
 
-> ### ⚠ CUT 4 — unratified. This task is a cut target; it is written in full anyway.
+> ### CUT 4 — RULED 2026-08-22 (D13): the facade is KEPT. This callout is the record of that.
 >
-> `planning/overnight/reviews/round-5-scope.md` **CUT 4** recommends deleting **P7's `Gate` facade as
+> `planning/overnight/reviews/round-5-scope.md` **CUT 4** recommended deleting **P7's `Gate` facade as
 > a seven-method object**, on the argument that seven methods on one class is a namespace, not an
 > abstraction, and that six of the seven are one-line delegations to modules that already publish the
-> function. **Joseph has not ruled on it.** Of round 5's seven cuts exactly one is ratified (CUT 1,
-> P6 Task 26, via D5); this is not that one.
+> function. **D13 ruled the five remaining round-5 cuts KEPT**, this one among them; CUT 1 (P6 Task
+> 26, via D5) remains the only cut ever applied.
+>
+> **Two consequences, and the second is work:**
+> 1. The argument is recorded rather than acted on, so a later reader can still decide against the
+>    facade with the plan in front of them. A kept cut is a decision that can be revisited.
+> 2. **The six delegating methods are now certain, not provisional.** Finding #6 below — that
+>    Tasks 15–18 each need a `Modify: src/privacy/gate.py` line their `Files` blocks omit — was
+>    filed as *"relevant to CUT 4"*. It is now **mandatory assembly work**, and it has been applied:
+>    without it, `Gate.revoke`, `Gate.reclassify`, `Gate.delete_derived`,
+>    `Gate.may_move_automatically`, `Gate.display_policy` and `Gate.summarize_protected` are six
+>    published surfaces with no producer.
 >
 > Written in full, per the authoring brief §9, because an unratified recommendation is not a decision
 > and a half-written keystone is worth nothing to either outcome. **What the cut would and would not
@@ -14,9 +24,11 @@
 > `Gate.release(ModelCallRequest) -> ReleaseDecision` and which B2 makes P8's call verbatim. A build
 > that adopts CUT 4 has to answer what `Gate.release` becomes — SPEC §6 names the method on an object
 > — and that is a Contract-out revision, not an implementation choice. This task therefore ships
-> `Gate` with **one** method and names the six that Tasks 15–18 add (see *What this task does not do*),
-> which is the smallest form the published signature admits and the form a reviewer deciding CUT 4
-> needs in front of them.
+> `Gate` with **one** method and names the six that Tasks 15–18 add (see *What this task does not do*).
+> That was the smallest form the published signature admits, chosen while the cut was open. With
+> the cut ruled and the facade kept, the shape is unchanged but the reason is different: the six
+> land with the tasks that own their logic, so `gate.py` never holds a method whose module does
+> not yet exist.
 
 **Files:**
 - Create: `src/privacy/release.py`, `src/privacy/gate.py`
@@ -1755,7 +1767,7 @@ Expected: **PASS — 28 passed.**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
 
-Expected: **PASS** — Tasks 1–14 green, and P1–P5's 1300 collected tests still green.
+Expected: **PASS** — Tasks 1–14 green, and P1–P5's 1302 collected tests still green.
 `src/privacy/` still imports none of `extractors`' three refusals, and `src/privacy/gate.py` binds no
 P4 text materialiser — `resolve` is still the only module that does, which Task 21 re-asserts
 repo-wide.
