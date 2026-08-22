@@ -251,6 +251,14 @@ def test_a_region_address_is_refused_and_names_the_open_decision():
     assert REGION_ORIGIN_UNDECIDED in str(caught.value)
 
 
+def test_a_region_does_not_block_a_text_span_address():
+    # Fixture 8's shape: the box is C3, the text span is not.
+    boxed = Location(zone="ocr", container_path=(
+        Segment(kind="page", index=4), Segment(kind="region", index=2)),
+        text_span=TextSpan(0, 24), region=Region(0.08, 0.21, 0.55, 0.06, "norm"))
+    assert span_address(boxed) == "ocr:page=4/region=2#0-24"
+
+
 def test_p4s_region_names_no_origin():
     # (x, y, w, h, unit) and unit in ("px", "norm"). Neither says which corner the
     # origin sits in: Apple Vision measures from bottom-left, most tooling from

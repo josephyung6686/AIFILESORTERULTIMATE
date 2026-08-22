@@ -123,12 +123,14 @@ def span_address(location: Location) -> str:
     what lets SPEC §7's audit record "reconstruct the released payload from local
     storage" rather than merely name it.
 
-    A region or a time span raises. `serialize_locator` drops a region, so the string
-    it returns would silently address the whole page.
+    A region without a text span, or a time span, raises. `serialize_locator`
+    drops a region, so a box-only locator would silently address the whole page.
+    A location that already has a text span is addressable; the box is C3, the
+    span is not.
     """
-    if location.region is not None:
+    if location.region is not None and location.text_span is None:
         raise RegionOriginUnspecified(
-            f"{location.zone}:{serialize_locator(location)} carries a bounding box "
+            f"{serialize_locator(location)} carries a bounding box "
             f"and `Region(x, y, w, h, unit)` names no origin corner -- `norm` is "
             f"bottom-left in Apple Vision and top-left in most other tooling, so a "
             f"redaction band placed from a guess covers a mirrored region while the "
