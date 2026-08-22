@@ -108,6 +108,7 @@ parallel are unaffected.
 
 **Files:**
 - Create: `src/privacy/moves.py`
+- Modify: `src/privacy/gate.py` (add `Gate.may_move_automatically`, delegating to this module — SPEC §9 publishes it on the facade, and **D13 kept CUT 4**, so the facade is certain rather than provisional)
 - Test: `tests/p7/test_p7_moves.py`
 
 **Interfaces:**
@@ -194,7 +195,7 @@ from privacy.moves import (
     PROTECTED_WITHOUT_PERMITTING_POLICY, UNREADABLE_UNCLASSIFIED, MoveVerdict,
     may_move_automatically,
 )
-from privacy.policy import Policy, set_policy
+from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 COMPONENT = "0.1.0"
@@ -230,7 +231,7 @@ def store(p7_conn):
 
 
 def a_policy(**over) -> Policy:
-    base = dict(policy_version="policy-1", operation_mode="cloud_assisted",
+    base = dict(policy_version=UNSET_POLICY_VERSION, operation_mode="cloud_assisted",
                 consent_grants=(("Academics", "cloud_model"),),
                 redaction_settings={"names": "redacted", "previews": "redacted",
                                     "thumbnails": "redacted", "ocr_text": "redacted",
@@ -250,8 +251,8 @@ def stored(conn, **over) -> str:
     `permitting_policy` a fact P11 and P12 can record rather than a value the caller
     already had.
     """
-    return set_policy(conn, a_policy(**over), author=SUBSYSTEM,
-                      component_version=COMPONENT, user_id="joseph")
+    return set_policy(conn, a_policy(**over), component_version=COMPONENT, user_id="joseph",
+                      reason="the policy this test starts from")
 
 
 def classify(store, file_id, content_hash, *, handling_class, protected):
@@ -786,7 +787,7 @@ from privacy.display import (
     UnknownFacetValue, check_facet_value, display_policy, settings_for,
     summarize_protected,
 )
-from privacy.policy import Policy, set_policy
+from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.vocabulary import DISPLAY_FACETS, HANDLING_CLASSES
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
@@ -799,7 +800,7 @@ EIGHT_FOUR_FACETS = ("names", "previews", "thumbnails", "ocr_text", "location_da
 
 
 def a_policy(**over) -> Policy:
-    base = dict(policy_version="policy-1", operation_mode="cloud_assisted",
+    base = dict(policy_version=UNSET_POLICY_VERSION, operation_mode="cloud_assisted",
                 consent_grants=(("Academics", "cloud_model"),),
                 redaction_settings={facet: REDACTED for facet in EIGHT_FOUR_FACETS},
                 automatic_move_permissions={}, plan_version=PLAN_ONE,
@@ -809,8 +810,8 @@ def a_policy(**over) -> Policy:
 
 
 def stored(conn, **over) -> str:
-    return set_policy(conn, a_policy(**over), author=SUBSYSTEM,
-                      component_version=COMPONENT, user_id="joseph")
+    return set_policy(conn, a_policy(**over), component_version=COMPONENT, user_id="joseph",
+                      reason="the policy this test starts from")
 
 
 @pytest.fixture()

@@ -2171,8 +2171,9 @@ def a_policy(**over) -> Policy:
 @pytest.fixture()
 def stored_policy(p7_conn) -> Policy:
     """A policy in force, so `grant_consent` has something to supersede."""
-    set_policy(p7_conn, a_policy(), author=SUBSYSTEM, component_version=COMPONENT,
-               user_id="joseph")
+    set_policy(p7_conn, a_policy(), component_version=COMPONENT,
+               user_id="joseph",
+               reason="the fixture's starting policy")
     return current_policy(p7_conn, plan_version="plan-1")
 
 

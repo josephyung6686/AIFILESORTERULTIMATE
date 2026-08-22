@@ -87,6 +87,7 @@ Without it Task 16's `reclassify` cannot supersede, which is Done-means 2's user
 
 **Files:**
 - Create: `src/privacy/revocation.py`
+- Modify: `src/privacy/gate.py` (add `Gate.revoke` and `Gate.delete_derived`, delegating to this module — SPEC §8 publishes it on the facade, and **D13 kept CUT 4**, so the facade is certain rather than provisional)
 - Test: `tests/p7/test_p7_revocation.py`
 
 **Interfaces:**
@@ -188,7 +189,7 @@ import pytest
 
 from privacy.audit import AUDIT_FIELDS, AuditRecord, append_audit
 from privacy.authorship import CONSENT_REVOKED, SUBSYSTEM
-from privacy.policy import Policy
+from privacy.policy import UNSET_POLICY_VERSION, Policy
 from privacy.revocation import (
     DERIVED_PROJECTIONS, NOT_DERIVED, RELEASED, DeleteDerivedRefused, DerivedScope,
     MissingRetractionLimit, PriorRelease, ScopeNotDerived, UnratifiedResolution,
@@ -759,6 +760,7 @@ git commit -m "feat(P7): revocation, the retraction limit, and delete_derived re
 
 **Files:**
 - Create: `src/privacy/learning_seam.py`
+- Modify: `src/privacy/gate.py` (add `Gate.reclassify`, delegating to this module — SPEC §8 publishes it on the facade, and **D13 kept CUT 4**, so the facade is certain rather than provisional)
 - Test: `tests/p7/test_p7_learning_seam.py`
 
 **Interfaces:**
@@ -1521,7 +1523,7 @@ def classify(p7_conn, store, file_id, *, handling_class, protected):
 def install(conn, *, plan_version="plan-1", permissions=None) -> str:
     """Returns the minted policy_version. The test never asserts its spelling: SPEC
     §6 says the gate owns the policy and the caller echoes it."""
-    policy = Policy(policy_version="", operation_mode="local_model",
+    policy = Policy(policy_version=UNSET_POLICY_VERSION, operation_mode="local_model",
                     consent_grants=(),
                     redaction_settings={"names": "redacted", "previews": "redacted",
                                         "thumbnails": "redacted",
@@ -1529,8 +1531,9 @@ def install(conn, *, plan_version="plan-1", permissions=None) -> str:
                                         "location_data": "redacted"},
                     automatic_move_permissions=dict(permissions or {}),
                     plan_version=plan_version, set_at=FIXED_CLOCK)
-    return set_policy(conn, policy, author=SUBSYSTEM, component_version=COMPONENT,
-                      user_id="joseph")
+    return set_policy(conn, policy, component_version=COMPONENT,
+                      user_id="joseph",
+                      reason="the fixture's starting policy")
 
 
 def ask(conn, file_id, store, plan_version="plan-1"):
@@ -1816,6 +1819,7 @@ git commit -m "feat(P7): may_move_automatically, keyed on the protected flag and
 
 **Files:**
 - Create: `src/privacy/display.py`
+- Modify: `src/privacy/gate.py` (add `Gate.display_policy` and `Gate.summarize_protected`, delegating to this module — SPEC §10 publishes it on the facade, and **D13 kept CUT 4**, so the facade is certain rather than provisional)
 - Test: `tests/p7/test_p7_display.py`
 
 **Interfaces:**
@@ -1954,13 +1958,14 @@ def classify(conn, store, file_id, *, handling_class, protected):
 
 
 def install(conn, *, plan_version="plan-1", redaction_settings=None) -> str:
-    policy = Policy(policy_version="", operation_mode="local_model",
+    policy = Policy(policy_version=UNSET_POLICY_VERSION, operation_mode="local_model",
                     consent_grants=(),
                     redaction_settings=dict(redaction_settings or {}),
                     automatic_move_permissions={}, plan_version=plan_version,
                     set_at=FIXED_CLOCK)
-    return set_policy(conn, policy, author=SUBSYSTEM, component_version=COMPONENT,
-                      user_id="joseph")
+    return set_policy(conn, policy, component_version=COMPONENT,
+                      user_id="joseph",
+                      reason="the fixture's starting policy")
 
 
 def summarize(conn, store, file_ids):
@@ -2948,8 +2953,9 @@ def materialise(conn, tmp_path, fixture, store):
     assert content_hash == FIXTURE_CONTENT_HASH
     if fixture.classification is not None:
         store.write(dataclasses.replace(fixture.classification, file_id=file_id))
-    set_policy(conn, fixture.policy, author=SUBSYSTEM, component_version=COMPONENT,
-               user_id="joseph")
+    set_policy(conn, fixture.policy, component_version=COMPONENT,
+               user_id="joseph",
+               reason="the published fixture's policy")
     set_ceiling(conn, CEILING_KEY, FIXTURE_CEILING)
     request = dataclasses.replace(
         fixture.request, target=Target(file_ids=(file_id,), group_id=None))
@@ -3221,7 +3227,7 @@ from privacy.items import (
     CandidateLabel, EvidenceReference, Excerpt, Filename, MetadataField,
     RedactedIdentifier,
 )
-from privacy.policy import Policy
+from privacy.policy import UNSET_POLICY_VERSION, Policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, NeedsConsent, \
     Released, Target
 from privacy.vocabulary import CONSENT_OPTIONS
@@ -4633,7 +4639,8 @@ def install_offline(conn) -> str:
         policy_version="", operation_mode="offline", consent_grants=(),
         redaction_settings={}, automatic_move_permissions={},
         plan_version="plan-1", set_at=FIXED_CLOCK),
-        author=SUBSYSTEM, component_version=COMPONENT, user_id="joseph")
+        component_version=COMPONENT, user_id="joseph",
+                      reason="the user granted cloud use for Academics")
 
 
 def a_gate(conn, store, **over):
@@ -4796,8 +4803,9 @@ def test_a_dossier_requiring_sensitive_text_returns_needs_consent(wired, corpus)
     conn = wired
     store = ClassificationStore(conn)
     fixture = by_number(10)
-    set_policy(conn, fixture.policy, author=SUBSYSTEM, component_version=COMPONENT,
-               user_id="joseph")
+    set_policy(conn, fixture.policy, component_version=COMPONENT,
+               user_id="joseph",
+               reason="the published fixture's policy")
     wave2(conn, corpus, policy_settings={})
 
     subject = conn.execute(
@@ -4837,8 +4845,9 @@ def test_choosing_no_model_use_records_a_choice_and_releases_nothing(wired, corp
     conn = wired
     store = ClassificationStore(conn)
     fixture = by_number(10)
-    set_policy(conn, fixture.policy, author=SUBSYSTEM, component_version=COMPONENT,
-               user_id="joseph")
+    set_policy(conn, fixture.policy, component_version=COMPONENT,
+               user_id="joseph",
+               reason="the published fixture's policy")
     wave2(conn, corpus, policy_settings={})
     subject = conn.execute(
         "SELECT file_id, content_hash FROM files ORDER BY filename").fetchone()

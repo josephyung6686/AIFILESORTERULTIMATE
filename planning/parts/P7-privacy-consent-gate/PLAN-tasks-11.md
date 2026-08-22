@@ -1168,7 +1168,13 @@ def test_the_consent_branch_reads_the_protected_flag_and_not_a_class_list(gate_c
 
 def test_a_granted_scope_does_not_ask_again(gate_conn):
     """Consent already given is not a question. §8.4's grant is per corpus area, and
-    what a corpus area IS stays Open question 3 -- `scope_for` is the caller's."""
+    what a corpus area IS stays Open question 3 -- `scope_for` is the caller's.
+
+    It returns `str | None` because Open question 3 is open: a file that belongs to
+    no area must be representable, and `None not in granted` is True, so such a file
+    asks for consent rather than matching a grant by accident. Widened from
+    `Callable[[str], str]` at assembly, when Task 20's fixtures -- which pass
+    `lambda _file_id: None` -- were reconciled onto this name."""
     file_id = _file(gate_conn, "passport.pdf", "hash-passport")
     _policy(gate_conn, "local_model", grants=(("area-1", "local_model"),))
     key = _evidence(gate_conn, file_id, "hash-passport")
@@ -1439,7 +1445,7 @@ class Gate:
 
     def __init__(self, conn: sqlite3.Connection, *, store, plan_version: str,
                  classifier, transform, unclassified_permits_local: bool,
-                 scope_for: Callable[[str], str],
+                 scope_for: Callable[[str], str | None],
                  files_in_scope: Callable[[str], Sequence[str]],
                  component_version: str, now: Callable[[], str],
                  user_id: str | None,

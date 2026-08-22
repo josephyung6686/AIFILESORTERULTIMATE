@@ -2378,8 +2378,9 @@ def corpus(p7_conn, tmp_path):
         extractor_version="1.0.0", source_type="text_document", raw_value=BODY,
         location=WHOLE_LOCATION, occurrence_count=1, observed_at=FIXED_CLOCK,
         reliability="direct", run_id="run-1"))
-    set_policy(p7_conn, a_policy(), author="P7", component_version=COMPONENT,
-               user_id="joseph")
+    set_policy(p7_conn, a_policy(), component_version=COMPONENT,
+               user_id="joseph",
+               reason="the fixture's starting policy")
     return p7_conn
 
 
@@ -2511,7 +2512,8 @@ def test_a_denial_never_resolves_to_a_low_class(corpus):
 def test_a_cloud_target_under_a_local_first_mode_is_denied(corpus):
     # §8.4: "Fully offline mode: No content leaves the device."
     set_policy(corpus, a_policy(policy_version="policy-2", operation_mode="offline"),
-               author="P7", component_version=COMPONENT, user_id="joseph")
+               component_version=COMPONENT, user_id="joseph",
+               reason="the user switched the corpus to offline mode")
     decision = a_gate(corpus).release(a_request(corpus))
     assert isinstance(decision, Denied)
     assert decision.reason == "mode_forbids_target"
@@ -2543,7 +2545,8 @@ def test_a_grant_for_the_scope_turns_consent_into_a_release(corpus):
     classify(corpus, "sensitive_personal", protected=False)
     set_policy(corpus, a_policy(policy_version="policy-3",
                                 consent_grants=(("Academics", "cloud_model"),)),
-               author="P7", component_version=COMPONENT, user_id="joseph")
+               component_version=COMPONENT, user_id="joseph",
+               reason="the user granted cloud use for Academics")
     decision = a_gate(corpus).release(a_request(corpus))
     assert isinstance(decision, Released)
 

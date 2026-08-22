@@ -9087,7 +9087,13 @@ def test_the_consent_branch_reads_the_protected_flag_and_not_a_class_list(gate_c
 
 def test_a_granted_scope_does_not_ask_again(gate_conn):
     """Consent already given is not a question. §8.4's grant is per corpus area, and
-    what a corpus area IS stays Open question 3 -- `scope_for` is the caller's."""
+    what a corpus area IS stays Open question 3 -- `scope_for` is the caller's.
+
+    It returns `str | None` because Open question 3 is open: a file that belongs to
+    no area must be representable, and `None not in granted` is True, so such a file
+    asks for consent rather than matching a grant by accident. Widened from
+    `Callable[[str], str]` at assembly, when Task 20's fixtures -- which pass
+    `lambda _file_id: None` -- were reconciled onto this name."""
     file_id = _file(gate_conn, "passport.pdf", "hash-passport")
     _policy(gate_conn, "local_model", grants=(("area-1", "local_model"),))
     key = _evidence(gate_conn, file_id, "hash-passport")
@@ -9358,7 +9364,7 @@ class Gate:
 
     def __init__(self, conn: sqlite3.Connection, *, store, plan_version: str,
                  classifier, transform, unclassified_permits_local: bool,
-                 scope_for: Callable[[str], str],
+                 scope_for: Callable[[str], str | None],
                  files_in_scope: Callable[[str], Sequence[str]],
                  component_version: str, now: Callable[[], str],
                  user_id: str | None,
@@ -11739,8 +11745,9 @@ def a_policy(**over) -> Policy:
 @pytest.fixture()
 def stored_policy(p7_conn) -> Policy:
     """A policy in force, so `grant_consent` has something to supersede."""
-    set_policy(p7_conn, a_policy(), author=SUBSYSTEM, component_version=COMPONENT,
-               user_id="joseph")
+    set_policy(p7_conn, a_policy(), component_version=COMPONENT,
+               user_id="joseph",
+               reason="the fixture's starting policy")
     return current_policy(p7_conn, plan_version="plan-1")
 
 
@@ -12352,6 +12359,7 @@ git commit -m "feat(P7): NeedsConsent, its consent_request_id, and the P13 seam"
 
 **Files:**
 - Create: `src/privacy/revocation.py`
+- Modify: `src/privacy/gate.py` (add `Gate.revoke` and `Gate.delete_derived`, delegating to this module — SPEC §8 publishes it on the facade, and **D13 kept CUT 4**, so the facade is certain rather than provisional)
 - Test: `tests/p7/test_p7_revocation.py`
 
 **Interfaces:**
@@ -12453,7 +12461,7 @@ import pytest
 
 from privacy.audit import AUDIT_FIELDS, AuditRecord, append_audit
 from privacy.authorship import CONSENT_REVOKED, SUBSYSTEM
-from privacy.policy import Policy
+from privacy.policy import UNSET_POLICY_VERSION, Policy
 from privacy.revocation import (
     DERIVED_PROJECTIONS, NOT_DERIVED, RELEASED, DeleteDerivedRefused, DerivedScope,
     MissingRetractionLimit, PriorRelease, ScopeNotDerived, UnratifiedResolution,
@@ -13027,6 +13035,7 @@ git commit -m "feat(P7): revocation, the retraction limit, and delete_derived re
 
 **Files:**
 - Create: `src/privacy/learning_seam.py`
+- Modify: `src/privacy/gate.py` (add `Gate.reclassify`, delegating to this module — SPEC §8 publishes it on the facade, and **D13 kept CUT 4**, so the facade is certain rather than provisional)
 - Test: `tests/p7/test_p7_learning_seam.py`
 
 **Interfaces:**
@@ -13684,6 +13693,7 @@ git commit -m "feat(P7): reclassification as supersession, and 8.7's query-befor
 
 **Files:**
 - Create: `src/privacy/moves.py`
+- Modify: `src/privacy/gate.py` (add `Gate.may_move_automatically`, delegating to this module — SPEC §9 publishes it on the facade, and **D13 kept CUT 4**, so the facade is certain rather than provisional)
 - Test: `tests/p7/test_p7_moves.py`
 
 **Interfaces:**
@@ -13770,7 +13780,7 @@ from privacy.moves import (
     PROTECTED_WITHOUT_PERMITTING_POLICY, UNREADABLE_UNCLASSIFIED, MoveVerdict,
     may_move_automatically,
 )
-from privacy.policy import Policy, set_policy
+from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 COMPONENT = "0.1.0"
@@ -13806,7 +13816,7 @@ def store(p7_conn):
 
 
 def a_policy(**over) -> Policy:
-    base = dict(policy_version="policy-1", operation_mode="cloud_assisted",
+    base = dict(policy_version=UNSET_POLICY_VERSION, operation_mode="cloud_assisted",
                 consent_grants=(("Academics", "cloud_model"),),
                 redaction_settings={"names": "redacted", "previews": "redacted",
                                     "thumbnails": "redacted", "ocr_text": "redacted",
@@ -13826,8 +13836,8 @@ def stored(conn, **over) -> str:
     `permitting_policy` a fact P11 and P12 can record rather than a value the caller
     already had.
     """
-    return set_policy(conn, a_policy(**over), author=SUBSYSTEM,
-                      component_version=COMPONENT, user_id="joseph")
+    return set_policy(conn, a_policy(**over), component_version=COMPONENT, user_id="joseph",
+                      reason="the policy this test starts from")
 
 
 def classify(store, file_id, content_hash, *, handling_class, protected):
@@ -14255,6 +14265,7 @@ git commit -m "feat(P7): may_move_automatically, keyed on the protected flag and
 
 **Files:**
 - Create: `src/privacy/display.py`
+- Modify: `src/privacy/gate.py` (add `Gate.display_policy` and `Gate.summarize_protected`, delegating to this module — SPEC §10 publishes it on the facade, and **D13 kept CUT 4**, so the facade is certain rather than provisional)
 - Test: `tests/p7/test_p7_display.py`
 
 **Interfaces:**
@@ -14393,13 +14404,14 @@ def classify(conn, store, file_id, *, handling_class, protected):
 
 
 def install(conn, *, plan_version="plan-1", redaction_settings=None) -> str:
-    policy = Policy(policy_version="", operation_mode="local_model",
+    policy = Policy(policy_version=UNSET_POLICY_VERSION, operation_mode="local_model",
                     consent_grants=(),
                     redaction_settings=dict(redaction_settings or {}),
                     automatic_move_permissions={}, plan_version=plan_version,
                     set_at=FIXED_CLOCK)
-    return set_policy(conn, policy, author=SUBSYSTEM, component_version=COMPONENT,
-                      user_id="joseph")
+    return set_policy(conn, policy, component_version=COMPONENT,
+                      user_id="joseph",
+                      reason="the fixture's starting policy")
 
 
 def summarize(conn, store, file_ids):
@@ -15542,7 +15554,7 @@ git commit -m "feat(P7): the transport guard, proven against one conforming and 
 **Done-means:** 11 (first clause; the second clause is P8's test run and is named as such).
 
 **One published surface this task pins for Task 11, because the fixtures cannot be replayed without
-it.** `Gate` takes a **required keyword** `area_of: Callable[[str], str | None]` with **no default**.
+it.** `Gate` takes a **required keyword** `scope_for: Callable[[str], str | None]` with **no default**.
 SPEC Open question 3 — *"What is a 'corpus area'? … Consent grants cannot be scoped until this is
 named"* — is unanswered, so a gate that resolved a file to an area would be answering it in code.
 This is the identical discipline Task 15 applied to `files_in_scope` for the identical question, and
@@ -15710,8 +15722,9 @@ def seed(conn, fixture, tmp_path) -> str:
         for observation in source.observations:
             record_observation(conn, dataclasses.replace(observation, file_id=file_id))
 
-    set_policy(conn, fixture.policy, author="P7", component_version=COMPONENT,
-               user_id="joseph")
+    set_policy(conn, fixture.policy, component_version=COMPONENT,
+               user_id="joseph",
+               reason="the published fixture's policy")
     if fixture.revoked:
         # Task 5's `revoke_consent` records the withdrawal and mints a new
         # `policy_version`; it appends no event (Task 15 owns that append). It is what
@@ -15732,11 +15745,11 @@ def replay(conn, fixture, tmp_path):
     request = dataclasses.replace(
         fixture.request,
         target=Target(file_ids=(file_id,), group_id=fixture.request.target.group_id))
-    # `area_of` has no default. SPEC Open question 3 -- "What is a 'corpus area'? ...
+    # `scope_for` has no default. SPEC Open question 3 -- "What is a 'corpus area'? ...
     # Consent grants cannot be scoped until this is named" -- is unanswered, so the
     # resolver is the caller's and the fixture carries the answer as data.
     gate = Gate(conn, component_version=COMPONENT,
-                area_of=lambda _file_id: fixture.area)
+                scope_for=lambda _file_id: fixture.area)
     return gate.release(request), file_id
 
 
@@ -16164,7 +16177,7 @@ FIXTURE_CLOCK: str = "2026-08-22T09:00:00+00:00"
 
 #: The area name every scoped fixture uses. It is a STRING THE CALLER SUPPLIED and not
 #: a definition: SPEC Open question 3 asks "What is a 'corpus area'?" and P7 answers
-#: nothing. `Gate` takes an `area_of` resolver with no default for the same reason.
+#: nothing. `Gate` takes an `scope_for` resolver with no default for the same reason.
 FIXTURE_AREA: str = "Academics"
 
 LOCAL_MODEL = ModelTarget(locality="local", model_id="local-small", provider="local")
@@ -17095,13 +17108,13 @@ def test_no_module_holds_a_bare_hybrid_or_cloud_assisted_default():
 
 def test_open_question_3_defines_no_corpus_area():
     # "What is a 'corpus area'? ... Consent grants cannot be scoped until this is
-    # named." The gate takes an `area_of` resolver with no default; the only area
+    # named." The gate takes an `scope_for` resolver with no default; the only area
     # STRING in the package is the fixture module's single example.
     import inspect
     from privacy.gate import Gate
     parameters = inspect.signature(Gate.__init__).parameters
-    assert "area_of" in parameters
-    assert parameters["area_of"].default is inspect.Parameter.empty
+    assert "scope_for" in parameters
+    assert parameters["scope_for"].default is inspect.Parameter.empty
     holders = [m.__name__ for m in imported()
                if any(name.upper().endswith("AREA") or name.upper().endswith("AREAS")
                       for name in vars(m) if not name.startswith("_"))]
@@ -17144,7 +17157,9 @@ def test_open_question_10_states_no_retention_period():
 # --- the three held open that are not among the eleven ----------------------
 
 def test_held_open_names_exactly_three_and_each_carries_its_source():
-    assert set(HELD_OPEN) == {"I6", "P6-sensitivity-field-row", "P4-region-origin"}
+    # Three again, but not the same three: D7 and D10 closed two, and the
+    # `filename` sixth kind and the five kept round-5 cuts took their places.
+    assert set(HELD_OPEN) == {"I6", "filename-sixth-releasable-kind", "round-5-cuts"}
     for key, text in HELD_OPEN.items():
         assert text.strip(), key
 
@@ -17156,12 +17171,11 @@ def test_i6_is_held_by_delete_derived_refusing_and_not_by_a_sentence():
     assert "I6" in str(caught.value)
 
 
-def test_the_p6_field_row_question_stays_open_and_p7_reads_no_p6_surface():
-    # P7's SPEC Contract-in: "P6 must accept `sensitivity` as a first-class universal
-    # field (§3.11) rather than a domain-scoped one." D2 made P7's own record
-    # authoritative and round 1 found that field has no producer. D2 did NOT decide
-    # whether a second P6-owned row exists beside it, so P7 creates none, reads none,
-    # and holds no P6 table name.
+def test_p7s_classification_record_is_the_sole_home_d7():
+    # RULED. D2 made P7's own record authoritative; **D7** then closed the question
+    # behind it -- P6 creates no `sensitivity_status` row at all, so P7's Contract-in
+    # from P6 is empty. This asserted the question was OPEN; it now asserts the ruled
+    # outcome, which is the stronger of the two and needs no change to the body.
     for path in modules():
         tokens = code_tokens(path)
         for forbidden in ("file_facts", "fact_id", "field_key", "value_id"):
@@ -17199,26 +17213,32 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
             assert settled not in tokens, path.name
 
 
-def test_p7_assumes_no_origin_for_a_normalized_bounding_box():
-    # P4's SPEC: "`region` -- `{ x, y, w, h, unit }` where `unit ∈ {px, norm}`", and
-    # §2.7 says only "locations or bounding boxes where available". NO document in
-    # this repository says which corner the origin is. P7's redaction and resolution
-    # both touch `Location.region`, so the guard is that P7 does ARITHMETIC on none of
-    # its fields and holds no origin token.
+def test_a_normalized_bounding_box_is_measured_from_the_top_left_d10():
+    # RULED. This test used to forbid P7 from doing ANY arithmetic on a region field,
+    # because no document said which corner `norm` measured from and P7 is the part
+    # that would otherwise have answered it by accident. **D10** answered it: `norm`
+    # means TOP-LEFT, and `readers.ocr_vision._box` converts Vision's bottom-left
+    # rectangles at the adapter (commit 87016b0). Redaction may now rely on it.
+    #
+    # The guard inverts rather than disappearing. P4's shape is still five keys with
+    # no origin field, so the convention lives in exactly one place and P7 must not
+    # re-declare it: P7 holds no origin token of its own, and the one place the flip
+    # happens stays outside this part.
     from evidence_shape.location import Region
     region_fields = {f.name for f in __import__("dataclasses").fields(Region)}
-    assert region_fields == {"x", "y", "w", "h", "unit"}
+    assert region_fields == {"x", "y", "w", "h", "unit"}, (
+        "D10 was closed at the adapter precisely so P4's shape would not move")
+
+    import inspect as _inspect
+
+    import readers.ocr_vision as _vision
+    assert "1.0 - (" in _inspect.getsource(_vision._box), (
+        "the top-left flip lives in the Vision adapter; if it moved, P7's redaction "
+        "is reading a convention nothing enforces")
+
     for path in modules():
-        tree = ast.parse(path.read_text(), filename=str(path))
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.BinOp):
-                continue
-            for side in (node.left, node.right):
-                if isinstance(side, ast.Attribute):
-                    assert side.attr not in region_fields, (path.name, side.attr)
         tokens = code_tokens(path)
-        for origin in ("top_left", "bottom_left", "top-left", "bottom-left",
-                       "origin"):
+        for origin in ("top_left", "bottom_left", "top-left", "bottom-left"):
             assert origin not in tokens, (path.name, origin)
 
 
@@ -17462,23 +17482,31 @@ HELD_OPEN: Mapping[str, str] = MappingProxyType({
         "until P13 drives it. `delete_derived` therefore refuses on both sides of the "
         "enumeration and writes nothing. Also open in: P5 OQ6, P13 OQ11, P1 OQ16."
     ),
-    "P6-sensitivity-field-row": (
-        "P7's SPEC Contract-in requires that 'P6 must accept `sensitivity` as a "
-        "first-class universal field (§3.11) rather than a domain-scoped one', while "
-        "D2 makes P7's `ClassificationRecord` authoritative. D2 decided which record "
-        "is AUTHORITATIVE; it did not decide whether a second, P6-owned field row "
-        "continues to exist beside it, and review round 1 found that field has no "
-        "producer. Until it is answered, P6 creates no such row and P7 reads none."
+    "filename-sixth-releasable-kind": (
+        "§8.4's releasable list names FIVE kinds and puts 'Paths' in the always-local "
+        "set, while §7.7's residual dossier 'includes the filename' and §7.3 forbids "
+        "filenames in prompts only for `Protected Records`. P7's SPEC adds a sixth "
+        "kind and flags it itself (NEEDS-JOSEPH B5d / C9a). Task 7 builds it and makes "
+        "it unadmittable without `allow_unratified`, so a reviewer sees an unratified "
+        "reading rather than a shipped one."
     ),
-    "P4-region-origin": (
-        "P4's `Location.region` is `{ x, y, w, h, unit }` with `unit ∈ {px, norm}`, "
-        "and no document in this repository states which corner the origin is; §2.7 "
-        "says only 'locations or bounding boxes where available'. P7 reads bounding "
-        "boxes when it redacts, so it assumes no origin: it performs no arithmetic on "
-        "a region field and holds no origin token. P4's question, held here because "
-        "P7 is the part that would otherwise answer it by accident."
+    "round-5-cuts": (
+        "Round 5 recommended seven cuts. D5 ratified CUT 1 (P6 Task 26). D13 "
+        "(2026-08-22) ruled the remaining five KEPT, including CUT 2 (this part's "
+        "Task 19, the transport guard) and CUT 4 (the `Gate` facade). They are held "
+        "here because a kept cut is a decision that can be revisited, and the tasks "
+        "carry their callouts so a later reader can decide against them with the plan "
+        "in front of them."
     ),
 })
+
+#: Two entries were REMOVED on 2026-08-22 because Joseph ruled them, and a guard that
+#: asserts a ruled question is still open fails the day the plan is executed -- the exact
+#: failure this task's own preamble diagnoses for P6 OQ11 under D2.
+#:   `P6-sensitivity-field-row` -> **D7**: P6 creates no `sensitivity_status` row and
+#:      P7's `ClassificationRecord` is the sole home. C24 and C25 closed.
+#:   `P4-region-origin`         -> **D10**: P4's `norm` means TOP-LEFT; the Vision
+#:      adapter converts (`readers.ocr_vision._box`, commit 87016b0). C22 closed.
 ```
 
 - [ ] **Step 4: Run the test and watch it pass**
@@ -17871,7 +17899,7 @@ def test_release_was_called_zero_times(skeleton_db, corpus):
             return super().release(request)
 
     RecordingGate(skeleton_db, component_version=COMPONENT,
-                  area_of=lambda file_id: None)
+                  scope_for=lambda file_id: None)
     walk(skeleton_db, corpus)
     assert calls == []
 
@@ -17884,10 +17912,10 @@ def test_a_deliberate_call_under_offline_is_denied_mode_forbids_target(
     walk(skeleton_db, corpus)
     file_id = only_file(skeleton_db)
     classify(skeleton_db, file_id)
-    set_policy(skeleton_db, offline_policy(), author="P7",
-               component_version=COMPONENT, user_id="joseph")
+    set_policy(skeleton_db, offline_policy(), component_version=COMPONENT, user_id="joseph",
+               reason="the user switched the corpus to offline mode")
     gate = Gate(skeleton_db, component_version=COMPONENT,
-                area_of=lambda _file_id: None)
+                scope_for=lambda _file_id: None)
     request = dataclasses.replace(
         by_number(8).request, target=Target(file_ids=(file_id,), group_id=None))
     decision = gate.release(request)
@@ -17905,11 +17933,11 @@ def test_the_deliberate_call_is_audited_even_though_it_was_denied(
     walk(skeleton_db, corpus)
     file_id = only_file(skeleton_db)
     classify(skeleton_db, file_id)
-    set_policy(skeleton_db, offline_policy(), author="P7",
-               component_version=COMPONENT, user_id="joseph")
+    set_policy(skeleton_db, offline_policy(), component_version=COMPONENT, user_id="joseph",
+               reason="the user switched the corpus to offline mode")
     before = p7_events(skeleton_db)
     Gate(skeleton_db, component_version=COMPONENT,
-         area_of=lambda _file_id: None).release(dataclasses.replace(
+         scope_for=lambda _file_id: None).release(dataclasses.replace(
              by_number(8).request,
              target=Target(file_ids=(file_id,), group_id=None)))
     assert p7_events(skeleton_db) > before
@@ -17922,8 +17950,8 @@ def test_the_transcription_back_edge_is_p7s_and_is_not_the_gate(skeleton_db, cor
     # authorization consulted before a LOCAL extractor runs -- no content leaves, and
     # it is NOT §8.4's door. A reader who saw P7 in the Wave-2 call could otherwise
     # conclude the skeleton exercises the gate.
-    set_policy(skeleton_db, offline_policy(), author="P7",
-               component_version=COMPONENT, user_id="joseph")
+    set_policy(skeleton_db, offline_policy(), component_version=COMPONENT, user_id="joseph",
+               reason="the user switched the corpus to offline mode")
     authorized = transcription_authorized_for("Academics")
     assert inspect.signature(authorized).parameters == {}
     assert authorized() is False
@@ -18000,10 +18028,10 @@ def test_a_dossier_requiring_sensitive_text_returns_needs_consent(
     file_id = only_file(skeleton_db)
     classify(skeleton_db, file_id, handling_class="sensitive_personal",
              protected=False)
-    set_policy(skeleton_db, fixture.policy, author="P7",
-               component_version=COMPONENT, user_id="joseph")
+    set_policy(skeleton_db, fixture.policy, component_version=COMPONENT, user_id="joseph",
+               reason="the published fixture's policy")
     gate = Gate(skeleton_db, component_version=COMPONENT,
-                area_of=lambda _file_id: fixture.area)
+                scope_for=lambda _file_id: fixture.area)
     decision = gate.release(dataclasses.replace(
         fixture.request, target=Target(file_ids=(file_id,), group_id=None)))
     assert isinstance(decision, NeedsConsent)
@@ -18018,10 +18046,10 @@ def test_path_one_can_never_produce_this_branch(skeleton_db, corpus):
     walk(skeleton_db, corpus)
     file_id = only_file(skeleton_db)
     classify(skeleton_db, file_id, handling_class="sensitive_personal")
-    set_policy(skeleton_db, offline_policy(), author="P7",
-               component_version=COMPONENT, user_id="joseph")
+    set_policy(skeleton_db, offline_policy(), component_version=COMPONENT, user_id="joseph",
+               reason="the user switched the corpus to offline mode")
     gate = Gate(skeleton_db, component_version=COMPONENT,
-                area_of=lambda _file_id: None)
+                scope_for=lambda _file_id: None)
     decision = gate.release(dataclasses.replace(
         by_number(SKELETON_FIXTURE).request,
         target=Target(file_ids=(file_id,), group_id=None)))
@@ -18035,10 +18063,10 @@ def test_no_model_release_exists_until_a_choice_is_recorded(skeleton_db, corpus)
     walk(skeleton_db, corpus)
     file_id = only_file(skeleton_db)
     classify(skeleton_db, file_id, handling_class="sensitive_personal")
-    set_policy(skeleton_db, fixture.policy, author="P7",
-               component_version=COMPONENT, user_id="joseph")
+    set_policy(skeleton_db, fixture.policy, component_version=COMPONENT, user_id="joseph",
+               reason="the published fixture's policy")
     gate = Gate(skeleton_db, component_version=COMPONENT,
-                area_of=lambda _file_id: fixture.area)
+                scope_for=lambda _file_id: fixture.area)
     decision = gate.release(dataclasses.replace(
         fixture.request, target=Target(file_ids=(file_id,), group_id=None)))
     records = audit_records_for(skeleton_db,
@@ -18056,10 +18084,10 @@ def test_choosing_no_model_use_records_the_choice_and_releases_nothing(
     walk(skeleton_db, corpus)
     file_id = only_file(skeleton_db)
     classify(skeleton_db, file_id, handling_class="sensitive_personal")
-    set_policy(skeleton_db, fixture.policy, author="P7",
-               component_version=COMPONENT, user_id="joseph")
+    set_policy(skeleton_db, fixture.policy, component_version=COMPONENT, user_id="joseph",
+               reason="the published fixture's policy")
     gate = Gate(skeleton_db, component_version=COMPONENT,
-                area_of=lambda _file_id: fixture.area)
+                scope_for=lambda _file_id: fixture.area)
     decision = gate.release(dataclasses.replace(
         fixture.request, target=Target(file_ids=(file_id,), group_id=None)))
     record_consent_choice(skeleton_db, decision.consent_request_id, "no_model_use",
@@ -18115,10 +18143,10 @@ def test_with_no_detector_every_real_file_resolves_to_denied_unclassified(
     file_id = only_file(skeleton_db)
     assert get_file(skeleton_db, file_id)["sensitivity_state"] is None
     assert ClassificationStore(skeleton_db).history(file_id) == []
-    set_policy(skeleton_db, by_number(9).policy, author="P7",
-               component_version=COMPONENT, user_id="joseph")
+    set_policy(skeleton_db, by_number(9).policy, component_version=COMPONENT, user_id="joseph",
+               reason="the fixture's starting policy")
     gate = Gate(skeleton_db, component_version=COMPONENT,
-                area_of=lambda _file_id: "Academics")
+                scope_for=lambda _file_id: "Academics")
     decision = gate.release(dataclasses.replace(
         by_number(9).request, target=Target(file_ids=(file_id,), group_id=None)))
     assert isinstance(decision, Denied)
@@ -18193,21 +18221,38 @@ git commit -m "feat(P7): the walking-skeleton gate step, and 11 9's NeedsConsent
 # Appendix — what the section authors reported rather than resolved
 
 Each section closed by naming its own contradictions instead of silently resolving them. That is the
-mechanism that found this project's defects, so the reports are kept verbatim, grouped by the section
-that made them. **They are dated and they are not all still true** — several were closed by rulings
-made afterwards. Read the preamble first; it wins.
+mechanism that found this project's defects, so the reports are kept **verbatim**, grouped by the
+section that made them. **They are dated, and they are not all still true** — several were closed by
+rulings made afterwards. Read the preamble first; it wins.
 
-Two of these appendices belong to files whose LAST task lost — `PLAN-tasks-04-07.md`'s sits after its
-Task 7 and `PLAN-tasks-15-22.md`'s three sit after its Task 22. They are kept because they are
-evidence about tasks, not about files.
+Two of these appendices belong to files whose **last task lost** — `PLAN-tasks-04-07.md`'s sits after
+its Task 7 and `PLAN-tasks-15-22.md`'s three sit after its Task 22. They are kept because they are
+evidence about **tasks**, not about files.
 
-> **Two labels in what follows are wrong, and one status is.** Passages citing **NEEDS-JOSEPH C5**
-> for *"does P6 keep a `sensitivity_status` field row"* mean **C24**, which **D7 has now closed** —
-> P7's `ClassificationRecord` is the sole home. Passages citing **C3** for the region origin mean
-> **C22**, which **D10 has now closed** — `norm` is top-left. But `PLAN-tasks-11.md`'s citations of
-> **C5** for keeping `SENSITIVE_CLASSES` unpublished are **correct and still live**: C5 is *"is
-> `protected` exactly the top two handling classes?"*, a different question, and it remains open.
+## What in here is no longer true
 
+**Two labels are wrong.** Passages citing **NEEDS-JOSEPH C5** for *"does P6 keep a
+`sensitivity_status` field row"* mean **C24**; passages citing **C3** for the region origin mean
+**C22** (brief §14 renumbered both).
+
+**Three questions below are RULED, and every "held open" / "remains for Joseph" row naming them is
+stale:**
+
+| Row as written | Now |
+|---|---|
+| *"Whether P6 keeps a `sensitivity status` field row beside P7's record … Joseph."* | **D7** — P6 creates **no** such row. P7's `ClassificationRecord` is the sole home, and P7's Contract-in from P6 is empty. **C24 and C25 closed.** |
+| *"Which corner `norm` measures from … P4's, and nobody's yet."* | **D10** — `norm` is **TOP-LEFT**. `readers.ocr_vision._box` converts Vision's bottom-left rectangles at the adapter (`87016b0`). **C22 closed**, and Task 8's redaction may rely on it. |
+| *"SPEC §6 and §7 cannot both hold for `release_id` … Joseph / Task 10."* | **D14** — `AuditRecord.release_id` is `None` on a release record and the join runs **ledger → events**. SPEC §7 amended; §6's ordering stands. |
+
+**One citation that looks like the first row but is NOT, and must not be swept up with it.**
+`PLAN-tasks-11.md` cites **C5** as the reason `SENSITIVE_CLASSES` stays unpublished. That label is
+**correct** and the question is **still open**: C5 is *"is `protected` exactly the top two handling
+classes?"*, which D7 did not touch. **Reading D7 as licence to publish that set would be exactly the
+error the restraint exists to prevent.**
+
+**The five round-5 cuts are ruled KEPT (D13)**, so any row describing one as "unratified, may be
+deleted" now means "ruled, kept, and revisitable" — the tasks keep their callouts so a later reader
+can decide against them with the plan in front of them.
 
 ---
 
@@ -18408,6 +18453,6 @@ rather than discover it.
 | `filename` as a sixth releasable kind | SPEC Open question 2, asserted present and unresolved by Task 21 | Joseph — NEEDS-JOSEPH **B5d** and **C9a**. §8.4 names five kinds and puts *paths* in the always-local set; the SPEC adds a sixth and flags it itself. |
 | Whether P6 keeps a `sensitivity status` field row beside P7's record | `vocabulary.HELD_OPEN["P6-sensitivity-field-row"]`; Task 21 asserts P7 reads no P6 surface | Joseph. D2 settled which record is authoritative and did not settle whether a second row exists; P7's SPEC Contract-in still requires P6 to accept `sensitivity` as a universal field, and round 1 found that field has no producer. |
 | Which corner `norm` measures from | `vocabulary.HELD_OPEN["P4-region-origin"]`; Task 21 asserts P7 does no arithmetic on a region field | P4's, and nobody's yet — no document in the repository states an origin. P7 is the part that would otherwise answer it by accident, when it redacts a bounding box. |
-| What a *corpus area* is (Open question 3) | `Gate(area_of=…)`, a required keyword with no default; Task 20's fixtures carry the answer as data | Joseph — NEEDS-JOSEPH C3. |
+| What a *corpus area* is (Open question 3) | `Gate(scope_for=…)`, a required keyword with no default; Task 20's fixtures carry the answer as data | Joseph — NEEDS-JOSEPH C3. |
 | Whether a replay bundle may carry audit records and excerpt spans (Open question 8) | Task 22 asserting `bundle_file_entry.handling_class` stays `None` and that `src/privacy/` imports no P2 writer | Joseph, and P2's. |
 | Whether the product classifies anything at all | Task 22's last two tests | **The detector.** No task in any plan produces one. Twenty-two tasks deliver a correct, locked door; they do not deliver a key. |
