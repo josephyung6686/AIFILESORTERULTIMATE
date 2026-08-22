@@ -15,6 +15,7 @@ import sqlite3
 
 import pytest
 
+from database_agent.events import MalformedEvent
 from database_agent.supersede import SUPERSEDE_COLUMNS
 
 from extractors.dispatch import extract
@@ -30,6 +31,7 @@ from privacy.policy import (
     AmbiguousCurrentPolicy,
     CallerSuppliedPolicyVersion,
     Policy,
+    StalePolicyVersion,
     TranscriptionAuthorization,
     UnknownPolicyVersion,
     current_policy,
@@ -350,6 +352,91 @@ def test_the_scope_is_opaque_and_p7_defines_no_corpus_area(p7_conn):
             component_version=COMPONENT, observed_at=LATER))
     assert [grant[0] for grant in first.consent_grants] == \
         ["/Users/j/Corpus", "node-17", "group-4", "Finance"]
+
+
+# --- a stale snapshot is refused, never merged -----------------------------
+
+def test_a_grant_derived_from_a_stale_snapshot_is_refused(p7_conn):
+    # One policy version is the WHOLE snapshot, so a writer that derived its
+    # revision from a superseded snapshot would silently drop every change made
+    # since it read. The version is the concurrency token: it has to still be the
+    # live one at the moment of the write.
+    first = policy_at(p7_conn, store(p7_conn, operation_mode="cloud_assisted"))
+    grant_consent(p7_conn, first, "Academics", "cloud_model", user_id="joseph",
+                  component_version=COMPONENT, observed_at=LATER)
+    with pytest.raises(StalePolicyVersion):
+        grant_consent(p7_conn, first, "Finance", "cloud_model", user_id="joseph",
+                      component_version=COMPONENT, observed_at=LATER)
+    assert current_policy(p7_conn, plan_version=PLAN).consent_grants == \
+        (("Academics", "cloud_model"),)
+
+
+def test_a_revoke_derived_from_a_stale_snapshot_cannot_resurrect_a_grant(p7_conn):
+    # The worst case of the same defect, and the reason it is a refusal rather
+    # than a merge: revoking Academics leaves a snapshot holding Finance, and
+    # revoking Finance from the ACADEMICS+FINANCE snapshot would mint a live
+    # policy carrying Academics again -- a withdrawn consent back in force.
+    first = policy_at(p7_conn, store(p7_conn, operation_mode="cloud_assisted"))
+    with_academics = policy_at(p7_conn, grant_consent(
+        p7_conn, first, "Academics", "cloud_model", user_id="joseph",
+        component_version=COMPONENT, observed_at=LATER))
+    with_both = policy_at(p7_conn, grant_consent(
+        p7_conn, with_academics, "Finance", "cloud_model", user_id="joseph",
+        component_version=COMPONENT, observed_at=LATER))
+    revoke_consent(p7_conn, with_both, "Academics", user_id="joseph",
+                   component_version=COMPONENT, observed_at=LATER)
+    with pytest.raises(StalePolicyVersion):
+        revoke_consent(p7_conn, with_both, "Finance", user_id="joseph",
+                       component_version=COMPONENT, observed_at=LATER)
+    live = current_policy(p7_conn, plan_version=PLAN)
+    assert [scope for scope, _ in live.consent_grants] == ["Finance"]
+
+
+def test_two_grants_each_read_from_the_policy_in_force_both_land(p7_conn):
+    # The refusal is not a lock: re-reading is all a second writer has to do.
+    store(p7_conn, operation_mode="cloud_assisted")
+    grant_consent(p7_conn, current_policy(p7_conn, plan_version=PLAN),
+                  "Academics", "cloud_model", user_id="joseph",
+                  component_version=COMPONENT, observed_at=LATER)
+    second = grant_consent(p7_conn, current_policy(p7_conn, plan_version=PLAN),
+                           "Finance", "local_model", user_id="joseph",
+                           component_version=COMPONENT, observed_at=LATER)
+    assert dict(policy_at(p7_conn, second).consent_grants) == \
+        {"Academics": "cloud_model", "Finance": "local_model"}
+
+
+# --- one act, one commit ---------------------------------------------------
+
+def test_a_failed_policy_set_event_leaves_no_policy_row(p7_conn):
+    # §8.2 reconstructs a transition from the log. A committed policy row whose
+    # `policy_set` event never landed is a transition the log cannot account for,
+    # so the row and its event share one commit.
+    with pytest.raises(MalformedEvent):
+        set_policy(p7_conn, a_policy(), component_version="", user_id="joseph",
+                   reason="the user chose local-model mode")
+    assert current_policy(p7_conn, plan_version=PLAN) is None
+    assert p7_conn.execute(
+        f"SELECT count(*) c FROM {POLICIES_TABLE}").fetchone()["c"] == 0
+    assert p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"] == 0
+
+
+def test_a_failed_consent_granted_event_leaves_the_prior_policy_in_force(p7_conn):
+    # And the rollback restores the PRIOR row too: a supersede that outlived the
+    # act that caused it would leave the plan with no live policy at all.
+    stored = store(p7_conn, operation_mode="cloud_assisted")
+    with pytest.raises(MalformedEvent):
+        grant_consent(p7_conn, policy_at(p7_conn, stored), "Academics",
+                      "cloud_model", user_id="joseph", component_version="",
+                      observed_at=LATER)
+    live = current_policy(p7_conn, plan_version=PLAN)
+    assert live.policy_version == stored
+    assert live.consent_grants == ()
+    assert p7_conn.execute(
+        f"SELECT count(*) c FROM {POLICIES_TABLE}").fetchone()["c"] == 1
+    for event_type, expected in ((POLICY_SET, 1), (CONSENT_GRANTED, 0)):
+        assert p7_conn.execute(
+            "SELECT count(*) c FROM events WHERE event_type = ?",
+            (event_type,)).fetchone()["c"] == expected
 
 
 # --- the P5 back-edge (M10) ------------------------------------------------

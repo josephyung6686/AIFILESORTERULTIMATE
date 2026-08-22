@@ -22,6 +22,16 @@ because §8.5 replay must reproduce "the policy in force at each call".
 §8.4's prior-release list and retraction limit and reads that event back out of the
 log.
 
+**One act, one commit.** The row and its event go in under one transaction, because
+§8.2 reconstructs a transition from the log: a committed policy row whose event
+never landed is a policy change nothing can account for, and the prior version
+would stay superseded with nothing recording why.
+
+**The supplied version is a concurrency token.** `grant_consent` and
+`revoke_consent` derive a complete next snapshot from the snapshot handed in, so
+one that has been superseded is refused (`StalePolicyVersion`) inside the same
+transaction as the write. `set_policy` is exempt: it replaces rather than derives.
+
 **This module holds no default.** §8.4's local-first `must` is W1 and lives in
 `privacy.defaults`. `current_policy` returns `None` when nothing has been set. A
 default in two modules is a default that can disagree with itself, and the thing it
@@ -96,6 +106,18 @@ class AmbiguousCurrentPolicy(Exception):
     """Two live policies at one plan version. Raised, never resolved by picking."""
 
 
+class StalePolicyVersion(Exception):
+    """A consent change was derived from a snapshot that is no longer in force.
+
+    One policy version is the whole snapshot, so `grant_consent` and
+    `revoke_consent` compute a COMPLETE next snapshot from the one handed in. If
+    that one has been superseded, writing the derivation would discard every
+    change made since it was read -- and two revocations from one snapshot would
+    put the first-revoked grant back in force. The version is therefore the
+    concurrency token: refused here, and the caller re-reads `current_policy`.
+    """
+
+
 @dataclass(frozen=True)
 class Policy:
     """§8.4's authorizing policy: the mode, the grants, and the redaction settings.
@@ -160,6 +182,27 @@ def _live_row(conn: sqlite3.Connection, plan_version: str) -> sqlite3.Row | None
     return rows[0] if rows else None
 
 
+def _require_in_force(conn: sqlite3.Connection, policy: Policy) -> None:
+    """Refuse a derivation from a snapshot that is not the live one.
+
+    Called inside the same transaction as the persist, so a policy that goes live
+    between the check and the insert cannot slip past it. `set_policy` does NOT
+    call this: it is a full replacement, not a derivation, so it has nothing to
+    silently discard.
+    """
+    live = _live_row(conn, policy.plan_version)
+    if live is None:
+        raise StalePolicyVersion(
+            f"no policy is in force at plan version {policy.plan_version!r}; "
+            "a consent change derives from the live snapshot, and "
+            f"{policy.policy_version!r} is not one")
+    if live["policy_version"] != policy.policy_version:
+        raise StalePolicyVersion(
+            f"policy {policy.policy_version!r} was superseded by "
+            f"{live['policy_version']!r}; re-read `current_policy` and derive the "
+            "change from the snapshot in force (§8.2, §8.4)")
+
+
 def _persist(conn: sqlite3.Connection, policy: Policy, *,
              supersede_reason: str) -> str:
     """Mint a version, insert the row, supersede the prior one. Appends no event."""
@@ -214,11 +257,12 @@ def set_policy(conn: sqlite3.Connection, policy: Policy, *,
     """
     if not reason.strip():
         raise ValueError("a policy change carries a reason (§8.2, §8.8)")
-    version = _persist(conn, policy, supersede_reason=reason)
-    append_event(conn, **event_defaults(
-        event_type=POLICY_SET, user_id=user_id, observed_at=policy.set_at,
-        component_version=component_version,
-        explanation=_explanation(conn, version, reason=reason)))
+    with transaction(conn):
+        version = _persist(conn, policy, supersede_reason=reason)
+        append_event(conn, **event_defaults(
+            event_type=POLICY_SET, user_id=user_id, observed_at=policy.set_at,
+            component_version=component_version,
+            explanation=_explanation(conn, version, reason=reason)))
     return version
 
 
@@ -251,13 +295,15 @@ def grant_consent(conn: sqlite3.Connection, policy: Policy, scope: str, option: 
     grants = tuple(pair for pair in policy.consent_grants if pair[0] != scope)
     revised = replace(policy, policy_version=UNSET_POLICY_VERSION,
                       consent_grants=grants + ((scope, option),), set_at=observed_at)
-    version = _persist(conn, revised, supersede_reason=canonical_json(
-        {"act": "consent_granted", "scope": scope, "option": option}))
-    append_event(conn, **event_defaults(
-        event_type=CONSENT_GRANTED, user_id=user_id, observed_at=observed_at,
-        component_version=component_version,
-        explanation=_explanation(conn, version, granted_scope=scope,
-                                 granted_option=option)))
+    with transaction(conn):
+        _require_in_force(conn, policy)
+        version = _persist(conn, revised, supersede_reason=canonical_json(
+            {"act": "consent_granted", "scope": scope, "option": option}))
+        append_event(conn, **event_defaults(
+            event_type=CONSENT_GRANTED, user_id=user_id, observed_at=observed_at,
+            component_version=component_version,
+            explanation=_explanation(conn, version, granted_scope=scope,
+                                     granted_option=option)))
     return version
 
 
@@ -273,9 +319,12 @@ def revoke_consent(conn: sqlite3.Connection, policy: Policy, scope: str, *,
     revised = replace(
         policy, policy_version=UNSET_POLICY_VERSION, set_at=observed_at,
         consent_grants=tuple(p for p in policy.consent_grants if p[0] != scope))
-    return _persist(conn, revised, supersede_reason=canonical_json(
-        {"act": "consent_revoked", "scope": scope, "user_id": user_id,
-         "component_version": component_version}))
+    with transaction(conn):
+        _require_in_force(conn, policy)
+        version = _persist(conn, revised, supersede_reason=canonical_json(
+            {"act": "consent_revoked", "scope": scope, "user_id": user_id,
+             "component_version": component_version}))
+    return version
 
 
 @dataclass(frozen=True)
