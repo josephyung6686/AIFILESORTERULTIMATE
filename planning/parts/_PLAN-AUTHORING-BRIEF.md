@@ -165,7 +165,7 @@ Wiring it into the caller is separate later work and must not be done as "integr
 
 ## 8. Substrate you are planning against
 
-P1–P5 and the Wave-2 caller are shipped and green: **1300 tests**. P4's 19 golden fixtures
+P1–P5 and the Wave-2 caller are shipped and green: **1302 tests** (1300 until D10's two landed in `87016b0`). P4's 19 golden fixtures
 (`evidence_shape.fixtures`) mean P6 is buildable with **no extractor present** — use them. Plan
 against live signatures, never against a reconstructed stub: doing the latter cost this project a
 whole class of defects in P4/P5.
