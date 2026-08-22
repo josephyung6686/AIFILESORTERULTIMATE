@@ -101,5 +101,9 @@ BEGIN SELECT RAISE(ABORT, 'a policy is superseded, never overwritten (§8.2, §8
 
 def create_privacy_schema(conn: sqlite3.Connection) -> None:
     """Create every P7-owned table. Idempotent. P1's `create_schema` runs first."""
+    from privacy.binding import RELEASE_LEDGER_DDL
+
     conn.executescript(CLASSIFICATIONS_DDL)
     conn.executescript(POLICIES_DDL)
+    # Task 12's ledger is what makes `Released` single-use (SPEC §6).
+    conn.executescript(RELEASE_LEDGER_DDL)
