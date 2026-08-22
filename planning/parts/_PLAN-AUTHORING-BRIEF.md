@@ -481,3 +481,98 @@ Both files carry a `### Task 11`. Verified by reading both:
 **Good discipline worth copying:** `SENSITIVE_CLASSES` was *removed* from that author's own earlier
 draft, because publishing it would have answered NEEDS-JOSEPH C24 in code. The consent branch reads
 `ClassificationRecord.protected` per SPEC §2 instead.
+
+---
+
+## 23. FOUR RULINGS FROM JOSEPH, 2026-08-22 — binding, and they close four open labels
+
+Put to Joseph with the evidence assembled; all four taken as recommended. These are now ratified
+alongside D1–D6 and are binding on assembly and on any source written afterwards.
+
+| | Ruling | Closes | Status |
+|---|---|---|---|
+| **D7** | **P6 creates no `sensitivity_status` field row.** P7's `ClassificationRecord` is the sole home. | **C24**, and **C25** with it | apply at assembly |
+| **D8** | **`target_school` is the stored key.** "target university" (§3.11) becomes an alias, never a second key. | the §3.8/§3.11 two-key split | apply at assembly |
+| **D9** | **`destination_eligible = TRUE` for `target_school` and `client`**; FALSE for `authored_by` and `our_firm`. | brief §16's open question | apply at assembly |
+| **D10** | **P4's `norm` means TOP-LEFT.** The Vision adapter converts. | **C22** | **DONE** — `87016b0`, 1302 tests |
+
+### D7 — no P6 `sensitivity_status` row
+
+The deciding factor: the reconciliation (P6 carries the row, P7 writes it) would have made a
+**third** home for one concept — P7's record, P1's `files.sensitivity_state` column, and a P6 fact
+row — which is the shape OQ11 was opened to prevent and this project's most expensive defect class.
+
+**Three things assembly must do, and none of them is optional:**
+
+1. **Amend P7's SPEC Contract-in.** The sentence *"P6 must accept `sensitivity` as a first-class
+   universal field (§3.11) rather than a domain-scoped one"* is wrong under D2 + D7. It should name
+   P7's own `ClassificationRecord`. This is a SPEC edit, not a plan edit.
+2. **Rewrite P7's Done-means 2** against `ClassificationRecord`. It is currently *knowingly
+   unsatisfied* — the only one in either part in that state — and D7 is what lets it be satisfied
+   honestly rather than deleted.
+3. **Create no catalogue row**, which is what every task already does. Round 1's F-2 (`sensitivity
+   status` has no producer) is closed **by deletion**, not by inventing a writer.
+
+The P7 Task 11 author who removed `SENSITIVE_CLASSES` from their own draft rather than answer this
+in code was right, and the ruling vindicates the instinct: it was Joseph's to make.
+
+### D8 — `target_school`, and "target university" is an alias
+
+Same shape as D6's `subject`/`course`, decided the same way and by §17's rule: **one stored key per
+concept; every other word the design uses for it becomes an alias, never a second key.**
+`target_school` wins on three grounds — it is already in the catalogue as one of §3.8's four role
+fields beside `authored_by`, it is `snake_case` per D6, and it is the more general word (a school
+that is not a university still fits). "target university" is §3.11's prose and survives inside
+quotations only.
+
+Done-means 2 requires both words to resolve; an alias satisfies that, a second key does not.
+
+### D9 — `destination_eligible` splits §3.8's four roles two and two
+
+My skeleton said all four were FALSE and I over-applied the rule; `planning/domains/canonical_fields.json`
+was right. §3.8's actual sentence is *"It should avoid using authorship or creator identity as a
+destination dimension."* That is `authored_by` and `our_firm` — **who made it**. `target_school`
+(who you apply TO) and `client` (who the work is FOR) are the other side of the role split, and a
+client folder is an ordinary destination.
+
+| field | `destination_eligible` |
+|---|---|
+| `authored_by` | FALSE — authorship |
+| `our_firm` | FALSE — creator identity |
+| `target_school` | **TRUE** |
+| `client` | **TRUE** |
+
+This unblocks P10 building folder templates on those two keys. It also **aligns P6's catalogue with
+the other agent's `canonical_fields.json`** rather than diverging from it — worth stating, because a
+P6 author is currently building the stricter reading and must be corrected at assembly.
+
+Note the trap from §16 still stands: `FORBIDDEN_COLUMN_SUBSTRINGS` must not be run against the
+`fields` table, because the legitimate column `destination_eligible` contains `destination`.
+
+### D10 — `norm` is top-left, and the adapter converts. ALREADY DONE.
+
+Committed as `87016b0`. `readers.ocr_vision._box` returns `1.0 - (origin.y + height)`.
+
+This was a **live latent defect, not a planning question.** Vision reports bottom-left; P7's
+redaction and all image tooling assume top-left; a stored `norm` region read by redaction would have
+blacked out a band mirrored about the horizontal axis — a §8.4 failure that looks like a working
+redaction. The adapter had documented the trap and left it open.
+
+Closed at the adapter rather than in P4 because it is the **only live producer** of a `norm` region,
+so P4's shipped `Region`, `REGION_UNITS` and all nineteen fixtures are untouched and the suite did
+not move. The top edge is summed before the subtraction — `1.0 - (y + h)`, not `1.0 - y - h` —
+because the two-step form leaves a box flush with the top of the page at `-5.6e-17`, and a box a
+hair outside 0..1 is exactly what a range check exists to catch. Clamping was rejected for hiding a
+genuinely out-of-range rectangle just as quietly.
+
+**Still open from C22's second half:** `evidence_shape.location.location()` accepts any `region`
+mapping without validating it. That check belongs in P4, and P7 Task 8's redaction is its first real
+consumer.
+
+### What is still NOT ruled
+
+The five unratified round-5 cuts — **CUT 2** (P7 Task 19, the transport guard), **CUT 3** (P6 Task
+23, `plan_versions`), **CUT 4** (P7's `Gate` facade), **CUT 6** (§3.13's five-rank ladder), **CUT 7**
+(P6's read surface). Deliberately deferred until the assembled plans exist, because round 5's own
+argument is that *"a reader deciding the cut needs the plan in front of them to decide against"*.
+Write them; keep the callouts; do not silently comply and do not silently ignore.

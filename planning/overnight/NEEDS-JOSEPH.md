@@ -360,6 +360,16 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 
 **C22 · P4's `norm` region unit does not say where the origin is, and §8.4 redacts against it**
 
+> **RULED 2026-08-22 — D10. `norm` means TOP-LEFT, and every adapter converts.** Joseph took the
+> second option, the one this entry recommended. Implemented in `87016b0`: `readers.ocr_vision._box`
+> now returns `1.0 - (origin.y + height)`. P4's `Region`, `REGION_UNITS` and the nineteen fixtures
+> are untouched — no vocabulary change, no shape-version bump — because the Vision adapter is the
+> only live producer of a `norm` region. The top edge is summed before the subtraction so a box
+> flush with the top of the page lands on exactly `0.0` rather than `-5.6e-17`. 1300 → 1302 tests.
+>
+> The *related, free* half of this entry is **still open**: `location()` still accepts any `region`
+> mapping without validating it, and that check belongs in P4.
+
 > `REGION_UNITS` is `("px", "norm")` and `Region` is `(x, y, w, h, unit)`. Neither says whether the
 > origin is top-left or bottom-left. **Apple Vision reports bottom-left; almost every other image
 > tool reports top-left.** A consumer that assumes the common convention redacts a band mirrored
@@ -392,6 +402,22 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > only give geometry, zone quality drops and §3.7's positional weighting gets weaker evidence.
 
 **C24 · Does P6 keep a `sensitivity status` field row beside P7's authoritative record?**
+
+> **RULED 2026-08-22 — D7. P6 creates no `sensitivity_status` row. P7's `ClassificationRecord` is
+> the sole home.** The first of the two readings. The deciding factor is the one this entry names:
+> the reconciliation would have created a *third* home for one concept, which is the shape OQ11 was
+> opened to prevent, and this project's most expensive defect class.
+>
+> **Consequences, to be applied at assembly:**
+> - P7's SPEC Contract-in sentence — *"P6 must accept `sensitivity` as a first-class universal
+>   field"* — is **amended**, not satisfied. P7's own record is what its Contract-in should name.
+> - P7's **Done-means 2 is rewritten** against `ClassificationRecord`, so nothing ships knowingly
+>   unsatisfied. That was the only Done-means in either part in that state.
+> - §3.11's mention of `sensitivity status` is the design **describing an attribute**, not
+>   commissioning a field. No catalogue row, so round 1's F-2 no-producer finding is closed by
+>   deletion rather than by inventing a writer.
+> - **C25** (`SensitivityFacts` has nothing on the other side) is closed by the same ruling: there is
+>   no other side, and the type is `ClassificationStore` per brief §10.
 
 > D2 answered OQ11's actual question — *which record is authoritative* — and the answer is P7's
 > `ClassificationRecord`. It did **not** answer a second question hiding behind it: §3.11 lists
