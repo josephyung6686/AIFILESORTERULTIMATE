@@ -1,5 +1,22 @@
 # P6 and P7 plan robustness
 
+> ## SUPERSEDED 2026-08-22 — read `26-handoff.md` and `parts/_PLAN-AUTHORING-BRIEF.md` first
+>
+> **This file is evidence from 2026-08-21 and is stale on its three headline blockers.** It is kept
+> because its method and its unresolved findings are still good; do not act on its Status line.
+>
+> | This file says | Now |
+> |---|---|
+> | "Task 26 implements a four-pass caller that cannot land against live `dispatch`" | **Task 26 is CUT** (D5 / round 5 CUT 1). Nothing rewires `src/orchestrator.py`. |
+> | "Task 2 implements a closed field list the design never closed" | Written against `planning/domains/canonical_fields.json` (37 keys) as a **source to read**, never a runtime import. D1/D6/D8/D9 have since settled its contested rows. |
+> | "P6 seam **injected**" / missing `SensitivityFacts` | **D2 + D7.** P7 owns a concrete `ClassificationStore` in `src/privacy/classification_store.py`. No injected protocol, no `SensitivityFacts`, and P6 keeps **no** `sensitivity_status` row. |
+> | "**1244 passed**" | **1302 passed** (2026-08-22). |
+> | "skeletons, not freeze-ready PLANs" | P6 is **26/26 tasks written**, P7 **22/22** — complete TDD packages, ~43k lines. Assembly into two `PLAN.md` files is the open job. |
+>
+> **What this file got right and is still true:** P7 is a shape-correct gate with **no classifier
+> behind it** — there is still no detector, so on a real corpus every file resolves to
+> `Denied(unclassified)`. That remains the honest state and is deliberately not papered over.
+
 Date: 2026-08-21
 Status: **do not execute as a stack.** The skeletons are honest about mechanism and dishonest about join. P7 is a shape-correct gate with no classifier behind it. P6 Task 2 implements a closed field list the design never closed, and Task 26 implements a four-pass caller that cannot land against live `dispatch`.
 Scope: live P6 `PLAN-SKELETON.md` (27 tasks) and P7 `PLAN-SKELETON.md` (22 tasks) against live SPECs, shipped `src/` (P1–P5 + Wave-2 caller), [`00-database-agent-product-design.md`](00-database-agent-product-design.md), [`04-resolutions.md`](04-resolutions.md), [`02-segmentation-map.md`](02-segmentation-map.md), [`22-p1-p7-connection-contract.md`](22-p1-p7-connection-contract.md), overnight council [`DECISION-BRIEF.md`](overnight/council/DECISION-BRIEF.md). Substrate this pass: [`23-full-tree-stress.md`](23-full-tree-stress.md) — **1244 passed**. Neither skeleton was updated after that file, nor after rounds 4–5.
