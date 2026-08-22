@@ -198,7 +198,7 @@ The organization language of the product. **Not** created automatically at runti
 
 ```text
 field_key            stable identifier — the role, not the entity type (§3.8)
-                     e.g. course, term, work_type, target_university, authored_by,
+                     e.g. subject, term, work_type, authored_by,
                           target_school, our_firm, client, purpose, project, event
 display_name
 scope                universal | academic | college_applications | research
@@ -237,6 +237,13 @@ Domain fields, exactly as §3.11's table names them and no more:
 | Finance | institution, account type, tax year, record type |
 | Photos | capture year, event, location, people, camera information, media type |
 | Code | project, repository, programming language, artifact type |
+
+> **That table is a literal transcription of §3.11 and is deliberately left unchanged. Two of its
+> words are NOT stored field keys.** `course` (Academic) is the design's prose for the field whose
+> stored key is **`subject`** (**D6**), and `target university` (College applications) is prose for
+> **`target_school`** (**D8**). Both are aliases; the `fields` catalogue carries neither as a row.
+> The transcription stays literal so the §3.11 citation remains checkable — but an author reading
+> it to build `FIELD_ROWS` must take the stored keys, not these words.
 
 §3.11 also states that each domain carries "several additional fields used only for search, privacy
 protection, explanation, or later review" — it names none of them. Those are deferred, not invented
@@ -403,10 +410,11 @@ labeled form field. Filesystem timestamps are direct; dates recovered from text 
 not, and take the §3.10 path.
 
 **Rule-validated (§3.5)** — a pattern match *plus* a strict context check. The design's worked
-requirement, literal and required: `BUSIB 4300` becomes a course fact **only** when a course-code
+requirement, literal and required: `BUSIB 4300` becomes a `subject` fact **only** when a course-code
 pattern is found together with academic context — **"syllabus", "lecture", "credits", "instructor",
 or "semester"**. A course-code-shaped string with no such context in its surrounding context window
-yields no course fact.
+yields no `subject` fact. (**D6**: the stored key is `subject`; "course" is the design's prose for
+the same field. "Course-code" here describes the *shape of the string*, which is unaffected.)
 
 **The §3.5 context-term check is case-insensitive** (N-6). §3.5 writes its five terms in lowercase
 and states no matching rule, so P6 states one: a term matches regardless of the case it appears in.
@@ -450,12 +458,17 @@ download session rule below (G6).
 creator-identity field is ever `destination_eligible`.
 
 **Domain activation (§3.11)** — the universal set applies to every file. A domain schema activates
-only when evidence indicates that domain is plausible; `target university` is not a field every file
+only when evidence indicates that domain is plausible; `target_school` is not a field every file
 is expected to have. One file may carry facts from several domains simultaneously without either
 being dropped — §3.11's worked case is an abstract holding `project = PVA/RDP` and
 `document type = abstract` *and* `purpose = university application` and
 `target university = UChicago`. P6 preserves all four; deciding which perspective determines
 physical location is not P6's decision (§3.11, §3.14).
+
+> **The worked case keeps the design's own words; two of them are not stored keys.** `document
+> type` is the design's generic word for whichever field the active domain declares —
+> `application_document_type` here — and `target university` is prose for **`target_school`**
+> (**D8**). Quoted so the §3.11 citation stays checkable; an implementer stores the keys.
 
 **Producer, creator and author metadata — the discount rule (§2.2, §2.3).** M4: nobody owned this
 and both sections require it. There is no marker on the observation; P4 emits the value with
@@ -471,7 +484,7 @@ By` and their per-format equivalents):
    weak clue about the document, it is a fact about the software.
 2. **Demotion.** Any other producer/creator/author metadata value is *supporting evidence, not
    truth* (§2.2) and *supporting information only* (§2.3). It may populate an authorship role field
-   (§3.8 `authored_by`) and nothing else; it may never populate a topic, purpose, project, course,
+   (§3.8 `authored_by`) and nothing else; it may never populate a topic, purpose, project, subject,
    institution or target field on its own; and §3.8 already makes every authorship field
    `destination_eligible = FALSE`. §2.3's reason is the binding one: the value "may identify a prior
    editor, a document template, or a script rather than the meaningful subject or purpose."
@@ -691,7 +704,7 @@ Each item is assertable against P4-shaped fixtures with no other part implemente
 **Refusals — these are the point of the part**
 7. `submit` produces no `MIT` fact; `uncertainty` produces no `UNC` fact (§3.7, §8.5).
 8. A course-code-shaped string with no academic context term in its surrounding context produces no
-   course fact (§3.5). Positively: the same string with `context_before: "Syllabus — "` — P4's
+   `subject` fact (§3.5). Positively: the same string with `context_before: "Syllabus — "` — P4's
    skeleton fixture 1, capital S — **does** produce one, because the §3.5 context check is
    case-insensitive (N-6, B8(a)).
 9. Two candidates within the margin of each other fill nothing (§3.7).
@@ -705,8 +718,16 @@ Each item is assertable against P4-shaped fixtures with no other part implemente
 13. An `authored_by` value is never returned as destination-eligible (§3.8).
 
 **Multi-fact and history**
-14. One file simultaneously holds `project`, `document type`, `purpose`, and `target university`
-    with no field dropped and no domain forced to win (§3.11).
+14. One file simultaneously holds `project`, the active domain's document-type field, `purpose`,
+    and `target_school` with no field dropped and no domain forced to win (§3.11).
+
+    > **Amended 2026-08-22 by D8 and the `document type` ruling.** This item said `document type`
+    > and `target university`. Neither is a stored field key, so as written the item could not be
+    > tested — it named two things the `fields` catalogue does not contain. `document type` is
+    > whichever field the active domain declares (`application_document_type` for College
+    > applications, `artifact_type` for Research/Code); the school concept's stored key is
+    > `target_school`, with "target university" an alias. §3.11's worked case is unchanged —
+    > only the names this item is checked against are.
 15. Re-resolution under a bumped extractor version or a changed prompt fingerprint creates a new
     fact that supersedes the old one; the old fact, its state, and its evidence remain readable,
     with the reason it was superseded (§3.4, §8.2).
