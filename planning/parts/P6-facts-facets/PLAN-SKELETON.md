@@ -669,7 +669,7 @@ rule is held open rather than guessed. That `multiplicity` is present as a colum
 
 **Interfaces:**
 - Consumes: `facts.fields.get_field`, `evidence_shape.canonical.canonical_json`.
-- Produces: `ValueRow(value_id, field_id, canonical_value, raw_variants, display_label, aliases,
+- Produces: `ValueRow(value_id, field_key, canonical_value, raw_variants, display_label, aliases,
   origin, first_evidence_ref)`, `VALUE_ORIGINS: tuple[str, str]` (`automatic`, `user`),
   `ensure_value(conn, *, field_key, canonical_value, first_evidence_ref, origin) -> str`,
   `add_raw_variant(conn, value_id, raw)`, `merge_values(conn, *, keep, merged, reason) -> None`,
@@ -732,7 +732,7 @@ fourteenth is refused. That an `unresolved` row carries **no** `value_id` and **
 state column at all — asserted from `PRAGMA table_info`, not from a null check, because a nullable
 column is a place someone will later write a value. That it obeys the same negative contract as
 `file_facts` (no path / destination / folder / group column). That a later fact for the same
-`(file_id, content_hash, field_id)` **supersedes** the row and does not delete it, and the row
+`(file_id, content_hash, field_key)` **supersedes** the row and does not delete it, and the row
 remains readable afterwards. That `budget_deferred` and `privacy_withheld` are members of
 `NOT_ABSTENTIONS` and that a caller asking "did P6 abstain on this field" gets `False` for both.
 
@@ -1055,7 +1055,7 @@ worked example, run end to end: a first pass that yielded nothing (now an `unres
 `reason = no_candidate_evidence`, not an absence) and a later pass that recovers a value. That
 `preferred` is set **only** on supersession and **only** by the resolver — never by a producer, never
 by P8, never as a side effect of a proposal. That a `user_confirmed` fact is always the preferred row
-for its `(file_id, field_id)` and that `preferred` never reverses §3.13's ordering. **That `preferred`
+for its `(file_id, field_key)` and that `preferred` never reverses §3.13's ordering. **That `preferred`
 appears in no contradiction check, no margin comparison and no destination-eligibility decision** —
 asserted by introspecting those three call paths for a read of the column, not by reading the code.
 That `preferred` is not plan-versioned.

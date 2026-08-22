@@ -256,7 +256,7 @@ system sees a new course, project, company, university, or event (§3.12).
 
 ```text
 value_id
-field_id             a value belongs to exactly one field (§3.12)
+field_key             a value belongs to exactly one field (§3.12)
 canonical_value      the normalized form — "University of Chicago"
 raw_variants[]       every raw wording observed — "U Chicago" (§2.8)
 display_label        the user's preferred rendering — "UChicago" (§2.8);
@@ -274,7 +274,7 @@ that justify the connection" (§3.12).
 ```text
 fact_id
 file_id                    (P1)
-field_id
+field_key
 value_id
 reliability_state          one of the six (§3.13)
 origin                     which producer created it — deterministic extractor | rule |
@@ -310,11 +310,11 @@ after extraction, so the observation layer (P4) does not carry it and neither do
 How P6 sets it:
 
 - It is set **only** on supersession. When a new fact supersedes an earlier fact for the same
-  `(file_id, field_id)`, the surviving row gets `preferred = true` and the superseded row
+  `(file_id, field_key)`, the surviving row gets `preferred = true` and the superseded row
   `preferred = false`. Both rows, both states, and both evidence chains remain readable (§8.2).
 - It is set **only by the resolver** — never by an extractor, never by P8, never as a side effect of
   a model proposal.
-- A `user_confirmed` fact is always the preferred row for its `(file_id, field_id)`; §3.13's ordering
+- A `user_confirmed` fact is always the preferred row for its `(file_id, field_key)`; §3.13's ordering
   is not negotiable and `preferred` never reverses it.
 - **`preferred` is a pointer, not a strength.** It never enters the §3.6 contradiction check, never
   breaks a §3.7 margin tie, and never makes a fact destination-eligible. A reader that wants
@@ -337,7 +337,7 @@ records its refusals.
 unresolved_id
 file_id                    (P1)
 content_hash               (P1) — the abstention is per file *version* (§8.2, §3.4)
-field_id                   the field that was attempted — required
+field_key                   the field that was attempted — required
 reason                     one of the values below — required
 attempted_producers[]      direct | rule | llm — which §3.5 routes were tried
 evidence_refs[]            the observation keys considered, where any were (may be empty)
@@ -367,7 +367,7 @@ Rules that make the row trustworthy:
 1. `unresolved` is **not a fact**. It carries no `value_id`, no reliability state, and is absent from
    every fact read including the proposal-eligible read. It is not a weaker `possible`.
 2. It obeys the same negative contract as `file_facts`: no path, destination, folder or group column.
-3. A later fact for the same `(file_id, content_hash, field_id)` does not delete the row — it
+3. A later fact for the same `(file_id, content_hash, field_key)` does not delete the row — it
    supersedes it, and the row remains readable as the record of what was once refused (§8.2, §8.7).
 4. `budget_deferred` and `privacy_withheld` are **not** abstentions. §8.6 requires deferred work be
    mark the deferred stage, and leave the file or group in review rather than guessing (§8.6), which "avoids the false impression that an unprocessed file was understood and found unimportant"; conflating them would report a

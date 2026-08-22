@@ -8,7 +8,7 @@
 **Interfaces:**
 - Consumes: `facts.fields` — `get_field`, `FieldNotInCatalogue`; `evidence_shape.canonical` —
   `canonical_json`, `sha256_of`; `evidence_shape.vocabulary` — `check`, `NotInVocabulary`.
-- Produces: `ValueRow(value_id, field_id, canonical_value, raw_variants, display_label, aliases,
+- Produces: `ValueRow(value_id, field_key, canonical_value, raw_variants, display_label, aliases,
   origin, first_evidence_ref)`, `VALUE_ORIGINS: tuple[str, str]` (`automatic`, `user`),
   `ensure_value(conn, *, field_key, canonical_value, first_evidence_ref, origin) -> str`,
   `add_raw_variant(conn, value_id, raw) -> None`,
@@ -53,23 +53,29 @@ quotes**, and it is the only table in the product that needs them. An unquoted o
 slip — it is an `OperationalError` at `create_facts_schema` and therefore at the first test of every
 later task in the part.
 
-**The one contradiction this task hits, resolved and reported.** The SPEC's `fields` table (§3.12)
-publishes **`field_key`** as its *"stable identifier"* and declares no surrogate key; the SPEC's
-`values` and `file_facts` tables, and the skeleton's `ValueRow`, both name the foreign key
-**`field_id`**. Two names, one thing. The resolution taken here — and taken identically in Task 4, so
-the two cannot drift — is:
+**The one contradiction this task hits, and the lead's ruling on it.** The SPEC's `fields` table
+(§3.12) publishes **`field_key`** as its *"stable identifier"* and declares no surrogate key; the
+SPEC's `values` and `file_facts` tables, and the skeleton's `ValueRow`, named the foreign key
+**`field_id`**. Two names, one thing — and it was reported to the lead rather than patched
+differently in two files, which was right.
 
-> **`field_id` is the column name; the field *key* is the value it holds.** The column is declared
-> `field_id TEXT NOT NULL REFERENCES fields (field_key)`, and it is filled from
-> `get_field(conn, field_key)["field_key"]` rather than from a surrogate that the `fields` catalogue
-> does not publish.
+> **RULED, brief §17: the column is `field_key` and it holds the field key** — in `values`, in
+> `file_facts`, and in every signature that takes one. The skeleton's `field_id` is the error, not
+> the SPEC.
 
-That keeps the skeleton's `ValueRow` field name (a contract with the parallel authors) and the SPEC's
-`fields` shape (no invented surrogate) simultaneously true. It is reported to the lead as a naming
-collision to settle once, not patched differently in two files.
+The rejected resolution was *"`field_id` is the column name; the field key is the value it holds"*,
+which keeps both published names true at once. It was overruled because a column named `_id` holding
+a key is a name that lies about its content, and one concept wearing two names is this project's most
+expensive defect class — it has already cost `subject`/`course`, spaced-vs-snake keys, and
+`capture_date`/`capture_year`.
+
+**Task 2 went further than the rename and it matters here.** Its first draft satisfied both names by
+declaring **two columns**, `field_id TEXT PRIMARY KEY` beside `field_key TEXT NOT NULL UNIQUE`,
+holding the identical string. That is the same defect made physical, and it is now deleted: `fields`
+has one identifier column, `field_key`, and it is the PRIMARY KEY.
 
 **Value identity is content-addressed, and that is a decision.** `value_id` is
-`sha256_of("facts.values", field_id, canonical_value)` rather than a random UUID. Three consequences,
+`sha256_of("facts.values", field_key, canonical_value)` rather than a random UUID. Three consequences,
 all wanted: `ensure_value` is idempotent without a read-then-write race; the same corpus produces the
 same `value_id` in two different databases, which is what §8.5's replay compares against; and
 *"a value belongs to exactly one field (§3.12)"* becomes an arithmetic property of the identifier
@@ -448,21 +454,24 @@ Append this constant to `src/facts/schema.py`, after the `fields` DDL Task 2 add
 #: SQLite, verified on 3.45.3 -- so the identifier is quoted here and at every call
 #: site in `facts.values`. It is the only table in the product that needs quoting.
 #:
-#: `field_id` holds the field KEY. The SPEC's `fields` table publishes `field_key` as
-#: its stable identifier and declares no surrogate; the SPEC's `values` and
-#: `file_facts` shapes and the plan skeleton's `ValueRow` all name the foreign key
-#: `field_id`. The column keeps the published name and holds the published key.
+#: `field_key` is the field key, under the name the SPEC's `fields` table publishes
+#: for it. The skeleton's `values` / `file_facts` shapes and its `ValueRow` called
+#: this `field_key`; brief §17 ruled that the error -- a column named `_id` holding a
+#: key is a name that lies about its content.
 #:
 #: It carries NO `REFERENCES fields (...)` clause, and that is deliberate rather than
 #: forgotten. `open_database` leaves `PRAGMA foreign_keys` ON (verified: it reads 1),
 #: and a foreign key whose parent column is not a declared PRIMARY KEY or UNIQUE
 #: raises `sqlite3.OperationalError: foreign key mismatch` at INSERT -- also verified.
-#: Whether `fields.field_key` is declared PRIMARY KEY is Task 2's DDL decision, and
-#: this table must not fail at run time on a choice it does not own. The gate the SPEC
-#: actually names is the catalogue lookup: `get_field` raises `FieldNotInCatalogue`
-#: before any INSERT reaches here, and Task 3's test asserts it.
+#: Task 2 now declares `fields.field_key` PRIMARY KEY, so a REFERENCES clause WOULD
+#: bind -- the condition this omission was hedged against is decided. It is still
+#: omitted, deliberately: the gate the SPEC actually names is the catalogue lookup.
+#: `get_field` raises `FieldNotInCatalogue` before any INSERT reaches here and Task 3's
+#: test asserts it, whereas an FK would raise `IntegrityError` from the driver and
+#: replace a named refusal with an anonymous one. Adding it is a live option, not an
+#: oversight.
 #:
-#: UNIQUE (field_id, canonical_value) is §3.12's "a value belongs to exactly one
+#: UNIQUE (field_key, canonical_value) is §3.12's "a value belongs to exactly one
 #: field" enforced by the database rather than remembered by a caller.
 #:
 #: `merged_into` / `merge_reason` are NOT P1's supersede set. A merge is not a
@@ -474,7 +483,7 @@ Append this constant to `src/facts/schema.py`, after the `fields` DDL Task 2 add
 VALUES_DDL = """
 CREATE TABLE IF NOT EXISTS "values" (
     value_id           TEXT PRIMARY KEY,
-    field_id           TEXT NOT NULL,
+    field_key           TEXT NOT NULL,
     canonical_value    TEXT NOT NULL,
     raw_variants       TEXT NOT NULL,
     display_label      TEXT,
@@ -483,9 +492,9 @@ CREATE TABLE IF NOT EXISTS "values" (
     first_evidence_ref TEXT,
     merged_into        TEXT REFERENCES "values" (value_id),
     merge_reason       TEXT,
-    UNIQUE (field_id, canonical_value)
+    UNIQUE (field_key, canonical_value)
 );
-CREATE INDEX IF NOT EXISTS values_field ON "values" (field_id);
+CREATE INDEX IF NOT EXISTS values_field ON "values" (field_key);
 CREATE INDEX IF NOT EXISTS values_merged ON "values" (merged_into);
 CREATE TRIGGER IF NOT EXISTS values_no_delete
 BEFORE DELETE ON "values"
@@ -529,7 +538,7 @@ Three design sentences are load-bearing here, and each is a test rather than a c
     may later choose to display it as UChicago." Three renderings, three columns,
     none of them overwriting another.
 
-`value_id` is content-addressed over (field_id, canonical_value). That makes
+`value_id` is content-addressed over (field_key, canonical_value). That makes
 `ensure_value` idempotent with no read-then-write race, gives two databases that saw
 the same corpus the same value ids (§8.5's replay), and turns one-value-one-field into
 a property of the identifier rather than a rule to remember.
@@ -570,7 +579,7 @@ class ValueRow:
     """
 
     value_id: str
-    field_id: str
+    field_key: str
     canonical_value: str
     raw_variants: tuple[str, ...]
     display_label: str | None
@@ -582,7 +591,7 @@ class ValueRow:
     def from_row(cls, row: sqlite3.Row) -> "ValueRow":
         return cls(
             value_id=row["value_id"],
-            field_id=row["field_id"],
+            field_key=row["field_key"],
             canonical_value=row["canonical_value"],
             raw_variants=tuple(json.loads(row["raw_variants"])),
             display_label=row["display_label"],
@@ -592,7 +601,7 @@ class ValueRow:
         )
 
 
-def _field_id(conn: sqlite3.Connection, field_key: str) -> str:
+def _checked_field_key(conn: sqlite3.Connection, field_key: str) -> str:
     """The catalogue row's key, and the gate that stops a value inventing a field.
 
     `get_field` raises `FieldNotInCatalogue` for a key outside Task 2's closed
@@ -602,10 +611,10 @@ def _field_id(conn: sqlite3.Connection, field_key: str) -> str:
     return get_field(conn, field_key)["field_key"]
 
 
-def _value_identity(*, field_id: str, canonical_value: str) -> str:
+def _value_identity(*, field_key: str, canonical_value: str) -> str:
     """Content-addressed value identity. `sha256_of` is length-prefixed and injective,
     so ("a", "bc") and ("ab", "c") do not collide."""
-    return sha256_of("facts.values", field_id, canonical_value)
+    return sha256_of("facts.values", field_key, canonical_value)
 
 
 def _fetch(conn: sqlite3.Connection, value_id: str) -> sqlite3.Row:
@@ -640,18 +649,18 @@ def ensure_value(conn: sqlite3.Connection, *, field_key: str, canonical_value: s
                 "an automatically created value cites the observation that introduced "
                 "it (§3.1); first_evidence_ref must be a P4 observation key"
             )
-    field_id = _field_id(conn, field_key)
-    value_id = _value_identity(field_id=field_id, canonical_value=canonical_value)
+    field_key = _checked_field_key(conn, field_key)
+    value_id = _value_identity(field_key=field_key, canonical_value=canonical_value)
     existing = conn.execute(
         'SELECT value_id FROM "values" WHERE value_id = ?', (value_id,)
     ).fetchone()
     if existing is not None:
         return existing["value_id"]
     conn.execute(
-        'INSERT INTO "values" (value_id, field_id, canonical_value, raw_variants, '
+        'INSERT INTO "values" (value_id, field_key, canonical_value, raw_variants, '
         'display_label, aliases, origin, first_evidence_ref, merged_into, '
         'merge_reason) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, NULL, NULL)',
-        (value_id, field_id, canonical_value, _store_list(()), _store_list(()),
+        (value_id, field_key, canonical_value, _store_list(()), _store_list(()),
          origin, first_evidence_ref),
     )
     return value_id
@@ -706,7 +715,7 @@ def merge_values(conn: sqlite3.Connection, *, keep: str, merged: str,
     if keep == merged:
         raise ValueError("a value cannot be merged into itself")
     keep_row, merged_row = _fetch(conn, keep), _fetch(conn, merged)
-    if keep_row["field_id"] != merged_row["field_id"]:
+    if keep_row["field_key"] != merged_row["field_key"]:
         raise ValueError(
             "a value belongs to exactly one field (§3.12); merging across two fields "
             "would erase §3.8's role separation"
@@ -750,9 +759,9 @@ def values_in_field(conn: sqlite3.Connection, field_key: str) -> list[sqlite3.Ro
     Sorted, because P4's reads are in insertion order and this one imposes its own.
     """
     return list(conn.execute(
-        'SELECT * FROM "values" WHERE field_id = ? '
+        'SELECT * FROM "values" WHERE field_key = ? '
         'ORDER BY canonical_value, value_id',
-        (_field_id(conn, field_key),),
+        (_checked_field_key(conn, field_key),),
     ))
 ```
 
@@ -993,7 +1002,7 @@ def test_the_module_declares_exactly_the_table_it_has(p6_conn):
 
 
 def test_the_row_carries_what_the_spec_declares(p6_conn):
-    for column in ("fact_id", "file_id", "content_hash", "field_id", "value_id",
+    for column in ("fact_id", "file_id", "content_hash", "field_key", "value_id",
                    "reliability_state", "origin", "evidence_refs",
                    "cited_quote_refs", "cache_key", "model_identifier",
                    "prompt_fingerprint", "internal_score", "active", "preferred",
@@ -1269,10 +1278,11 @@ from database_agent.supersede import supersede_ddl
 #: published per file version, and the cache key that carries the hash is a digest and
 #: cannot be filtered on. Reported to the lead as a gap in the SPEC's shape.
 #:
-#: `field_id` holds the field KEY and carries no REFERENCES clause -- foreign keys are
-#: ON and a parent column that is not PRIMARY KEY or UNIQUE raises `foreign key
-#: mismatch` at INSERT. Whether `fields.field_key` is a primary key is Task 2's DDL
-#: decision; `get_field` is the gate the SPEC names. `value_id` DOES reference
+#: `field_key` is the field key (brief §17). It carries no REFERENCES clause: foreign
+#: keys are ON and a parent column that is not PRIMARY KEY or UNIQUE raises `foreign
+#: key mismatch` at INSERT. Task 2 now declares `fields.field_key` PRIMARY KEY so the
+#: clause would bind, but `get_field` remains the gate the SPEC names and the one that
+#: raises a refusal with a name on it. `value_id` DOES reference
 #: `"values"`, whose `value_id` is a primary key, so a fact can never cite a value that
 #: does not exist.
 #:
@@ -1286,7 +1296,7 @@ CREATE TABLE IF NOT EXISTS file_facts (
     record_id          TEXT GENERATED ALWAYS AS (fact_id) VIRTUAL,
     file_id            TEXT NOT NULL,
     content_hash       TEXT NOT NULL,
-    field_id           TEXT NOT NULL,
+    field_key           TEXT NOT NULL,
     value_id           TEXT NOT NULL REFERENCES "values" (value_id),
     reliability_state  TEXT NOT NULL,
     origin             TEXT NOT NULL,
@@ -1303,7 +1313,7 @@ CREATE TABLE IF NOT EXISTS file_facts (
     created_at         TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS file_facts_version ON file_facts (file_id, content_hash);
-CREATE INDEX IF NOT EXISTS file_facts_field ON file_facts (field_id);
+CREATE INDEX IF NOT EXISTS file_facts_field ON file_facts (field_key);
 CREATE INDEX IF NOT EXISTS file_facts_value ON file_facts (value_id);
 CREATE TRIGGER IF NOT EXISTS file_facts_no_delete
 BEFORE DELETE ON file_facts
@@ -1389,7 +1399,7 @@ FACT_ORIGINS: tuple[str, ...] = (
 #: `PRAGMA table_info` does not report. The test asserts this EQUALS the live column
 #: set, so this tuple cannot describe a table that does not exist.
 FILE_FACTS_COLUMNS: tuple[str, ...] = (
-    "fact_id", "file_id", "content_hash", "field_id", "value_id",
+    "fact_id", "file_id", "content_hash", "field_key", "value_id",
     "reliability_state", "origin", "evidence_refs", "cited_quote_refs",
     "cache_key", "model_identifier", "prompt_fingerprint", "internal_score",
     "active", *SUPERSEDE_COLUMNS, "preferred", "rejection_reason", "created_at",
@@ -1421,7 +1431,7 @@ class EvidenceRequired(Exception):
     """
 
 
-def _field_id(conn: sqlite3.Connection, field_key: str) -> str:
+def _checked_field_key(conn: sqlite3.Connection, field_key: str) -> str:
     """`get_field` raises `FieldNotInCatalogue` for a key outside Task 2's closed
     catalogue, so writing a fact is not a back door into creating a field (§3.5)."""
     return get_field(conn, field_key)["field_key"]
@@ -1445,12 +1455,12 @@ def _checked_refs(refs, reliability_state: str) -> tuple[str, ...]:
     return ordered
 
 
-def _fact_identity(*, file_id: str, content_hash: str, field_id: str, value_id: str,
+def _fact_identity(*, file_id: str, content_hash: str, field_key: str, value_id: str,
                    reliability_state: str, origin: str, cache_key: str,
                    evidence_refs: tuple[str, ...]) -> str:
     """The same conclusion, from the same evidence, at the same cache key, is the same
     fact -- not a second one. `sha256_of` is length-prefixed and injective."""
-    return sha256_of("facts.file_facts", file_id, content_hash, field_id, value_id,
+    return sha256_of("facts.file_facts", file_id, content_hash, field_key, value_id,
                      reliability_state, origin, cache_key,
                      canonical_json(list(evidence_refs)))
 
@@ -1476,22 +1486,22 @@ def write_fact(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
         raise ValueError("a fact records the cache key it was computed under (§3.4)")
     refs = _checked_refs(evidence_refs, reliability_state)
     quotes = tuple(sorted(set(cited_quote_refs)))
-    field_id = _field_id(conn, field_key)
+    field_key = _checked_field_key(conn, field_key)
 
     value = conn.execute(
-        'SELECT field_id FROM "values" WHERE value_id = ?', (value_id,)
+        'SELECT field_key FROM "values" WHERE value_id = ?', (value_id,)
     ).fetchone()
     if value is None:
         raise KeyError(f"unknown value {value_id!r}")
-    if value["field_id"] != field_id:
+    if value["field_key"] != field_key:
         raise ValueError(
-            f"value {value_id!r} belongs to field {value['field_id']!r}, not "
-            f"{field_id!r}; a value belongs to exactly one field (§3.12), which is "
+            f"value {value_id!r} belongs to field {value['field_key']!r}, not "
+            f"{field_key!r}; a value belongs to exactly one field (§3.12), which is "
             "§3.8's role separation"
         )
 
     fact_id = _fact_identity(
-        file_id=file_id, content_hash=content_hash, field_id=field_id,
+        file_id=file_id, content_hash=content_hash, field_key=field_key,
         value_id=value_id, reliability_state=reliability_state, origin=origin,
         cache_key=cache_key, evidence_refs=refs)
     existing = conn.execute(
@@ -1518,13 +1528,13 @@ def write_fact(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
         }),
     )
     conn.execute(
-        "INSERT INTO file_facts (fact_id, file_id, content_hash, field_id, value_id, "
+        "INSERT INTO file_facts (fact_id, file_id, content_hash, field_key, value_id, "
         "reliability_state, origin, evidence_refs, cited_quote_refs, cache_key, "
         "model_identifier, prompt_fingerprint, internal_score, active, "
         "supersedes, superseded_by, supersede_reason, preferred, rejection_reason, "
         "created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
         "NULL, NULL, NULL, NULL, ?, ?)",
-        (fact_id, file_id, content_hash, field_id, value_id, reliability_state,
+        (fact_id, file_id, content_hash, field_key, value_id, reliability_state,
          origin, canonical_json(list(refs)), canonical_json(list(quotes)), cache_key,
          model_identifier, prompt_fingerprint, internal_score, int(bool(active)),
          rejection_reason, event["observed_at"]),
@@ -1548,7 +1558,7 @@ def facts_for_file(conn: sqlite3.Connection, file_id: str,
         '       v.canonical_value AS canonical_value, '
         '       v.display_label AS display_label '
         'FROM file_facts AS f '
-        'JOIN fields AS fl ON fl.field_key = f.field_id '
+        'JOIN fields AS fl ON fl.field_key = f.field_key '
         'JOIN "values" AS v ON v.value_id = f.value_id '
         'WHERE f.file_id = ? AND f.content_hash = ? '
         'ORDER BY fl.field_key, v.canonical_value, f.fact_id',

@@ -922,16 +922,22 @@ def test_the_stored_row_carries_exactly_the_specs_columns(p6_conn):
     # it against `fields` would fail on a column §3.8 requires.
     stored = tuple(r[1] for r in p6_conn.execute("PRAGMA table_info(fields)"))
     assert stored == FIELDS_COLUMNS
-    assert FIELDS_COLUMNS == ("field_id", "field_key", "display_name", "scope",
+    assert FIELDS_COLUMNS == ("field_key", "display_name", "scope",
                               "value_kind", "normalizer_id", "destination_eligible",
                               "multiplicity")
+    # brief §17: one concept, one name. A second identifier column holding the same
+    # string is the defect this rule exists to stop, so its ABSENCE is asserted --
+    # not the equality of two columns, which is what an earlier draft tested.
+    assert "field_id" not in stored, (
+        "`field_id` was the skeleton's name for the field key; brief §17 ruled the "
+        "column is `field_key` and holds the key. Two columns is not the fix.")
 
 
-def test_the_row_identity_is_the_field_key_under_both_names(p6_conn):
-    # SPEC: "field_key — stable identifier". Task 3's `values.field_id` joins on it.
-    # One identity, two names — never two identities.
+def test_the_row_identity_is_the_field_key(p6_conn):
+    # SPEC: "field_key — stable identifier". Task 3's `values.field_key` joins on it.
+    # One identity, one name.
     row = get_field(p6_conn, "subject")
-    assert row["field_id"] == row["field_key"] == "subject"
+    assert row["field_key"] == "subject"
     assert row["display_name"] == "subject"
     assert row["scope"] == "academic"
     assert row["value_kind"] == "string"
@@ -1036,10 +1042,14 @@ import sqlite3
 
 from database_agent.db import transaction
 
-#: The `fields` catalogue (SPEC, Table: `fields`). `field_id` and `field_key` hold
-#: the same string: the SPEC calls `field_key` the "stable identifier", and Task 3's
-#: `values.field_id` joins on it. One identity under the two names the two tables
-#: use — never two identities.
+#: The `fields` catalogue (SPEC, Table: `fields`). `field_key` is the SPEC's
+#: "stable identifier" and the ONLY identifier this table has. An earlier draft
+#: carried `field_id` beside it holding the identical string, to satisfy the
+#: skeleton and the SPEC at once; brief §17 overruled that -- one concept wears one
+#: name -- so the second column is gone rather than kept in sync. `field_key` is the
+#: PRIMARY KEY, which is also what Task 3's `REFERENCES fields (field_key)` needs:
+#: `PRAGMA foreign_keys` is ON and an FK to a non-PK/UNIQUE parent raises
+#: `foreign key mismatch` at INSERT, not at DDL.
 #:
 #: `destination_eligible` is INTEGER because SQLite has no boolean; `create_fields`
 #: writes 0/1 and the reader coerces with `bool()`.
@@ -1048,8 +1058,7 @@ from database_agent.db import transaction
 #: per-field normalizers are a Deferred SPEC row, and multiplicity is open question 6.
 _FIELDS_DDL = """
 CREATE TABLE IF NOT EXISTS fields (
-    field_id             TEXT PRIMARY KEY,
-    field_key            TEXT NOT NULL UNIQUE,
+    field_key            TEXT PRIMARY KEY,
     display_name         TEXT NOT NULL,
     scope                TEXT NOT NULL,
     value_kind           TEXT NOT NULL,
@@ -1143,7 +1152,7 @@ class FieldRow:
 
 #: The stored columns, asserted against `PRAGMA table_info(fields)`.
 FIELDS_COLUMNS: tuple[str, ...] = (
-    "field_id", "field_key", "display_name", "scope", "value_kind",
+    "field_key", "display_name", "scope", "value_kind",
     "normalizer_id", "destination_eligible", "multiplicity",
 )
 
@@ -1329,10 +1338,10 @@ def create_fields(conn: sqlite3.Connection) -> None:
             check(row.scope, FIELD_SCOPES, name="field scope")
             check(row.value_kind, VALUE_KINDS, name="value_kind")
             conn.execute(
-                "INSERT OR IGNORE INTO fields (field_id, field_key, display_name, "
+                "INSERT OR IGNORE INTO fields (field_key, display_name, "
                 "scope, value_kind, normalizer_id, destination_eligible, "
-                "multiplicity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (row.field_key, row.field_key, row.display_name, row.scope,
+                "multiplicity) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (row.field_key, row.display_name, row.scope,
                  row.value_kind, row.normalizer_id,
                  1 if row.destination_eligible else 0, row.multiplicity),
             )
@@ -1342,7 +1351,10 @@ def get_field(conn: sqlite3.Connection, field_key: str) -> sqlite3.Row:
     """The catalogue row for `field_key`.
 
     Raises `FieldNotInCatalogue` for anything else — including `course` (D6: prose,
-    not a key) and `sensitivity_status` (NEEDS-JOSEPH C5: no row until asked).
+    not a key), `target_university` (D8: prose for `target_school`) and
+    `sensitivity_status` (**D7**: P7's `ClassificationRecord` is the sole home; P6
+    creates no such row. The old citation here was C5, which is a different question
+    — brief §14).
     """
     row = conn.execute(
         "SELECT * FROM fields WHERE field_key = ?", (field_key,)

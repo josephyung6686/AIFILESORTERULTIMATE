@@ -1769,7 +1769,7 @@ then walks forward from there. The walk terminates without a guard because `mark
 a cycle at write time — it walks the prospective chain and raises *"supersede chain would cycle"* —
 so the graph on disk is acyclic by construction rather than by a second check here.
 
-**The slot is addressed through Task 4's reader and P1's columns, never through `field_id`.** Which
+**The slot is addressed through Task 4's reader and P1's columns, never through `field_key`.** Which
 column `file_facts` uses to reference the catalogue is Task 4's schema decision, and a second module
 spelling it would be a second home for one decision — the defect this project pays most for. So this
 module reads `file_id` and `content_hash` (both in §3's own table block), gets the live rows and
@@ -2136,7 +2136,7 @@ history read starting from the newest row would return one row and look correct,
 cycle guard: `mark_superseded` refuses a cycle at write time, so the graph on disk is
 acyclic by construction rather than by a second policy here.
 
-**The slot is addressed through Task 4's reader, never through `field_id`.** Which
+**The slot is addressed through Task 4's reader, never through `field_key`.** Which
 column `file_facts` uses to reference the catalogue is Task 4's schema decision, and a
 second module spelling it would be a second home for one decision. This module reads
 `file_id` and `content_hash`, takes the field key off `facts_for_file`'s rows, and
@@ -2169,7 +2169,7 @@ class PreferredNeverReverses(ValueError):
     """§3.13's ordering, raised rather than documented.
 
     "A `user_confirmed` fact is always the preferred row for its `(file_id,
-    field_id)`; §3.13's ordering is not negotiable and `preferred` never reverses it."
+    field_key)`; §3.13's ordering is not negotiable and `preferred` never reverses it."
     """
 
 
@@ -2230,7 +2230,7 @@ def supersede_fact(conn: sqlite3.Connection, *, old_fact_id: str,
     """
     old = _row(conn, old_fact_id)
     new = _row(conn, new_fact_id)
-    if (old["file_id"], old["field_id"]) != (new["file_id"], new["field_id"]):
+    if (old["file_id"], old["field_key"]) != (new["file_id"], new["field_key"]):
         raise SupersedeAcrossSlots(
             "§8.2 supersedes an answer: both facts must be for one file and one "
             f"field; {old_fact_id!r} and {new_fact_id!r} are not")

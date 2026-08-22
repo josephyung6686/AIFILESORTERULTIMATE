@@ -752,7 +752,7 @@ storing a second, disagreeing identity.
   then LLM — so a field with no direct evidence has not been refused, it has not been *finished*. An
   abstention row written here would record a refusal for a field Task 10 then fills, and Done-means
   19 would be false: the `unresolved` row would sit beside an active fact for the same
-  `(file_id, content_hash, field_id)`. The abstention belongs at the end of the sequence, which is
+  `(file_id, content_hash, field_key)`. The abstention belongs at the end of the sequence, which is
   Task 20's resolver. **This is stated here because it is the single most likely place for a
   reviewer to think the plan has dropped B7.**
 - **A slot that recognises an observation whose value will not normalize DOES write one.** Evidence
@@ -1438,7 +1438,7 @@ git commit -m "feat(P6): §3.5 direct facts from injected explicit slots; the sl
   `evidence_shape.canonical.canonical_json`; `evidence_shape.vocabulary.ANALYSIS_TIERS`.
   The skeleton also lists `facts.fields` — `get_field`, `FieldNotInCatalogue`. It is consumed by
   **this task's test**, which reads `destination_eligible` off all four §3.8 role rows and resolves
-  `field_id` for the `unresolved` assertion, and not by the module: `may_populate` takes no
+  `field_key` for the `unresolved` assertion, and not by the module: `may_populate` takes no
   connection, because a routing rule that needed a database could not be called from inside a
   ranking loop. Nothing in `Produces:` changed.
 - Produces: `discount(observation, *, tool_producer_strings, metadata_property_names) -> str`
@@ -1662,7 +1662,7 @@ def test_a_suppressed_producer_writes_exactly_one_unresolved_row(p6_conn):
     rows = unresolved_for_file(p6_conn, "f1", HASH)
     assert len(rows) == 1
     assert rows[0]["reason"] == "discounted_tool_metadata"
-    assert rows[0]["field_id"] == get_field(p6_conn, AUTHORSHIP_FIELDS[0])["field_id"]
+    assert rows[0]["field_key"] == get_field(p6_conn, AUTHORSHIP_FIELDS[0])["field_key"]
     assert json.loads(rows[0]["evidence_refs"]) == [observation.observation_key]
 
 

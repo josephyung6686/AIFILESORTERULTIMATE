@@ -442,7 +442,7 @@ P6 is unbuilt and **P6's SPEC Open question 11 is open**. Every field below is q
 `../P6-facts-facets/SPEC.md`; nothing is invented. OQ11 is answered by **D2**, not here.
 
 ```text
-file_facts     fact_id · file_id · field_id · value_id · reliability_state · origin ·
+file_facts     fact_id · file_id · field_key · value_id · reliability_state · origin ·
                evidence_refs[] · cited_quote_refs[] · cache_key · model_identifier ·
                prompt_fingerprint · internal_score · active · preferred ·
                supersedes / superseded_by / supersede_reason · rejection_reason · created_at

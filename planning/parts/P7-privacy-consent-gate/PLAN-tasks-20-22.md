@@ -1759,7 +1759,7 @@ def test_the_p6_field_row_question_stays_open_and_p7_reads_no_p6_surface():
     # and holds no P6 table name.
     for path in modules():
         tokens = code_tokens(path)
-        for forbidden in ("file_facts", "fact_id", "field_id", "value_id"):
+        for forbidden in ("file_facts", "fact_id", "field_key", "value_id"):
             assert forbidden not in tokens, (path.name, forbidden)
         assert not [name for name in imports_of(path) if name.startswith("facts")]
 

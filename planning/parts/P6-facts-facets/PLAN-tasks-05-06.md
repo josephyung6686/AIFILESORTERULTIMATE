@@ -83,7 +83,7 @@ check(v, vocab, *, name)      -> v, or raises NotInVocabulary (a ValueError subc
   here: `observations_by_key` on an unknown key returns `[]` rather than raising, so a resolution
   check would need a policy for the empty result, and that policy is Task 7's.
 - **The row is never de-duplicated and never updated.** Two abstentions for the same
-  `(file_id, content_hash, field_id)` under two different cache keys are two rows, because §3.4's key
+  `(file_id, content_hash, field_key)` under two different cache keys are two rows, because §3.4's key
   is what makes them different events. `write_unresolved` only ever INSERTs.
 
 ---
@@ -460,7 +460,7 @@ CREATE TABLE IF NOT EXISTS unresolved (
     unresolved_id       TEXT PRIMARY KEY,
     file_id             TEXT NOT NULL,
     content_hash        TEXT NOT NULL,
-    field_id            TEXT NOT NULL,
+    field_key            TEXT NOT NULL,
     reason              TEXT NOT NULL,
     attempted_producers TEXT NOT NULL,
     evidence_refs       TEXT NOT NULL,
@@ -535,15 +535,18 @@ __all__ = [
 _KEY_PREFIX = "sha256:"
 
 
-def _field_id(conn: sqlite3.Connection, field_key: str) -> str:
+def _checked_field_key(conn: sqlite3.Connection, field_key: str) -> str:
     """The catalogue row's identity, resolved through Task 2's published reader.
+
+    Named `_checked_` rather than `_field_key` because after brief §17 it takes a key
+    and returns the same key: its whole value is the refusal on the way through.
 
     `get_field` raises `FieldNotInCatalogue` for a key the catalogue does not carry,
     which is §3.12 -- "it should not invent new fields automatically" -- enforced at
     the abstention row exactly as hard as at the fact row. A refusal naming a field
     that does not exist is not a refusal, it is a typo.
     """
-    return get_field(conn, field_key)["field_id"]
+    return get_field(conn, field_key)["field_key"]
 
 
 def _required(value: str, *, name: str) -> str:
@@ -592,13 +595,13 @@ def write_unresolved(conn: sqlite3.Connection, *, file_id: str, content_hash: st
     """Record one refusal. Returns the `unresolved_id`.
 
     Always an INSERT, never an update and never de-duplicated: two refusals for the
-    same `(file_id, content_hash, field_id)` under two different §3.4 cache keys are
+    same `(file_id, content_hash, field_key)` under two different §3.4 cache keys are
     two different events, and §8.2 keeps both readable.
     """
     _required(file_id, name="file_id")
     _required(content_hash, name="content_hash")
     _required(cache_key, name="cache_key")
-    field_id = _field_id(conn, field_key)
+    field_key = _checked_field_key(conn, field_key)
     check(reason, UNRESOLVED_REASONS, name="reason")
     producers = _attempted(attempted_producers)
     refs = _evidence_refs(evidence_refs)
@@ -607,11 +610,11 @@ def write_unresolved(conn: sqlite3.Connection, *, file_id: str, content_hash: st
     conn.execute(
         """
         INSERT INTO unresolved (
-            unresolved_id, file_id, content_hash, field_id, reason,
+            unresolved_id, file_id, content_hash, field_key, reason,
             attempted_producers, evidence_refs, cache_key, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (unresolved_id, file_id, content_hash, field_id, reason,
+        (unresolved_id, file_id, content_hash, field_key, reason,
          canonical_json(producers), canonical_json(refs), cache_key,
          datetime.now(timezone.utc).isoformat()),
     )
@@ -637,8 +640,8 @@ def unresolved_for_file(conn: sqlite3.Connection, file_id: str, content_hash: st
     clauses = ["file_id = ?", "content_hash = ?"]
     params: list[str] = [file_id, content_hash]
     if field_key is not None:
-        clauses.append("field_id = ?")
-        params.append(_field_id(conn, field_key))
+        clauses.append("field_key = ?")
+        params.append(_checked_field_key(conn, field_key))
     if reason is not None:
         clauses.append("reason = ?")
         params.append(check(reason, UNRESOLVED_REASONS, name="reason"))
@@ -1240,12 +1243,15 @@ git commit -m "feat(P6): §3.4's five-part fact cache key — a rename is free, 
 
 Five, reported rather than patched, because each one belongs to a file another author owns.
 
-1. **`get_field(conn, field_key)` must return a `field_id`.** The SPEC's `fields` sketch names
-   `field_key` as the *"stable identifier"* and lists no `field_id`, but `file_facts` and
-   `unresolved` both carry a `field_id` column and `PLAN-tasks-16-19.md` already reads
-   `old["field_id"]` off a `file_facts` row. So the column exists in both tables or in neither.
-   Task 5's `_field_id` is one line and reads `get_field(...)["field_id"]`; if Task 2's catalogue
-   keys on `field_key` alone, that one line and Task 4's equivalent change together.
+1. ~~**`get_field(conn, field_key)` must return a `field_id`.**~~ **RESOLVED by brief §17 exactly as
+   this author predicted.** The reasoning was right and the prediction was right: *"if Task 2's
+   catalogue keys on `field_key` alone, that one line and Task 4's equivalent change together."*
+   Task 2's catalogue now keys on `field_key` alone — its first draft carried BOTH `field_id` and
+   `field_key` holding the identical string, and that second column is deleted. So `values`,
+   `file_facts` and `unresolved` all carry `field_key`, `get_field(...)["field_key"]` is what the
+   one-line helper reads, and `PLAN-tasks-16-19.md`'s `old["field_id"]` is corrected with them.
+   The column exists in all of them under one name, which is the "in both tables or in neither"
+   this item asked for.
 2. **One design sentence, two cache-key functions.** §3.4 describes one key; the built system has
    `extractors.runs.cache_key` and `facts.cache.fact_cache_key`, because P4's observation/fact split
    gave the sentence two subjects after §3.4 was written. Task 6's test pins them apart rather than

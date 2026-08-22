@@ -154,7 +154,7 @@ version with no stored observations at all reaches it.
 **A pair the design never asks about gets no row of any kind.** `report (1).pdf` and
 `invoice (1).pdf` share a `(1)` suffix and nothing else. Their hashes differ, neither carries a
 perceptual-hash observation, and the injected lineage rule returns nothing — so no family fact, and
-**no `unresolved` row either**. The SPEC's `unresolved` schema is explicit that `field_id` is *"the
+**no `unresolved` row either**. The SPEC's `unresolved` schema is explicit that `field_key` is *"the
 field that was attempted"*; a relation nobody proposed was never attempted, and recording it as a
 refusal would make the abstention table a log of every pair in the corpus.
 
