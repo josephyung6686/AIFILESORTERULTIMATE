@@ -290,6 +290,52 @@ def test_a_merge_chain_cannot_cycle(p6_conn):
         merge_values(p6_conn, keep=a, merged=b, reason="and b is a")
 
 
+class _FailsOnTheMergePointer:
+    """P1's handle, with the "point `merged` at `keep`" UPDATE turned into a crash.
+
+    Everything else -- P1's own `BEGIN` / `ROLLBACK`, the SELECTs, the alias UPDATE --
+    reaches the real connection, so the merge fails exactly where a half-written merge
+    would fail and nowhere else. P1's `transaction` is used, never mocked.
+    """
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def __getattr__(self, name: str):
+        return getattr(self._conn, name)
+
+    def execute(self, sql: str, *args):
+        if sql.startswith('UPDATE "values" SET merged_into'):
+            raise sqlite3.OperationalError("disk I/O error")
+        return self._conn.execute(sql, *args)
+
+
+def test_a_merge_that_fails_halfway_absorbs_nothing(p6_conn):
+    # §8.2's alias record is one fact in two rows: the survivor gains the alias and
+    # the merged row names where it went. Written outside a transaction they commit
+    # independently, and a crash between them leaves `keep` holding an alias for a
+    # value whose `merged_into` is still NULL -- a state no invariant here rejects and
+    # Task 4's `file_facts`, which point at `value_id`, would resolve wrongly.
+    keep = ensure_value(p6_conn, field_key=FIELD, canonical_value=CANONICAL,
+                        first_evidence_ref=_key(RAW), origin=VALUE_ORIGINS[0])
+    merged = ensure_value(p6_conn, field_key=FIELD, canonical_value="U Chicago",
+                          first_evidence_ref=_key(RAW, locator="filename:name"),
+                          origin=VALUE_ORIGINS[0])
+    add_raw_variant(p6_conn, merged, "U Chicago")
+    before = _row(p6_conn, keep)
+    aliases_before, variants_before = before["aliases"], before["raw_variants"]
+
+    with pytest.raises(sqlite3.OperationalError):
+        merge_values(_FailsOnTheMergePointer(p6_conn), keep=keep, merged=merged,
+                     reason="one university under two wordings")
+
+    after = _row(p6_conn, keep)
+    assert after["aliases"] == aliases_before
+    assert after["raw_variants"] == variants_before
+    assert _row(p6_conn, merged)["merged_into"] is None
+    assert _row(p6_conn, merged)["merge_reason"] is None
+
+
 # ------------------------------------------------------------------------ §8.8 held
 def test_the_display_label_is_stored_unscoped_and_no_plan_version_is_invented(p6_conn):
     # §8.8 puts "User labels and aliases" inside a plan version; Task 22 owns that

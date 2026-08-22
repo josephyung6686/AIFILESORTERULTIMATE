@@ -36,6 +36,8 @@ import json
 import sqlite3
 from dataclasses import dataclass
 
+from database_agent.db import transaction
+
 from evidence_shape.canonical import canonical_json, sha256_of
 from evidence_shape.vocabulary import check
 
@@ -227,14 +229,20 @@ def merge_values(conn: sqlite3.Connection, *, keep: str, merged: str,
         aliases.add(merged_row["display_label"])
     variants = set(json.loads(keep_row["raw_variants"]))
     variants.update(json.loads(merged_row["raw_variants"]))
-    conn.execute(
-        'UPDATE "values" SET aliases = ?, raw_variants = ? WHERE value_id = ?',
-        (_store_list(aliases), _store_list(variants), keep),
-    )
-    conn.execute(
-        'UPDATE "values" SET merged_into = ?, merge_reason = ? WHERE value_id = ?',
-        (keep, reason, merged),
-    )
+    # One alias record, two rows, one boundary. The handle is `isolation_level=None`,
+    # so unwrapped these two UPDATEs autocommit independently and a failure between
+    # them leaves `keep` holding an alias for a value whose `merged_into` is still
+    # NULL -- a state no invariant in this module rejects. P1's `transaction` is
+    # reentrant, so a caller who already holds a boundary gets a SAVEPOINT.
+    with transaction(conn):
+        conn.execute(
+            'UPDATE "values" SET aliases = ?, raw_variants = ? WHERE value_id = ?',
+            (_store_list(aliases), _store_list(variants), keep),
+        )
+        conn.execute(
+            'UPDATE "values" SET merged_into = ?, merge_reason = ? WHERE value_id = ?',
+            (keep, reason, merged),
+        )
 
 
 def values_in_field(conn: sqlite3.Connection, field_key: str) -> list[sqlite3.Row]:

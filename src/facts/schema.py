@@ -20,9 +20,10 @@ from database_agent.supersede import supersede_ddl
 #: carried `field_id` beside it holding the identical string, to satisfy the
 #: skeleton and the SPEC at once; brief §17 overruled that -- one concept wears one
 #: name -- so the second column is gone rather than kept in sync. `field_key` is the
-#: PRIMARY KEY, which is also what Task 3's `REFERENCES fields (field_key)` needs:
-#: `PRAGMA foreign_keys` is ON and an FK to a non-PK/UNIQUE parent raises
-#: `foreign key mismatch` at INSERT, not at DDL.
+#: PRIMARY KEY, so a `REFERENCES fields (field_key)` from a child table would bind --
+#: `PRAGMA foreign_keys` is ON and an FK to a non-PK/UNIQUE parent raises `foreign key
+#: mismatch` at INSERT, not at DDL. Task 3 declines to declare one and says why on
+#: `VALUES_DDL`.
 #:
 #: `destination_eligible` is INTEGER because SQLite has no boolean; `create_fields`
 #: writes 0/1 and the reader coerces with `bool()`.
