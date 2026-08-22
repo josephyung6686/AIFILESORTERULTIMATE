@@ -13,6 +13,8 @@ from database_agent.db import create_schema
 
 from evidence_shape.schema import create_evidence_schema
 
+from facts.fields import create_fields
+
 #: §8.5 replays a run and compares it against a prior result, so any test that
 #: compares two records must be comparing what the resolver produced and not two
 #: readings of the wall clock.
@@ -26,9 +28,13 @@ def observed_at() -> str:
 
 @pytest.fixture()
 def p6_conn(conn):
-    """P1's database with P4's three tables added. Task 2 extends this fixture with
-    P6's own tables and the `fields` catalogue; it is the same shape
-    `tests/p4/conftest.py` builds as `p4_conn`."""
+    """P1's database with P4's three tables, P6's own tables, and the `fields`
+    catalogue loaded — the same shape `tests/p4/conftest.py` builds as `p4_conn`.
+
+    `create_fields` calls `create_facts_schema` itself, so there is no ordering trap
+    for a test that only wants the catalogue.
+    """
     create_schema(conn)
     create_evidence_schema(conn)
+    create_fields(conn)
     return conn
