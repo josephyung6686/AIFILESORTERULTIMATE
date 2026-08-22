@@ -693,3 +693,53 @@ structure off that header and you inherit a four-task overcount.
 - **Where do P7's reliability-state and basis constants live?** D2 makes P7's record authoritative and
   P7 must not import P6, so `"user_confirmed"` and `"user"` have **no published home and no named
   owner**. Task 2 is the obvious place; nobody has been told to build it.
+
+---
+
+## 11. BACKLOG STATUS — what is applied, what is not
+
+Both `PLAN.md` files are assembled and rebuild reproducibly from
+`planning/parts/build.py`. **Assembled is not the same as executable**, and this is the line.
+
+### APPLIED (commit `fa8d7ae` unless noted)
+
+| | What | Where |
+|---|---|---|
+| ✅ | **`set_policy` — 21 call sites** (not 18). `author=` dropped, required `reason=` supplied per site. | 5 files |
+| ✅ | **`policy_version`** — the two helpers that hardcoded `"policy-1"` and fed `set_policy` now use `UNSET_POLICY_VERSION`; a bare `""` for the same constant replaced too. | `17-19`, `15-22` |
+| ✅ | **`area_of` → `scope_for`**, 16 sites, **plus widening the published type to `Callable[[str], str \| None]`** with the reason stated. | `20-22`, `11` |
+| ✅ | **Task 21's `HELD_OPEN`** no longer asserts C24 and C22 are open; the C24 test asserts D7's outcome, the C22 test inverts to pin the flip to the Vision adapter. | `20-22` |
+| ✅ | **Four `Modify: src/privacy/gate.py` lines** — six `Gate` methods now have a producer (mandatory under D13). | `15-22`, `17-19` |
+| ✅ | `field_key` corpus-wide, incl. deleting Task 2's second identifier column (`1474de7`) | P6 |
+| ✅ | 26 stale test-count claims → **1302** (`d7607f0`) | both |
+| ✅ | D6/D8 propagated into P6's SPEC (`c0aad4e`); P7's SPEC amended under D7 (`6acdce5`) | both |
+| ✅ | **Back matter is no longer dropped** — the extractor absorbed it into the last task and lost it when that task lost. Three appendices recovered across both parts. | assembler |
+
+**Checked and deliberately NOT changed:** three further `policy_version="policy-1"` sites feed
+`revoke()` and `mint_release()`, where `policy_version` is a **binding term** and an already-minted
+version is correct. `PLAN-tasks-20-22.md`'s forbidden-token guard names `field_key`, which is right
+under the rename. `PLAN-tasks-11.md`'s **C5** citations are correct and still live.
+
+### NOT APPLIED — still blocks execution
+
+| | What | Cost |
+|---|---|---|
+| ❌ | **`Gate.__init__` is twelve keywords and no fixture supplies them.** Task 20 pins two; the graft of `gate_arguments()` from `15-22:3319-3339` is the fix, widened to twelve, supplying `template_for` and `measure_tokens` so fixtures 4, 6 and 16 can replay. **Task 20 owns it** (§3.3 of the preamble closes the deferral loop). | medium |
+| ❌ | **Fixtures: sixteen → eighteen**, then one renumbering pass over every `len(FIXTURES) == 16`, `range(1, 17)`, `MODE_SWEEP`, `SKELETON_FIXTURE` and `by_number(n)` in Tasks 20 and 22. | medium |
+| ❌ | **Fixture 7 cannot deny in either version**, and **no P5 sensitivity signal is seeded in either suite**, so `always_local_item` is unreachable. `seed()` must write the signal and the fixture must stand on a P5-signalled key. | medium |
+| ❌ | **Fixture 10 cannot return `NeedsConsent`** — `protected=False` *and* a grant. Both flip. | small |
+| ❌ | **Named constants** — brief §11 reaches **neither** version of anything. P6's states, `FACT_ORIGINS`, `ATTEMPTED_PRODUCERS`, `UNRESOLVED_REASONS`; P7's `basis="user"` / `reliability_state="user_confirmed"`, which **Task 2 does not yet publish** (see the D7 open item). | large |
+| ❌ | **The §3.4 cache key is still written out eight times.** One helper in `facts.cache`. | medium |
+| ❌ | **`ProtectedSummary` gains `scope_total`** (D11) — implementation is small, the test change is large, and the type-level "no field a filename could occupy" proof must move with it. | medium |
+| ❌ | **`AuditRecord.release_id`** — `assert record.release_id == decision.release_id` and two fixtures building `release_id="release-1"` are wrong under D14. | small |
+| ❌ | **`SHOWN` / `REDACTED` have three homes and three names** (`REDACTION_VALUES`, `SETTING_VALUES`, `FACET_VALUES`). One home, everyone re-exports. | small |
+| ❌ | **The discount has no caller** (§4.1). Task 24 adds the stage. | medium |
+| ❌ | **CUT 2 and CUT 4 callouts** are missing from both Task 22 versions, and Task 19's is unlabelled prose in which the author ruled the cut themselves. | small |
+| ❌ | **`IS_MODEL_TRANSPORT`** is read by Task 22 and written by no task. | small |
+| ❌ | **`prior_releases` under-reports every group release** (§4.3) — Task 10's reader filters the column only. | medium |
+
+### Still unruled
+
+`run_wave2`'s parameter count is **17**, and two sections say eighteen. The `NeedsConsent` ownership
+contradiction resolves to `consent.py` (brief §15's direction), and the losing reasoning is kept as
+the justification. Neither is applied yet.
