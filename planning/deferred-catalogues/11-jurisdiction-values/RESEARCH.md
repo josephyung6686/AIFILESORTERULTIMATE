@@ -11,6 +11,15 @@ time (2026-08-22) `planning/deferred-catalogues/11-jurisdiction-values/` did not
 was no draft to audit and everything here is first-authored this pass, with every mechanical
 claim verified fresh (section 9).
 
+**Second salvage pass, same day:** the run that authored these files was itself interrupted by a
+session limit. A successor R5 pass re-audited the whole directory as an untrusted draft: every
+quoted span in the markdown files re-verified against its named source (the JSON quotes were
+already gated by `check.py`), every count in section 3 and `field-hygiene.md` re-derived by an
+independent scan, every catalogue-08 hook and slot re-resolved, and `check.py` re-run clean. One
+error was found and fixed: the country tally had copied the ships seat's "UK 8" instead of this
+scan's own word-boundary count (7 at 574; the correction is noted inline in section 3). All
+other claims reproduced exactly.
+
 ---
 
 ## 1. The decision state, exactly
@@ -59,12 +68,12 @@ finance-legal-admin 21, career 7, engineering 4, healthcare 3, business 2, resea
 seat's "124 of 560" reproduces exactly at 574.
 
 **Country and agency mentions** (word-boundary scan over the 14 JSON slices; the `.md` files
-mirror the JSONs and are excluded to avoid double counting): England 8 · Wales 8 · UK 8 ·
+mirror the JSONs and are excluded to avoid double counting): England 8 · Wales 8 · UK 7 ·
 United Kingdom 7 · Canada 3 · Ireland 2 · Scotland 1 · European Union 1 · Companies House 1 ·
 NHS 1 · United States 1 · British 1 (that last is `British Airways`, not a jurisdiction
 signal). Method differences against the ships seat's tally (it counted bare `EU` tokens; this
-scan counted `European Union` and `EU ` forms) do not move the conclusion: **the catalogue's
-prose is UK-shaped.**
+scan counted `European Union` and `EU ` forms; its "UK 8" over 560 is 7 under this scan's
+word-boundary rule at 574) do not move the conclusion: **the catalogue's prose is UK-shaped.**
 
 **The design is US-shaped — with one correction that matters.** The design's worked entities
 are UChicago, Columbia, Duke, Cornell, Georgetown Prep, `BUSIB 4300`, `PHYS1401`, plus exactly
@@ -217,6 +226,7 @@ Open questions only; none is closed here, and D4's ratified shape is not re-open
 | claim | method | result |
 |---|---|---|
 | prior-run salvage | listed `planning/deferred-catalogues/` at session start | `11-jurisdiction-values/` absent; nothing to salvage; all files first-authored 2026-08-22 |
+| second-pass audit (authoring run also interrupted) | successor pass treated the directory as an untrusted draft: markdown quotes re-verified against sources, all counts re-derived independently, hooks/slots re-resolved, `check.py` re-run | one fix — country tally "UK 8" corrected to 7 (the 8 was the ships seat's 560-count, not this scan's); everything else reproduced exactly |
 | `00` says nothing about jurisdiction | word searches: jurisdiction, country, locale, GDPR, HIPAA, United States | zero occurrences each |
 | `W-2` not in `00` | word search | zero; found only in the two seat files and the DECISION-BRIEF (locations recorded in section 3) |
 | `Michaelmas Term 2024` in `00` | exact-string search | present (§3.10 sentence); also present in R6's `03-academic-term-patterns.json` (`atp-uk-named-term`); both asserted by `check.py` on every run |

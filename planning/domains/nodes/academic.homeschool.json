@@ -1,0 +1,491 @@
+{
+  "id": "academic.homeschool",
+  "kind": "template",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "Homeschooling",
+  "one_line": "The organizational situation in which one household runs its own schooling for its own children — lesson plans, curriculum worksheets, portfolios, attendance and evaluation records, and the filings a home-instruction regime requires — where the holder is teacher, registrar and record-keeper at once and no institution issues any of it.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+
+  "proposed_fields": [
+    {
+      "key": "student",
+      "type": "string",
+      "example": "the child a portfolio, attendance log or evaluation letter is about",
+      "destination_eligible": "recommended true; placing it is R1c's and Joseph's, not this node's",
+      "role_split_with": ["authored_by"],
+      "provenance": "proposal",
+      "why": "The SAME key academic.k12-schooling already proposes, for the same gap, deliberately not re-derived under a second spelling — R1c should merge these into one canonical row, never two. The gap here is if anything sharper: in a homeschooling household the parent is both the producer of the record and its keeper, so `authored_by` is filled by the very person the record is not about, and every remaining candidate key is wrong for a different reason — `instructor` names the teacher (who is also the parent), `people` is photo-side and seeded destination_eligible false, and `subject` in this catalogue means the course, not the human being. 00 states the general rule this instance falls under: \"The system must separate roles that happen to contain the same entity type.\" It is not the authorship prohibition, which 00 states in the same breath as the thing it prefers — \"the document’s purpose, project, subject, or target is more informative for placement\" — and a record's data subject sits on that informative side. The organizational consequence is concrete and larger than in the K-12 case, because homeschooling households are commonly multi-child and every artifact (worksheet, portfolio, attendance log, evaluation) is per-child: with no declared field for the child, this template's dimension_order cannot express the split the parent actually files by. NOT placed in dimension_order: a template may only branch on fields its schema declares (CONNECTION section 3), and the Academic schema declares no such field."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "home-instruction compliance vocabulary in a high-weight zone — notice of intent, letter of intent, declaration of intent, home instruction, home education program, portfolio evaluation, umbrella school, cover school, withdrawal from enrollment — together with a school-year-shaped term pattern. 00 requires the term half be read by dedicated patterns: \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\"",
+      "a labelled lesson-plan or record-keeping table whose cells pair a Subject slot with a curriculum title, a lesson or unit number and a page range — the labelled-slot extraction 00 preserves: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\" This is the one place `subject` is read from an explicit slot rather than inferred from a code",
+      "a curriculum-title-shaped token (publisher plus level or grade, in the title zone of a worksheet, teacher guide or scope-and-sequence document) co-occurring with lesson, unit, worksheet, drill or student-book vocabulary. The confirming rule family is a curriculum-title gazetteer matched at word boundaries plus home-instruction context — R4 authors the contents; 00 supplies the matching discipline: \"It should use word-boundary matching rather than substring matching.\"",
+      "an attendance-log structure: a workbook whose sheet name or header row carries a school-year-shaped token and whose column headers include a date column beside an hours, days-of-instruction or subjects-covered column. 00's spreadsheet extraction is what makes this readable — \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.\"",
+      "a parent-issued transcript shape: a course/credit/grade table together with a parent or guardian attestation or signature block, a self-named home school in the header, and NO registrar office, seal, verification code or institutional issuer line — the presence of the attestation and the absence of the registrar are jointly the signal",
+      "a grade-level-shaped token together with a school-year-shaped token in a high-weight zone AND home-instruction context, rather than district, homeroom, principal, marking-period or attendance-office context. The context half is the whole discriminator against academic.k12-schooling; neither token pair clears either template alone",
+      "an evaluation or assessment letter naming a portfolio review or annual assessment of a named child's progress for a school year, signed by an evaluator with a stated credential and addressed to a parent or an education authority rather than issued on a school's letterhead",
+      "NOT a signal here, and this is what most separates this situation from academic.coursework: 00's course-code-plus-context pair — \"BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as\" its five terms — almost never fires on homeschool material, which names plain subjects (Math, Reading, Biology) and curriculum titles instead of code-shaped tokens. A template that waited for a course code would activate on nothing in this household"
+    ],
+    "needs_llm": [
+      "an unlabelled worksheet or graded page whose OCR shows arithmetic or handwriting practice and a child's handwriting, with no curriculum title, school-year token or grade-level token — whether it is this household's own instruction, academic.k12-schooling's school-issued work, academic.coursework's student artifact, or a printable that belongs to nobody; the model must cite support and return unknown when it cannot",
+      "a co-op or enrichment-program packet mixing a class schedule, a tuition invoice, a liability waiver and a syllabus — whether one shared purpose explains the packet and which members are not this template's at all. 00's shape for this judgement: \"The documents are content-incoherent but purpose-coherent.\"",
+      "a prose letter about a child's year that carries neither compliance vocabulary nor an evaluator credential — whether it is an evaluation, a personal note, or a school communication",
+      "separating a parent-issued transcript from an institutional one when both carry a course, credit and grade table and the institutional markers were lost to a flattened scan",
+      "home-instruction paperwork in a language or a jurisdiction whose compliance vocabulary the deterministic pattern catalogue does not cover — the situation is regulated differently everywhere, and 00's answer to unrecognised language is interpretation under citation, not a wider pattern"
+    ],
+    "never_alone": [
+      "an education-authority, district or state-agency name alone. 00's rule for the neighbouring case applies with the same force — \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" — and here the ambiguity is sharper still: the district that RECEIVES a notice of intent is a regulator, not a school the child attends, so its name must never land in `school`",
+      "the word homeschool alone in a vendor's marketing material — `Sonlight 2026 Catalog.pdf` or a curriculum publisher's promotional email is saturated with this template's vocabulary and is not one household's record of anything. This is the tempting false file this template must refuse: what it lacks is a named child, a school year in a record-keeping zone, or any household-produced artifact",
+      "a curriculum publisher or title token alone — it appears identically in a catalogue, a resale listing, a review blog capture, a school district's adopted-materials list, and this household's own worksheet",
+      "a grade-level-shaped token alone — Grade 4 may be a grade level, a letter-grade table row, a reading level, or a product or material grade",
+      "a bare 4-digit number or a bare year-pair alone — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\", so 2025-2026 in a filename is not a term fact by itself",
+      "a child's given name in a filename alone (Emma_Week12.pdf) — a person name evidences no schooling, and the person named is a data subject this schema declares no field for",
+      "source_type alone: text_document, spreadsheet, archive, image, ocr, email or calendar membership never activates this template without content evidence — 00 requires the engine \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a DOCX or PDF author field naming the parent alone — \"PDF metadata should be treated as supporting evidence, not as truth\", and in this situation the author field names the holder on nearly every file in the corpus, so it discriminates nothing",
+      "a parent folder named Homeschool, School, or a child's name alone — folder context is a clue needing an in-file anchor, and 00 requires existing structure be read rather than rewritten: \"The system learns from existing folders but must not silently reorganize them.\"",
+      "numbered practice problems alone — that structure is shared by this template, coursework, K-12 worksheets and a downloaded printable, and 00's answer where signals conflict is abstention: \"conflicting signals should lead to abstention rather than an invented classification\""
+    ]
+  },
+
+  "proposed_context_terms": [
+    "homeschool",
+    "home education",
+    "home instruction",
+    "notice of intent",
+    "letter of intent",
+    "portfolio evaluation",
+    "umbrella school",
+    "cover school",
+    "co-op",
+    "curriculum",
+    "scope and sequence",
+    "lesson plan",
+    "unit study",
+    "days of instruction",
+    "annual assessment",
+    "parent-teacher",
+    "student portfolio",
+    "reading log"
+  ],
+
+  "work_types": [
+    "lesson plan",
+    "curriculum guide",
+    "scope and sequence",
+    "worksheet",
+    "sample of work",
+    "portfolio",
+    "attendance log",
+    "reading log",
+    "progress report",
+    "evaluation letter",
+    "notice of intent",
+    "standardized test report",
+    "transcript",
+    "unit study",
+    "field trip record",
+    "co-op schedule",
+    "grade record",
+    "booklist"
+  ],
+
+  "grouping_reasons": [
+    "one child in one school year — the analogue of 00's course rule, \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\" A curriculum title alone must not merge two school years, and with no declared field for the child it must not merge two children either, even though the parent files exactly that way",
+    "one compliance cycle — a notice of intent, an attendance log, a portfolio sample set, an evaluation letter and a test report are content-incoherent and purpose-coherent, the shape 00 names: \"The documents are content-incoherent but purpose-coherent.\" Purpose is the facet that explains this set, and 00 makes it first-class: \"Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.\"",
+    "one curriculum across its year — teacher guide, student book scans, worksheets and answer keys sharing a curriculum title and a school year, joined by shared validated evidence rather than by a new fact",
+    "one unit study across its worksheets, booklist, field-trip record and photographs, where the capture members carry photo facts and stay context-supported members here — 00: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+    "one co-op or enrichment term, where the household is a participant rather than the provider and some members belong to finance or to another template entirely"
+  ],
+
+  "template": {
+    "dimension_order": ["term", "subject", "work_type"],
+    "why": "This differs from the Academic schema's default — 00's own \"An Academic template may define school → term → course → work type\" — by dropping `school` from the recommendation, and the reason is evidential, not stylistic: in a household-run situation there is usually no institution to fill it. The values that tempt the slot are all wrong for it — the district or state agency that receives a notice of intent is a regulator, an umbrella or cover school is a real institutional value that only some households have, and a self-named home school on a parent-issued transcript (Torres Family Academy) is a label the household invented, which no schools gazetteer will ever confirm. Recommending a level most files cannot fill produces exactly what 00 tells the canvas to warn about: \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" The optional branch pattern, offered only when the evidence is there, is `school` first for a household enrolled under an umbrella or cover school, where that value is institutional and gazetteer-confirmable. Term leads because a homeschool year is the unit the household plans, logs and reports in, and because the compliance set is per-year; subject follows because it is what makes a worksheet intelligible, in the same shape as 00's parent-context rule, \"A work type such as Homework 3 is meaningful only after the course is known\". Time is not first in the photo sense — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" — and time_first stays false: `term` here is an academic-year fact read from dedicated term patterns, not a capture date, and it is the function-level unit rather than a calendar scattering. One evidential caveat this node records rather than hides: `subject` in this situation is a plain word, not a code, so it cannot be produced by 00's course-code-plus-context rule; it reaches `direct` only from a labelled Subject slot in a lesson-plan or record-keeping table, and stays `possible` from a filename or free text. Branches that a plain filename word would open are branches no validated fact can fill. instructor is excluded because it is not destination-eligible and would collapse to the parent on nearly every file: \"It should avoid using authorship or creator identity as a destination dimension.\" The level the household actually files by first is the child, and no declared field names it (see proposed_fields and open_question); where a parent already keeps a folder per child, that is existing structure to attach beneath — \"A carefully curated existing folder should be treated as a strong expression of user intent.\" A scoped fallback belongs here too, in 00's own shape: \"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder\". All of this is a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "calendar",
+      "presentation"
+    ],
+    "extensions": [".pdf", ".docx", ".xlsx", ".csv", ".numbers", ".jpg", ".heic", ".png", ".zip", ".eml", ".ics", ".pptx"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Notice of Intent to Homeschool 2025-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Notice of Intent to Provide Home Instruction",
+        "labelled slots read Child's Name, Date of Birth, Grade Level, School Year, Address, Parent/Guardian",
+        "an addressee block naming a county education office and a superintendent title",
+        "a parent signature line and a date-signed slot",
+        "a paragraph citing the statutory requirement the filing satisfies"
+      ],
+      "facts_legal": ["term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the county education office in the addressee block — that institution is the regulator receiving the filing, not a school anyone attends",
+        "subject",
+        "instructor from the parent signature",
+        "that a date-of-birth or home-address slot becomes an academic fact — this schema declares no field for them and they are privacy-side values",
+        "legal-schema activation from the statutory citation alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Saxon Math 5-4 Lesson 42 Worksheet.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title zone carries a curriculum publisher name with a level token and a lesson number",
+        "the page is thirty numbered practice problems to be worked",
+        "a footer line carries a publisher copyright notice",
+        "no school-year token, no child's name, no school name anywhere in the file"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "term — no term-shaped token exists in the file, and the modification timestamp is not one",
+        "school",
+        "instructor",
+        "that the curriculum title alone makes this a household's record rather than a publisher's sample or a resale scan"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Attendance Log 2025-2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet name carries a school-year-shaped token",
+        "column headers read Date, Hours, Subjects Covered, Notes",
+        "about one hundred eighty populated rows with a running days-of-instruction total in a summary cell",
+        "the Subjects Covered column holds many different plain subject words across its rows"
+      ],
+      "facts_legal": ["term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "one subject value for the file when the column holds many subject values across rows — this is the report-card table lesson in spreadsheet form",
+        "instructor",
+        "a term from any single Date cell rather than from the school-year token"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Lesson Plan - Week 12.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a table whose column headers read Day, Subject, Curriculum, Pages, Notes",
+        "Subject cells hold plain words — Math, Reading, Science, History",
+        "Curriculum cells hold publisher titles with level tokens",
+        "no school-year token in the title zone; the week number is the only time-shaped token",
+        "DOCX author metadata names the parent"
+      ],
+      "facts_legal": ["work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "one subject value when the table's Subject column holds several — the labelled slot makes each cell readable, not the file single-subject",
+        "term from the week number",
+        "instructor from the DOCX author field",
+        "that the parent named in metadata is the child the plan is for"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Portfolio Evaluation - Emma - Grade 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Annual Homeschool Portfolio Evaluation",
+        "a grade-level token and a school-year token in the header block",
+        "an evaluator's name followed by a stated teaching credential and a licence number",
+        "a paragraph attesting that appropriate academic progress was made",
+        "a signature block and an addressee line naming a parent"
+      ],
+      "facts_legal": ["term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "instructor from the evaluator's name — the evaluator assesses the work and does not teach the course, which is the role this catalogue's `instructor` key names",
+        "school from the evaluator's credentialing body or licence number",
+        "subject",
+        "that the licence number is an academic fact of any kind"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Homeschool Transcript - Emma Torres.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header names Torres Family Academy above a home address",
+        "a table of course names, credits, grades and years, with a cumulative grade-point total",
+        "a parent attestation paragraph and a guardian signature block",
+        "no registrar office line, no seal, no verification code",
+        "a cover line reading Submitted to the Office of Undergraduate Admissions, University of X, for the 2026 entering class"
+      ],
+      "facts_legal": ["school", "term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university as an academic fact — it is the College-applications schema's field, evidenced here on its own by the cover line, and the two fact sets are kept side by side rather than merged",
+        "that a household-invented school name is gazetteer-confirmable — it reaches `possible` from a labelled header and no rule will validate it",
+        "that this is a registrar-issued record — the missing seal and registrar line are the discriminator, not an extraction failure",
+        "one subject value for the file when the table lists many courses"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Standardized Test Results - Grade 4 - Spring 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a testing service's letterhead and a norm-referenced score report layout",
+        "subtest rows naming Reading, Language, Mathematics with percentile and stanine columns",
+        "a grade-level token and a term-shaped token in the header",
+        "a line noting the report satisfies an annual assessment requirement",
+        "the child's name and a test date in a labelled header block"
+      ],
+      "facts_legal": ["term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the testing service's name",
+        "one subject value from the subtest rows",
+        "instructor from the proctor or administrator line",
+        "that being a score report makes this academic.standardized-testing's rather than this household's compliance record — the annual-assessment line is what distinguishes them"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "co-op-fall-packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Class Schedule.pdf, Tuition Invoice.pdf, Liability Waiver.pdf, Syllabus - Intro Biology.pdf and Field Trip Form.pdf",
+        "the outer archive name is vague and download-session shaped",
+        "no member is opened to disk during the normal scan — 00: \"the normal scan should never extract archive contents to the filesystem\"",
+        "uncompressed size and member count are available from the manifest"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "work_type from a member filename",
+        "subject from the Syllabus - Intro Biology member name without inspecting the member",
+        "finance activation for the outer archive from the Tuition Invoice member name",
+        "that one purpose explains every member",
+        "purpose from the download session that produced the archive — 00: \"A session should never be treated as proof of topic\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_3312.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model and DateTimeOriginal present",
+        "the frame is a photograph of a completed volcano poster on a kitchen table",
+        "no text layer",
+        "camera-pattern filename, stored beside the year's other homeschool PDFs"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "work_type from the directory the file sits in",
+        "subject or term before OCR has run",
+        "term from the capture date — a capture date is a photo fact and an academic term is read only from dedicated term patterns",
+        "that no academic fact can ever exist here — OCR re-runs recognition under a new cache key and may then supply subject and work_type"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-02-11 at 09.03.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text carries an online lesson-tracker header with a child's name, a grade-level token and a school-year token",
+        "OCR text lists per-subject completion percentages and a next-lesson queue",
+        "OCR text also carries a navigation menu and a Log Out label"
+      ],
+      "facts_legal": ["term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "a subject fact from the per-subject completion list",
+        "school from the tracker platform's brand name in the header",
+        "that the queued lessons are facts about this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Sonlight 2026 Catalog.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a publisher's catalogue: package listings, prices, order codes and testimonial quotes across many pages",
+        "the word homeschool appears in nearly every heading",
+        "grade-level tokens appear throughout as product-fit labels",
+        "no child's name, no school year in a record-keeping zone, no household-produced artifact"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "activation of this template from saturated home-instruction vocabulary — a vendor's marketing material is not a household's record, and this is the tempting false file the never_alone rules exist for",
+        "subject from the package listings",
+        "term from a catalogue year",
+        "work_type"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Grade 4 Report Card - Q3 - Lincoln Elementary.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "district letterhead and a school name in the title zone",
+        "a marking-period token and a school-year token",
+        "a table pairing plain subject names with letter grades and teacher comments",
+        "a labelled Homeroom Teacher cell and an attendance-office summary row"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this template's activation from a grade-level plus school-year pair — the district issuer, homeroom and marking-period context make it academic.k12-schooling's, and this is the collision fixture",
+        "school as a homeschool value",
+        "work_type as a homeschool work type"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE_ Home Instruction Filing Received.eml",
+      "source_type": "email",
+      "observations": [
+        "From address is a county education office mail domain; the display name is a homeschool coordinator",
+        "Subject acknowledges receipt of a home instruction filing for a school year",
+        "body names the child, the school year, and the date the next portfolio submission is due",
+        "no attachments"
+      ],
+      "facts_legal": ["term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the sender's mail domain — the sending body is the regulator, and 00 treats mail addresses and content as potentially sensitive rather than as authoritative labels",
+        "instructor from the coordinator's display name",
+        "term from the Date header rather than from the school-year token in the body",
+        "subject"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Homeschool Week.ics",
+      "source_type": "calendar",
+      "observations": [
+        "recurring VEVENT SUMMARY fields read Math 9:00, Read-Aloud, Nature Study, Co-op - Intro Biology",
+        "ORGANIZER is the parent's personal mail address",
+        "DTSTART and DTEND present on every event, recurring weekly across a school year",
+        "no school name and no school-year token anywhere in the file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone — a calendar is one of P5's fourteen source types and never a domain",
+        "a folder path",
+        "subject from a SUMMARY word alone",
+        "term from the recurrence range",
+        "instructor from the ORGANIZER address"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "academic.k12-schooling",
+      "signal": "Reciprocates the edge that node already authored. Both situations produce grade-level and school-year tokens, progress summaries, attendance records and subject-by-subject assessments about one child in one year. Discriminating evidence: an institutional issuer — a schools-gazetteer hit with district, registrar, homeroom, principal or marking-period context, on the letterhead — makes it the K-12 template's; homeschool material has no institutional issuer and instead carries home-instruction compliance vocabulary, a curriculum publisher title, or a parent attestation. A grade-level token plus a school-year token clears neither side alone, and a school name in a 'filed with' or 'notice sent to' line is a regulator, not an attended school."
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "Both use the Academic schema, so the collision is over which situation's signals fire on the same worksheet-shaped artifact. Discriminating evidence: coursework's own signal is 00's course-code-plus-context pair and per-course artifacts held by the enrolled student; this situation names plain subjects and curriculum titles and produces no code-shaped token at all, and its records are held by the parent who ran the instruction. A numbered problem set alone clears neither."
+    },
+    {
+      "domain": "academic.teaching",
+      "signal": "The sharpest collision on the roster, because in this household the holder genuinely is the teacher: lesson plans, rubrics, answer keys and grade records look identical on both sides. Discriminating evidence: teaching material carries an employing institution, a course-code-shaped token, a class roster of several unrelated students, or a course-management-system export; homeschool material names one household's own children, carries no employer, and its record-keeping exists to satisfy a home-instruction regime rather than a department. PR-7 is why this is two templates rather than two schemas — teaching and taking a course are one Academic schema, and so is running one at home."
+    },
+    {
+      "domain": "academic.online-course",
+      "signal": "A household that buys a platform-delivered curriculum produces downloaded lectures, auto-graded exercises and completion certificates that look exactly like MOOC material. Discriminating evidence: the online-course template needs a platform account, enrollment or completion-certificate evidence naming the provider as the course's issuer; this template needs household record-keeping — an attendance log, a compliance filing, a parent-issued grade record — around the same material. A provider brand name in a header clears neither, and 00's rule against a bare institution name applies to a platform name identically."
+    },
+    {
+      "domain": "academic.standardized-testing",
+      "signal": "An annual norm-referenced score report is genuinely both a test artifact and a compliance record. Discriminating evidence: the standardized-testing template owns test preparation material and score reports whose purpose is admission or placement; this template owns the score report whose stated purpose is satisfying an annual assessment requirement, which the document usually says in a line of its own. Neither side may be reached from a testing service's name alone."
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "Both hold a course, credit and grade table under the word transcript. Discriminating evidence: an institutional issuer — registrar office line, seal, verification code, official-copy language — makes it the transcripts template's; a parent or guardian attestation with a household-named school and no registrar makes it this one. The distinction matters downstream because a parent-issued transcript's `school` value can never be gazetteer-confirmed, so it stays `possible` where an institutional one reaches `validated`."
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "The compliance half of this situation is statutory paperwork: notices of intent, withdrawal letters, truancy notices, records-release authorizations and custody orders that mandate a schooling arrangement, all naming the same child and the same school year. Discriminating evidence: a court caption, a case or docket number, a notarization block or an attorney letterhead makes it the legal template's; a filing addressed to an education authority under a home-instruction statute is this template's ordinary record set. A statutory citation alone discriminates nothing, and 00 puts legal material in the protect-first set: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\""
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "Curriculum purchases, co-op tuition and enrichment-class invoices carry the curriculum title and the school year in exactly this template's high-weight zones. Discriminating evidence: an amount due, an order or invoice number, a payment method and a merchant identity are finance vocabulary; this template needs household instruction-record evidence. A single document can genuinely carry both fact sets — that co-holding is a schema-level relation and is recorded on the schema rows, not as an edge from this template."
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    "Independent Records",
+    "Review Later",
+    "Temporary Screenshots",
+    "One-Off Images",
+    "Reading Inbox"
+  ],
+
+  "role_split": [
+    {
+      "field": "school",
+      "other_field": "target_university",
+      "neighbor": "applications.undergraduate-packet",
+      "why": "A homeschooled applicant's own transcript is the single document where both roles appear at once: the household-named home school in the header and the addressed institution in the cover line. Same entity type, different role — 00: \"The system must separate roles that happen to contain the same entity type.\" The pair is already recorded in the canonical field list; what this node adds is the observation that on this document the `school` side is a self-issued label no gazetteer will confirm while the `target_university` side is gazetteer-confirmable, so the weaker-evidence field is the one naming the holder's own institution — the reverse of the usual case."
+    }
+  ],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 counts this material in the corpus it protects: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.\" Two things make this situation heavier than the coursework default. First, the holder-versus-subject gap: every record is about a minor who is not the holder, and compliance filings carry a child's full name, date of birth and home address in labelled slots. Second, part of the corpus is regulatory — filings to a government education authority, evaluator attestations, and the truancy or custody paperwork that arrives when a home-instruction arrangement is contested — which sits beside the protect-first legal set rather than inside ordinary coursework. Which handling class applies is P7's and is not set here.",
+
+  "open_question": "What may `school` hold in a household-run situation, and what should the recommended dimensions do about it? Three candidate values compete for the slot and only one is institutional: the education authority that receives a notice of intent (a regulator, and this node rules it out), an umbrella or cover school where the household has one (genuinely institutional and gazetteer-confirmable), and a household-invented home-school name on a parent-issued transcript (a self-issued label that no gazetteer can ever confirm, so it can never rise above `possible`). Accepting the third means the product proposes a folder level whose value the holder made up, and treats it as equivalent to Columbia in the same field; refusing it means a homeschool transcript — the document that matters most when this corpus meets an admissions office — carries no school fact at all. This node's recommendation drops `school` from the default order and offers it as an optional branch only on umbrella-school evidence, but whether a self-named home school is a legitimate `school` value is Joseph's call, not this node's. The related gap — that no canonical field names the child a record is about, which is the level this household actually files by — is already filed as an open question on academic.k12-schooling and is deliberately not re-filed here; the same proposed key appears in this node's proposed_fields so R1c merges one row rather than two."
+}

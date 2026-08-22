@@ -1,0 +1,513 @@
+{
+  "id": "finance",
+  "kind": "schema",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Finance and administration",
+  "one_line": "The domain of money records held by a person or a small operation: what institution issued the record, which account it belongs to, what kind of record it is, and - only when a document says so - which tax year it answers for. A SAFETY domain: it is detected and protected before any cloud or automated placement decision, and its four fields extract at launch under local-only rules (PR-2).",
+  "launch": "safety",
+  "provenance": "design",
+  "design_cite": "00 names the field set outright: 'Finance files may use institution, account type, tax year, and record type'. 00 names the launch posture outright: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' 00 names the domain's role split: 'A finance document may mention an account holder and an issuing bank.' 00 names it as a top-level canvas area ('Finance and Administration') and as a template-library situation ('financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections').",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [
+    {
+      "field": "institution",
+      "type": "string",
+      "example": "Chase",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "why": "00: 'Finance files may use institution, account type, tax year, and record type'. Rule family that confirms it: an organization-gazetteer hit matched at word boundary (00: 'It should use word-boundary matching rather than substring matching') in a positionally weighted zone - a letterhead, page-one heading, or labelled issuer slot - together with an account/statement/invoice context term. The gazetteer's contents are R4's and the term patterns are R6's; this row names the rule family and writes neither.",
+      "provenance": "design"
+    },
+    {
+      "field": "account_type",
+      "type": "string",
+      "example": "checking",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "why": "00: 'Finance files may use institution, account type, tax year, and record type'. Rule family: a labelled account-descriptor slot or table cell on the record itself (00's direct-fact source is 'a labeled form field'), confirmed by an account-term pattern in a labelled position rather than inferred from the institution's name. A bank that offers several products does not tell you which account a statement is for.",
+      "provenance": "design"
+    },
+    {
+      "field": "tax_year",
+      "type": "string",
+      "example": "2025",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "why": "00: 'Finance files may use institution, account type, tax year, and record type'. Rule family: an explicit year pattern in a labelled tax-year slot or heading, never a bare number and never a statement date. 00's narrow-date rule is the constraint - 'The product must not use fuzzy date parsing' because documents contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. R6 owns the pattern; a statement covering one month of a year is not thereby a record of that tax year.",
+      "provenance": "design"
+    },
+    {
+      "field": "record_type",
+      "type": "enum",
+      "example": "statement",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "why": "00: 'Finance files may use institution, account type, tax year, and record type'. Rule family: a document-kind term in a title, page-one heading, or labelled slot together with the structure that term implies - a statement carries a labelled period and balance, an invoice carries labelled line items and a total. Members are VALUES discovered at runtime (00: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically'), and jurisdiction-specific form names are values from R5's one-jurisdiction catalogue, never field names (D4).",
+      "provenance": "design"
+    },
+    {
+      "field": "account_holder",
+      "type": "string",
+      "example": "the named holder on the statement",
+      "reliability_ceiling": "direct",
+      "destination_eligible": false,
+      "why": "00 requires this facet by name and the canonical list has no key for it: 'The system must separate roles that happen to contain the same entity type.' ... 'A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets'. institution holds the issuing side; nothing holds the holder side. A search and privacy field only - destination_eligible false because 00 forbids the folder use directly: 'It should avoid using authorship or creator identity as a destination dimension.' Listed in proposed_fields; the role_split edge that binds it to institution lives in canonical_fields.json and is R1a/R1c's to author, not this node's.",
+      "provenance": "design"
+    }
+  ],
+  "proposed_fields": [
+    {
+      "key": "account_holder",
+      "type": "string",
+      "destination_eligible": false,
+      "role_split_with": "institution",
+      "why_no_existing_key_works": "00's section-3.8 sentence names the finance role split explicitly - 'an account holder and an issuing bank' - and instructs that the two be modelled as distinct facets. canonical_fields.json seeds the issuing side as institution and seeds no counterpart. The three near keys all fail: authored_by is who produced the file (a bank authors the statement; the holder does not), our_firm is the holder's own organization on an engagement (an individual's savings account is not an engagement), and client is an engagement counterparty. Using institution for both sides would collapse exactly the split 00 says to preserve, and would let a person's name be read as a record issuer.",
+      "provenance": "design",
+      "note": "Proposed for R1c/R1a, not asserted as canonical here. It is a search and privacy field: a safety domain needs to know whose record this is in order to protect it and to keep another household member's statement out of a group, and it must never become a folder level (00's authorship/creator-identity rule)."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a labelled account-record structure: a labelled statement-period or billing-period slot co-occurring with a labelled balance, amount-due, or account-descriptor slot in a form field or table cell. 00 makes the labelled slot the direct-fact source - 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field' - and names the table location for exactly this material: 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.'",
+      "an organization-gazetteer hit matched at word boundary in a letterhead, page-one heading, or labelled issuer slot, together with an account/statement/invoice/receipt context term in a positionally weighted zone. This copies 00's pattern-plus-context SHAPE ('a course-code pattern together with academic context'), which 00 states for course codes only; the finance context terms are PROPOSED (see proposed_context_terms), R4 owns the gazetteer's contents and R6 the term patterns, and this row writes neither a list nor a regex.",
+      "a spreadsheet whose sheet names or column headers carry ledger-shaped labels (date, description, amount, balance, category) with values in the labelled columns. 00's spreadsheet extractor supplies exactly these slots: 'sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.'",
+      "an e-receipt or billing email: the labelled sender slot resolving to an organization at word boundary together with a receipt/order/invoice/payment term in the labelled subject slot, and an amount in a labelled position in the body. 00's email extractor yields 'sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context, while treating addresses and message content as potentially sensitive'; source_type alone is never sufficient (see never_alone).",
+      "an archive whose manifest lists statement-shaped or tax-form-shaped member names, read without unpacking - 00: 'Archives should be inspected without being unpacked to disk.' The manifest is the evidence; the outer archive name is not.",
+      "an explicit tax-year pattern in a labelled tax-year slot or a page-one heading, distinct from a statement or transaction date. Narrow by 00's own rule: 'Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.'"
+    ],
+    "needs_llm": [
+      "an unlabelled prose letter from an institution whose subject is an account action - a closure notice, a rate change, an overdraft warning - with no labelled slot anywhere. 00 lists 'unlabeled forms' among the reasons rules alone are insufficient, and permits the model to judge whether a document 'appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain'.",
+      "an OCR'd screenshot: deciding it shows a banking or payment portal, or a receipt, rather than a generic image. 00 names this exact ambiguity: a PNG 'may be a screenshot of a receipt, application portal, conversation, code error, or research figure', and the parallel worked case is an admissions screenshot returned to its group rather than filed as an image.",
+      "a spreadsheet with no title, no header row, and columns of bare numbers: whether it is a personal ledger at all. 00 names 'a spreadsheet with unclear purpose' among the material that reaches residual review, and 'a spreadsheet with unclear purpose' is a needs_llm case before it is a residual one.",
+      "whether a heterogeneous set of documents is purpose-coherent as one tax-year filing packet or one loan application packet - the group-coherence question, answered from a dossier with citations, never a free-form filing decision.",
+      "a multilingual or non-domestic institution's record whose document-kind term has no gazetteer entry and no labelled slot; 00 names 'multilingual documents' among the cases fixed patterns cannot capture."
+    ],
+    "never_alone": [
+      "a currency symbol or a money-shaped figure alone. An offer letter states compensation, a research paper quotes a price, a proposal quotes a fee, a receipt states a total - the figure discriminates nothing. This is the collision fixture with career: Offer Letter - Summer Analyst.pdf carries a compensation figure and is not a finance record.",
+      "an organization or bank name alone. 00's own ambiguity sentence applies with an issuer added to the readings: 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' - a university that also bills tuition is a sixth reading, and the same ambiguity that forbids a name as group proof forbids it as sole activation proof.",
+      "a bare 4-digit number read as tax_year. 00: documents contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. A statement dated inside a year is also not a record of that tax year.",
+      "a digit string that looks like an account number. It is equally an invoice id, an order number, a case number, a policy number, or a device serial; it needs a labelled account slot or an account-term context to mean anything.",
+      "a source_type of spreadsheet, email, archive, image or opaque_binary alone. file_kind_plausible is constitutionally never-alone: a spreadsheet is not a ledger, an email is not a receipt, a .zip is not a tax packet.",
+      "membership in a download session that happened to bundle several PDFs from a bank's website. 00: 'A session should never be treated as proof of topic' - it is a purpose clue and a review aid.",
+      "the absence of EXIF on an image of a bank balance, read as proof it is a screenshot. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot', and 'conflicting signals should lead to abstention rather than an invented classification'.",
+      "an authoring or producer metadata string naming a bank's document-generation tool. 00 treats producer strings as supporting evidence only, and forbids authorship as a destination dimension."
+    ],
+    "proposed_context_terms": [
+      "statement",
+      "account number",
+      "balance",
+      "amount due",
+      "invoice",
+      "receipt",
+      "payment",
+      "transaction",
+      "billing period",
+      "tax year"
+    ]
+  },
+  "work_types": [
+    "statement",
+    "invoice",
+    "receipt",
+    "order or payment confirmation",
+    "tax return copy",
+    "tax form issued by a payer",
+    "pay stub",
+    "insurance policy",
+    "insurance claim",
+    "explanation of benefits",
+    "loan or credit agreement",
+    "payoff or servicing notice",
+    "aid or award letter",
+    "ledger or bookkeeping sheet",
+    "budget sheet",
+    "transaction export",
+    "dues or assessment notice",
+    "valuation or holdings report"
+  ],
+  "grouping_reasons": [
+    "one account at one institution across its statement series - the repeating record shape is the anchor, not the shared institution name alone",
+    "one tax year across the documents that support one filing (00's purpose-coherent, content-incoherent shape applied to a filing rather than an application packet)",
+    "one transaction across its order confirmation, its receipt, and its delivery notice - 00's Receipts and Confirmations sentence names these together as one transactional family",
+    "one statement re-downloaded, or a corrected copy re-issued: the universal duplicate_family and version_family facts, never a finance fact",
+    "a shared record that supports more than one purpose - a pay stub inside a tax-year packet and inside a loan application. 00: 'A file may validly belong to more than one accepted group'; multi-membership, never a copied fact"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "account_type",
+      "record_type"
+    ],
+    "why": "institution first, because a record_type value such as 'statement' is unintelligible without knowing who issued it - 00's own argument for parent dimensions: 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.' account_type second, because one institution commonly runs several accounts for the same person and a single Statements folder would mix them. record_type last, as the leaf. tax_year is destination_eligible and is deliberately NOT in this default order: 00 says 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders' - year-first is the honest exception for tax filings, which is a separate template situation on this same schema, not this schema's default. account_holder is never a dimension (00's authorship/creator-identity rule). Safety posture: this is a shallow recommendation, not a filing tree - 00 shows Finance to the user as a protected area ('a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default'), and 00 allows a branch to stay flat where the facts do not support depth. The user may reverse, remove, add, or flatten any of it.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".ods",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Chase Statement 2026-03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead carries an organization name at word boundary",
+        "labelled slots: Statement Period, Account Number (masked), Beginning Balance, Ending Balance",
+        "an account descriptor 'Total Checking' appears in a labelled header cell",
+        "a table of dated transaction rows across pages two and three"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year = 2026 from the statement period; a statement covering one month is not a record of that tax year, and the bare digits are 00's forbidden year candidate",
+        "a folder path",
+        "a merchant fact from a transaction row - a payee inside a table is not the record's institution"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "1099-INT 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries a form name and a labelled tax-year slot reading 2025",
+        "labelled payer and recipient blocks with masked identification numbers",
+        "labelled numbered boxes with amounts"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "institution",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a jurisdiction field, or a field named after this form. The form name is a VALUE of record_type from R5's one-jurisdiction catalogue (D4); a field named for a form is the one-way move the contract forbids",
+        "account_type from the form alone - an interest form does not say which account produced the interest",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_9931.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present: make, model, DateTimeOriginal, GPS",
+        "sensor-shaped pixel dimensions",
+        "OCR of the frame returns a merchant name, dated line items and a labelled Total"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution",
+        "capture_year",
+        "camera_information",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that the camera EXIF settles the domain - it settles that this is a capture, not that it is or is not a money record; both fact sets stand (the also_holds case with photos, and the reason photos is also a collision partner)",
+        "tax_year from the capture date",
+        "an event fact from the GPS alone - a location is not an occasion",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 09.14.55.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution; no camera EXIF",
+        "filename carries the platform's default screenshot pattern",
+        "OCR region reads an institution name beside a labelled Available Balance and a masked account tail"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_type"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the missing EXIF alone (00's rule); the exact display resolution and the filename pattern are what may support it, and conflicting signals abstain",
+        "a balance value as a fact - an amount is content, not a schema field, and this file is protected material",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Expenses 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names: Jan, Feb, Mar, Summary",
+        "labelled column headers: Date, Description, Amount, Category, Account",
+        "visible cell values include dated rows and one column of institution names"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from the Account column's several distinct values - a ledger REFERENCES many institutions and belongs to none; ranking one because it appears most often is the polished-but-false move 00 warns about",
+        "tax_year from the filename's 4-digit token",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Your order has shipped.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a retailer domain",
+        "labelled subject slot carries an order term and an order-shaped identifier",
+        "body carries a labelled Order Total and a delivery date; one attachment named Invoice.pdf"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = email; the labelled sender and subject slots are what fire, and file_kind_plausible is never alone",
+        "an account_type - a one-off retail purchase belongs to no account",
+        "a contact fact used as a folder proposal; 00 keeps address-book data privacy-protected rather than a proposal basis",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Tax2025.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a return copy, two payer forms, a charitable-donation receipt, a brokerage summary and a scanned identity page",
+        "manifest read without extraction to disk",
+        "uncompressed size and member count recorded"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "facts about the MEMBERS written onto the outer archive, or the archive's facts written onto members; the manifest is evidence of a candidate packet for review",
+        "that the identity page is finance material because it arrived in this archive - it activates identity on its own evidence and is protected there",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "ADP Pay Statement Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an employer name in a labelled header cell",
+        "table rows labelled Gross Pay, Deductions, Net Pay, Pay Period",
+        "a payroll provider's producer metadata"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a career fact from the employer name - the labelled pay-period and pay-table structure is what makes this a finance record, and the employer name is the one evidence item the career collision says must not count for both",
+        "tax_year from 'Mar 2026'; an explicit labelled tax-year slot is required",
+        "institution = the payroll provider from the producer metadata rather than the named employer",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Offer Letter - Summer Analyst.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead carries an organization name at word boundary",
+        "labelled body lines: role title, start date, base compensation figure",
+        "signature block with a countersignature line"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY finance fact. This is the collision fixture: a money figure plus an organization name is exactly the evidence that tempts this schema, and neither is sufficient - there is no labelled account, period or balance structure. The record is career material (and, executed, legal material)",
+        "record_type = statement because a compensation amount appears",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Columbia Tuition Statement Fall 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a school name in the page-one letterhead, matched at word boundary in the schools gazetteer and in the organizations gazetteer",
+        "labelled slots: Term, Student ID (masked), Charges, Payments, Balance Due",
+        "a line-item table of tuition and fee charges"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "school",
+        "term"
+      ],
+      "must_not_conclude": [
+        "that institution and school are the same fact because the same string filled both - they are different roles on one entity, which is 00's whole reason for separating roles that happen to contain the same entity type",
+        "target_university; nothing here is addressed to an admissions office",
+        "tax_year from 'Fall 2026'; a term pattern is not a tax-year pattern",
+        "a folder path - the same facts may later be organized institution-first or school-first"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "eStatement_protected.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the PDF is password-protected: no text layer is reachable and no metadata beyond the filesystem record",
+        "filename stem resembles a bank's export naming",
+        "arrived in the same download session as two readable statements"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "institution or record_type from the filename stem alone - 00: the system 'should not infer a purpose from their filename alone' for unreadable files",
+        "membership in the statement group because the download session bundled it; a session is a possible-grade clue only",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Explanation of Benefits.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "insurer name in the page-one letterhead",
+        "labelled slots: Claim Number, Date of Service, Provider, Amount Billed, Plan Paid, Patient Responsibility",
+        "a coded procedure column in a table"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "that activating finance excludes medical - both activate on disjoint evidence (the claim/payment structure and the clinical content), which is the also_holds case; medical is a field-less safety placeholder today, so its activation carries protection, not fields",
+        "an account_type from the plan name unless a labelled plan/account slot supports it",
+        "a folder path, and no cloud dossier: this is protected material"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career",
+      "signal": "a pay statement and an offer letter both carry an employer name plus employment context plus a money figure. The discriminating evidence is structural: a labelled pay-period / account / balance table is the finance record; an offer, acceptance or start-date term in a letterhead document is career. One evidence item - the employer name, or the money figure - must never count for both. Reciprocates the edge already authored on career."
+    },
+    {
+      "domain": "identity",
+      "signal": "a scan bearing a masked identification number beside an institution name reads as both. The discriminating evidence is what the document IS: an account record issued BY an institution ABOUT an account is finance; a government-issued credential that identifies a person is identity. Both are safety domains, so a wrong call does not leak - but it files a passport as a bank record or a statement as a credential, and 00 names them in one protection sentence precisely because the material sits together."
+    },
+    {
+      "domain": "legal",
+      "signal": "a loan agreement, a mortgage closing packet, or a lease carries an institution, an amount and a signature block. The discriminating evidence: a labelled account / period / balance structure reporting on an existing account is finance; parties, recitals, numbered clauses and an execution block creating an obligation is legal. The pair also carries also_holds_with - a signed loan agreement is genuinely both - so this signal exists to keep ONE evidence item (the institution name, the amount) from counting twice."
+    },
+    {
+      "domain": "photos",
+      "signal": "a photographed paper receipt and a photograph share camera EXIF; a screenshot of a banking app and any other screenshot share the absence of EXIF and an exact display resolution. The discriminating evidence is the OCR content: a merchant, dated line items and a labelled total is a finance record; capture metadata with no such structure is a capture only. Neither the EXIF nor its absence discriminates, and 00 requires abstention on conflicting signals. The pair also carries also_holds_with: a photographed receipt is legitimately both."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "medical",
+      "why": "CONNECTION-EXAMPLES fixture 8 is binding on this pair: an explanation of benefits, a health-insurance card, or a provider invoice carries a claim/payment structure and clinical content on one file, on disjoint evidence. medical is a field-less safety placeholder (PR-6), so today the join carries protection rather than fields - co-activation is the DESIRED outcome, because it means P7 classification runs on both readings before any model path. Provenance: inference - 00 names the four safety domains together but does not write this pair out.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic",
+      "why": "a tuition statement, a financial-aid award letter, or a bursar notice is a finance record (institution, record_type) that simultaneously carries school and term on its own academic evidence. Same structure as 00's abstract that is Research and Applications at once. It is also the role-split fixture: one university string fills institution in one role and school in the other, which is exactly what 00 means by separating roles that happen to contain the same entity type. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "why": "an executed loan or credit agreement, a mortgage closing packet, or an insurance policy is finance material and legal material on one file; 00's privacy sentence names 'account statements, tax records' and 'legal records' in one corpus list. legal is a field-less safety placeholder, so the join carries protection today, not fields - the same shape CONNECTION uses for finance/medical. Carried alongside collides_with legal, which is licensed only because the collision entry names discriminating evidence. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "why": "a record can carry an institution's labelled statement structure AND a taxpayer or national identification number in its own labelled slot - a tax filing and a payer-issued tax form are the clearest cases, and 1099-INT 2025.pdf below is the fixture. 00 names the two together twice: the corpus 'can include identity documents, account statements, tax records', and 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' Disjoint evidence: the account/period/amount structure activates finance, the labelled identity slots activate identity. The finance fields extract at launch under local-only rules (PR-2) while identity contributes protection and no fields (PR-6). The pair ALSO collides on a name-plus-number evidence item, which is why that collision entry carries a discriminating signal. Reciprocates the edge authored on identity. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "why": "a photographed receipt is a capture (capture_year, camera_information, media_type, from its own EXIF) and a money record (record_type, institution, from its own OCR content) at once, on disjoint evidence. Neither fact set may erase the other; which one later determines a physical location is the user's decision at tree design, not activation's. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    "Receipts and Confirmations",
+    "Protected Records",
+    "Independent Records",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [
+    {
+      "domain": "academic",
+      "our_field": "institution",
+      "their_field": "school",
+      "why": "the same university string plays two roles: the entity that issued and billed a record, and the entity a person attends. 00 states the mechanism for this domain by name - 'A finance document may mention an account holder and an issuing bank' sits in the paragraph that opens 'The system must separate roles that happen to contain the same entity type.' Recorded as an inference: 00 names the mechanism and the account-holder/issuing-bank pair, not the institution/school pair. The canonical role_split edge lives in canonical_fields.json and is R1a/R1c's to author.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "college_applications",
+      "our_field": "institution",
+      "their_field": "target_university",
+      "why": "an application-fee receipt names a university as the entity that took the payment; the same string on the same packet's essay names the university the application is addressed TO. Already a canonical role split on the academic side (school / target_university); this row records that the finance issuer is a THIRD role on the same entity type and must not be folded into either. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names this material inside its privacy sentence - the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records' - and requires immediate protection for it: 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' Only 00's phrase is asserted here; the handling class is P7's and is not set. Consequences carried by the safety flag, not invented here: P7 classification precedes any model path, no deep template unlocks from safety activation (PR-2), and the UI shows this as a protected area - 'a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default'.",
+  "open_question": "Does account_holder become a canonical field? 00 requires the facet by name ('A finance document may mention an account holder and an issuing bank. The agent should model these as distinct facets') and canonical_fields.json seeds only the issuing side. Minting it is a decision about the product's shared vocabulary, not this node's: it is a person-name field on a safety domain, so it must be destination-ineligible and privacy-scoped, and its behaviour on joint or household accounts - whether one record has one holder fact or several - is unsettled. Recorded, not resolved; the field is listed in proposed_fields and referenced by this schema so the question is visible rather than silently answered either way."
+}

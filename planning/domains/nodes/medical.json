@@ -1,0 +1,487 @@
+{
+  "id": "medical",
+  "kind": "schema",
+  "schema_id": "medical",
+  "parent_id": null,
+  "name": "Medical",
+  "one_line": "The safety domain that fires so a person's health material is recognised and protected before any cloud prompt or automated placement decision. It declares NO field rows (D1 as narrowed, _CONTRACT rule 15, CONNECTION PR-6), so activation unlocks protection plus the universal facts only, and it recommends NO folder dimensions - a medical branch's own labels would publish in folder names exactly what the protection exists to hide.",
+  "launch": "safety",
+  "provenance": "design",
+  "design_cite": "00 names this domain and its launch posture outright: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" 00 also names the material: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\", and gives it a residual home: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry in this list: each is a DETECTION signal, not an extraction licence. It answers only whether this material is present, so that P7 can protect it before anything else runs - 00: \"Privacy policy must be enforced before content reaches any model or external connector.\" No signal here writes a fact, because this schema declares no field rows",
+      "a clinical result table: a labelled table whose rows each carry a measurement or test name, a result value with units, and a reference range, in the table structure 00's extraction preserves - \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\" This copies 00's pattern-plus-context SHAPE (\"a course-code pattern together with academic context\") onto a different structure; the term vocabulary is PROPOSED (see proposed_context_terms) and is never claimed as a list 00 wrote",
+      "a patient-identification block: labelled slots for a person's name and date of birth beside a record-number-shaped token, in a high-weight zone, co-occurring with a provider-or-facility gazetteer hit matched at a word boundary - 00: \"It should use word-boundary matching rather than substring matching\", and \"It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.\" R4 owns the gazetteer's contents; this row writes no names and no regex",
+      "a medication-label structure in OCR regions or a labelled document zone: a drug name beside a strength or dose, directions for use, a dispensing pharmacy, and a refill or prescription-number slot - the token alone is never sufficient (see never_alone)",
+      "an immunization or vaccination record structure: a repeated row shape of vaccine name, administration date, and an administering-site or lot slot, in a table zone",
+      "an insurer claim or benefits-statement structure: a claim identifier beside a date-of-service slot, a rendering provider, and amount-billed / amount-allowed / patient-responsibility cells. This is the one evidence item finance can read equally well, so it is resolved per-item under CONNECTION section 4 step 3 and carries the collides_with signal to finance",
+      "a health-application export archive: a manifest naming the app's export document and its category-partitioned members, read from the manifest alone - 00: \"the normal scan should never extract archive contents to the filesystem\", and the archive extractor \"should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\"",
+      "a calendar event whose labelled SUMMARY or LOCATION slot names a clinical appointment kind together with a provider gazetteer hit at word boundary. The CONTENT fires; source_type = calendar contributed only as a file-kind signal (CONNECTION-EXAMPLES fixture 5)",
+      "an email whose labelled sender slot resolves to a care-provider or patient-portal domain and whose labelled subject slot carries a results, appointment, or portal-message term - 00's email extractor yields \"sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context\" as structured slots, \"while treating addresses and message content as potentially sensitive\""
+    ],
+
+    "needs_llm": [
+      "PRECONDITION on every entry in this list: this is protected material, so a model step runs only after P7 classification and only under the user's policy - 00: \"Protected material should not be included in cloud-model prompts by default\", and where a model is genuinely needed, \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" A local model under fully-offline or local-model mode is the default reading of every line below",
+      "an unlabelled clinician narrative - a letter, a note, a discharge summary written as prose with no labelled result table and no patient block",
+      "an OCR'd portal screenshot: whether it is a patient-portal page rather than a generic image. 00's worked parallel is the admissions confirmation screenshot, and its own warning is that \"IMG_4821.png may be a screenshot of a receipt, application portal, conversation, code error, or research figure\"",
+      "separating medical TOPIC from a personal health record - a nursing lecture, a health article, a de-identified teaching case. 00 gives the model exactly this class of determination: it \"may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain\"",
+      "whether a record is about the holder or about another person in the household. The model must abstain rather than assert a subject - 00: \"A model that cannot cite sufficient evidence must return unknown\"",
+      "a discharge summary, lab report, or claim in a language whose labelled-slot vocabulary the deterministic structure catalogue does not cover",
+      "a packet in which a medical document is a supporting member of a non-medical purpose - a school health form inside an admissions packet, an accommodation letter inside an academic file. 00's shape: \"an ID, transcript, resume, personal statement, award certificate, and portal screenshot may be content-incoherent but purpose-coherent as an application submission\""
+    ],
+
+    "never_alone": [
+      "a medical or anatomical topic term alone. An anatomy lecture deck, a saved health article, and a recipe with a nutrition note are all dense in clinical vocabulary and none is a health record. 00: \"Topic answers what a file is about, while purpose answers what the file was for.\" This is the tempting false file for this node and the collision fixture below (Anatomy Lecture 04)",
+      "a hospital, clinic, insurer, or pharmacy gazetteer hit alone. 00 states the ambiguity for a university - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" - and the same six-role problem holds here by extension: a hospital name may be an employer, a research site, a teaching institution, a billing counterparty, or a caption in a photograph (provenance: inference; 00 writes this sentence about a university, not a hospital)",
+      "source_type alone - image, ocr, archive, calendar, email, spreadsheet, presentation, opaque_binary. 00: the engine should \"treat the file extension as a routing signal rather than an assumption about meaning\", and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2). A .dcm or a .pdf is not medical because of its format",
+      "a bare 4-digit number read as a date of service or a plan year. 00: filenames carry \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "the absence of EXIF as proof that a health-app or portal capture is a screenshot - 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\" - and dense OCR text as proof either way: \"OCR text density is also not a reliable screenshot detector because receipts, document scans, whiteboards, and photographs of pages can all contain dense text\"",
+      "membership in a download session that happened to drop several PDFs from one portal at once. 00: \"A session should never be treated as proof of topic\"",
+      "a person's name alone, including a PDF or DOCX author or producer string naming a clinic's document template or an EHR export tool. 00: \"PDF metadata should be treated as supporting evidence, not as truth\", and \"a value such as python-docx, Mozilla/5.0, or a browser-generated producer string should not be mistaken for meaningful content\"",
+      "a parent folder named Health, Medical, or Insurance alone. Folder context is a clue and 00 requires that existing structure not be silently reinterpreted",
+      "a drug-name-shaped or condition-shaped token inside a supermarket receipt, a shopping list, or a fitness article. The medication-label structure around it is what supports the signal, and word-boundary matching is what keeps the token from being found inside an unrelated word"
+    ]
+  },
+
+  "proposed_context_terms": [
+    "patient",
+    "date of birth",
+    "medical record number",
+    "date of service",
+    "provider",
+    "ordering physician",
+    "diagnosis",
+    "prescription",
+    "dosage",
+    "refills",
+    "reference range",
+    "specimen",
+    "immunization",
+    "claim number",
+    "patient responsibility",
+    "explanation of benefits",
+    "member id",
+    "policy holder",
+    "discharge instructions",
+    "referral"
+  ],
+
+  "work_types": [
+    "lab result",
+    "imaging report",
+    "visit summary",
+    "discharge summary",
+    "clinician letter",
+    "prescription or medication list",
+    "immunization record",
+    "referral or authorization",
+    "insurance card",
+    "explanation of benefits",
+    "medical bill or statement",
+    "consent form",
+    "health-app export",
+    "appointment record",
+    "accommodation or disability letter",
+    "advance directive"
+  ],
+
+  "grouping_reasons": [
+    "one episode of care: one provider and one date of service tying an order, a result, a visit summary, and its benefits statement together. Membership stays reviewable and copies nothing - 00: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+    "one person's records inside a household - the SUBJECT of the record, which is exactly the fact this schema may not yet write, so the neighbourhood may exist while no subject fact does",
+    "one repeatedly re-downloaded portal export, joined by the universal duplicate_family and version_family facts rather than by any medical fact",
+    "no group at all is still a valid outcome here: 00 surfaces isolated protected material anyway - \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold\""
+  ],
+
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY TWICE OVER, and neither reason is a refusal. (1) By contract: a dimension may only branch on a field the same schema declares, and this placeholder declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). (2) By safety, independently of (1): the dimensions a medical tree would naturally take - a condition, a specialty, a provider, a person - become visible folder LABELS, publishing in the namespace exactly what the protection exists to hide. 00 pushes the other way even inside the product's own UI: \"Protected branches should have configurable redaction in the canvas and review screens\", and the Protected Records home \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". CONNECTION section 4 step 5 states the same rule for activation: a safety schema's activation unlocks protection plus its small schema only, and no deep template unlocks from it. If field rows are ever decided, the recorded starting recommendation is held as PROSE and is deliberately shallow - the person the record is about, then the record kind - never a condition or diagnosis level; and not time-first, per 00: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" That prose is a note for whoever answers the open_question, not a dimension_order.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "archive",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "calendar",
+      "code_structured",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".zip",
+      ".xml",
+      ".json",
+      ".csv",
+      ".eml",
+      ".ics",
+      ".dcm"
+    ],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Lab Results - CBC - 2026-03-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading names a laboratory and a collection date",
+        "a table whose rows each carry a test name, a result value with units, and a reference range",
+        "a labelled block holding a person's name, a date of birth, and a record-number-shaped token",
+        "the PDF producer string names an EHR export tool, not a person"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status", "duplicate_family", "version_family"],
+      "must_not_conclude": [
+        "any medical-domain fact: this schema declares no field rows, so activation legitimises protection plus the universal facts only",
+        "an institution or record_type finance fact from the laboratory's name - a result report is not an account record",
+        "an authored_by or provider identity from the producer metadata",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "After Visit Summary.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "clinic letterhead in the title zone; a visit date in a labelled slot",
+        "prose instructions with no labelled result table",
+        "a medication list rendered as a table with drug, dose, and directions columns",
+        "a diagnosis line in body prose"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "any medical-domain fact - none is declared",
+        "that the prose diagnosis may be sent to a cloud model to be summarised: this is the protected path, and 00 makes the requirement visible to the user before any such call",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_3382.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model, and DateTimeOriginal present",
+        "the frame is a photograph of a medication bottle label",
+        "OCR later yields a drug name, a strength, directions, a pharmacy name, and a refill count",
+        "camera-pattern filename"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "any medical-domain fact - none is declared; the photos facts come from the photos schema on its own EXIF evidence",
+        "media_type = screenshot; camera EXIF is present and 00 treats it as strong photo evidence",
+        "that this frame is safe for a cloud dossier because it is 'just a photo' - once the OCR region carries a prescription structure the file is protected material",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-05-02 at 09.14.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads a portal message list, a clinic name, and the line Your test results are ready",
+        "OCR text also contains a navigation menu and a sign-out control label"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone - the display resolution, PNG format, and software metadata are what may support it, and conflicting signals abstain",
+        "a diagnosis or a result value from a message subject line",
+        "that the results were read, or that an appointment occurred",
+        "any medical-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an export document, a clinical-document member, and a category-partitioned folder of route and workout files",
+        "large uncompressed size declared in the manifest",
+        "outer archive name is vague",
+        "no member is opened to disk during the normal scan"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family"],
+      "must_not_conclude": [
+        "any medical-domain fact - none is declared",
+        "that size or member count alone makes the archive medical: the manifest's member NAMES are the evidence, exactly as 00 reads submission.zip from its manifest rather than its outer name",
+        "that a member may be extracted to the filesystem to be read",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Explanation of Benefits - Feb 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "insurer letterhead and a member-identifier slot in the header zone",
+        "a claim-identifier slot beside a date-of-service slot",
+        "table columns for amount billed, amount allowed, and patient responsibility",
+        "a procedure-description column naming what was done"
+      ],
+      "facts_legal": ["institution", "record_type", "file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "any medical-domain fact - none is declared; this is PR-8's co-activation, where finance holds the fields and medical holds the protection",
+        "a tax_year from a bare 4-digit token or from a plan-year label",
+        "a diagnosis fact from the procedure-description column",
+        "that the insurer name alone was enough to activate either side",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Immunization Record - Jayden.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school health-office letterhead beside a clinic stamp",
+        "table rows of vaccine name, administration date, and an administering-site slot",
+        "a named child in the patient slot; the file is kept by a parent",
+        "a school-year token in the footer"
+      ],
+      "facts_legal": ["school", "file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "any medical-domain fact - none is declared",
+        "that the holder is the subject of the record: holder and subject are different roles, and no field exists here to carry either",
+        "a term from the school-year token alone - a dedicated academic-term pattern is what supports term",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Anatomy Lecture 04 - The Brachial Plexus.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide-one title carries a course-code-shaped token and the word Lecture",
+        "clinical and anatomical vocabulary throughout the deck",
+        "speaker notes name the lecturer and a week number",
+        "one slide shows an anonymised case illustration with a patient-shaped label block"
+      ],
+      "facts_legal": ["subject", "work_type", "instructor"],
+      "must_not_conclude": [
+        "any medical activation: clinical vocabulary is TOPIC, not a health record about a person - this is the collision fixture for this node",
+        "a patient or provider fact from the anonymised case illustration",
+        "that the deck is protected material and must be withheld from a model dossier",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Participant Consent Form - PVA-RDP.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an approval-number slot and a project identifier in the header zone",
+        "procedure descriptions written for a participant audience",
+        "a signature and date block at the end",
+        "no named patient, no result table, no record-number slot"
+      ],
+      "facts_legal": ["project", "stage", "artifact_type", "file_type", "creation_date"],
+      "must_not_conclude": [
+        "medical activation from the procedure descriptions: a de-identified protocol is research material, not the holder's health record",
+        "any medical-domain fact - none is declared",
+        "that a signed copy carrying the holder's own name is the same file as the blank template; the signed copy is the also_holds case and is protected",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Insurance Card front.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "OCR regions read an insurer name, a plan name, a member-identifier slot, and a group-number slot",
+        "no camera EXIF; the frame is a flatbed-style capture",
+        "a pharmacy-benefit code block on the same face"
+      ],
+      "facts_legal": ["institution", "record_type", "file_type", "sensitivity_status"],
+      "must_not_conclude": [
+        "an identity-document fact: a coverage card is not an issued identity document, even though both carry a person's name beside an identifier number - this is the collision with identity",
+        "any medical-domain fact - none is declared",
+        "media_type = screenshot from the absence of EXIF",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Dr Chen - annual physical.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY slot names a clinician and an appointment kind",
+        "labelled start and end times, a LOCATION slot naming a facility",
+        "an organizer address on a portal domain"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone: the SUMMARY content is what fires",
+        "any medical-domain fact - none is declared",
+        "an event fact in the photos sense; this is not a capture",
+        "a contact fact used as a folder proposal - 00 keeps address-book data privacy-protected rather than a proposal basis"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fwd Your visit summary is available.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a patient-portal domain",
+        "labelled subject slot carries a visit-summary term",
+        "one attachment name; a thread identifier; a short body of portal boilerplate"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation from source_type = email alone",
+        "the attachment's contents from its filename - the attachment is its own file and is extracted as one",
+        "any medical-domain fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IM-0001-0001.dcm",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a binary whose signature matches none of the supported document extractors",
+        "sits beside a catalogue file and a viewer application in a directory copied from an imaging disc",
+        "no text extracted; no approved dedicated extractor exists"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family"],
+      "must_not_conclude": [
+        "a medical fact from the directory it sits in - and none is declared in any case",
+        "that the file is empty: 00 requires that unsupported formats be recorded as indexed-but-unreadable rather than silently treated as empty",
+        "that it is safe to route to a dedicated extractor without explicit approval - 00 defaults unknown binary formats to metadata-only indexing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "export.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "a very large structured document whose root element and repeated record elements are a health application's own export vocabulary",
+        "attribute names for record type, source device, unit, start date, and value",
+        "extracted out of a health-app archive at some earlier time and left loose in Downloads",
+        "no person's name anywhere in the document"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family"],
+      "must_not_conclude": [
+        "any medical-domain fact - none is declared",
+        "that the file is harmless because each individual record is trivial: the export is bulk-sensitive as a whole, and 00 makes the classification revisable by the user rather than fixed by the parser",
+        "activation from the .xml extension or from source_type = code_structured; the export vocabulary in the element names is what fires",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "BP log.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers read date, systolic, diastolic, pulse",
+        "hundreds of numeric rows, no name, no provider, no facility",
+        "no title metadata; the workbook author slot is empty"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "activation from a measurement-shaped column header set alone: with no patient block, no provider, and no result-and-reference-range structure, the correct outcome is abstention - 00: \"Correct abstention is a successful outcome\"",
+        "any medical-domain fact - none is declared",
+        "a year fact from a bare 4-digit token in the date column",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "finance",
+      "signal": "an explanation of benefits, a medical bill, a coverage card, and a pharmacy receipt all carry an insurer or provider name beside money columns. The discriminating evidence is structural: a claim / amount-billed / patient-responsibility or account-statement table is the finance record; a result-and-reference-range table, a medication-label structure, or a patient-identification block is medical. The insurer name alone counts for neither. This pair also carries also_holds_with (PR-8), so this signal exists to keep ONE evidence item from counting twice."
+    },
+    {
+      "domain": "identity",
+      "signal": "a coverage card, a vaccination card carried as proof, and a hospital-issued card all pair a person's name with an identifier number, which is also the shape of an identity document. The discriminating evidence: an issuing-authority plus document-type structure (a travel or licence document) is identity; a coverage, plan, or clinical structure around the same name-and-number pair is medical. A name beside a number discriminates nothing on its own."
+    },
+    {
+      "domain": "academic",
+      "signal": "medical TOPIC material - anatomy or nursing lectures, clinical case teaching decks, health coursework - reads as clinical text end to end, and school health forms carry a school name beside a clinic stamp. The discriminating evidence: a course-code pattern with academic context, or a coursework work type, is academic; a patient-identification block, a result table, or a medication structure naming a real person is medical. Clinical vocabulary alone activates neither side."
+    },
+    {
+      "domain": "research",
+      "signal": "study protocols, blank consent forms, de-identified datasets, and IRB packets describe clinical procedures without being anyone's health record. The discriminating evidence: a project identifier, an approval-number slot, or participant-facing framing is research; a named subject with a record-number slot, a result-and-reference-range table, or a dispensing structure is medical. This pair also carries also_holds_with for the signed-copy case, so the signal is what keeps one procedure description from counting for both."
+    }
+  ],
+
+  "also_holds_with": [
+    {
+      "domain": "finance",
+      "why": "CONNECTION PR-8, stated for this node: insurance is templates over the Finance schema vocabulary, and where healthcare insurance touches medical material the medical safety placeholder co-activates by this edge while still writing no fields (PR-6). One explanation-of-benefits file legally carries the finance fields (institution, record_type) on its claim-and-amounts evidence and medical protection on its clinical evidence - disjoint evidence, one file, no merge. CONNECTION-EXAMPLES fixture 8 records the same edge from the finance side. Provenance: inference (PR-8 is a provisional rule of the connection contract, not a sentence in 00).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "why": "an advance directive, a healthcare power of attorney, a disability or injury claim file, and a signed release are legal instruments about health. 00's privacy sentence names both kinds of material in one corpus list: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.\" legal is a field-less safety placeholder too, so today this join carries protection on both sides and fields on neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic",
+      "why": "a school-required immunization record, a sports-participation physical, and an accommodation or disability letter are academic-domain artifacts (they carry a school, and they belong to a school year) and medical material at once. Same disjoint-evidence shape as 00's abstract that is Research and Applications together - \"A file may validly belong to more than one accepted group\". This edge is authored one-way here; R1c owes the reciprocal on the already-landed academic node. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "why": "when the holder is the PARTICIPANT rather than the investigator, their own signed consent form and their own returned study results are research artifacts (project, stage, artifact_type) and their own health material simultaneously. The roster's own research.ethics-compliance row records the same crossing. This is the co-activation half of the research pair; the collides_with signal above is the mutex half for de-identified protocols. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+
+  "falls_through_to": [
+    "Protected Records"
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names this material twice in its own privacy language: the corpus \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\", and \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" Only 00's phrase is asserted here; the handling class is P7's and is not set on this row.",
+
+  "open_question": "Two joined forks, both Joseph's. (1) NJ-2 for THIS domain: when medical material is detected, may the matched clinical text be stored in the local evidence table like any other observation, or should detection store only a protected marker plus a location? 00 keeps extracted text local either way (\"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\"), but a stored diagnosis string is a larger local surface than a stored 'this is medical' flag, and every later dossier builder reads that table. (2) Which canonical field keys medical gets if D1's deferral ever lifts - and specifically whether it needs a holder-versus-subject role split, since the one fact that most distinguishes these files (whose body this record is about) is a person, and 00 warns that person-identity is a poor destination dimension: \"It should avoid using authorship or creator identity as a destination dimension.\" Because (2) is unanswered, this row's role_split is empty rather than guessed: a role_split names two canonical field keys, and this schema has none. No field row is written here in either case (D1 as narrowed / PR-6)."
+}

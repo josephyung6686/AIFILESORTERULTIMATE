@@ -460,3 +460,36 @@ Source: `planning/domains/11-business-operations.json` (45 entries, 11 open ques
 > tasks, because renaming a seam into a store is a design change and not a reconciliation. **Confirm
 > the direction and it is a small edit; leave it and the first P7 author builds a fixture standing in
 > for a part that no longer owes them anything.**
+
+
+---
+
+## G. RULED 2026-08-22 — the second round, from the duplicate rulings
+
+These did not exist this morning. They were raised by the four parallel duplicate rulings and put to
+Joseph with the evidence. All four taken as recommended. Full text in
+`planning/parts/_PLAN-AUTHORING-BRIEF.md` §24; the backlog they act on is in
+`planning/parts/_ASSEMBLY-RULINGS.md`.
+
+**D11 · `ProtectedSummary.class_breakdown` is a census of the WHOLE SCOPE, not of the protected set.**
+> SPEC §363, `PLAN-SKELETON.md:1152` and Done-means 10 were all silent, and the two Task 18 authors
+> read it in opposite directions. This decided whether §8.6's *"files present but not looked at"*
+> count has a home in P7 at all. It does. With no detector an untouched corpus now reports
+> `class_breakdown["unreadable_unclassified"] == len(corpus)` — present-but-untouched, marked and
+> counted. The winning version's two-denominator bug (a UI would have called an unprotected file
+> protected) is fixed with a `scope_total` field, not inherited.
+
+**D12 · `p6_conn` seeds Task 2's `fields` catalogue rows.**
+> Brief §17 gave the fixture to Task 1 and was silent on its contents, so Tasks 7–9's tests assumed
+> the rows exist and Tasks 10–15's did not say. The catalogue is a closed authored table §3.12 forbids
+> creating at runtime — schema in spirit, not test data.
+
+**D13 · All five unratified round-5 cuts are KEPT.** CUT 1 (P6 Task 26) remains the only ratified cut.
+> CUT 2 was measured before the ruling: `assert_single_egress` has exactly one consumer and the module
+> deletes cleanly, but that consumer **is Done-means 13's second clause**, and deleting the task leaves
+> Done-means 3 at two of three. The cost is in the Done-means, not the code.
+
+**D14 · `AuditRecord.release_id` is `None` on a release record; the join runs ledger → events.**
+> §6 puts the audit append strictly before the release exists and `events` is append-only, so a
+> populated `release_id` was never possible. **SPEC §7 is amended; §6's ordering guarantee stands** —
+> it is the property the whole audit trail rests on.

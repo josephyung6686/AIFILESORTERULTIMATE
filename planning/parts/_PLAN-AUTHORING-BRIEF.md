@@ -576,3 +576,102 @@ The five unratified round-5 cuts — **CUT 2** (P7 Task 19, the transport guard)
 (P6's read surface). Deliberately deferred until the assembled plans exist, because round 5's own
 argument is that *"a reader deciding the cut needs the plan in front of them to decide against"*.
 Write them; keep the callouts; do not silently comply and do not silently ignore.
+
+---
+
+## 24. FOUR MORE RULINGS FROM JOSEPH, 2026-08-22 — D11–D14, and six lead rulings that follow
+
+These arose from the duplicate rulings; none existed at §23. All four taken as recommended.
+
+| | Ruling | Effect |
+|---|---|---|
+| **D11** | **`ProtectedSummary.class_breakdown` is a census of the WHOLE SCOPE**, not of the protected set. | §8.6's unprocessed-file count has a home in P7. The two-denominator bug is fixed, not inherited. |
+| **D12** | **`p6_conn` seeds Task 2's `fields` catalogue rows** — it calls `create_fields(conn)`. | Tasks 7–9's existing assumption is correct; Tasks 10–15 gain it. |
+| **D13** | **All five unratified round-5 cuts are KEPT.** | CUT 1 (Task 26) remains the only ratified cut. Write them, keep the callouts. |
+| **D14** | **`AuditRecord.release_id` is `None` on a release record; the join runs ledger → events.** | SPEC §7 is amended. §6's ordering guarantee stands. |
+
+### D11 — the census, and the bug it must not inherit
+
+Every file in scope is counted by resolved class, zero-filled across `HANDLING_CLASSES`. With no
+detector, an untouched corpus reports `class_breakdown["unreadable_unclassified"] == len(corpus)` —
+**present-but-untouched, marked and counted**, which is the standing safety rule.
+
+**The winning Task 18 has a two-denominator bug and it must be fixed at assembly.** `count` is the
+*protected* count while `class_breakdown` is a *scope-wide* census, so a UI rendering §8.4's
+*"11 protected identity records"* off the breakdown would **describe an unprotected file as
+protected**. Add `scope_total: int`, and document that `sum(class_breakdown.values())` is
+files-in-scope and **not** `count`.
+
+This makes the skeleton's *"two fields, and deliberately no third"* false — that constraint has a
+type-level test behind it (`17-19:1004-1015`, which is also the version to graft). **Update the
+constraint and the test together**; do not silently break one with the other.
+
+### D12 — `p6_conn` calls `create_fields(conn)`
+
+The catalogue is a **closed, authored table** — 37 keys that §3.12 forbids creating at runtime — so it
+is schema in spirit, not test data. A test wanting an absent key still gets `FieldNotInCatalogue`
+honestly. `10-13:46`'s extra `tmp_path` is adopted with it.
+
+### D13 — the cuts stay, and CUT 2's price is now known
+
+CUT 2 was the one worth measuring, and the measurement changed its price. `assert_single_egress` has
+**exactly one consumer** — a test in Task 22 — and nothing under `src/privacy/` imports it, so the
+*module* deletes cleanly. But that test **is Done-means 13's second clause**, and deleting the task
+leaves Done-means 3's *"P7 proves the instrument, the unforgeable token, and the single materialisation
+locus"* at **two of three**. The cost is in the Done-means, not the code.
+
+**Neither Task 22 version flags CUT 2 or CUT 4 at all**, though both import `transport_guard` and both
+pin the `Gate` facade. Brief §9 forbids exactly that. **Both callouts are a required addition.**
+
+### D14 — `release_id`
+
+§6 puts the audit append strictly before the release exists, `mint_release` takes the `audit_id`, and
+`events` is append-only. So `AuditRecord.release_id` can only ever be `None` on a release record, and
+the join runs **ledger → events**. The winning Task 20 already asserts this
+(`15-22:3005-3007`, to be grafted); the losing version published a `release_id` that cannot exist and
+excused it from comparison, so it never confronted the conflict. **Amend SPEC §7. §6's ordering
+guarantee — the audit is written before anything is released — stands untouched; it is the property
+the whole audit trail rests on.**
+
+---
+
+### Six lead rulings that follow, and do not need Joseph
+
+**L1 — named constants extend to `FACT_ORIGINS` and `ATTEMPTED_PRODUCERS`.** §11's closing sentence
+already says *"The same rule applies to every closed vocabulary either part publishes"*; it simply
+never spelled these out, and **three P6 front matters state the index convention as shared law**.
+**Task 4 publishes a named constant per `FACT_ORIGINS` member; Task 5 per `ATTEMPTED_PRODUCERS`
+member; consumers import the named constant.** The `unresolved` reasons go the same way — validation
+at the seam catches a *typo*, it does not stop a literal being a *second home*. The surviving half of
+those paragraphs is *"Tasks 4 and 5 own the literal spelling of each member"*; keep it.
+`16-19:52-54`'s `SIGNAL_TIERS[-1:]` is **blessed as-is**: P4's tuple, integer members not a string
+vocabulary, and a genuine "last band" reading rather than a spelled member.
+
+**L2 — one name per job for the scope device.** Three spellings exist: `scope_for` (Task 11),
+`files_in_scope` (Tasks 15/18), `area_of` (Task 22). **Resolving a scope and enumerating a scope are
+two jobs and keep two names: `scope_for` and `files_in_scope`. `area_of` is deleted** — it is a third
+spelling of `scope_for`, invented in a fixture. Every `Gate(...)` call using it is corrected.
+
+**L3 — `write_fact`'s signature is pinned to the full form.** It is written three ways and **two end
+in a banned `...`** (brief §2). Take `07-09:25-27`'s complete list; three tasks consume it and two
+were guessing at its tail.
+
+**L4 — the preamble's import list is the UNION of all four front matters.** `facts.evidence.context_pair`,
+`facts.file_facts.FILE_FACTS_COLUMNS` / `FORBIDDEN_COLUMN_SUBSTRINGS`, and `facts.fields.FIELD_SCOPES` /
+`DOMAIN_FIELDS` / `fields_in_scope` each appear in exactly one. Take the union or **three of
+Tasks 16–19's imports vanish.** Note beside it that `strength` / `is_stronger` are CUT 6's target and
+Tasks 14–19 depend on `is_stronger` — that dependence is the evidence a reader needs to decide CUT 6.
+
+**L5 — the discount needs a caller, and it is Task 24's.** `screen_metadata` / `field_permitted`
+appear in no sibling and Task 20's `DEGRADATION_ORDER` binds three stages. §2.2's suppression **must
+fire before ranking**, so the sequencer owns it. Until it does, a `DirectSlots` declaring a
+metadata-property slot turns `python-docx` into a `direct` fact and **no test in the part would see
+it**. Between `field_permitted` and `may_populate`, **`field_permitted` is the name** — it is the
+winner's, and no sibling references either.
+
+**L6 — the fixture set is EIGHTEEN.** Thirteen of the two versions' sixteen agree exactly; 13/14/15
+diverge and each side holds something the other lacks. All belong in the assembled set. Every
+`len(FIXTURES) == 16`, `range(1, 17)`, `MODE_SWEEP`, `SKELETON_FIXTURE = 10` and `by_number(n)`
+reference in Tasks 20 and 22 takes **one renumbering pass**. `Gate.__init__` is **twelve** keywords
+(`PLAN-tasks-11.md:1440-1447`), and Task 20 owns pinning it — Task 11 says Task 20 pins it and Task 20
+says it reports a pin on Task 11; **Task 20 owns it**, and the deferral loop is closed here.

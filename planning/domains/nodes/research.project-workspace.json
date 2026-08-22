@@ -1,0 +1,324 @@
+{
+  "id": "research.project-workspace",
+  "kind": "template",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Research project workspace",
+  "one_line": "REFUSED. One project's mixed working materials, recommended project then stage then artifact_type — which is word-for-word the Research schema's own default template, so this row is the schema's default situation wearing a template id, not a second organizational situation.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "00 states this row's entire content as a property of the Research SCHEMA, not of a separate situation: \"a Research template may define project → stage → artifact type\". The research schema row (planning/domains/nodes/research.json) already carries exactly that dimension_order with exactly that citation. ALIGNMENT.md is the binding rule and it names this shape precisely: \"A template that would only repeat its schema’s fields and dimension_order **is not a node** — it is the schema’s default template.\" CONNECTION.md section 2 restates it as the node test, and CONNECTION.md section 8 confirms nothing breaks when the row is absent: destination_dimensions resolves \"a template id, or a schema id resolving through the schema's default template\".",
+  "refuse_node": true,
+  "refuse_reason": "Fails the template half of the node test on all three limbs at once — detection signals, recommended dimensions, and privacy rules are the Research schema's, not this situation's.\n\n1. DIMENSIONS — identical. The roster's own one_line_hint for this id reads \"The Research schema's default situation: one project's working materials arranged project, then stage, then artifact_type (00's own recommendation)\". research.json's template block is [project, stage, artifact_type], sourced to 00's \"a Research template may define project → stage → artifact type\". Writing it twice would put one recommendation in two rows, which is what the academic.coursework node already flagged as an open question on its own schema; here there is not even a narrowing to justify the second copy.\n\n2. DETECTION SIGNALS — a complement, not a signal. Every concrete signal a project workspace could claim is either (a) already on the research schema row, or (b) the structural fingerprint of a NAMED SIBLING template on the same schema. The roster gives this schema nine templates; between them they take the manuscript lifecycle (research.manuscript-publication), abstracts/posters/decks (research.conference-presentation, which the roster also makes file_kind_owner of presentation), notebooks/SOPs/instrument records (research.lab-notebook-protocols), datasets and analysis (research.dataset-analysis, file_kind_owner of spreadsheet), proposals and budgets (research.grants-funding), IRB and consent (research.ethics-compliance), papers by others (research.reading-library), and the degree project (research.thesis-dissertation). What remains for this id is 'a project identifier fires and no sibling's structure dominates' — a definition by complement. That is the schema activating, with P10 resolving the schema's default template, which CONNECTION.md section 8 already specifies as a supported path.\n\n3. PRIVACY RULES — identical. The sensitivity value and its reasoning are copied from research.json verbatim in substance (unpublished work, human-subjects material, editorial correspondence). The sharper privacy rules on this schema belong to research.ethics-compliance (participants) and research.manuscript-publication (embargoed and pre-publication material), not here.\n\nFIXTURE EVIDENCE that the id is a label: of the eleven files researched below, exactly one (PVA-RDP_project_plan_v3.docx, and its sparse cousin notes_2026-03-11.md) is not claimed by a named sibling — and that one is reached by the schema's default template with no signal this row could add. PVA-RDP_manuscript_v7.docx and submission.zip → research.manuscript-publication. Protocol_RNA-extraction_v2.docx and Notebook_2026-03_p14_scan.pdf → research.lab-notebook-protocols. results_batch07.xlsx → research.dataset-analysis. IRB_Protocol_PVA-RDP_2026_signed.pdf → research.ethics-compliance. Abstract_PVA-RDP_UChicago.pdf → research.conference-presentation (and 00's own two-schema case with college_applications). Ravikumar_2019_NatureMethods.pdf → research.reading-library / the Reading Inbox residual. Lab 4 writeup.docx → the academic schema. analysis/train_eval.py → the code schema.\n\nRefusing costs nothing downstream: the situation's material still activates the research schema on its own evidence, and P10 still reaches [project, stage, artifact_type] through the schema row. Padding this row would produce a second stored copy of one recommendation and a detection-signal list that is the union of its own siblings — the failure ALIGNMENT names and the shape the 574 produced at scale.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "deterministic_note": "Deliberately empty, and that emptiness IS the finding. Every deterministic signal this situation could state is already authored on the research schema row (project-identifier token beside research-artifact structure; a labelled Project or Protocol Title slot; a submission-lifecycle term beside manuscript or venue evidence; an archive manifest read without unpacking; a zone-restricted venue gazetteer hit; the repository-marker precedence check that runs before research is admitted on a code_structured file). Restating them under a template id would not make them this row's, it would make one signal set exist twice.",
+    "needs_llm": [],
+    "needs_llm_note": "Same finding. The interpretive calls a project workspace raises — is this handwritten page a lab record or a lecture note, is this image a research figure at all, does this project token name the holder's own work or one merely cited — are the research schema row's, and the sibling-specific ones (is this archive a submission packet; is this prose stage evidence) belong to research.manuscript-publication.",
+    "never_alone": [
+      "A project-shaped token alone. This is the tempting false file for exactly this row: a directory named for the project, whose members are a downloaded paper, a stock figure and an unrelated spreadsheet, would let a workspace template swallow all three on the folder name. 00 forbids the equivalent move for institutions — a university name alone should not create a group — and requires the same restraint here, because the token must sit beside research-artifact structure before it is a project fact. Restated from the research schema row; not distinct to this id.",
+      "A parent folder named for the project alone, with no member file carrying in-file project-plus-structure evidence. 00 keeps folder context as a clue and not a licence: \"The system learns from existing folders but must not silently reorganize them.\" A workspace-shaped template is the row most likely to violate this, which is a reason to be careful about the situation, not a reason to make it a node.",
+      "A same-session download batch as proof that a set of files is one project — 00: \"A session should never be treated as proof of topic\". Fixture: the four papers downloaded beside Ravikumar_2019_NatureMethods.pdf.",
+      "A bare 4-digit number as a project id or a year — 00 warns of \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"; in this domain it is as likely a run number, a plate number or an instrument model. Fixture: results_batch07.xlsx.",
+      "A source_type or extension alone. text_document, spreadsheet, presentation, image, ocr, archive, code_structured, calendar, email, design_creative and opaque_binary all appear in a project's working directory and none of them makes this situation plausible; 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\".",
+      "A filename alone on an unreadable instrument file — 00: \"the system should not infer a purpose from their filename alone\"."
+    ]
+  },
+  "work_types": [],
+  "work_types_note": "Empty by refusal, not by omission. The artifact_type values a project workspace holds (manuscript, protocol, figure, dataset, analysis notebook, presentation slides, meeting notes, project plan) are already enumerated on the research schema row as VALUES of artifact_type. 00: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" project plan and meeting notes are the two the schema row does not list; that is a value-list gap for R1c, not a licence for this row.",
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "No dimension order is authored here, because the order this situation would recommend is already authored on the research schema row and sourced to 00's own sentence: \"a Research template may define project → stage → artifact type\". The reason project leads is 00's ordering rule — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" — and a stage such as revision, or an artifact type such as figure, is unintelligible without the project. Both statements are the schema's, not this row's. What the situation genuinely needs from 00 is uneven depth rather than a second row: \"The product should not force every branch to use the full template or have the same number of levels\", and \"each branch should offer the dimensions that are actually present in its member groups\". A mixed working directory typically populates project and artifact_type richly and stage barely, so the honest recommendation is the schema default with stage flattened where no lifecycle evidence exists — a per-branch flattening the user performs on the canvas, since \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" That is a use of the default template, not a different template.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true,
+    "note": "Not authored here. The plausible source types for this material are the research schema row's eleven, and the roster already assigns presentation to research.conference-presentation and spreadsheet to research.dataset-analysis as file_kind_owner. A refused row must not re-claim them. never_alone stays true because 00 makes it constitutional for file-kind evidence regardless of which row carries it."
+  },
+  "file_examples": [
+    {
+      "filename": "PVA-RDP_project_plan_v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a project-shaped token and a version suffix",
+        "page-one heading names the project and the words aims and milestones",
+        "body is sectioned prose with a task table naming people and target months",
+        "no venue, no submission language, no numbered protocol steps, no repository marker",
+        "core properties name a prior editor"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "authored_by"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "stage from the v3 suffix — a version suffix is a version_family signal, not a workflow position",
+        "lab from the people named in the task table",
+        "venue, which an internal plan does not have",
+        "that this file needs a template of its own: it is reached by the research schema's default dimension order with nothing added"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "notes_2026-03-11.md",
+      "source_type": "text_document",
+      "observations": [
+        "plain-text meeting notes, no title block",
+        "a first-line heading carries the project token once",
+        "body is bulleted decisions and initials",
+        "sits beside the project plan and two figure files"
+      ],
+      "facts_legal": [
+        "project"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "artifact_type from the .md extension",
+        "stage from the notes' date",
+        "lab from the initials",
+        "project for the neighbouring sparse files because this one carries the token — 00: \"The graph does not automatically copy those missing facts onto sparse files\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PVA-RDP_manuscript_v7.docx",
+      "source_type": "text_document",
+      "observations": [
+        "project-shaped token and a version suffix in the filename",
+        "a manuscript title block over sectioned body text",
+        "an author-block table cell naming a department and institute",
+        "a journal name occurring once, in the reference list on a late page"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "lab",
+        "authored_by"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "venue from the journal name that occurs only in the reference list",
+        "stage from the v7 suffix",
+        "a destination dimension from authored_by — 00: \"It should avoid using authorship or creator identity as a destination dimension.\"",
+        "that a workspace row rather than research.manuscript-publication is what recognises the manuscript lifecycle here"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Protocol_RNA-extraction_v2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered procedure steps beside a materials and reagents list",
+        "a header line naming a lab and a version date",
+        "no project token anywhere in the document",
+        "reused across two of the holder's projects"
+      ],
+      "facts_legal": [
+        "artifact_type",
+        "lab"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the directory the copy happens to sit in — a shared protocol has no single project, and a workspace template that branches project-first would have to pick one",
+        "stage, which a standing procedure does not have",
+        "that lab is safe as a folder level without answering whether a PI-named lab is an organization or creator identity"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "results_batch07.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names batch07, calibration, notes",
+        "a labelled cell reading Project above the project token",
+        "a header row over sample-shaped columns: sample_id, replicate, reading",
+        "a bare four-digit run number repeated in a column"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a year or a term from the four-digit run number",
+        "tax_year or record_type — spreadsheet is a source_type, not a finance signal",
+        "stage from the word calibration",
+        "that this row recognises it: the roster makes research.dataset-analysis the file_kind_owner of spreadsheet"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PVA-RDP_labmeeting_2026-03-11.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles name the project and a current-status slide",
+        "speaker notes describe the next experiment",
+        "embedded figure images repeat the manuscript's panels",
+        "no venue, no session code, no registration material anywhere in the deck"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "stage"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "venue — an internal status deck has none, and inferring one from the conference-deck sibling's ownership of the presentation source_type would be format-as-schema",
+        "subject or term; this is not coursework",
+        "lab from the meeting's name alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Figure_3_final.ai",
+      "source_type": "design_creative",
+      "observations": [
+        "proprietary format; layer or artboard names and preview text may or may not be readable",
+        "filename carries a figure-shaped token and a finality word",
+        "sits beside the manuscript's other figure files"
+      ],
+      "facts_legal": [
+        "artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the sibling filenames — that is neighbourhood context, not this file's evidence",
+        "stage from the word final",
+        "an empty extraction where the format is simply unsupported — 00: \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-03-02 at 09.11.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads an issue-tracker thread with a ticket id and two participant names",
+        "OCR text also holds a navigation menu and a channel name that resembles the project token"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "project from a channel or ticket prefix that merely resembles the project token",
+        "artifact_type from the presence of dense OCR text"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Ravikumar_2019_NatureMethods.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a DOI on page one, a journal masthead, an author list that does not include the holder",
+        "no project token anywhere in the document",
+        "sits inside the project's working directory",
+        "downloaded in a bounded session with three other papers"
+      ],
+      "facts_legal": [
+        "authored_by"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the directory it was saved into — this is the collision fixture for a workspace-shaped template, which would absorb it on folder membership alone",
+        "lab from the paper's own affiliations — those describe its authors, not the holder's work",
+        "a topic for the session — 00: \"A session should never be treated as proof of topic\"",
+        "venue as a fact about the holder's research output"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Abstract_PVA-RDP_UChicago.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an Abstract heading over a single-page structured summary",
+        "the project token appears in the filename and the heading",
+        "a page-one line addresses a named university's programme with submission language"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "stage"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the research facts are dropped because application facts also fired — 00 keeps both, and this is its own worked case",
+        "lab from the university name in the addressed-to line, which is the target role, not the producing lab"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "analysis/train_eval.py",
+      "source_type": "code_structured",
+      "observations": [
+        "a package manifest and a repository marker sit at the directory root above it",
+        "module docstring names the project token",
+        "imports a plotting library and writes a figure filename"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "research from the project token alone when the repository markers are the stronger structural evidence — 00: \"Code-related files should rely heavily on local structural evidence, including repository roots and package files\"",
+        "stage — a code file's lifecycle is not a manuscript's",
+        "that a project workspace template may branch through a repository directory 00 tells the engine to leave alone"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Lab 4 writeup.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a heading reads Lab 4: Conservation of Momentum",
+        "a course-code-shaped token appears beside the words instructor and semester",
+        "sections read Procedure, Data, Discussion"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "research from the words lab, protocol, procedure or results — the discriminating evidence is the course-code-plus-academic-context pattern, which puts this file on the academic schema",
+        "project from the course code",
+        "artifact_type from the Procedure heading"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded, and its sameness is part of the refusal. The value and its reason are the research schema row's: a project's working directory routinely holds unpublished manuscripts, internal figures and, where the project has human subjects, participant material, and 00 requires mail material to be handled \"while treating addresses and message content as potentially sensitive\". No privacy rule here differs from the schema's, which is the third limb of the node test. The rules that DO differ on this schema live on research.ethics-compliance (participant-facing material) and research.manuscript-publication (pre-publication and embargoed drafts). The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+  "open_question": "Two findings for R1c or Joseph, neither of which rescues this row. (1) The research schema row's falls_through_to omits Review Later, yet five of its own fixtures — and four of this node's — fall through there; the residual list on that row looks incomplete, and Review Later is the roster's own must_consider_residual for this id. (2) The roster makes research.conference-presentation the file_kind_owner of presentation and research.dataset-analysis the file_kind_owner of spreadsheet, but a project's internal status deck and its raw results workbook are neither a conference output nor an analysis deliverable. With this row refused they route to the research schema and its default template, which is correct; if a later reviewer reads file_kind_owner as exclusive, those two fixtures would be mis-shelved. Whether file_kind_owner is a claim of exclusivity or a claim of primary interest is R1c's to settle, and it is a roster question, not a licence to keep a duplicate default template."
+}

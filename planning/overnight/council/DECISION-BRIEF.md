@@ -40,6 +40,14 @@ holds and the answer is unchanged, but for the design seat's reason, not theirs.
 of *"zero new tasks / Task 4 as written"* died with round 5's CUT 5: the injected protocol is gone,
 so what remains is smaller than the brief estimated, not larger.
 
+## RATIFIED — Joseph, 2026-08-22
+
+One answer, taken in chat, resolving `ROSTER.md` NJ-R1a-5 and narrowing CONNECTION.md NJ-1.
+
+| | Answer | Applied where |
+|---|---|---|
+| **J-IND** | The professional worlds get **at least placeholder coverage now, plus comprehensive gist-level research per industry** — none of the 574's industry coverage is dropped silently. The schema list expands to **roughly 20** `kind: schema` rows (life areas + professional worlds); new professional/creative schemas follow the PR-6 placeholder shape (a row may describe the domain; it writes **no field rows** unless the fields are `design` — D1's career deferral stands). Industry coverage itself lands as **`launch: placeholder` templates + per-industry research notes** on those schemas, researched one-agent-per-row at gist/purpose depth ("you won't be perfect — get a good gist of each"); full depth is a much later pass. NJ-1 narrows accordingly: the 500+ count is reached by the connected whole including this industry template layer, still never by minting hundreds of field-bearing schemas. | `planning/domains/roster.json` + `ROSTER.md` (expansion pass), then one R1b-style agent per new row |
+
 ---
 
 ## The whole thing on one page

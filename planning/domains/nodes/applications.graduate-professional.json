@@ -1,0 +1,603 @@
+{
+  "id": "applications.graduate-professional",
+  "kind": "template",
+  "schema_id": "college_applications",
+  "parent_id": null,
+  "name": "Graduate and professional school application",
+  "one_line": "One applicant's graduate, doctoral or professional-school admissions material, where a reusable dossier — statement of purpose, academic CV, writing sample, transcripts, score reports, recommendation and funding material — is submitted to several programs at once, often through a centralised application service, so most files carry no addressee of their own and the shared material is the bulk rather than the exception.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "Refusal was on the table and the sibling row says why: applications.undergraduate-packet already records this pair as \"Identical field set and identical dimension order\". Three differences survive that, and the node test needs only one of them. (1) Detection signals: this situation fires on a statement-of-purpose / research-statement heading naming a degree programme, on a labelled programme-applied-to or degree-sought slot in a graduate or centralised professional application service, and on faculty-and-advisor language — none of which the undergraduate situation's signals (activities list, counselor recommendation, secondary transcript, early/regular decision) can produce, and the two sets are near-disjoint in vocabulary while sharing one gazetteer. (2) Recommended dimensions: the level this situation actually wants under an institution is the programme applied to, and no field in the active schema can fill it, so this row recommends a shallower order than the schema's default — target_university then application_document_type — and demotes application_cycle to an optional level, because 00 requires that a template not \"create meaningless one-child levels\" or \"produce empty branches when tested against the accepted group\" and a CV, writing sample or transcript carries no cycle at all. (3) Privacy: this situation routinely holds third-party recommendation letters about the applicant, financial-certification and bank material for international admission, and immigration documents, which is a different protection default from an undergraduate packet's. The programme gap is recorded in proposed_fields and open_question rather than resolved here.",
+  "fields": [],
+  "proposed_fields": [
+    {
+      "field": "target_program",
+      "type": "string",
+      "example": "MS in Statistics",
+      "reliability_ceiling": "direct",
+      "destination_eligible": true,
+      "why_no_existing_key_works": "The schema's only addressee field is target_university, and one institution routinely hosts several programmes an applicant applies to separately, each with its own statement of purpose, its own deadline and its own decision — so target_university cannot separate them and a branch built on it merges two applications. subject is the nearest existing key but it is the enrolled-study role on the academic schema (\"the course or study subject the material belongs to\"), which is the applicant's own side; a programme applied to is the target side of exactly the split 00 states: \"The system must separate roles that happen to contain the same entity type.\" application_document_type is the document's role inside the application, not what was applied to.",
+      "recommendation": "Do not mint this field on this node's say-so. Three cheaper resolutions exist and R1c or Joseph should pick one before any key is added: (a) leave the programme as a group label and a value inside the accepted group, never a field — the group label 00 already allows (\"it proposes a concise human-readable display label and a group category\") carries it without a new column; (b) declare the existing key subject on the college_applications schema as a target-side role, with a role_split against school-side use; (c) widen target_university in role, which is already the schema row's own open question. This row's dimension_order deliberately branches on neither, so nothing here depends on the answer.",
+      "provenance": "proposal"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a statement-of-purpose, research-statement or personal-statement heading in a high-weight zone (filename, document title, page-one heading) co-occurring with a degree-programme token and an addressee institution or a labelled programme slot in the same document. The heading is what supplies the application role; the institution name never supplies it alone.",
+      "a labelled slot in a graduate or centralised professional application service read as a structured field — degree sought, programme applied to, entry term, application ID, applicant status, recommender status — which yields application_document_type and application_cycle directly rather than by inference. 00's reason such a slot is readable at all: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs\", and a labelled form field is one of the sources 00 calls reliable and explicit: a fact is direct when it is \"read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field\".",
+      "a schools-gazetteer hit at a word boundary in a high-weight zone co-occurring with graduate-admissions addressee context for that same institution — a graduate-school or programme admissions letterhead, an admissions-office sender domain, a portal status line, a decision or offer sentence. 00 requires the boundary match rather than substring matching, which \"can be found inside\" ordinary words; the addressee role is the part the gazetteer cannot supply.",
+      "a dedicated admissions-cycle or academic-term pattern occurring beside application context for the resolved institution — 00: \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\" Never a generic date parse, never a filesystem timestamp, never a sent date, never a capture stamp.",
+      "an existing user-created folder whose name pairs a degree or programme with application language, read as parent-folder context only. 00: \"A carefully curated existing folder should be treated as a strong expression of user intent\", and \"Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal\" — context for the files inside it, never a fact copied onto a sparse member and never a rename of that folder.",
+      "an OCR region carrying a programme-portal status, interview-invitation or decision sentence that names one institution and one programme — the graduate analogue of the capture 00 insists \"should not be treated as a generic screenshot\"."
+    ],
+    "routes_away_when": [
+      "the addressee is a sponsoring body awarding money rather than a programme the applicant would enrol in — a fellowship, studentship or grant competition → applications.scholarship-fellowship. The overlap is real and constant here, because funding and admission are often one submission; the discriminating evidence is award-and-eligibility language versus admission-and-enrolment language, not the presence of money.",
+      "the material is an academic or professional job application — a cover letter, a teaching statement addressed to a search committee, a job-market CV → career.recruiting. The document kinds are nearly identical and the discriminator is the addressee's role: an admissions office and a programme versus an employer, a department hiring committee or a recruiter.",
+      "the material is a licence, board or bar admission application, or a credential renewal, rather than an application to study → career.credentials-licenses. \"Professional\" in a licensure sense and \"professional school\" in an admissions sense share vocabulary and neither may be decided by the word alone.",
+      "a submitted set resolves no single addressee — an archive or folder whose members are the dossier and whose only shared property is the submission itself → applications.purpose-packet, which 00 contrasts with institution-based organisation in the same paragraph: \"The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design in which general supporting materials live under an application packet while essay drafts are organized by institution.\"",
+      "the applicant is a secondary-school student and the document set is activities list, counselor recommendation and secondary transcript → applications.undergraduate-packet."
+    ],
+    "needs_llm": [
+      "a writing sample: the same bytes are a thesis chapter, seminar paper or manuscript and an application document, and only the surrounding evidence says whether a submission happened. 00 licenses exactly this dual reading — \"An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago\" — so the model's job is to add the application reading without dropping the research one, or to return unknown.",
+      "a statement of purpose with no institution named anywhere, which is the common first draft: the model must judge from the prompt's own language whether this is application prose at all, and 00's Wash U.docx is the precedent — \"That heading is strong evidence for the College Applications domain\" although the filename reveals nothing.",
+      "faculty-outreach correspondence before any application exists — a prospective-student inquiry to a professor is neither an application document nor recruiting; the model must be free to conclude that no application fact is supported yet.",
+      "an academic CV versus a job-market CV versus a resume, where the same file supports admissions and recruiting and the addressee is stated nowhere in the document.",
+      "OCR of a programme portal that must be judged \"an application portal rather than a generic image\".",
+      "a heterogeneous dossier whose shared property is the submission: 00 allows the model to \"identify a shared purpose across a heterogeneous packet\", which is the content-incoherent / purpose-coherent case, and the dossier here is more heterogeneous than an undergraduate packet's because it mixes research writing, employment history and financial certification.",
+      "a document naming several institutions where the addressed one must be picked out — 00's adversarial suite names \"multiple institutions in one application essay\" as a known failure mode, and a graduate statement of purpose naming an undergraduate institution, a current lab and a target department is that file."
+    ],
+    "never_alone": [
+      "a university name alone. 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" This situation is where that rule bites hardest: a graduate applicant's CV, transcript and writing sample name their own institutions on every page, and none of those names is an addressee.",
+      "a degree- or programme-shaped token alone (PhD, MBA, JD, MS in Statistics). It names a field of study and appears in CVs, coursework, job postings, e-mail signatures and research bios; it is neither an addressee nor evidence that an application exists. This is the tempting false-positive that a grad-application detector invites and it is the reason the fixture Michigan PHIL 5200 Seminar Syllabus.pdf must stay out of this template.",
+      "a CV or resume alone. The same file supports admissions and recruiting, and 00's adversarial suite names \"shared resumes across applications\"; it may not gain an addressee from the folder or packet it sits in — \"A transcript may be part of several application packets\".",
+      "statement-shaped first-person prose alone. Narrative or reflective register is not admissions evidence and yields no application_document_type; without a prompt heading, an addressee, a programme slot or a portal, the file stays unresolved.",
+      "a designated-recipient or score-release list on a centralised service report as evidence for any one institution — that is a many-institution hub, and 00 asks the engine to \"suppress generic hubs such as a personal email address or broad university domain\".",
+      "a bare 4-digit number as application_cycle — 00 forbids fuzzy parsing because filenames carry \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\".",
+      "membership in a tightly bounded download session, and membership in an accepted packet, as proof of purpose or of an addressee — 00: \"A session should never be treated as proof of topic\" and \"A tight download session alone is never sufficient\".",
+      "a SOURCE_TYPE or an extension alone (.pdf, .docx, .png, .eml, .zip). 00 treats the extension as a routing signal \"rather than an assumption about meaning\".",
+      "the absence of EXIF as proof that an image is a programme-portal screenshot — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"OCR text density is also not a reliable screenshot detector\".",
+      "an author, creator or producer metadata field as evidence of who the applicant or recommender is — 00: \"PDF metadata should be treated as supporting evidence, not as truth\"."
+    ]
+  },
+  "proposed_context_terms": [
+    "statement of purpose",
+    "research statement",
+    "writing sample",
+    "curriculum vitae",
+    "programme of study",
+    "degree sought",
+    "entry term",
+    "graduate admissions",
+    "assistantship",
+    "funding package",
+    "recommender",
+    "waiver of access",
+    "financial certification",
+    "prospective student"
+  ],
+  "proposed_context_terms_note": "Proposal, not design. 00 names the direct-application-evidence families — \"admissions language, a portal, a checklist, or a clearly targeted essay\" — and lists five academic context terms verbatim elsewhere; the tokens above are R2/R6's to accept, refine or reject. No regex, no threshold and no score is written here.",
+  "work_types": [
+    "statement of purpose",
+    "personal statement",
+    "research statement",
+    "diversity statement",
+    "teaching statement",
+    "academic CV",
+    "writing sample",
+    "transcript",
+    "test score report",
+    "letter of recommendation form",
+    "recommendation waiver",
+    "application form",
+    "programme portal record",
+    "application checklist",
+    "funding or assistantship application",
+    "financial certification",
+    "interview record",
+    "faculty correspondence",
+    "decision letter",
+    "offer and funding letter",
+    "matriculation or deposit form",
+    "portfolio submission"
+  ],
+  "work_types_note": "These are values of application_document_type, discovered at runtime, never roster rows. They are narrowed to this situation deliberately: activities list, counselor recommendation and secondary transcript belong to applications.undergraduate-packet. 00's own listing of what one packet holds is the shape, not the list: \"An accepted Columbia application packet may include an essay draft, admissions checklist, portal screenshot, transcript, resume, certificate, and identification document.\"",
+  "grouping_reasons": [
+    "one programme at one institution in one cycle — the label shape 00 uses for this domain is an application group named for its institution and cycle",
+    "the reusable dossier itself: CV, writing sample, transcripts and score reports submitted unchanged to every target, which is a shared-material set rather than any one packet's members. 00: \"A transcript may be part of several application packets; a resume may support multiple recruiting processes; a research abstract may belong to a research project and be attached to a university application.\"",
+    "a reapplication: the same programme across two cycles, held apart because the cycle differs and the drafts do not merge",
+    "a purpose-coherent submission whose members are content-incoherent — 00: \"The documents are content-incoherent but purpose-coherent\"",
+    "sparse tailored drafts attached to a programme neighbourhood as context-supported members only, with no addressee copied onto them — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+  "template": {
+    "dimension_order": [
+      "target_university",
+      "application_document_type"
+    ],
+    "why": "A recommendation for one organizational situation, not a filesystem: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" Institution leads for 00's stated reason for document and record domains — \"project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" — and because of the parent-context rule, \"a parent dimension should provide the context required to understand the child\": a statement of purpose is unintelligible until the programme it answers is known. Document type is last for the same reason it is last in 00's own packet split: \"essay drafts go to Essays; checklists and portal screenshots go to Forms and Portal Records; transcripts, resumes, and certificates go to Supporting Materials.\" The difference from the undergraduate default is the missing middle: 00's Applications order puts the cycle there, but in this situation most files cannot fill it — a CV, a writing sample, a transcript and a score report carry no cycle, and a graduate applicant usually has one — so a cycle level here is the level 00 tells a template not to build: it must not \"create meaningless one-child levels\" or \"produce empty branches when tested against the accepted group\", and the canvas is asked to warn when a level \"produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders\". Cycle is kept as an optional level for the reapplication case below, where it does separate real material. The level this situation would actually want under the institution is the programme applied to, and no field the active schema declares can fill it, so it is not recommended as a dimension at all — recorded in proposed_fields and open_question instead of invented here. purpose is destination-eligible but absent: the flat purpose-coherent packet is the separate situation 00 names (\"a purpose-defined packet, such as Chinese University Application Materials\"), which is applications.purpose-packet's business.",
+    "optional_branch_patterns": [
+      "a shared-material branch beside the institution branches, which in this situation is the primary need rather than an exception, because the dossier is reused unchanged across every target: 00 names \"Applications/Shared Application Materials\" and requires abstention when no such branch exists — \"If no shared branch exists, the system should not arbitrarily choose one university. It should abstain or ask the user to choose a primary home.\"",
+      "the hybrid 00 states outright, which fits this dossier better than it fits an undergraduate packet: \"general supporting materials live under an application packet while essay drafts are organized by institution\"",
+      "insert application_cycle above document type for a reapplicant, where two cycles of the same programme genuinely exist and the level is not one-child",
+      "a scoped General child under an institution branch when the document's role never resolves — 00: \"It should also support a scoped General or Other branch within a meaningful parent\", explicitly instead of a global catch-all",
+      "flatten to a single institution folder for a target with two or three files — 00 allows uneven depth: \"a two-file application packet may remain a single folder\""
+    ],
+    "validation_constraints": [
+      "no institution dimension may absorb a document whose own evidence names a different addressee — \"an application packet does not silently absorb a document with a conflicting target institution\"",
+      "no institution dimension may write target_university onto a dossier document by virtue of the branch it sits in; the fact comes from the document's own evidence or stays unfilled. This constraint carries more weight here than in the undergraduate situation because the shared dossier is the majority of the files",
+      "application_cycle, where the optional level is used, may come only from a dedicated cycle or term pattern or a labelled entry-term slot — never from a filesystem timestamp, a sent date, a capture stamp or a draft ordinal",
+      "authorship never becomes a level: \"It should avoid using authorship or creator identity as a destination dimension\" — no recommender folder, no advisor folder, no sender folder",
+      "no branch may be built on a programme value until a field that can hold it exists; a programme currently lives in the accepted group's label, not in the tree"
+    ],
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "spreadsheet"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".xlsx"
+    ],
+    "never_alone": true,
+    "note": "archive is deliberately absent: the roster gives submission-archive evidence to applications.purpose-packet (00's submission.zip), and an archive manifest that names no single addressee is exactly the evidence that routes away from this template. The archive fixture below is kept as a routing case, not as an ownership claim."
+  },
+  "file_examples": [
+    {
+      "filename": "Statement of Purpose - Michigan Sociology PhD.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a schools-gazetteer token at a word boundary, a programme-shaped token and the phrase Statement of Purpose",
+        "page-one heading repeats Statement of Purpose and the body addresses the department's admissions committee",
+        "body names two faculty members and the writer's current institution",
+        "four sibling files share the same normalized stem with draft ordinals"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type",
+        "purpose",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school = Michigan — the institution here is the addressee; the writer's own institution is the other name in the body and belongs to the school role",
+        "a folder level built from the named faculty — authorship and person identity are not destinations",
+        "application_cycle from a draft ordinal or from the document's creation timestamp",
+        "a programme fact in a field the active schema declares — the programme is in the group label until a field for it is decided"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CV_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "headings for education, publications, teaching, grants, conference presentations",
+        "several institution and venue names, none of them in an addressee role",
+        "a 4-digit token in the filename",
+        "the same content hash appears under three different institutions' application folders and once in a job-search folder"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from any institution named in the education or employment sections",
+        "purpose = university application from membership in a packet — 00's adversarial suite names \"shared resumes across applications\", and the same file also supports a job search",
+        "application_cycle = 2026 from the filename number",
+        "an arbitrary choice between the three institution branches: \"If no shared branch exists, the system should not arbitrarily choose one university. It should abstain or ask the user to choose a primary home.\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Writing Sample - Thesis Ch3 (trimmed).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title zone names a thesis chapter and a project identifier; the body is a scholarly argument with a reference list",
+        "a cover page added at the front reads Writing Sample and names a department and a degree programme",
+        "an earlier, untrimmed version of the same chapter exists elsewhere in the corpus"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "application_document_type",
+        "purpose",
+        "target_university",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "dropping either fact set to force one home — 00: \"An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago\", and \"A file may validly belong to more than one accepted group\"",
+        "that the untrimmed chapter inherits the application facts — it is a separate file version with its own evidence",
+        "target_university from the department named in a citation rather than on the cover page"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "AMCAS_Application_Submitted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header names a centralised professional application service, not a school",
+        "labelled slots in table cells: applicant ID, entry term, application status, submission date",
+        "a designation section lists eleven schools the application was released to",
+        "no single institution occupies an addressee role for the file itself"
+      ],
+      "facts_legal": [
+        "application_document_type",
+        "application_cycle",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from the designation list — eleven institutions, an addressee for none of them, and 00 asks the engine to \"suppress generic hubs such as a personal email address or broad university domain\"",
+        "that the service's name is an institution",
+        "that the schools named here gain any fact from being listed"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "GRE Score Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "testing organisation's own report structure with registration identifiers and section scores",
+        "a released-to block naming four institutions",
+        "a labelled test date line"
+      ],
+      "facts_legal": [
+        "application_document_type",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from the released-to block",
+        "application_cycle from the test date — the date the test was taken is not the cycle applied to",
+        "that this template owns the file: on its own evidence it is a testing record, and academic.standardized-testing is the fitting situation unless packet evidence puts it in a submission"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-01-12 at 22.03.51.png",
+      "source_type": "image",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF, software metadata present",
+        "OCR region reads: Application Status — Submitted. PhD Program in Sociology, University of Michigan",
+        "filename carries a capture-time-shaped stamp"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "application_cycle from the capture stamp — the capture time is when the portal was photographed, not the cycle applied to",
+        "media_type = screenshot from the absence of EXIF alone",
+        "that a portal capture whose OCR yields no institution supports anything at all"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Interview invitation - Weill Cornell.eml",
+      "source_type": "email",
+      "observations": [
+        "sender address on a graduate admissions-office domain; subject pairs one institution with interview language",
+        "body states the interview date and the entry term the offer of interview belongs to",
+        "an attachment name is listed in the header but not opened"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_cycle",
+        "application_document_type",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a folder level built from the sender address",
+        "application_cycle from the sent date rather than from the stated entry term",
+        "that the attachment's contents are known — an attachment name is evidence about the message, and the attachment is re-evidenced on its own bytes"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Recommendation - Prof Nakamura (access waived).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "salutation addresses a graduate admissions committee; body assesses one named applicant",
+        "a footer line names the recommender's own institution and department",
+        "a waiver-of-access line appears above the signature"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type",
+        "purpose",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school or target_university from the recommender's footer institution — that name is the writer's employer, not the addressee",
+        "a folder level built from the recommender — \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "that the assessment of the applicant may appear in a group summary or a cloud dossier: \"Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Financial Certification and Bank Statement - I-20.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for sponsor name, funds available and programme of study; the values sit in table cells",
+        "an attached bank statement page with an account number and balances",
+        "an institution's international-office letterhead and a visa-document reference"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type",
+        "purpose",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a folder level built from the account, the sponsor or any financial value",
+        "that the file may be sent to a cloud model by default — 00: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\", and visas are among the material it names for protected surfacing",
+        "tax_year or account facts as this template's business — the finance and identity schemas co-activate on their own evidence and this row writes no field of theirs"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "SOP draft 2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename names a draft ordinal and an abbreviation, nothing else",
+        "body is first-person prose about research interests with no institution, no programme slot and no admissions vocabulary",
+        "sits in a folder whose other members all name one institution; strongest mutual retrieval neighbours are that institution's statement drafts"
+      ],
+      "facts_legal": [
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from the folder name or from the retrieval neighbours — \"The graph does not automatically copy those missing facts onto sparse files\"",
+        "application_document_type = statement of purpose from the abbreviation in the filename alone",
+        "purpose from a bounded download session — \"A tight download session alone is never sufficient\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Michigan PHIL 5200 Seminar Syllabus.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a schools-gazetteer token, a course-code-shaped token and the word Syllabus",
+        "page-one heading repeats the course code beside credits and instructor lines",
+        "the reading list names graduate-level texts and the word graduate appears in the course description"
+      ],
+      "facts_legal": [
+        "school",
+        "subject",
+        "term",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university = Michigan — the institution here is the course provider, and a university name alone carries no role",
+        "that the word graduate makes this an application document; a degree-level token is never an addressee and never evidence that an application exists",
+        "purpose = university application"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "grad_apps_2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking; members are a CV, two statements of purpose, a writing sample, a transcript and a recommendation waiver form",
+        "member names carry two different institutions between them; the outer name carries none",
+        "uncompressed size and file count are available from the manifest"
+      ],
+      "facts_legal": [
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from one member filename — two institutions appear and neither is the archive's addressee",
+        "that the members inherit the archive's facts — the manifest is evidence about the archive and each member is re-evidenced on its own bytes",
+        "any member's content: \"the normal scan should never extract archive contents to the filesystem\"",
+        "that this template applies — with no single addressee this is the flat purpose-defined packet situation, applications.purpose-packet"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Re Prospective PhD student inquiry - Prof Alvarez.eml",
+      "source_type": "email",
+      "observations": [
+        "outgoing message to a named professor at a university, asking whether the lab takes students next year",
+        "the reply names the lab and says the department's deadline is in December",
+        "no application ID, no portal, no programme slot, no submitted document"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university — the institution is being enquired of, not applied to, and no application exists yet on this evidence",
+        "application_cycle from the mention of a deadline month",
+        "a folder level built from the professor — person identity is not a destination",
+        "that the message's addresses and body are ordinary metadata: 00 treats mail as \"potentially sensitive\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Program Deadlines and Fee Waivers.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet named Apps; column headers School, Program, Deadline, SOP, Recs, Fee, Status",
+        "a dozen gazetteer institution names occupy one column and programme names another",
+        "no institution occupies an addressee role for the file itself"
+      ],
+      "facts_legal": [
+        "application_document_type",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university — this is a many-institution hub and 00 asks the engine to \"suppress generic hubs such as a personal email address or broad university domain\"",
+        "application_cycle by parsing the deadline column as dates",
+        "that the programmes listed here become facts on any other file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_0912.HEIC",
+      "source_type": "ocr",
+      "observations": [
+        "camera EXIF present with make, model and DateTimeOriginal — a photograph of a printed page, not a screen capture",
+        "OCR region reads: Yale School of Management — Round 2 Interview Confirmation",
+        "no other text layer exists on this file"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that dense OCR text proves this is a scan or a screenshot — \"OCR text density is also not a reliable screenshot detector\"",
+        "application_cycle from the EXIF capture time, or from the word Round",
+        "that a photographed page and a screenshot of the same content are one file — they are separate file versions with separate evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "applications.undergraduate-packet",
+      "signal": "Reciprocal of the edge that row already authored. Same schema, same field set, same gazetteer, and the sibling states the problem plainly: identical fields, near-identical order. The discriminating evidence is the document set and the applicant's stage — statement of purpose, academic CV, writing sample, programme-and-advisor material and funding certification on this side; activities list, counselor or teacher recommendation, secondary-school transcript and early/regular-decision language on that side. Neither side may be decided by the institution name, which is the same gazetteer on both. Fixture on this side: Statement of Purpose - Michigan Sociology PhD.docx.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.purpose-packet",
+      "signal": "The discriminator is whether one addressee resolves for the file or branch. A programme-addressed statement, portal record or decision letter points here; a submitted set whose members are content-incoherent and whose only shared property is the submission points there — and this situation produces such sets more often than the undergraduate one, because the dossier is reused unchanged. 00 leaves the choice with the user: \"The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design in which general supporting materials live under an application packet while essay drafts are organized by institution.\" Fixture: grad_apps_2026.zip.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.scholarship-fellowship",
+      "signal": "Admission and funding are frequently one submission here, so a single file can carry both readings: an assistantship application, a departmental funding form or a fellowship statement uses the same document kinds and often the same institution. The discriminating evidence is the addressee's role in the document — an award, sponsor, eligibility and stipend framing versus an admission, enrolment and entry-term framing — never the presence of money and never the word funding.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "The heaviest collision this template has. CV, cover letter, personal statement, teaching statement, interview record and reference request appear on both sides, and the same bytes often sit in both folders. The discriminating evidence is the addressee in the document's own evidence — a graduate admissions office and a programme versus an employer, a hiring committee or a recruiter — never the document kind. Fixture: CV_2026.pdf, which must gain an addressee from neither side.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "Professional-school admission and professional licensure share the word professional, the application shape and often the same issuing bodies: a bar or board application, a licence renewal or a character-and-fitness questionnaire looks like an admissions form. The discriminating evidence is what is being applied for — a place to study, with an entry term and a programme, versus a licence, registration or credential, with an authority and a licence number.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.thesis-dissertation",
+      "signal": "A writing sample is usually a thesis chapter, seminar paper or manuscript with a cover page. The discriminating evidence is the cover page and the submission context, not the body text, which is identical on both sides. This edge is a collision only over which situation organises the file; the two readings can also both hold, which is why the fixture records research as its second schema rather than treating it as an outlier. Fixture: Writing Sample - Thesis Ch3 (trimmed).pdf.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.standardized-testing",
+      "signal": "A GRE, LSAT, MCAT or GMAT report is a testing record on its own and a supporting document inside a submission. The discriminating evidence: the testing organisation's own report structure and registration identifiers versus a received-by or released-to line tying the report to one admissions office. A test name is not an addressee and a released-to block is a hub, not a target. Fixture: GRE Score Report.pdf.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "A graduate applicant's transcript is an official record of the school they attended and a supporting document in every packet they file. The discriminating evidence is the role of the institution on the page: an issuer letterhead with registrar language fills school and belongs to the record situation; an addressee institution fills target_university. A transcript inside an application branch keeps its issuing-school facts and gains no addressee — \"A transcript may be part of several application packets\".",
+      "design_cite": "A transcript may be part of several application packets",
+      "provenance": "design"
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "Both sides can be evidenced by one university name and by graduate-level academic vocabulary. The discriminating evidence: this side needs an addressee institution paired with admissions, programme-slot or portal context; the coursework side needs a course-code-plus-context pair or a coursework work type. Neither may take a bare university name, and neither may take a degree-level token such as PhD or MBA. Fixture: Michigan PHIL 5200 Seminar Syllabus.pdf.",
+      "design_cite": "A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization",
+      "provenance": "design"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_note": "Left empty on purpose. CONNECTION.md's closed vocabulary joins also_holds_with between schemas only, and the college_applications schema row already carries the co-holding edges this situation needs (research, academic, identity). The dispatch prompt invites the edge on any node; CONNECTION wins and the divergence is recorded in this node's research notes. The per-file co-holding is expressed where it belongs on a template row: also_schema on the file examples — research on the writing sample, academic on the score report, finance on the financial certification.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "00's description fits the dossier document that has a durable purpose and no accepted packet: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\". Fixtures: CV_2026.pdf, GRE Score Report.pdf, AMCAS_Application_Submitted.pdf, Interview invitation - Weill Cornell.eml.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — the shape of a statement draft whose addressee never resolves. Fixtures: SOP draft 2.docx, grad_apps_2026.zip, Program Deadlines and Fee Waivers.xlsx, Re Prospective PhD student inquiry - Prof Alvarez.eml.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The recommendation letters and financial-certification material this situation holds are 00's \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\", which \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixtures: Recommendation - Prof Nakamura (access waived).pdf, Financial Certification and Bank Statement - I-20.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "00 defines it for captures with \"no accepted project, trip, application, or event relationship\" — a portal capture whose OCR yields no institution and no status line. Fixtures: Screenshot 2026-01-12 at 22.03.51.png and IMG_0912.HEIC when their OCR is unusable.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "00: \"papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association\" — where a downloaded programme handbook, faculty paper or admissions brochure gathered while deciding where to apply never joins an accepted application group.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "target_university",
+      "other_field": "school",
+      "neighbor": "academic.transcripts-credentials",
+      "why": "Same entity type, different role, and this situation is where the split does the most work: a graduate applicant's own institutions are named on every page of the CV, the transcripts and the writing sample, while the addressee is usually named only on a cover page, a portal record or a letterhead. 00 requires the separation — \"The system must separate roles that happen to contain the same entity type\" — and gives this domain's case: an application essay can name the writer's current school and the university it is addressed to. The canonical field list already holds the pair; this row references it and mints nothing.",
+      "design_cite": "distinct facets, such as authored_by and target_school, or our_firm and client"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This situation holds three kinds of material an undergraduate packet holds more rarely, and each of them is protected material in 00's own terms. Recommendation letters written about the applicant by a third party carry another person's assessment and, where access is waived, material the applicant is not entitled to read. International admission routinely requires financial certification, bank statements and immigration documents, and 00 says such material \"should enter a protected state immediately\" and that passports, visas and legal documents \"may be surfaced as protected records even when they do not meet a normal group-size threshold\". The dossier as a whole sits inside the corpus 00 protects: \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\". The constraint that follows is 00's: \"Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.\" A branch label naming an institution and a rejected programme is itself disclosive on a shared screen, which is the canvas-redaction case 00 already asks for. Which handling class applies is P7's and is not assigned here.",
+  "open_question": "The level this situation wants under the institution is the programme applied to — one applicant routinely files two separate applications to two programmes at the same university, with separate statements, deadlines and decisions — and no field the active schema declares can hold it, so the recommended order stops one level short of what the material has. Three resolutions are on the table and all are above this node: leave the programme as an accepted-group label only; declare the existing key subject on the college_applications schema as a target-side role with a role_split against school-side use; or widen target_university in role, which is already the schema row's and applications.scholarship-fellowship's open question. A second fork is Joseph's rather than R1c's: whether a funding or assistantship application filed inside an admissions submission belongs to this situation or to applications.scholarship-fellowship, since one submission can be both. Inherited and unresolved above this node: whether purpose stays Applications-scoped (NJ-3 / PR-1)."
+}

@@ -1,0 +1,457 @@
+{
+  "id": "academic.standardized-testing",
+  "kind": "template",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "Standardized testing",
+  "one_line": "One standardized test and the material a person accumulates around it: preparation sets and practice papers before a sitting, the registration and appointment records of the sitting itself, and the score report the testing organization issues afterwards.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "a test-name gazetteer hit (R4's content, not this node's) matched at a word boundary — 00: \"It should use word-boundary matching rather than substring matching\" — together with a testing-record context term in a high-weight zone (filename, document title, page-one heading, slide-one title): score report, scaled score, percentile, test date, test center, registration number",
+      "a score-report structure: a labelled scaled-or-composite score slot beside a labelled percentile or section-score slot and a labelled test-date slot, on a document whose title zone names a test",
+      "a registration or appointment structure: a labelled appointment or registration identifier beside a test-center slot and a test-date slot, on a document whose title zone names a test",
+      "a labelled table cell or form field whose label reads Test Date, Registration Number, Test Center, Scaled Score, Percentile or Score Recipients, on a document already carrying a test name — 00's table extraction exists for exactly this: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\"",
+      "a preparation structure: numbered timed practice items followed by an answer key or explanations, in a document whose title zone names a test and one of its sections",
+      "OCR text from a testing portal carrying a test name beside a score or percentile label, where the image's own format signals contributed nothing to activation",
+      "an ICS SUMMARY or DESCRIPTION field carrying a test-name token beside a test-center or appointment term, where source_type = calendar contributed only as a file-kind signal and never as proof"
+    ],
+    "needs_llm": [
+      "an unlabelled practice paper whose only testing signal is the register and shape of its questions, where the model must decide between a standardized-test practice paper and a course exam, and must return unknown when it cannot cite support",
+      "a results letter from a licensing or professional board, where the sitting reading and the credential reading are both supported — 00: \"conflicting signals should lead to abstention rather than an invented classification\"",
+      "a score report, registration record or prep set in a language whose testing vocabulary the deterministic pattern catalogue does not cover",
+      "an archive whose members mix prep material, a score report and a payment record, where the question is whether one test, one sitting, or one purpose explains the packet",
+      "OCR of a photographed score slip where a test name survives recognition but no labelled score slot does",
+      "a test name that is also an ordinary word or an organization's initials, where only the surrounding language decides whether the document is about the test at all"
+    ],
+    "never_alone": [
+      "a test-name acronym alone, and above all one matched inside a longer word. 00's rule is \"It should use word-boundary matching rather than substring matching\", and its two worked failures are a university acronym found inside submit and another found inside uncertainty; short test acronyms fail the same way inside ordinary English words, and the polished false path is the exact outcome 00 names",
+      "a bare number alone — a three- or four-digit scaled score, a percentile, or a four-digit year. 00 warns of \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\", and a scaled score is precisely such a number",
+      "a university or school name alone — 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" A score-recipient list is a list of names in one of those roles and establishes nothing about this file by itself",
+      "a report- or certificate-shaped filename or layout alone. 00 gives standalone records of this shape their own residual home precisely because they are common and unattached: Independent Records holds \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\"",
+      "an examination-shaped document structure alone — numbered timed items, a bubble grid, an answer key. A course midterm practice paper has the identical structure, which is the PHYS1401 Midterm Practice.pdf fixture below, and it belongs to a neighbour",
+      "a practice-shaped filename with an ordinal alone (Practice Test 4.pdf) as proof of a test: it may support work_type and nothing more",
+      "a candidate, registration or student identifier alone: it identifies a person, not a test and not a sitting",
+      "source_type or extension alone: a .pdf report, an .ics appointment, an .eml notification, an .xlsx tracker. file_kind is constitutionally never-alone, and 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a parent folder named SAT, Test Prep or Exams alone — folder context is a clue, and 00 requires that existing user structure not be silently reinterpreted",
+      "membership in a bounded download session alone — 00: \"A session should never be treated as proof of topic\""
+    ]
+  },
+
+  "proposed_context_terms": [
+    "score report",
+    "scaled score",
+    "percentile",
+    "section score",
+    "test date",
+    "test center",
+    "registration number",
+    "candidate identifier",
+    "admission ticket",
+    "test administration",
+    "practice test",
+    "answer key",
+    "score recipients",
+    "retake"
+  ],
+
+  "work_types": [
+    "score report",
+    "practice test",
+    "prep workbook",
+    "answer key",
+    "registration confirmation",
+    "admission ticket",
+    "test-day instructions",
+    "score send record",
+    "diagnostic report",
+    "accommodation approval",
+    "study schedule",
+    "score tracker",
+    "prep class recording",
+    "notes"
+  ],
+
+  "grouping_reasons": [
+    "one sitting and everything it produced — the registration confirmation, the admission ticket, the score report — anchored by a test name together with a shared test date, never by the test name alone. This is 00's own discipline transposed: \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\"",
+    "one preparation campaign for one test: prep sets, practice papers and score trackers naming the same test, kept distinct from the sittings they precede, because a retake year later is a different sitting and the same prep files serve both",
+    "one prep document across its version family — a re-downloaded practice set — joined by the universal version family and by no testing fact",
+    "a sparse practice paper attached to a testing neighbourhood as a context-supported member only — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+
+  "template": {
+    "dimension_order": ["subject", "work_type"],
+    "why": "The schema's recommended order is 00's own — \"An Academic template may define school → term → course → work type\" — and this situation keeps subject before work_type for 00's stated reason: \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" A score report or an answer key is unreadable as a folder level until the test that produced it is named. The schema's two other destination-eligible dimensions are dropped rather than demoted, and for different reasons. term is dropped because the rule family that validates it is the dedicated academic-term pattern — \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing\" — and a test date is not a term, so the level would \"produce empty branches when tested against the accepted group\". school is dropped because no institution in these files occupies the school role: a testing organization administers and scores but neither teaches nor enrolls the holder; the universities on a score-recipient list are application targets rather than the holder's own school; and the school a test-taker attended at the time of the sitting is a printed detail that would scatter one test's material across institutions. Where a level does not earn itself, 00's advice is explicit: \"It should recommend flattening when a dimension does not materially improve retrieval.\" Two levels is therefore the honest recommendation, and it is a recommendation only — \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" A person with one test and few files will flatten to work_type alone; a person who sat the same test three times wants a sitting level, and no field on this schema can hold one (see open_question).",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "spreadsheet",
+      "presentation",
+      "archive",
+      "calendar",
+      "email",
+      "audio_video"
+    ],
+    "extensions": [".pdf", ".docx", ".png", ".jpg", ".heic", ".xlsx", ".csv", ".pptx", ".zip", ".ics", ".eml", ".mp4"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "SAT_Score_Report_March2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename pairs a test-name-shaped acronym with a month-and-year token",
+        "page-one heading reads Your Official Scores beside the testing organization's name",
+        "labelled rows for Total Score, Section Scores and Percentile",
+        "a labelled Test Date row and a labelled Registration Number row",
+        "the holder's legal name and date of birth in the header block",
+        "a Score Recipients list naming four universities",
+        "PDF producer string names a report-generation service"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "term from the test date",
+        "school from any university on the Score Recipients list",
+        "target_university, which is a college_applications field and becomes legal only if that schema activates on this file's own evidence",
+        "instructor from the producer metadata or from any signature block"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Barrons_GRE_Verbal_Practice_Set_3.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename names a publisher, a test-name-shaped acronym, a section name and an ordinal",
+        "page-one heading reads Practice Set 3 — Verbal Reasoning",
+        "numbered timed questions followed by an answer key with explanations",
+        "a copyright line naming the publisher and a four-digit year",
+        "no score, no registration number, no test date anywhere"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "instructor from the publisher or from the author of the explanations",
+        "school from the publisher",
+        "term from the copyright year",
+        "that any sitting occurred"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "TOEFL_registration_confirmation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading reads Registration Confirmation beside a test name",
+        "labelled rows for Test Date, Test Center address, Appointment ID and Fee Paid",
+        "the holder's legal name and a candidate identifier",
+        "the last digits of a payment card",
+        "no score anywhere in the document"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "term from the test date",
+        "a location fact from the test-center address — location is a photos field and is not legal here",
+        "a score, or that the test was ever taken",
+        "school from the test center"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 08.11.53.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads Your official scores are ready — Verbal 162 · Quantitative 168",
+        "OCR text also carries a testing-portal navigation menu and a Send Scores button label",
+        "the portal header names the testing organization and the test"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "that scores were sent to any institution, which a button label does not state",
+        "term from the on-screen date",
+        "school from the portal header"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_3391.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model and DateTimeOriginal present",
+        "no text layer; the frame photographs a printed score slip lying on a desk",
+        "camera-pattern filename",
+        "sits in the same directory as several prep PDFs"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "subject from the neighbouring prep PDFs",
+        "work_type from the directory it sits in",
+        "term from the capture date",
+        "that no fact can ever exist here — OCR re-runs recognition under a new cache key and may then supply subject and work_type"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Practice Test 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename is practice-material shaped, an ordinal and no other token",
+        "body is numbered multiple-choice items with a bubble-grid answer sheet and a timing instruction",
+        "no test name, no publisher, no score, none of the five academic context terms",
+        "mutual semantic retrieval with a score report and two prep sets in the same directory"
+      ],
+      "facts_legal": ["work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "subject from the neighbouring score report",
+        "school from the neighbourhood",
+        "term from the file's modification timestamp",
+        "that the ordinal 4 identifies a test or a sitting"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "test_prep.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists four section-named PDFs, one answer-key PDF, one score-report-named PDF and one invoice-named PDF",
+        "outer archive name is a generic two-word shape",
+        "no member is opened to disk during the normal scan"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "subject from any member filename",
+        "work_type for the archive from one member's name",
+        "that every member is prep material — one member is a payment record",
+        "a score"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AP_Scores_2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading names the testing organization and reads Score Report",
+        "a table whose rows each hold an exam name, a score and an administration year",
+        "a college-credit policy note beneath the table",
+        "the holder's name and a student identifier"
+      ],
+      "facts_legal": ["work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "one subject value for the file when the table holds many exam rows",
+        "term from an administration year",
+        "school from the college-credit policy note",
+        "that any credit was granted — the note describes a policy"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "GRE test appointment.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY field pairs a test-name token with a test-center name",
+        "DESCRIPTION field carries an appointment identifier and an arrival instruction",
+        "DTSTART and DTEND fields present",
+        "ORGANIZER is a testing-organization mail address"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "activation from source_type = calendar alone",
+        "term from the DTSTART year",
+        "school from the organizer's mail domain alone",
+        "that the appointment was kept or the test taken"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Testing_Accommodations_Approval.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading names the testing organization and reads Approved Accommodations",
+        "a labelled row names one test; a labelled row holds an eligibility decision and an expiry date",
+        "the body cites a school-issued plan and a diagnosis as supporting documentation",
+        "the holder's name and a candidate identifier in the header block"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the cited school plan, which appears as supporting documentation and not as this file's own enrolment evidence",
+        "term from the eligibility expiry date",
+        "a diagnosis or any health fact — no field on this schema legitimises one, and the medical safety schema co-activating here unlocks protection, not extraction",
+        "that the accommodation was used at any sitting"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PHYS1401 Midterm Practice.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a course-code-shaped token and the words Midterm Practice",
+        "page-one heading repeats the course code beside a term pattern",
+        "body is numbered timed problems with a formula sheet",
+        "a page-one table row labelled Instructor"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "subject = a standardized test, because the file is a practice examination",
+        "work_type from this node's vocabulary",
+        "that practice-exam structure is testing evidence — the course code with academic context, the term pattern and the labelled Instructor slot are coursework evidence and this file belongs to academic.coursework"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Bar_Exam_Results_Letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "letterhead names a state board of examiners",
+        "body states the candidate passed the July administration and gives a scaled score",
+        "a labelled Applicant Number row",
+        "a closing paragraph on the admission ceremony and the issuing of a licence"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the examining board, which regulates and administers rather than teaches",
+        "term from the July administration",
+        "a licence, registration or expiry fact — that half of the document is career.credentials-licenses' situation, and if the licence reading is the stronger one here the correct outcome is abstention rather than a silent choice"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Your score report is available.eml",
+      "source_type": "email",
+      "observations": [
+        "From is a testing organization's no-reply address",
+        "Subject line reads Your official score report is available",
+        "body links to a portal and repeats a registration number",
+        "no scores appear anywhere in the message; no attachment"
+      ],
+      "facts_legal": ["subject"],
+      "must_not_conclude": [
+        "a folder path",
+        "work_type = score report from a notification that contains no scores",
+        "a score",
+        "school from the sender's mail domain alone",
+        "that the report was ever downloaded"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Score_tracking.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet name reads Practice Scores",
+        "header row reads Date, Test, Section, Raw, Scaled",
+        "rows name two different tests across a dozen practice administrations",
+        "workbook author metadata names the holder"
+      ],
+      "facts_legal": ["work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "one subject value for the file when the sheet holds rows for two different tests",
+        "term from the Date column",
+        "an official score from a self-recorded practice score",
+        "instructor or any person fact from the workbook author metadata"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "academic.coursework",
+      "signal": "both sides are evidenced by numbered timed examination material and by a name that can occupy the subject slot. The discriminating evidence: coursework needs enrolment evidence — a course-code-plus-context pair, a labelled Instructor slot, or a term pattern tied to a course — while this side needs a test name together with a score-report, registration or prep structure, and characteristically carries no instructor and no term of enrolment. PHYS1401 Midterm Practice.pdf and Practice Test 4.pdf are the two halves of this confusion. Reciprocates the edge academic.coursework already states.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.iep-accommodation-plans",
+      "signal": "a testing-accommodations approval and a school accommodation plan both carry accommodation language, a named student and a citation of the other document. The discriminating evidence: a school-issued plan governing daily instruction across courses is that node; an approval issued by a testing organization, scoped to one named test and carrying a registration or eligibility-decision slot, is this one. Because each cites the other, the citation discriminates nothing and only the issuer and the scope do. Reciprocates the edge academic.iep-accommodation-plans already states.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "both sides are evidenced by an official-looking record that prints a person's results beside an issuer and a verification identifier. The discriminating evidence: the transcripts side carries registrar language, course rows with grades, and a degree programme or conferred credential; this side carries one test administered by a testing organization, a scaled score with a percentile, and no course rows and no conferral. An AP score report that lists a college-credit policy is still this side, because no institution has conferred anything.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "a board results letter and a licence certificate are both issued by a professional body about one person. The discriminating evidence: this side needs a sitting — a test name with a scaled score, an administration or a registration record; the credentials side names the licence, registration or membership itself with an issue or expiry date and no sitting. Bar_Exam_Results_Letter.pdf carries both halves in one document, which is an abstention case, not a silent choice — 00: \"conflicting signals should lead to abstention rather than an invented classification\".",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.undergraduate-packet",
+      "signal": "a score report sitting inside an application packet is evidenced from both sides by one document that names a test and several universities. The discriminating evidence: the packet side needs target-institution plus cycle or portal evidence; this side needs the test name plus score-report structure. The score-recipient list is not target-institution evidence for this file, because a university name alone establishes none of its six possible roles. Co-holding is asserted at the schema level (academic also_holds_with college_applications), not by this template row.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    "Independent Records",
+    "Receipts and Confirmations",
+    "Reading Inbox",
+    "Review Later",
+    "Temporary Screenshots",
+    "One-Off Images",
+    "Protected Records"
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The defining artifact prints a scaled score and a percentile beside a legal name, a date of birth and a candidate or registration identifier, and one routine member of this situation — a testing-accommodations approval — cites a diagnosis. 00 counts this material in the corpus it protects: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.\" Which handling class applies is P7's and is not set here.",
+
+  "open_question": "Two decisions this node cannot make. (1) No canonical field holds the sitting, and none holds the testing organization. The sitting is what a repeat test-taker actually browses by — the same test name with two dates produces two unrelated score reports — and the grouping reason above therefore has no field to hang on: term is validated by the academic-term rule family and a test date is not a term, while school is the wrong role for a body that administers and scores but neither teaches nor enrolls the holder. Minting test_sitting or testing_body here would be exactly the private-vocabulary failure the canonical field list exists to prevent, so this node proposes neither and records the gap instead. (2) Is a test name legitimately a value of subject at all? The roster row instructs it, and this node built on that instruction, but subject's canonical role is the course or study subject a file belongs to, and a standardized test is a target rather than a course of study. If Joseph reads it the other way, this template loses its first dimension and reduces to work_type alone, which would fail the node test."
+}

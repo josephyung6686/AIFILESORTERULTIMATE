@@ -1,0 +1,376 @@
+{
+  "id": "code",
+  "kind": "schema",
+  "schema_id": "code",
+  "parent_id": null,
+  "name": "Code projects",
+  "one_line": "Software work recognized from local structural evidence - repository roots, package manifests, notebook metadata, README files - where the unit the product must understand is the project, and its existing internal layout is preserved rather than re-filed.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "00: 'Code files may use project, repository, programming language, and artifact type'; launch scope: 'academic coursework, college applications, research and lab work, career and recruiting, photos and captures, and code projects'",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [
+    {
+      "field": "project",
+      "type": "string",
+      "example": "graphify",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "why": "00 names it: 'Code files may use project, repository, programming language, and artifact type'. Ceiling is validated rather than direct because a manifest name slot is only a project when the marker sits at a directory that is itself a project root - 00 requires the engine to 'reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod'. Rule family: project-root marker plus directory-position context (the same rule that excludes dependency descendants), reading the manifest's labelled name slot only once the root test passes.",
+      "provenance": "design"
+    },
+    {
+      "field": "repository",
+      "type": "string",
+      "example": "AIFILESORTERULTIMATE",
+      "reliability_ceiling": "direct",
+      "destination_eligible": true,
+      "why": "00 names it in the same sentence, and names the evidence: 'structural indicators such as repository markers, package manifests, notebook metadata, and README files'. A manifest's own labelled repository slot is an explicit machine-structured field, so an extractor may write it direct; a bare directory name reaching the same conclusion is capped lower and is covered by the never_alone entries.",
+      "provenance": "design"
+    },
+    {
+      "field": "programming_language",
+      "type": "string",
+      "example": "Python",
+      "reliability_ceiling": "direct",
+      "destination_eligible": false,
+      "why": "00 names it. Direct only from an explicit labelled slot - a notebook's kernel/language metadata, a manifest's declared language or runtime field. From an extension alone it never rises above the routing signal 00 describes: 'treat the file extension as a routing signal rather than an assumption about meaning'. destination_eligible false is inherited from the canonical row and is not widened here: splitting one project by language would scatter the structural unit 00 asks to preserve.",
+      "provenance": "design"
+    },
+    {
+      "field": "artifact_type",
+      "type": "enum",
+      "example": "notebook",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "why": "00 names it, and 00 supplies the confirming structure: 'Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text'. Rule family: structural-marker rule over the file's own shape and its parent-folder context - manifest slot, notebook cell/kernel metadata, README heading structure, test-directory position - never the extension alone. Its members are values, not roster nodes.",
+      "provenance": "design"
+    }
+  ],
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "a project-root marker file at the root of its own directory - 00's four named examples are package.json, requirements.txt, Cargo.toml, go.mod - together with that directory's own sibling contents",
+      "a package manifest's labelled slots read as structured fields (name, repository, declared language or runtime), only after the root test above passes",
+      "an archive manifest listing a source-code layout without unpacking: 00 - 'A source-code archive may reveal a README.md, package.json, src directory, or Python package layout and can be recognized as a code project'",
+      "notebook metadata in a .ipynb - cell types and the kernel/language slot - which 00 lists among the structural indicators the text extractor stores",
+      "a repository marker present in the file's parent-folder context, giving a loose source file its project-root signal from position rather than from its own text"
+    ],
+    "needs_llm": [
+      "a loose script or markdown file whose only project signal is prose in a comment header or a directory README, where no manifest or repo marker exists",
+      "an OCR'd screenshot of an editor, terminal, or stack trace: whether it references a known project at all, or is a generic code image",
+      "a markdown file that could be project documentation, a personal note, or a saved article",
+      "whether a heterogeneous folder of scripts is one project or several unrelated downloaded snippets sharing a language"
+    ],
+    "never_alone": [
+      "a source-code extension alone (.py, .js, .ts, .rs) - 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning', so a downloaded utils.py in Downloads activates nothing on its extension",
+      "source_type = code_structured alone, which is a file_kind_plausible signal and is constitutionally never sufficient",
+      "a .json, .yaml, .toml or .csv file alone: the same formats carry data exports, app settings and spreadsheets that are not code projects",
+      "a manifest found inside an excluded dependency tree - 00 names the exclusions 'node_modules, .git, venv, build, dist, target, vendor, Pods, site-packages, Library, __pycache__, build artifacts, caches, auto-save folders, previews, and generated dependency trees' and states the reason: 'This prevents the proposal engine from mistaking a dependency subdirectory for a meaningful personal destination'",
+      "a repository or organization name appearing in body text, a link, or a reference list - a cited github URL inside an article is not a code project any more than a university name is a school fact",
+      "a bare 4-digit number in a filename: 00 warns these are often 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values', and build and version numbers are exactly what code filenames carry",
+      "download-session membership: 00 - 'A session should never be treated as proof of topic'"
+    ]
+  },
+
+  "work_types": [
+    "source file",
+    "package manifest",
+    "notebook",
+    "documentation or README",
+    "test suite",
+    "configuration",
+    "script",
+    "build artifact or lockfile",
+    "dataset or fixture"
+  ],
+
+  "grouping_reasons": [
+    "one repository root together with the contents beneath it - a structural family, not a semantic cluster",
+    "one project across a source archive and an extracted or cloned copy of the same project (duplicate and version-family links)",
+    "a notebook together with the dataset it reads and the figure it emits, when they share a validated project value",
+    "NOT a shared programming language: language is a search field, and a language-shaped folder would be the collector 00 warns against"
+  ],
+
+  "template": {
+    "dimension_order": ["project", "repository", "artifact_type"],
+    "why": "00: 'a parent dimension should provide the context required to understand the child' - a README or a src artifact is unintelligible without the project, and a repository name refines a project that holds more than one repo. Time is not first: 00 - 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders'. The important qualifier for this domain is depth, not order: 00 says 'The system should also know that existing folder structures should mainly be preserved', so the first two dimensions are a recommendation for where a preserved project ROOT could sit, not an instruction to re-file its interior. artifact_type is the optional deepest level and is meaningful only for loose code artifacts that have no repository root of their own; when a root is preserved it is normally flattened away. programming_language is deliberately absent - it is not destination-eligible.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["code_structured", "filesystem", "archive", "text_document", "ocr"],
+    "extensions": [".py", ".js", ".ts", ".ipynb", ".json", ".toml", ".yaml", ".md", ".sql", ".sh", ".zip", ".tar.gz"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "package.json (at the root of its own directory, beside src/ and README.md)",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled slot name with value graphify",
+        "labelled slot repository carrying a remote URL",
+        "dependency keys and a scripts block",
+        "parent-folder context: sibling src directory and README.md, and the directory is not itself inside an excluded dependency tree"
+      ],
+      "facts_legal": ["project", "repository", "programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that any manifest anywhere names a project - the root test is part of the rule, not a formality",
+        "that the dependency names listed inside are themselves projects of this user"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "node_modules/left-pad/package.json",
+      "source_type": "code_structured",
+      "observations": [
+        "the same labelled name slot as the fixture above, value left-pad",
+        "path contains node_modules - one of 00's named excluded directories",
+        "an ancestor directory carries a project-root marker"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "project = left-pad",
+        "that a dependency subdirectory is a meaningful personal destination",
+        "a second project fact competing with the enclosing repository's"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": null,
+      "note": "the collision fixture against this schema's own strongest signal. 00 excludes it from organization entirely rather than routing it to a residual home, so falls_through_if_inactive is null by design."
+    },
+    {
+      "filename": "README.md",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading naming a project",
+        "install and usage sections with fenced code blocks",
+        "sits in the same directory as a package manifest"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "project from the heading alone when no project-root marker sits in the same directory - a README downloaded on its own names someone else's project",
+        "programming_language from fenced code blocks, which are quotation, not a declared slot"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Untitled.ipynb (in Downloads)",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook metadata with a kernel/language slot",
+        "code and markdown cells with outputs",
+        "generic filename; no project-root marker in the parent folder",
+        "membership in a tightly bounded download session"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "project - nothing in the file or its position names one",
+        "a project inferred from the download session it arrived in",
+        "a research project because the notebook imports a scientific library"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "the HW 3 case for this domain: P9 may attach it to a project neighbourhood as a context-supported member while the project fact stays unwritten."
+    },
+    {
+      "filename": "graphify-main.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest listing README.md, package.json and a src directory - read without unpacking",
+        "outer archive name resembling a repository name plus a branch name",
+        "file count and uncompressed size from the manifest"
+      ],
+      "facts_legal": ["project", "repository", "artifact_type"],
+      "must_not_conclude": [
+        "facts about members the manifest does not list",
+        "anything requiring the archive to be extracted to disk",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "design_cite": "00: 'A source-code archive may reveal a README.md, package.json, src directory, or Python package layout and can be recognized as a code project'"
+    },
+    {
+      "filename": "acme_takehome_submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists src/, package.json and INSTRUCTIONS.pdf",
+        "outer archive name carries a company-shaped token and the word takehome",
+        "manifest includes a PDF whose name suggests assessment instructions"
+      ],
+      "facts_legal": ["project", "repository", "artifact_type"],
+      "must_not_conclude": [
+        "the company token as the project value",
+        "a recruiting fact copied from a neighbouring email or download session",
+        "that the code half and the recruiting half must resolve to one domain"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "the also_holds fixture, in 00's abstract-inside-an-application shape: the source layout and the recruiting language are disjoint evidence items. Career is a field-less placeholder today (PR-6), so co-activation currently unlocks protection-free plausibility and no career field rows."
+    },
+    {
+      "filename": ".env",
+      "source_type": "code_structured",
+      "observations": [
+        "key=value lines whose left-hand slot names include API_KEY and TOKEN",
+        "sits in the same directory as a package manifest",
+        "no readable prose"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "the secret value itself as a stored value",
+        "a placement or proposal path that puts the filename or content into a cloud prompt"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "design_cite": "00 names an 'authentication key' among the material that 'should enter a protected state immediately'"
+    },
+    {
+      "filename": "PVA-RDP pipeline.ipynb",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook metadata with a kernel/language slot",
+        "markdown cells naming a project identifier and a lab",
+        "figure outputs embedded in the notebook",
+        "no manifest and no repository marker in the parent folder"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "repository - none exists",
+        "that the project identifier makes this a code project rather than a research artifact, or vice versa, on the strength of the same evidence item"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "the collides_with fixture and the also_holds fixture at once. The shared evidence item (a project identifier in prose) must resolve to one side by margin; the structural markers and the lab/stage/venue evidence are what discriminate."
+    },
+    {
+      "filename": "utils.py (in Downloads)",
+      "source_type": "code_structured",
+      "observations": [
+        "extension .py, import and def structure",
+        "no project-root marker in the parent folder",
+        "membership in a tightly bounded download session with unrelated files"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "project - 00: 'A session should never be treated as proof of topic'",
+        "project from the filename",
+        "a code project from the extension, which is a routing signal only"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "backup.7z (password-protected, source-shaped name)",
+      "source_type": "archive",
+      "observations": [
+        "archive type detected; the manifest cannot be read",
+        "encryption flag present",
+        "no readable member names"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a code project from the filename",
+        "any member-derived fact",
+        "that the archive should be forced open"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted",
+      "design_cite": "00: 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open'"
+    },
+    {
+      "filename": "IMG_5512.png (a screenshot of a stack trace)",
+      "source_type": "image",
+      "observations": [
+        "no camera EXIF",
+        "PNG format and a screen-shaped pixel dimension",
+        "OCR observations containing a traceback and a file path fragment"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF",
+        "project or repository from a path fragment in OCR text alone",
+        "a code project because the image contains code-shaped text"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots",
+      "note": "the fallthrough here belongs to the capture side, not to this schema - which is why Temporary Screenshots is not one of this node's falls_through_to edges."
+    },
+    {
+      "filename": "standup.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY field reading graphify standup",
+        "recurrence metadata, organizer and attendees",
+        "no other content"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation from source_type = calendar, which is a format, not a domain",
+        "project or repository from a meeting title alone - a repository name with no structural marker is the repository-name-alone case"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "research",
+      "signal": "both schemas reference project and artifact_type, so one evidence item - a project identifier in prose, a notebook, a dataset, a figure-producing script - reads as support for either. The discriminating evidence: a project-root marker or package manifest at a real root activates code; lab, stage, venue or manuscript/protocol structure activates research. Neither side may take a shared item without clearing the margin over the other."
+    }
+  ],
+
+  "also_holds_with": [
+    {
+      "domain": "research",
+      "signal": "a repository that is the analysis code of a study legally carries both - code facts from its manifest and repo root, research facts from its lab, stage and venue evidence. 00: 'One file may hold facts from more than one domain without losing information'. Disjoint evidence, so this is not the collision above."
+    },
+    {
+      "domain": "career",
+      "signal": "a take-home assessment repository or a portfolio project is a real code project AND part of a recruiting process; the source layout and the recruiting language are separate evidence items. Career writes no field rows yet (PR-6), so this edge records co-activation, not co-extraction."
+    },
+    {
+      "domain": "identity",
+      "signal": "a credential-bearing configuration or environment file inside a code project. 00 places an 'authentication key' among the material that 'should enter a protected state immediately', so the safety schema co-activates for protection while the code facts still stand."
+    }
+  ],
+
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "a loose script, notebook or snippet whose meaning is partly understood but whose project is not recoverable. The honest outcome for an unanchored code file is a broad home, not an invented project."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "password-protected or malformed source archives, opaque binaries, disk images and build outputs the engine cannot read safely."
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Code projects are not sensitive as a class, but they routinely contain configuration and environment files carrying credentials, and 00 lists 'credentials' among the highly personal content the corpus can hold and puts an 'authentication key' in the material that 'should enter a protected state immediately'. The classification stays per file and evidence-backed; the handling class is P7's and is not set here.",
+
+  "open_question": "00 asks that 'existing folder structures should mainly be preserved' and rejects descendants of software project roots as destinations, yet the Code domain also carries a folder template. Is a repository root an ATOMIC unit that the destination tree may only relocate whole - in which case artifact_type is a dimension only for loose code with no root, as recommended here - or may a Code template ever propose folder levels INSIDE a preserved project? The answer decides whether this schema's third dimension is real or decorative, and it is Joseph's, not this node's."
+}

@@ -1,0 +1,433 @@
+{
+  "id": "academic.teaching",
+  "kind": "template",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "Teaching a course",
+  "one_line": "The instructor's side of one course: the authored syllabus and lecture masters, the assignment briefs and rubrics, the answer keys, and the roster, gradebook and submission material that carries other people's names and grades.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a course-code-shaped token in a high-weight zone (filename, document title, page-one or slide-one heading) co-occurring with one of 00's five academic context terms, together with an instructor-side authoring marker in the same file: a labelled Instructor slot naming the file's own holder, a grading-policy or office-hours section that sets the terms rather than reporting them, or an answer-key or rubric heading",
+      "a spreadsheet or delimited-text file whose header row names student-identifying columns (student id, name, mail address, section) alongside per-assignment score columns, on a file that already carries a course-code-shaped token or an academic-term pattern",
+      "an archive manifest whose member names repeat one assignment token across many distinct person-name-shaped suffixes, on an archive whose own name carries a course-code-shaped token",
+      "an ICS whose ORGANIZER is the holder's own address and whose SUMMARY carries a course-code-shaped token plus academic context (office hours, section, lecture, review session), where source_type=calendar contributed only as a file-kind signal",
+      "an instructor-side work-type term in a high-weight zone (rubric, answer key, marking scheme, grade book, class roster, seating chart, exam master, assignment brief, course evaluation) together with a course-code-shaped token or a dedicated academic-term pattern",
+      "a labelled Instructor slot in a table cell or form field whose value resolves to the corpus holder, on a document already carrying course or term evidence"
+    ],
+    "needs_llm": [
+      "an authored master versus a received copy of the same syllabus or deck when both are flattened PDFs with no revision metadata and byte-comparable content — the model must decide from stance and cite it, or return unknown",
+      "OCR of a course-platform screenshot where the instructor-view affordances (grade centre, publish grades, edit assignment) must be read out of interface text rather than a labelled slot",
+      "a teaching statement, teaching portfolio, or course-redesign memo, where the question is whether the file serves a course being taught or a job application",
+      "unlabelled prose (TA meeting notes, a pacing memo) whose only teaching signal is register and a first-person stance toward a cohort",
+      "a syllabus, rubric or roster in a language whose course-code, term and instructor-slot vocabulary the deterministic pattern catalogue does not cover",
+      "an archive of mixed members where the question is whether one course explains the packet or a shared submission purpose does"
+    ],
+    "never_alone": [
+      "a syllabus, lecture deck or problem set alone — the student's received copy and the instructor's master can be byte-identical, so nothing in the coursework artifact itself distinguishes the two sides of the same course",
+      "a document author, creator or producer field alone: it may name a template, a prior editor or a script rather than the holder, and 00 states the principle outright — \"PDF metadata should be treated as supporting evidence, not as truth\"",
+      "an instructor fact alone — instructor is legal on any file of this schema, and a named instructor says who taught the course, not that the file's holder is that person",
+      "a solutions or answer-key filename alone: released solution sets reach students too",
+      "a spreadsheet holding many person-name-shaped rows alone — a club membership list or an address-book export looks the same, and 00 requires contact data \"should normally be privacy-protected rather than used to create folder proposals\"",
+      "a school or university name alone — 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+      "a bare 4-digit number alone — 00 warns of \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "source_type alone: spreadsheet, calendar, archive, presentation or ocr membership never activates this schema, and never distinguishes this template from coursework, without content evidence",
+      "a parent folder called Teaching, Classes or Courses alone — folder context is a clue, and 00 requires that existing curated structure not be silently reinterpreted"
+    ]
+  },
+  "proposed_context_terms": [
+    "rubric",
+    "answer key",
+    "marking scheme",
+    "grade book",
+    "class roster",
+    "section",
+    "office hours",
+    "assignment brief",
+    "course evaluation",
+    "teaching assistant",
+    "grading policy",
+    "learning outcomes",
+    "attendance"
+  ],
+  "work_types": [
+    "syllabus",
+    "lecture",
+    "assignment brief",
+    "problem set",
+    "rubric",
+    "answer key",
+    "exam",
+    "quiz",
+    "gradebook",
+    "class roster",
+    "submission packet",
+    "course schedule",
+    "course evaluation",
+    "office hours",
+    "lab handout",
+    "teaching notes",
+    "course proposal"
+  ],
+  "grouping_reasons": [
+    "one course in one term from the teaching side — 00: \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\"",
+    "one offering of a course across the terms it was taught, where the master materials are a version family rather than separate courses, joined by the universal version family and not by any academic fact",
+    "one assignment and the submission, rubric and answer-key material that surrounds it",
+    "one teaching neighbourhood in which sparse instructor-side files (meeting notes, pacing memos) are context-supported members only — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+  "template": {
+    "dimension_order": [
+      "term",
+      "subject",
+      "work_type"
+    ],
+    "why": "This is a recommendation for one organizational situation, not a filesystem, and 00 says so: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" It differs from the coursework recommendation by dropping school: an instructor's teaching corpus usually names one employing institution, and 00 asks the canvas to warn when a level \"produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" Term stays ahead of subject because a teaching load is re-planned each term and the same course is re-taught across terms, which is also the order 00's own Academic sentence uses: \"An Academic template may define school → term → course → work type\". work_type stays last for 00's stated reason: \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" instructor is excluded because it is not destination-eligible and 00 forbids person-collectors: \"It should avoid using authorship or creator identity as a destination dimension.\" The reverse order (subject before term) is a legitimate user choice and is recorded as the open tension in this node's research notes, because 00 also says \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "ocr",
+      "image",
+      "archive",
+      "calendar"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".pptx",
+      ".xlsx",
+      ".csv",
+      ".md",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "BUSIB 4300 Syllabus Spring 2026 - MASTER.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a course-code-shaped token, the word Syllabus, a term-shaped token and the word MASTER",
+        "DOCX revision metadata carries tracked changes and a comment addressed to a co-instructor",
+        "a page-one table row labelled Instructor holds the holder's own name",
+        "a heading reads Grading policy and the section sets the weights rather than reporting them",
+        "the page header carries a school name"
+      ],
+      "facts_legal": [
+        "subject",
+        "term",
+        "work_type",
+        "instructor",
+        "school"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the DOCX author or producer metadata",
+        "instructor from the DOCX author field, which may name a template, a prior editor or a script",
+        "that the co-instructor named in a comment is this file's holder"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Gradebook BUSIB4300 Spring2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "filename carries a course-code-shaped token and a term-shaped token",
+        "the sheet name repeats the course code",
+        "the header row names per-assignment columns and a Final column",
+        "the first two columns hold person-name-shaped values and student identifiers",
+        "workbook author metadata names a script"
+      ],
+      "facts_legal": [
+        "subject",
+        "term",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "instructor from the workbook author metadata",
+        "that the named students are facts about this file's holder",
+        "school from the course code alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Roster_PHYS1401_S26.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads Student ID, Name, Email, Section",
+        "many rows of person-name-shaped and mail-address-shaped values",
+        "filename carries a course-code-shaped token and the token S26",
+        "none of 00's five academic context terms appears anywhere in the file"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "term from S26 unless a dedicated term pattern covers that abbreviation — 00: \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\"",
+        "that the listed names or mail addresses become facts about this file — 00 requires contact data \"should normally be privacy-protected rather than used to create folder proposals\"",
+        "school from a mail-address domain",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PHYS 1401 Midterm - Solutions KEY.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title zone reads PHYS 1401 Midterm — Solutions",
+        "a footer line reads Do not distribute",
+        "body is numbered problems, each followed by a worked solution and a point allocation",
+        "no term string anywhere in the document"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "the teaching side from the word Solutions alone — released solution sets reach students too",
+        "term from the PDF creation timestamp",
+        "instructor from the PDF author field",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Lecture 08 - Rotational Dynamics.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide-one title carries a course-code-shaped token and the word Lecture",
+        "speaker notes address a cohort in the first person and name a week number",
+        "the deck's master slide carries a school template",
+        "a byte-identical copy of this deck also exists in a downloads directory elsewhere in the corpus"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "the teaching side from the deck alone — the received student copy is byte-identical, and the deck's author field may name a template, a prior editor or a script",
+        "term from the week number in the speaker notes",
+        "school because the master slide carries a university logo caption",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-03-02 at 09.11.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads PHYS 1401 — Grade Center and lists person-name-shaped rows with scores",
+        "OCR text also contains the interface labels Publish grades and Edit assignment"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "that grades were published",
+        "that the listed student rows are facts about this file's holder",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "PHYS1401_HW3_submissions.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists many members named HW3_<person-name-shaped>.pdf",
+        "the outer archive name carries a course-code-shaped token and an assignment token",
+        "no member is opened to disk during the normal scan",
+        "uncompressed size and file count are available from the manifest"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "the member person-names as facts about this file",
+        "any member's content — 00: \"the normal scan should never extract archive contents to the filesystem\"",
+        "term from the archive's filesystem timestamp",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Course Evaluations Fall 2025 - PHYS1401.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title zone carries a term-shaped token and a course-code-shaped token",
+        "a table of aggregate rating rows",
+        "a section of free-text student comments",
+        "a cover line naming the instructor of record"
+      ],
+      "facts_legal": [
+        "subject",
+        "term",
+        "work_type",
+        "instructor"
+      ],
+      "must_not_conclude": [
+        "that the free-text comments are facts about the holder",
+        "school from the report's letterhead alone",
+        "that the file belongs to a job application merely because it can support one",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Teaching Statement.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Statement of Teaching Philosophy",
+        "prose addresses a search committee",
+        "body names courses the writer would like to teach",
+        "no course-code-shaped token in a high-weight zone, no roster, no gradebook and no term pattern"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "subject from the courses named in the prose",
+        "work_type as an artifact of a course being taught",
+        "school from the letterhead — here it is the addressed institution, not necessarily the writer's own",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "office hours.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY reads Office Hours — BUSIB 4300",
+        "ORGANIZER is the holder's own mail address",
+        "an RRULE shows a weekly recurrence across a date span",
+        "ATTENDEE lines name individual students"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone",
+        "term from the DTSTART year",
+        "that the attendee names are facts about this file",
+        "school from the organizer's mail domain alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "TA meeting notes.md",
+      "source_type": "text_document",
+      "observations": [
+        "body is unlabelled prose about pacing, grading turnaround and section coverage",
+        "no course-code-shaped token, no term pattern, none of 00's five academic context terms",
+        "mutual semantic retrieval with a syllabus master and a gradebook in the same directory"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "subject from the neighbouring syllabus master or gradebook — 00: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+        "term from the neighbourhood",
+        "work_type from the directory the file sits in",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Recommendation - J Ruiz - Columbia.docx",
+      "source_type": "text_document",
+      "observations": [
+        "salutation addresses an admissions committee",
+        "body names one student, the course the writer taught them in, and a term",
+        "the writer signs as the course instructor",
+        "no roster, no gradebook, no rubric and no assignment structure"
+      ],
+      "facts_legal": [
+        "subject",
+        "term",
+        "instructor"
+      ],
+      "must_not_conclude": [
+        "school = Columbia, which here is the addressed institution and not the writer's own",
+        "that the named student is a fact about this file's holder",
+        "work_type as an artifact of the course being taught — this file is a letter about a person, and the recommendation-letters template is the fitting situation",
+        "a folder path"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "academic.coursework",
+      "signal": "the same course produces both sides, and the artifacts overlap exactly: a syllabus, lecture deck, problem set or solution set can sit in a student's corpus and an instructor's corpus as byte-identical files, so subject, term and work_type evidence discriminates neither. The discriminating evidence is instructor-side authorship and cohort custody: a labelled Instructor slot resolving to the holder, a grading-policy or office-hours section the file itself sets, a rubric, answer key or exam master, or a roster, gradebook or submission packet naming many students. Absent one of those, the coursework situation is the better-supported side and this template must not take the item.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.recommendation-letters-written",
+      "signal": "both are instructor-authored files about a course the holder taught, and both name students. The discriminating evidence: a recommendation letter is addressed to a third-party reader and is about one named person, carrying a salutation and an addressed institution; a teaching artifact is addressed to a cohort and is about the course, carrying assignment, grading or scheduling structure. A letter naming a course does not make the letter teaching material.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.k12-schooling",
+      "signal": "a K-12 teacher's roster or gradebook and a parent-held report card carry the same evidence — a school name, a term, and other people's names and grades. The discriminating evidence: the teaching side holds many students against one course and is authored by the holder; the schooling-records side holds one named child across many subjects and is issued to the holder. Neither side may take the school name on its own.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "an instructor is an employee of the school, so a teaching-load letter, contract, promotion dossier or performance review carries the same school name, the same term and the same person as the teaching corpus. The discriminating evidence: the teaching side needs a course-code-shaped token with academic context, a cohort artifact, or an instructor-side work type; the employment side needs employment language (appointment, salary, contract, review cycle) describing the document itself. A course evaluation report can legitimately support both on disjoint evidence, which is why the file example for it records career as its second schema rather than treating it as an outlier.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.project-workspace",
+      "signal": "an academic's teaching and research files share an institution, a person and often a slide format, so a deck or spreadsheet can be evidenced from either side. The discriminating evidence: research needs a project identifier, lab or venue; this template needs a course-code-shaped token with academic context, a term pattern, or a cohort artifact. A lab-meeting deck is not a lecture, and a lecture deck citing a paper does not acquire a project.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Independent Records",
+    "Protected Records",
+    "Review Later"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This situation routinely holds other people's data. Rosters, gradebooks, submission archives, course-evaluation comments and platform screenshots carry named students, their identifiers, their mail addresses and their grades, and 00 counts this material in the corpus it protects: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.\" 00's contact rule points the same way — such data \"should normally be privacy-protected rather than used to create folder proposals\" — and its protection rule constrains what may be shown or sent: \"Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.\" Which handling class applies is P7's and is not set here.",
+  "open_question": "Should a teaching branch's roster-, gradebook- and submission-bearing material default to a protected branch — local-only, redacted in the canvas, excluded from cloud dossiers — while the authored teaching materials (syllabus, decks, rubrics) stay ordinary? Marking the whole situation protected would gate an instructor's everyday course files out of model review; marking only some work types makes protection depend on work_type, a fact that is itself only validated, and a roster named simply students.xlsx would slip past it. A second, smaller fork rides on the same answer: whether the recommended dimensions should keep school for people who teach at more than one institution, or drop it as this node recommends. Both are Joseph's calls, not this node's."
+}

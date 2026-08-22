@@ -1,0 +1,423 @@
+{
+  "id": "academic.continuing-education",
+  "kind": "template",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "Continuing education and certification courses",
+  "one_line": "One professional-development course taken from a provider to earn credit hours toward a credential: the provider's course materials plus the completion certificate that states the credit unit.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a credit-unit token (CE, CEU, CPE, CLE, contact-hour or PDU shapes) adjacent to a completion or course term in a high-weight zone — filename, document title, page-one heading, or slide-one title. This is 00's pattern-plus-context shape reused: credits is one of the five academic context terms the design names, and the unit token carries the professional reading the bare word does not",
+      "a provider-approval or accreditation statement in a high-weight zone naming an approving body together with a course title on the same page",
+      "a Certificate of Completion or Course Completion heading in the title zone together with a named provider and a completion-date slot",
+      "a labelled table cell or form field whose label reads Provider, Course, Credits, Credit Hours or Completion Date, on a document already carrying a course title",
+      "a gazetteer hit on a professional-provider or accrediting-body list, matched at a word boundary — 00: \"It should use word-boundary matching rather than substring matching\" — together with a credit-unit token or a course title in the same zone",
+      "an ICS SUMMARY or DESCRIPTION field carrying a credit-unit token beside a webinar or course term, where source_type = calendar contributed only as a file-kind signal and never as proof"
+    ],
+    "needs_llm": [
+      "a provider name that no gazetteer holds and that reads as an ordinary company, where the model must judge from cited text whether the organization is running the course or merely employing the holder",
+      "an unlabelled agenda or outline whose only professional-education signal is a contact-hours line in running prose",
+      "a certificate or transcript in a language whose credit-unit and completion vocabulary the deterministic pattern catalogue does not cover",
+      "an employer training record where the model must decide whether the file is the holder's own coursework or an HR record about other people, and must return unknown when it cannot cite support",
+      "a course run by a university's extension or professional-studies arm, where the coursework reading and the continuing-education reading are both supported and 00's rule applies — \"conflicting signals should lead to abstention rather than an invented classification\""
+    ],
+    "never_alone": [
+      "a provider or university name alone — 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" Course provider is one of the six ambiguous roles the sentence lists, so the name cannot establish even the provider reading by itself",
+      "a certificate-shaped filename or a certificate-shaped layout alone. 00 gives standalone certificates their own residual home precisely because they are common and unattached: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" This is true of the tempting false files below — a platform completion certificate and a licence certificate look identical in the filename",
+      "a bare number alone, including a bare credit count and a 4-digit year — 00 warns of \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a professional licence, registration or membership number alone: it identifies a person and their credential, not a course of study, and it is the evidence that most tempts a false read of a renewal notice as a completed course",
+      "a course-code-shaped token with no academic or professional-education context describing the document, which 00's adversarial suite already covers as course-code patterns that are actually other identifiers",
+      "source_type or extension alone: a .pdf certificate, an .ics webinar invite, a .xlsx tracker, an .mp4 recording. file_kind is constitutionally never-alone",
+      "a parent folder named CE, Training, Certificates or Professional Development alone — folder context is a clue, and 00 requires that existing user structure not be silently reinterpreted",
+      "membership in a bounded download session alone — 00: \"A session should never be treated as proof of topic\""
+    ]
+  },
+  "proposed_context_terms": [
+    "continuing education",
+    "credit hours",
+    "contact hours",
+    "certificate of completion",
+    "accredited provider",
+    "course completion",
+    "recertification",
+    "professional development",
+    "self-study",
+    "webinar",
+    "attendance verified",
+    "reporting period"
+  ],
+  "work_types": [
+    "completion certificate",
+    "credit transcript",
+    "course handout",
+    "slide deck",
+    "recorded session",
+    "training agenda",
+    "attendance record",
+    "assessment",
+    "course catalog",
+    "notes"
+  ],
+  "grouping_reasons": [
+    "one provider course and everything it produced — the agenda, the handouts, the recording and the completion certificate — anchored by a shared course title, not by a shared provider name alone",
+    "one credential's reporting period across several providers, which is purpose-coherent and content-incoherent and therefore needs explicit reporting-period or renewal evidence in the files themselves; a download session or a shared folder is a retrieval clue only",
+    "one course across its version family — a certificate reissued after a name correction is the universal version family, not a second course",
+    "a sparse handout attached to a course neighbourhood as a context-supported member only — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+  "template": {
+    "dimension_order": [
+      "school",
+      "subject",
+      "work_type"
+    ],
+    "why": "The schema's recommended order is 00's own — \"An Academic template may define school → term → course → work type\" — and this situation keeps its shape while dropping term. school comes first because the provider is what makes a prose course title intelligible and disambiguable: two providers routinely sell a course with the same title, which is the same problem 00 describes when it says a course code \"may require the school or term to disambiguate it\". subject comes before work_type for 00's stated reason: \"A work type such as Homework 3 is meaningful only after the course is known\". term is dropped rather than demoted because the academic-term rule family cannot fire on material that has no semester, and 00 rejects levels of that kind — a dimension that would \"create meaningless one-child levels\" or \"produce empty branches when tested against the accepted group\", where \"It should recommend flattening when a dimension does not materially improve retrieval.\" instructor is excluded because it is not destination-eligible. This is a recommendation the user may reverse, remove or flatten; a professional with few certificates per provider will reasonably flatten to school → work_type, and one who browses by topic will reverse to subject → school.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "presentation",
+      "spreadsheet",
+      "calendar",
+      "archive",
+      "audio_video",
+      "email"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".xlsx",
+      ".csv",
+      ".ics",
+      ".zip",
+      ".mp4",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Certificate of Completion - Ethics for CPAs - 2 CPE credits.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a completion term, a course title and a credit-unit token",
+        "page-one heading reads Certificate of Completion",
+        "a table row labelled Provider and a table row labelled Credit Hours",
+        "a line naming an approving body and a sponsor registry identifier",
+        "the holder's legal name and a state licence number below the course title",
+        "PDF producer string names a certificate-generation service"
+      ],
+      "facts_legal": [
+        "school",
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "term from the completion date printed on the certificate",
+        "school from the producer metadata naming the certificate service",
+        "instructor from the signature block of the approving body's officer",
+        "that the licence number printed here is a fact this schema legitimises — it is search-side and privacy-side only"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PMP_35hr_training_agenda.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a credential-shaped token, an hours count and the word agenda",
+        "page-one heading reads Course Agenda with a day-by-day schedule",
+        "a line in running prose reads 35 contact hours toward the certification requirement",
+        "a table row labelled Instructor names a person",
+        "the venue named in the footer is a hotel"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type",
+        "instructor"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the hotel venue in the footer",
+        "term from the training dates",
+        "subject from the credential token in the filename, which names the credential the hours count toward and not the course itself"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-03-04 at 09.12.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads You have earned 1.5 CE credits — HIPAA Privacy Update — Completed",
+        "OCR text also contains a learning-portal navigation menu and a Download certificate button label",
+        "the portal header names the provider"
+      ],
+      "facts_legal": [
+        "school",
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone",
+        "term from the on-screen date",
+        "that the credit was reported to any licensing board, which the portal text does not state"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "CE_2025_bundle.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists three certificate-named PDFs, one invoice-named PDF and one provider transcript-named PDF",
+        "outer archive name pairs a folder-style abbreviation with a 4-digit number",
+        "no member is opened to disk during the normal scan"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "subject from any member filename",
+        "school from a provider name inside a member filename without inspecting the member",
+        "term or a reporting period from the 4-digit number in the archive name",
+        "that every member is coursework — one member is a payment record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "webinar.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY field reads Live Webinar: HIPAA Privacy Update (1.0 CE)",
+        "DESCRIPTION field names the provider and an approval statement",
+        "DTSTART and DTEND fields present",
+        "ORGANIZER is a provider mail address"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "activation from source_type = calendar alone",
+        "term from the DTSTART year",
+        "school from the organizer's mail domain alone",
+        "that the webinar was attended or the credit earned"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CE_tracker.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet name reads 2025 Reporting",
+        "header row reads Provider, Course, Credits, Date Completed, Licence #",
+        "each row names a different provider and a different course title",
+        "workbook author metadata names the holder"
+      ],
+      "facts_legal": [
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "one subject value for the file when the sheet holds many course rows",
+        "one school value for the file when the sheet holds many provider rows",
+        "term from the sheet name",
+        "instructor or any person fact from the workbook author metadata"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Module 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename is handout-shaped with an ordinal and no other token",
+        "body is a slide-per-page handout with a running footer reading Module 4 of 6",
+        "no provider name, no credit-unit token, no course title, none of the five academic context terms",
+        "mutual semantic retrieval with a course agenda and a completion certificate in the same directory"
+      ],
+      "facts_legal": [
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "subject from the neighbouring agenda or certificate",
+        "school from the neighbourhood",
+        "term from the file's modification timestamp",
+        "that Module 4 is a course identifier"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Certificate - Advanced Excel - Employer Learning Portal.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading reads Certificate of Completion with a course title",
+        "the issuing organization is the holder's employer, named beside a learning-portal footer",
+        "a labelled Duration row reads 6 hours, with no accrediting body and no credit-unit token",
+        "the same course title appears in a resume file elsewhere in the corpus"
+      ],
+      "facts_legal": [
+        "school",
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a credit or licence-reporting association from a duration line with no credit unit and no accrediting body",
+        "term from the completion date",
+        "that the employer named here is a school fact in any other file that names the same employer"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Coursera_Certificate_Machine_Learning.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename names a platform, a completion term and a course title",
+        "page-one text states the course was completed on the platform and names an offering university partner",
+        "no credit-unit token, no accrediting body, no licence number, no reporting period",
+        "a verification URL in the footer"
+      ],
+      "facts_legal": [
+        "school",
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a CE credit, a reporting period or a licence-renewal association from a platform completion certificate alone",
+        "school = the offering university partner rather than the platform, without evidence of which one the holder enrolled through",
+        "term from the completion date"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fall 2025 Syllabus - NURS 3100.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries an academic-term pattern, the word Syllabus and a course-code-shaped token",
+        "page-one heading names a degree-granting university and a department",
+        "a line reads 3 credits and a table row is labelled Instructor",
+        "a grading policy and a week-by-week reading schedule follow"
+      ],
+      "facts_legal": [
+        "school",
+        "term",
+        "subject",
+        "work_type",
+        "instructor"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a continuing-education reading from the word credits alone, when the term pattern, the course code and the degree-granting institution all point at coursework",
+        "that a nursing subject makes this professional continuing education",
+        "a licence or reporting association"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Invoice_PMI_membership_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading reads Invoice with an amount, a payment method and a transaction identifier",
+        "a line item names an annual membership and a second line item names a course registration",
+        "the provider name matches the provider on a certificate elsewhere in the corpus",
+        "no course content, no credit-unit statement, no completion language"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "subject from the course-registration line item, which records a purchase and not a completed course of study",
+        "school from the payee name alone",
+        "work_type",
+        "that a course was completed because it was paid for"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "RN_License_Renewal_Notice.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading names a state board and reads Renewal Notice",
+        "a labelled row holds a licence number and an expiry date",
+        "a line states the number of contact hours required before renewal",
+        "no course title, no provider, no completion statement"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "subject or work_type from the required-hours line, which states an obligation and not a completed course",
+        "school from the state board, which regulates rather than teaches",
+        "that any of the required hours have been earned"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "both sides are evidenced by a certificate-shaped PDF naming a person and a professional body. The discriminating evidence: this side needs a named course of study plus a credit-unit statement for that course; the credentials side names the licence, registration or membership itself with an issue or expiry date and no course of study. The renewal-notice and the completion-certificate fixtures above are the two halves of this confusion."
+    },
+    {
+      "domain": "academic.online-course",
+      "signal": "both sides are evidenced by a platform completion certificate carrying a provider, a course title and a completion date. The discriminating evidence: this side needs a credit-unit token or a provider-approval statement from an accrediting body; the online-course side has a platform completion with neither, and its provider value is a platform rather than an approved provider. Neither side may take the certificate layout or the word Certificate alone."
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "both sides can be evidenced by the word credits, by a course title and by an instructor slot. The discriminating evidence: coursework needs a dedicated academic-term pattern, a course-code-plus-context pair, or enrollment language naming a degree-granting institution; this side needs a credit-unit token in its professional form or an accrediting-body approval line, and characteristically has no term at all. A university extension course clears both, which is an abstention case rather than a silent choice."
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "both sides can be evidenced by a document titled transcript that lists courses and credits against a person. The discriminating evidence: the transcripts side carries registrar language, a seal or verification code, and grades against a degree programme; this side carries a provider's own credit ledger for professional reporting, with credit units and no grades and no conferred degree."
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Independent Records",
+    "Receipts and Confirmations",
+    "Review Later",
+    "Temporary Screenshots"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The defining artifact routinely prints the holder's professional licence or registration number beside their legal name, and employer-sponsored training records are employment material. 00 counts both in the corpus it protects: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.\" Which handling class applies is P7's and is not set here.",
+  "open_question": "Two decisions this node cannot make. (1) The dimension a professional actually browses by is the credential the credits are earned toward — CPA, RN, PMP, bar — and no canonical field holds it: it is a career-domain field and career field rows are deferred (D1 as narrowed, PR-6). Until that lands, a credential level cannot be recommended, and the reporting-period grouping reason above has no field to hang on. (2) May term hold a CE reporting or renewal period as a VALUE (a 2025 reporting period, a two-year renewal cycle), or does term stay an academic-semester field, leaving this situation permanently three-dimensional? Reading it as a value would restore a fourth level and would let a period-shaped number reach a field whose validating rule family is explicitly the academic-term pattern; reading it as out of scope is what this node assumed."
+}

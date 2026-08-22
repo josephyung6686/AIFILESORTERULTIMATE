@@ -434,7 +434,8 @@ def main():
     #: `canonical_fields.json` is the one-table field list (CONNECTION.md §6), not a
     #: catalogue slice — it is read by connection_checks, never scanned as entries.
     files = sorted(p for p in HERE.glob("*.json")
-                   if not p.name.startswith("_") and p.name != "canonical_fields.json")
+                   if not p.name.startswith("_")
+                   and p.name not in ("canonical_fields.json", "roster.json"))
     if not files:
         print("no catalogue files yet")
         return 0
