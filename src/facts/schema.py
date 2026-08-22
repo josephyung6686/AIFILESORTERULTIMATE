@@ -6,12 +6,14 @@ anyone else's. `database_agent.db.create_schema` and
 `evidence_shape.schema.create_evidence_schema` are separate calls and are never
 invoked from here.
 
-Task 2 creates `fields` and Task 3 `values`. Tasks 4 and 5 add their own DDL to
-`_TABLE_DDL`.
+Task 2 creates `fields`, Task 3 `values` and Task 4 `file_facts`. Task 5 adds its own
+DDL to `_TABLE_DDL`.
 """
 from __future__ import annotations
 
 import sqlite3
+
+from database_agent.supersede import supersede_ddl
 
 #: The `fields` catalogue (SPEC, Table: `fields`). `field_key` is the SPEC's
 #: "stable identifier" and the ONLY identifier this table has. An earlier draft
@@ -87,7 +89,61 @@ BEFORE DELETE ON "values"
 BEGIN SELECT RAISE(ABORT, 'a merge records an alias; a value is never deleted (§0, §8.2)'); END;
 """
 
-_TABLE_DDL: tuple[str, ...] = (_FIELDS_DDL, VALUES_DDL)
+#: §3.12's `file_facts`: "connects one file to one field and one value while retaining
+#: the evidence and reliability state that justify the connection."
+#:
+#: THE NEGATIVE CONTRACT. No path column, no destination column, no folder column, no
+#: node column, no group column -- §3.14 ("A fact such as subject = BUSIB 4300 does not
+#: itself dictate one permanent folder path") and §4.3. A reviewer checks it here, and
+#: `tests/p6/test_p6_file_facts.py` checks it against `PRAGMA table_info` so a future
+#: `destination_node_id` fails on the day it is added.
+#:
+#: `content_hash` is not in the SPEC's column list and is required: `facts_for_file` is
+#: published per file version, and the cache key that carries the hash is a digest and
+#: cannot be filtered on. Reported to the lead as a gap in the SPEC's shape.
+#:
+#: `field_key` is the field key (brief §17). It carries no REFERENCES clause: foreign
+#: keys are ON and a parent column that is not PRIMARY KEY or UNIQUE raises `foreign
+#: key mismatch` at INSERT. Task 2 now declares `fields.field_key` PRIMARY KEY so the
+#: clause would bind, but `get_field` remains the gate the SPEC names and the one that
+#: raises a refusal with a name on it. `value_id` DOES reference `"values"`, whose
+#: `value_id` is a primary key, so a fact can never cite a value that does not exist.
+#:
+#: `record_id` is a VIRTUAL projection of `fact_id`, so P1's `mark_superseded` and
+#: `chain` -- both `... WHERE record_id = ?` -- address this table unchanged. It stores
+#: nothing, cannot diverge, and does not appear in `PRAGMA table_info`. Same device,
+#: same reason, as P4's `evidence` table.
+FILE_FACTS_DDL = f"""
+CREATE TABLE IF NOT EXISTS file_facts (
+    fact_id            TEXT PRIMARY KEY,
+    record_id          TEXT GENERATED ALWAYS AS (fact_id) VIRTUAL,
+    file_id            TEXT NOT NULL,
+    content_hash       TEXT NOT NULL,
+    field_key          TEXT NOT NULL,
+    value_id           TEXT NOT NULL REFERENCES "values" (value_id),
+    reliability_state  TEXT NOT NULL,
+    origin             TEXT NOT NULL,
+    evidence_refs      TEXT NOT NULL,
+    cited_quote_refs   TEXT NOT NULL,
+    cache_key          TEXT NOT NULL,
+    model_identifier   TEXT,
+    prompt_fingerprint TEXT,
+    internal_score     REAL,
+    active             INTEGER NOT NULL,
+    {supersede_ddl("file_facts")},
+    preferred          INTEGER,
+    rejection_reason   TEXT,
+    created_at         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS file_facts_version ON file_facts (file_id, content_hash);
+CREATE INDEX IF NOT EXISTS file_facts_field ON file_facts (field_key);
+CREATE INDEX IF NOT EXISTS file_facts_value ON file_facts (value_id);
+CREATE TRIGGER IF NOT EXISTS file_facts_no_delete
+BEFORE DELETE ON file_facts
+BEGIN SELECT RAISE(ABORT, 'a fact is superseded by a later fact, never removed (§8.2)'); END;
+"""
+
+_TABLE_DDL: tuple[str, ...] = (_FIELDS_DDL, VALUES_DDL, FILE_FACTS_DDL)
 
 
 def create_facts_schema(conn: sqlite3.Connection) -> None:
