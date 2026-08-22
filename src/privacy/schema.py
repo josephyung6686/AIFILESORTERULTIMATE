@@ -68,6 +68,38 @@ BEGIN SELECT RAISE(ABORT, 'a classification is superseded, never overwritten (§
 """
 
 
+#: P7's policy table. One row per policy VERSION; a change supersedes, never mutates.
+POLICIES_TABLE = "privacy_policies"
+
+POLICIES_DDL = f"""
+CREATE TABLE IF NOT EXISTS {POLICIES_TABLE} (
+    policy_version             TEXT PRIMARY KEY,
+    {SUPERSEDE_ADAPTER_COLUMN} TEXT GENERATED ALWAYS AS (policy_version) VIRTUAL,
+    plan_version               TEXT NOT NULL,
+    operation_mode             TEXT NOT NULL,
+    consent_grants             TEXT NOT NULL,
+    redaction_settings         TEXT NOT NULL,
+    automatic_move_permissions TEXT NOT NULL,
+    set_at                     TEXT NOT NULL,
+    supersedes                 TEXT,
+    superseded_by              TEXT,
+    supersede_reason           TEXT
+);
+CREATE INDEX IF NOT EXISTS privacy_policies_plan
+    ON {POLICIES_TABLE} (plan_version);
+CREATE TRIGGER IF NOT EXISTS privacy_policies_no_delete
+BEFORE DELETE ON {POLICIES_TABLE}
+BEGIN SELECT RAISE(ABORT, 'a policy is superseded, never removed (§8.2, §8.5 replay)'); END;
+-- §8.8's diff needs both sides. The three supersede columns stay writable.
+CREATE TRIGGER IF NOT EXISTS privacy_policies_never_overwritten
+BEFORE UPDATE OF policy_version, plan_version, operation_mode, consent_grants,
+                 redaction_settings, automatic_move_permissions, set_at
+    ON {POLICIES_TABLE}
+BEGIN SELECT RAISE(ABORT, 'a policy is superseded, never overwritten (§8.2, §8.8)'); END;
+"""
+
+
 def create_privacy_schema(conn: sqlite3.Connection) -> None:
     """Create every P7-owned table. Idempotent. P1's `create_schema` runs first."""
     conn.executescript(CLASSIFICATIONS_DDL)
+    conn.executescript(POLICIES_DDL)
