@@ -817,7 +817,7 @@ Expected: PASS — the whole part, and
 child process with `P6_DETERMINISTIC_SUITE_CHILD=1` set, where that one test skips itself.
 
 Run: `pytest -q`
-Expected: PASS — 1300 tests plus P6's, and **no P1–P5 test changes status**, which is Done-means
+Expected: PASS — 1302 tests plus P6's, and **no P1–P5 test changes status**, which is Done-means
 17's silent half: this part touches no file outside `src/facts/` and `tests/p6/` (D5), so a
 regression anywhere else is this plan having broken its own boundary.
 

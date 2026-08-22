@@ -9,7 +9,7 @@
 
 **Verified against the live substrate, 2026-08-22.** Every P1–P5 name quoted below was read with
 `inspect.signature` and `inspect.getsource` against the shipped packages, not from a PLAN.
-`pytest tests/ -q --collect-only` collects **1300 tests** and P1–P5 are green. Five facts that
+`pytest tests/ -q --collect-only` collects **1302 tests** and P1–P5 are green. Five facts that
 change what is written here:
 
 - `database_agent.events.append_event(conn, **fields) -> int` returns `cursor.lastrowid`, rejects any
@@ -744,7 +744,7 @@ Expected: PASS — 22 passed
 - [ ] **Step 6: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–12 green, and the 1300 P1–P5 tests still green (P7 modified no file
+Expected: PASS — Tasks 1–12 green, and the 1302 P1–P5 tests still green (P7 modified no file
 belonging to another part).
 
 - [ ] **Step 7: Commit**
@@ -1966,7 +1966,7 @@ Expected: PASS — 39 passed
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–13 green, and the 1300 P1–P5 tests still green.
+Expected: PASS — Tasks 1–13 green, and the 1302 P1–P5 tests still green.
 
 - [ ] **Step 6: Commit**
 
@@ -2767,7 +2767,7 @@ Expected: PASS — 28 passed
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–14 green, and the 1300 P1–P5 tests still green.
+Expected: PASS — Tasks 1–14 green, and the 1302 P1–P5 tests still green.
 
 - [ ] **Step 6: Commit**
 

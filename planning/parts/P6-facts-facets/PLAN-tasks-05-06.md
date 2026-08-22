@@ -665,7 +665,7 @@ undisturbed by the schema edit:
 cd "/Users/jy/GRAPH AGENT" && python3 -m pytest tests/p6 -q && python3 -m pytest tests -q
 ```
 
-**Expected:** every P6 test green, and the 1300 P1–P5 tests still green — P6 modified no file outside
+**Expected:** every P6 test green, and the 1302 P1–P5 tests still green — P6 modified no file outside
 `src/facts/` and `tests/p6/`.
 
 - [ ] **Step 7: Commit**
@@ -1226,7 +1226,7 @@ cd "/Users/jy/GRAPH AGENT" && python3 -m pytest tests/p6/test_p6_cache.py -q
 cd "/Users/jy/GRAPH AGENT" && python3 -m pytest tests/p6 -q && python3 -m pytest tests -q
 ```
 
-**Expected:** every P6 test green and the 1300 P1–P5 tests still green. Wave A is complete after this
+**Expected:** every P6 test green and the 1302 P1–P5 tests still green. Wave A is complete after this
 step: `fields`, `values`, `file_facts`, `unresolved` and the cache key all exist, and Tasks 7–13 can
 start in parallel.
 

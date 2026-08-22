@@ -1393,7 +1393,7 @@ sixteen fixtures)
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–20 green, and the 1300 P1–P5 tests still green (P7 modified no file
+Expected: PASS — Tasks 1–20 green, and the 1302 P1–P5 tests still green (P7 modified no file
 belonging to another part).
 
 - [ ] **Step 6: Commit**
@@ -2084,7 +2084,7 @@ Expected: PASS — 27 passed
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–21 green, and the 1300 P1–P5 tests still green. This is the run that
+Expected: PASS — Tasks 1–21 green, and the 1302 P1–P5 tests still green. This is the run that
 matters most for this task: the L2 guard walks **every module under `src/`** and imports each one, so
 a module that raises at import anywhere in the repository fails here.
 
@@ -2768,7 +2768,7 @@ Expected: PASS — 21 passed
 - [ ] **Step 5: Run the whole repository**
 
 Run: `pytest tests/ -q`
-Expected: PASS — P7 complete, and the 1300 P1–P5 tests still green. This task touches
+Expected: PASS — P7 complete, and the 1302 P1–P5 tests still green. This task touches
 `src/orchestrator.py`, `tests/wave2/` and `tests/conftest.py` **not at all**: it imports the Wave-2
 caller and asserts against it, and every P7 fixture it needs lives in `tests/p7/`.
 

@@ -8,7 +8,7 @@
 
 **Verified against the live substrate, 2026-08-22.** Every P1–P5 signature quoted below was read
 with `inspect.signature` against the shipped packages, not from a PLAN. `pytest tests/ -q` collects
-**1292 tests** and P1–P5 are green. The two facts that most change what is written here:
+**1302 tests** and P1–P5 are green. The two facts that most change what is written here:
 
 - `database_agent.files_table.set_sensitivity_state(conn, file_id, *, state: dict, author: str,
   component_version: str) -> None` **exists** (D2). P7 calls it; P7 takes no writer protocol.
@@ -741,7 +741,7 @@ Expected: PASS — 22 passed
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–15 green, and 1292 P1–P5 tests still green (P7 modified no file
+Expected: PASS — Tasks 1–15 green, and 1302 P1–P5 tests still green (P7 modified no file
 belonging to another part).
 
 - [ ] **Step 6: Commit**

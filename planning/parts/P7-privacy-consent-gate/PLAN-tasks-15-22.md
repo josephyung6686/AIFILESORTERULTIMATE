@@ -8,7 +8,7 @@
 
 **Verified against the live substrate, 2026-08-22.** Every P1–P5 signature quoted below was read
 with `inspect.signature` against the shipped packages, not from a PLAN. `pytest tests/ -q` collects
-**1292 tests** and P1–P5 are green. The three facts that most change what is written here:
+**1302 tests** and P1–P5 are green. The three facts that most change what is written here:
 
 - `database_agent.files_table.set_sensitivity_state(conn, file_id, *, state: dict, author: str,
   component_version: str) -> None` **exists** (D2). P7 calls it; P7 takes no writer protocol.
@@ -744,7 +744,7 @@ Expected: PASS — 22 passed
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–15 green, and 1292 P1–P5 tests still green (P7 modified no file belonging
+Expected: PASS — Tasks 1–15 green, and 1302 P1–P5 tests still green (P7 modified no file belonging
 to another part).
 
 - [ ] **Step 6: Commit**
@@ -4914,7 +4914,7 @@ adopted the signature this task pins.
 - [ ] **Step 3: Run the whole suite one final time**
 
 Run: `pytest -q --tb=short`
-Expected: PASS — every P7 test from Tasks 1–22 green, and the 1292 P1–P5 tests still green. P7
+Expected: PASS — every P7 test from Tasks 1–22 green, and the 1302 P1–P5 tests still green. P7
 created `src/privacy/` and `tests/p7/` and modified no file belonging to another part:
 `pyproject.toml`, `tests/conftest.py`, `src/orchestrator.py` and everything under
 `src/database_agent/`, `src/scan_agent/`, `src/evidence_shape/`, `src/extractors/` and

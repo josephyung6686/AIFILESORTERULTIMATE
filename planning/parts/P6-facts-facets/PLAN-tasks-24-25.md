@@ -1551,7 +1551,7 @@ cd "/Users/jy/GRAPH AGENT" && python3 -m pytest tests/p6 -q
 cd "/Users/jy/GRAPH AGENT" && python3 -m pytest -q
 ```
 
-Expected: **21 passed** for this file; the whole part green; and the pre-existing **1300 tests**
+Expected: **21 passed** for this file; the whole part green; and the pre-existing **1302 tests**
 still passing, because P6 touched no file outside `src/facts/` and `tests/p6/` (D5).
 
 - [ ] **Step 5: Commit**

@@ -472,7 +472,7 @@ Expected: PASS — 9 passed in `test_p6_authorship.py`, 8 passed in `test_p6_sta
 - [ ] **Step 5: Run the whole suite and confirm nothing else moved**
 
 Run: `pytest tests/ -q`
-Expected: PASS — the 1300 P1–P5 tests still pass, plus 17. `src/facts/` and `tests/p6/` are new
+Expected: PASS — the 1302 P1–P5 tests still pass, plus 17. `src/facts/` and `tests/p6/` are new
 directories; `pyproject.toml` already carries `pythonpath = ["src"]` and `testpaths = ["tests"]`,
 so `facts` is importable and `tests/p6/` is collected with no change to any file P6 does not own.
 
@@ -1444,7 +1444,7 @@ which four are inspected because `states` is skipped by name — and must still 
 - [ ] **Step 6: Run the whole suite**
 
 Run: `pytest tests/ -q`
-Expected: PASS — the 1300 P1–P5 tests, plus 42.
+Expected: PASS — the 1302 P1–P5 tests, plus 42.
 
 - [ ] **Step 7: Commit**
 

@@ -657,7 +657,7 @@ Expected: PASS — 21 passed
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–8 green, and P1–P5's 1292 tests still green (P7 modified no file belonging
+Expected: PASS — Tasks 1–8 green, and P1–P5's 1302 tests still green (P7 modified no file belonging
 to another part).
 
 - [ ] **Step 6: Commit**
@@ -1373,7 +1373,7 @@ Expected: PASS — 28 passed
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–9 green, and P1–P5's 1292 tests still green.
+Expected: PASS — Tasks 1–9 green, and P1–P5's 1302 tests still green.
 
 - [ ] **Step 6: Commit**
 
@@ -2126,7 +2126,7 @@ Expected: PASS — 31 passed
 - [ ] **Step 5: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–10 green, and P1–P5's 1292 tests still green.
+Expected: PASS — Tasks 1–10 green, and P1–P5's 1302 tests still green.
 
 - [ ] **Step 6: Commit**
 
@@ -3152,7 +3152,7 @@ Expected: PASS — 28 passed
 - [ ] **Step 6: Run P7's suite so far, and P1–P5**
 
 Run: `pytest tests/p7 -q && pytest tests/ -q`
-Expected: PASS — Tasks 1–11 green, and P1–P5's 1292 tests still green.
+Expected: PASS — Tasks 1–11 green, and P1–P5's 1302 tests still green.
 
 - [ ] **Step 7: Commit**
 
