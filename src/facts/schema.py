@@ -144,7 +144,46 @@ BEFORE DELETE ON file_facts
 BEGIN SELECT RAISE(ABORT, 'a fact is superseded by a later fact, never removed (§8.2)'); END;
 """
 
-_TABLE_DDL: tuple[str, ...] = (_FIELDS_DDL, VALUES_DDL, FILE_FACTS_DDL)
+#: §3.6's abstention (B7). Every column here is in the SPEC's `unresolved` sketch, and
+#: nothing else is:
+#:
+#:   - no `value_id` and no `reliability_state`. Not "nullable" -- ABSENT. A nullable
+#:     column is a place someone later writes a value, and then the abstention is a
+#:     weak `possible` and SPEC rule 1 is gone.
+#:   - no path, destination, folder or group column: the same negative contract
+#:     `file_facts` carries (§3.14, §4.3), checkable by reading this DDL alone.
+#:   - `cache_key` has the same composition as `file_facts` (§3.4), so an abstention is
+#:     invalidated by exactly the events that invalidate a fact -- which is what makes
+#:     preamble rule 5's pass 4 supersede a pass-2 refusal instead of ignoring it.
+#:
+#: `record_id` is a VIRTUAL projection of `unresolved_id`, for the same reason P4's
+#: `evidence` table carries one: P1's `mark_superseded` and `chain` are literally
+#: `... WHERE record_id = ?`, so the projection lets P1's tested functions be reused
+#: verbatim rather than written a second time under a second name. It stores nothing,
+#: cannot diverge, and does not appear in `PRAGMA table_info`.
+#:
+#: No foreign key to `files`. P4 made the same choice for the same reason: P6 must be
+#: buildable and testable against P4's nineteen fixtures with no scan, no extractor and
+#: no `files` row in existence.
+UNRESOLVED_DDL = f"""
+CREATE TABLE IF NOT EXISTS unresolved (
+    unresolved_id       TEXT PRIMARY KEY,
+    file_id             TEXT NOT NULL,
+    content_hash        TEXT NOT NULL,
+    field_key            TEXT NOT NULL,
+    reason              TEXT NOT NULL,
+    attempted_producers TEXT NOT NULL,
+    evidence_refs       TEXT NOT NULL,
+    cache_key           TEXT NOT NULL,
+    created_at          TEXT NOT NULL,
+    {supersede_ddl("unresolved")},
+    record_id           TEXT GENERATED ALWAYS AS (unresolved_id) VIRTUAL
+);
+CREATE INDEX IF NOT EXISTS unresolved_by_version
+    ON unresolved (file_id, content_hash);
+"""
+
+_TABLE_DDL: tuple[str, ...] = (_FIELDS_DDL, VALUES_DDL, FILE_FACTS_DDL, UNRESOLVED_DDL)
 
 
 def create_facts_schema(conn: sqlite3.Connection) -> None:
