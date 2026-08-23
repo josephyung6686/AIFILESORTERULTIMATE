@@ -61,3 +61,15 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   because the inspection command sliced the list. Remaining 5 (pharmacy-operations,
   practice-administration, protocol-guideline, teaching-material, veterinary-practice) are queued
   into the next wave. Row counts must come from the roster, never from a truncated listing.
+
+## Wave 1 — killed by the session limit, partial salvage
+
+- All 5 agents died on "session limit reached" (2026-08-23 ~14:14 HKT). Wave 1 covered 39 rows
+  across business_operations (3 chunks), the clinical_practice tail, and construction_property.
+- **Survivors on disk (4 JSON, no memos)** — structurally complete (27 keys, none missing vs landed
+  siblings) and normally sized, so treated as salvageable drafts rather than discarded:
+  `business_operations`, `business_operations.it-asset-inventory`,
+  `clinical_practice.pharmacy-operations`, `clinical_practice.practice-administration`.
+- Lesson applied: waves are now smaller (4 agents) so a limit-kill loses less, and every wave is
+  committed before the next starts. The four orphans go back out under the salvage rule
+  (verify line-by-line, repair, complete, own) rather than being rewritten from scratch.
