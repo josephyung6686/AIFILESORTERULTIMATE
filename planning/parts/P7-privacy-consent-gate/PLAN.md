@@ -54,7 +54,7 @@ Tasks 15–19   revocation · reclassification · moves · display · transport 
 Tasks 20–22   the published fixtures · the no-invention guard · the walking skeleton
 ```
 
-**`DECISION_ORDER` is published because the order IS the contract.** Five denials, then consent.
+**`DECISION_ORDER` is published because the order IS the contract.** SIX denials, then consent — `DECIDABLE_FROM_REQUEST` has six members, not five, and it is the set `collect_request_denials` collects before `needs_consent`. (This line read "Five denials".)
 **The order is forced, not chosen**, and Task 13's `DECIDABLE_FROM_REQUEST` is the proof obligation:
 *no denial decidable from the request alone may be decided after one that needs the file's content* —
 a rule that is only enforceable if it is data.
