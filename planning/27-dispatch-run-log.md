@@ -152,3 +152,17 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   challenge on a real argument, `compliance-certificate` did not survive its own.
 - `drawings-revisions` was argued to stand rather than collapse into the version-family design,
   and proposes `revision` for R1c.
+
+## construction_property complete — 28/28 (third family finished)
+
+- Chunk C: all 10 verified pre-commit. Memos 3.9-5.4KB, no proposed fields, nothing out of scope.
+- **`construction_property.timesheet` REFUSED** — the collision predicted at dispatch. Argued as
+  "a document type wearing a situation's clothes": a construction timesheet is three different
+  documents sharing a table shape, and each already has a home — a signed dayworks sheet is
+  evidence for `variation-claim`, and the payroll-shaped content belongs to a schema whose privacy
+  posture is stricter than this one's. Coverage routed rather than dropped.
+- `site-survey` vs `survey-valuation`: argued explicitly as requested and **both kept** — the
+  tempting reading is one world under two names ("a professional looking at a building"), which
+  fails once you ask what the deliverable is (measuring the land vs pricing the asset).
+- Running refusal tally across the swarm: 3 of 60 rows (organisational-records,
+  compliance-certificate, timesheet). Every one routed to residuals or siblings, none dropped.

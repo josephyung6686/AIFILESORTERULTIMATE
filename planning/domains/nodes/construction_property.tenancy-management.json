@@ -1,0 +1,472 @@
+{
+  "id": "construction_property.tenancy-management",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Lettings and tenancy management",
+  "one_line": "Running one let property through one tenancy, from the landlord's or the managing agent's side: the applicant referencing and right-to-rent checks, the tenancy agreement and its deposit protection certificate, the statutory compliance documents that must be served before or at the start (gas, electrical, energy, the prescribed information and how-to-rent material), the rent ledger and arrears chases, the repair reports and contractor visits, the renewals and rent increases, the statutory notices, and the end-of-tenancy check-out, deposit deduction and dispute. Its defining property is that it is a REGULATED ONGOING RELATIONSHIP with a named person living in the property — a calendar of certificates that must be current and evidence that must have been served, not a document type. Absorbs the legacy row prop.tenancy. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The construction_property schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row’s sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the tenancy compliance set, which is this row's fingerprint: a bundle for ONE address in which a tenancy agreement, a deposit protection certificate with a scheme name and a reference, a gas safety record, an electrical condition report and an energy certificate co-occur, each with its own expiry or next-due date. No single member identifies the row; the CO-OCCURRENCE for one address does, and no other situation in the catalogue assembles that particular five.",
+      "a deposit protection structure: a scheme certificate and prescribed information naming a tenant, a deposit sum, a scheme reference and a date of protection, with a served-on confirmation.",
+      "a rent ledger structure: a table of due dates against amounts due, amounts received, method and a running balance or arrears figure, per tenancy rather than per account. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a referencing or applicant pack: an employment reference, an affordability calculation, a credit check summary, a previous-landlord reference and a right-to-rent identity check with document copies — the most identity-dense material in the construction schema.",
+      "a statutory notice served on an occupier: a prescribed form naming a tenancy, a ground or section, a date of service, an expiry date and a method of service.",
+      "a check-in or check-out comparison: a dated, photographed room-by-room record paired against an earlier one, with a damage schedule and a deposit deduction proposal.",
+      "an agent's management statement: a periodic statement per property showing rent collected, commission and fees deducted, contractor invoices paid and a net sum remitted to a landlord.",
+      "parent-folder context naming a property, a tenant or a tenancy period, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row holds a named person's identity documents, their income, their credit history and the address they live at — the densest concentration of protected personal data anywhere in the construction schema, and mostly about someone who is not the holder. Any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: which SIDE the holder is on. A tenancy agreement, a deposit certificate and a gas record are identical in the landlord's file, the agent's file and the tenant's file, and the document does not say whose. This is the seam with the landed finance.household-property, which holds the household's own side, and it is stated reciprocally on both.",
+      "separating a MANAGED portfolio (many properties, an agent's statements, a lettings business) from ONE let property held by an accidental landlord — the same documents in a completely different corpus shape.",
+      "separating a tenancy agreement, which is an executed instrument the legal safety schema protects, from the management activity around it that this row is about.",
+      "an unlabelled tenancy file: a scanned signed agreement with no filename, an email chain about a leak, and three bank screenshots.",
+      "a purpose-coherent tenancy file whose members are individually unremarkable — an agreement, a certificate, an inventory, a ledger and a notice, sharing nothing but a tenant and an address. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a UK-style postcode or a street address alone. An address is the single most tempting token in this whole family and it appears in every role at once — the site, the client’s home, the contractor’s registered office, the architect’s letterhead, a supplier’s depot, and a comparable property cited in a report. 00 states the same ambiguity for a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the address case is worse, and this is recorded as inference because 00 writes that sentence about a university, not an address.",
+      "a person's name alone. In this row the same document names a landlord, a tenant, a guarantor, an agent and a contractor, and identifying which is which is the whole problem.",
+      "a single compliance certificate alone. A gas safety record exists for owner-occupiers, for landlords, for commercial premises and for a trade's own job file, and only the co-occurrence with tenancy documents for the same address puts it here.",
+      "a tenancy agreement alone. It is an executed instrument first, which is legal.leases-agreements' situation, and this row is about what is done around it.",
+      "a rent-shaped recurring credit in a statement alone. A recurring monthly sum is also a salary, a standing order, a subscription and a loan repayment.",
+      "the word 'tenancy', 'landlord', 'tenant' or “lease” alone. Commercial leases, ground rents, licences, lodger arrangements and student halls all use them, and three of those are other rows.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated."
+    ]
+  },
+  "proposed_context_terms": [
+    "assured shorthold tenancy",
+    "tenancy agreement",
+    "tenancy start date",
+    "tenancy end date",
+    "term",
+    "deposit protection",
+    "prescribed information",
+    "deposit scheme",
+    "holding deposit",
+    "guarantor",
+    "right to rent",
+    "referencing",
+    "affordability",
+    "previous landlord reference",
+    "how to rent",
+    "gas safety record",
+    "electrical installation condition report",
+    "EICR",
+    "EPC",
+    "legionella assessment",
+    "smoke alarm",
+    "carbon monoxide alarm",
+    "licensing",
+    "HMO licence",
+    "selective licensing",
+    "rent schedule",
+    "rent due date",
+    "arrears",
+    "rent increase",
+    "renewal",
+    "periodic tenancy",
+    "notice to quit",
+    "section notice",
+    "possession",
+    "check in",
+    "check out",
+    "inventory",
+    "dilapidation",
+    "deposit deduction",
+    "deposit dispute",
+    "adjudication",
+    "management statement",
+    "letting fee",
+    "commission"
+  ],
+  "work_types": [
+    "applicant referencing pack",
+    "right-to-rent identity check record",
+    "holding deposit receipt",
+    "tenancy agreement (as a managed item)",
+    "guarantor agreement",
+    "deposit protection certificate",
+    "prescribed information and service confirmation",
+    "statutory compliance certificate set for a let property",
+    "how-to-rent or prescribed information pack",
+    "check-in report and inventory",
+    "rent ledger or rent statement",
+    "arrears letter or chase record",
+    "repair report and contractor instruction",
+    "renewal or rent increase notice",
+    "statutory notice served on a tenant",
+    "check-out report and damage schedule",
+    "deposit deduction proposal and dispute submission",
+    "agent's management statement",
+    "landlord tax or income summary for a let property",
+    "licensing application or licence for a let property"
+  ],
+  "grouping_reasons": [
+    "one tenancy of one property — the definitional group in this row: agreement, certificates, ledger, correspondence and the end-of-tenancy reckoning.",
+    "one property across successive tenancies over years, which is how a landlord actually retrieves and the reason a compliance certificate outlives the tenant it was served on.",
+    "one tenant across successive renewals of the same tenancy, joined by version families rather than by any construction fact.",
+    "one deposit dispute: the check-in, the check-out, the photographs, the deduction proposal and the adjudication — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one compliance cycle: the certificates whose next-due dates fall in one year across a portfolio.",
+    "no group at all is a valid outcome: a single gas safety record with no tenancy around it is an ordinary standalone record.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two tenants' files in one folder do not merge, and in this row merging them would disclose one person's income to another's file."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry’s schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row’s open_question. The recommendation, held as prose: the property first, then the tenancy (its period, or the tenant where periods are ambiguous), then the function — agreement and deposit / compliance / rent / repairs / notices and end of tenancy. The property must be the top level because compliance certificates outlive tenancies and a landlord retrieves by address, not by tenant; the tenancy is the second level because a deposit deduction is unintelligible without knowing which tenancy it belongs to, which is 00's own reason for putting a course above a homework number. One deliberate qualification: naming the second level after the TENANT rather than the period puts a private individual's name into a folder name, which is a disclosure decision rather than an organisational one and is recorded as an open question rather than recommended. 00’s own ordering reason applies: “a parent dimension should provide the context required to understand the child”. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary",
+      "filesystem",
+      "calendar"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "AST - 14 Oakfield Rd - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a parties block naming a landlord and two tenants",
+        "a term with start and end dates, a rent and a deposit",
+        "numbered clauses and an execution block",
+        "an agent's letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it outright — an executed tenancy agreement is legal.leases-agreements' instrument and the legal safety schema's protective ordering runs first; this row is the management around it",
+        "which of the three named parties holds the filesystem",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Deposit certificate - DPS 8841203.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scheme name, a reference and a protected sum",
+        "tenant names and a property address",
+        "a date of protection and prescribed information attached"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "a tenant fact copied onto any other file naming the same address",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Referencing - A Bello.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an employment reference with a salary figure",
+        "an affordability calculation and a credit summary",
+        "a passport scan and a share-code printout appended",
+        "a previous landlord's comments"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that this is ordinary property material: it is an identity document and a person's income held by a third party, and identity's protective ordering runs first",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Rent ledger 14 Oakfield.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "due dates, amounts due, amounts received, method and a running arrears balance",
+        "one tab per tenancy year",
+        "a highlighted arrears row"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that a rent ledger is a bank record — it is a landlord's own reckoning and the finance reading is separate",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Gas Safety Record - 14 Oakfield Rd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an appliance, an engineer registration number, an issue date and a next-due date",
+        "an installation address matching the tenancy",
+        "a customer signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the certificate alone — it exists identically for an owner-occupier and in a trade's job file, and only co-occurrence with tenancy documents for the same address puts it here",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Check-out report - 14 Oakfield Rd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a room-by-room comparison against a check-in record",
+        "numbered photographs and a damage schedule",
+        "a deposit deduction proposal with costs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it outright — a check-out is construction_property.inventory-inspection's situation performed for this row's purpose",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Management statement - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "rent collected, commission and fees deducted, contractor invoices paid, net remitted",
+        "several properties listed",
+        "an agent's letterhead and a landlord addressee"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that one statement is one group — it spans several properties, which is a real reason it may join none",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lease - Unit 4 Meridian Park - engrossment.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a commercial lease with rent review and alienation provisions",
+        "a schedule of dilapidations obligations",
+        "two company parties and a term of years"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the collision fixture. A commercial letting has no deposit scheme, no right-to-rent check and no prescribed information, and belongs to construction_property.commercial-lease",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Section notice - served 02-05-26.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a prescribed form naming a tenancy and a ground",
+        "a date of service, an expiry date and a method of service",
+        "a certificate of service attached"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "whether the notice was validly served — a legal effect is not the product's question",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "tenancy-pack-oakfield.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing an agreement, certificates, an inventory and referencing documents",
+        "password-protected",
+        "sent by an agent"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.commercial-lease",
+      "signal": "Both let a property to an occupier under a written agreement. The discriminating evidence: a deposit protection scheme, a right-to-rent check, prescribed information and a residential statutory notice support this row; a term of years, rent review provisions, alienation and dilapidations obligations between two companies support the commercial row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "The load-bearing collision on this row and reciprocal with the landed safety template. A tenancy agreement is that row's executed instrument and this row's managed item, and one signed PDF is both. The discriminating evidence: an execution block, defined terms and the agreement's own lifecycle support the legal row; a deposit certificate, a rent ledger, a compliance set and a notice served under the agreement support this row. Because legal is a safety schema, where both fire the protective ordering runs first. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "The seam the dispatch brief named, stated reciprocally. The landed household row covers property-centred household administration across ownership and tenancy, using the protected Finance schema; this row covers running a let property as a regulated business. The discriminating evidence: the holder occupying the property, one address, and records kept for money and tax reasons supports the household row; a tenant referenced and vetted, a deposit protected, statutory documents served, and several properties or several successive tenancies supports this row. Where a household holds ONE let flat, both fire honestly and finance's safety ordering runs first. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.inventory-inspection",
+      "signal": "Check-in and check-out reports are that row's situation performed for this row's purpose, and the same photographs serve both. The discriminating evidence: the dated photographic condition record itself supports the inventory row; the tenancy, the deposit and the deduction reckoning around it support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.block-management",
+      "signal": "A managing agent's correspondence, contractor instructions and building compliance overlap this row's management half almost completely. The discriminating evidence: a tenant, a deposit and a tenancy agreement support this row; leaseholders, a service charge budget and a whole building's insurance support the block row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.compliance-certificate",
+      "signal": "The gas, electrical and energy certificates that make a letting lawful are that row's standing property records and this row's compliance calendar. The discriminating evidence: a certificate held for a property with a next-due date supports the certificate row; the same certificate co-occurring with a tenancy agreement and prescribed information for one address supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.housing-authority",
+      "signal": "Licensing applications, enforcement notices and standards inspections are the authority's records and the landlord's obligations in one document. The discriminating evidence: a contracting or regulating authority, a statutory scheme and an enforcement framing supports the government row; a landlord's or agent's own tenancy file supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.hoa-residents-association",
+      "signal": "Ground rent, service charge and residents' association correspondence arrive in a landlord's tenancy file for the same flat. The discriminating evidence: a tenant and a tenancy support this row; a leaseholders' body, a communal budget and an association's own governance support the hoa row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The default and dominant home for this row. A tenancy file contains a named person's identity documents, income, credit history, home address and the record of whether they paid their rent — held by someone who is not them. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone compliance certificate or licence held for a property with no tenancy file around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for a ledger, a management statement or a repair thread whose property, tenancy and side are unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Agents send password-protected tenancy packs as a matter of routine, so this residual is unusually busy here. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated rent receipts, contractor invoices and holding-deposit confirmations are transactional documents rather than tenancy records. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Blank tenancy templates, published how-to-rent guidance and scheme leaflets are reference material, not records. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the most personal-data-dense row in the construction schema. A single tenancy file typically holds a named individual's passport or immigration share code, their employer and salary, a credit check, their previous landlord's opinion of them, the address they live at, and a ledger of whether they paid their rent on time — almost all of it about someone who is not the holder and who provided it under compulsion in order to obtain housing. 00's corpus sentence names several of those categories at once: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. As inference rather than a design claim, this row's exposure risk is a housing risk for a real person, which is why the protective residual is its default rather than its exception. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Three. (1) The household seam, stated reciprocally with the landed finance.household-property in this row's collides_with: where a household holds one let flat, both rows fire honestly and neither is wrong. The provisional reading recorded here — occupier's own home to the household row, tenanted property run as a business to this row — is defensible but is genuinely Joseph's, because it decides where someone's real filing lives. (2) Whether a TENANT's own copy of these documents belongs to this row at all. The tenant holds the same agreement, the same certificates and the same deposit paperwork for the opposite reason, and the reciprocal reading is that the tenant's side is legal.leases-agreements plus finance.household-property, not this row. Stated so that neither side silently claims both. (3) Whether a tenant's NAME may become a folder level. It is the natural second dimension and it writes a private individual's name into a directory that other software indexes; this row declines to recommend it and records the question instead."
+}

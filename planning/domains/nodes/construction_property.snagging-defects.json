@@ -1,0 +1,438 @@
+{
+  "id": "construction_property.snagging-defects",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Snagging, defects and handover lists",
+  "one_line": "The numbered list of things that are wrong, each pinned to a location and a responsible trade, tracked through re-inspections until it is closed — the pre-completion snagging list, the client's or buyer's own list, the handover and practical-completion schedule, and the defects raised during the liability period after the works are finished and everybody has left. Its defining property is that it is a TRACKER with a lifecycle: the same document is re-issued repeatedly with a status column changing, and it is the last live thing on a project everyone else considers closed. Absorbs the legacy row cons.snagging. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The construction_property schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row’s sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the defect-register structure, which is this row's fingerprint: a table whose columns read item number, location (plot, room, level or grid reference), a description of what is wrong, a responsible trade or subcontractor, a raised date, a target or due date, a status, and a closed or verified date, with one row per fault. The pairing of a LOCATION column with a STATUS column is what no other table in this family has. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a re-issue sequence: the same register exported repeatedly with a rising count of closed rows and a falling count of open ones, so the corpus contains near-duplicate spreadsheets or PDFs distinguished only by a date and a status column. This row generates more version families than any other in the construction schema.",
+      "a photograph pack keyed to item numbers: images whose filenames or an accompanying schedule carry the register's item numbers, frequently with an annotation, arrow or circle drawn onto the image.",
+      "a snagging-app export: a per-item PDF card carrying a thumbnail, a location, a description, an assignee and a status, repeated identically for every item — a layout no human produces by hand.",
+      "a handover or practical-completion document set: a certificate or statement of practical completion accompanied by an outstanding-works schedule and a defects-liability period stated with a start and an end date.",
+      "a defect notification during the liability period: a dated letter or email from a client or buyer describing a fault, referencing a completion date, and requiring attendance within a stated period.",
+      "a close-out or de-snag confirmation: the same register with every status closed, signed off by an inspecting party, sometimes with a making-good certificate.",
+      "parent-folder context naming a plot, a unit, a handover or a defects period, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: defect registers name individual tradespeople as responsible parties and, in residential work, name the occupant whose home is faulty. Any model step runs after P7 and under the user's policy. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the central determination for this row: separating a DEFECT (something built wrong, to be put right under an existing obligation) from a VARIATION (something the client now wants differently, to be paid for). The two are argued about precisely because the same item is presented as each by the two sides, and the register row often reads identically.",
+      "separating a contractor's own snagging list from the CLIENT's list of the same building. Same items, same rooms, opposite authorship, and the canonical field list has no key for the role.",
+      "an unlabelled defect note: a photograph with a scrawled arrow, or a three-line email saying the kitchen door binds, with no item number and no register around it.",
+      "separating a defects register from a maintenance or repairs log. Both are located, statused fault lists; only one sits under a completion obligation with an end date.",
+      "a purpose-coherent handover file whose members are individually unremarkable — a completion certificate, a register, a photograph set, an operating manual and a warranty. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "an item-numbered table alone. Numbered rows with statuses are also an action log, a risk register, a bug tracker export, an audit finding list, a punch list in manufacturing and a to-do list.",
+      "the word 'snag', 'defect', 'punch list' or 'outstanding works' in a filename. Software teams, manufacturers and event producers all use at least two of them.",
+      "a UK-style postcode or a street address alone. An address is the single most tempting token in this whole family and it appears in every role at once — the site, the client’s home, the contractor’s registered office, the architect’s letterhead, a supplier’s depot, and a comparable property cited in a report. 00 states the same ambiguity for a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the address case is worse, and this is recorded as inference because 00 writes that sentence about a university, not an address.",
+      "an annotated photograph alone. A circled crack is a defect photo, a survey photo, an inventory photo, an insurance claim photo and a progress photo, and nothing in the image says which. “conflicting signals should lead to abstention rather than an invented classification”",
+      "a trade name alone (electrician, plasterer). It appears as a responsible party, an author, a supplier, an addressee and a heading.",
+      "a status word alone — open, closed, outstanding, complete. It is the most generic vocabulary in the entire catalogue.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated."
+    ]
+  },
+  "proposed_context_terms": [
+    "snagging list",
+    "snag",
+    "de-snag",
+    "punch list",
+    "defects list",
+    "defects register",
+    "outstanding works",
+    "schedule of defects",
+    "practical completion",
+    "sectional completion",
+    "handover",
+    "making good",
+    "defects liability period",
+    "rectification period",
+    "retention release",
+    "item number",
+    "location",
+    "plot",
+    "unit",
+    "responsible trade",
+    "raised date",
+    "target date",
+    "closed date",
+    "re-inspection",
+    "sign off",
+    "verified",
+    "latent defect",
+    "warranty claim",
+    "builder return",
+    "call back"
+  ],
+  "work_types": [
+    "pre-completion snagging list",
+    "client or buyer snagging list",
+    "professional snagging inspection report",
+    "handover or practical-completion outstanding-works schedule",
+    "defects register or tracker",
+    "defect notification letter or email",
+    "re-inspection record",
+    "close-out or de-snag confirmation",
+    "making-good certificate",
+    "annotated defect photograph set",
+    "snagging application export",
+    "warranty or latent-defect claim under a completed contract"
+  ],
+  "grouping_reasons": [
+    "one plot, unit or property and every defect ever raised on it — the clearest group in this row and the one that persists after the project itself is closed.",
+    "one register across its re-issues, joined by the universal duplicate_family and version_family facts rather than by any construction fact. This is the row where those universals do the most work.",
+    "one defect: the notification, the photographs, the trade's response, the re-inspection and the sign-off — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one handover event: the certificate, the outstanding-works schedule, the manuals and the warranties.",
+    "no group at all is a valid outcome: a single annotated photograph with no register around it is an ordinary standalone image.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two plots' registers in one folder do not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry’s schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row’s open_question. The recommendation, held as prose: the site or project first, then the plot or unit where there is more than one, then the defect phase (pre-completion snagging / handover outstanding works / defects-period faults), with the register itself and its photographs kept together under the item. An item number is meaningless without its plot — item 44 exists on every plot on a development — which is 00's own reason for putting a course above a homework number. The phase level matters more here than it looks: the same list before completion and after it carries different obligations and different money. 00’s own ordering reason applies: “a parent dimension should provide the context required to understand the child”. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Time is a poor level here because a single defect's life crosses months and a register's re-issues are versions, not periods. And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Plot 14 snagging list rev 3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns reading item, room, description, trade, raised, target, status, closed",
+        "sixty-one rows, thirty-eight marked closed",
+        "a revision number in the filename and two near-identical siblings in the folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "a plot fact copied onto a photograph that merely sits in the same folder — “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Snag 044 - kitchen.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a chipped worktop with a red circle drawn on it",
+        "camera EXIF with capture time",
+        "an item number in the filename matching a register row"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a defect fact from an annotation",
+        "any construction_property fact — the schema declares no field rows",
+        "that the annotation proves authorship — the client and the contractor both annotate",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Practical completion certificate - Oakfield.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a certificate naming a contract and a completion date",
+        "a stated defects liability period with an end date",
+        "an outstanding-works schedule appended",
+        "a certifier's signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the certificate itself is this row's rather than the project's — it is the boundary event both rows meet at, and this row claims the schedule appended to it",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FW_ Front door still sticking.eml",
+      "source_type": "email",
+      "observations": [
+        "a homeowner describing a fault eleven months after completion",
+        "two photographs attached",
+        "no item number, no register referenced"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "an item fact where no register exists",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "VO-017 - upgrade to kitchen worktop.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered variation naming the same worktop as snag 044",
+        "a cost and a time consequence",
+        "an instruction reference and an approval signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the load-bearing collision fixture. The same worktop is a defect on one side's paper and a paid variation on the other's, and a cost-and-time consequence with an instruction reference is construction_property.variation-claim's",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Defects report - 14 Oakfield Rd - independent inspection.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a professional inspector's report listing over two hundred items with photographs",
+        "a fee note and an addressee",
+        "condition commentary alongside the item list"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an addressee and a fee make it a valuation: the deliverable is a located, statused item list, which keeps it here, but the collision with construction_property.survey-valuation is real and is recorded",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Sprint 14 bug export.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns reading id, component, summary, assignee, priority, status, resolved",
+        "a hundred and four rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the second collision fixture and the reason 'a numbered statused list' is in never_alone. This is a software issue tracker and the structural match is near-total",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "snagging-export-plot14.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing one PDF card per item and a photos directory",
+        "two hundred and eleven members",
+        "no password"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 09.14.png",
+      "source_type": "image",
+      "observations": [
+        "a screenshot of a snagging app's item screen",
+        "exact display resolution, PNG, software metadata",
+        "no camera EXIF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a defect fact from a screenshot before OCR text exists",
+        "a screenshot classification from missing EXIF alone — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Check-out report - 14 Oakfield Rd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a room-by-room list of damage with photographs and a cost apportionment",
+        "two named parties, landlord and tenant",
+        "a deposit reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a located, statused, photographed fault list that belongs to construction_property.inventory-inspection, because its obligation is a tenancy deposit rather than a construction contract",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.variation-claim",
+      "signal": "The load-bearing collision on this row, and the one that decides who pays. The same physical item is a DEFECT (built wrong, put right free under an existing obligation) or a VARIATION (wanted differently, paid for) depending entirely on which side's paper you read. The discriminating evidence: a status column, a responsible trade and a re-inspection history support this row; a numbered instruction reference, a quantified cost and time consequence, and an approval or notice support the variation row. Where a document carries both, it is genuinely both and the disagreement is the point. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "Recorded deliberately, because the node test asked whether this row is only a work_type of the project. The discriminating evidence: a defects-liability period, a re-issue sequence with a status column, and activity AFTER practical completion support this row; anything inside the construction period supports the project row. The registers of a project that has closed are the clearest case that this is a separate situation. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.inventory-inspection",
+      "signal": "A check-out report and a snagging list are both located, photographed, costed fault lists. The discriminating evidence: a tenancy, a tenant, a deposit reference and a check-in comparison support the inventory row; a completion date, a trade responsibility column and a defects period support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "A non-conformance register is the same table with the same columns in a factory, and both trace a fault to a responsible party and a closure. The discriminating evidence: a part or batch number, a specification clause and a corrective-action methodology support the manufacturing row; a room, a plot and a trade support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "Issue logs, action registers and punch lists in general project management have this row's exact structure, and software issue exports are the tempting false file. The discriminating evidence: a physical location and a trade support this row; a component, an assignee and a sprint or milestone support the delivery row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.survey-valuation",
+      "signal": "An independent snagging inspection is sold, priced and addressed like a professional report. The discriminating evidence: an item-numbered, located, statused list intended to be worked through supports this row; condition ratings, a basis of valuation and a reliance clause support the valuation row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.warranty-claim",
+      "signal": "A latent-defect or warranty claim after completion is simultaneously this row's defect and that row's claim, especially for installed products. The discriminating evidence: a product serial number, a manufacturer and a warranty policy support the warranty row; a plot, a trade and a contractual defects period support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.final-account",
+      "signal": "Retention is released against defects being closed, so the register and the account cite each other. The discriminating evidence: a valuation number, a retention percentage and a certified sum support the final-account row; an item list with statuses supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The commonest honest outcome in this row: a register export, an app archive or a fault email whose plot and phase are unresolved. Registers are famously untitled. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone completion certificate, making-good certificate or outstanding-works schedule with no project file around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a single annotated defect photograph with no register around it — a very large population in this row. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Screenshots of snagging-app screens are among this row's most numerous and least valuable members. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Residential defect files name an occupant and the faults in the home they live in, and independent inspection reports name an addressee; the row's people-bearing members belong here. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected snagging-platform exports and proprietary app bundles are ordinary here. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Two reasons, both about people rather than about buildings. A residential defect file names an occupant and catalogues everything wrong with the home they live in, which is information about a private individual's living conditions; and a defect register names individual tradespeople as responsible for failures, which is material that can affect their work. 00's corpus sentence covers the category the moment either appears: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Most of this row is dull item lists and the value is set for the members that are not. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "One. Whether the DEFECT/VARIATION boundary is decidable by the product at all. The honest answer recorded here is that it often is not, because the two sides disagree on purpose and both readings are written down in good faith — so the correct behaviour is to recognise both and abstain rather than to pick, which is 00's own instruction for conflicting signals: “conflicting signals should lead to abstention rather than an invented classification”. What is Joseph's, and is not resolved here, is whether a file that is genuinely both should be offered in two places or held in one."
+}

@@ -1,0 +1,457 @@
+{
+  "id": "construction_property.site-survey",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Site surveys and measured surveys",
+  "one_line": "The record of what was actually FOUND at a site, captured before anything was designed or priced: measured and topographical surveys, setting-out and level data, point clouds and scan registrations, drainage and CCTV surveys, service and utility searches, ground investigation and borehole logs, asbestos and intrusive opening-up surveys, and the photographs that evidence the existing condition. Its defining property is that it is an INPUT TO DESIGN expressed as geometry and measured data rather than an opinion — the deliverable is coordinates, levels, dimensions and layers, and its whole value is that it was true on the day it was taken. Absorbs the legacy row cons.site-survey. Distinct from construction_property.survey-valuation, which produces a professional OPINION addressed to a client about a built asset; see this row's collides_with entry for the discriminant. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The construction_property schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row’s sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "survey data structure, which is this row's fingerprint: a delimited coordinate list — point number, easting, northing, level, feature code — as CSV or plain text, often thousands of rows with no header the way a business spreadsheet has one. No other document family in this catalogue produces a file of this shape. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a measured or topographical survey drawing: a scaled plan or elevation carrying a north point, a scale bar, a stated scale ratio, a coordinate or level datum note, spot levels scattered across the sheet, and a title block naming a surveying practice.",
+      "a survey control or setting-out schedule: named stations with coordinates and a stated datum and projection.",
+      "a point-cloud or scan deliverable: a scan-project structure with registration reports listing setup positions, target residuals and a registration accuracy statement.",
+      "a drainage or CCTV survey report: a manhole schedule with cover and invert levels, pipe diameters and gradients, plus a defect-coded run log referenced to chainages and still frames.",
+      "a ground investigation output: borehole or trial-pit logs with depth-indexed strata descriptions, water strikes, sample references and laboratory test schedules.",
+      "an intrusive or specialist survey report keyed to LOCATIONS rather than to a transaction: an asbestos survey with a room-by-room register of sampled materials and sample reference numbers, or a services search returning utility record plans for a defined search area.",
+      "an existing-condition photographic set whose subject is fabric rather than progress: images captured on one visit before any works, frequently with a numbered photograph schedule keyed to a location plan. “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.”",
+      "parent-folder context naming a site, a survey date or a surveying practice, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: survey material carries precise locations, and some of it — an asbestos register, a services search — has consequences for real occupants, so any model step runs after P7 and under the user's policy. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the central determination for this row: separating a SURVEY OF WHAT EXISTS from a DESIGN OF WHAT IS PROPOSED. Both are scaled drawings from the same practice with the same title-block furniture, and the discriminant is usually a single word in the title (existing / as-existing / survey versus proposed / GA / for construction) — which is exactly the kind of ambiguity a model is for.",
+      "separating this row from construction_property.survey-valuation: a structural engineer's inspection report reads as both a measured investigation and a professional opinion, and where a document carries an addressee, a limitation of liability and a conclusion, the opinion reading wins.",
+      "an unlabelled site sketch: a photographed hand-measured floor plan with dimensions written on it and nothing else — the commonest real survey in the small-trade world and the hardest file in this row.",
+      "separating an as-built or record survey taken AFTER works from a pre-works survey. The deliverable is identical and the purpose is opposite. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "a purpose-coherent survey pack whose members are individually unremarkable — a coordinate file, a drawing, a photograph set, a borehole log and a services search, commissioned together for one site. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a coordinate-shaped number pair alone. Eastings and northings look like any other numeric pair, and a delimited file of numbers is also a data export, a sensor log, a financial extract and a GPS track.",
+      "the word 'survey' alone. It is the same word for a questionnaire, an engagement survey, a market research instrument, a customer satisfaction study and a valuation report, and four of those live in other schemas in this very roster.",
+      "a UK-style postcode or a street address alone. An address is the single most tempting token in this whole family and it appears in every role at once — the site, the client’s home, the contractor’s registered office, the architect’s letterhead, a supplier’s depot, and a comparable property cited in a report. 00 states the same ambiguity for a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the address case is worse, and this is recorded as inference because 00 writes that sentence about a university, not an address.",
+      "a surveying practice's name or logo alone. It appears on the survey it produced, on a drawing that merely traced it, on a template, and on a report the holder received rather than commissioned.",
+      "camera EXIF alone on an existing-condition photograph. “the system must not mistake the absence of EXIF for proof that an image is a screenshot”, and the converse is equally true — the presence of camera EXIF makes a file a photograph, not a survey record; only the pack around it does that.",
+      "a CAD or point-cloud extension alone. A .dwg is as likely to be a design, a detail, a title block or a downloaded manufacturer's block as a survey.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated."
+    ]
+  },
+  "proposed_context_terms": [
+    "measured survey",
+    "topographical survey",
+    "topo survey",
+    "as-existing",
+    "existing conditions",
+    "setting out",
+    "control station",
+    "datum",
+    "benchmark",
+    "spot level",
+    "invert level",
+    "cover level",
+    "easting",
+    "northing",
+    "chainage",
+    "point cloud",
+    "registration report",
+    "laser scan",
+    "total station",
+    "GPS survey",
+    "drainage survey",
+    "CCTV survey",
+    "manhole schedule",
+    "utility search",
+    "service drawings",
+    "ground investigation",
+    "borehole log",
+    "trial pit",
+    "strata",
+    "water strike",
+    "site investigation",
+    "asbestos survey",
+    "management survey",
+    "refurbishment and demolition survey",
+    "sample reference",
+    "opening up",
+    "dilapidation photographs",
+    "photographic schedule",
+    "survey grid"
+  ],
+  "work_types": [
+    "measured building survey drawing",
+    "topographical survey drawing",
+    "survey coordinate or level file",
+    "setting-out and control schedule",
+    "point cloud and scan registration report",
+    "drainage or CCTV survey report",
+    "manhole and drainage schedule",
+    "utility and services search return",
+    "ground investigation report",
+    "borehole or trial-pit log",
+    "asbestos management or R&D survey report",
+    "opening-up or intrusive investigation record",
+    "existing-condition photograph set and photo schedule",
+    "site sketch or hand-measured plan",
+    "survey report letter",
+    "as-built or record survey"
+  ],
+  "grouping_reasons": [
+    "one site surveyed on one visit or one commission — the clearest group in this row: the coordinate file, the drawing, the photographs and the report are one deliverable in several formats.",
+    "one specialist investigation: the borehole logs, the laboratory schedules and the interpretative report.",
+    "one asbestos survey and its sample register, photographs and laboratory certificates — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one survey drawing across its issues, joined by the universal version_family fact rather than by any construction fact.",
+    "no group at all is a valid outcome: a photographed hand sketch with no site named is an ordinary standalone record.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two sites' surveys in one folder do not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry’s schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row’s open_question. The recommendation, held as prose: the site or property first, then the survey type (measured / topographical / drainage / ground / asbestos / condition photographs), then the survey date only where a site has been surveyed more than once. The site must be the top level because a coordinate file's filename says nothing at all, and a survey type is unintelligible without knowing what was surveyed. The date matters more here than in most construction rows, because a survey's entire claim is that it was true on a day — but it is a third level, not a first one, since a corpus organised by survey date scatters one property's investigations across years. 00’s own ordering reason applies: “a parent dimension should provide the context required to understand the child”. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "design_creative",
+      "archive",
+      "opaque_binary",
+      "filesystem",
+      "email"
+    ],
+    "extensions": [
+      ".pdf",
+      ".dwg",
+      ".dxf",
+      ".csv",
+      ".txt",
+      ".xlsx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".zip",
+      ".eml",
+      ".rvt",
+      ".e57"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Oakfield Rd - topo survey - points.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "four thousand rows of point number, easting, northing, level and a short feature code",
+        "no header row of the business-spreadsheet kind",
+        "a trailing note line naming a datum"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "a site fact from a filename fragment alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "1042-EX-01 Existing site plan Rev A.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scaled plan with a north point, a scale bar and spot levels",
+        "a title block naming a surveying practice and a drawing number with a revision",
+        "a datum note"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a drawing number makes this the drawings row's: this sheet records what exists, not what is to be built, and the single word 'Existing' is the discriminant",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "1042-GA-10 Proposed ground floor Rev C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same practice's title block and the same drawing-number family",
+        "a general-arrangement plan of a layout that does not yet exist",
+        "a construction-issue status stamp"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the collision fixture. Same practice, same sheet size, same title-block furniture — but this is design information and belongs to construction_property.drawings-revisions",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Asbestos R&D survey - Oakfield Rd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a room-by-room register of sampled materials with sample reference numbers",
+        "laboratory analysis certificates appended",
+        "a location plan with numbered sample points",
+        "a surveyor's accreditation reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that this is only a survey: it is also a duty-holder compliance record with consequences for occupants, which is why it routes protectively",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "BH1-BH4 borehole logs.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "depth-indexed strata descriptions with hatching",
+        "water strike depths and sample references",
+        "a laboratory test schedule at the back"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a site fact from a borehole identifier",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_0114.HEIC",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a cracked rear elevation",
+        "camera EXIF with make, model, capture time and GPS",
+        "one of forty images captured within one hour"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that GPS and capture time settle which construction row this is — “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.”, and a pre-works condition set, a progress set and an inventory set are indistinguishable on metadata alone",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Sketch - rear extension measurements.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photographed hand-drawn plan with dimensions written along the walls",
+        "no scale, no north point, no title block",
+        "OCR returns fragmentary numbers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a measurement fact from fragmentary OCR",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Level 2 Home Survey - 14 Oakfield Rd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a report addressed to a named individual",
+        "condition ratings against building elements",
+        "a limitations and liability section",
+        "a surveyor's professional designation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the second collision fixture, and the one this row's name invites. An addressee, a limitation of liability and a conclusion make it an opinion, which is construction_property.survey-valuation's situation",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "scan-registration-report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a list of scan setups with target residuals",
+        "a stated registration accuracy",
+        "a project name and a scan date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "survey-deliverables-1042.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing DWG, PDF, CSV and a photographs directory",
+        "no password",
+        "several hundred megabytes"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.survey-valuation",
+      "signal": "The load-bearing collision on this row and the one the dispatch brief asked to be argued rather than assumed. Both are called a survey, both are produced by a professional practice about a building, and a structural engineer's inspection sits squarely between them. The discriminating evidence is the DELIVERABLE, not the subject: measured geometry — coordinates, levels, dimensions, a datum, a scale, a sample register — supports this row; a named ADDRESSEE, a purpose statement (for lending, for purchase, for insurance), condition ratings, a limitation-of-liability or reliance clause, and a professional opinion or figure support the valuation row. Where a document carries both, the opinion reading wins, because the addressee and the reliance clause are what the document is FOR. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.drawings-revisions",
+      "signal": "An existing-conditions sheet and a proposed-design sheet come from one practice, share a drawing-number family and are often in one folder. The discriminating evidence: a survey datum, spot levels, a surveyor's accreditation and an 'existing' or 'as-existing' status support this row; a design status stamp, a for-construction issue and a revision-controlled sequence of a proposed arrangement support the drawings row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.inventory-inspection",
+      "signal": "A pre-works condition photograph set and a tenancy inventory set are the same forty images of the same rooms. The discriminating evidence: a tenancy, a tenant name, a check-in or check-out framing and a contents list support the inventory row; a measured or investigative deliverable alongside the photographs supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.progress-photos",
+      "signal": "Existing-condition images and progress images are indistinguishable on EXIF. The discriminating evidence: a pre-works date relative to an accepted project, a photograph schedule keyed to a location plan, and the absence of works in the frame support this row; a serial run across the construction period supports the progress row. Metadata alone never settles it — “conflicting signals should lead to abstention rather than an invented classification”. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.civil-structural",
+      "signal": "Ground investigation and structural investigation outputs are simultaneously survey deliverables and engineering inputs. The discriminating evidence: an analysis, a calculation, a design assumption or a proposed solution supports the engineering row; a record of what was found with no design step supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.planning-application",
+      "signal": "Existing-site surveys are submitted with planning applications, so the same PDF sits in both worlds. The discriminating evidence: an application reference, a validation letter, a statutory consultee response or an officer's report supports the government row; the survey deliverable itself supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.mining-operations",
+      "signal": "Boreholes, strata logs and coordinate files are the same artefacts in exploration. The discriminating evidence: a licence area, a resource estimate or an extraction framing supports the resource row; a proposed building, a site address and a construction commission support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.user-research",
+      "signal": "Recorded because the word collides even though the worlds do not: a questionnaire export named 'survey results.csv' is a delimited data file about people, and this row's fingerprint is a delimited data file about places. The discriminating evidence: respondent rows, question headers and Likert values support the research row; coordinate triples and feature codes support this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone survey drawing, borehole log or registration report that arrives with no site file around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for a bare coordinate file, a photographed sketch, or a survey deliverables archive whose site is unresolved — the commonest outcome in this row, because survey filenames are famously uninformative. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Asbestos registers and services searches have consequences for named occupants and premises, and a misfiled home survey report names a buyer and a price. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a single existing-condition photograph with no pack around it. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Point clouds, proprietary scan formats and password-protected deliverable bundles are ordinary here, and this row generates more of them than any other in the family. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Manufacturer detail libraries and downloaded standard survey blocks that arrive with survey deliverables are reference material, not records. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Most of this row is geometry and is not sensitive at all. Three of its members are, which is enough to set the cautious value for the row: an asbestos survey names hazardous materials in a building people occupy, a services search returns utility records for a specific address, and a mis-detected home survey report names a buyer, a lender and a figure. 00's corpus sentence covers the last of those directly — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Beyond that, and as inference rather than a design claim, precise location data about a real property is itself the kind of thing that should not leave the machine casually. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "One, plus the boundary argued in collides_with. The unresolved item: whether an AS-BUILT or record survey belongs to this row or to construction_property.construction-project's handover material. The deliverable is identical to a pre-works measured survey and the purpose is the opposite — 00's own distinction, “Topic answers what a file is about, while purpose answers what the file was for.” — and neither row's detection signals can separate them without the project timeline. This row claims the pre-works reading and explicitly does not claim the as-built one."
+}
