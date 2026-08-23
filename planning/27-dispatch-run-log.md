@@ -84,3 +84,18 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
 - None refused: `veterinary-practice` was argued to stand as its own filing world rather than a
   subject value, and `practice-administration` to stand apart from `business_operations`.
 - **`clinical_practice` is the first schema family finished end to end (11/11).**
+
+## business_operations chunks A+B — 18 rows, one honest refusal
+
+- 18/18 landed and verified: parse, key sets match siblings, `fields: []`, memos 3.8-7.8KB,
+  nothing out of scope. Salvaged drafts (`business_operations`, `.it-asset-inventory`) verified
+  and completed rather than rewritten.
+- `proposed_fields` for R1c: `organization`, `fiscal_period` (both on the schema row).
+- **`business_operations.organisational-records` REFUSED** — the first refusal of the gist swarm,
+  and a well-argued one: fails all three legs of the node test (its only signal is an organisation
+  name, which is constitutionally never-alone, so the row could never activate; dimensions and
+  privacy rules identical to the schema default). Identified as "a residual wearing a domain's
+  clothes" and routed to four residual templates (Independent Records, Review Later, Protected
+  Records, Unsupported or Encrypted) with verbatim design quotes. Its own summary of the principle:
+  "Keeping the id as a row to preserve coverage would be the 574's mistake: inventing a node to
+  save an id."

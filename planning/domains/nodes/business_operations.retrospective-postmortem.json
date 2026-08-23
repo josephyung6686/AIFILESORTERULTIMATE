@@ -1,0 +1,402 @@
+{
+  "id": "business_operations.retrospective-postmortem",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Retrospectives, post-mortems and lessons learned",
+  "one_line": "The organizational situation of looking BACK at something that already happened - a finished piece of work, a failed launch, a service outage, a near miss - and producing a causal account of it: a timeline of what occurred, an analysis of why, and a set of changes the organisation commits to as a result. The organizing anchor is the EVENT OR EFFORT BEING REVIEWED plus the review's own occasion, and the material is retrospective and causal where the rest of this family is forward-looking and controlling. Absorbs the legacy rows ops.retrospective-postmortem (ROW) and soft.incident-postmortem (FOLD) - an engineering incident review and a project retrospective are one situation wearing two vocabularies. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a timeline structure whose rows pair a timestamp with an event or an action taken, written in the past tense and running to a resolution or a close - the single strongest shape for this row, and one that no plan, register or status report has.",
+      "a causal-analysis structure: labelled blocks reading root cause, contributing factors, why this was not caught, or a repeated why-chain, sitting between a summary and a set of actions.",
+      "the went-well / did-not-go-well / do-differently triad, in headings, in three columns of a table, or as three groups of short entries - the retrospective idiom in its most recognisable form.",
+      "an action or remediation structure whose rows pair a committed change with an owner and a due date, placed AFTER a causal section rather than after a plan.",
+      "an incident-header structure pairing an incident or reference identifier with a severity or priority label, a detection time, a resolution time, and an impact statement naming affected users, customers or services.",
+      "a lessons-learned register: one row per lesson with a category, a recommendation and a project or period of origin, accumulated across efforts rather than written for one."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating an organisational retrospective from a clinical morbidity-and-mortality review, a workplace accident investigation, a regulatory audit finding, an academic reflective essay, or a personal journal entry - each is a past-tense causal account with actions. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "deciding whether a document names a person as an ACTOR in a timeline or as a SUBJECT of criticism - the distinction that separates this row from an employee-relations file and that governs how carefully the file must be handled.",
+      "an unstructured retro: free prose, a chat transcript, or a photograph of sticky notes in three columns.",
+      "whether a section inside a closure report is the retrospective, when the surrounding document is a project artifact.",
+      "a purpose-coherent review pack whose members are individually unremarkable - a timeline export, a metrics chart, a chat log, a draft write-up and an actions sheet. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "an actions-with-owners table alone. Every plan, minute, audit and register in this family ends with one - it is the tempting false shape, and what makes this row is the CAUSAL section above it.",
+      "the words retro, review, post-mortem, lessons or RCA in a filename alone: review names a performance review, a design review, a literature review and a board review equally well.",
+      "past tense alone, or a timeline alone: a site diary, a case note and a travel itinerary are all timestamped past-tense sequences.",
+      "an extension or a source_type alone. 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number read as a year, an incident number, or a severity.",
+      "membership in a download session that dropped a whole review pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "retrospective",
+    "post-mortem",
+    "postmortem",
+    "lessons learned",
+    "root cause",
+    "contributing factors",
+    "five whys",
+    "blameless",
+    "timeline of events",
+    "detection",
+    "mitigation",
+    "resolution",
+    "impact",
+    "severity",
+    "incident report",
+    "near miss",
+    "what went well",
+    "what did not go well",
+    "action items",
+    "corrective action",
+    "preventive action",
+    "follow-up",
+    "recurrence",
+    "debrief",
+    "after action review"
+  ],
+  "work_types": [
+    "project retrospective or lessons-learned write-up",
+    "incident or outage post-mortem",
+    "timeline or chronology reconstruction",
+    "root-cause or contributing-factors analysis",
+    "action, remediation, or corrective-action tracker",
+    "lessons-learned register accumulated across efforts",
+    "retrospective board, sticky-note capture, or facilitation artifact",
+    "debrief or after-action review record",
+    "supporting evidence export - metrics chart, log excerpt, chat transcript"
+  ],
+  "grouping_reasons": [
+    "one review occasion: the timeline, the metrics exports, the chat log, the draft and the published write-up, held together by purpose rather than content. “The documents are content-incoherent but purpose-coherent.”",
+    "one write-up across its drafts - a post-mortem circulated for comment before publication is a version family, not several domains.",
+    "one incident as it travels - the alert, the review, the remediation tracker and the later audit reference - a real reason to group and the one most likely to tempt an incident label onto a stray metrics export. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one project's closure pack, where the retrospective sits beside the project's own closure record and both anchors are genuinely present.",
+    "no group at all is a valid outcome: a single retro board photograph with no accompanying write-up is a standalone image."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch. Held as prose for the pass that may license fields: the natural anchor is the effort or the incident being reviewed, then the document function, with the review date last - “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.”, because an actions tracker is unintelligible before the reader knows what it is remediating. This row is the family's strongest candidate for a time-first exception and still should not take it: an incident series genuinely reads chronologically, but a review-date-first tree separates a post-mortem from the project it closes and from the recurrence it later matches, which is exactly what 00 warns against - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The user may reverse it: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.” Privacy caveat specific to this row: a branch named after a failure is itself a disclosure, so the branch label deserves the user's approval rather than an automatic name."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "audio_video",
+      "design_creative"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".md",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".m4a"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Postmortem INC-4417 checkout outage.md",
+      "source_type": "text_document",
+      "observations": [
+        "labelled headings read summary, impact, timeline, root cause, contributing factors, action items",
+        "a timeline block of timestamped lines",
+        "an incident-shaped identifier and a severity label in the header",
+        "named engineers appear as actors in the timeline"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "a cause, a fault or a responsible party as a fact of the product's own; the section is a raw observation",
+        "that named engineers make this a personnel record - the names are actors in a chronology, and reading them otherwise is the error this row must not make",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Sprint 42 retro.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "three columns headed went well, did not go well, try next",
+        "one short entry per row, many rows, contributor initials in a fourth column",
+        "a second sheet of action items with owners and dates",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a project fact from a sprint number alone",
+        "that short entries are low-risk: a candid retro column carries unguarded statements about named colleagues",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Phoenix closure report.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a project title and a deliverables-accepted section",
+        "a lessons-learned section occupying the last third of the document",
+        "a benefits-realisation table",
+        "an approval block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.project-delivery owns it - a closure report is a project artifact that CONTAINS a retrospective, and both anchors are genuinely present in one file; P10 chooses from an accepted group later",
+        "a project fact copied onto neighbouring files",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Grievance investigation report - redacted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a timeline of events, a findings section and a recommendations table with owners",
+        "one named employee throughout as the subject rather than as an actor",
+        "a terms-of-reference block naming an investigating officer",
+        "confidentiality wording in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the timeline-cause-actions shape is present in full, and the subject is a PERSON rather than an effort or an outage - this is the collision fixture, and it belongs to hr.employee-relations",
+        "a finding, an allegation or an outcome as a fact of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "retro board 2026-04-30.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a wall of sticky notes arranged in three columns",
+        "EXIF carries a capture timestamp",
+        "OCR yields fragmentary handwritten phrases, several naming colleagues",
+        "sits beside a write-up document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a retrospective fact from the neighbouring write-up - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that fragmentary OCR of handwriting supports any conclusion about what was said",
+        "that the image is harmless because it is unreadable: a retro wall photographs candid statements about named people",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "incident_metrics_20260430.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "machine-generated filename with a date token",
+        "columns name a timestamp, a service, an error rate and a request count",
+        "no incident reference and no prose",
+        "sits in the review folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "an incident fact from the neighbouring post-mortem - this is a sparse member that joins the group without inheriting its anchor",
+        "activation of this row from a metrics export alone; it is evidence attached to a review, not a review",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Lessons learned register.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per lesson with a category, a source project, a recommendation and an adoption status",
+        "entries spanning several years and several efforts",
+        "a filter row and a pivot sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a single project anchor for a register that names twenty - the register is the organisation's, not any one effort's",
+        "which of this row and business_operations.risk-register owns it: a lessons register and a risk register share the accumulate-forever shape, and the discriminator is past versus future",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE postmortem draft - comments please.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject slot names a post-mortem and a draft state",
+        "recipients slot resolves to an internal distribution list",
+        "one attachment named as a draft write-up",
+        "a body asking for comment before publication"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the attachment's contents from its filename - it is its own file and is extracted as one",
+        "activation from source_type = email alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "debrief_recording.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "an audio file with a recorder-generated filename",
+        "container metadata names a conferencing application",
+        "no transcript exists at scan time",
+        "sits beside the retro board photograph"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a review or an effort fact from the neighbouring files",
+        "that the file is harmless because it is unreadable at scan time: a blameless debrief is candid speech about named colleagues",
+        "that transcription may proceed outside the user's policy; any transcription is a model path P7 gates first",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "A lessons-learned section lives inside a closure report, and a retrospective is filed with the project it closes. The discriminating evidence: a forward-looking control artifact - scope, schedule, dependency, RAG - supports delivery; a backward-looking causal account with a timeline, contributing factors and remediation commitments supports this row. An incident post-mortem with no project at all is the case that makes this row necessary rather than a work_type value of the other. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "A grievance or disciplinary investigation report has the identical timeline-cause-actions shape. The discriminating evidence is WHAT IS UNDER REVIEW: an effort, a system or an event supports this row; a named individual as the subject, with a terms-of-reference block, an investigating officer and a right-of-response section, supports employee relations. Getting this wrong files someone's disciplinary record in a working folder, which is why it is the fixture. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "A lessons-learned register and a risk register share the accumulate-forever, one-row-per-entry, owner-and-status shape. The discriminating evidence: an entry describing something that ALREADY happened with a recommendation supports this row; an entry describing something that MIGHT happen with a likelihood, an impact and a treatment supports the register. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "An audit finding and a corrective-action plan are a causal account with remediation actions, and a regulator-facing incident report reads like a post-mortem. The discriminating evidence: an external standard, a control reference, an auditor and a finding-severity scheme supports the audit row; an internally chosen, internally owned review with no control framework supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "An accident or near-miss investigation is a post-mortem with statutory weight and often an injured person. The discriminating evidence: a physical-harm frame, a statutory reporting reference and an injured party supports the safety row; a service, a delivery or a commercial outcome supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "Engineering post-mortems are frequently written as markdown inside the repository, beside architecture decision records that also read as past-tense rationale. The discriminating evidence: residence in a repository with source and configuration, and a decision-record framing, supports the software project; an incident header with severity, detection and impact supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.case-conference",
+      "signal": "A morbidity-and-mortality or significant-event review is a blameless post-mortem in a clinical setting, and the vocabulary of contributing factors and learning points is shared verbatim. The discriminating evidence: named patients, a clinical service and a care episode supports the clinical row - and carries its protective posture with it; an organisational service, product or delivery outcome supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone post-mortem or lessons register with no accepted project or incident group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a retro sheet, a metrics export or a draft whose subject is unresolved - and the honest default whenever the person-versus-effort question above is open. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for a review whose subject turns out to be a named individual rather than an effort, which this row must never absorb. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an untranscribed debrief recording or a password-protected review pack. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a retro-board photograph with no accepted review association. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row is marked where its sibling project-delivery is not, and the reason is specific rather than defensive: a retrospective is by construction a candid written account of what went wrong, naming the people who were involved and, in a blameless culture, deliberately recording statements that were made on the understanding they would not travel. An incident post-mortem additionally states how a system failed and what was not caught, which is operational intelligence about a live estate. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and a review that turns out to concern an individual's conduct is employment material in the plainest sense, for which the transition is immediate: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” - and, because a branch named after a failure is itself a disclosure, “Protected branches should have configurable redaction in the canvas and review screens”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether this row survives R1c as its own node or collapses into a work_type value of business_operations.project-delivery. The dispatch brief flagged the doubt and this pass tested it rather than assuming: it passes the node test on three independent grounds - a large share of the material (outage and near-miss post-mortems) has no project anchor at all and would be homeless under a project-first row; its detection signals are a distinct shape (timeline plus causal analysis) rather than a vocabulary variant; and its privacy posture genuinely differs, which is why it carries potentially_sensitive and delivery does not. What this pass could NOT settle is the file that is both - a closure report whose last third is the retrospective - and that is a P10 question about accepted groups rather than a catalogue question. A second unresolved boundary is stated reciprocally against hr.employee-relations: the person-versus-effort discriminator is the one place where guessing wrong files a disciplinary record in a working branch."
+}

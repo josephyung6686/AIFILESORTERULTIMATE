@@ -1,0 +1,388 @@
+{
+  "id": "business_operations.it-asset-inventory",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "IT asset, licence and estate records",
+  "one_line": "The organizational situation of keeping a maintained record of the IT estate - what hardware and software exist, who holds each item, what it is entitled or licensed to run, and how the estate is wired together. The organizing anchor is the ESTATE as a standing inventory, not any one purchase, which is what separates it from the sourcing event that bought the item and the contract that licenses it. Absorbs the legacy rows soft.it-asset-inventory (ROW) and soft.network-diagram (FOLD) - a diagram describes the same estate the register lists. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a tabular structure whose header row carries asset-identity columns - asset tag, serial number, hostname, model - together with an assignment or location column naming a person, a team or a site. Identity plus custody in one header is the shape. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an entitlement structure pairing a named software product with a seat or quantity count and a renewal or expiry date, often with an assigned-versus-purchased comparison.",
+      "a labelled export from a device-management or directory system: a machine-generated filename, a header row naming operating system, last check-in and enrolled user, and one row per device.",
+      "a diagram whose text layer carries estate tokens - subnet or CIDR notation, VLAN identifiers, hostnames, rack or switch labels - rather than the dimensioned geometry of an engineering drawing.",
+      "a device-handover or acceptance structure pairing one named individual, one asset identifier and a date of issue or return.",
+      "a disposal or secure-destruction certificate structure naming an asset identifier and a destruction method."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating an IT asset register from a fixed-asset register kept for accounting, a stocktake of goods for sale, a plant and equipment register, or a shipping manifest - all four are the same identity-plus-quantity table with different intent. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "deciding whether a network or system diagram documents an as-built estate (this row) or proposes a design (an engineering or software architecture artifact).",
+      "an unlabeled spreadsheet of equipment with no header row, or a free-prose description of the estate written in a handover note.",
+      "a purpose-coherent estate packet whose members are individually unremarkable - a register, two diagrams, a licence certificate and a blank handover form. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "a serial-, MAC- or asset-tag-shaped token alone. Every warranty card, invoice and repair receipt carries one, and none of those is an inventory record - this is the tempting false file for this row.",
+      "a spreadsheet alone, or a header row naming quantities alone. A quantity table is the most generic structure in office work.",
+      "an extension or a source_type alone - 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a hardware or software vendor's name alone - a vendor appears on an invoice, a marketing PDF and a support email as readily as on a register.",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a diagram file alone: .vsdx, .drawio and .png hold floor plans, org charts and process maps just as often as network topologies.",
+      "a bare 4-digit number read as a year, a reference, or a version.",
+      "membership in a download session that dropped a whole pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "an OCR'd photograph of an asset label alone, without a register or handover structure around it."
+    ]
+  },
+  "proposed_context_terms": [
+    "asset tag",
+    "serial number",
+    "hostname",
+    "assigned to",
+    "custodian",
+    "warranty expiry",
+    "licence key",
+    "entitlement",
+    "seats",
+    "subscription renewal",
+    "end of life",
+    "refresh cycle",
+    "subnet",
+    "VLAN",
+    "rack",
+    "decommissioned",
+    "handover",
+    "return of equipment",
+    "secure disposal",
+    "enrolled device"
+  ],
+  "work_types": [
+    "asset register or inventory export",
+    "software licence and entitlement record",
+    "device-management or directory export",
+    "network, system or estate diagram",
+    "device handover, issue or return form",
+    "warranty and support-cover record",
+    "disposal or secure-destruction certificate",
+    "estate refresh or lifecycle plan",
+    "stocktake or audit reconciliation"
+  ],
+  "grouping_reasons": [
+    "one estate snapshot: the register, its supporting exports and the diagrams generated for the same review date, held together by purpose rather than content. “The documents are content-incoherent but purpose-coherent.”",
+    "one register across its versions - the same workbook re-saved quarterly is a version family, not nine domains.",
+    "one asset across its life - purchase, handover, repair, disposal - which is a real reason to group and the one most likely to tempt a custodian's name onto a stray receipt. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single licence certificate with no register nearby is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the natural anchor is the organisation or site whose estate this is, then the asset class (end-user device, server, network, software entitlement), then the document function; a snapshot date would sit last because a register is a living document re-saved rather than a dated series. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem. Privacy caveat that is specific to this row: an asset register is a staff directory joined to a serial-number list, and a network diagram is a map of how to reach the estate, so neither should acquire automatic internal depth. “Protected branches should have configurable redaction in the canvas and review screens”."
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "design_creative",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".vsdx",
+      ".drawio",
+      ".png",
+      ".jpg",
+      ".eml",
+      ".zip",
+      ".pptx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "IT asset register 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads asset tag, serial, model, assigned to, location, purchase date, warranty end",
+        "one row per device across several hundred rows",
+        "a second sheet named Disposals",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "that a list of short cells is low-risk: the register names every member of staff beside a device they carry",
+        "an employer fact copied onto any file that mentions the same site",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "M365 licence reconciliation Q1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns name a product tier, seats purchased, seats assigned and a renewal date",
+        "a variance column with a formula",
+        "a note row naming the reseller"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a renewal commitment or a spend figure as a fact of the product's own",
+        "that this is the contract - the agreement itself is contract administration's anchor",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Network diagram - HQ v3.vsdx",
+      "source_type": "design_creative",
+      "observations": [
+        "shapes labelled with hostnames, subnet notation and VLAN identifiers",
+        "a title block naming a site and a revision",
+        "an external link to a stencil library"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a diagram extension proves a network diagram - the same file type holds floor plans and org charts",
+        "any business_operations fact - none is declared",
+        "that an internal topology is harmless to summarise into a model prompt",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Laptop handover form - signed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scanned form with a printed name, an asset tag, a date and a handwritten signature",
+        "no extractable text layer until OCR",
+        "a checkbox list of accessories"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which of this row and hr.onboarding-offboarding owns it - both anchors are genuinely present, and P10 chooses from an accepted group later",
+        "an employment fact from a signature block",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Dell invoice INV-88213.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled invoice header with an invoice number, a supplier, a total and a tax line",
+        "line items naming laptop models and serial numbers",
+        "payment terms"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: serial numbers appear, but a purchase document is a transaction, not an inventory - this is the collision fixture, and it belongs to finance or to the sourcing event",
+        "an asset-custody fact from a delivery address",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "intune_device_export_20260301.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "machine-generated filename carrying a date token",
+        "header row names device name, OS version, last check-in, user principal name",
+        "one row per enrolled device"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a person fact used as a folder proposal - authorship and custody are never destinations",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Adobe licence certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a certificate layout naming a licensee organisation, a product, a quantity and a term",
+        "a licence or order identifier",
+        "no assignment information"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.contract-administration owns it - an entitlement certificate is both an inventory line and a contractual instrument",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_4471.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a rack-mounted device with a visible asset label",
+        "EXIF carries a capture timestamp and no GPS",
+        "OCR of the label yields a serial-shaped token",
+        "sits in a folder beside the register"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "an asset fact from the neighbouring register - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "activation from a serial-shaped token alone",
+        "that the absence of GPS metadata proves anything",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "it_estate_backup.zip",
+      "source_type": "archive",
+      "observations": [
+        "an archive manifest listing a register, three diagrams, a licence PDF and a personal photograph",
+        "mixed member types",
+        "no readable top-level document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - the members are extracted as their own files",
+        "that a stray personal member inherits the estate context",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "A fixed-asset register kept for depreciation lists the same machines with the same serials. The discriminating evidence: custody and configuration columns - assigned to, location, OS, warranty cover - support this row; acquisition cost, depreciation method, net book value and a posting reference support the accounting register. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.asset-register",
+      "signal": "Plant and equipment registers share the identity-plus-custody table exactly. The discriminating evidence: hostnames, operating systems, licence entitlements and network addressing support this row; machine numbers, calibration due dates, maintenance intervals and criticality ratings support the plant register. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "The sourcing event that bought the fleet and the register that lists it name the same models and the same supplier. The discriminating evidence: a solicitation reference, a bid comparison or an award letter is the event; a standing list with custody columns is this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "A software entitlement certificate is simultaneously an inventory line and a contractual instrument, and the renewal date appears in both. The discriminating evidence: an obligations register, notice periods and executed signature blocks support contract administration; a seat count reconciled against assignments supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.onboarding-offboarding",
+      "signal": "Device issue and return forms are produced by the joiner and leaver process and filed by both functions. The discriminating evidence: a checklist spanning accounts, payroll, induction and access supports hr; a form anchored on one asset identifier with no employment content supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "Site records, floor plans and access-badge lists share the register-and-diagram shape and often the same site name. The discriminating evidence: rooms, desks, keys, maintenance contracts and premises support facilities; hostnames, entitlements and device custody support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "An architecture or infrastructure diagram committed beside source code describes systems rather than an administered estate. The discriminating evidence: residence in a repository with code and configuration, and service-level rather than device-level naming, supports the software project; an asset tag, a custodian and a purchase or warranty anchor supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone licence certificate, warranty record, handover form or disposal certificate with no register or accepted estate group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for an unlabeled equipment spreadsheet or an ambiguous diagram whose estate meaning is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The correct home for the purchase side that this row must not absorb - an isolated hardware invoice, order confirmation or subscription receipt. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected estate archive or an unreadable diagram binary. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a photograph of a device or a label with no accepted inventory association. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "An asset register is a staff list joined to a hardware list: it concentrates many named individuals' custody, location and equipment in one file, and an estate diagram is a description of how to reach the systems those people use. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and licence keys and credential-bearing exports fall under “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Where the boundary sits for a single person or a household. A freelancer's list of their own laptops, warranties and software subscriptions has exactly this shape and none of the organisational anchor, and it arguably belongs with personal administration rather than with an IT function. The row does not resolve it, because deciding it silently would put someone's personal device list under a work branch."
+}

@@ -1,0 +1,414 @@
+{
+  "id": "business_operations.strategy-plan",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Strategy, planning and investment cases",
+  "one_line": "The organizational situation of deciding and stating WHERE AN ORGANISATION OR UNIT IS GOING over a named horizon: the strategy paper and the analysis behind it, the annual or three-year plan that operationalises it, the objectives-and-key-results or goal set that makes it measurable, and the business case that argues one option should be funded rather than another. The organizing anchor is a PLANNING HORIZON plus the unit it belongs to, and the material is argumentative and forward-looking - it recommends, it does not schedule and it does not account. Absorbs the legacy rows ops.strategy-plan (ROW), ops.okr-goals (FOLD) and ops.business-case (FOLD) - goals and investment cases are how a strategy is stated and funded. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a horizon-bearing title or heading structure: a document whose title block pairs a unit or entity with a stated span of years or a plan period, and whose opening section states a mission, vision, or where-we-want-to-be position.",
+      "an objectives structure: numbered strategic objectives or priorities, each followed by measures, targets and owners - or the explicit objective-with-nested-key-results shape, which is the same thing in a named idiom.",
+      "an options-appraisal structure, which is the business case in its recognisable form: a do-nothing or baseline option set out beside two or more alternatives, each with costs, benefits and risks, followed by a single recommendation and an approval or decision slot.",
+      "a strategic-analysis structure: a labelled four-quadrant grid (strengths, weaknesses, opportunities, threats), a five-forces or PESTLE heading set, or a scenario-planning layout naming two or more named futures.",
+      "a benefits structure pairing quantified and non-quantified benefits with a realisation period and a benefit owner, distinct from a project's deliverable list because it names OUTCOMES rather than outputs.",
+      "an initiative or roadmap structure whose rows are themes and whose columns are horizons or years rather than weeks, with no task dependencies - the discriminator against a project schedule."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating an organisational strategy from a product strategy, a marketing plan, a research programme proposal, a grant application's case for support, a nonprofit's strategic plan or an individual's own career plan - all state objectives, a horizon and a rationale. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "deciding whether a document is a strategy or the MINUTES of a strategy discussion, when the file is a set of notes from an offsite.",
+      "an unlabeled deck of slides that argues a direction without ever using a planning word, and a scanned flip-chart from a strategy day.",
+      "whether a business case authorises a project (this row) or reports on one already running (delivery), when both cite the same effort and the same numbers.",
+      "a purpose-coherent planning pack whose members are individually unremarkable - a draft narrative, a financial model, a market slide, a benefits sheet and a blank approval form. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "the words strategy, plan, roadmap, goals or objectives in a filename alone. Plan names a project plan, a floor plan, a lesson plan, a birth plan and a meal plan - and this row's tempting false file is a project plan, which shares the vocabulary and none of the argument.",
+      "a numbered objectives list alone: every appraisal form, course syllabus and job description has one.",
+      "a slide deck alone, or a corporate slide master alone - both are shared with every other row in this family.",
+      "an extension or a source_type alone. 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number read as a plan year, a version, or a target.",
+      "a financial model or a table of projected figures alone - that shape belongs at least as much to budgeting, and reading it as strategy would swallow the budget row whole.",
+      "membership in a download session that dropped a planning pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "strategic plan",
+    "strategy",
+    "mission",
+    "vision",
+    "strategic priority",
+    "objective",
+    "key result",
+    "OKR",
+    "goal",
+    "target operating model",
+    "business case",
+    "options appraisal",
+    "do nothing option",
+    "preferred option",
+    "cost benefit",
+    "payback",
+    "benefits realisation",
+    "SWOT",
+    "PESTLE",
+    "scenario",
+    "horizon",
+    "five year plan",
+    "annual plan",
+    "operating plan",
+    "initiative",
+    "strategic review",
+    "offsite"
+  ],
+  "work_types": [
+    "strategy paper or strategic plan",
+    "annual, operating, or multi-year plan",
+    "objectives, goals, or OKR set",
+    "business case or investment appraisal",
+    "options appraisal or feasibility study",
+    "strategic analysis - SWOT, PESTLE, scenarios, competitive assessment",
+    "benefits map or benefits realisation plan",
+    "strategy day or offsite output",
+    "target operating model or organisational design paper",
+    "strategy communication deck or cascade material"
+  ],
+  "grouping_reasons": [
+    "one planning round: the draft narrative, the supporting analysis, the financial model, the benefits sheet and the approved final, held together by purpose rather than content. “The documents are content-incoherent but purpose-coherent.”",
+    "one strategy across its drafts and its approved version - a heavy version family, since these documents are circulated many times before sign-off.",
+    "one objective set across its review points - a quarterly OKR sheet re-saved with updated scores is a version family, not four domains.",
+    "one business case as it travels - draft, committee paper, approval, then the project it authorises - a real reason to group, and the point at which a project fact would be wrongly copied backward onto the case. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single strategy deck kept from a previous employer is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch. Held as prose for the pass that may license fields: the natural anchor is the unit or entity whose strategy it is, then the planning round or horizon, then the document function - and this row is the family's most defensible case for putting a PERIOD high, because a planning round is the thing people actually name and remember - the 2026-27 plan. It still should not be first at the root: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The parent-before-child rule governs the rest - “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - since an options appraisal is unintelligible before the reader knows which decision it served. The user may reverse, remove or flatten this: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”"
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "design_creative"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".pptx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".png",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Strategic plan 2026-2029 FINAL.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title block pairing an organisation with a three-year span",
+        "sections headed vision, strategic priorities, measures, and delivery",
+        "five numbered priorities each with targets and named owners",
+        "a foreword signed by a chief executive"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "that FINAL in a filename establishes a version relationship on its own; a version family is a hash-and-lineage conclusion, not a filename one",
+        "that a signatory name is a destination: “It should avoid using authorship or creator identity as a destination dimension.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Business case - warehouse automation v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "sections headed strategic case, economic case, commercial case, financial case, management case",
+        "an options table with a do-nothing baseline and three alternatives",
+        "a recommendation paragraph and an approval signature block",
+        "an appendix referencing a separate financial model"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.project-delivery owns it - a business case authorises a project and names it throughout; P10 chooses from an accepted group later",
+        "a cost, a benefit or a payback figure as a fact of the product's own",
+        "that unannounced investment intentions are ordinary business content",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "OKRs Q3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "objective rows with nested key-result rows beneath them",
+        "columns for owner, baseline, target, current and a score",
+        "a tab per team",
+        "no organisation name anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "an organisation fact when the file names none",
+        "a score or an attainment as a fact of the product's own",
+        "which of this row and hr.performance-cycle owns it when the key results are attached to named individuals rather than to teams - that reading carries a different privacy posture",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Phoenix project plan.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "task rows with start, finish, duration, predecessor and resource columns",
+        "a milestone set and a critical-path highlight",
+        "an objectives sheet restating three goals",
+        "a project name in the title row"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: an objectives sheet is present and the document SCHEDULES rather than argues - this is the collision fixture, and it belongs to business_operations.project-delivery",
+        "a strategy fact from a goals tab inside a schedule",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Strategy offsite - flipcharts.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a flip chart with handwritten headings and bullet fragments",
+        "EXIF carries a capture timestamp and a GPS pair",
+        "OCR yields partial words only",
+        "one of a burst of eleven similar photographs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a strategy fact from fragmentary OCR of handwriting",
+        "that a GPS pair may travel with the file into a model prompt or a folder name - 00 names GPS metadata as part of the sensitive corpus",
+        "a strategy fact from a neighbouring draft - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Market sizing model.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "assumption cells feeding a projection grid over five years",
+        "a scenario switch with three named cases",
+        "a sources sheet listing published reports",
+        "heavy formula use and no prose"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of this row, business_operations.market-research and business_operations.budget-forecast owns it - a sizing model is analysis for a strategy, an output of market research and a forecast in shape, all at once",
+        "a projected figure as a fact of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Board strategy paper - May.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a recommendation slide, an options slide and a risks slide",
+        "a committee name, a paper number and a date in the footer",
+        "a confidential marking on every slide",
+        "a corporate slide master"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.board-governance owns it - a paper number and a committee footer are governance anchors and the content is a strategy argument",
+        "a confidentiality marking as a P7 handling class; the marking is an observation, and the class is P7's to assign",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Our 5 year plan.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a horizon in the title and a goals list with target years",
+        "content concerns savings, a house move, a career change and two children's schooling",
+        "no organisation, no owner column, no approval",
+        "written in the first person plural"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the horizon-and-goals shape is present in full and the subject is a household - this is the second collision fixture, and filing a family's private plan in a work branch is the concrete harm it guards against",
+        "an employer fact from a career-change section",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FW plan pack - do not circulate.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject slot names a plan pack and a restriction",
+        "recipients slot resolves to four named executives",
+        "three attachment names: a narrative, a model and a deck",
+        "a one-line body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the attachments' contents from their filenames - each is its own file and is extracted as one",
+        "activation from source_type = email alone",
+        "a restriction instruction as a handling class of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "A business case names, scopes and costs the project it authorises, and a project plan restates the objectives it inherits. The discriminating evidence: an options-and-recommendation structure with an appraisal horizon and an approval slot supports this row; a dependency-bearing schedule, a RAID log and a status cadence supports delivery. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "A business case is a financial model with a narrative, and an annual plan and an annual budget are produced in the same round from the same numbers. The discriminating evidence: an argument comparing options over a multi-year horizon supports this row; a period-scoped set of line items with variance against actuals supports the budget row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "Strategy is approved by boards, so the same argument exists as a strategy paper and as a numbered board paper inside a pack. The discriminating evidence: a notice, agenda, pack pagination, minute or resolution structure supports governance; the strategic argument itself supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.product-roadmap",
+      "signal": "A product strategy and a roadmap state themes over horizons in the same layout the organisational plan uses. The discriminating evidence: a named product, releases, features and customer-facing sequencing supports the roadmap row; an entity or unit, a mission and measures spanning all its activities supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.market-research",
+      "signal": "The analysis packaged inside a strategy - sizing, competitive landscape, scenarios - is also market research's own output, and often the same workbook. The discriminating evidence: a research question, a method and a source set supports market research; a recommendation and a horizon supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.performance-cycle",
+      "signal": "OKRs and goal sets cascade from an organisation to teams to individuals without changing shape, and the individual level is a performance record. The discriminating evidence: objectives attached to named individuals with ratings, calibration or a review conversation supports the hr row - and carries its privacy posture; objectives attached to units or the entity supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "An individual's own career plan, personal goals or development objectives use the identical horizon-and-objectives shape, and a household five-year plan does too. The discriminating evidence: a first-person subject with no unit, no owner column and no approval supports the personal reading; an entity or unit with owners and measures supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.grants-funding",
+      "signal": "A case for support in a grant application is an options-and-benefits argument over a funding horizon, and reads as a business case with academic vocabulary. The discriminating evidence: a funder, a call reference, a protocol or a research question supports the grants row; an internal approval route and an operational benefits frame supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone strategy document or approved business case with no accepted planning group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a goals sheet, a model or a deck whose unit and horizon are unresolved - the common case, because these files routinely name no organisation. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The honest home for a published strategy or annual report collected from ANOTHER organisation as reference material, which this row must not absorb as the holder's own. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected planning pack, which is how restricted strategy material is commonly circulated. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for an offsite flip-chart photograph with no accepted planning association. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Strategy material is the most commonly restricted class of ordinary business document: an unapproved plan states intentions - a closure, a disposal, a redundancy programme, an acquisition - before the people affected have been told, and a business case carries unannounced investment figures. That is not personal data in 00's enumerated sense, which is precisely why the marking must be justified rather than assumed: the reason it earns the value is that these files routinely carry a restriction marking and a restricted circulation list, and a strategy pack frequently contains members - a headcount appendix, a named-individual reorganisation chart - that ARE employment material within the corpus 00 describes, which “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”, and a branch named after an unannounced initiative is itself a disclosure - “Protected branches should have configurable redaction in the canvas and review screens”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class, and it treats a confidentiality marking on a page as an observation rather than as a class.",
+  "open_question": "Whether the OKR and goals material should have stayed folded into this row. The fold is right where objectives belong to the entity or a team, and wrong at the individual level, where the identical spreadsheet becomes a performance record governed by hr.performance-cycle - and the cascade means the same workbook often holds both, tab by tab. This pass kept the fold and stated the boundary reciprocally against hr.performance-cycle rather than resolving it, because the resolution decides whether someone's personal objectives can be filed under a corporate planning branch. A second question, raised and not settled: whether a strategy or annual report collected from ANOTHER organisation should activate this row at all. This pass says no and routes it to the Reading Inbox, on the ground that the row's anchor is custody of one's own plan, but the same file is genuinely competitor reference material for a market-research reading."
+}

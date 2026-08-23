@@ -1,0 +1,459 @@
+{
+  "id": "business_operations.compliance-audit",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Compliance evidence and audit",
+  "one_line": "Evidence that an entity meets an external standard or an internal control obligation, and the reviews that test it: certification and standard documentation, control descriptions and their evidence, internal and external audit reports, findings and corrective actions, attestations, and the auditor correspondence around them. The anchor is a CONTROL and the ASSESSMENT that tested it — a claim about the entity's own conduct, proved by artifacts gathered for someone else to check. Absorbs the legacy rows corp.compliance-audit and soft.tech-compliance-evidence. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a finding structure: a numbered or referenced finding with a severity or rating slot, a description, a management response, a named owner and a target date — usually as a table, and this is the single most characteristic structure in the row. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a control structure: a control identifier crossed with a control objective, a control description, an owner, a frequency, and a test result or effectiveness conclusion. Control identifiers are a labelled slot, and their presence beside evidence references is what distinguishes real control documentation from a policy.",
+      "a certification structure: a certificate carrying an issuing body, a standard reference, a labelled scope-of-certification statement, a certificate number, and an issue-and-expiry date pair.",
+      "an audit-report structure: a scope-and-objectives section, a methodology or approach section, an opinion or conclusion, and an appendix of findings — with a named auditor or firm distinct from the entity being audited.",
+      "an evidence-request structure: a prepared-by-client or information-request list — numbered requests against due dates and a received or outstanding marker — which is the operational spine of an audit and appears in no other situation.",
+      "an attestation or acknowledgement register: a roster of names or roles against a document version and a date acknowledged, produced by a policy or training platform.",
+      "an email whose labelled sender slot resolves to an audit firm or certification body domain and whose labelled subject slot names an audit, a finding, a standard, or an evidence request.",
+      "parent-folder context naming a standard, an audit year, or an audit stage, treated as a clue that raises plausibility once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this world is commercially confidential and often confidential to a THIRD party, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "separating COMPLIANCE evidence from the underlying operational artifact it happens to be. An access-review export, a backup log, a training record and a signed policy are ordinary operational files that become compliance evidence only because someone gathered them for an assessment. “Topic answers what a file is about, while purpose answers what the file was for.” — this row is a purpose row, and that is exactly why its members are individually unremarkable.",
+      "separating an entity's OWN compliance record from a supplier's evidence it collected, from a customer's questionnaire it answered, and from a standard's published text it downloaded. All four sit in the same folder in a real corpus.",
+      "separating a financial statement audit from an operational or certification audit — the word audit covers both and the neighbouring family differs.",
+      "unlabelled assurance prose: a remediation memo, a management representation, a risk acceptance note with no table and no reference.",
+      "a purpose-coherent audit packet whose members are individually unremarkable — a request list, twelve screenshots, three exports, a policy PDF and a spreadsheet. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "the presence of a standard's name or number alone. A saved copy of the standard, a consultancy's gap-analysis marketing PDF, a training course and a job description all carry it, and this is the tempting false file for this row.",
+      "compliance vocabulary alone — control, audit, finding, evidence, remediation, attestation. Every regulated family on this roster uses it, and so does a great deal of published reading material.",
+      "a screenshot of a system configuration alone. Evidence screenshots are the commonest members of this row and the least self-describing; without a request reference or a surrounding pack, one is just a screenshot. “the system must not mistake the absence of EXIF for proof that an image is a screenshot” applies to the capture question separately.",
+      "a certificate-shaped PDF alone, which is equally an insurance certificate, a training certificate, a trade certificate, or a personal credential.",
+      "a company, charity, or regulator gazetteer hit alone. 00 states the ambiguity for a university — “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — and a company name is worse, appearing as employer, customer, supplier, competitor, regulator, and as the letterhead of a document that is merely ABOUT the holder. Stated as inference; 00 writes that sentence about a university, not a company.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session that emptied a document-management system or a mail thread's attachments at once. “A session should never be treated as proof of topic”",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — a corporate template stamps the same entity on every blank form it ever generated.",
+      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version."
+    ]
+  },
+  "proposed_context_terms": [
+    "control objective",
+    "control owner",
+    "test of design",
+    "test of effectiveness",
+    "finding",
+    "observation",
+    "severity",
+    "management response",
+    "corrective action",
+    "remediation",
+    "root cause",
+    "target date",
+    "scope of certification",
+    "statement of applicability",
+    "surveillance audit",
+    "stage 1",
+    "stage 2",
+    "non-conformity",
+    "major non-conformity",
+    "minor non-conformity",
+    "internal audit",
+    "external audit",
+    "auditor",
+    "assurance",
+    "attestation",
+    "evidence request",
+    "prepared by client",
+    "sample",
+    "population",
+    "exception",
+    "risk acceptance",
+    "management letter",
+    "opinion",
+    "in scope",
+    "out of scope"
+  ],
+  "work_types": [
+    "certificate of registration or conformity",
+    "statement of applicability or control matrix",
+    "control description or narrative",
+    "control evidence artifact (export, screenshot, log, sample)",
+    "evidence or information request list",
+    "internal audit report",
+    "external audit or assurance report",
+    "audit finding and corrective-action log",
+    "management response or representation letter",
+    "management letter",
+    "non-conformity or exception record",
+    "attestation or acknowledgement register",
+    "training or awareness completion record",
+    "supplier or third-party assurance questionnaire",
+    "risk acceptance or exception approval",
+    "remediation plan and closure evidence",
+    "audit plan, scope, and timetable"
+  ],
+  "grouping_reasons": [
+    "one audit or assessment occurrence: the scope, the request list, the evidence gathered for it, the report and the findings — the clearest case in the whole family of a group held together by purpose rather than content. “The documents are content-incoherent but purpose-coherent.”",
+    "one standard or certification across its cycle: initial certification, surveillance audits, recertification, joined by a standard reference and a certificate number rather than by filenames.",
+    "one finding from raising to closure, across the report, the plan, the evidence and the sign-off.",
+    "one control across the periods it was tested — the reason most likely to tempt a control label onto a bare screenshot, which is exactly what must not happen. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a lone certificate PDF is an ordinary standalone record.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two entities' or two standards' evidence does not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and business_operations declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question. The recommendation, held as prose: the standard, framework, or obligation the evidence answers to, then the audit or assessment occurrence, then the control or finding, then the document function. Evidence artifacts are meaningless above their assessment, which is the same reason 00 gives for putting a course above a homework number. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "presentation",
+      "archive",
+      "code_structured",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".png",
+      ".jpg",
+      ".eml",
+      ".msg",
+      ".pptx",
+      ".zip",
+      ".json",
+      ".log"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "ISO27001 - Statement of Applicability v4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a control-identifier column crossed with applicability, justification and owner columns",
+        "a version and approval header",
+        "a footer naming an entity and a certification body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that applicability marks prove the control operates; the sheet records intent, not effectiveness",
+        "a code conclusion because the controls are technical",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Internal audit report - procurement - FY26.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scope-and-objectives section and a methodology section",
+        "an opinion paragraph with a rating",
+        "an appendix table of findings with severities, owners and target dates",
+        "an internal audit function named as author, distinct from the audited unit"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "an audit conclusion of the product's own from an opinion paragraph; the text is a raw observation",
+        "that a named owner is a person fact this row may store",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Findings tracker.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns reading finding reference, source audit, severity, owner, target date, status",
+        "rows spanning several audits and two standards",
+        "conditional formatting on overdue rows",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "a status or a risk judgement of the product's own from a cell",
+        "that one tracker means one audit group: it spans several, which is a real reason it may join no single group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Access review Q1 - screenshot 03.png",
+      "source_type": "image",
+      "observations": [
+        "a capture of an admin console user list with roles and last-login dates",
+        "a filename carrying an evidence-request-shaped reference",
+        "no EXIF camera fields",
+        "named user accounts visible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a screenshot conclusion from missing EXIF — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "that an evidence-shaped filename proves an audit exists; the reference is an observation",
+        "that a console capture is impersonal: it names employees and their access",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PBC list - external audit 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "numbered information requests against due dates and a received marker",
+        "a requester column naming an audit firm",
+        "a status column with outstanding items"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "the contents of the requested items from their descriptions",
+        "a finance conclusion because the requester is an audit firm",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Certificate of Registration - ISO 9001.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an issuing body's letterhead and accreditation marks",
+        "a labelled scope-of-certification statement",
+        "a certificate number and an issue-and-expiry date pair",
+        "a named entity and a site address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that expiry within the file is a durable fact this row may store",
+        "that any certificate-shaped PDF is this row's — insurance, training and trade certificates share the shape exactly",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ISO 27001-2022 standard.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a standards body's published text with clause numbering and a copyright notice",
+        "a licensed-copy watermark",
+        "no entity name, no control evidence, no findings"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: this is the published standard, not the entity's conformity to it — the collision fixture for this row",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Supplier security questionnaire - Acme - completed.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a questionnaire structure with numbered questions and free-text answers",
+        "a header naming the requesting customer and the responding entity",
+        "attachments referenced by name in the answers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which side the holder is on: the same completed questionnaire is the responder's compliance evidence and the requester's third-party assurance record, and the header is the only discriminator",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "audit-evidence-2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing folders per control reference, containing screenshots, exports and policy PDFs",
+        "the archive is password-protected"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "a purpose fact from the manifest alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Food hygiene inspection report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a local authority letterhead and an officer's name",
+        "a scored rating and a schedule of contraventions with deadlines",
+        "a premises address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row without care: an authority's statutory inspection of a food premises is the sector row's situation, not general compliance evidence — the discriminator is a statutory inspection power and a premises rating scheme",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "Compliance evidence and a regulatory return are gathered by the same people in the same folder and often for the same deadline. The discriminating evidence: a submission to a named authority with a filing reference and an acknowledgement supports the filings row; a control, a finding, a corrective action, or an assessor's report supports this row. Some regulators require both, and a single pack carrying both is a real file. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "A risk register and a findings tracker are the same table with a different header, and findings routinely become risks. The discriminating evidence: an inherent-and-residual rating pair with a likelihood and impact scale supports the risk register; a finding raised by an identified assessment, with a severity and a corrective action, supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "A policy is the control's statement and the attestation register is the evidence it was adopted, so both rows touch one document set. The discriminating evidence: a version, owner, approver and review-date header on governing text supports the policy row; an acknowledgement roster, a control mapping, or an audit reference against that policy supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.compliance-certificate",
+      "signal": "Certificates of conformity look identical across families. The discriminating evidence: an installation, a premises, a trade body, or a building-control reference supports the construction row; a management-system standard, a scope-of-certification statement, and a surveillance-audit cycle supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.food-safety",
+      "signal": "A statutory food-hygiene inspection produces a report, a rating and a schedule of contraventions with deadlines — the finding shape exactly. The discriminating evidence is the sector's own statutory inspection scheme and a premises rating; a management-system audit against a standard supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "Safety audits, incident findings and training attestation registers sit in both. The discriminating evidence: material identifying employees — an incident involving a named person, a health record, a personal training file — is the hr row and must be protected before any model path; an aggregate audit of the safety management system is this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "The legacy row soft.tech-compliance-evidence folded here, and the seam it left is real: pipeline scans, dependency licence reports and infrastructure configuration live inside a repository AND are pulled out as audit evidence. The discriminating evidence: repository structure, commit history and build configuration support the code row; an evidence-request reference, a control mapping, or an assessor's report supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "A statutory financial-statement audit is an audit and a finance record at once, and the word audit covers both. The discriminating evidence: an opinion on financial statements, an accounting framework reference, and a set of accounts support the finance side; an operational, certification, or control audit supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The commonest outcome for an evidence artifact whose assessment cannot be identified from the file itself — which describes most members of this row. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The right home for a standalone certificate, statement of applicability, or attestation with no audit around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Where evidence names employees, customers, access rights or a live finding, the protective home is correct. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The honest home for a bare evidence capture with no request reference, no pack and no readable subject. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Published standards, regulator guidance and consultancy gap-analysis PDFs are the tempting false files of this row. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected evidence bundles and proprietary GRC exports are ordinary here. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Compliance evidence is an aggregation problem: individually dull artifacts are gathered precisely because together they describe how an entity protects itself, and an evidence pack routinely contains access lists, employee training records and system configuration in one place. 00's corpus sentence names several of these — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” — and an access-review export names employees while a credentials or key-management evidence item is exactly the material 00 requires to be protected at once: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” Second, as inference: an open finding is a description of a live weakness, and its exposure harms an entity that is often not the user. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Two. (1) This is a PURPOSE row whose members are mostly other rows' artifacts — an export, a screenshot, a policy, a log — and it therefore depends more than any sibling on 00's purpose-versus-topic separation holding at scale. If NJ-3 (the scope of `purpose`) resolves narrowly, this row loses its anchor and should fold into business_operations.risk-register and the policy row. (2) The legacy fold of soft.tech-compliance-evidence into this row is defensible but leaves a real seam with code.software-project: the same configuration file is repository content and audit evidence at once, and only the purpose separates them. R1c should confirm the fold rather than inherit it."
+}

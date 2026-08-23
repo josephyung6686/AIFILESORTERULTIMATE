@@ -1,0 +1,450 @@
+{
+  "id": "business_operations.customer-account-management",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Customer success and account management",
+  "one_line": "Managing an EXISTING named customer relationship after the sale: account plans, business reviews, onboarding and adoption tracking, health and usage records, escalation summaries, and renewal or expansion preparation. The anchor is one CUSTOMER as an ongoing relationship — a named third party whose own material accumulates on the holder's machine — which is what separates it from winning the deal, from running the contract, and from answering a support ticket. Absorbs the legacy row ops.customer-success. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "an account-plan structure: a document keyed to one named customer carrying labelled slots for the relationship owner, the current state, named stakeholders and their roles, objectives, risks, and an expansion or renewal outlook. The named-stakeholder map is the most characteristic and the most sensitive element in the row.",
+      "a business-review structure: a periodic deck or report addressed TO a customer, carrying a period, usage or outcome figures, achievements against agreed objectives, and a forward plan — produced repeatedly for the same recipient.",
+      "a health or adoption structure: a per-customer record of usage, licence consumption, adoption milestones, or a health or risk score with a trend, usually as a table or an export. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an onboarding or success-plan structure: a dated milestone plan for one customer with owners on both sides and a go-live or value-realisation date.",
+      "an escalation structure: a chronological account of an issue with a named customer, an impact statement, a remediation commitment and an executive sponsor — distinct from a support ticket by being narrative and relationship-level.",
+      "a renewal-preparation structure: a per-customer sheet combining a contract end date, a current value, a proposed value, a risk assessment and an internal recommendation. This is the structure that overlaps the contract register and it is discriminated by the presence of internal commentary and a proposal.",
+      "an email or calendar item whose labelled slots name one customer organisation and a recurring review cadence, with attendee slots resolving to two different organisations' domains. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” The CONTENT is what fires; source_type contributes only as a file-kind signal.",
+      "parent-folder context naming a customer organisation, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this world is commercially confidential and often confidential to a THIRD party, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: separating a document ABOUT a customer from a document FROM or FOR that customer. A business review deck is authored by the holder and addressed to the customer; a customer's own strategy PDF shared in the relationship is the customer's material; an internal risk note is neither. All three sit in one folder and only the framing separates them.",
+      "separating a CUSTOMER relationship from a CLIENT engagement, a PARTNER relationship and a SUPPLIER relationship. The documents rhyme and the canonical field list has one key, `client`, for a role this row does not quite occupy.",
+      "separating post-sale management from pre-sale pursuit. A pipeline or opportunity document and an account plan share the account map and the stakeholder list exactly; the contract's existence is the discriminator and it is rarely stated in the file.",
+      "unlabelled relationship prose: a call note, a summary of a conversation, an internal escalation email with no header furniture.",
+      "a purpose-coherent account file whose members are individually unremarkable — a plan, a usage export, a deck, a customer's own org chart and a spreadsheet of contacts. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a customer or company name alone — the sharpest instance of 00's own warning in this family, because in this row the same name is on the holder's employer's letterhead, on the customer's shared material, on a competitor mention and on a cited reference in one folder.",
+      "account vocabulary alone — account, renewal, adoption, health, stakeholder, QBR, success. Sales training material, saved vendor thought-leadership PDFs and job descriptions are dense in it, and that is the tempting false file for this row.",
+      "a periodic deck shape alone. A quarterly deck is the shape of a board pack, a project status report, an internal review and a customer review equally.",
+      "a contacts export or a list of names alone. 00 is explicit that such data “should normally be privacy-protected rather than used to create folder proposals” — a contact list is not an account record and must not become a folder.",
+      "a company, charity, or regulator gazetteer hit alone. 00 states the ambiguity for a university — “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — and a company name is worse, appearing as employer, customer, supplier, competitor, regulator, and as the letterhead of a document that is merely ABOUT the holder. Stated as inference; 00 writes that sentence about a university, not a company.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session that emptied a document-management system or a mail thread's attachments at once. “A session should never be treated as proof of topic”",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — a corporate template stamps the same entity on every blank form it ever generated.",
+      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version."
+    ]
+  },
+  "proposed_context_terms": [
+    "account plan",
+    "account team",
+    "relationship owner",
+    "customer success manager",
+    "executive sponsor",
+    "stakeholder map",
+    "champion",
+    "quarterly business review",
+    "QBR",
+    "success plan",
+    "onboarding plan",
+    "go-live",
+    "time to value",
+    "adoption",
+    "usage",
+    "licence consumption",
+    "seats",
+    "health score",
+    "at risk",
+    "churn",
+    "escalation",
+    "remediation",
+    "renewal date",
+    "renewal forecast",
+    "expansion",
+    "upsell",
+    "cross-sell",
+    "net revenue retention",
+    "voice of the customer",
+    "NPS",
+    "reference customer",
+    "case study consent"
+  ],
+  "work_types": [
+    "account plan",
+    "stakeholder or org map",
+    "onboarding or success plan",
+    "business review deck or report",
+    "usage, adoption, or licence-consumption export",
+    "health, risk, or churn assessment",
+    "escalation summary or remediation plan",
+    "renewal preparation or forecast sheet",
+    "expansion proposal",
+    "customer meeting or call notes",
+    "customer feedback, survey, or NPS export",
+    "reference or case-study material and its consent record",
+    "handover pack from sales to success",
+    "customer-shared material held in the relationship"
+  ],
+  "grouping_reasons": [
+    "one customer relationship over time — the strongest and most dangerous grouping reason in this row, because it is exactly the case that tempts a customer label onto every file that mentions the name. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one review cycle: the invitation, the usage export, the deck, the notes and the follow-up actions — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one onboarding from handover to go-live, across the plan, the milestones and the sign-off.",
+    "one escalation from raising to closure.",
+    "one renewal event, which is genuinely shared with the contract-administration sibling and is the reason those two rows collide.",
+    "no group at all is a valid outcome: a single downloaded QBR template is an ordinary standalone file.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two customers' material in one folder does not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and business_operations declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question. The recommendation, held as prose: the customer organisation, then the engagement period or review cycle, then the document function. The customer level is the one dimension a person in this role actually files by, and it is NOT the vanity collector 00's validator rejects — the collector prohibition is about the holder's own name — “A folder should not become a collection point for everything produced by the same person or organization.” But a folder named for a customer publishes the relationship in the filesystem namespace, which is why any such level should be user-approved rather than proposed automatically. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "presentation",
+      "text_document",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "contacts",
+      "ocr",
+      "image",
+      "archive",
+      "audio_video"
+    ],
+    "extensions": [
+      ".pptx",
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".vcf",
+      ".png",
+      ".zip",
+      ".m4a"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Account plan - Acme Ltd - FY26.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a cover naming one customer and a period",
+        "a stakeholder map slide with named individuals, roles and sentiment markers",
+        "an objectives-and-risks slide",
+        "an expansion outlook slide with figures"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "a client fact — the key exists canonically but this schema declares no fields, and the customer role is not quite the consulting `client` role anyway",
+        "that a stakeholder map is impersonal: it records named third parties and the holder's private judgements about them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acme QBR - Q1 2026.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a co-branded cover with two organisations' logos",
+        "usage and outcome figures for a labelled period",
+        "achievements against previously agreed objectives",
+        "a forward-plan slide with owners on both sides"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which organisation is the holder's own — two logos on a cover state two roles and neither is marked",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "usage-export-acme-2026-03.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns naming an account identifier, a licence type, seats provisioned and seats active, by month",
+        "a header row with a tenant identifier",
+        "a column of named end users in one sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that a usage export is impersonal: a named-user column makes it a third party's personal data",
+        "a customer fact copied onto any neighbouring file from a tenant identifier",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Escalation summary - Acme - outage 14 Feb.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a chronological account with timestamps",
+        "an impact statement naming affected customer users",
+        "a remediation commitment with dates",
+        "an executive sponsor named on each side"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "a fault, liability or root-cause finding of the product's own from the narrative",
+        "which row owns it: an outage narrative is also a support-operations record and an incident record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Renewals forecast FY26.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per customer with a contract end date, current value, proposed value and a risk marker",
+        "an internal commentary column",
+        "an owner column naming account managers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which row owns it: a contract end date is the contract register's fact and the internal recommendation is this row's — the same sheet carries both anchors",
+        "any business_operations fact — the schema declares no field rows",
+        "a customer fact copied onto any other file naming the same customer",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acme - company strategy 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a customer's own branded strategy document",
+        "marked confidential in the footer",
+        "no reference to the holder's organisation anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the file is the holder's own operating record: it is a THIRD PARTY's confidential material held inside a relationship, and it is the clearest case in this family where the exposed party is not the user",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acme <> us - monthly sync.ics",
+      "source_type": "calendar",
+      "observations": [
+        "a labelled SUMMARY naming two organisations and a cadence",
+        "attendee slots resolving to two different domains",
+        "a recurrence rule",
+        "no content in the event body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that a calendar file is a domain — calendar is a SOURCE_TYPE and the .ics fixture forbids it (CONNECTION-EXAMPLES fixture 5)",
+        "a customer relationship fact from a meeting title alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "acme-contacts.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "twenty contact cards on one organisational email domain",
+        "job titles and mobile numbers present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that contact data may become a folder proposal — 00: contact data “should normally be privacy-protected rather than used to create folder proposals”",
+        "a customer relationship fact from a shared email domain alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "QBR template - blank.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "the full business-review structure with every value slot empty",
+        "a vendor's brand on the master slide",
+        "speaker notes containing instructions to the presenter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a complete review structure with no customer is a template — the collision fixture for this row",
+        "an organisation fact from a brand on a slide master",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "acme-shared-folder-export.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing decks, exports, a contract PDF and customer-authored documents",
+        "the archive is not encrypted"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "a purpose fact from the manifest alone",
+        "that one customer folder means one group: it mixes the holder's material with the customer's own",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.support-operations",
+      "signal": "An escalation summary and a major-incident record are the same event written twice. The discriminating evidence: a ticket identifier, a queue, a priority and a resolution code support support-operations; a relationship narrative with an executive sponsor, an account owner and a commercial consequence supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "A renewal is administered on one side and managed on the other, from the same date and often the same spreadsheet. The discriminating evidence: a notice clause, a register entry and a formal letter support contract administration; an account plan, a usage record and an internal renewal recommendation support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.partnerships-bd",
+      "signal": "A partner and a customer are managed with identical artifacts — a plan, a review, a joint objective set. The discriminating evidence: a revenue-to-the-holder relationship with a licence or subscription record supports this row; a mutual or channel relationship with joint go-to-market commitments supports the partnerships row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "An engagement and an account overlap almost completely for a professional-services holder, and 00's own role_split pair — `our_firm` / `client` — lives on that row. The discriminating evidence: a scoped deliverable, a fee arrangement and a defined end supports the engagement row; an ongoing subscription relationship with renewal and adoption records supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.client-engagement",
+      "signal": "A creative studio's client relationship produces briefs, reviews and handoffs that carry the same account furniture. The discriminating evidence is a creative deliverable and a revision round, which supports the creative row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.go-to-market",
+      "signal": "Reference customers, case studies and beta programmes are launch artifacts and account artifacts at once. The discriminating evidence: a launch date and a readiness structure support the go-to-market row; a named customer's own plan, usage and renewal record supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.guest-feedback",
+      "signal": "Feedback, satisfaction and NPS exports appear in both. The discriminating evidence: a premises, a booking, or a guest-stay anchor supports the hospitality row; a named business customer with a subscription relationship supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for this row: its characteristic artifacts name third-party individuals and hold a customer's confidential material, and the exposed party is normally not the user. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome where the customer or the side cannot be resolved — frequent for co-branded material. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone relationship artifact with no account file around it — a single signed reference consent, a certificate. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Blank templates, vendor thought-leadership PDFs and sales-methodology material are the tempting false files of this row. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected customer exports and proprietary CRM dumps are ordinary here. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row is the clearest case in the family where the exposed party is NOT the user. Its characteristic artifacts — a stakeholder map, a contacts export, a usage record with named end users, a customer's own confidential strategy document — are third parties' personal data and third parties' commercial secrets held on the holder's machine, and none of those parties can consent to what the product does with them. 00 names several of the categories in its corpus sentence — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” — and states the contacts rule outright: such data “should normally be privacy-protected rather than used to create folder proposals”. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Two. (1) The CUSTOMER role has no canonical key, and this row is where the gap shows. 00's role_split pair is `our_firm` / `client`, which is the professional-services reading; a subscription customer is a related but distinct role, and a supplier is a third. This row deliberately mints nothing — whether `client` should simply widen to cover it, or whether a role_split sibling is needed, is R1c's call and it interacts with the same hole on business_operations.contract-administration. (2) Whether a CUSTOMER-named folder is acceptable in v1. It is how people in this role really file, and it discloses the relationship, the commercial state and by aggregation the holder's whole book. The provisional posture here is a user-approved customer level with no automatic depth, and it is Joseph's call."
+}

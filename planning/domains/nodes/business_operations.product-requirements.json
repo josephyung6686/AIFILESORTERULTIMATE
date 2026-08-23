@@ -1,0 +1,398 @@
+{
+  "id": "business_operations.product-requirements",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Product requirements, specifications and decision records",
+  "one_line": "The organizational situation of specifying WHAT a product should do and why, for one bounded piece of product work: the requirements document, the user stories and acceptance criteria, the scope boundary, the open questions and the decisions that closed them. The organizing anchor is the FEATURE or initiative being specified - a thing with a scope, not a date - which is what separates it from the roadmap that sequences such things across time. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a requirements-document skeleton: a problem or background section, a goals section, an explicit NON-goals or out-of-scope section, and a requirements list. The out-of-scope section is the most distinctive part - roadmaps, strategy papers and specifications from other disciplines do not carry one.",
+      "a user-story structure: repeated as-a / I-want / so-that clauses, or a numbered story list each followed by acceptance criteria in given-when-then form.",
+      "a requirement-identifier structure: tokens repeated in a numbered column and referenced from a traceability or test column elsewhere in the same document.",
+      "a decision-record structure: a status line, a context section, a decision statement and a consequences section - the standing shape of an architecture or product decision record.",
+      "an open-questions table pairing a question, an owner and a resolution or a date. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an issue-tracker export whose header row names key, summary, type, status, epic and acceptance criteria, with one row per story.",
+      "annotated interface mockups embedded beside numbered behaviour statements - the specification as picture plus rule, rather than as a design artifact in its own right."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "the boundary that defines this row: whether a document specifies WHAT and WHY for one bounded feature (this row) or sequences work across a horizon for an audience (business_operations.product-roadmap). A single document routinely opens with a roadmap slide and continues as a specification. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating a product requirements document from an engineering requirements specification, a software design document and a technical architecture note - the same numbered obligation prose serves all four, and the difference is the audience and the level.",
+      "recognising that a document is a draft of an existing specification rather than a new one - specification folders are dominated by near-identical drafts.",
+      "a specification written as a long email thread or a wiki export with no headings.",
+      "a purpose-coherent specification pack whose members are individually unremarkable - a document, three mockups, a spreadsheet of cases and an exported ticket list. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "the words spec, PRD, requirements or stories in a filename alone. This is the tempting false file for this row: engineering, construction, procurement and manufacturing all produce documents called specifications, and none of them is this situation.",
+      "a numbered clause structure alone - contracts, policies, standards and statutes all have one.",
+      "a product's name alone - it appears on marketing material, support articles, invoices and roadmaps equally.",
+      "a mockup or a screenshot alone - a picture of an interface is a design artifact until numbered behaviour statements sit beside it.",
+      "an extension or a source_type alone - 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number read as a requirement identifier, a version or a year.",
+      "membership in a download session that dropped a whole specification folder at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "product requirements",
+    "problem statement",
+    "goals",
+    "non-goals",
+    "out of scope",
+    "user story",
+    "acceptance criteria",
+    "given when then",
+    "functional requirement",
+    "non-functional requirement",
+    "edge case",
+    "success metric",
+    "open questions",
+    "decision record",
+    "consequences",
+    "epic",
+    "backlog",
+    "definition of done",
+    "traceability"
+  ],
+  "work_types": [
+    "product requirements document",
+    "user story or epic definition",
+    "acceptance criteria or test case set",
+    "annotated mockup or interaction specification",
+    "decision record",
+    "open-questions or scope-boundary note",
+    "issue-tracker or backlog export",
+    "requirements traceability matrix",
+    "specification draft or redline",
+    "review or sign-off record"
+  ],
+  "grouping_reasons": [
+    "one feature or initiative: the requirements document, the mockups, the story export, the decisions and the open questions, held together by purpose rather than by content. “The documents are content-incoherent but purpose-coherent.”",
+    "one specification across its drafts and its approved version, which is a version family before it is anything else.",
+    "one product across many specifications over years, which is a real reason to group and the one most likely to tempt a product fact onto an unrelated file that merely names the product. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single decision record with no specification around it is a standalone document."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the natural anchor is the organisation, then the PRODUCT, then the feature or initiative being specified, then the document function - with versions handled as a version family rather than as folder levels, because specification folders are mostly drafts and a version level would bury the current document among its own history. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - an acceptance-criteria sheet or a mockup annotation means nothing without the feature it specifies, and a feature name means nothing without the product. Emphatically not time-first, and this is the sharpest contrast with the paired roadmap row: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A specification is a durable statement about a feature that outlives the quarter it was written in, so a release or quarter level would split one feature's history across the calendar. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "design_creative",
+      "code_structured",
+      "email",
+      "archive",
+      "ocr"
+    ],
+    "extensions": [
+      ".md",
+      ".docx",
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".png",
+      ".fig",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "PRD - saved views.md",
+      "source_type": "text_document",
+      "observations": [
+        "headings read problem, goals, non-goals, requirements, open questions",
+        "numbered requirements with identifiers",
+        "an open-questions table with owners",
+        "a status line reading draft"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "a delivery date from a specification: a PRD says what, not when",
+        "an author's name as a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Stories - export 2026-03-18.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "machine-generated filename with a date token",
+        "header row names key, summary, type, status, epic, acceptance criteria",
+        "one row per story with repeated epic values",
+        "a reporter and an assignee column naming individuals"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a delivery status as a fact of the product's own - a status cell is a raw observation from an export moment",
+        "an assignee's name as a destination dimension",
+        "activation from a date-stamped export filename alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ADR-014 event schema versioning.md",
+      "source_type": "text_document",
+      "observations": [
+        "a status line, a context section, a decision statement and consequences",
+        "a sequential identifier in the filename",
+        "sits in a repository docs directory beside source code",
+        "links to two earlier decision records"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of this row and code.software-project owns it - a decision record living in a repository carries both anchors, and P10 chooses from an accepted group later",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "H1 roadmap.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "swimlanes by team across a quarter timeline",
+        "themes with target quarters and no acceptance criteria",
+        "a now / next / later slide",
+        "an external-audience disclaimer in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a timeline of themes with no requirements is the paired situation - this is the collision fixture, and business_operations.product-roadmap owns it",
+        "a commitment or a delivery date as a fact of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Acceptance criteria - checkout.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns read requirement id, scenario, given, when, then, test status",
+        "one row per case with repeated requirement identifiers",
+        "a traceability tab linking to a specification",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a test outcome as a fact of the product's own",
+        "a specification fact copied onto every file that mentions the same feature name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Requirements specification - Rev C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered shall-statements with requirement identifiers",
+        "a verification method column per requirement",
+        "a revision block naming an engineering approver",
+        "references to standards by number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: shall-statements with verification methods and standards references are engineering.requirements-specification, not a product requirements document - the second collision fixture",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "saved-views-spec-annotated.png",
+      "source_type": "image",
+      "observations": [
+        "a screenshot of an interface with numbered callouts",
+        "callout text stating behaviour rules",
+        "no EXIF camera metadata",
+        "sits beside the specification document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a specification fact from the neighbouring document - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that missing EXIF proves the image is a screenshot - the callouts and interface chrome support that, not the absence of metadata",
+        "which of this row and creative.uiux-product-design owns an annotated mockup",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "RE spec review - comments.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject slot names a specification and a review",
+        "a long quoted thread with several internal participants",
+        "inline objections and an agreed change",
+        "one attachment named as a redlined document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the attachment's contents from its filename - the attachment is its own file and is extracted as one",
+        "activation from source_type = email alone",
+        "a decision as a fact of the product's own from an inline agreement",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "spec_pack_v2.zip",
+      "source_type": "archive",
+      "observations": [
+        "an archive manifest listing a document, six mockups, a story export and a font file",
+        "mixed member types",
+        "no readable top-level document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - the members are extracted as their own files",
+        "that a stray unrelated member inherits the specification context",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.product-roadmap",
+      "signal": "The paired row, and the closest confusion in this family: same product, same team, same folder, frequently the same document at two stages. The discriminating evidence: an out-of-scope section, requirement identifiers, acceptance criteria or given-when-then clauses support this row; a horizon with quarters or releases, sequenced themes, dependencies between items and an audience framing support the roadmap. A product name and a feature list discriminate neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.requirements-specification",
+      "signal": "Both are numbered requirement documents with identifiers and traceability. The discriminating evidence: shall-statements with verification methods, standards references, tolerances and an engineering approval block support the engineering row; user stories, acceptance criteria, success metrics and a non-goals section support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "Decision records, specifications and design documents live inside repositories beside the code they govern, and the same markdown file is both. The discriminating evidence: residence in a repository with source and configuration, and an implementation-level audience, supports the code schema; a product-level statement of what and why for a stakeholder audience supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.user-research",
+      "signal": "Research findings are quoted directly into specifications, and a findings deck often ends with requirements. The discriminating evidence: sessions with participants, consent records and transcripts support user research; a scope boundary and acceptance criteria support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.uiux-product-design",
+      "signal": "Annotated mockups are simultaneously design artifacts and interaction specifications, and design files carry both. The discriminating evidence: layered source files, component libraries, visual exploration and design-system content support the creative row; numbered behaviour statements and acceptance criteria beside the picture support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "A charter and a scope statement overlap heavily with a requirements document, and both define what is in and out. The discriminating evidence: a schedule, milestones, a RAID log and resourcing support project delivery; product behaviour and acceptance criteria support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "A specification annexed to a customer contract becomes a contractual obligation, and the annex text is the specification verbatim. The discriminating evidence: two named parties, executed signature blocks and an obligations register support contract administration; an internal specification supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone specification or decision record with no accepted feature group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a tracker export or an undated draft whose product meaning is only partly resolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The home for interface captures and annotated screens with no accepted specification association. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "The home for saved interface references and captured examples kept for later retrieval rather than belonging to one specification. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected specification pack or an unreadable design binary. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Specifications are mostly internal descriptions of behaviour and are among the least personal material in this family, but two things in the pile are not: unreleased product plans are commercially confidential, and specifications routinely embed research quotes, real customer names, and screenshots taken from live systems that contain real user data. A mockup captured from production is the quiet case - it looks like a design file and carries somebody's account. 00's operative limits apply to whatever P7 classifies as protected: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”, and the enforcement point is 00's: “Privacy policy must be enforced before content reaches any model or external connector.”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether this row and business_operations.product-roadmap should be one row rather than two. The case for one: in a small team they are the same folder, the same authors and often the same document, and the node test's dimension leg cannot currently distinguish them because both dimension orders are empty under PR-6. The case for two, which this row takes: the detection signals genuinely differ - an out-of-scope section and acceptance criteria on one side, a horizon and sequenced themes on the other - the neighbour sets differ, and the recommended orders would differ in the sharpest possible way, since a specification is feature-first and durable while a roadmap is horizon-first and expires. If the fields pass never happens, the pair should be re-examined, because two rows whose only demonstrated difference is detection signals is a thinner justification than a merged row would need to overturn. It is Joseph's call and it is stated identically on the roadmap row."
+}
