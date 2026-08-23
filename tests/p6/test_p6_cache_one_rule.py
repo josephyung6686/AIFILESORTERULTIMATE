@@ -152,3 +152,17 @@ def test_no_facts_module_writes_its_own_cache_key_helper():
             if isinstance(node, ast.FunctionDef) and "cache_key" in node.name:
                 offenders.append(f"{path.name}:{node.name}")
     assert offenders == []
+
+
+def test_d8_is_still_violated_and_the_note_says_so(p6_conn):
+    """NEEDS-JOSEPH D8, held open rather than absorbed.
+
+    D8: "`target_school` is the stored key; 'target university' is an alias, never a
+    second key." The catalogue ships both. This test fails the day one is removed,
+    which is the day the note above the row -- and D8's status -- must be updated.
+    """
+    from facts.fields import FIELD_ROWS
+    keys = {row.field_key for row in FIELD_ROWS}
+    assert {"target_school", "target_university"} <= keys, (
+        "D8 appears to have been closed; update the NEEDS-JOSEPH note in "
+        "facts/fields.py and this test together")

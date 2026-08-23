@@ -153,6 +153,17 @@ _ACADEMIC: tuple[FieldRow, ...] = (
 #: `purpose` stays exactly where that sentence puts it. No per-domain `purpose` clone
 #: is minted; a purpose-coherent packet outside admissions activates the nearest
 #: schema on its own evidence or falls through to residual.
+#: D8 IS VIOLATED HERE, AND SAYING SO IS THE POINT (NEEDS-JOSEPH D8, open).
+#: D8 rules that "`target_school` is the stored key; 'target university' (§3.11) is an
+#: alias, never a second key" -- and the catalogue ships BOTH `target_school`
+#: (`_UNIVERSAL`) and `target_university` below, so two live keys answer to one
+#: concept and a fact can be written under either. Task 12's own ruling permits the
+#: pair "with a NEEDS-JOSEPH note" pending Joseph, and this is that note; it was
+#: missing, so the violation was silent rather than open.
+#:
+#: Closing it is Joseph's, not this task's: dropping the row changes the closed
+#: catalogue's row count, and choosing which key survives decides whether stored
+#: `college_applications` facts migrate.
 _COLLEGE_APPLICATIONS: tuple[FieldRow, ...] = (
     _row("target_university", "target university", "college_applications", "string", True),
     _row("application_cycle", "application cycle", "college_applications", "string", True),

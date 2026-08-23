@@ -232,7 +232,11 @@ right**:
 
 ### 3.11 P7 tables take no `BEFORE DELETE` trigger
 
-Task 15 asserts **exactly thirteen** tables refuse a delete; a fourteenth fails a sibling's test.
+Task 15 asserts the SUBSTRATE **thirteen** by name, and — since Tasks 4 and 5 each create a
+supersede-bearing table of their own that refuses a delete — that the live count on a P7
+connection is **fifteen**. Both sets are asserted BY NAME, so a table arriving from anywhere
+else still fails. (This line read "exactly thirteen tables refuse a delete", which the built
+tests contradict.)
 *The release ledger is a capability record, not a provenance record.* §8.2's R6 binds `events`, and
 **P7 does not extend it by imitation.**
 

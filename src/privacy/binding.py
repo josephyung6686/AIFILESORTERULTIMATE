@@ -49,7 +49,11 @@ BINDING_TERMS: tuple[str, str, str] = (
 
 #: P7's third table, inside P1's single local database (§0). No `BEFORE DELETE`
 #: trigger: §8.2's R6 binds `events`, and this is a capability record, not a
-#: provenance record. Task 15 counts the guarded tables and asserts thirteen.
+#: provenance record. Task 15 counts the guarded tables by name: the SUBSTRATE
+#: thirteen (events, evidence, text_units, extraction_runs, exclusion_verdicts
+#: and P2's eight bundle_* tables) plus Tasks 4 and 5's two supersede-bearing
+#: tables, so the live count on a P7 connection is FIFTEEN. `release_ledger` is
+#: not among them, which is what this comment is here to say.
 RELEASE_LEDGER_DDL: str = """
 CREATE TABLE IF NOT EXISTS release_ledger (
     release_id         TEXT PRIMARY KEY,
