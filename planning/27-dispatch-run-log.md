@@ -112,3 +112,14 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   finishing agent cannot enter a commit unverified.
 - None of chunk C's flagged refusal candidates were refused: `retrospective-postmortem` was argued
   to stand apart from `project-delivery`, and `user-research` apart from the landed `research.*`.
+
+## Wave 2 attempt 1 — killed 3 minutes in, zero survivors
+
+- All 4 agents (construction_property x3, creative x1) died on the session limit ~3 min after
+  dispatch, during the authority-stack read phase. **Nothing written, nothing to salvage** — the
+  cost was the wasted read, not lost work.
+- Observed pattern: wave 1 (4 agents, 30 rows) ran ~4h and completed; wave 2 died immediately
+  because the limit window was already nearly spent at dispatch time. Quota remaining is not
+  visible from inside the session, so waves must be sized to fail cheaply.
+- Adjustment: dispatch whole *families* per wave where possible, so a completed wave is a clean
+  commit boundary, and keep waves at 3-4 agents.
