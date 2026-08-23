@@ -135,3 +135,20 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   `photos.camera-events` is repetition of place across time: a camera roll visits many places once,
   a site walk visits one place many times. `photos` is recorded as `also_schema` rather than as a
   competitor, per 00's "One file may hold facts from more than one domain without losing information."
+
+## construction_property chunk A — 9 rows, second refusal
+
+- All 9 verified pre-commit: parse, key sets match siblings, `fields: []`, memos 3.3-7.3KB,
+  nothing out of scope.
+- `proposed_fields` for R1c: `property`, `instruction`, `organization` (schema row); `revision`
+  (drawings-revisions). Note `organization` was also proposed by `business_operations` — R1c
+  should cluster these two into one decision, not two.
+- **`construction_property.compliance-certificate` REFUSED** — the row flagged in dispatch as a
+  likely document type. Fails dimensions (identical to the schema default) and privacy (a
+  certificate names an address and an installer, exactly as every sibling does, already covered by
+  the schema's `potentially_sensitive`), and its detection leg does not survive inspection.
+  Routed to five residual templates.
+- The seeded challenges are cutting both ways, which is the point: `progress-photos` survived its
+  challenge on a real argument, `compliance-certificate` did not survive its own.
+- `drawings-revisions` was argued to stand rather than collapse into the version-family design,
+  and proposes `revision` for R1c.

@@ -1,0 +1,444 @@
+{
+  "id": "construction_property.commercial-lease",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Commercial leases and occupier management",
+  "one_line": "The ESTATE-MANAGEMENT lifecycle of business premises after heads of terms are agreed: the schedule of condition recorded at the start, the rent-review and break machinery that runs mid-term, the licences to alter and to assign or sublet, the service-charge and insurance recharges, the rent-deposit and guarantee arrangements, and the dilapidations reckoning that settles what the premises must be handed back as. The anchor is ONE OCCUPIER'S TENANCY OF ONE PREMISES and the calendar of dates it created. Absorbs the legacy row prop.commercial-lease. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a SCHEDULE OF CONDITION structure: a dated photographic and written record of the state of specific premises at the start of a term, organised room by room or elevation by elevation, prepared expressly to limit a future liability. The photographs plus the room-by-room narrative plus the stated purpose are the signal.",
+      "a DILAPIDATIONS structure: a schedule of breaches with a covenant reference, a remedy and a costed sum per item, summing to a claim, usually with a scott-schedule-style response column. This structure exists nowhere else on the roster. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a RENT-REVIEW structure: a memorandum or notice recording a reviewed rent from a review date, with comparable evidence or an expert determination behind it, referenced to a lease and a premises.",
+      "a LEASE-EVENT CALENDAR structure: a schedule of dates derived from an instrument — term commencement, review dates, break dates and their notice periods, expiry — held to be diarised rather than to be read.",
+      "a LICENCE structure: a licence to alter, to assign or to sublet, referencing a headlease, describing works or a proposed transferee, and imposing reinstatement or covenant conditions.",
+      "a RECHARGE structure: a service charge or insurance rent apportionment for one commercial unit against a landlord's expenditure schedule, with a lease-defined proportion.",
+      "a SECURITY structure: a rent deposit deed with a stated sum and drawdown mechanics, or a guarantee or authorised guarantee agreement naming a guarantor.",
+      "a HEADS OF TERMS structure: a subject-to-contract summary of proposed lease terms — premises, term, rent, incentive, break, repairing obligation — expressly not binding, sitting immediately before the instrument.",
+      "a premises address in a labelled slot together with a lease or unit reference and a lease-derived DATE. Neither half fires alone.",
+      "parent-folder context naming a premises, a unit or a lease reference — a clue only, never firing alone.",
+      "a calendar entry whose SUMMARY names a rent review, a break date, a lease expiry or a rent quarter day, with a recurrence rule. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” The CONTENT fires; calendar is a SOURCE_TYPE, not a domain."
+    ],
+    "needs_llm": [
+      "an unlabelled document that reads as a lease, an agreement for lease, a licence, a tenancy at will or heads of terms — which one it is decides whether the protected legal side owns the file.",
+      "correspondence about a break notice, where whether it is a valid exercise, a query or a dispute changes both the group and the sensitivity.",
+      "deciding whether the holder is the landlord, the tenant, the managing agent or an adviser to one of them — the same schedule reaches all four and the role is what makes the file mean anything.",
+      "a photograph of a shopfront or an office interior with no caption: a schedule of condition image, a dilapidations image, a marketing shot or a fit-out record."
+    ],
+    "never_alone": [
+      "a postal address or a street name alone — the family's constitutional never-alone, set by the construction_property schema row on 00's own reasoning about a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” A premises address is on the lease, the licence, the recharge, the marketing particulars and the tenant's own letterhead.",
+      "a firm, practice, contractor, agency or authority name alone — same reasoning, same sentence. A tenant is an organisation, and an organisation name is the multi-role token 00 warns about.",
+      "a rent or premium figure alone. a money figure alone. Quotations, valuations, appraisals, service charges, rents, offers and appraisals all carry amounts, as does every other roster schema that touches money.",
+      "a signature or execution block alone. The landed legal.leases-agreements row makes this point repeatedly and it is adopted here unchanged: an execution block is shared with every signed instrument on the roster.",
+      "a lease-shaped clause structure alone — party recitals plus numbered covenants describe a loan agreement, an employment agreement, a service agreement and a licence equally well.",
+      "a document-type word alone (certificate, drawing, schedule, survey, valuation, report, plan, lease). Each is a work_type VALUE that appears in several worlds; the landed finance.household-property row carries title, inspection, warranty and completion certificate as its own work types.",
+      "a bare 4-digit number alone — 00 warns that file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. Here they are also plot, drawing, valuation and unit numbers.",
+      "a source_type or extension alone. 00 requires that the engine “treat the file extension as a routing signal rather than an assumption about meaning”, and “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”",
+      "a download session alone. “A session should never be treated as proof of topic”"
+    ]
+  },
+  "proposed_context_terms": [
+    "heads of terms",
+    "subject to contract",
+    "agreement for lease",
+    "demise",
+    "demised premises",
+    "term commencement",
+    "contractual term",
+    "holding over",
+    "security of tenure",
+    "contracted out",
+    "rent review",
+    "review date",
+    "upward only",
+    "open market rent",
+    "determination",
+    "memorandum of rent review",
+    "break clause",
+    "break date",
+    "break notice",
+    "vacant possession",
+    "reinstatement",
+    "schedule of condition",
+    "repairing obligation",
+    "full repairing and insuring",
+    "yield up",
+    "dilapidations",
+    "terminal schedule",
+    "interim schedule",
+    "scott schedule",
+    "diminution",
+    "licence to alter",
+    "licence to assign",
+    "licence to sublet",
+    "authorised guarantee agreement",
+    "rent deposit deed",
+    "guarantor",
+    "service charge",
+    "insurance rent",
+    "quarter day",
+    "rent free"
+  ],
+  "work_types": [
+    "heads of terms",
+    "schedule of condition",
+    "lease event and date schedule",
+    "rent review notice, memorandum or determination",
+    "break notice and vacant possession record",
+    "licence to alter, assign or sublet",
+    "rent deposit deed or guarantee",
+    "service charge or insurance rent recharge",
+    "rent demand, statement and arrears record",
+    "interim or terminal dilapidations schedule and response",
+    "settlement or completion record of a dilapidations claim",
+    "fit-out approval and reinstatement record",
+    "surrender, assignment or expiry record",
+    "tenancy schedule or rent roll for a landlord's holdings"
+  ],
+  "grouping_reasons": [
+    "ONE TENANCY end to end — one occupier of one premises from heads of terms to expiry or surrender. The row's primary group and purpose-coherent across members that share nothing but the tenancy: “The documents are content-incoherent but purpose-coherent.”",
+    "one LEASE EVENT and everything around it: a rent review's notice, comparables, determination and memorandum; or a break's notice, correspondence and vacant-possession evidence.",
+    "one DILAPIDATIONS claim: the schedule, the photographs, the response, the negotiation and the settlement.",
+    "one PREMISES across successive occupiers over decades — the landlord's group, which outlives every tenancy and which is the reason this row follows the family's property-first default.",
+    "one landlord's portfolio at one moment: a tenancy schedule or rent roll, which is a group of PREMISES rather than of documents and which must not become a fact copied onto its members — “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one repeatedly re-exported engrossment or plan pack, joined by duplicate_family alone; “A content-hash match supports deduplication review; a filename match alone does not.”",
+    "no group at all is valid: a single licence to alter with nothing around it is a standalone record. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two units' papers in one building do not merge because they share a landlord and a service charge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question (NJ-CP-1). The recommendation, held as prose: the PREMISES first — the family default, and correct here because a shop or a floor outlives every occupier and the landlord's file is premises-keyed. Then the TENANCY, because one premises is let repeatedly and the tenancy is what separates the 2014 lease from the 2026 one. Then the document function (instrument / condition / review / licence / recharge / dilapidations). A period level is explicitly NOT recommended: this situation is event-driven rather than cyclical, and its dates are a diary, not a folder structure. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "calendar",
+      "presentation",
+      "design_creative",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Schedule of condition - Unit 3B Harbour Works - 2024-04-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a dated room-by-room written record with numbered photographs",
+        "a stated purpose limiting a repairing obligation",
+        "a premises address and a lease reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares none",
+        "that the photographs make it a photo-event record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Terminal schedule of dilapidations.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a table of breaches with covenant references, remedies and costed sums",
+        "a response column",
+        "a claim total and a surveyor's endorsement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a costed schedule is a construction valuation; the covenant references are the discriminating evidence",
+        "that a claim is a proceeding; it is not, until it is",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Memorandum of rent review - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a reviewed rent recorded from a review date",
+        "a reference to a lease and premises",
+        "signatures for both parties"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the signature block makes it a legal-schema-only file; it is both",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lease - Unit 3B - engrossment.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "party recitals, a demise, a term, a rent and numbered covenants",
+        "an execution block and lease plans",
+        "a contracting-out declaration"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns the instrument; legal.leases-agreements owns the executed agreement and protects it first. This row reads the DATES and the PROPORTIONS out of it and runs them",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lease events.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of premises with term dates, review dates, break dates and notice periods",
+        "a diarised-actions column",
+        "no instrument text at all"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a fact about any listed premises from a schedule row; the schedule is evidence about other things, and “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that a date table is a calendar file",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Licence to alter - shopfront.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a licence referencing a headlease and describing proposed works",
+        "a reinstatement condition",
+        "attached drawings by number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the attached drawing numbers give this file a drawing identity; the sheets are their own files with their own title blocks",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Heads of terms - Unit 3B - v4.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a subject-to-contract summary of premises, term, rent, incentive and break",
+        "an explicit non-binding legend",
+        "a version-shaped filename token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a lease exists; heads of terms routinely never complete",
+        "that v4 supersedes v3 on the filename alone — “A content-hash match supports deduplication review; a filename match alone does not.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Rent deposit deed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a stated deposit sum and drawdown mechanics",
+        "a named tenant and a bank account reference",
+        "an execution block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an account reference makes it a finance account record; the landed finance.personal-records boundary turns on an account descriptor issued BY an institution ABOUT an account, which this is not",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_7743.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a damaged suspended ceiling",
+        "camera EXIF and a capture date shortly after a lease expiry",
+        "no caption and no reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a premises or tenancy fact from capture date proximity — proximity in time is not evidence, and “The graph does not automatically copy those missing facts onto sparse files.”",
+        "whether it is a dilapidations image, a schedule-of-condition image or a repair record",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Service charge recharge - Unit 3B - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a lease-defined proportion applied to a landlord's expenditure schedule",
+        "a single commercial unit named",
+        "an insurance rent line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a service-charge line makes it a block-management document; a per-unit recharge under one lease is this row, a whole-building apportionment schedule is block-management",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "The row's defining boundary, stated as the reciprocal of the landed row, which already names the tenancy-packet fixture and the finance.household-property line. The landed row holds the OPERATIVE INSTRUMENT as the holder's own protected agreement record — party recitals, covenants, grant of occupancy, consideration, execution. This row holds the ESTATE-MANAGEMENT APPARATUS that runs a business tenancy after grant — schedule of condition, rent-review memorandum, licence, recharge, dilapidations schedule, lease-event diary. Premises address, rent amount and a signature block are shared observations and count for neither. legal is a safety schema and protects first, so where the instrument itself is in question the protected side leads. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "A residential tenancy and a commercial one produce parallel documents — an inventory beside a schedule of condition, a deposit beside a rent deposit deed, a check-out report beside a dilapidations schedule. The discriminating evidence is the OCCUPIER and the covenant regime: business premises with a repairing obligation, a contracting-out declaration, rent review and dilapidations apparatus support this row; a household's own record of the home it lives in or lets supports finance.household-property. A premises address and a rent count for neither. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "A tenant organisation's own occupation record overlaps this row exactly, and this is the collision most likely to fire on a real corpus, because most people holding these files are the TENANT. The discriminating evidence is whether the document manages the LEASE (review, break, licence, dilapidations, recharge — this row) or the WORKPLACE (desk allocation, access passes, cleaning rotas, moves — facilities-workplace). A premises address is on both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.block-management",
+      "signal": "Reciprocates the block-management row's edge. A per-unit recharge under one lease is this row; a whole-building budget with an apportionment schedule across all units is block-management. A service-charge line appears in both and decides neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.agency-listing",
+      "signal": "Reciprocates the agency row's edge. Material made to FIND an occupier is agency-listing; material that runs the tenancy once granted is this row. A rent figure and a premises address count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "The landed legal.leases-agreements row already states this pair from its side and the reasoning carries over unchanged: a lease's insurance-requirements clause and an insurance rent recharge report on insurance without being insurance. Labelled Named Insured, Policy Number, Policy Period and coverage tables support finance.insurance-corporate; a lease-defined recharge proportion supports this row.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Where the material carries an occupier's, tenant's or leaseholder's identity, or a commercially confidential figure, the protective home is correct. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the document is plainly real but its property, instruction or side is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone member of this situation with no accepted group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A single site or property photograph with no event, job or set around it. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exotic here: CAD and BIM formats recorded as indexed-but-unreadable, and password-protected data-room and tender exports. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members — a delivery note, a hire confirmation, a fee invoice with nothing around it. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Predominantly commercial rather than personal, and recorded that way. The material states what a named business pays for its premises, what it owes, what security it gave and what liability it faces at expiry — commercially confidential to a counterparty who is usually not the user, and the sort of thing whose disclosure changes a negotiation. Personal data enters through named guarantors, who are frequently individuals giving personal guarantees, and through arrears correspondence. 00's corpus sentence covers the documents this situation accumulates — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. The cautious setting follows. The handling class is P7's and is not set here.",
+  "open_question": "Three. (1) NJ-CP-9, row-specific: this row is drawn on COMMERCIAL premises, but the estate-management apparatus it detects on — schedule of condition, licence to alter, dilapidations, lease-event diary — appears in residential letting too, where the landed finance.household-property and the roster's construction_property.tenancy-management rows are the homes. The commercial/residential line is drawn by this pass on the covenant regime, which is the best available evidence and which a small mixed-portfolio landlord's corpus will cross constantly. Reciprocal owed on tenancy-management, which is not mine. (2) Whether the lease-event diary is a filing situation at all or a P10/P11 concern: a schedule of dates held to be diarised is arguably a calendar rather than a record, and 00 is explicit that calendar is a SOURCE_TYPE and not a domain. This row keeps it as a work type and a detection structure and claims nothing about diarising. (3) Inherits NJ-CP-1."
+}
