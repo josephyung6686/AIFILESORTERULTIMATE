@@ -1,0 +1,395 @@
+{
+  "id": "clinical_practice.pharmacy-operations",
+  "kind": "template",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Pharmacy operations",
+  "one_line": "The organizational situation of running a dispensary: prescriptions received and dispensed, the accountability register a controlled drug requires, stock and expiry management, formulary and substitution decisions, and the returns a pharmacy owes its regulator and its payers. Absorbs the legacy row med.pharmacy-operations. The organizing anchor is the MEDICINE and its custody chain - which is what separates it from the chart, where the anchor is a person, and from a shop's stock, where the anchor is a product with no accountability obligation. Gist-level placeholder (J-IND): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry is a DETECTION signal, never an extraction licence - this template's schema declares no field rows. The signals exist so P7 runs first: “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a dispensing-label structure: a product name beside a strength, a form, a quantity, a directions-for-use line, a dispensed-on date, and a dispensed-by or checked-by initial slot, printed against a named person who is not the holder.",
+      "a controlled-drug register structure: a running balance column beside a received / supplied pair, a witness or second-signature slot, and a per-product page. The running balance is the discriminating structure - ordinary stock records do not carry a signed reconciled balance, because ordinary stock is not accountable to anyone.",
+      "a prescription-intake structure: a prescriber identifier slot, a prescriber signature block, and an item list, arriving as a scan or a portal export rather than as something the holder authored - the direction of arrival is the evidence.",
+      "a formulary or substitution structure: a two-column mapping of a requested product to a supplied or preferred product, with an approval, tier, or restriction column.",
+      "a stock, expiry, or destruction structure: a batch-and-expiry table, a recall or safety-alert notice naming a batch, or a witnessed destruction record with a denaturing note.",
+      "a dispensing-fee or reimbursement return: a periodic claim of items dispensed against a payer schedule, distinguished from an ordinary sales report by the per-item clinical product line and the payer scheme reference in a high-weight zone - “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.”",
+      "a temperature or cold-chain log, and a fridge-failure excursion report, filed as periodic evidence rather than as an incident."
+    ],
+    "needs_llm": [
+      "PRECONDITION: dispensing records are patient-identifying by default, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "whether a product-and-quantity table is a dispensary stock record, a ward stock request, a wholesaler invoice, or a retail inventory count - all four are the same shape and only the accountability language separates them.",
+      "an unlabelled photograph or scan of a handwritten register page, where the column meanings must be read rather than parsed.",
+      "whether a medicines document is operational (this dispensary, this stock) or reference (a national formulary chapter, a manufacturer's monograph) - the latter is reading material, not an operation.",
+      "product and register vocabulary in a language the deterministic structure catalogue does not cover."
+    ],
+    "never_alone": [
+      "a medicine or drug name alone. Drug names appear in charts, guidelines, teaching slides, research protocols, price lists, news articles, and shopping receipts, and none of those is a dispensary record. This is the tempting false file for this row.",
+      "a quantity-and-price table alone - that is the shape of every invoice on the roster, clinical or not.",
+      "a bare 4-digit number read as a year, a batch number, a pack size, or a licence number - “numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values”.",
+      "a pharmacy or wholesaler gazetteer hit alone - the multi-role problem 00 states for a university - “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - read across to a supplier by inference.",
+      "source_type or extension alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Pharmacy, Dispensary, Stock, or CD alone. Folder context raises plausibility; it never fires by itself.",
+      "membership in one bulk export session - “A session should never be treated as proof of topic”"
+    ]
+  },
+  "proposed_context_terms": [
+    "dispensed",
+    "prescriber",
+    "prescription",
+    "strength",
+    "quantity",
+    "directions",
+    "batch",
+    "expiry",
+    "running balance",
+    "received",
+    "supplied",
+    "witnessed",
+    "controlled drug",
+    "denatured",
+    "formulary",
+    "substitution",
+    "cold chain",
+    "recall",
+    "checked by",
+    "responsible pharmacist"
+  ],
+  "work_types": [
+    "prescription received or scanned",
+    "dispensing label or dispensing history entry",
+    "controlled-substance register page or reconciliation",
+    "witnessed destruction or denaturing record",
+    "stock count, order, or wholesaler delivery record",
+    "batch, expiry, or recall notice",
+    "formulary, substitution, or restriction decision",
+    "clinical or medication review record",
+    "dispensing-error or near-miss record",
+    "cold-chain or temperature log",
+    "reimbursement or dispensing-fee return",
+    "responsible-pharmacist and standard-operating-procedure record",
+    "inspection or regulator return"
+  ],
+  "grouping_reasons": [
+    "one accountability period: a register page, its reconciliation, and the destruction records that close it, joined by their shared periodic structure rather than by any clinical fact.",
+    "one product or batch: a delivery note, a recall notice, and the quarantine or return record that answers it.",
+    "one subject's dispensing history, where a run of labels or entries names the same person. The anchor supports a candidate packet; it does not write a subject fact onto members - “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one submission or return cycle, joined by duplicate_family and by a covering schedule rather than by content.",
+    "one document family: the versions of a standard operating procedure, joined by the universal version_family fact.",
+    "no group at all is a valid outcome; a single stray dispensing label is still protected material and is surfaced without one."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and clinical_practice declares none (D1 as narrowed, _CONTRACT rules 10 and 15, PR-6). Held as prose for whoever answers the schema row's open_question: unlike the chart row, the dimension this situation obviously wants is not a person - it is the accountability FUNCTION (register, stock, returns, procedures) and then the period, which is exactly the order 00 recommends for record domains: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” That makes this row's tree materially safer than the chart's, and it is the reason NJ-CP-3 does not simply extend here. The per-subject dispensing history is the one branch that would carry the chart row's disclosure problem, and it should stay off by default.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "ocr",
+      "image",
+      "email",
+      "archive",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".tif",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "CD register - schedule 2 - 2026 Q1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "per-product pages with received / supplied / running-balance columns",
+        "two signature slots on each supplied line, one marked witness",
+        "a reconciliation page at the end with a counted-stock figure",
+        "several supplied lines name individual people"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - the schema declares no field rows",
+        "a discrepancy, a shortfall, or any accountability judgement of the product's own",
+        "that a register is administrative rather than patient-identifying, because supplied lines name people",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "wholesaler invoice 884210.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a product / pack / quantity / price table with a total and a payment term",
+        "a supplier letterhead and an account number",
+        "no directions-for-use line and no named recipient",
+        "no running balance"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the drug names alone - this is the collision fixture: a purchase invoice is finance or business_operations material and the missing accountability structure is what says so",
+        "a supplier fact from the letterhead alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "IMG_3390.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photograph of a printed dispensing label stuck to a box",
+        "camera EXIF make, model, and DateTimeOriginal present",
+        "OCR yields a person's name, a product, a strength, a directions line, and a dispensed-on date"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot - camera EXIF is present, and 00 warns the system “must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any clinical_practice fact - none is declared; the photos facts come from the photos schema on its own EXIF evidence",
+        "that a casual phone photo is outside the protected path once the OCR region carries a named person and a medicine",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "dispensing_export_202603.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers read date, patient, product, quantity, prescriber, dispensed by",
+        "thousands of rows across many different subjects",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that a spreadsheet is low-risk because each cell is small: a multi-subject dispensing extract is bulk-sensitive as a whole, and its rows are exactly what 00 protects - “identity documents, account statements, tax records, medical information”",
+        "a prescriber identity fact from a dominant name in a column",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "BNF chapter 4 - CNS.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a published national formulary chapter with monograph structure",
+        "no named subject, no quantity, no dispensing event",
+        "publisher metadata and an edition token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a published reference about medicines is not a record of a dispensary's operations - the sibling row clinical_practice.protocol-guideline owns published clinical instruction",
+        "that a drug-name density implies dispensing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Class 2 recall - batch 7742K.eml",
+      "source_type": "email",
+      "observations": [
+        "a distribution-list recipient block rather than a named addressee",
+        "a batch identifier and an action-by date",
+        "an attached PDF notice with a regulator reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "an action-by date as a scheduled product action of any kind",
+        "a subject fact - a recall is about a batch, not about a person",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "fridge temps Feb 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a date column with min and max readings and a signature initial per day",
+        "two rows highlighted with a free-text note about a door left open",
+        "a sheet tab per month"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "an excursion, a wastage, or a compliance judgement of the product's own",
+        "that a temperature log is a facilities record rather than a medicines record - the discriminator is the stock it protects, which the file itself may not name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "near miss log Q1.docx",
+      "source_type": "text_document",
+      "observations": [
+        "dated rows describing a wrong-strength selection caught at the check stage",
+        "initials rather than names in a staff column",
+        "an action-taken column with free prose"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an assignment of fault, a severity, or a harm judgement of the product's own",
+        "activation of clinical_practice.malpractice-incident from the word error - a routine near-miss log is dispensary quality material until a complaint, a claim, or a regulator names it; that is the reciprocal boundary stated on both sides",
+        "a staff identity fact from initials",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "inspection evidence pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists standard operating procedures, register scans, training records, and a self-assessment",
+        "member paths partitioned by evidence heading",
+        "no member is opened to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that a member may be extracted to the filesystem - “the normal scan should never extract archive contents to the filesystem”",
+        "that a compliance pack is non-clinical because its cover sheet is administrative: register scans inside it name people",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "clinical_practice.patient-chart",
+      "signal": "A medication entry and a dispensing record describe the same event from the two ends of the custody chain, and both name a subject, a product, a dose, and a date. The discriminating evidence: a chart-entry or filed-into-a-record structure about ONE accumulating subject supports the chart row; a dispensing label, a register line with a running balance, or a per-item supply record whose anchor is the medicine and its accountability supports this row. A drug name and a date discriminate neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.stocktake",
+      "signal": "A dispensary is also a shop, and a pharmacy stock count and a retail stocktake are structurally identical - product, pack, count, value. The discriminating evidence: a signed running balance, a witness slot, a batch-and-expiry column, or a schedule reference supports this row; a plain counted-versus-expected variance with no accountability signature supports the retail row. A product-and-quantity table alone discriminates neither, and a pharmacy that files both is the normal case rather than an error. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.protocol-guideline",
+      "signal": "A formulary, a substitution policy, and a national monograph are instructions ABOUT medicines without being a record of any medicine's custody. The discriminating evidence: a dated supply, a quantity, a balance, or a named recipient supports this row; a version token, an approval committee, a review date, and population-level prose support the guideline row. Medicines vocabulary alone supports neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "The purchase and reimbursement side of a dispensary is genuine bookkeeping: wholesaler invoices, payer remittances, and margin reports. The discriminating evidence: a clinical product line with a strength, a form, or a scheme reference tied to items supplied to people supports this row; a ledger, a VAT or sales-tax treatment, and a period close support the finance row. An invoice shape discriminates neither, and a pharmacy legitimately files the same remittance under both readings - a template choice P10 makes later from an accepted group, not one the catalogue makes here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.malpractice-incident",
+      "signal": "A dispensing error sits on a continuum from a near-miss log line to a claim. The discriminating evidence: a routine periodic quality log with initials and an action column supports this row; a named complaint, a duty-of-candour letter, a claim notification, an indemnity reference, or a regulator's notice supports the incident row. The word error supports neither. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for a recognised dispensing record, register page, or bulk dispensing extract when no accepted professional group or approved branch exists. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for the operational material that names nobody - a recall notice, a temperature log, a standing procedure. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The home for the purchase side when no bookkeeping group exists. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The inactive home for a published formulary chapter or monograph with no dispensary operation attached. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a product-and-quantity table whose dispensary-versus-retail-versus-purchase reading is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a proprietary dispensing-system export or an encrypted register backup. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A dispensing record is a medical record about a third party, and it is often a more revealing one than a chart entry: a single product name can disclose a condition the person named it to nobody. 00 names the material - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. The bulk case matters here more than anywhere else on this family, because dispensing systems export by period rather than by person: one CSV can carry thousands of people. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class, and it does not re-derive D2's ClassificationRecord.",
+  "open_question": "NJ-CP-11. A controlled-substance register is the one file class on this roster that a person may be legally obliged to keep, keep unaltered, and keep in a stated place for a stated period. The product's normal courtesies - propose a destination, move on approval, deduplicate a family, represent an archive without extracting it - are all defensible against an ordinary file and all questionable against a statutory register. The question is not whether the register is sensitive (it plainly is, and Protected Records already answers that); it is whether a recognised accountability register should be marked NOT MOVABLE at all, ahead of any user policy, the way 00 marks protected material as not automatically movable. That is a decision about someone's legal obligations rather than a fact about files, so it is Joseph's, and it does not depend on whether clinical_practice ever gets field rows."
+}

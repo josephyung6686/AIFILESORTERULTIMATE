@@ -73,3 +73,14 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
 - Lesson applied: waves are now smaller (4 agents) so a limit-kill loses less, and every wave is
   committed before the next starts. The four orphans go back out under the salvage rule
   (verify line-by-line, repair, complete, own) rather than being rewritten from scratch.
+
+## clinical_practice complete — 11/11
+
+- Tail of 5 landed and verified: pharmacy-operations, practice-administration, protocol-guideline,
+  teaching-material, veterinary-practice. All parse, key sets match landed siblings, `fields: []`
+  correct, memos 7.2-8.9KB, nothing written out of scope.
+- Both salvaged drafts (pharmacy-operations, practice-administration) were verified and completed
+  rather than rewritten; the tokens that produced them were not wasted.
+- None refused: `veterinary-practice` was argued to stand as its own filing world rather than a
+  subject value, and `practice-administration` to stand apart from `business_operations`.
+- **`clinical_practice` is the first schema family finished end to end (11/11).**

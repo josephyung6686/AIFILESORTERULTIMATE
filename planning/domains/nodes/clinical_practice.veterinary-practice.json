@@ -1,0 +1,454 @@
+{
+  "id": "clinical_practice.veterinary-practice",
+  "kind": "template",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Veterinary practice records",
+  "one_line": "The organizational situation of a veterinary surgery's working files, which is structurally unlike every human-side row in this family because a veterinary record binds THREE parties in one line: the practice, the ANIMAL that is treated, and the CLIENT who owns it, consents for it, and pays for it. Absorbs the legacy row med.veterinary-practice; the owner-side row med.veterinary-pet-owner stays refused (ROSTER.md section 5.6), so this is the practice face of a role split whose other face is deliberately empty. The organizing anchor is the client-and-animal pair, and the discriminating property is that the clinical record and the commercial account are the SAME document rather than two systems. Gist-level placeholder (J-IND): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry is a DETECTION signal, never an extraction licence - this template's schema declares no field rows. The signals exist so P7 runs first, and on this row what P7 protects is the CLIENT, a named human third party, not the patient: “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a tri-party record structure: an owner or client block carrying a human name, address, and contact slot, ALONGSIDE a patient block carrying a name, species, breed, sex, neuter status, colour, and date of birth. Two person-shaped blocks of DIFFERENT kinds in two labelled positions is the discriminating structure for this row, and no human-side sibling has it.",
+      "a species-and-signalment slot set: labelled species, breed, and weight fields co-occurring with a clinical narrative. Species is a VALUE in that slot, never a domain and never a folder dimension - the recognition uses the slot's existence, not its contents.",
+      "a permanent-identifier slot: a labelled microchip, tattoo, passport, or registration-number field beside the patient block. Its structure is the signal; its value is never read as a person's identifier.",
+      "a fused clinical-and-commercial line structure: a consultation record whose entries carry a chargeable item, a quantity, and a price in the SAME row as the clinical note and the medicine dispensed. In a human practice these are two systems and two files; here they are one line, and that fusion is this row's strongest single signal.",
+      "a client-consent structure: an estimate or quotation signed by the owner for a named animal's procedure, with an authorisation line accepting cost and risk - a document that is simultaneously informed consent and a commercial acceptance.",
+      "a veterinary-medicines structure: a prescription or dispensing label naming an animal as recipient and an owner as purchaser, with a withdrawal-period or off-label note that has no human-side equivalent.",
+      "a herd, flock, or holding structure: a holding or herd identifier, a batch of animals treated as one unit, a movement or testing record, and a production or farm-assurance return - the food-animal face of the row, which has no individual patient at all.",
+      "a certification structure: an official export, health, insurance, or fitness-to-travel certificate carrying an issuing veterinarian's registration slot and a declaration about a named animal. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”"
+    ],
+    "needs_llm": [
+      "PRECONDITION: the client block is human personal data and the account is a human's financial record, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central judgement of this row: whether the holder is the PRACTICE or the OWNER. A vaccination card, an invoice, an insurance claim, and a lab report are physically the same documents in a surgery's system and in a pet owner's drawer, and the owner-side row is deliberately refused - so the reading decides whether this row fires or nothing does. The model must abstain rather than assert: “A model that cannot cite sufficient evidence must return unknown.”",
+      "distinguishing a clinical record from a boarding, grooming, training, or breeding record that shares the animal-and-owner shape without any veterinary act in it.",
+      "an unlabelled prose record where species is stated only in the narrative, or a scanned handwritten day-book page whose column meanings must be read.",
+      "whether a farm document is a veterinary record or an agricultural production record - the same holding identifier appears on both.",
+      "veterinary and signalment vocabulary in a language the deterministic structure catalogue does not cover."
+    ],
+    "never_alone": [
+      "an animal name alone, and a species or breed word alone. Animal names are ordinary human names, and species words appear in recipes, research, wildlife photography, children's homework, insurance marketing, and pet-food invoices. This is the tempting false file for this row.",
+      "a microchip, passport, or registration number alone, read as identifying anything - and never read as a human identifier.",
+      "the word veterinary alone. It appears on employment contracts, degree certificates, textbooks, drug packaging, charity appeals, and pet-shop receipts.",
+      "a practice or clinic gazetteer hit alone - the multi-role problem 00 states for a university - “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - read across to a veterinary practice by inference, which is a hospital, an employer, a retailer, and a supplier of services all at once.",
+      "an invoice or estimate structure alone - shared with every commercial row on the roster, and this row's own fusion signal only fires when the clinical line and the chargeable line are the SAME line.",
+      "a photograph of an animal alone. A pet photograph is photos-schema material and the overwhelmingly more likely reading in any personal corpus.",
+      "a bare 4-digit number read as a year, a case number, a herd number, or a weight.",
+      "source_type or extension alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Vet, Practice, Animals, or a single animal's name alone. Folder context raises plausibility; it never fires by itself.",
+      "membership in one bulk export from a practice-management system - “A session should never be treated as proof of topic”"
+    ]
+  },
+  "proposed_context_terms": [
+    "owner",
+    "client",
+    "patient",
+    "species",
+    "breed",
+    "signalment",
+    "neutered",
+    "microchip",
+    "pet passport",
+    "vaccination",
+    "booster",
+    "worming",
+    "consultation",
+    "estimate",
+    "authorisation",
+    "consent to treat",
+    "anaesthetic",
+    "withdrawal period",
+    "off label",
+    "holding number",
+    "herd",
+    "flock",
+    "movement record",
+    "health certificate",
+    "euthanasia",
+    "cremation"
+  ],
+  "work_types": [
+    "consultation or clinical record for an animal",
+    "estimate, treatment authorisation, or consent form signed by an owner",
+    "vaccination card, booster reminder, or preventive-treatment record",
+    "prescription or dispensing record issued for an animal",
+    "laboratory result, imaging study, or post-mortem report",
+    "surgical, anaesthetic, or hospitalisation record",
+    "invoice, account statement, or payment-plan record for a client",
+    "insurance claim form and insurer correspondence",
+    "referral to or report from a veterinary specialist",
+    "health, export, insurance, or fitness-to-travel certificate",
+    "herd, flock, or holding health plan and testing record",
+    "animal movement, identification, or registration record",
+    "euthanasia authorisation, cremation, or remains record",
+    "practice registration, inspection, and standards-scheme record",
+    "controlled-drug register and dispensary record",
+    "client communication, complaint, or consent correspondence"
+  ],
+  "grouping_reasons": [
+    "one animal's record over its life, which is the row's natural group and the one that most tempts a label onto its members - the animal's name is a folder-shaped token and writing it onto a sparse file would be exactly the error 00 forbids: “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one CLIENT across several animals - the group a human practice has no analogue for, and the one that makes this row a distinct situation rather than a chart with a species column. An account, a payment plan, and a consent history belong to the owner, not to any one patient.",
+    "one episode of care: the estimate, the consent, the anaesthetic record, the discharge instructions, and the invoice that closes it - content-incoherent while purpose-coherent: “The documents are content-incoherent but purpose-coherent.”",
+    "one insurance claim and everything answering it: the claim form, the clinical history released, the insurer's queries, and the settlement note.",
+    "one holding or herd over a testing cycle, joined by a holding identifier rather than by any individual animal.",
+    "one document family: the versions of a health plan or a practice procedure, joined by the universal version_family fact.",
+    "no group at all is a valid outcome; a single vaccination card is still a named human's client record and is surfaced without one."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and clinical_practice declares none (D1 as narrowed, _CONTRACT rules 10 and 15, PR-6). Held as prose for whoever answers the schema row's open_question: this row's honest anchor is the CLIENT and then the ANIMAL, and both are disclosive as folder labels - a client level publishes a named human's name and their spending relationship with a practice, and an animal level frequently publishes the client's surname alongside it. Species is emphatically NOT a dimension: it is a value in a slot, and branching on it would be minting a taxonomy where the design allows only values - “The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.” The least dangerous recommendation, if fields ever land, is the same function-then-period order the rest of the family records - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - with any client or animal level off by default and behind review.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "ocr",
+      "image",
+      "email",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".tif",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Consultation - BELLA (Smith) - 2026-04-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an owner block naming a human with an address and a phone slot",
+        "a patient block naming an animal with species, breed, sex, neuter status, and date of birth",
+        "a clinical narrative whose entries carry a chargeable item, a quantity, and a price in the same row",
+        "a dispensed line with a medicine, a strength, and directions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - the schema declares no field rows",
+        "that the record is impersonal because the patient is an animal: the owner block is a named human's personal data and the priced lines are their financial record",
+        "a species fact as a domain or a dimension - species is a value in a slot",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bella vaccination card.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photograph of a printed vaccination card with practice branding",
+        "camera EXIF make, model, and DateTimeOriginal present",
+        "OCR yields an animal name, a species, dated vaccine entries, and a batch label",
+        "no owner address block visible in frame"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row - THE holder fixture for the whole row: a pet owner photographing their own animal's card is the far more likely reading in a personal corpus, and the owner-side row is refused (ROSTER.md section 5.6), so the correct outcome is a residual, not this row",
+        "media_type = screenshot - camera EXIF is present, and 00 warns the system “must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any clinical_practice fact - none is declared; the photos facts come from the photos schema on its own EXIF evidence",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Estimate and authorisation - dental - MAX.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an itemised cost schedule with a range and a total",
+        "a declaration accepting anaesthetic risk, signed and dated by a named owner",
+        "a patient block naming an animal and a procedure",
+        "a practice terms-of-business paragraph"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a signed cost acceptance is a commercial document rather than a clinical one - it is both at once, and that fusion is this row's defining property",
+        "any clinical_practice fact - none is declared",
+        "a risk, a cost, or an outcome judgement of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "client_ledger_export.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers read client, account, animal, date, item, quantity, net, tax, balance",
+        "thousands of rows across many different human clients",
+        "an aged-debt column",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that a ledger is ordinary bookkeeping: the item column names clinical procedures against named humans' accounts, which makes it a bulk-sensitive record of what happened to whose animals, and it is exactly what 00 protects - “identity documents, account statements, tax records, medical information”",
+        "a client identity fact from a dominant name in a column",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "pet insurance claim - continuation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an insurer letterhead with a policy and claim reference",
+        "an owner declaration section and a veterinary section requesting clinical history",
+        "an itemised treatment cost list",
+        "a signature slot for a registered veterinary surgeon"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared; the finance fields come from the finance schema on its own insurer-and-reference evidence (CONNECTION PR-8)",
+        "a claim outcome, an entitlement, or a cover judgement of any kind",
+        "that a claim form held by the practice is the owner's record - the veterinary section and the surgeon signature slot are what say which side holds it",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "herd health plan 2026 - holding 12-345-6789.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a holding identifier and a farm-business name rather than an individual owner block",
+        "batches of animals described by group, age, and number rather than by name",
+        "a testing and treatment calendar with withdrawal periods",
+        "a signature block naming the attending veterinary surgeon"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that the absence of an individual patient excludes this row - the food-animal face has no individual patient by construction, and it is the reason a species-shaped reading of this row fails",
+        "any clinical_practice fact - none is declared",
+        "a holding identifier read as a person's identifier",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "export health certificate - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an official numbered certificate with a country and a destination block",
+        "a declaration about a named animal with a microchip slot",
+        "an issuing-veterinarian registration number and an official stamp region",
+        "a validity window"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a jurisdiction fact as a FIELD or a dimension - `jurisdiction` is a value, never a field name and never a destination dimension (D4), and a country block on a certificate is the clearest place that error would be made",
+        "any clinical_practice fact - none is declared",
+        "a validity window read as a scheduled product action of any kind",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_0912.jpg",
+      "source_type": "image",
+      "observations": [
+        "a phone photograph of a dog in a garden",
+        "camera EXIF make, model, DateTimeOriginal, and GPS present",
+        "no text region and no OCR yield",
+        "sits in a folder beside a practice invoice"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "location",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the neighbouring invoice - this is the second collision fixture: a pet photograph is photos-schema material and neighbourhood copies nothing - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "an animal-identity fact from a picture",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "CD register - practice.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "per-product pages with received, supplied, and running-balance columns",
+        "supplied lines naming animals and their owners",
+        "a witness signature slot on each supplied line",
+        "a reconciliation page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row rather than clinical_practice.pharmacy-operations owns it: a dispensary register is a dispensary register whichever species it serves, and the correct outcome is an accepted group P10 chooses from, not a forced single owner here",
+        "any clinical_practice fact - none is declared",
+        "a discrepancy or accountability judgement of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "pms_backup_20260401.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a proprietary database file, an attachments directory, and a schema dump",
+        "attachment member names include images and PDFs",
+        "the database member is not a readable format",
+        "no member is opened to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that a member may be extracted to the filesystem - “the normal scan should never extract archive contents to the filesystem”",
+        "any clinical_practice fact - none is declared",
+        "that an unreadable database is low-risk: it is the entire client and patient record of a practice in one file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "clinical_practice.patient-chart",
+      "signal": "The fold collision, and the one this row's own open_question is about: a veterinary consultation record and a human chart share documentation headings, an accumulating dated record, and a subject block, and a reasonable reading is that species is simply a VALUE inside the chart row rather than a reason for a second row. The discriminating evidence this row rests on: a client block naming a HUMAN who is not the patient, alongside a patient block carrying species and signalment slots, and clinical entries fused with priced chargeable lines in the same row - none of which a human chart ever carries. Documentation headings, a dated record, and clinical vocabulary discriminate neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.pharmacy-operations",
+      "signal": "The reciprocal of the dispensary row's own world: a veterinary practice runs a dispensary with a controlled-drug register, stock, expiry, and destruction records that are structurally identical to a human pharmacy's, plus withdrawal-period and off-label notes that are not. The discriminating evidence: a register, a running balance, or a stock structure supports the pharmacy row whichever species it serves; a client-and-animal consultation record with a dispensed line inside it supports this row. A medicine name and a dispensing label discriminate neither, and a practice legitimately files the same register under both readings. AUTHORED ONE-WAY HERE against a sibling landed in the same wave; R1c owes the reciprocal - see this row's memo (NJ-CP-17). Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.practice-administration",
+      "signal": "A veterinary surgery is a practice with registration, inspection, standards-scheme membership, rotas, and returns, exactly as a human practice is - and the sibling row is drawn narrowly to claim administration whose documents contain patients. The discriminating evidence: a document about running the ORGANISATION - registration, premises, rotas, standards accreditation - supports the administration row; a document binding a client, an animal, and a clinical or commercial act supports this row. A practice letterhead discriminates neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "The commercial half of this row is genuine bookkeeping - client invoices, aged debt, payment plans, supplier accounts - and the fusion that defines the row is exactly what makes the pair hard: the invoice IS the clinical record. The discriminating evidence: a chargeable line carrying a clinical procedure or a dispensed medicine against a named animal supports this row; a ledger, a tax treatment, and a period close support the finance row. An invoice shape discriminates neither, and a practice legitimately files the same ledger under both readings - a template choice P10 makes later from an accepted group. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.store-operations",
+      "signal": "A veterinary surgery sells food, preventive products, and accessories over a counter, and that half of its records is retail with no clinical content at all. The discriminating evidence: a till, stock, or product-catalogue record with no patient and no prescriber supports the retail row; a supply tied to a named animal on a clinical recommendation supports this row. A product-and-price table discriminates neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.camera-events",
+      "signal": "The single most likely false positive on this row in any real personal corpus. A photograph of an animal, a folder named for an animal, and an animal's name in a filename are photos-schema evidence and nothing else - and they will vastly outnumber genuine practice records on most machines. The discriminating evidence: EXIF, a capture context, and no text region support the photos row; a tri-party record structure with an owner block and a clinical or priced line supports this row. An animal's name discriminates neither. AUTHORED ONE-WAY HERE: the photos.camera-events node file has not landed, and R1c owes the reciprocal (NJ-CP-17). Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for a recognised veterinary record, client account, claim, or certificate when no accepted professional group or approved branch exists - protected for the CLIENT's sake rather than the patient's. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for the pet OWNER's isolated copies - a vaccination card, a certificate, a reminder - which is where they belong because the owner-side row is refused (ROSTER.md section 5.6) and this row is the practice face only. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The home for an owner's isolated invoice, payment confirmation, or booking with no practice or bookkeeping group around it. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a single photograph of an animal with no photo family or event around it - the row's most common near-miss. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for the row's central ambiguity: an animal-and-owner document whose practice-versus-owner holder reading is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a proprietary practice-management-system backup or an encrypted client-record export. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Assigned for a reason that is INVERTED from the rest of this family, and the inversion is stated as inference rather than as a design claim. Everywhere else in clinical_practice the protected party is the patient; here the patient is an animal and the protected party is the CLIENT - a named human whose address, contact details, spending, aged debt, insurance history, and consent decisions about a companion animal's life and death are all in the same file. That material is not less sensitive for being about a pet: euthanasia authorisations, payment plans, and declined-treatment records are among the most private documents any household produces, and a client ledger is a named human's account statement. 00 names the material - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. The value is assigned to the whole row because the false negative is the dangerous direction: reading a veterinary file as harmless because its patient is an animal is precisely how a named client's account reaches a cloud prompt. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "NJ-CP-17, and it is the FOLD question for this row rather than a detail; it is argued both ways here rather than settled, because folding a row is a roster edit this agent may not make. Should this row exist at all, or is `veterinary` merely a VALUE - the species of the subject - inside rows that already exist? The argument AGAINST keeping it, stated first because it is strong: every work type listed above already has a home. An animal's chart is `clinical_practice.patient-chart` with a different subject; the dispensary is `clinical_practice.pharmacy-operations`; referrals to a specialist are `clinical_practice.referral-correspondence`; registration and rotas are `clinical_practice.practice-administration`; the surgeon's own registration is `clinical_practice.licensure-credentialing`; complaints and claims are `clinical_practice.malpractice-incident`. On that reading this row mints a node for what the design says is a value, which is the 574 failure exactly, and the honest outcome is a refusal. The argument FOR keeping it, which this row rests on and which is why `refuse_node` is false: the node test licenses a template whose DETECTION SIGNALS and PRIVACY RULES differ from its schema's default, and both differ here in ways no human-side row can express. Detection: a veterinary record binds three parties - practice, animal patient, human client - in two labelled blocks of different kinds, carries species, signalment, and permanent-identifier slots, and FUSES the clinical entry with the priced chargeable line in a single row, which in human practice are two systems and two files. Privacy: the protected party is inverted - the human in the file is the owner, not the patient - so the whole family's protect-the-subject reasoning points at a different block on the page, and a rule tuned to find a patient block finds the wrong one here. Two further facts favour keeping it: the food-animal face (herds, holdings, movement and testing records, withdrawal periods) has no individual patient at all and no human-side analogue whatsoever, and ROSTER.md section 5.6 already ruled that the practice side survives while `med.veterinary-pet-owner` stays refused - so folding this row would leave veterinary practice with no face at all, not merely a different one. A one-sentence ruling settles it. Two smaller reciprocals ride along and are also R1c's: the one-way edges authored here against `clinical_practice.pharmacy-operations` and `photos.camera-events`."
+}
