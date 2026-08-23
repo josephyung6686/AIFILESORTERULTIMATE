@@ -1,0 +1,525 @@
+{
+  "id": "clinical_practice",
+  "kind": "schema",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Clinical practice (clinician side)",
+  "one_line": "The practitioner's side of healthcare: the material a clinician, practice, pharmacy, or veterinary surgery authors and custodies ABOUT other people. It is the role-reverse of the medical safety domain - there the holder is the subject of the record, here the holder is its author and custodian and the subject is a third party who never chose this filesystem. Gist-level placeholder (J-IND): it declares NO field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6) and recommends NO folder dimensions, so activation unlocks recognition and protection plus the universal facts only.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "subject_of_record",
+      "type": "string",
+      "example": "the person or animal a chart, referral letter, or incident report is about",
+      "why_no_existing_key": "This is the ONE fact that separates this schema from every neighbour, and no canonical key can hold it. `authored_by` is the opposite role and is the role this holder occupies. `client` is a commercial engagement counterparty (its role_split partner is `our_firm`), and a patient is not a client of the person who wrote the note - the correspondence is often addressed to a third clinician entirely. `people` is the photos-side co-occurrence facet for who appears in a frame. `institution` is the facility, not the person. So the concept is unheld, and it is exactly why `medical` and `clinical_practice` are two rows rather than one.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Proposed as never-destination-eligible, on two independent grounds. “It should avoid using authorship or creator identity as a destination dimension.” states the principle for creator identity, and this is a stronger case: a folder named for a patient publishes in the filesystem namespace the single fact the protection exists to hide, and it does so for a person who is not the user. “Protected branches should have configurable redaction in the canvas and review screens” points the same way inside the product's own UI.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled patient block is a `direct` slot in the P4 sense, but the LEGAL question - may the product store another person's identity as a stored fact at all - is not this row's to answer, so the proposal is pinned at `possible` rather than claiming a rule will confirm it. R1c and Joseph decide whether the key exists; this row does not mint it.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry: each is a DETECTION signal, never an extraction licence. This schema declares no field rows, so no signal here writes a domain fact. The signals answer only whether patient-identifying practitioner-side material is present, so that P7 runs first - “Privacy policy must be enforced before content reaches any model or external connector.”.",
+      "an authorship-role structure: a clinical narrative whose own signature, sign-off, or letterhead block names the holder (or the holder's practice) as the AUTHOR or responsible clinician, beside a separate labelled block naming a different person as the subject. Two person-shaped blocks in two different labelled roles is the shape; either block alone is never enough.",
+      "a practice-system export header: a document whose header or footer zone carries a practice or EHR system's own labelled slots - a practice identifier, a responsible-clinician slot, a printed-by slot, and a record-number-shaped token - rather than a patient-portal's addressed-to-you framing. This copies the pattern-plus-context SHAPE 00 uses for the academic course code; the term vocabulary is PROPOSED (see proposed_context_terms) and is never claimed as a list 00 wrote.",
+      "a batched multi-subject structure: one document holding a repeated per-person block - list rows, a clinic-list table, a theatre or appointment list - where several different named subjects appear in one file under one date and one facility. A patient's own record is about one person; a practitioner's working document is routinely about many. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an outbound correspondence structure: an addressee block naming a clinician or practice OTHER than the holder, a subject line naming a third person with a date of birth or record number, and a sign-off naming the holder. The direction of address is the evidence.",
+      "a professional-obligation structure: a labelled registration, licence, privileging, revalidation, indemnity, or incident-reporting form whose issuing body is a health regulator, hospital credentialing office, payer enrolment unit, or medical defence organisation, matched at a word boundary against R4's gazetteer content - “It should use word-boundary matching rather than substring matching.”. R4 owns the gazetteer; this row writes no names and no regex.",
+      "parent-folder context naming a practice, clinic, ward, list, or caseload, treated as a clue that raises plausibility for this schema over `medical` when a subject-versus-author structure is already present. Folder context never fires alone.",
+      "an email whose labelled sender or recipient slot resolves to a clinical-system or professional-body domain and whose labelled subject slot names a third person's case, referral, or result. The email extractor's slots are structured; the addressing direction is what discriminates this schema from `medical`.",
+      "an archive whose manifest names a practice-system export, a caseload backup, or a per-patient partitioned member set, read from the manifest alone - “the normal scan should never extract archive contents to the filesystem”."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this is patient-identifying material by default, so a model step runs only after P7 classification and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. A local model under local-only mode is the default reading of every line below.",
+      "an unlabelled clinical narrative with no signature block and no patient block - a dictated note pasted into a plain text file, a handwritten note photographed and OCR'd.",
+      "separating the holder's OWN health record from a record the holder wrote about someone else, when a clinician is also a patient of the same system and the two document families look identical. This is the central determination for this schema and the model must abstain rather than guess - “A model that cannot cite sufficient evidence must return unknown.”.",
+      "separating a real case from a TEACHING case: a de-identified vignette, an exam question, an anonymised case report. “Topic answers what a file is about, while purpose answers what the file was for.”. Clinical vocabulary is dense and identical on both sides.",
+      "a purpose-coherent professional packet whose members are individually unremarkable - a credentialing bundle carrying an identity document, a certificate, a CV, a reference letter, and a case log. 00's shape for exactly this: “The documents are content-incoherent but purpose-coherent.”",
+      "a document in a language whose labelled-slot and professional-body vocabulary the deterministic structure catalogue does not cover."
+    ],
+    "never_alone": [
+      "clinical or anatomical vocabulary alone. A textbook chapter, a saved guideline PDF, a nursing lecture, and a drug leaflet are all dense in it and none is practitioner-side material about a person. This is the tempting false file for this node, and it is the collision fixture against `academic` and `clinical_practice.teaching-material`.",
+      "a hospital, clinic, practice, pharmacy, or regulator gazetteer hit alone. 00 states the ambiguity for a university - “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - and the same multi-role problem holds for a facility name: employer, teaching site, research site, billing counterparty, letterhead of a record ABOUT the holder, or a caption. Provenance: inference; 00 writes that sentence about a university, not a hospital.",
+      "a person's name plus a date of birth alone. That pair appears on the holder's own record (`medical`), on an identity document (`identity`), on a school form, and on a practitioner-side note. What discriminates is whether a SECOND person occupies the author role.",
+      "a clinician title (Dr, RN, consultant, DVM) alone, including in a PDF author or producer string. “PDF metadata should be treated as supporting evidence, not as truth”. A practice's document template names a clinician on every blank form it ever generated.",
+      "source_type or extension alone - text_document, ocr, image, email, calendar, archive, opaque_binary. 00: the engine should “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "a bare 4-digit number read as a year of practice, a registration number, or a record number.",
+      "membership in a download session that dropped a batch of PDFs out of one practice system at once - “A session should never be treated as proof of topic”.",
+      "the absence of EXIF as proof that a capture of a practice-system screen is a screenshot - “the system must not mistake the absence of EXIF for proof that an image is a screenshot”.",
+      "a parent folder named Work, Clinic, or Patients alone."
+    ]
+  },
+  "proposed_context_terms": [
+    "patient",
+    "date of birth",
+    "medical record number",
+    "date of service",
+    "referring",
+    "referred by",
+    "seen in clinic",
+    "history of presenting complaint",
+    "examination",
+    "impression",
+    "plan",
+    "consultant",
+    "responsible clinician",
+    "practice",
+    "surgery",
+    "dispensed",
+    "prescriber",
+    "registration number",
+    "revalidation",
+    "privileges",
+    "incident",
+    "duty of candour",
+    "multidisciplinary",
+    "case discussion"
+  ],
+  "work_types": [
+    "clinical note or entry authored about a patient",
+    "letter or report sent to another clinician",
+    "referral made or received on a patient's behalf",
+    "investigation request and the result filed against it",
+    "prescription or dispensing record issued",
+    "operation, procedure, or anaesthetic record",
+    "case list, clinic list, or handover document",
+    "case-conference agenda, presentation, or outcome record",
+    "consent form taken from a patient",
+    "registration, licence, privileging, or enrolment record",
+    "continuing-education certificate or activity log",
+    "indemnity or professional-liability policy record",
+    "incident, adverse-event, or complaint record",
+    "audit, quality, or outcome return",
+    "practice-system export, backup, or transfer packet"
+  ],
+  "grouping_reasons": [
+    "one episode of care as the PRACTITIONER kept it: the request, the result filed against it, the note written after it, the letter sent about it. Membership stays reviewable and copies nothing - “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one professional cycle: a registration period, a revalidation or credentialing round, an indemnity year - the packet is purpose-coherent while its members are content-incoherent.",
+    "one incident or claim from first report to closure, across correspondence, statements, and cover documents.",
+    "one repeatedly re-exported practice-system dump, joined by the universal duplicate_family and version_family facts rather than by any clinical fact.",
+    "no group at all is a valid outcome: a single stray practitioner-side document is still protected material and is surfaced without a group."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty twice over, and neither reason is a refusal. (1) By contract: a dimension may only branch on a field the same schema declares, and this placeholder declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). (2) By privacy, independently of (1): every dimension this world would naturally take - the patient, the condition, the specialty, the incident - becomes a visible folder LABEL, and here the label would name a THIRD PARTY who never chose this filesystem. That is a stronger objection than the one the medical row records for the user's own material. 00 pushes the same way inside the product's own UI - “Protected branches should have configurable redaction in the canvas and review screens” - and the residual home “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”. CONNECTION section 4 step 5 states the rule for activation: protection plus the small schema only, and no deep template unlocks from it. If field rows are ever decided, the recorded starting recommendation is held as PROSE and is deliberately shallow: the professional situation (a caseload, a credentialing cycle, an incident) before the document function, and never a patient level or a diagnosis level. Not time-first - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”. That prose is a note for whoever answers the open_question, not a dimension_order.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "email",
+      "calendar",
+      "spreadsheet",
+      "presentation",
+      "archive",
+      "audio_video",
+      "code_structured",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".txt",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".csv",
+      ".xlsx",
+      ".pptx",
+      ".zip",
+      ".m4a",
+      ".xml",
+      ".dcm"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Clinic letter - SMITH, J - 1954-02-11 - 2026-04-08.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an addressee block names a different practice and a named GP",
+        "a labelled subject block names a person, a date of birth, and a record-number-shaped token",
+        "prose sections headed history, examination, impression, plan",
+        "a sign-off block names the holder and a professional registration number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact: this schema declares no field rows, so activation legitimises protection plus the universal facts only",
+        "that the named subject is the holder - the sign-off block is the holder, and the two roles are exactly what this schema exists to keep apart",
+        "a diagnosis, an outcome, or any clinical conclusion of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "After Visit Summary.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "clinic letterhead, a visit date, prose instructions addressed to you",
+        "a medication table with drug, dose, and directions columns",
+        "the named person in the patient slot is the holder",
+        "no author sign-off block naming the holder as clinician"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "clinical_practice activation: this is the holder's OWN record and belongs to medical / medical.personal-health-records - it is the collision fixture for this node in the direction that matters most",
+        "that clinical letterhead means practitioner-side custody",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Theatre list 2026-04-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a table whose rows each carry a different named person, a record number, a procedure, and a time",
+        "a facility and a session header",
+        "a named responsible consultant in the header zone",
+        "no addressee block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that a list is low-risk because each row is short: a multi-subject list is bulk-sensitive as a whole",
+        "an event fact in the photos sense from the session header",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "GMC revalidation portfolio 2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest names a CV, appraisal documents, CPD certificates, an audit return, and a folder of anonymised case reflections",
+        "member paths partitioned by requirement rather than by patient",
+        "no member is opened to disk during the normal scan",
+        "outer archive name carries a professional-body-shaped token and a year"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "a tax_year or a term from the 4-digit token in the archive name",
+        "that a member may be extracted to the filesystem to be read",
+        "that the anonymised reflections are safe simply because the manifest calls them anonymised",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-06-02 at 11.03.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads a practice-system patient banner, a problem list, and a printed-by line naming the holder",
+        "OCR text also contains an application menu bar and a log-out control label"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone - “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "a clinical fact from a banner or a problem list",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Guideline - management of community-acquired pneumonia v4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a professional society's letterhead and a version token",
+        "dense clinical vocabulary, dosing tables, an algorithm figure",
+        "no named person anywhere in the document",
+        "a citation list at the end"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation from clinical vocabulary alone - there is no subject and no author-role structure, and this is the sibling row clinical_practice.protocol-guideline's material, not this node's",
+        "that a society name alone established anything",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Referral - BROWN, A - urgent 2WW.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an addressee block names a hospital service",
+        "a labelled patient block names a third person",
+        "a labelled referrer block names the holder's practice",
+        "a labelled urgency slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "a clinical urgency or triage judgement of the product's own from the urgency slot: the slot is a raw observation",
+        "which of clinical_practice.referral-correspondence and clinical_practice.patient-chart owns the file - the same letter is legitimately both the correspondence register entry and a chart member, and P10 chooses the template later from an accepted group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Indemnity certificate 2026-27.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a medical defence organisation's letterhead",
+        "a labelled policy-number slot beside a cover-period slot and a premium amount",
+        "the named insured is the holder, in their professional capacity",
+        "a scope-of-practice line naming a specialty"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared; the finance fields here come from the finance schema on its own policy-and-premium evidence (CONNECTION PR-8)",
+        "a tax_year from the cover-period token",
+        "that a professional indemnity policy is a personal insurance record",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "MDT 14 May - lung.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide-one title names a meeting, a service, and a date",
+        "each subsequent slide carries a different case with an initial-shaped identifier and imaging",
+        "speaker notes name attending clinicians",
+        "a final slide records outcomes and actions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that initials instead of full names make the deck de-identified",
+        "an instructor or subject academic fact from a deck that happens to be a presentation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "dictation_20260408_1142.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "a short audio file with a recorder-generated timestamp filename",
+        "container metadata names a dictation application",
+        "no transcript exists at scan time",
+        "sits in a folder alongside letters bearing the holder's sign-off block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a clinical fact from the neighbouring letters - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "any clinical_practice fact - none is declared",
+        "that the file is harmless because it is unreadable at scan time: a dictation almost certainly speaks a patient's name aloud, and any transcription step is a model path that P7 gates first",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "practice_export_20260401.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest declares a very large uncompressed size and per-record partitioned member paths",
+        "member filenames are record-number-shaped tokens",
+        "a manifest member names the practice system's own schema document",
+        "outer name is generic"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that member count or size alone made it clinical: the manifest's member NAMES and the schema document are the evidence",
+        "that the archive may be expanded to the filesystem - “the normal scan should never extract archive contents to the filesystem”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Clinic 2026-04-14 09:00 - 6 patients.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY names a clinic session and a count",
+        "labelled LOCATION names a facility",
+        "attendee slots resolve to clinical-system addresses",
+        "recurrence rule present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone: the SUMMARY and attendee content is what fires (CONNECTION-EXAMPLES fixture 5)",
+        "any clinical_practice fact - none is declared",
+        "a contact fact used as a folder proposal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "medical",
+      "signal": "THE defining collision for this row, and the one both sides must state. Identical document families - letters, results, medication lists, consent forms, immunisation records - appear on both sides, and the discriminating evidence is the holder's ROLE, not the content. A sign-off, letterhead, or practice-system printed-by block naming the holder as the AUTHOR or responsible clinician, beside a separately labelled block naming a DIFFERENT person as the subject, supports clinical_practice; a document addressed TO the holder as the patient, or naming the holder in the patient slot, supports medical. A clinical letterhead, a record-number token, or a patient block alone discriminates neither, and where the evidence does not settle the role the correct outcome is neither - “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career",
+      "signal": "A clinician's registration certificate, CPD log, appraisal, CV, and employment contract are career material that happens to be clinical, and a credentialing packet is assembled for an employer. The discriminating evidence: a document about the holder's own standing, employment, or hiring, with no third-party subject, is career; a document whose content is about other people's care, or whose issuing body regulates the right to treat patients rather than to hold a job, leans here. The overlap is real enough that clinical_practice.licensure-credentialing carries a NEEDS-JOSEPH asking whether it should fold into career.credentials-licenses. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "Incident reports, complaint responses, coroner or inquest correspondence, disciplinary papers, and medico-legal reports written for a court are legal instruments about clinical events. The discriminating evidence: a tribunal caption, a case or claim identifier, an instructing-solicitor block, or a formal legal process anchor is legal; a practice-internal incident form, a duty-of-candour letter to a patient, or a clinical entry describing the event is this schema. Many real files carry both anchors, which is why the pair also holds. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic",
+      "signal": "Medical teaching decks, exam questions, case-based-learning vignettes, and student logbooks read as clinical text end to end. The discriminating evidence: a course-code pattern with academic context, or a coursework work type, is academic; a real named subject with a practitioner author-role structure is this schema. Clinical vocabulary alone activates neither - and the sibling row clinical_practice.teaching-material owns the practitioner-authored teaching case, so this collision is three-cornered. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "Trial protocols, case report forms, ethics submissions, and de-identified datasets describe clinical procedures and are held by the same clinicians. The discriminating evidence: a project identifier, an ethics or approval-number slot, or participant-facing framing is research; a named subject in routine care with a clinical author-role structure is this schema. A clinician-investigator's corpus contains both, often in one folder. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "medical",
+      "why": "The collision above is the mutex on ONE evidence item; this edge is the disjoint-evidence case, and there is a real one. When the holder is BOTH clinician and patient in the same system - a clinician who treats and is treated at their own hospital, or a practice's own occupational-health file on a staff member - a single corpus, and occasionally a single packet, carries both roles on separate evidence. “A file may validly belong to more than one accepted group”. Both rows are field-less placeholders, so today this join carries protection on both sides and fields on neither. AUTHORED ONE-WAY HERE: the landed medical.json does not name clinical_practice, and R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "why": "A clinical incident that becomes a claim is one file family under two schemas at once: the clinical account on its clinical evidence, the claim on its legal-process evidence. legal is a field-less safety placeholder too, so the join carries protection on both sides and fields on neither. One-way here; R1c owes the reciprocal on legal.json. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career",
+      "why": "A credentialing or revalidation packet is simultaneously the holder's professional-standing record (career) and a practitioner-side clinical obligation carrying case logs and audit returns about patients (this schema), on disjoint evidence within one archive. One-way here; R1c owes the reciprocal on career.json. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "why": "CONNECTION PR-8 read for this world: professional indemnity cover, payer enrolment, and practice billing are templates over the Finance schema vocabulary, and where they touch patient-identifying material this schema co-activates for protection while writing no fields (PR-6). One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "why": "A clinician-investigator's file can be a study artifact (project, stage, artifact_type on research's evidence) and a practitioner-side record about a real patient in routine care at the same time - a source note verified against a case report form is the standard example. Disjoint evidence, one file, no merge. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for any recognised practitioner-side document when no accepted professional group or approved branch exists. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a professional-looking document whose author-versus-subject role stays unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an encrypted practice export, an unreadable proprietary record, or an untranscribed dictation. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone professional document carrying no third-party subject at all - a certificate, a registration notice. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The inactive home for a guideline, journal article, or practice guide with no case, no subject, and no accepted professional group. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names this material inside its own privacy language - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. This row carries an aggravating factor 00 does not separately address and which is stated as inference, not as a design claim: the sensitive party is a THIRD person who never chose this filesystem and cannot consent to, review, or correct anything the product does. That argues for the strictest available posture, not a lesser one. Only 00's phrases are asserted here; the handling class is P7's and is not set on this row.",
+  "open_question": "Four, and the first is the one that blocks the rest. (1) NJ-J-IND-4, restated with this row's evidence: `is_safety_domain: true` marks 00's four named domains, and this row does not carry it - but the material is patient-identifying by default and the case for the flag is stronger here than for some of the four, because the exposed party is not the user. If the flag is withheld, the substitute mechanism must be named, because CONNECTION section 4 step 5's protect-first ordering is keyed to the flag and nothing else currently forces P7 ahead of a model path for this schema. (2) Whether `subject_of_record` may exist as a stored field key at all (proposed_fields, for R1c) - this is not the medical row's holder-versus-subject question repeated, it is the sharper version of it, because here the subject is definitionally not the holder. (3) NJ-2 for this domain: may the matched clinical text be stored in the local evidence table like any other observation, or should detection store only a protected marker plus a location? A stored third-party narrative is a larger local surface than a flag, and every later dossier builder reads that table. (4) Whether ten templates on a field-less schema is the right shape at all, or whether some of the ten should fold - this row's own answer is that the five it can see (patient-chart, case-conference, licensure-credentialing, malpractice-incident, referral-correspondence) each pass the node test on detection signals and privacy rules, with licensure-credentialing the weakest and carrying its own fold question against career.credentials-licenses."
+}

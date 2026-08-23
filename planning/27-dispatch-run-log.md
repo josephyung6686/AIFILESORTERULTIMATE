@@ -42,3 +42,22 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   Legacy baseline UNCHANGED, as required.
 - Next: the industry gist swarm over the 275 new rows, run in capped batches, verified and
   committed per batch so partial progress is never lost.
+
+## Industry gist swarm — pilot (clinical_practice, 6 of its 11 rows)
+
+- **Grouping deviation, recorded:** the plan said one agent per row (275 agents). The dominant cost
+  per agent is re-reading the identical authority stack, so rows are grouped ~6-10 siblings per
+  agent (~31 agents). At gist depth this also improves coherence: one agent writing six siblings
+  makes them agree, where six isolated agents each guess the boundary between them.
+- Pilot landed 12 files, exactly its 6 assigned rows, nothing out of scope. All JSON parses, key
+  sets match landed siblings, `fields: []` correct for placeholder rows, memos 3.9-7.7KB (gist
+  depth — deliberately shorter than R1b's 19-22KB, and labelled "Depth: GIST" in each memo).
+- Quality spot-check passed: memos cite which legacy ids they absorbed (with Appendix A line refs),
+  use a *reciprocal* fixture with `medical.json` (same bytes named on both sides of the boundary),
+  reject tempting-but-wrong files with reasons, and record that the node test's third leg is
+  unsatisfiable for this family (the schema declares no fields) rather than papering over it.
+- One `proposed_fields` entry for R1c: `subject_of_record` on the schema. No row refused.
+- **Dispatch error caught and corrected:** `clinical_practice` has 11 rows; only 6 were assigned
+  because the inspection command sliced the list. Remaining 5 (pharmacy-operations,
+  practice-administration, protocol-guideline, teaching-material, veterinary-practice) are queued
+  into the next wave. Row counts must come from the roster, never from a truncated listing.

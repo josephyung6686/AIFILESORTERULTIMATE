@@ -1,0 +1,382 @@
+{
+  "id": "clinical_practice.patient-chart",
+  "kind": "template",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Patient charts held by a clinician or practice",
+  "one_line": "The organizational situation of holding, as the author and custodian, the longitudinal record of ONE other person's care: the notes, entries, treatment plans, filed results, and consent forms that accumulate about a named patient over time. Absorbs the legacy rows med.clinician-patient-chart, med.clinician-clinical-note and med.clinician-treatment-plan - a note and a plan are the chart's own contents, not separate worlds. Gist-level placeholder (J-IND): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry is a DETECTION signal, never an extraction licence - this template's schema declares no field rows. The signals exist so P7 runs first: “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a chart-entry structure: a dated entry whose own labelled sections follow a clinical documentation form (presenting complaint, history, examination, impression, plan; or subjective / objective / assessment / plan), signed off by a named clinician who is the holder or the holder's practice, ABOUT a separately named person. The two-role structure is what distinguishes this from the patient's own copy of the same visit.",
+      "a practice-system record header: a printed-by or exported-by slot naming the holder, beside a patient banner carrying a name, a date of birth, and a record-number-shaped token, in a high-weight zone - “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.”",
+      "a longitudinal accumulation structure: one document, or one directory read through P3 parent-folder context, holding several dated entries about the SAME single named subject over months - the property that makes a chart a chart rather than a one-off document.",
+      "a treatment-plan or care-plan structure: a labelled goal / intervention / review-date table naming one subject and a responsible clinician. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a filed-result structure: an investigation report whose header names an ORDERING clinician who is the holder, filed against a subject who is not - the direction of the request is the evidence, not the report's own laboratory letterhead.",
+      "a consent-form structure signed BY a patient and countersigned by the holder as the clinician taking consent, as distinct from a consent form the holder signed as a participant or patient themselves."
+    ],
+    "needs_llm": [
+      "PRECONDITION: patient-identifying by default, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "an unlabelled narrative with no headings and no signature block - a dictated note pasted into a text file, a scanned handwritten continuation sheet.",
+      "whether a chart-shaped document is a REAL chart or a completed teaching template, a portfolio exemplar, or an exam station script - all of which reproduce the same headings faithfully. The model must abstain rather than assert: “A model that cannot cite sufficient evidence must return unknown.”",
+      "whether the holder is the author or the subject, when a clinician's own care is documented in the system they work in.",
+      "a chart in a language whose clinical-heading vocabulary the deterministic structure catalogue does not cover."
+    ],
+    "never_alone": [
+      "clinical documentation headings alone. Blank templates, teaching handouts, exam scripts, and software documentation all carry them faithfully and none is anyone's chart. This is the tempting false file for this row.",
+      "a record-number-shaped token alone, and a bare 4-digit number read as a record number, a year of birth, or a ward number.",
+      "a facility or practice gazetteer hit alone - the multi-role problem 00 states for a university - “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - read across to a clinic by inference.",
+      "source_type or extension alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Patients, Charts, Notes, or a person's name alone. Folder context raises plausibility; it never fires by itself.",
+      "membership in one bulk export session - “A session should never be treated as proof of topic”",
+      "a clinician name in a PDF author or producer string - “PDF metadata should be treated as supporting evidence, not as truth” - since a practice template names its author on every blank form it generated."
+    ]
+  },
+  "proposed_context_terms": [
+    "patient",
+    "date of birth",
+    "record number",
+    "presenting complaint",
+    "history",
+    "examination",
+    "impression",
+    "plan",
+    "assessment",
+    "progress note",
+    "continuation sheet",
+    "care plan",
+    "review date",
+    "responsible clinician",
+    "printed by",
+    "filed",
+    "consent taken by",
+    "allergies",
+    "past medical history"
+  ],
+  "work_types": [
+    "clinical note or progress entry",
+    "consultation or admission record",
+    "treatment or care plan",
+    "filed investigation result",
+    "medication or dispensing entry",
+    "procedure or operation record",
+    "consent form taken from the patient",
+    "correspondence filed into the chart",
+    "discharge or transfer-of-care summary",
+    "chart export, transfer, or subject-access packet"
+  ],
+  "grouping_reasons": [
+    "one subject's longitudinal record: entries, plans, results, and filed letters about the same person over time. The anchor supports a candidate packet; it does not write a subject fact onto members - “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one episode within that record: an admission, a course of treatment, a procedure and its follow-up.",
+    "one document family: draft, signed, and countersigned versions of the same entry, joined by the universal version_family fact.",
+    "one export or transfer packet, joined by duplicate_family and by a manifest rather than by any clinical fact.",
+    "no group at all is a valid outcome; a single stray chart page is still protected material and is surfaced without one."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract AND by the strongest privacy argument on this roster. By contract: a dimension may only branch on a field the same entry's schema declares, and clinical_practice declares none (D1 as narrowed, _CONTRACT rules 10 and 15, PR-6). By privacy: the one dimension this situation obviously wants is THE PATIENT, and a folder named for a patient publishes a third person's identity and the fact of their care in the filesystem namespace - for someone who is not the user, did not choose this product, and cannot review or correct it. 00 argues against person-shaped dimensions even for the user's own material - “It should avoid using authorship or creator identity as a destination dimension.” - and requires redaction in the product's own surfaces: “Protected branches should have configurable redaction in the canvas and review screens”. The present recommendation is therefore ONE shallow, redacted, user-approved practitioner-records packet with no automatic internal depth. Held as prose for whoever answers the schema row's open_question: if fields ever land, document function would precede time and a subject level would remain off by default. Not time-first - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "spreadsheet",
+      "email",
+      "archive",
+      "audio_video",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".txt",
+      ".jpg",
+      ".png",
+      ".tif",
+      ".csv",
+      ".eml",
+      ".zip",
+      ".m4a"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "SMITH J 1954-02-11 - progress notes 2025-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a repeated dated-entry structure, each entry ending in a named clinician sign-off",
+        "a patient banner repeated in the page header with a name, a date of birth, and a record-number token",
+        "several entries signed by the holder, others by colleagues",
+        "a printed-by footer naming the holder and an export date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - the schema declares no field rows",
+        "that the holder authored entries a colleague signed",
+        "a diagnosis, a severity, or any clinical judgement of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "SOAP template blank.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the four documentation headings and nothing under them",
+        "placeholder tokens where a name and a date of birth would go",
+        "a practice logo and a version token in the footer",
+        "document author metadata names a clinician"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation from the headings alone: there is no subject and no completed entry - this is the collision fixture for this row",
+        "a clinician fact from the author metadata - “PDF metadata should be treated as supporting evidence, not as truth”",
+        "that a blank template is protected material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "After Visit Summary.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "clinic letterhead, prose instructions written in the second person",
+        "the holder occupies the patient slot",
+        "no author sign-off naming the holder as clinician"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the holder is the SUBJECT, so this is medical.personal-health-records material - the reciprocal boundary case, stated identically on both sides",
+        "that a clinic letterhead implies practitioner custody",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Care plan - BROWN A - review 2026-09.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a goal / intervention / review-date table",
+        "one named subject in a header slot",
+        "a responsible-clinician slot naming the holder",
+        "a signature line for the patient and for a carer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "a review date as a scheduled product action of any kind",
+        "that a carer's name in a signature line is the subject",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_7712.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photograph of a handwritten continuation sheet on a desk",
+        "camera EXIF make, model, and DateTimeOriginal present",
+        "OCR yields a dated entry, a legible clinician signature, and a partial patient banner"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot - camera EXIF is present",
+        "any clinical_practice fact - none is declared; the photos facts come from the photos schema on its own EXIF evidence",
+        "that a casual phone photo is outside the protected path once the OCR region carries a patient banner",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "subject access request - full record.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a cover letter, a chronological record export, correspondence, and a results folder",
+        "member paths partitioned by document kind, all about one subject",
+        "an unusually large uncompressed size declared",
+        "no member is opened to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that a records-request packet is administrative rather than clinical material",
+        "that a member may be extracted to the filesystem - “the normal scan should never extract archive contents to the filesystem”",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "case 4 - 68yo with chest pain.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a full documentation structure with no name and no date of birth",
+        "an age and a sex in place of an identifier",
+        "learning-objective bullets at the end",
+        "a numbered case token in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a de-identified teaching case has no subject, and the sibling row clinical_practice.teaching-material owns it",
+        "a subject from the age-and-sex line",
+        "a course subject fact from a bare case number",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "results_inbox_20260408.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers read record number, name, test, result, ordering clinician, filed",
+        "several hundred rows across many different subjects",
+        "the ordering-clinician column is dominated by one name",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that a spreadsheet is low-risk because each cell is small: a multi-subject results extract is bulk-sensitive as a whole",
+        "an institution finance fact from a laboratory name in a column",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "chart.enc",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a binary whose signature matches no supported extractor",
+        "sits beside a practice-system application folder",
+        "no text extracted"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a clinical fact from the directory it sits in - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that the file is empty rather than indexed-but-unreadable",
+        "that its filename supplies a subject or a purpose",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "THE reciprocal boundary this row exists to draw, stated the same way on both sides: the same visit produces a clinician-authored entry and a patient-facing summary, and they share letterhead, vocabulary, dates, and often a record number. The discriminating evidence is the holder's ROLE - an author sign-off, a responsible-clinician slot, or a practice-system printed-by block naming the holder, beside a differently named subject, supports this row; the holder named in the patient slot, or second-person instructional prose addressed to the holder, supports medical.personal-health-records. A record number, a clinic name, or a clinical heading set discriminates neither, and where the role is unevidenced the correct outcome is neither. AUTHORED ONE-WAY HERE: the landed medical.personal-health-records node does not name clinical_practice, and R1c owes the reciprocal - see this row's memo (NJ-CP-1). Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.referral-correspondence",
+      "signal": "A referral or clinic letter is legitimately both a correspondence-register entry and a chart member; a copy of the same letter often exists on both sides. The discriminating evidence: an outbound addressee block plus a sent-to register context supports referral-correspondence; the same letter filed inside a subject's accumulated record, under a filed-on slot, supports this row. The letter's own body discriminates nothing. Because both readings are frequently true, P10 chooses a template from an accepted group later rather than the catalogue choosing here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.teaching-material",
+      "signal": "A completed teaching case reproduces the chart structure exactly. The discriminating evidence: a real named subject with a date of birth or record number supports this row; an age-and-sex descriptor, initials, learning objectives, or discussion questions support teaching material. Documentation headings alone support neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.dependant-child-health",
+      "signal": "A parent holding a child's records and a clinician holding a patient's records both hold a record about someone else. The discriminating evidence: an author-role or practice-system custody structure supports this row; a household relationship with no professional authorship supports the dependant row. A record about a third person alone discriminates neither. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for a recognised chart, entry, plan, or filed result when no accepted professional group or approved branch exists. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a chart-shaped document whose author-versus-subject role is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an encrypted or proprietary record file, or an untranscribed dictation. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The inactive home for a de-identified teaching case or blank template with no subject. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the densest third-party material the roster contains: a chart aggregates one person's identity, contact details, conditions, medications, and clinical history in one place, and that person is not the user. 00 names the material - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class, and it does not re-derive D2's ClassificationRecord.",
+  "open_question": "Whether a practitioner-side chart should be OFFERED a physical destination at all in v1, or represented in place under Protected Records and never moved. The other placeholder rows on this roster defer their tree to a later field decision; this one has a substantive reason to defer it permanently, because any branch that groups chart material is a branch whose existence discloses a caseload, and any branch that does not group it is not a chart. That is a decision about someone's real professional obligations, not a fact about files, so it is Joseph's - and it does not depend on whether clinical_practice ever gets field rows."
+}
