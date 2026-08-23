@@ -1,0 +1,412 @@
+{
+  "id": "construction_property.sale-purchase",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Residential sale and purchase — the conveyancing transaction file",
+  "one_line": "The organizational situation of ONE TRANSACTION IN PROGRESS: a property changes hands, and for a few months a pack of otherwise unrelated documents - title entries, searches, forms about boundaries and drains, identity evidence, a mortgage offer, a contract, a completion statement - is assembled by two sides who need it only until the keys move. The organizing anchor is the TRANSACTION, and the row exists because the pack is purpose-coherent and content-incoherent, and because it dissolves: after completion a handful of these documents become the owner's permanent property record and the rest are dead paper. Absorbs the legacy row prop.sale-purchase (ROW). Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a transaction-stage structure: documents naming a stage on their face - offer accepted, memorandum of sale, draft contract, enquiries raised, exchange, completion - together with a property address and two identified sides. Stage vocabulary tied to one address is the discriminating shape, because it only exists while the transaction is running.",
+      "a title-and-search bundle: register entries with a title number, a title plan, and search results addressed to the property (local authority, drainage and water, environmental) - machine-generated documents with reference numbers and issue dates that no household ever produces for itself.",
+      "a standard property questionnaire: a numbered form about boundaries, disputes, alterations, services and fixtures, completed by the seller. A form whose questions are about the property rather than about a person is distinctive.",
+      "a completion or financial statement: a reconciliation of price, deposit, mortgage advance, fees, taxes and apportionments arriving at a balance due on a stated date. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an identity and source-of-funds pack: identity documents, address evidence and bank statements collected for anti-money-laundering purposes and filed inside the transaction, not for their own sake.",
+      "a memorandum or contract pair: two copies of the same contract signed by different parties, exchanged on a date, followed by a transfer instrument.",
+      "a purpose-coherent bundle whose members are individually unremarkable - a survey, a form, three searches, a certificate and an identity scan. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "which side the file belongs to. A buyer's file and a seller's file contain many of the same documents, and the pack is assembled by solicitors who send copies both ways. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating a live transaction from a completed one, when the same documents sit in both and only the presence of a completion statement or a registration confirmation says which.",
+      "separating a transaction that COLLAPSED from one that completed - an abandoned pack looks identical to a live one and is the common case nobody files deliberately.",
+      "deciding which members of a completed pack become permanent property records and which are dead paper, which is the row's central judgement and the seam with finance.household-property.",
+      "recognising a solicitor's report on title, which is prose about the whole bundle, as the document that explains the rest of the file."
+    ],
+    "never_alone": [
+      "a property address alone. Every document in the pack carries one, and so does every other row in this family and every household bill - it identifies the subject and says nothing about the situation. Read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a person's name alone: buyer, seller, solicitor, lender and agent all appear.",
+      "a title number alone - it is a permanent identifier of the land, not of any transaction over it, and it appears on records made decades apart.",
+      "a money total or a price alone.",
+      "the word contract, transfer or completion alone - all three are the most generic document words in the corpus.",
+      "a bare 4-digit number, as likely a search reference, a title fragment or a postcode fragment as a year.",
+      "membership in a download session that pulled a whole conveyancing portal folder at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "memorandum of sale",
+    "offer accepted",
+    "draft contract",
+    "report on title",
+    "enquiries before contract",
+    "additional enquiries",
+    "property information form",
+    "fittings and contents",
+    "title number",
+    "official copy of the register",
+    "title plan",
+    "local authority search",
+    "drainage and water search",
+    "environmental search",
+    "chancel",
+    "exchange of contracts",
+    "completion date",
+    "completion statement",
+    "apportionment",
+    "transfer",
+    "deed",
+    "requisitions on title",
+    "undertaking",
+    "source of funds",
+    "anti-money-laundering",
+    "identity verification",
+    "stamp duty",
+    "land transaction return",
+    "registration of title",
+    "key release"
+  ],
+  "work_types": [
+    "memorandum of sale",
+    "draft and executed contract",
+    "report on title",
+    "official copy of the register and title plan",
+    "search result (local, drainage, environmental)",
+    "property information or fittings-and-contents form",
+    "pre-contract enquiries and replies",
+    "survey or valuation obtained for the transaction",
+    "mortgage offer supplied into the transaction",
+    "identity and source-of-funds evidence",
+    "completion statement",
+    "transfer or deed",
+    "tax return and payment confirmation for the transaction",
+    "registration confirmation",
+    "solicitor correspondence and undertakings"
+  ],
+  "grouping_reasons": [
+    "one transaction: the whole pack, held together by a property, two sides and a period rather than by content. This is the clearest purpose-coherent group in the property family and the reason the row exists.",
+    "one document across its drafts - the contract as drafted, amended, approved and executed - which is a version family before it is anything else.",
+    "one enquiry thread: the questions raised and the replies given, which only make sense as a pair.",
+    "the pack and the mortgage that funded it, which are two situations on one transaction and should be joinable without either absorbing the other. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a lone official copy of the register downloaded years later is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the anchor is the PROPERTY, then the transaction (which side, and when), then the stage - title and searches, enquiries, contract, completion. Stage is the level that earns its place, because a conveyancing pack is read by stage and by nothing else, and because a member's meaning depends on it: a contract in the enquiries stage is a draft and the same words after exchange are the deal. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - and a property may be bought and sold more than once, so the property must sit above the transaction rather than the year. Privacy caveat specific to this row, and it is the strongest on this schema: the pack contains identity documents, bank statements and source-of-funds evidence for private individuals, collected under an anti-money-laundering duty and belonging in a protected state from the moment they are seen. 00: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” No part of that material should acquire automatic internal depth or reach a model prompt by default. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "ocr",
+      "image",
+      "spreadsheet",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".eml",
+      ".msg",
+      ".jpg",
+      ".png",
+      ".xlsx",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Official copy - title register - AB123456.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title number and an official copy header with an issue date",
+        "numbered property, proprietorship and charges entries",
+        "a registered proprietor and a registered charge",
+        "a plan reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact - the schema declares no field rows",
+        "ownership as a current fact: an official copy is a snapshot on its issue date and the register moves",
+        "that the title number identifies a transaction - it identifies land, across every transaction over it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Property information form - completed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered questionnaire about boundaries, disputes, alterations and services",
+        "handwritten and typed answers with a seller's signature",
+        "references to documents said to be attached",
+        "a date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "the seller's answers as facts about the property - they are one party's statements, and the whole point of the form is that they are relied on rather than verified",
+        "a dispute or alteration conclusion of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Local authority search - result.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a machine-generated result with a search reference and an issue date",
+        "numbered replies about planning, highways and notices",
+        "a property address block",
+        "an authority letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a planning-history fact of the product's own from search replies",
+        "that a search result belongs to the property permanently - it expires, and its value is confined to this transaction",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AML - passport and bank statements.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scanned passport page",
+        "three months of bank statements for a named individual",
+        "a source-of-funds declaration",
+        "a covering checklist"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any placement decision before protection: 00 - “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”",
+        "identity facts extracted for organisation purposes - identity.core-documents holds the person's own identity situation and this file is that material collected by a third party for a duty",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Completion statement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "price, deposit, mortgage advance, fees, taxes and apportionments in a reconciliation",
+        "a balance due and a completion date",
+        "client and firm account references",
+        "a signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the transaction completed - a statement is issued before the date it names",
+        "account references treated as ordinary text: they are financial identifiers",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mortgage offer - 14 Marsh Lane.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a lender's offer with a loan amount, rate and term",
+        "conditions precedent naming the property",
+        "a valuation figure",
+        "an offer expiry date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row alone: the offer is supplied INTO the transaction and is also the borrower's own lending record - finance.loans-mortgage owns that reading and construction_property.mortgage-brokering owns the broker's file. The same document, three legitimate homes.",
+        "a debt fact copied onto other files in the pack",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE_ enquiries - reply to Q14 boundary.eml",
+      "source_type": "email",
+      "observations": [
+        "a quoted enquiry thread between two firms",
+        "a reply about a fence responsibility",
+        "an attached photograph",
+        "an undertaking in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a boundary fact from correspondence - a reply to an enquiry is an assertion by a party's solicitor",
+        "an undertaking as a product-recorded obligation, which is legal territory",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "14 Marsh Lane - conveyancing pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing nineteen mixed members - forms, searches, a contract, scans and photographs",
+        "a portal-generated name",
+        "no readable top-level document",
+        "two members that are identity scans"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - members are extracted as their own files, and the identity scans inside must be protected on their own terms rather than inheriting a transaction meaning",
+        "that a session that downloaded the pack proves its topic - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Buildings insurance schedule - 14 Marsh Lane.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a policy schedule with a sum insured and a start date matching completion",
+        "the same property address as the pack",
+        "a premium and an insurer",
+        "a renewal date a year out"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: an insurance policy taken out because of the purchase is the owner's ongoing record, not a transaction document - the collision fixture, and finance.insurance-personal owns it with finance.household-property holding the property side",
+        "a transaction fact copied onto it because it shares an address and a date - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.household-property",
+      "signal": "The defining seam of this row, and it is a seam in TIME rather than in content. That row already declares purchase closing record and sale closing record among its work types, and it is right to: after completion, a handful of these documents - the transfer, the register, the completion statement - become the owner's permanent property record. The discriminating evidence: a transaction IN PROGRESS, evidenced by stage vocabulary, live enquiries, searches with issue dates and two represented sides, supports this row; a household's own retained ownership, tax, improvement and warranty records support the household row. A property address counts for neither, exactly as that row already says of its own neighbours. Stated reciprocally, and see open_question - the seam is a real one and the product cannot draw it by evidence alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "The mortgage offer and the advance sit inside the pack and are also the borrower's own lending record. The discriminating evidence: principal, interest, term, payment and payoff structure supports the loan row; the conveyance the loan funds supports this row. Reciprocal to the signal that row's neighbour already states about closing packets.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.mortgage-brokering",
+      "signal": "Three rows hold the mortgage offer: the borrower (finance.loans-mortgage), the broker who arranged it, and this transaction. The discriminating evidence: a fact find, a lender submission and a suitability letter supports the brokering row; the conveyancing pack around the property supports this row. Authored in both directions.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "A conveyancer's file IS a legal matter file, and for a firm this row is a matter type. The discriminating evidence: a matter reference, engagement and billing structure, and a firm's own practice apparatus supports the practice row; the property transaction's own documents support this row. This is the row's closest structural relative and the collision is authored rather than resolved.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "The contract and the transfer are executed instruments, and a leasehold purchase carries the lease itself. The discriminating evidence: party recitals, covenants, a term, consideration and an execution block identify the instrument as legal material - the same signal that row states against finance.household-property; a transaction pack around it supports this row. Stated in that row's own terms so the pair reads consistently.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "Identity scans and address evidence collected for anti-money-laundering purposes sit inside the pack, and they are also the person's own identity documents. The discriminating evidence: a transaction file's checklist context supports this row's grouping; the document itself is identity material and is protected first regardless. Neither reading may delay protection.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.agency-listing",
+      "signal": "The estate agency side of the same sale - particulars, floorplan, viewings, memorandum of sale - overlaps at the memorandum. The discriminating evidence: marketing material and viewing records support the listing row; the conveyance after an offer is accepted supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.survey-valuation",
+      "signal": "A survey obtained for the purchase sits in the pack and is also a surveyor's own report. The discriminating evidence: an instruction, a valuation figure and a defect narrative supports the survey row; the transaction that commissioned it supports this row.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The first residual for this row, unusually, and the correct one for its identity, source-of-funds, bank-statement and completion-statement members with no accepted group. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone register copy, search result or form with a durable purpose but no accepted transaction group. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a pack whose transaction may have collapsed, or an enquiry thread whose status is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected conveyancing portal export, which is how these packs routinely arrive. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The home for isolated transactional members - a search fee receipt, a tax payment confirmation - that this row should not absorb into a group. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A conveyancing pack is one of the most concentrated collections of protected material a private person ever assembles: identity documents, months of bank statements, a source-of-funds declaration, a mortgage offer stating what a household can borrow, and a completion statement with client account references - all gathered in one place because a duty required it. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and identity documents and account statements head that list. The design is explicit about the moment protection begins: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "When does a transaction stop being a transaction? This row and finance.household-property both have a legitimate claim on the same documents at different times: during the conveyance the transfer, the register copy and the completion statement are working papers of a live matter; ten years later they are the owner's permanent property record and nothing else. The product cannot see the moment of change from the documents, because nothing in them announces it. The row's position is that the LIVE transaction is the situation - stage vocabulary, open enquiries, unexpired searches, two represented sides - and that after completion most of the pack becomes dead paper while a handful of members graduate to the household row. Which members graduate, and whether a completed pack should be moved or left where it is, is Joseph's. A second question of scope: this row is written from the transaction's side rather than any one party's, which means it is neither purely professional nor purely householder - unlike every other row on this schema. If that is wrong, the professional half belongs with legal.practice-matter-file and the householder half with finance.household-property, and the row would not survive the split. Both collisions are authored so that reading stays available."
+}

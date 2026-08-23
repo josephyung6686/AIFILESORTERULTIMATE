@@ -123,3 +123,15 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   visible from inside the session, so waves must be sized to fail cheaply.
 - Adjustment: dispatch whole *families* per wave where possible, so a completed wave is a clean
   commit boundary, and keep waves at 3-4 agents.
+
+## construction_property chunk B — 9 rows
+
+- All 9 verified: parse, key sets match siblings, `fields: []`, memos 5.3-6.2KB, no proposed
+  fields, none refused, nothing out of scope. Committed by explicit file list (the wildcard fix).
+- Both seeded challenges were engaged rather than waved through. `progress-photos` was argued to
+  stand on leg 1 of the node test — every other row on the schema is recognised by document
+  structure, this one by capture metadata and rhythm, and "a `work_type` value cannot carry a
+  different detection method; only a template can". Its discriminator against the landed
+  `photos.camera-events` is repetition of place across time: a camera roll visits many places once,
+  a site walk visits one place many times. `photos` is recorded as `also_schema` rather than as a
+  competitor, per 00's "One file may hold facts from more than one domain without losing information."

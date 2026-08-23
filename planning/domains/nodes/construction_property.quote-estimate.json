@@ -1,0 +1,408 @@
+{
+  "id": "construction_property.quote-estimate",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Job quotes, estimates and trade tenders (the pre-transactional document)",
+  "one_line": "The organizational situation of PRICING WORK THAT HAS NOT HAPPENED: someone describes what they want, a trade or contractor measures it and prices it, the price is revised as the scope moves, and then it is accepted, declined, or simply goes quiet. The organizing anchor is a PROSPECT - an address and an enquiry - and that is precisely what makes it a situation of its own rather than a document type inside a job: at the moment a quote is written there is no job, no contract and no job number to file it under, and most quotes never acquire one. Absorbs the legacy row trade.quote-estimate (ROW). Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a quotation structure: a priced schedule of works with an explicit VALIDITY period (a price held open for a stated time), an acceptance mechanism - a signature line, a deposit request or an instruction to confirm - and, distinctively, NO demand for payment now. Validity plus acceptance plus the absence of a payment demand together is the shape.",
+      "a scope-and-exclusions block: numbered inclusions with a matching list of exclusions and assumptions ('assumes existing services are serviceable', 'excludes making good'). An estimate is defined as much by what it refuses to price as by what it prices.",
+      "an estimate qualifier stated on the face of the document: an approximate or budget figure, a stated tolerance in words, or wording that the figure is subject to survey or to opening up. This is what separates an estimate from a quotation and it is usually written down.",
+      "a measured build-up: line items against a schedule of rates or a bill of quantities, quantities and unit rates, with subtotals for labour, materials, plant and preliminaries and no percentage-complete column.",
+      "a trade tender return: a priced version of a client-issued pricing document, returned by a date, with a form of tender or a covering letter.",
+      "an itemised options structure: two or three priced alternatives for the same works, or a specification tiered by finish - a shape that only exists before a decision is made.",
+      "a version-family surface: the same address and the same scope reissued as revised, updated, or with a suffix, with movement in the total. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”"
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "which side sent it. A homeowner's folder and a builder's folder both contain the same quote PDF; in one it is a received offer and in the other it is the firm's own output. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating a quotation (a firm offer capable of acceptance) from an estimate (an indication) when the document says neither and simply prints a number.",
+      "deciding whether a priced spreadsheet is a quote to a client or an internal cost plan the quote was built from - the second must not be sent anywhere, and the two look identical.",
+      "recognising an emailed price in the body of a message, with no attachment, as the operative quote.",
+      "a photographed handwritten quote on a trade letterhead, where OCR yields a total and a name and nothing structural.",
+      "reading acceptance out of a reply - a one-line email saying go ahead is what converts the document, and nothing in the quote itself records it."
+    ],
+    "never_alone": [
+      "the words quote, quotation, estimate or proposal in a filename alone. A proposal is also a research grant application, a consulting pitch and a marriage of two other situations - the same fixture business_operations.procurement-sourcing authored from its side.",
+      "a money total or a currency token alone.",
+      "a trading or client organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "an address token alone. A postal address appears on the letterhead, the site line and the client line of the same document, and it is the single most confusing signal in the whole property family - it does not by itself say whose property it is or what the file is for.",
+      "an invoice header alone: the same firm's invoice for the accepted job is a bookkeeping transaction, not this row.",
+      "a bare 4-digit number, as likely a quote reference, a rate or a postcode fragment as a year.",
+      "membership in a download session that pulled several suppliers' prices at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "quotation",
+    "quote",
+    "estimate",
+    "budget price",
+    "subject to survey",
+    "subject to opening up",
+    "valid for",
+    "validity",
+    "price held",
+    "scope of works",
+    "inclusions",
+    "exclusions",
+    "assumptions",
+    "provisional sum",
+    "prime cost sum",
+    "rates",
+    "schedule of rates",
+    "bill of quantities",
+    "preliminaries",
+    "labour and materials",
+    "deposit",
+    "acceptance",
+    "instruction to proceed",
+    "tender return",
+    "form of tender",
+    "revised quotation",
+    "option A",
+    "specification"
+  ],
+  "work_types": [
+    "quotation",
+    "estimate or budget price",
+    "priced schedule of works",
+    "bill of quantities or pricing schedule return",
+    "cost plan or internal build-up",
+    "options or specification comparison",
+    "covering letter or form of tender",
+    "revised quotation",
+    "acceptance or instruction to proceed",
+    "declined or regret response",
+    "supplier or subcontractor price used to build the quote"
+  ],
+  "grouping_reasons": [
+    "one enquiry across its revisions: the same address and scope repriced two or three times as the client changes their mind. This is a version family before it is anything else, and the movement between versions is the negotiation.",
+    "one enquiry's inbound prices: the merchant quotes and subcontractor prices a firm collected in order to build its own quote, which belong with the quote and not with the supplier.",
+    "one quote and the acceptance that converted it, where the acceptance is usually an email and not a document.",
+    "a comparison set on the receiving side: three builders' quotes for the same works, purpose-coherent and content-incoherent. “The documents are content-incoherent but purpose-coherent.”",
+    "no group at all is a valid outcome, and the common one: most quotes are single files that were never answered."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the anchor is the ENQUIRY or prospect - in practice a client and a site address - then the status of the price, then the revision. The status level (open, accepted, declined) is the one dimension a quote genuinely wants and a job does not, because the working question about a quote is always whether it is still alive. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - and a year-first quotes tree separates a January quote from its March revision, which is the one comparison the user needs. Deliberate consequence: the accepted quote should be reachable from BOTH this row's tree and the job it became, which is a grouping and retrieval matter for P9/P11, not a reason to duplicate the file. Privacy caveat specific to this row: a quote discloses the firm's rates and margin structure, declined quotes disclose a competitor's or a client's private commercial position, and a quote to a private individual carries their home address. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "image",
+      "presentation",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".jpg",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Quotation Q-2261 - 14 Marsh Lane - kitchen extension.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a quotation heading with a reference and a date",
+        "a numbered scope with a matching exclusions list",
+        "a total with a stated validity period",
+        "an acceptance signature block and a deposit request"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact - the schema declares no field rows",
+        "that the address is the client's home rather than the works site, or the reverse - one address token cannot tell them apart",
+        "that the quote was accepted: nothing in the document records that",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Quotation Q-2261 rev C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same reference and address as an earlier file",
+        "a changed scope line and a changed total",
+        "a revision letter in the filename and in the header",
+        "a superseded note"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that rev C is the operative price - a later revision or an email may be",
+        "a hash-level duplicate conclusion from a near-identical document: different bytes are a version family, not a duplicate",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Cost plan - Marsh Lane - INTERNAL.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labour hours at internal rates, materials at trade prices, a margin row and a contingency row",
+        "a tab that produces the client-facing total",
+        "no scope narrative, no validity, no letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that this is the quote: it is the firm's private build-up and discloses margin, and it must not be treated as a shareable client document",
+        "a client fact carried across onto the internal sheet because the totals match",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scan_20260212_quote.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photograph of a single-page handwritten quote on a trade letterhead",
+        "a total and a validity line",
+        "no reference, no deadline, no competition",
+        "OCR yields the trading name and the total"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a sourcing-event conclusion: this is the fixture business_operations.procurement-sourcing already authored against itself, and a single trade quote with no competition around it belongs here",
+        "a total as a validated fact from OCR of handwriting - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "RE_ quote for the loft - go ahead.eml",
+      "source_type": "email",
+      "observations": [
+        "a quoted thread carrying the quotation reference",
+        "a one-line reply instructing the firm to proceed",
+        "a proposed start week",
+        "no attachment"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a contract conclusion of the product's own - whether an email formed a binding contract is a legal question and legal.personal-legal-matters' side of the fence",
+        "a price fact from the quoted thread body, which is a copy of another file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Priced BoQ return - Phase 2 groundworks.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a client-issued pricing document with the rate and total columns filled in",
+        "item references matching an issued schedule",
+        "a summary page with preliminaries and an overall total",
+        "a return-by date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which side of the table it is on: the blank and the priced version of the same workbook sit in the issuer's file and the bidder's",
+        "a valuation conclusion - there is no work done and nothing to certify",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "INV-2291.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled invoice number and date",
+        "a single works description and a tax line",
+        "payment terms and bank details",
+        "the same address as the quote"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the invoice for the accepted job is a bookkeeping transaction - the collision fixture, owned by finance.small-business-bookkeeping",
+        "a quote fact copied onto it because it shares an address - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Three quotes - loft conversion.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing three PDFs from three trading names",
+        "mixed layouts and one spreadsheet",
+        "no readable top-level document",
+        "a name that states the purpose"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - members are extracted as their own files",
+        "that this is the firm's own quote file: on the receiving side the same archive is a householder's comparison set and finance.household-property is the nearer home",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Estimate - subject to survey - 8 Fell Road.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an approximate figure with wording that it is subject to survey and to opening up",
+        "assumptions listed in prose rather than as items",
+        "no validity period and no acceptance line",
+        "an address in the subject line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that an estimate is a quotation - the document explicitly refuses to be one, and treating the figure as a price is exactly the invented conclusion 00 forbids",
+        "a scope fact from prose assumptions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.trade-job",
+      "signal": "The closest collision in the family, and the reason this row nearly failed the node test: an accepted quote becomes the job's first document, and the same PDF then lives in the job file. The discriminating evidence: a validity period, an acceptance mechanism and no work carried out supports this row; a job or works reference, scheduled dates, labour and materials actually used, and site records support the job row. An address alone discriminates neither. The row is kept because most quotes never become jobs and therefore have no job to be filed under.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.final-account",
+      "signal": "A priced schedule of measured works looks the same before and after the work. The discriminating evidence: a validity period and an acceptance line supports this row; cumulative arithmetic against what was previously certified supports the final-account row. Reciprocal to that row's own signal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "The quote's own invoice, and the merchant prices behind it, sit one step away in the ledger. The discriminating evidence: a demand for payment with an invoice number, tax treatment and terms supports bookkeeping; an offer with a validity period and no payment demand supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "Reciprocal to the edge that row already authored against this one. The discriminating evidence it states from its side: a formal solicitation reference with instructions to bidders supports the sourcing row; a site, a works description, measured quantities or a trade context supports this row. Restated here so the pair reads the same way from both ends.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "The receiving side. A householder collecting three builders' quotes holds the identical PDFs, and for them the file is part of home and property administration, not a trading document. The discriminating evidence: authorship - the firm's own letterhead, rates and margin supports this row; a household's collection of other firms' offers about their own home supports the household row. Stated reciprocally as the professional/householder seam this whole schema sits on.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.subcontract",
+      "signal": "Subcontractor prices collected to build a quote become subcontract orders if the job lands. The discriminating evidence: an ORDER framing with an engagement, insurances and competence evidence supports the subcontract row; an unaccepted price supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.development-appraisal",
+      "signal": "A development appraisal prices work that has not happened too, at scheme level. The discriminating evidence: land value, finance costs, sales values and a residual calculation supports the appraisal row; a priced scope of works offered to a client supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "Merchant quotations for materials share the itemised-price shape. The discriminating evidence: a catalogue replenishment against stock supports the retail row; a price for a specific site's works supports this row.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone quote with no enquiry group around it, which is the majority outcome for this row. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The correct home for the transactional side this row must not absorb - an isolated invoice, a deposit receipt or a merchant order confirmation. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for an unlabeled priced spreadsheet, or a revision whose status against its siblings is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for an internal cost plan or a margin build-up with no accepted group - the firm's own commercially sensitive material. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected tender return or an unreadable portal export. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A quote file is two kinds of private at once. Outward, it names private individuals and their home addresses, because most trade quotes are addressed to a householder at the property being worked on. Inward, the build-up behind it discloses the firm's rates, margin and contingency, and the merchant and subcontractor prices it was assembled from are other businesses' confidential terms. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and private correspondence and home-address material of this kind fall inside it. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether an accepted quote should stay in the quotes tree or move into the job it became. Both are defensible and neither is the product's to decide: the quote is the job's founding document and belongs with it, and it is also the last item in a sequence of revisions that only makes sense together. The row's position is that the file should be REACHABLE from both without being duplicated - which pushes the decision onto P9 grouping and P11 placement rather than resolving it here. A second question of scope: this row is written from the pricing party's side, because that is what the construction_property schema is for; the householder holding three builders' quotes is finance.household-property's, and the collision is authored in both directions, but whether one physical file can sit in two trees at once is 00's shared-material policy and is Joseph's."
+}

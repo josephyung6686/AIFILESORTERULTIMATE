@@ -1,0 +1,408 @@
+{
+  "id": "construction_property.inventory-inspection",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Property inventories, schedules of condition and check-in / check-out inspections",
+  "one_line": "The organizational situation of PROVING A MOMENT: a property's condition and contents are recorded in detail on a specific date, photographed room by room and signed, for one reason only - so that the state at that moment can later be set against the state at another moment and the difference argued over money. The organizing anchor is a PROPERTY plus an INSPECTION EVENT, and the row's defining property is that its documents are useless alone and only mean something in pairs: a check-in exists to be compared with a check-out. Absorbs the legacy row prop.inventory-inspection (ROW). Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a room-by-room schedule structure: a repeating heading per room, and beneath each a table of elements - walls, ceiling, flooring, fixtures - each with a condition and a cleanliness grading, and usually a thumbnail. The repeating room-then-element grid is the discriminating shape and it exists in no other document in this catalogue. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an inspection-event header: an inspection type stated on the face of the document - check-in, check-out, interim, schedule of condition, dilapidations - with an inspection date, a property address and a named clerk or inspector.",
+      "an embedded dated photographic appendix: dozens to hundreds of captioned images inside one document, keyed to the room and element rows above them. A document whose bulk is photographs of the mundane is structurally unlike anything else here.",
+      "a signature and acknowledgement block for two parties, often with a stated period in which the recipient may dispute the contents - a deadline to object is distinctive.",
+      "a meter and key block: utility meter serial numbers with readings and a photograph, and a key or fob count. Almost nothing else pairs a serial number with a photograph of a dial.",
+      "a comparison structure on the exit side: a check-out report reproducing the check-in gradings in one column and the current gradings in another, with a differences or deductions column.",
+      "a smoke-alarm, carbon-monoxide or safety-item tick sheet embedded in the same document - a compliance fragment carried inside a condition record."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating a check-in from a check-out when both are unlabelled exports from the same inventory system with the same layout and the same photographs.",
+      "whose document it is. The clerk who wrote it, the agent who commissioned it, the landlord who relies on it and the tenant who received it all hold the same PDF. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "deciding whether an unlabelled set of room photographs with no report is an inventory at all, or a marketing shoot, or progress photography, or somebody's moving-day snapshots.",
+      "reading a deduction argument out of a check-out report where the operative content is a free-text comment column rather than the gradings.",
+      "recognising a schedule of condition attached to a commercial lease as this situation rather than as part of the lease instrument itself.",
+      "an inventory pack that is purpose-coherent and content-incoherent: a report, a photo appendix, meter photographs, a signed acknowledgement and a key receipt. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "a property address alone. It is the single most overloaded token in the property world - it appears as the subject, the correspondence address, the letting address and the inspector's own office address, and every neighbouring row here carries one too. Read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "the word inventory alone: stock inventories, IT asset inventories and estate inventories are three other situations entirely.",
+      "a photograph of a room alone. Marketing shoots, moving-day snapshots, insurance records, progress photography and inventories all produce them, and this is the tempting false file for the row.",
+      "a person's name alone: tenant, landlord, clerk and agent all appear, and none of them says what the document is.",
+      "a meter reading or a serial number alone - utility bills, switch letters and home-move checklists carry them.",
+      "a bare 4-digit number, as likely a property reference or a meter serial fragment as a year.",
+      "membership in a download session that pulled a whole tenancy pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "inventory",
+    "schedule of condition",
+    "check in",
+    "check out",
+    "check-in report",
+    "check-out report",
+    "interim inspection",
+    "mid-term inspection",
+    "property visit",
+    "condition",
+    "cleanliness",
+    "fair wear and tear",
+    "dilapidations",
+    "schedule of dilapidations",
+    "deductions",
+    "deposit",
+    "deposit scheme",
+    "tenant comments",
+    "clerk",
+    "meter reading",
+    "meter serial",
+    "keys and fobs",
+    "smoke alarm",
+    "carbon monoxide",
+    "room by room",
+    "photographic appendix",
+    "dated photograph"
+  ],
+  "work_types": [
+    "check-in inventory and schedule of condition",
+    "check-out report",
+    "interim or mid-term inspection report",
+    "photographic appendix",
+    "meter reading record",
+    "key and fob receipt",
+    "tenant comment or dispute response",
+    "deposit deduction schedule",
+    "dilapidations schedule (commercial)",
+    "pre-works schedule of condition of a neighbouring property",
+    "safety item tick sheet embedded in an inspection"
+  ],
+  "grouping_reasons": [
+    "one tenancy's inspection pair: the check-in and the check-out, which are the row's whole point - either document alone proves nothing, and the product should never separate them. This is the strongest grouping case on the schema.",
+    "one inspection event: the report, its photographic appendix, the meter photographs, the key receipt and the signed acknowledgement, joined by purpose rather than content.",
+    "one property across successive tenancies, which is a real filing habit for a landlord and a different axis from the tenancy pair.",
+    "an inspection and the deposit deduction correspondence that grew out of it - a real reason to join files without copying any conclusion between them. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: an interim visit report with nothing before or after it is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the anchor is the PROPERTY, then the tenancy or engagement, then the inspection event and its type. The tenancy level must sit between property and inspection, because a check-in belongs to a tenancy before it belongs to a date and a property with five successive tenancies has five check-ins that must not intermingle. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - a check-out report is unintelligible without the check-in it answers. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - and here the rule bites hard, because a year-first tree would put the check-in and the check-out of the same tenancy in different folders, which is the one separation this row exists to prevent. Privacy caveat specific to this row: an inventory is a photographic tour of the inside of somebody's home, frequently including their possessions, and a check-out report is a written allegation about a named individual attached to money being withheld from them - neither should acquire automatic internal depth or reach a model prompt by default. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "spreadsheet",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".xlsx",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Check-in inventory - 14 Marsh Lane - 2026-03-01.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an inspection type, a date and a property address in the header",
+        "room headings with element rows graded for condition and cleanliness",
+        "an embedded photographic appendix of about two hundred captioned images",
+        "a signature block with a stated period to dispute"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact - the schema declares no field rows",
+        "that the address is the tenant's, the landlord's or the agent's - one address token cannot say whose",
+        "a condition grading as a product fact: the gradings are one clerk's opinion recorded on a date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Check-out report - 14 Marsh Lane.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a two-column comparison reproducing the check-in gradings beside current ones",
+        "a differences column with free-text comments",
+        "a proposed deductions schedule",
+        "photographs paired with the earlier ones"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "damage as a fact - the report asserts a difference and a deduction is a claim, not a finding",
+        "a named tenant blamed by the product's own inference",
+        "that the deductions were agreed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_9902.HEIC",
+      "source_type": "image",
+      "observations": [
+        "EXIF names a phone camera, a capture time and a GPS position",
+        "the frame is a close-up of a stained carpet with a tape measure",
+        "one of a hundred and forty captures in one hour indoors",
+        "no caption"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a damage fact from an image: the photograph is an observation and only the report makes a claim from it",
+        "that indoor capture bursts are therefore the photos schema's camera roll - “EXIF is strong photo evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis; conflicting signals should lead to abstention rather than an invented classification.”",
+        "a location as a destination dimension from GPS, which here is a private home",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Meter readings and keys - move in.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photographed sheet listing two meter serials with readings",
+        "a key and fob count with a signature",
+        "a date",
+        "OCR recovers the serials and one reading cleanly"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a utility account fact - meter serials belong to the supply, and finance.subscriptions-utilities owns the account side",
+        "a signature expanded into an identity",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tenancy agreement - 14 Marsh Lane.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an executed agreement with parties, term, rent and signatures",
+        "a schedule referencing the inventory",
+        "an initialled page footer",
+        "a deposit protection reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: an executed agreement is the instrument, not the condition record - the collision fixture, and legal.leases-agreements owns it on the safety side with construction_property.tenancy-management holding the professional letting file",
+        "an inventory fact copied onto it because it references the inventory - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Property photos - Marsh Lane.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing sixty images, wide-angle and evenly lit",
+        "no report, no captions, no gradings",
+        "a name that says only photos",
+        "estate-agent style framing"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that room photographs are an inventory: a marketing shoot of the same rooms is construction_property.agency-listing's and looks identical",
+        "a single domain for the whole archive from its manifest",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Schedule of condition - 8 Fell Road - pre-works.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a record of a NEIGHBOURING property's condition before adjacent works begin",
+        "elevation-by-elevation notes with photographs",
+        "a surveyor's signature and a purpose statement",
+        "no tenancy, no parties beyond the two owners"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a tenancy meaning: this schedule protects against a future damage allegation between neighbours and has nothing to do with letting - the same document shape, a different situation, and a genuine reason this row is not merely a letting row",
+        "a party-wall or legal conclusion, which is the legal family's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE_ deposit deductions - our response.eml",
+      "source_type": "email",
+      "observations": [
+        "a quoted check-out extract",
+        "itemised disagreement with two deductions",
+        "a deposit scheme case reference",
+        "an attachment that is a second copy of the check-out"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "an outcome: a dispute in progress has no result to record",
+        "that the attached copy is a new document rather than a duplicate of one already held",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Interim visit - 14 Marsh Lane - Sept.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a short mid-tenancy visit report with a handful of photographs",
+        "observations about garden and ventilation",
+        "a next-visit date",
+        "no gradings table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a visit note carries the evidential weight of a check-in - it is not a graded schedule",
+        "a tenant behaviour conclusion from prose observations",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.tenancy-management",
+      "signal": "The inspection is commissioned by, and filed inside, the letting engagement. The discriminating evidence: a graded room-by-room condition schedule tied to an inspection event supports this row; the ongoing administration of a let - rent, notices, renewals, referencing - supports the tenancy row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "The executed tenancy agreement references the inventory and often annexes it, so the two travel together. The discriminating evidence: an executed instrument with parties, term and signatures supports the legal row, which holds it on the safety side; a dated condition record supports this row. Stated reciprocally: that row already carries a collision with finance.household-property on the same seam, and this is the professional third corner of it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.progress-photos",
+      "signal": "Both are dated photographic condition records made on site. The discriminating evidence: a room-by-room schedule, a signed report and a handover or tenancy purpose supports this row; an open-ended series recording works in progress supports the progress row. Reciprocal to the edge authored there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.snagging-defects",
+      "signal": "A handover snagging list and a check-in inventory are both room-by-room defect records made at a moment of transfer. The discriminating evidence: defects to be RECTIFIED by a builder, with a close-out column, supports the snagging row; condition recorded to be compared later, with no expectation of rectification, supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.agency-listing",
+      "signal": "Marketing photographs of the same rooms are wide, lit and flattering; inventory photographs are close, unlit and unflattering, and no metadata distinguishes them. The discriminating evidence: a report with gradings, or a set whose subject is wear and stains, supports this row; a floorplan, a price and a particulars document supports the listing row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.survey-valuation",
+      "signal": "A surveyor's condition report and a schedule of condition share a form and a signature. The discriminating evidence: a valuation figure, a lender instruction or a defect-and-remedy narrative supports the survey row; a comparison record made for a future dispute supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "The receiving side: a tenant or a homeowner keeps their own copy of the inventory as part of household administration. The discriminating evidence: a clerk's or agent's professionally produced report supports this row; a household's own retained copies and correspondence support the household row. The professional/householder seam this schema sits on, stated reciprocally.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "The word inventory, and nothing else. The discriminating evidence: a property's rooms and fixtures supports this row; an organisation's owned equipment on a register supports the inventory row. Authored because the word alone is in never_alone and a reader should be able to see why.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone inventory, interim visit or schedule of condition with no accepted tenancy group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for a check-out report or a deduction schedule with no accepted group - a written allegation about a named individual, attached to money withheld from them, and a photographic tour of their home. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The correct home for loose room photographs with no report and no accepted group. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for an unlabelled inventory export whose check-in or check-out status is unresolved, or a dispute thread in progress. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an unreadable inventory-platform export or a damaged photo archive. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "An inventory is a photographed tour of the inside of somebody's home, room by room, frequently including their possessions, their post on the doormat and their children's bedrooms, taken at metre-accurate coordinates. A check-out report is worse in a different way: it is a written allegation about a named individual, itemised, attached to money being withheld from them, and it is the document a deposit dispute is decided on. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and GPS metadata and private correspondence are on that list by name. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether this row is a letting row or a general condition-proving row. The letting inspection is the common case and the roster hint reads that way - but the schedule of condition taken of a NEIGHBOUR'S property before adjacent works begin is the same document doing the same job in a situation with no tenancy in it at all, and so is a commercial dilapidations schedule at lease end. The row is written to cover all three, on the ground that what unites them is the mechanism - record a moment so it can be set against another moment - rather than the tenancy. If Joseph reads it as a letting row instead, the pre-works schedule of condition has to go somewhere, and construction_property.site-survey is the only plausible home; the collision with survey-valuation is authored so that reading stays available. A second, smaller question: whether the check-in and check-out should ever be allowed to sit apart in a frozen tree. The row's position is that they should not, but a tree keyed on year would separate them and the product cannot forbid the user from building one."
+}

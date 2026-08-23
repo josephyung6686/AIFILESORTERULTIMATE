@@ -1,0 +1,395 @@
+{
+  "id": "construction_property.progress-photos",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Site progress photography — capture as contemporaneous record",
+  "one_line": "The organizational situation in which PHOTOGRAPHS ARE THE RECORD: somebody walks a site at intervals and photographs it, not because the pictures are interesting but because the state of the works on a particular date is a fact that will be argued about later - what was covered up, when a wall went in, what the ground looked like before the concrete went over it. Its evidence class is capture metadata rather than document structure, which is what separates it from every other row on this schema, and its defining property is that a photograph with no date is worth nothing here. Absorbs the legacy row cons.progress-photos (ROW). Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a capture burst with a working rhythm: many images from one device sharing a capture date and a tight GPS cluster, taken in a short window on a weekday, repeating at intervals across weeks or months at the SAME coordinates. Repetition of place across time is the discriminating pattern - a camera roll goes to many places once, a site walk goes to one place many times. “EXIF is strong photo evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis; conflicting signals should lead to abstention rather than an invented classification.”",
+      "camera EXIF present and consistent: a device make and model, DateTimeOriginal, and sensor-shaped dimensions. “HEIC support must be included explicitly, because failing to configure the image stack for HEIC can silently exclude a meaningful portion of an Apple-centric corpus.”",
+      "an annotated or stamped capture: a date-and-time overlay burned into the frame, a site name watermark, or a compass and coordinate stamp from a site-photo application - a deliberate self-evidencing mark that ordinary photography does not carry.",
+      "a photo-report document: a generated PDF or presentation of dated, captioned images in a grid, with a site header and a reference - the form the photographs are usually delivered in and the form that survives.",
+      "an image whose subject matter is structural rather than social: excavations, reinforcement before a pour, service runs before they are boarded, scaffolding, and the deliberately unlovely close-ups nobody photographs for pleasure.",
+      "a parent-folder context naming a site or a date rather than an occasion - the P3 signal that most reliably separates this from a personal camera roll on the same phone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "the same device, the same day, two purposes: a site manager's phone holds the progress walk and a photograph of their lunch, and only content decides. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating a progress record from a defect record, a delivery record, an inventory record and a damage claim - all site photography, all from the same phone, distinguished only by what the image shows and what group it joins.",
+      "reading a caption or an embedded annotation as the thing that gives an image its meaning, when the filename is IMG_ and nothing else.",
+      "deciding whether a set of images without EXIF - stripped by a messaging app on the way from a subcontractor - is a progress set at all.",
+      "recognising a photo-report PDF as a derived document of an image set that also exists loose in the corpus."
+    ],
+    "never_alone": [
+      "the absence of EXIF read as proof of anything. 00 is explicit that the system “must not mistake the absence of EXIF for proof that an image is a screenshot.” and the mirror error matters more here: site photographs routinely ARRIVE stripped, forwarded through messaging apps, and their being stripped says nothing about what they are.",
+      "an image file alone. This is the row's constitutional never-alone: an image is a source_type, and “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a GPS coordinate alone. It locates a capture; it does not say the capture was a record rather than a snapshot, and a domestic job's coordinates are somebody's home.",
+      "a capture date alone - every image has one.",
+      "a device make and model alone: the same phone takes the progress walk, the family photographs and the screenshots.",
+      "a site or client name in a folder name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "membership in a download session that pulled a month of site images at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "progress",
+    "site progress",
+    "weekly photos",
+    "before and after",
+    "pre-existing condition",
+    "prior to covering up",
+    "record photograph",
+    "photo report",
+    "site walk",
+    "excavation",
+    "reinforcement",
+    "pre-pour",
+    "first fix",
+    "second fix",
+    "setting out",
+    "scaffold",
+    "hoarding",
+    "dated photograph",
+    "time stamped",
+    "photographic schedule"
+  ],
+  "work_types": [
+    "progress capture set",
+    "before-and-after pair or sequence",
+    "pre-cover-up or pre-pour record",
+    "photo report or photographic schedule",
+    "annotated or marked-up site image",
+    "panorama or 360 capture",
+    "site video walkthrough",
+    "drone overflight capture (boundary case)",
+    "subcontractor-supplied image set",
+    "photograph of a document taken on site (boundary case, not this row)"
+  ],
+  "grouping_reasons": [
+    "one site walk: images sharing a device, a date and a place, which is the natural unit and the one a person recognises. Time is genuinely the organizing axis here, unlike everywhere else on this schema.",
+    "one element across time: the same corner of a building photographed every week, which is the comparison the pictures exist to support and which no single capture date expresses.",
+    "one photo report and the loose images it was generated from, which is a derived-document relationship rather than a duplicate one.",
+    "a capture set and the site diary entry or valuation it substantiates - purpose-coherent and content-incoherent, and a real reason to join files without copying any fact between them. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome, and common: a single photograph sent to answer a question is an image with no event association."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields, and this row's recommendation is genuinely unlike its siblings': SITE or job first, then the capture date, and nothing below that. Time is the leaf that carries the meaning, because the whole value of the archive is that a given date can be produced on demand. The flag is nonetheless recorded as time_first = false, and deliberately so: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - a year-first tree would scatter one site's record across calendar folders and destroy the week-to-week comparison the photographs exist for. A site is a project, and the project comes first. That is the honest reading of the rule for this row even though the row is capture-based; the photos schema's own camera-events template is the situation where time genuinely leads, and this row is deliberately not that. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - a capture date means nothing without knowing which site it was taken at. Privacy caveat specific to this row: site photographs contain workers' faces, vehicle registrations, neighbouring private property, and GPS to the metre - for domestic work, a private person's home - and none of that should acquire automatic depth or reach a model prompt by default. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "image",
+      "audio_video",
+      "ocr",
+      "text_document",
+      "presentation",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".jpg",
+      ".jpeg",
+      ".heic",
+      ".png",
+      ".dng",
+      ".mp4",
+      ".mov",
+      ".pdf",
+      ".pptx",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "IMG_2044.HEIC",
+      "source_type": "image",
+      "observations": [
+        "EXIF names a phone camera, DateTimeOriginal on a Tuesday morning and a GPS position",
+        "one of forty images in a ten-minute window at the same coordinates",
+        "the frame shows reinforcement laid in a trench",
+        "the same coordinates appear in sets from four earlier weeks"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact - the schema declares no field rows",
+        "a site as a fact from GPS alone, and never a location as a destination dimension",
+        "that a capture-metadata file therefore belongs to the photos schema rather than here: both readings are live and “One file may hold facts from more than one domain without losing information.”",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "20260311_0812_MarshLane_stamped.jpg",
+      "source_type": "image",
+      "observations": [
+        "a date, time and coordinate block burned into the lower frame by a site-photo application",
+        "a site name in the overlay and in the filename",
+        "EXIF present and agreeing with the overlay",
+        "a compass bearing"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the burned-in text as a validated fact before it is read - it is an observation in pixels until OCR runs, and OCR of an overlay re-runs activation under a new cache key",
+        "a site fact from the filename alone",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Photo report - week 14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a generated grid of captioned images with a site header",
+        "dates under each frame",
+        "a report reference and a page footer",
+        "embedded images at reduced resolution"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that the report is a duplicate of the loose images - it is derived from them at a different resolution, which is a version and derivation relationship, not a hash match",
+        "a caption's assertion as a product fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG-20260311-WA0009.jpg",
+      "source_type": "image",
+      "observations": [
+        "a messaging-app naming pattern",
+        "no EXIF at all - stripped in transit",
+        "the frame shows a wall being built",
+        "arrived from a subcontractor"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that stripped EXIF makes it a screenshot or makes it not a site photograph - 00: “must not mistake the absence of EXIF for proof that an image is a screenshot.”",
+        "a capture date from the file's own filesystem timestamp, which records the forward and not the capture",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_2051.HEIC",
+      "source_type": "image",
+      "observations": [
+        "the same device, day and coordinates as the progress set",
+        "the frame is a close-up of a cracked render with a tape measure held against it",
+        "no annotation",
+        "adjacent in time to the progress images"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a defect as a fact: a close-up with a measure is a defect record and construction_property.snagging-defects is the nearer home, but nothing in the metadata says so - this is the collision fixture and only content or an accepted group decides",
+        "that adjacency in a burst copies the burst's meaning onto it - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_2077.HEIC",
+      "source_type": "image",
+      "observations": [
+        "the same device and afternoon",
+        "the frame is the site manager's lunch",
+        "EXIF and GPS present, coordinates a hundred metres from the site",
+        "no site content"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row from device, day or place - this is the tempting false file, and every deterministic signal the row has is true of it",
+        "a site fact copied on from the neighbouring captures because they share a session and a device - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "site_walk_20260311.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "a four-minute continuous walkthrough with commentary",
+        "container metadata carrying a capture date and a device",
+        "the commentary names rooms and trades",
+        "no chapters, no captions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "assertions in spoken commentary as facts",
+        "that the audio may be transcribed to a model without the user's policy permitting it - the commentary names individuals and criticises work",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "progress_photos_week14.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing two hundred images and one PDF",
+        "consistent device naming across members",
+        "a week number in the archive name",
+        "no readable top-level document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - members are extracted as their own files and some of them are photographed documents, which are a different situation",
+        "a site fact for every member from the archive name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_1148.HEIC",
+      "source_type": "image",
+      "observations": [
+        "same device and site as the progress set",
+        "the frame is a photographed delivery note held against a van door",
+        "handwriting across the printed lines",
+        "no OCR run yet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a photograph OF A DOCUMENT is a document capture, and construction_property.materials-delivery owns it - the shared fixture, authored identically on that row",
+        "a progress meaning from the burst it sits inside",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "photos.camera-events",
+      "signal": "The row's defining collision, and it is not a mistake on either side: the same phone, the same EXIF, the same evidence class. The discriminating evidence: repetition of the SAME place across weeks, structural and unlovely subject matter, and a work-hours rhythm supports this row; an occasion - many places once, people in frame, weekends and evenings - supports the camera-events row. A camera make, a capture date or a GPS point alone discriminates neither. Stated reciprocally: that row already names identity and medical captures as its own confusions, and this is the same class of problem.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.snagging-defects",
+      "signal": "A defect close-up and a progress frame are adjacent captures from one walk. The discriminating evidence: a measure, a marker or a caption identifying a fault, or membership in an accepted defect list, supports the snagging row; a record of the state of the works supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.inventory-inspection",
+      "signal": "Both are dated photographic condition records. The discriminating evidence: a room-by-room schedule with a signed report and a tenancy or handover purpose supports the inventory row; an open-ended series recording works in progress supports this row. Reciprocal to the edge authored there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "A photographed delivery note and a photograph of a pallet are both site captures. The discriminating evidence: a photographed DOCUMENT, or membership in a delivery group, supports the delivery row; an image of the works supports this row. Reciprocal to the edge authored there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-diary",
+      "signal": "Photographs are the diary's attachments, and a diary entry is often just its photographs. The discriminating evidence: a dated narrative of labour, weather and events supports the diary row; the captures themselves support this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.plant-hire",
+      "signal": "Damage close-ups of machines sit inside progress sets. The discriminating evidence: an accepted group with a hire or a claim supports the plant row; site record photography supports this row. Reciprocal to the edge authored there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.drone-captures",
+      "signal": "Aerial overflights of a site are progress records taken from a drone, and their EXIF says drone rather than phone. The discriminating evidence: the aircraft's own metadata and flight-log structure supports the drone row; the construction purpose supports this row - which means a site overflight is genuinely both, and neither row should absorb the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "A photograph of paperwork taken on site is a document capture wearing image metadata. The discriminating evidence: a page-shaped, text-bearing frame supports the scanned-documents row; a scene supports this row.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "One-Off Images",
+      "why": "The primary residual for this row and the right one: an image with no accepted site or event group is exactly what 00 describes. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a capture whose purpose is unresolved - the defect-or-progress close-up, the stripped-EXIF set from a subcontractor, the video walkthrough. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a generated photo report with no accepted group - a document with a durable purpose. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an unreadable or damaged image archive, and for raw formats the image stack cannot open. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Named only to route what this row must NOT take: a screenshot of a plan or a message about the site is not site photography. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Site photography is incidental surveillance. It contains workers' faces and vehicle registrations, neighbouring private property and its occupants, the interiors of private homes when the job is domestic, and GPS accurate to the metre on every frame. It is also, by design, evidence: a set taken before a cover-up exists to be produced in an argument, and photographs of another party's defective work are allegations about identifiable people. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and GPS metadata is on that list by name. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether this row should exist at all, or whether progress photography is a work_type value inside construction_property.construction-project. The dispatch brief raised it and it deserves a straight answer rather than a defence. The row is kept for one reason: its EVIDENCE CLASS is different from every other row on this schema. Every sibling is recognised by document structure - a header, a reference, a table, a signature - and this row is recognised by capture metadata, rhythm and place, which is the photos schema's machinery running inside a construction situation. A work_type value cannot carry a different detection method; a template can. The counter-case is honest and unresolved: within one project, 'progress photo' really is a document type alongside 'site diary' and 'drawing', and a user filing a project would expect to find the photographs inside it rather than in a parallel tree. What the row cannot decide is whether the photographs live under the project or beside it - and that is the same one-file-many-facts question 00 leaves to the user's frozen tree. Joseph's."
+}
