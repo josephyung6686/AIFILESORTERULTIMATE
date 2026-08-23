@@ -99,3 +99,16 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   Records, Unsupported or Encrypted) with verbatim design quotes. Its own summary of the principle:
   "Keeping the id as a row to preserve coverage would be the 574's mistake: inventing a node to
   save an id."
+
+## business_operations complete — 25/25 (second family finished)
+
+- Chunk C (project-delivery, retrospective-postmortem, risk-register, strategy-plan,
+  support-operations, user-research, vendor-management) landed while chunks A+B were being
+  committed, and the commit glob swept it in **before it had been verified**.
+- Process slip, recorded rather than hidden: verification was run retroactively instead of
+  pre-commit. All 7 pass (parse, key sets match siblings, `fields: []`, memos 4.5-6.7KB, no
+  proposed fields, none refused), so nothing needed repair — but the ordering was wrong.
+  Fix for later waves: commit by explicit file list, never by wildcard, so a concurrently
+  finishing agent cannot enter a commit unverified.
+- None of chunk C's flagged refusal candidates were refused: `retrospective-postmortem` was argued
+  to stand apart from `project-delivery`, and `user-research` apart from the landed `research.*`.
