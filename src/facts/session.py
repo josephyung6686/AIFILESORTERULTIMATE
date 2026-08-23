@@ -55,7 +55,7 @@ from evidence_shape.canonical import canonical_json, sha256_of
 from evidence_shape.observation import Observation
 from evidence_shape.vocabulary import ANALYSIS_TIERS, ZONES, check
 
-from facts.cache import fact_cache_key
+from facts.cache import pass_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
 from facts.file_facts import DETERMINISTIC_EXTRACTOR, write_fact
 from facts.unresolved import DIRECT_ROUTE, NO_CANDIDATE_EVIDENCE, write_unresolved
@@ -178,36 +178,6 @@ def _windows(members: tuple[_Member, ...],
     return [run for run in runs if len(run) >= boundary.minimum_members]
 
 
-def _pass_cache_key(conn: sqlite3.Connection, member: _Member) -> str:
-    """§3.4's key for one deterministic pass over one file version.
-
-    Preamble §3.2, and it is deliberately NOT "the observations the fact cites":
-    `extractor_version` is the canonical JSON of the sorted distinct
-    `(name, version)` pairs of EVERY observation of that file version, and the key is
-    computed per (file version, deterministic pass). The deciding argument is the
-    abstention -- the SPEC gives an `unresolved` row the "same composition as
-    `file_facts` (§3.4)", and an abstention with no citations has no cited
-    observations to compute a key from. One key per pass answers both, so the fact
-    this module writes and the refusal it writes instead share one slot.
-
-    The tier is the LAST one present in `ANALYSIS_TIERS` order -- filesystem <
-    native < ocr < llm -- so a later, richer pass supersedes rather than overwrites.
-    A member with no observation at all still gets a key: this module's abstention
-    fires exactly there, so the earliest tier in the ordering stands in rather than
-    the pass being unrecordable.
-    """
-    pairs = sorted({(one.extractor_name, one.extractor_version)
-                    for one in member.observations})
-    tiers = {analysis_tier_for_observation(conn, one)
-             for one in member.observations}
-    present = [tier for tier in ANALYSIS_TIERS if tier in tiers]
-    return fact_cache_key(
-        content_hash=member.content_hash,
-        extractor_version=canonical_json([list(pair) for pair in pairs]),
-        analysis_tier=present[-1] if present else ANALYSIS_TIERS[0],
-        model_identifier=None, prompt_fingerprint=None)
-
-
 def bounded_sessions(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                      boundary: SessionBoundary) -> Mapping[str, str]:
     """Done-means 25. `file_id -> fact_id` for every member of a bounded session.
@@ -230,7 +200,8 @@ def bounded_sessions(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                     reason=NO_CANDIDATE_EVIDENCE,
                     attempted_producers=(DIRECT_ROUTE,),
                     evidence_refs=(),
-                    cache_key=_pass_cache_key(conn, member))
+                    cache_key=pass_cache_key(conn, file_id=member.file_id,
+                                  content_hash=member.content_hash))
             continue
         canonical_value = sha256_of(canonical_json(
             sorted(member.file_id for member in window)))
@@ -245,6 +216,7 @@ def bounded_sessions(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                 field_key=DOWNLOAD_SESSION_FIELD, value_id=value_id,
                 reliability_state=require_possible(SESSION_STATE),
                 origin=DETERMINISTIC_EXTRACTOR, evidence_refs=refs,
-                cache_key=_pass_cache_key(conn, member),
+                cache_key=pass_cache_key(conn, file_id=member.file_id,
+                                  content_hash=member.content_hash),
                 active=True)
     return written

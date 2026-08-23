@@ -42,7 +42,7 @@ from evidence_shape.canonical import canonical_json, sha256_of
 from evidence_shape.observation import Observation
 from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 
-from facts.cache import fact_cache_key
+from facts.cache import pass_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
 from facts.file_facts import DETERMINISTIC_EXTRACTOR, FACT_ORIGINS, RULE, write_fact
 from facts.states import DIRECT, POSSIBLE, VALIDATED
@@ -116,32 +116,6 @@ def _read(conn: sqlite3.Connection, file_ids: Iterable[str]) -> tuple[_Version, 
     return tuple(versions)
 
 
-def _cache_key(conn: sqlite3.Connection, *, content_hash: str,
-               observations: Iterable[Observation]) -> str:
-    """§3.4's five parts for a fact built from several observations.
-
-    §3.4 states one extractor version and one analysis tier; a fact citing several
-    observations has several of each, and no task owns the reconciliation. The rule
-    is written out here rather than shared because `facts.cache` is another task's
-    module: the versions are the canonical JSON of the sorted distinct
-    (name, version) pairs, and the tier is the LAST one present in `ANALYSIS_TIERS`
-    order -- filesystem < native < ocr < llm -- so a fact that cited an `ocr`
-    reading lands outside the cache slot the native pass computed under, which is
-    what makes preamble rule 5's pass 4 supersede rather than overwrite. Identical
-    wording in `facts.direct`, `facts.discount` and `facts.session`; see Contract
-    ambiguities.
-    """
-    observations = tuple(observations)
-    pairs = sorted({(one.extractor_name, one.extractor_version)
-                    for one in observations})
-    tiers = {analysis_tier_for_observation(conn, one) for one in observations}
-    tier = max(tiers, key=ANALYSIS_TIERS.index) if tiers else ANALYSIS_TIERS[0]
-    return fact_cache_key(
-        content_hash=content_hash,
-        extractor_version=canonical_json([list(pair) for pair in pairs]),
-        analysis_tier=tier, model_identifier=None, prompt_fingerprint=None)
-
-
 def _abstain(conn: sqlite3.Connection, *, version: _Version, field_key: str,
              producer: str) -> None:
     """B7: a refusal is a row naming the field and the reason it refused."""
@@ -149,8 +123,8 @@ def _abstain(conn: sqlite3.Connection, *, version: _Version, field_key: str,
         conn, file_id=version.file_id, content_hash=version.content_hash,
         field_key=field_key, reason=NO_CANDIDATE_EVIDENCE,
         attempted_producers=(producer,), evidence_refs=(),
-        cache_key=_cache_key(conn, content_hash=version.content_hash,
-                             observations=version.observations))
+        cache_key=pass_cache_key(conn, file_id=version.file_id,
+                              content_hash=version.content_hash))
 
 
 def _write_family(conn: sqlite3.Connection, *, version: _Version, field_key: str,
@@ -166,8 +140,8 @@ def _write_family(conn: sqlite3.Connection, *, version: _Version, field_key: str
         field_key=field_key, value_id=value_id,
         reliability_state=reliability_state, origin=origin,
         evidence_refs=evidence_refs,
-        cache_key=_cache_key(conn, content_hash=version.content_hash,
-                             observations=cited),
+        cache_key=pass_cache_key(conn, file_id=version.file_id,
+                              content_hash=version.content_hash),
         active=True)
 
 

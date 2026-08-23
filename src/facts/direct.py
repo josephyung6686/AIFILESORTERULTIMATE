@@ -51,12 +51,9 @@ from dataclasses import dataclass
 from typing import Callable, Iterable
 
 from database_agent.files_table import get_file as _get_file
-from evidence_shape.canonical import canonical_json as _canonical_json
 from evidence_shape.observation import Observation
-from evidence_shape.vocabulary import ANALYSIS_TIERS as _ANALYSIS_TIERS
 
-from facts.cache import fact_cache_key as _fact_cache_key
-from facts.evidence import analysis_tier_for_observation as _tier_of
+from facts.cache import pass_cache_key
 from facts.evidence import cite as _cite
 from facts.evidence import observations_for_version as _observations_for_version
 from facts.file_facts import write_fact as _write_fact
@@ -137,32 +134,9 @@ def direct_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
             conn, file_id=file_id, content_hash=content_hash, field_key=field_key,
             value_id=value_id, reliability_state=DIRECT_STATE,
             origin=DIRECT_ORIGIN, evidence_refs=refs,
-            cache_key=_cache_key(conn, content_hash=content_hash,
-                                 observations=cited),
+            cache_key=pass_cache_key(conn, file_id=file_id,
+                                     content_hash=content_hash),
             active=True))
     return tuple(written)
 
 
-def _cache_key(conn: sqlite3.Connection, *, content_hash: str,
-               observations: Iterable[Observation]) -> str:
-    """§3.4's five parts for a fact built from several observations.
-
-    §3.4 states one extractor version and one analysis tier; a fact citing several
-    observations has several of each, and no task owns the reconciliation, so the
-    rule is written out here rather than shared -- `facts.cache` is another task's
-    module. The versions are the canonical JSON of the sorted distinct
-    (name, version) pairs; the tier is the LAST one present in `ANALYSIS_TIERS`
-    order -- filesystem < native < ocr < llm -- so a fact that cited an OCR reading
-    lands outside the slot the native pass computed under, which is what makes
-    preamble rule 5's pass 4 supersede rather than overwrite. Identical wording in
-    `facts.families`, `facts.session` and `facts.discount`; see Contract ambiguities.
-    """
-    observations = tuple(observations)
-    pairs = sorted({(one.extractor_name, one.extractor_version)
-                    for one in observations})
-    tiers = {_tier_of(conn, one) for one in observations}
-    tier = max(tiers, key=_ANALYSIS_TIERS.index) if tiers else _ANALYSIS_TIERS[0]
-    return _fact_cache_key(
-        content_hash=content_hash,
-        extractor_version=_canonical_json([list(pair) for pair in pairs]),
-        analysis_tier=tier, model_identifier=None, prompt_fingerprint=None)

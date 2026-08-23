@@ -52,14 +52,11 @@ import sqlite3
 import unicodedata
 from typing import Callable, Collection, Iterable
 
-from evidence_shape.canonical import canonical_json as _canonical_json
 from evidence_shape.observation import Observation
-from evidence_shape.vocabulary import ANALYSIS_TIERS as _ANALYSIS_TIERS
 from evidence_shape.vocabulary import ZONES as _ZONES
 from evidence_shape.vocabulary import check as _check
 
-from facts.cache import fact_cache_key as _fact_cache_key
-from facts.evidence import analysis_tier_for_observation as _tier_of
+from facts.cache import pass_cache_key
 from facts.evidence import cite as _cite
 from facts.unresolved import ATTEMPTED_PRODUCERS as _ATTEMPTED_PRODUCERS
 from facts.unresolved import write_unresolved as _write_unresolved
@@ -160,8 +157,8 @@ def screen_metadata(conn: sqlite3.Connection, *, file_id: str, content_hash: str
             field_key=AUTHORSHIP_FIELDS[0], reason="discounted_tool_metadata",
             attempted_producers=(_ATTEMPTED_PRODUCERS[0],),
             evidence_refs=tuple(sorted({_cite(one) for one in suppressed})),
-            cache_key=_cache_key(conn, content_hash=content_hash,
-                                 observations=suppressed))
+            cache_key=pass_cache_key(conn, file_id=file_id,
+                                     content_hash=content_hash))
     dropped = {id(one) for one in suppressed}
     return tuple(one for one in observations if id(one) not in dropped)
 
@@ -191,22 +188,3 @@ def _for_comparison(raw_value: str) -> str:
     return unicodedata.normalize("NFC", raw_value).strip()
 
 
-def _cache_key(conn: sqlite3.Connection, *, content_hash: str,
-               observations: Iterable[Observation]) -> str:
-    """§3.4's five parts for a record built from several observations.
-
-    Identical to `facts.direct._cache_key`, `facts.families` and `facts.session`: the
-    versions are the canonical JSON of the sorted distinct (name, version) pairs, and
-    the tier is the last present in `ANALYSIS_TIERS` order, so a record that cited an
-    OCR reading lands outside the slot the native pass computed under. See Contract
-    ambiguities -- the reconciliation belongs in `facts.cache`, which is Task 6's.
-    """
-    observations = tuple(observations)
-    pairs = sorted({(one.extractor_name, one.extractor_version)
-                    for one in observations})
-    tiers = {_tier_of(conn, one) for one in observations}
-    tier = max(tiers, key=_ANALYSIS_TIERS.index) if tiers else _ANALYSIS_TIERS[0]
-    return _fact_cache_key(
-        content_hash=content_hash,
-        extractor_version=_canonical_json([list(pair) for pair in pairs]),
-        analysis_tier=tier, model_identifier=None, prompt_fingerprint=None)

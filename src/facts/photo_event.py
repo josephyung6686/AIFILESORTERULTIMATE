@@ -64,7 +64,7 @@ from evidence_shape.canonical import canonical_json, sha256_of
 from evidence_shape.observation import Observation
 from evidence_shape.vocabulary import ANALYSIS_TIERS, SIGNAL_TIERS, check
 
-from facts.cache import fact_cache_key
+from facts.cache import pass_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
 from facts.facets import Candidate, fill_or_abstain
 from facts.file_facts import RULE, write_fact
@@ -170,41 +170,6 @@ def _read(conn: sqlite3.Connection, file_ids: Iterable[str],
     return tuple(photos)
 
 
-def _pass_cache_key(conn: sqlite3.Connection, *, file_id: str,
-                    content_hash: str) -> str:
-    """§3.4's key for one deterministic pass over one file version.
-
-    Preamble §3.2's rule, not the one this task's own document carried: the
-    `extractor_version` part is the canonical JSON of the sorted distinct
-    (name, version) pairs of EVERY observation of that file version -- "not of the
-    observations the fact happens to cite" -- and the tier is the last one present in
-    `ANALYSIS_TIERS` order, so a pass that read an `ocr` observation lands outside the
-    slot the native pass computed under and supersedes rather than overwrites.
-
-    The deciding argument is the abstention: "The fact and the abstention produced by
-    one pass share one key ... an abstention with no citations has no cited
-    observations to compute a key from." `media_type` hands its ranking to
-    `facts.facets.fill_or_abstain`, which keys this way; keying the two refusals this
-    module writes itself any other way would put one pass in two §3.4 slots.
-
-    Written out here rather than imported because `facts.cache` is Task 6's module and
-    no other task may add to it. `facts.facets` and `facts.rules` carry the identical
-    helper; see the report for the ruling that has no implementation.
-    """
-    observations = observations_for_version(conn, file_id, content_hash)
-    pairs = sorted({(one.extractor_name, one.extractor_version)
-                    for one in observations})
-    tiers = {analysis_tier_for_observation(conn, one) for one in observations}
-    present = [tier for tier in ANALYSIS_TIERS if tier in tiers]
-    if not present:
-        raise ValueError(
-            f"no extraction run for {content_hash!r}: §3.4's key has no analysis tier")
-    return fact_cache_key(
-        content_hash=content_hash,
-        extractor_version=canonical_json([list(pair) for pair in pairs]),
-        analysis_tier=present[-1], model_identifier=None, prompt_fingerprint=None)
-
-
 def photo_events(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                  clustering: PhotoEventClustering) -> Mapping[str, str]:
     """Done-means 26. `file_id -> fact_id` for every member of a photo event.
@@ -253,7 +218,7 @@ def photo_events(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                 field_key=EVENT_FIELD, value_id=value_id,
                 reliability_state=EVENT_STATE, origin=RULE,
                 evidence_refs=refs,
-                cache_key=_pass_cache_key(conn, file_id=file_id,
+                cache_key=pass_cache_key(conn, file_id=file_id,
                                           content_hash=photo.content_hash),
                 active=True)
     return written
@@ -267,7 +232,7 @@ def _abstain(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
         field_key=MEDIA_TYPE_FIELD, reason=reason,
         attempted_producers=(RULE_ROUTE,),
         evidence_refs=tuple(sorted(cite(one) for one in considered)),
-        cache_key=_pass_cache_key(conn, file_id=file_id,
+        cache_key=pass_cache_key(conn, file_id=file_id,
                                   content_hash=content_hash))
 
 

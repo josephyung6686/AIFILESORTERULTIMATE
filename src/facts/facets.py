@@ -40,7 +40,7 @@ from dataclasses import dataclass
 from evidence_shape.canonical import canonical_json
 from evidence_shape.vocabulary import ANALYSIS_TIERS
 
-from facts.cache import fact_cache_key
+from facts.cache import pass_cache_key
 from facts.evidence import (
     analysis_tier_for_observation, observations_for_version,
 )
@@ -158,30 +158,6 @@ def rank(candidates: Iterable[Candidate], *, zone_weight: Mapping[str, float],
     return tuple(sorted(aggregated, key=_order))
 
 
-def _pass_cache_key(conn: sqlite3.Connection, *, file_id: str,
-                    content_hash: str) -> str:
-    """§3.4's key for one deterministic pass over one file version.
-
-    The SPEC requires an `unresolved` row to carry the "same composition as
-    `file_facts` (§3.4), so an abstention is invalidated by the same events that
-    invalidate a fact" -- so the fill and the refusal computed by one pass share one
-    key. `model_identifier` and `prompt_fingerprint` are None on every deterministic
-    fact; P4's `sha256_of` is length-prefixed and injective, so None is
-    distinguishable from "" in the digest.
-    """
-    observations = observations_for_version(conn, file_id, content_hash)
-    pairs = sorted({(o.extractor_name, o.extractor_version) for o in observations})
-    tiers = {analysis_tier_for_observation(conn, o) for o in observations}
-    present = [tier for tier in ANALYSIS_TIERS if tier in tiers]
-    if not present:
-        raise ValueError(
-            f"no extraction run for {content_hash!r}: §3.4's key has no analysis tier")
-    return fact_cache_key(
-        content_hash=content_hash,
-        extractor_version=canonical_json([list(pair) for pair in pairs]),
-        analysis_tier=present[-1], model_identifier=None, prompt_fingerprint=None)
-
-
 def fill_or_abstain(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                     field_key: str, candidates: Iterable[Candidate],
                     minimum_score: float, minimum_margin: float) -> str | None:
@@ -203,7 +179,7 @@ def fill_or_abstain(conn: sqlite3.Connection, *, file_id: str, content_hash: str
                          field_key=field_key, reason="no_candidate_evidence",
                          attempted_producers=(ATTEMPTED_PRODUCERS[1],),
                          evidence_refs=(),
-                         cache_key=_pass_cache_key(conn, file_id=file_id,
+                         cache_key=pass_cache_key(conn, file_id=file_id,
                                                    content_hash=content_hash))
         return None
     considered = tuple(sorted({ref for candidate in ordered
@@ -214,7 +190,7 @@ def fill_or_abstain(conn: sqlite3.Connection, *, file_id: str, content_hash: str
                          field_key=field_key, reason="below_score_threshold",
                          attempted_producers=(ATTEMPTED_PRODUCERS[1],),
                          evidence_refs=considered,
-                         cache_key=_pass_cache_key(conn, file_id=file_id,
+                         cache_key=pass_cache_key(conn, file_id=file_id,
                                                    content_hash=content_hash))
         return None
     if len(ordered) > 1 and winner.score - ordered[1].score < minimum_margin:
@@ -222,7 +198,7 @@ def fill_or_abstain(conn: sqlite3.Connection, *, file_id: str, content_hash: str
                          field_key=field_key, reason="below_margin",
                          attempted_producers=(ATTEMPTED_PRODUCERS[1],),
                          evidence_refs=considered,
-                         cache_key=_pass_cache_key(conn, file_id=file_id,
+                         cache_key=pass_cache_key(conn, file_id=file_id,
                                                    content_hash=content_hash))
         return None
     value_id = ensure_value(conn, field_key=field_key,
@@ -233,6 +209,6 @@ def fill_or_abstain(conn: sqlite3.Connection, *, file_id: str, content_hash: str
                       field_key=field_key, value_id=value_id,
                       reliability_state=_VALIDATED, origin=RULE,
                       evidence_refs=winner.evidence_refs,
-                      cache_key=_pass_cache_key(conn, file_id=file_id,
+                      cache_key=pass_cache_key(conn, file_id=file_id,
                                                 content_hash=content_hash),
                       active=True)

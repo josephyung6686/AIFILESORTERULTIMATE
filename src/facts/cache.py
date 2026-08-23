@@ -53,8 +53,10 @@ import sqlite3
 
 from evidence_shape.canonical import canonical_json, sha256_of
 from evidence_shape.vocabulary import ANALYSIS_TIERS, check
+from facts.evidence import (analysis_tier_for_observation,
+                            observations_for_version)
 
-__all__ = ["CACHE_KEY_PARTS", "fact_cache_key", "is_stale"]
+__all__ = ["CACHE_KEY_PARTS", "fact_cache_key", "is_stale", "pass_cache_key"]
 
 #: §3.4's five parts, in §3.4's own order. The order is part of the key: the digest is
 #: over an ordered tuple, so reordering this tuple would invalidate every stored key.
@@ -141,3 +143,44 @@ def is_stale(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
         if found is not None:
             return False
     return True
+
+
+def pass_cache_key(conn: sqlite3.Connection, *, file_id: str,
+                   content_hash: str) -> str:
+    """§3.4's key for one (file version, deterministic pass). Preamble §3.2's ONE rule,
+    and this is the ONE helper that implements it.
+
+    `extractor_version` is `canonical_json` of the sorted distinct
+    `[extractor_name, extractor_version]` pairs of EVERY observation of that file
+    version -- **not** of the observations the fact happens to cite. The deciding
+    argument is the abstention: the SPEC requires an `unresolved` row to carry the
+    "same composition as `file_facts` (§3.4)", and an abstention with no citations has
+    no cited observations to compute a key from. One key per pass answers both, so the
+    fact and the refusal produced by one pass share one slot.
+
+    `analysis_tier` is the LAST tier present in `ANALYSIS_TIERS` order -- filesystem <
+    native < ocr < llm -- so a later, richer pass lands outside the slot the earlier
+    one computed under and supersedes rather than overwrites (§3.3).
+
+    THE CITE-SET IS UNREACHABLE FROM HERE. The observations are read from `conn` rather
+    than accepted as an argument, so a caller cannot hand in the subset a fact cites --
+    which is exactly the rule preamble §3.2 rejected, and which three producers had
+    each written out privately.
+
+    NO OBSERVATION AT ALL still yields a key, standing the earliest tier in rather than
+    refusing. The preamble does not rule this case; it follows from the same deciding
+    argument, because an abstention fires precisely where there is nothing to read and
+    a pass that cannot be keyed cannot be recorded as having happened.
+    """
+    _required(file_id, name="file_id")
+    _required(content_hash, name="content_hash")
+    observations = observations_for_version(conn, file_id, content_hash)
+    pairs = sorted({(one.extractor_name, one.extractor_version)
+                    for one in observations})
+    tiers = {analysis_tier_for_observation(conn, one) for one in observations}
+    present = [tier for tier in ANALYSIS_TIERS if tier in tiers]
+    return fact_cache_key(
+        content_hash=content_hash,
+        extractor_version=canonical_json([list(pair) for pair in pairs]),
+        analysis_tier=present[-1] if present else ANALYSIS_TIERS[0],
+        model_identifier=None, prompt_fingerprint=None)

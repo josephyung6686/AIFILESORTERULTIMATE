@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from evidence_shape.canonical import canonical_json
 from evidence_shape.vocabulary import ANALYSIS_TIERS
 
-from facts.cache import fact_cache_key
+from facts.cache import pass_cache_key
 from facts.evidence import (
     analysis_tier_for_observation, cite, context_pair, observations_for_version,
 )
@@ -101,29 +101,6 @@ def context_check(before: str, after: str, terms: Iterable[str]) -> bool:
                for term in terms for haystack in haystacks)
 
 
-def _pass_cache_key(conn: sqlite3.Connection, *, file_id: str,
-                    content_hash: str) -> str:
-    """§3.4's key for one deterministic pass over one file version.
-
-    Written out here rather than imported from a producer sibling: the SPEC requires
-    an `unresolved` row to carry the "same composition as `file_facts` (§3.4), so an
-    abstention is invalidated by the same events that invalidate a fact", and the
-    reconciliation of several extractor versions into one key belongs to `facts.cache`
-    (Task 6), which does not own it yet. See the plan's contract ambiguities.
-    """
-    observations = observations_for_version(conn, file_id, content_hash)
-    pairs = sorted({(o.extractor_name, o.extractor_version) for o in observations})
-    tiers = {analysis_tier_for_observation(conn, o) for o in observations}
-    present = [tier for tier in ANALYSIS_TIERS if tier in tiers]
-    if not present:
-        raise ValueError(
-            f"no extraction run for {content_hash!r}: §3.4's key has no analysis tier")
-    return fact_cache_key(
-        content_hash=content_hash,
-        extractor_version=canonical_json([list(pair) for pair in pairs]),
-        analysis_tier=present[-1], model_identifier=None, prompt_fingerprint=None)
-
-
 def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                 rules: Sequence[Rule]) -> tuple[str, ...]:
     """Run every rule over every observation of one file version.
@@ -155,7 +132,7 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                     reason="context_truncated" if truncated else "context_check_failed",
                     attempted_producers=(ATTEMPTED_PRODUCERS[1],),
                     evidence_refs=(cite(observation),),
-                    cache_key=_pass_cache_key(conn, file_id=file_id,
+                    cache_key=pass_cache_key(conn, file_id=file_id,
                                               content_hash=content_hash))
                 continue
             value_id = ensure_value(conn, field_key=rule.field_key,
@@ -167,7 +144,7 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                 field_key=rule.field_key, value_id=value_id,
                 reliability_state=_VALIDATED, origin=RULE,
                 evidence_refs=(cite(observation),),
-                cache_key=_pass_cache_key(conn, file_id=file_id,
+                cache_key=pass_cache_key(conn, file_id=file_id,
                                           content_hash=content_hash),
                 active=True))
     return tuple(written)
