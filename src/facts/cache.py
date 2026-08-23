@@ -56,7 +56,8 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 from facts.evidence import (analysis_tier_for_observation,
                             observations_for_version)
 
-__all__ = ["CACHE_KEY_PARTS", "fact_cache_key", "is_stale", "pass_cache_key"]
+__all__ = ["CACHE_KEY_PARTS", "fact_cache_key", "is_stale", "llm_pass_cache_key",
+           "pass_cache_key"]
 
 #: §3.4's five parts, in §3.4's own order. The order is part of the key: the digest is
 #: over an ordered tuple, so reordering this tuple would invalidate every stored key.
@@ -172,6 +173,16 @@ def pass_cache_key(conn: sqlite3.Connection, *, file_id: str,
     argument, because an abstention fires precisely where there is nothing to read and
     a pass that cannot be keyed cannot be recorded as having happened.
     """
+    versions, tier = _version_parts(conn, file_id=file_id, content_hash=content_hash)
+    return fact_cache_key(
+        content_hash=content_hash, extractor_version=versions, analysis_tier=tier,
+        model_identifier=None, prompt_fingerprint=None)
+
+
+def _version_parts(conn: sqlite3.Connection, *, file_id: str,
+                   content_hash: str) -> tuple[str, str]:
+    """The two parts §3.2's rule derives from the file version: the extractor
+    versions of EVERY observation of it, and the last analysis tier present."""
     _required(file_id, name="file_id")
     _required(content_hash, name="content_hash")
     observations = observations_for_version(conn, file_id, content_hash)
@@ -179,8 +190,30 @@ def pass_cache_key(conn: sqlite3.Connection, *, file_id: str,
                     for one in observations})
     tiers = {analysis_tier_for_observation(conn, one) for one in observations}
     present = [tier for tier in ANALYSIS_TIERS if tier in tiers]
+    return (canonical_json([list(pair) for pair in pairs]),
+            present[-1] if present else ANALYSIS_TIERS[0])
+
+
+def llm_pass_cache_key(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+                       model_identifier: str, prompt_fingerprint: str) -> str:
+    """§3.4's key for an LLM-SUPPORTED fact -- the one case where the two model parts
+    are not `None` (preamble §3.3, and Task 17 is the exception it names).
+
+    Same §3.2 rule as `pass_cache_key` for `extractor_version`: EVERY observation of
+    the file version, NOT the observations the proposal cites. A per-proposal cite-set
+    key would put one pass in two slots and is the rule the preamble rejected -- it is
+    rejected here too, and this helper does not accept a citation list at all.
+
+    `analysis_tier` is `ANALYSIS_TIERS[-1]` unconditionally: an LLM-produced fact is at
+    the llm tier by definition, which is what keeps it out of the slot the
+    deterministic pass over the same evidence computed, so re-resolution supersedes
+    rather than overwrites (§8.2).
+    """
+    _required(model_identifier, name="model_identifier")
+    _required(prompt_fingerprint, name="prompt_fingerprint")
+    versions, _tier = _version_parts(conn, file_id=file_id,
+                                     content_hash=content_hash)
     return fact_cache_key(
-        content_hash=content_hash,
-        extractor_version=canonical_json([list(pair) for pair in pairs]),
-        analysis_tier=present[-1] if present else ANALYSIS_TIERS[0],
-        model_identifier=None, prompt_fingerprint=None)
+        content_hash=content_hash, extractor_version=versions,
+        analysis_tier=ANALYSIS_TIERS[-1], model_identifier=model_identifier,
+        prompt_fingerprint=prompt_fingerprint)
