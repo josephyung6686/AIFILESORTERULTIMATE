@@ -46,7 +46,7 @@ from privacy.items import Excerpt, Filename, RedactedIdentifier
 from privacy.policy import Policy, UNSET_POLICY_VERSION, set_policy
 from privacy.redaction import RedactionManifest
 from privacy.release import (
-    DECISION_ORDER, DECISION_TYPES, DENIED_FIELDS, FORBIDDEN_PARAMETER_NAMES,
+    DECISION_ORDER, DECISION_TYPES, DENIED_FIELDS, FORBIDDEN_PARAMETER_NAMES, LOCALITIES,
     NEEDS_CONSENT_FIELDS, RELEASED_FIELDS, RELEASE_PARAMETERS, REQUEST_FIELDS,
     Denied, ModelCallRequest, ModelTarget, NoPolicyInForce, Released, Target,
 )
@@ -680,3 +680,128 @@ def test_an_unset_dossier_ceiling_and_no_measurement_cannot_deny(gate_conn):
         gate_conn, measure_tokens=lambda request, items: 11).release(request)
     assert isinstance(decision, Denied)
     assert decision.reason == "dossier_over_budget"
+
+
+# ==========================================================================
+# The two Gate.release blockers -- gate.py:134-135 on the parent commit.
+#
+# Both are PLAN defects, not build defects: the executor transcribed the
+# plan's Step 5 block byte-for-byte, and the plan carries both lines
+# verbatim (P7 PLAN.md:9665). §8.4 calls the gate "the ONE door"; these
+# tests are what makes it one.
+# ==========================================================================
+
+def _two_areas(conn):
+    """One unprotected file in `area-1`, one protected file in `area-2`."""
+    ordinary = _file(conn, "notes.pdf", "hash-notes")
+    protected = _file(conn, "passport.pdf", "hash-passport")
+    _classify(conn, ordinary, "hash-notes",
+              handling_class="personal_non_sensitive", protected=False)
+    _classify(conn, protected, "hash-passport",
+              handling_class="sensitive_personal", protected=True)
+    areas = {ordinary: "area-1", protected: "area-2"}
+    return ordinary, protected, areas
+
+
+def test_a_protected_file_is_not_released_because_another_file_was_listed_first(
+        gate_conn):
+    """BLOCKER 1 -- `scope = self._scope_for(file_ids[0])`.
+
+    One file's corpus area decided revocation, cloud protection AND consent for
+    every file in the request. A protected file in an UNGRANTED area, placed
+    second, rode out on the first file's grant: released to a cloud model with a
+    real minted release_id. Reversing the tuple denied it, which is the whole
+    proof -- the decision depended on list order, and §8.4's door does not.
+    """
+    ordinary, protected, areas = _two_areas(gate_conn)
+    key = _evidence(gate_conn, protected, "hash-passport")
+    _policy(gate_conn, "cloud_assisted", grants=(("area-1", "cloud_model"),))
+    gate = _gate(gate_conn, scope_for=lambda file_id: areas[file_id])
+
+    decision = gate.release(_request(
+        items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
+        model_target=CLOUD, file_ids=(ordinary, protected)))
+
+    assert not isinstance(decision, Released), (
+        "a protected file in an ungranted area reached a cloud model because an "
+        "unprotected file was listed ahead of it")
+
+
+def test_the_ordering_that_already_denied_still_denies(gate_conn):
+    """The control for the test above: same request, reversed. It denied before
+    the fix and must still deny after it, or the fix traded one order for another."""
+    ordinary, protected, areas = _two_areas(gate_conn)
+    key = _evidence(gate_conn, protected, "hash-passport")
+    _policy(gate_conn, "cloud_assisted", grants=(("area-1", "cloud_model"),))
+    gate = _gate(gate_conn, scope_for=lambda file_id: areas[file_id])
+
+    decision = gate.release(_request(
+        items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
+        model_target=CLOUD, file_ids=(protected, ordinary)))
+
+    assert not isinstance(decision, Released)
+
+
+def test_a_local_model_grant_does_not_authorize_a_cloud_release(gate_conn):
+    """BLOCKER 2 -- `granted = tuple(name for name, _option in ...)`.
+
+    §8.4 asks the user to "choose whether to allow a local model, a cloud model, a
+    redacted prompt, or no model use". The gate dropped the choice and kept only
+    the scope, so answering LOCAL MODEL to a local-model prompt authorised a CLOUD
+    release of that same protected file -- one file, no ordering trick, straight
+    through P7's own published consent flow.
+    """
+    file_id = _file(gate_conn, "passport.pdf", "hash-passport")
+    key = _evidence(gate_conn, file_id, "hash-passport")
+    _classify(gate_conn, file_id, "hash-passport",
+              handling_class="sensitive_personal", protected=True)
+    _policy(gate_conn, "cloud_assisted", grants=(("area-1", "local_model"),))
+
+    decision = _gate(gate_conn).release(_request(
+        items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
+        model_target=CLOUD, file_ids=(file_id,)))
+
+    assert not isinstance(decision, Released), (
+        "a local_model grant authorised a cloud release")
+
+
+def test_a_cloud_grant_still_authorizes_the_cloud_release_it_was_given_for(
+        gate_conn):
+    """The carve-out §8.4 does intend must survive: cloud_assisted plus an explicit
+    cloud_model grant for that area releases."""
+    file_id = _file(gate_conn, "passport.pdf", "hash-passport")
+    key = _evidence(gate_conn, file_id, "hash-passport")
+    _classify(gate_conn, file_id, "hash-passport",
+              handling_class="sensitive_personal", protected=True)
+    _policy(gate_conn, "cloud_assisted", grants=(("area-1", "cloud_model"),))
+
+    decision = _gate(gate_conn).release(_request(
+        items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
+        model_target=CLOUD, file_ids=(file_id,)))
+
+    assert isinstance(decision, Released)
+
+
+def test_every_consent_option_says_which_localities_it_authorizes():
+    """The table is total, and it is a table for the reason `CONSENT_AUTHORIZES` is:
+    written as a negated `if`, it is one edit away from silently granting."""
+    from privacy.consent import CONSENT_AUTHORIZES_LOCALITY, grant_authorizes
+    from privacy.vocabulary import CONSENT_OPTIONS
+
+    assert set(CONSENT_AUTHORIZES_LOCALITY) == set(CONSENT_OPTIONS)
+    for option, localities in CONSENT_AUTHORIZES_LOCALITY.items():
+        assert localities <= set(LOCALITIES), option
+
+    # the blocker, as a table row: the answer binds to what was asked.
+    assert grant_authorizes("local_model", "local") is True
+    assert grant_authorizes("local_model", "cloud") is False
+    assert grant_authorizes("cloud_model", "cloud") is True
+    assert grant_authorizes("no_model_use", "local") is False
+
+
+def test_an_option_outside_the_four_raises_rather_than_reading_as_a_denial():
+    """SPEC §1: a value outside the vocabulary is "a load error, not a fallback". A
+    `False` here would hide a corrupt policy row behind a correct-looking refusal."""
+    from privacy.consent import grant_authorizes
+    with pytest.raises(KeyError):
+        grant_authorizes("cloud_model_but_only_tuesdays", "cloud")

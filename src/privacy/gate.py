@@ -45,7 +45,8 @@ from privacy.binding import mint_release
 from privacy.classification import (
     UNREADABLE_UNCLASSIFIED, ClassificationRecord, resolve_class,
 )
-from privacy.consent import ConsentRequirement, open_consent_request
+from privacy.consent import (ConsentRequirement, grant_authorizes,
+                             open_consent_request)
 from privacy.denial import (
     deny_always_local_item, deny_dossier_over_budget, deny_mode_forbids_target,
     deny_policy_revoked, deny_protected_cloud_target,
@@ -131,8 +132,15 @@ class Gate:
         observed_at = self._now()
         locality = request.model_target.locality
         file_ids = request.target.file_ids
-        scope = self._scope_for(file_ids[0])
-        granted = tuple(name for name, _option in policy.consent_grants)
+        # §8.4's door decides for EVERY file in the request, so the corpus area is
+        # read per file. Taking `file_ids[0]`'s area and applying it to the rest made
+        # revocation, cloud protection and consent depend on list order: a protected
+        # file in an ungranted area rode out on an unprotected file listed ahead of it.
+        scopes = {file_id: self._scope_for(file_id) for file_id in file_ids}
+        # The user's ANSWER, not just the area they answered about. Dropping the option
+        # made `local_model` authorize a cloud release of the same protected file.
+        granted = tuple(scope for scope, option in policy.consent_grants
+                        if grant_authorizes(option, locality))
 
         rows = {file_id: get_file(self._conn, file_id) for file_id in file_ids}
         hashes = tuple(rows[file_id]["content_hash"] for file_id in file_ids)
@@ -154,9 +162,11 @@ class Gate:
                 operation_mode=policy.operation_mode,
                 model_target=request.model_target, file_ids=file_ids)
 
-        if policy_revoked_for(self._conn, policy, scope):
+        revoked = tuple(file_id for file_id in file_ids
+                        if policy_revoked_for(self._conn, policy, scopes[file_id]))
+        if revoked:
             builders["policy_revoked"] = lambda: deny_policy_revoked(
-                scope=scope, policy=policy, file_ids=file_ids)
+                scope=scopes[revoked[0]], policy=policy, file_ids=file_ids)
 
         caught = self._precheck_items(request, protected=bool(protected_ids),
                                       sensitive_keys=sensitive_keys)
@@ -185,13 +195,17 @@ class Gate:
                 lambda: deny_protected_records_template(
                     file_ids=file_ids, model_target=request.model_target)
 
-        if protected_cloud_denies(protected=bool(protected_ids), locality=locality,
-                                  operation_mode=policy.operation_mode, scope=scope,
-                                  granted_scopes=granted):
+        unauthorized = tuple(
+            file_id for file_id in protected_ids
+            if protected_cloud_denies(
+                protected=True, locality=locality,
+                operation_mode=policy.operation_mode, scope=scopes[file_id],
+                granted_scopes=granted))
+        if unauthorized:
             builders["protected_cloud_target"] = \
                 lambda: deny_protected_cloud_target(
-                    file_ids=protected_ids, operation_mode=policy.operation_mode,
-                    scope=scope,
+                    file_ids=unauthorized, operation_mode=policy.operation_mode,
+                    scope=scopes[unauthorized[0]],
                     evidence_refs=(decisive.evidence_refs
                                    if decisive is not None else ()))
 
@@ -203,14 +217,17 @@ class Gate:
         # 2 -- a question only the user can answer, asked only if nothing denied.
         text_items = tuple(item for item in request.requested_items
                            if isinstance(item, TEXT_BEARING))
-        if text_items and protected_ids and scope not in granted:
+        unanswered = tuple(file_id for file_id in protected_ids
+                           if scopes[file_id] not in granted)
+        if text_items and unanswered:
             requirement = ConsentRequirement(
-                file_ids=protected_ids,
-                handling_class=classes[protected_ids[0]],
+                file_ids=unanswered,
+                handling_class=classes[unanswered[0]],
                 items=tuple(kind_of(item) for item in text_items),
                 why=("§8.4: this call needs text from files entered into protected "
                      f"state, and policy {policy.policy_version} holds no consent "
-                     f"grant for scope {scope!r}"))
+                     f"grant authorizing a {locality} model for scope "
+                     f"{scopes[unanswered[0]]!r}"))
             return open_consent_request(
                 self._conn, requirement, request=request, policy=policy,
                 content_hashes=hashes, user_id=self._user_id,

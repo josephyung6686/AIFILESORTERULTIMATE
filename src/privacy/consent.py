@@ -68,6 +68,43 @@ CONSENT_AUTHORIZES: Mapping[str, bool] = MappingProxyType({
     "no_model_use": False,
 })
 
+#: WHICH MODEL THE ANSWER AUTHORIZES. `CONSENT_AUTHORIZES` above says whether an
+#: option permits a model call at all; it does not say WHICH model, and the gate used
+#: to drop the option entirely -- keeping only the scope -- so answering `local_model`
+#: to a local-model prompt authorized a CLOUD release of the same protected file.
+#: §8.4 offers "a local model, a cloud model, a redacted prompt, or no model use" as
+#: four different answers, so they cannot collapse to one.
+#:
+#: A table rather than a chain of `if`s, for the reason `CONSENT_AUTHORIZES` is one:
+#: the negated form is a single edit away from silently granting.
+#:
+#:   - `local_model` authorizes a local target and nothing more. This is the blocker.
+#:   - `cloud_model` authorizes cloud, and local as the strictly weaker case -- a user
+#:     who permitted the cloud is not re-asked to permit their own machine.
+#:   - `redacted_prompt` authorizes both, because it constrains the ITEMS and not the
+#:     target: `TEXT_BEARING` includes `RedactedIdentifier`, so the re-composed
+#:     redacted request reaches this check again and an empty set would ask forever.
+#:   - `no_model_use` authorizes nothing. It never reaches `policy.consent_grants` --
+#:     `CONSENT_AUTHORIZES` is False, so `record_consent_choice` does not call
+#:     `grant_consent` -- but the table is total so no option falls through it.
+CONSENT_AUTHORIZES_LOCALITY: Mapping[str, frozenset[str]] = MappingProxyType({
+    "local_model": frozenset({"local"}),
+    "cloud_model": frozenset({"local", "cloud"}),
+    "redacted_prompt": frozenset({"local", "cloud"}),
+    "no_model_use": frozenset(),
+})
+
+
+def grant_authorizes(option: str, locality: str) -> bool:
+    """Does a grant recorded under `option` authorize a release to a `locality` model?
+
+    An option outside §8.4's four is a load error everywhere else in this part, and it
+    is one here: a `KeyError` rather than a `False` that would read as a denial and
+    hide a corrupt policy row behind a correct-looking refusal.
+    """
+    return locality in CONSENT_AUTHORIZES_LOCALITY[option]
+
+
 #: The key the scope is stored under, shared with Task 13's `REVOKED_SCOPE_KEY` and
 #: Task 15's `revoke`. Grant here, withdraw there, deny in between.
 _SCOPE_KEY: str = "scope"
