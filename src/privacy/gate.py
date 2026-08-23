@@ -1,5 +1,12 @@
 # src/privacy/gate.py
-"""The one door. `Gate.release(ModelCallRequest) -> ReleaseDecision`, and nothing else.
+"""The one door. `Gate.release(ModelCallRequest) -> ReleaseDecision` is the only one.
+
+`release` is the only way content leaves. The facade also publishes the other §8.4
+surfaces that operate on the same policy and the same log -- `revoke` and
+`delete_derived` (D13 kept CUT 4, so the facade is certain rather than provisional).
+Neither is a release path: `revoke` grants no capability and `delete_derived` returns
+`NoReturn`, so §3.7's "writes exactly one thing and raises nothing" is a rule about
+`release` and does not travel to them. It is restated for each below.
 
 B2 adopts SPEC §6's signature verbatim on both sides, so `release` takes the request
 and NOTHING ELSE -- no override, no flag, no connection. Everything the gate needs
@@ -26,6 +33,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
+from typing import NoReturn
 
 from database_agent.budget import get_ceiling
 from database_agent.files_table import get_file
@@ -57,6 +65,10 @@ from privacy.release import (
     ReleaseDecision, Released,
 )
 from privacy.resolve import Materialised, materialise
+# Imported as a MODULE, not by name: `Gate.revoke` and `Gate.delete_derived` are the
+# same two words as the functions they delegate to, and an aliased import would give
+# each of them a second spelling inside the one file that publishes both.
+from privacy import revocation
 
 #: §4's two item kinds that address local text and therefore resolve to a value.
 #: `candidate_label`, `metadata_field`, `evidence_reference` and `filename` carry no
@@ -245,6 +257,52 @@ class Gate:
             release_id=release_id, audit_id=audit_id,
             policy_version=policy.policy_version, materialised_items=resolved,
             redaction_manifest=manifest, model_target=request.model_target)
+
+    # -- §8.4's other two published surfaces --------------------------------
+
+    def revoke(self, scope: str, *,
+               retraction_limit: str) -> revocation.RevocationResult:
+        """§8.4's "revoke a policy for future runs", with what already left attached.
+
+        Every argument `revocation.revoke` needs beyond the scope and P13's wording is
+        already constructor state -- `files_in_scope` has been held for this since
+        Task 11 -- so nothing is read twice and no corpus area is invented here.
+
+        This is NOT §3.7's one-write rule broken. That rule is about `release`: its
+        one write is the audit record, and returning a capability before that record
+        existed would open an interval in which content is releasable and unaudited. A
+        revocation grants nothing and IS the write; §8.4 makes it two records -- the
+        new policy version and one `consent_revoked` event -- and both belong to the
+        one act. It still writes no classification, no `files.sensitivity_state`, no
+        `stage_output` and no P8 `Refusal`.
+
+        It raises `MissingRetractionLimit` and `NoPolicyInForce`, and that is not
+        §3.7's "raises nothing" broken either: a `Denied` is a value because a denial
+        is an ordinary outcome the user must be shown. Both of these are about the
+        CALL (§3.6's fourth kind), and `release` already raises `NoPolicyInForce` for
+        the same reason.
+        """
+        policy = current_policy(self._conn, plan_version=self._plan_version)
+        if policy is None:
+            raise NoPolicyInForce(
+                f"no privacy policy is stored for plan version "
+                f"{self._plan_version!r}; §8.4 revokes a policy that is in force, and "
+                "P7 does not invent one to withdraw")
+        return revocation.revoke(
+            self._conn, policy, scope, user_id=self._user_id,
+            component_version=self._component_version, observed_at=self._now(),
+            retraction_limit=retraction_limit,
+            files_in_scope=self._files_in_scope)
+
+    @staticmethod
+    def delete_derived(scope: revocation.DerivedScope) -> NoReturn:
+        """§8.4's "review and delete local derived data" -- surfaced, and unbuilt.
+
+        Static because it takes no connection and touches no gate state: D3 built no
+        tombstone column, so there is nothing here that could read or write one. It
+        always raises, on both sides of D3's literal enumeration.
+        """
+        revocation.delete_derived(scope)
 
     # -- helpers ------------------------------------------------------------
 
