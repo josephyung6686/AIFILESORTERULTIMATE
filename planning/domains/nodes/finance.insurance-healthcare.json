@@ -43,26 +43,26 @@
       "membership in a download session that bundled several PDFs from one carrier portal. 00: \"A session should never be treated as proof of topic\" - it is a purpose clue and a review aid, and here it is exactly the clue that would wrongly absorb an unreadable export, or a lab result, into a claim packet.",
       "the absence of EXIF on an image of an insurance card, read as proof the image is a screenshot rather than a photograph of the card. 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"conflicting signals should lead to abstention rather than an invented classification\".",
       "a producer or author metadata string naming a claims-processing or benefits-administration tool. 00 treats producer strings as supporting evidence only, and forbids authorship as a destination dimension outright: \"It should avoid using authorship or creator identity as a destination dimension.\""
-    ],
-    "proposed_context_terms": [
-      "member id",
-      "group number",
-      "claim number",
-      "date of service",
-      "amount billed",
-      "plan paid",
-      "patient responsibility",
-      "deductible",
-      "out-of-pocket maximum",
-      "coinsurance",
-      "copay",
-      "explanation of benefits",
-      "prior authorization",
-      "coverage period",
-      "subscriber"
-    ],
-    "proposed_context_terms_note": "PROPOSED, not design. 00 states the pattern-plus-context SHAPE for course codes only (\"a course-code pattern together with academic context such as\" five literal terms). These are this situation's candidate context terms in the same shape; R6 owns the patterns, R4 owns the gazetteers, and this row writes neither a regex nor a score."
+    ]
   },
+  "proposed_context_terms": [
+    "member id",
+    "group number",
+    "claim number",
+    "date of service",
+    "amount billed",
+    "plan paid",
+    "patient responsibility",
+    "deductible",
+    "out-of-pocket maximum",
+    "coinsurance",
+    "copay",
+    "explanation of benefits",
+    "prior authorization",
+    "coverage period",
+    "subscriber"
+  ],
+  "proposed_context_terms_note": "PROPOSED, not design. 00 states the pattern-plus-context SHAPE for course codes only (\"a course-code pattern together with academic context such as\" five literal terms). These are this situation's candidate context terms in the same shape; R6 owns the patterns, R4 owns the gazetteers, and this row writes neither a regex nor a score.",
   "work_types": [
     "coverage card",
     "explanation of benefits",
@@ -352,6 +352,32 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "claims_history_export.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a header row with labelled columns: Claim Number, Date of Service, Provider, Amount Billed, Plan Paid, Patient Responsibility, Claim Status",
+        "several hundred data rows spanning more than one plan year",
+        "no letterhead, no logo and no carrier name in any cell or column header",
+        "the filename stem is the portal's default export name and names no carrier",
+        "a Patient column whose values are two different household members"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from the filename stem or from the parent folder's name. The claim-adjudication column set fires the situation, but the carrier is simply not in this file - 00's extractor for this format yields \"workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\", and none of those carries a carrier here, so institution stays unknown rather than being inferred from a name outside the evidence",
+        "tax_year from the plan years spanned by the rows; a coverage period is not a labelled tax-year slot, and this file has several",
+        "account_holder from the Patient column - the column names patients, and a patient is not the subscriber; there is no canonical patient key and this row mints none",
+        "a per-ROW fact written as a fact about the FILE. One export is many claims; the individual claim episodes are a grouping question, not a set of file-level facts",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
     },
     {
       "filename": "insurance docs.zip",

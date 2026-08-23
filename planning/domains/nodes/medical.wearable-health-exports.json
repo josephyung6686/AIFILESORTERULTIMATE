@@ -1,0 +1,599 @@
+{
+  "id": "medical.wearable-health-exports",
+  "kind": "template",
+  "schema_id": "medical",
+  "parent_id": null,
+  "name": "Wearable and health-app exports",
+  "one_line": "A protected organizational situation for whole-account health downloads, wearable telemetry, activity tracks, device-generated reports, and their export workflow. It recognizes longitudinal structured data and keeps the packet coherent without turning any metric, device, person, condition, date range, or app name into a Medical fact or folder level.",
+  "launch": "safety",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a whole-account export archive whose manifest shows an export index plus several independently health-shaped member families, such as longitudinal measurement tables, workout or route records, device reports, and account metadata. The manifest is inspected without unpacking; an outer filename, archive extension, member count, and package size establish nothing alone",
+      "a structured XML health export whose own root and repeated record elements expose labelled record type, source or device, unit, start and end time, and value slots. The conjunction and repeated schema are the signal; XML syntax, a timestamp, or a value element separately is not",
+      "a per-metric CSV or JSON export whose own header or index identifies an account data export and whose repeated rows pair a named health or fitness measure with timestamps, units, and source-device provenance. Generic date, value, id, or device columns without the export and measure structure do not fire",
+      "an activity record parsed by an explicitly approved format reader into a labelled activity type, start and end time, track or course points, and sensor-series slots such as heart rate or cadence. FIT, TCX, or GPX spelling is only routing evidence; a standalone opaque FIT file with no approved reader remains metadata-only",
+      "a device- or health-app-generated ECG document whose own header identifies the recording source and time and whose body contains a waveform plus labelled recording or interpretation regions. The product records no rhythm, symptom, diagnosis, or clinical conclusion because Medical declares no fields",
+      "a device-platform report whose own title, exporter or software slot, date-range label, and repeated metric or trend regions establish that it summarizes the holder's wearable measurements. A public sample report, marketing brochure, or article with the same vocabulary is excluded by the holder and export structure",
+      "a sensor-platform data table whose exporter header and columns explicitly identify raw readings, calibration records, and user-entered events over a selected interval. Numbers and units alone are insufficient, and no value is interpreted medically",
+      "an export index or saved account page that explicitly describes a completed health-data export and enumerates the included data families. It can anchor the archive workflow but never copies its account, metric, date range, or service label onto a sparse member",
+      "a multipart download whose parts carry one exact export request or archive-family identifier in structured metadata and whose manifests continue the same export index. Similar filenames, sequential downloads, and temporal proximity never create the family without that explicit linkage",
+      "a member file linked by an exact manifest path or explicit identifier from the export index. That relationship may support reviewable packet membership; it does not copy the index's health vocabulary or any other fact onto the member"
+    ],
+    "needs_llm": [
+      "whether an unfamiliar vendor schema is a personal wearable or health-app export, a generic account backup, a home-sensor log, or an application data dump. This is a local-model or abstention path by default, with citations to locally extracted structural evidence",
+      "whether structured health material is longitudinal device telemetry for this template or a provider-issued clinical record for medical.personal-health-records. Source and function matter more than file format, and a mixed export may remain one protected packet without choosing a deeper template",
+      "whether a measurement table belongs to a person's account export, a research dataset, or both. Project identifiers, a codebook, and analysis inputs support Research; account-export provenance and device-sourced personal records support this row; generic columns support neither",
+      "whether OCR from a health-app dashboard screenshot establishes a personal measurement record rather than a fitness article, training plan, advertisement, or mockup. Positive screen-origin evidence activates Photos independently and never weakens Medical protection",
+      "whether a whole-account archive contains separable protected and non-protected member families. The model may propose review boundaries from a manifest dossier but may not unpack the archive, inspect raw values remotely, or declare a member safe from its folder name",
+      "whether a sparse email or index file belongs to a nearby export packet when the archive carries the direct anchor. Group membership may be suggested without activating Medical from the email alone and without copying the service or account relationship as a fact",
+      "whether two periodic exports are duplicates, versions, or distinct snapshots. Matching app names and overlapping dates are not enough; exact hashes, an explicit export identifier, or an accepted archive-family relationship must do the work",
+      "whether localized or translated metric names express the same structural role when the deterministic catalogue does not cover the language. Raw labels stay local and the result is unknown when the role cannot be cited"
+    ],
+    "never_alone": [
+      "a health, fitness, wearable, wellness, sleep, steps, heart, glucose, activity, workout, ECG, or data-export term by itself. Articles, training plans, advertisements, research papers, source code, and home-automation logs use the same vocabulary",
+      "a wearable, device, app, platform, provider, or manufacturer name by itself. It can appear in a receipt, manual, privacy policy, screenshot, research protocol, software dependency, or product review",
+      "source_type or extension alone, including archive, code_structured, spreadsheet, opaque_binary, .zip, .xml, .json, .csv, .fit, .tcx, .gpx, or .pdf",
+      "a filename or path containing health, fitness, export, activity, sleep, heart, glucose, wellness, backup, or data. Filenames are clues, paths stay local, and an unreadable file never gains a health purpose from its name",
+      "generic timestamp, date, id, type, source, device, value, unit, start, end, latitude, or longitude columns. The same table shape occurs in finance, research, home automation, telemetry, and software logs",
+      "a dense numerical time series or chart by itself. Electricity monitors, weather stations, server metrics, laboratory instruments, and market feeds all generate repeated timestamp-value pairs",
+      "GPS coordinates, waypoints, route lines, or a track-shaped XML element by itself. Travel traces, drone logs, map exports, and geospatial research use the same observations",
+      "a heart-rate, sleep, step, calorie, stress, cadence, temperature, oxygen, or weight token without an account-export, device-record, or personal-measurement structure around it",
+      "a data-export request or ready-to-download email without the export payload or another in-file health signal. It may be a context-supported packet member, not proof that the email contains health data",
+      "membership in one folder, archive, download session, email thread, or transfer batch with a rich health export. Those relationships retrieve candidates but never activate Medical or copy facts",
+      "the absence of EXIF, PNG format, dense OCR, or a mobile-sized image as proof of a health-app screenshot. Positive capture evidence belongs to Photos and the OCR content must still establish the health reading",
+      "file count, archive size, compression ratio, split-part numbering, or a long date span as proof that a bundle is a health export or that its members belong together",
+      "a device serial, Bluetooth identifier, account-shaped token, or person name without the surrounding export schema. These are privacy signals, not Medical fields and not template discriminators",
+      "an encrypted, password-protected, malformed, or unsupported archive whose only health clue is the filename. It is not forced open and falls through without an invented purpose"
+    ]
+  },
+  "work_types": [
+    "whole-account health export archive",
+    "consolidated health-record XML",
+    "per-metric CSV or JSON series",
+    "wearable wellness FIT bundle",
+    "activity FIT, TCX, or GPX record",
+    "activity summary table",
+    "heart-rate or variability series",
+    "sleep-session or stage export",
+    "step, distance, energy, or movement series",
+    "weight or blood-pressure export",
+    "glucose sensor data export",
+    "ECG recording or waveform report",
+    "wearable trend or shareable report",
+    "workout route or course record",
+    "export index or manifest",
+    "export request or completion email",
+    "health-app dashboard capture",
+    "portable backup or opaque device record"
+  ],
+  "grouping_reasons": [
+    "one explicit account export: its archive, export index, manifest, and members linked by manifest paths or an export identifier. The package may stay intact as a protected packet even when its member types differ",
+    "one wearable activity: the activity record, route, summary, and sensor streams only when each carries the same explicit activity identifier. Shared time, place, or device alone is insufficient",
+    "one device-generated report and the structured record it summarizes, linked by an explicit recording or report identifier rather than by matching dates or metric vocabulary",
+    "one multipart export whose manifests continue the same export request, kept as an archive family rather than mislabelled as duplicates",
+    "one exact duplicate or version family across repeated downloads, using the universal duplicate_family and version_family facts. Overlapping measurement intervals do not establish either relationship",
+    "one personal export that is also an accepted research input. Medical protection remains active while Research facts stay on their own project and codebook evidence; no packet fact is copied",
+    "a sparse member may join an export neighborhood for review when an index names its exact path. The membership record may exist while the member has only universal facts",
+    "no group is also valid: one ECG PDF, glucose CSV, or opaque device record can surface as a protected record without satisfying an ordinary group-size rule"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract and by privacy design. Medical is a D1 and PR-6 field-less safety placeholder, so this template cannot branch on app, device, metric, person, condition, activity, export date, measurement interval, or record type; none is a legal Medical field. A visible branch named for glucose, ECG, sleep, pregnancy, location, or an account service would itself disclose the protected content. The recommended organization is therefore one shallow protected packet that preserves a user-approved export or archive family, with names, previews, member lists, summaries, and OCR redacted under policy. No deep template unlocks from safety activation. This is not time-first: an export is one versioned snapshot or workflow packet, and splitting members by measurement date would scatter the archive, confuse record time with export time, and expose a health chronology. Any later depth requires an explicit user decision after Medical fields and privacy policy are ratified.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "archive",
+      "code_structured",
+      "spreadsheet",
+      "opaque_binary",
+      "text_document",
+      "image",
+      "ocr",
+      "email"
+    ],
+    "extensions": [
+      ".zip",
+      ".xml",
+      ".json",
+      ".csv",
+      ".fit",
+      ".tcx",
+      ".gpx",
+      ".pdf",
+      ".html",
+      ".png",
+      ".jpg",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Health Data Export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest shows an export index and a consolidated structured health-data member",
+        "separate member families are named for workouts, routes, device recordings, and reports",
+        "the manifest exposes declared size and member paths without opening members to disk",
+        "the archive timestamp is the export time, not a measurement time"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a Medical fact for person, app, device, metric, condition, date range, or record type; the schema declares none",
+        "one measurement time or event from the archive timestamp",
+        "that members may be unpacked to the filesystem or sent as a complete cloud dossier",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "export.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "root element identifies a health-data export rather than an application configuration",
+        "repeated record elements carry labelled type, source, unit, start, end, and value slots",
+        "workout elements carry device provenance and bounded activity times",
+        "raw values and identifiers appear throughout the member"
+      ],
+      "facts_legal": [
+        "file_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any record type, source device, health metric, timestamp, value, symptom, or condition as a Medical fact",
+        "that every XML element describes the holder rather than a device, app, imported record, or schema definition",
+        "permission to include raw XML or identifiers in a model prompt",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Fitbit Account Data.zip",
+      "source_type": "archive",
+      "observations": [
+        "export index identifies a complete account-data request",
+        "manifest partitions activity, exercise, sleep, heart-rate, GPS, and account members",
+        "a family-account layout contains a separate child-account folder",
+        "the download is linked to a completed export request rather than an ordinary app backup"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "whose measurements a member contains from its folder name; holder, account owner, and subject can differ",
+        "a family relationship or child identity as a fact",
+        "that the account export email or download session supplies facts to every member",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Garmin Wellness 2026-08-14.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists original FIT members for one wellness export",
+        "the export service identifies steps, sleep, stress, heart-rate variability, and other wellness data as included families",
+        "member contents remain unopened because no approved FIT reader is assumed",
+        "the date in the outer filename is consistent with the request but does not describe every member"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a metric, device, activity, or date-range Medical fact from manifest member names",
+        "that FIT extension makes any standalone member medical",
+        "that archive inspection permits member extraction or conversion to another format",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "2026-08-14 Morning Run.gpx",
+      "source_type": "code_structured",
+      "observations": [
+        "parsed XML declares a track with ordered points",
+        "track points carry GPS coordinates and timestamps",
+        "extension records include heart-rate and temperature observations",
+        "an activity identifier and exporter slot appear in structured metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "location, event, capture_year, or camera_information; those are Photos facts and this is not a capture",
+        "the holder's home, workplace, routine, health state, or fitness level from the route",
+        "that GPX syntax alone is health evidence rather than travel, mapping, drone, or research data",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Activities.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "export banner identifies an account activity report",
+        "header row contains activity kind, start time, duration, distance, and source-device slots",
+        "repeated rows represent separate recorded activities",
+        "the file has no project identifier and no codebook"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a Medical fact for activity, date, device, distance, or account",
+        "a Research artifact_type from tabular structure or repeated rows",
+        "one event or one trip group from all rows in the export",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Sleep and Daily Movement Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "report title and software metadata identify a wearable-platform shareable report",
+        "labelled reporting interval appears in the header",
+        "trend sections summarize sleep and daily movement measurements",
+        "a holder name appears in a report slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a diagnosis, condition, sleep quality, cycle status, or clinical recommendation",
+        "that the displayed interval is a folder dimension or a creation date",
+        "that a printable report intended for sharing is safe for unrestricted cloud analysis",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Dexcom Clarity Data Export.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "export header identifies a sensor-data report and selected interval",
+        "rows separate raw glucose values, calibration records, and user-entered events",
+        "columns include timestamps, units, and device or sensor provenance",
+        "no research project or analysis codebook is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any glucose value, range, event, calibration, condition, or treatment conclusion as a Medical fact",
+        "medical advice or a judgment about whether readings are normal",
+        "a Research dataset from CSV shape alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Apple Watch ECG 2026-07-18.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header identifies a wearable-generated ECG report and recording source",
+        "a waveform occupies the main report region",
+        "labelled recording time and result regions appear beside device details",
+        "the holder's name appears in a report slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a rhythm, diagnosis, symptom, condition, or clinical validity fact",
+        "that a device-generated classification is medical advice or proof of health",
+        "that the date token belongs in a visible branch name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Health dashboard 2026-08-18.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-capture software metadata and an exact display-sized canvas",
+        "OCR shows a health-app navigation bar and several personal metric cards",
+        "a trend chart and selected date range are visible",
+        "no camera EXIF is present, but absence is not used as proof"
+      ],
+      "facts_legal": [
+        "media_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any metric value, trend, account, condition, or date-range Medical fact",
+        "media_type from missing EXIF alone; positive screen-origin evidence supplies the Photos fact",
+        "permission to send raw pixels or OCR to a cloud model",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Your health data export is ready.eml",
+      "source_type": "email",
+      "observations": [
+        "structured sender belongs to an account data-export service",
+        "subject and body state that a requested export is ready",
+        "body carries an expiring download control and an export-request reference",
+        "no health measurement, attachment, or data-family inventory appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "Medical activation from the app or service name alone; this sparse email needs an independently anchored packet",
+        "that the link may be followed automatically or that credentials may be requested",
+        "any account, export, health, or date-range fact copied from a neighboring archive",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PVA-RDP wearable participant export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest contains an untouched personal wearable export subtree",
+        "a project README names PVA-RDP and describes the export as a participant-provided input",
+        "a codebook defines the measurement columns used by an analysis table",
+        "member paths separate raw account export, cleaned data, and analysis outputs"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "stage",
+        "file_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any participant identity, device, metric, value, date range, or condition as a Medical fact",
+        "that Research activation weakens the Medical protection path or permits a cloud dossier",
+        "that the project README supplies facts to raw members that omit the project token",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "takeout-20260801.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest shows a social-platform export root with per-service folders",
+        "media members pair with exact-stem metadata sidecars",
+        "account, contacts, and conversation members appear beside photos",
+        "no health-record family, device provenance, or personal-measurement series appears"
+      ],
+      "facts_legal": [
+        "media_type",
+        "capture_year",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "this wearable-health template from archive, JSON, account, or export structure alone",
+        "a health purpose from a fitness photograph or wellness caption inside the social archive",
+        "Medical activation from the package size or long time span",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "home-sensor-readings.json",
+      "source_type": "code_structured",
+      "observations": [
+        "repeated objects carry timestamp, device, value, and unit keys",
+        "device metadata identifies room temperature and occupancy sensors",
+        "an automation-system export banner appears at the root",
+        "no person, wearable, health record, activity, or account-health context appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Medical activation from a generic time series or device field",
+        "a health metric from temperature, motion, or occupancy values",
+        "that every app-generated JSON export is a health-app export",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Heart-rate zones guide.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title identifies a public training guide",
+        "body explains exercise zones and includes example charts",
+        "publisher and copyright footer are present",
+        "no holder, account, export, device record, or personal measurement appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language"
+      ],
+      "must_not_conclude": [
+        "Medical activation from heart-rate vocabulary or charts",
+        "that example values describe the holder",
+        "a personal training event or device from the topic",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "health-data-backup.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive is password-protected and its manifest cannot be read",
+        "outer filename contains health-shaped words",
+        "size, timestamps, signature, and encryption state are available",
+        "no member path, export index, account, metric, or device is observable"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Medical activation or health-export purpose from the filename",
+        "a hidden member list, metric family, person, or account from neighboring files",
+        "that the archive may be brute-forced, forced open, or unpacked to disk",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "2026-08-14 Wellness.fit",
+      "source_type": "opaque_binary",
+      "observations": [
+        "no approved FIT extractor is available for this file version",
+        "filesystem metadata and binary signature are available",
+        "filename contains a date and wellness-shaped word",
+        "no activity, sensor series, device, person, or exporter slot is observable"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Medical activation from FIT extension, filename, or binary signature alone",
+        "an activity, metric, date, or device from the filename",
+        "that an unsupported structured binary is an empty document",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Patient Portal Clinical Summary.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "root declares a provider-issued clinical document",
+        "sections are organized around encounters, conditions, medications, allergies, and immunizations",
+        "provider and patient identification blocks appear in labelled regions",
+        "no longitudinal device source, workout family, account-export index, or sensor-series structure appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this wearable-health template from XML or health vocabulary alone; the document belongs to medical.personal-health-records",
+        "any condition, medication, provider, encounter, or person as a Medical fact",
+        "that a clinical document may enter a cloud model because it is structured",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "Both templates can receive XML, CSV, PDF reports, portal downloads, and health-app archives. The discriminating evidence is source and function: repeated device- or app-sourced measurement records, activity files, sensor series, and an account-export index support this row; a provider- or health-system-issued clinical document organized around encounters, results, medications, conditions, or visit summaries supports personal health records. A device-generated ECG report sits on the seam and stays protected; if its provenance or function cannot be resolved, no deeper template wins.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.social-media-export",
+      "signal": "Both situations are whole-account archives with nested folders, JSON or XML members, account metadata, and sometimes images. The discriminator is what the structured members describe: repeated health record types, timestamps, units, source devices, activity tracks, or sensor series support this row; per-media exact-stem sidecars, albums, posts, contacts, and conversation trees support the social export. Archive extension, account wording, file count, and the word export decide neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.dataset-analysis",
+      "signal": "Reciprocal to the landed Research row. An app-generated CSV of timestamped measurements satisfies the structural shape of both. A device- or account-generated export with no project identifier, no codebook, and no analysis file naming it supports this row; a research dataset carries a project identifier, a codebook, or an analysis input/output relationship. A participant-provided raw export can legally retain Research facts on project evidence while Medical protection remains active.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for a recognized export, report, activity record, or sensor table that has no accepted protected packet. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected export or an opaque device record with no approved extractor; its filename never supplies a health purpose. 00: \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The broad review home for a readable account or sensor export whose structure is partly understood but whose supported domain remains unresolved. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The inactive fallback for a positively identified screen capture whose OCR does not establish a personal health record or accepted packet. 00: \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The home for a public wearable guide, health article, or saved report sample with no personal account, measurement, or active project association. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A bulk export can combine fine-grained heart, sleep, glucose, movement, symptom, medication, reproductive, device, account, and location traces across a long period. Even an individual step or timestamp may look ordinary while the longitudinal collection reveals routines, absences, home and work locations, health events, and relationships. Medical protection therefore precedes every model and automated-placement path. Archive manifests, member paths, complete XML and JSON, CSV rows, binary records, GPS tracks, OCR, report previews, hashes, device identifiers, account references, group memberships, and raw values remain local; shared UI redacts filenames, member lists, thumbnails, metric labels, and summaries under user policy. This row assigns only potentially_sensitive and does not assign, alias, or infer a P7 handling class.",
+  "open_question": "Three inherited forks are load-bearing here. First, D1 and PR-6 leave Medical with no fields: if that deferral ever lifts, Joseph must decide whether source app, device, metric family, subject, measurement interval, report kind, or any health value may be stored at all; this row proposes none, including the export_source proposal recorded elsewhere. Second, the product must decide whether a whole-account health export is preserved as one protected packet, represented without moving, or ever eligible for user-approved internal branching; until then this template recommends no dimensions and no cloud-model path. Third, an export index can name an exact member path, but the grouping firewall forbids copying facts across files: R1c and P9 must decide which archive-family or explicit-reference relationship records that membership without treating the index as evidence for every member. R1c must also reconcile the one-way template collision with photos.social-media-export; the medical.personal-health-records and research.dataset-analysis pairs are already reciprocal."
+}

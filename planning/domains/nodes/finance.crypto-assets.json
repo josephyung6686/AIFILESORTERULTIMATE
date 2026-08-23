@@ -190,25 +190,27 @@
         "creation_date",
         "camera_information",
         "capture_year",
+        "media_type",
         "sensitivity_status"
       ],
       "must_not_conclude": [
         "ANY finance fact. This is the refusal fixture and the reason this row exists in the shape it does: the material sits beside a person's exchange statements and is not a record of an account. It is credential-bearing identity material - 00's immediate-protection sentence names \"authentication key\" in the same breath as \"account record\", and the identity.credentials-passwords situation owns it",
         "record_type = anything. There is no record here; there is a key",
         "the OCR'd words retained as a normalized value, surfaced in a group summary, or included in any dossier - 00: \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\", and \"Protected material should not be included in cloud-model prompts by default\"",
-        "that camera EXIF makes this a photo event; the capture facts stand on their own evidence and settle nothing about what the frame contains",
+        "that camera EXIF makes this a photo event, or that the photos co-activation makes this filable. The capture facts stand on their own evidence and settle nothing about what the frame contains; the identity.credentials-passwords situation owns this file and its own row carries the same fixture.",
         "a folder path - and specifically not a deep one; 00: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\""
       ],
-      "also_schema": "identity",
+      "also_schema": "photos",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
     },
     {
-      "filename": "keystore-UTC--2026-02-11.json",
+      "filename": "UTC--2026-02-11T14-22-08.331Z--3f5c...9ad1.json",
       "source_type": "opaque_binary",
       "observations": [
-        "the file parses as structured data but every value field is an encrypted blob; no readable text, no organization string",
-        "filename stem carries a timestamp-shaped run and a wallet-tool naming convention",
+        "geth's own keystore naming convention: an ISO timestamp run concatenated with the derived wallet address, so an address-shaped opaque string sits in the FILENAME",
+        "the file parses as JSON and two members are readable plaintext - a version number and an address field; every secret sits inside a crypto object whose cipher, kdf and mac members are encrypted blobs",
+        "no organization string, no period, no amount, no account descriptor anywhere",
         "arrived in the same download session as a readable export"
       ],
       "facts_legal": [
@@ -219,9 +221,10 @@
       ],
       "must_not_conclude": [
         "ANY finance fact. A keystore is a key. 00's own default for this class is metadata-only: \"disk images, executables, databases, encrypted containers, damaged files, and unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved\"",
+        "the readable address member, or the address run in the filename, retained as a value. This is the hardest temptation on the node - the string is plaintext, it is in a labelled slot, and it is stable across files - and there is no field for it; reading it as an account identity is how a private key becomes a filed money record",
         "institution or record_type from the filename stem alone - 00: the system \"should not infer a purpose from their filename alone\" for unreadable files",
         "membership in the accepted account series because the download session bundled it; a session is a possible-grade clue only",
-        "that .json makes it code or data; source_type is a routing signal and never alone",
+        "that .json makes it code or data; source_type is a routing signal and never alone, and the readable JSON skin here wraps an encrypted container",
         "a folder path"
       ],
       "also_schema": "identity",
@@ -249,7 +252,7 @@
         "that belonging to the accepted tax-year filing packet removes it from the venue account series - one file in two groups, never a fact copied between them",
         "a folder path"
       ],
-      "also_schema": "identity",
+      "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
     },
@@ -317,7 +320,7 @@
         "that the directory should be reorganized at all - 00: \"It should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod.\"",
         "a folder path"
       ],
-      "also_schema": "code",
+      "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
     },
@@ -424,7 +427,7 @@
     },
     {
       "domain": "identity.credentials-passwords",
-      "signal": "the sharpest and most consequential collision on this row. A wallet keystore, a recovery-phrase photograph and an encrypted wallet container arrive in the same folder, the same archive and the same download session as this situation's statements and exports, and a venue name or a wallet-tool stem sits on both. The discriminating evidence: a labelled account, period, amount or transaction-type structure REPORTING on holdings is this situation; a labelled recovery-phrase, seed, private-key, keystore or mnemonic slot, or an encrypted container whose structure says the same, is credential material and this situation must not fire at all. One evidence item - the venue name, the wallet-tool filename stem - must never count for both, and getting it wrong is not a misfiling but an exposure. Fixtures: recovery phrase backup.jpg, keystore-UTC--2026-02-11.json, wallet_backup.zip.",
+      "signal": "the sharpest and most consequential collision on this row. A wallet keystore, a recovery-phrase photograph and an encrypted wallet container arrive in the same folder, the same archive and the same download session as this situation's statements and exports, and a venue name or a wallet-tool stem sits on both. The discriminating evidence: a labelled account, period, amount or transaction-type structure REPORTING on holdings is this situation; a labelled recovery-phrase, seed, private-key, keystore or mnemonic slot, or an encrypted container whose structure says the same, is credential material and this situation must not fire at all. One evidence item - the venue name, the wallet-tool filename stem - must never count for both, and getting it wrong is not a misfiling but an exposure. Fixtures: recovery phrase backup.jpg, UTC--2026-02-11T14-22-08.331Z--3f5c...9ad1.json, wallet_backup.zip.",
       "provenance": "proposal"
     },
     {
@@ -454,11 +457,11 @@
     }
   ],
   "also_holds_with": [],
-  "also_holds_with_note": "Empty by contract, not by omission: CONNECTION.md section 5 restricts also_holds_with to schema-to-schema pairs, and this is a template row. The co-activations this situation produces are already authored on the finance schema row (identity, legal, academic, photos, medical); the file examples above record them per file in also_schema instead - recovery phrase backup.jpg, keystore-UTC--2026-02-11.json, wallet_backup.zip and Crypto Tax Report 2025.pdf with identity, the app screenshot with photos, hardhat.config.ts with code. The identity co-activation carries protection and no fields today (PR-6), which is exactly the outcome this row wants for credential material.",
+  "also_holds_with_note": "Empty by contract, not by omission: CONNECTION.md section 5 restricts also_holds_with to schema-to-schema pairs, and this is a template row. The co-activations this situation produces are already authored on the finance schema row (identity, legal, academic, photos, medical); the file examples above record them per file in also_schema instead - UTC--2026-02-11T14-22-08.331Z--3f5c...9ad1.json and wallet_backup.zip with identity, recovery phrase backup.jpg and the app screenshot with photos. The identity co-activation carries protection and no fields today (PR-6), which is exactly the outcome this row wants for credential material. Two files carry also_schema: null on purpose. hardhat.config.ts is a COLLISION fixture, not a co-activation - code is not on the finance schema row's also_holds_with and a config file is not simultaneously a finance record; the seam is recorded in collides_with. Crypto Tax Report 2025.pdf is likewise not a second schema's file: its real multi-membership is with the finance.tax-filings situation, which is the SAME schema, so it is a two-group question (grouping_reasons) and a collision, never an also_holds edge.",
   "falls_through_to": [
     {
       "residual_template": "Protected Records",
-      "why": "00 names this situation's material in the definition itself - \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\" - and \"it should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". It is the home for BOTH halves of this node: the isolated venue statement with no accepted series, and the credential material this row refuses to file as a record. Fixtures: Exchange Account Statement 2026-Q1.pdf, Crypto Tax Report 2025.pdf, recovery phrase backup.jpg, keystore-UTC--2026-02-11.json, wallet_backup.zip.",
+      "why": "00 names this situation's material in the definition itself - \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\" - and \"it should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". It is the home for BOTH halves of this node: the isolated venue statement with no accepted series, and the credential material this row refuses to file as a record. Fixtures: Exchange Account Statement 2026-Q1.pdf, Crypto Tax Report 2025.pdf, recovery phrase backup.jpg, UTC--2026-02-11T14-22-08.331Z--3f5c...9ad1.json, wallet_backup.zip.",
       "provenance": "design"
     },
     {
@@ -473,7 +476,7 @@
     },
     {
       "residual_template": "Unsupported or Encrypted",
-      "why": "00 defines it for \"password-protected archives, unreadable documents, damaged files, and unknown formats\", and encrypted containers are ordinary in this material. Recorded WITH its tension rather than silently resolved: for a wallet container both this home and Protected Records fit, and the file examples send keystore-UTC--2026-02-11.json to Protected Records because 00's Protected Records definition names \"credentials\" outright while this one names only formats. Where a container is merely unreadable and carries no credential evidence, this is the home.",
+      "why": "00 defines it for \"password-protected archives, unreadable documents, damaged files, and unknown formats\", and encrypted containers are ordinary in this material. Recorded WITH its tension rather than silently resolved: for a wallet container both this home and Protected Records fit, and the file examples send UTC--2026-02-11T14-22-08.331Z--3f5c...9ad1.json to Protected Records because 00's Protected Records definition names \"credentials\" outright while this one names only formats. Where a container is merely unreadable and carries no credential evidence, this is the home.",
       "provenance": "design"
     },
     {

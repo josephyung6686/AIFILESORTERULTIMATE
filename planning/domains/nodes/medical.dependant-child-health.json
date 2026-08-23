@@ -1,0 +1,739 @@
+{
+  "id": "medical.dependant-child-health",
+  "kind": "template",
+  "schema_id": "medical",
+  "parent_id": null,
+  "name": "A dependant's health records",
+  "one_line": "A field-less safety template for health records a person keeps for a different human patient: a child or a dependant adult represented in the record by a distinct parent, guardian, proxy, representative, or carer role. It protects the holder-versus-subject seam without storing either person's identity, inferring legal authority or access rights, or creating person-, condition-, or relationship-named folder levels.",
+  "launch": "safety",
+  "provenance": "inference",
+  "design_cite": "00: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" It also requires: \"Privacy policy must be enforced before content reaches any model or external connector.\" And: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\"",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry in this list: these are protection signals only. They do not license extraction of a patient, holder, relationship, diagnosis, authority, consent, access scope, or entitlement fact, because the Medical schema declares no fields. Protection runs before any model or placement path.",
+      "a clinical record with two explicitly labelled human role blocks: one identifies the patient or subject of care, while a different block identifies a parent, guardian, proxy, personal representative, authorized representative, or carer; the same file also carries independent clinical structure such as a provider-and-visit block, result table, medication structure, immunization table, or care plan. A second name or relationship word without the labelled roles and clinical structure is insufficient.",
+      "a provider or patient-portal proxy-access record whose structured slots separately identify the patient and proxy, state a relationship or authority basis, and describe an access scope, status, review, or withdrawal action. The record proves only that the administrative structure exists; it does not prove that the authority is legally sufficient, still current, complete, or usable outside the issuing service.",
+      "a completed child immunization record whose repeated rows carry vaccine, administration-date, and administering-site or lot structure, and whose labelled header or attestation area separates the child or student from a parent or guardian and a clinician or clinic. A child name, vaccine word, school name, or blank card is never enough.",
+      "a completed school, nursery, daycare, camp, or activity health form whose own zones distinguish child or student, parent or guardian, and clinician or clinic roles and include patient-specific vaccine, medication, allergy, action-plan, physical-examination, or provider-attestation content. The school or programme requirement is packet context, not a medical fact and not proof on a blank form.",
+      "an adult care plan, service assessment, discharge plan, or medication-administration record that separates a resident, client, or patient from a representative or carer and a clinical provider or care service, with patient-specific assessment, medication, support, or treatment structure. Emergency-contact details alone do not make a representative or dependant-health situation.",
+      "a structured health-data bundle containing a Patient resource and a distinct RelatedPerson or equivalent role record that explicitly references that patient, plus at least one patient-linked clinical resource such as an Observation, Immunization, Medication, CarePlan, or Encounter. The relationship link supports protection and situation recognition only; it is not evidence of consent, custody, capacity, or current access authority.",
+      "an archive manifest that, without extracting members to the filesystem, shows a coherent dependant-health export: a patient manifest or demographics record, a distinct proxy or guardian access record, and clinical member names such as visits, results, immunizations, medications, or care plans. Member-level facts stay on independently inspected member files and are never copied onto the archive.",
+      "a native email from a provider or patient portal where structured sender and body or attachment evidence separately name a patient and the recipient's proxy, guardian, or carer role, and the referenced attachment independently has clinical or proxy-access structure. A subject line saying your child's results, an attachment filename, or a sender domain alone is only a review clue.",
+      "an OCR image or portal capture in which region structure recovers both a patient block and a distinct proxy, guardian, or carer block together with clinical or access-scope content. OCR values remain possible observations; successful OCR does not authorize cloud use or make the displayed relationship legally effective."
+    ],
+    "needs_llm": [
+      "an ordinary visit summary, lab report, prescription, or discharge record naming one patient but no holder, proxy, guardian, or carer. The model may judge only whether bounded local context suggests the dependant situation; it must return unknown rather than assume the corpus owner is or is not the patient.",
+      "an informal caregiver medication schedule, symptom diary, home-care log, or message thread where names, pronouns, and relationship language are unlabelled. Family vocabulary and possession are not proof of the people or authority involved.",
+      "distinguishing a proxy, personal representative, guardian, carer, emergency contact, guarantor, policy subscriber, next of kin, clinician, and mere message recipient when a form places several names around one patient. The model may cite role labels but cannot turn a role into a legal conclusion.",
+      "a multilingual or non-standard record whose patient and representative roles are stated in prose or unfamiliar labels rather than stable slots. This is a local-model or explicitly policy-permitted path; raw names, relationships, diagnoses, and identifiers are not a default cloud dossier.",
+      "a newborn, maternity, or family discharge packet that contains separate records for a birthing parent and infant, plus shared encounter or household details. The model must preserve the two patient zones and abstain rather than copy one person's facts onto the other.",
+      "a minor or adolescent record with confidential, withheld, redacted, age-sensitive, capacity-sensitive, or service-specific sections. The model can identify that access boundaries are discussed; it cannot infer an age threshold, applicable law, capacity, consent, or what the holder is entitled to see.",
+      "a mixed school, IEP, admission, insurance, legal-authority, and health packet. The model may propose reviewable group memberships from independently evidenced members but may not let packet purpose activate a sparse member or copy patient, school, authority, or claim facts across files.",
+      "a portal screenshot where OCR finds a patient name, another person's name, and access language but navigation, truncation, or redaction obscures their roles. Capture evidence may activate Photos independently; it cannot settle the medical role distinction.",
+      "a human-versus-veterinary record when the clinical structure is real but species and patient role are unclear. The target covers child and dependant-adult human records, not an animal merely described as a dependant or family member."
+    ],
+    "never_alone": [
+      "a person's name, date of birth, age, shared surname, household address, photograph, signature, or identifier. These observations are privacy signals but do not establish patient, holder, dependant, guardian, or proxy roles.",
+      "the words child, minor, dependant, dependent, pediatric, paediatric, parent, guardian, carer, caregiver, proxy, representative, family, ward, or next of kin. Blank forms, policies, legal instruments, school notices, veterinary records, and prose can contain the same vocabulary.",
+      "a second person's name or contact block. It may be a clinician, emergency contact, guarantor, subscriber, employer, translator, witness, recipient, or template author rather than the person holding records for the patient.",
+      "a parent or guardian signature line, checkbox, consent heading, relationship field, or authority wording on a blank or unsigned form. The surrounding completed role and record structure is required, and even a signature does not prove present legal effect.",
+      "a child or dependant listed on an insurance coverage table, tax form, benefits enrollment, household roster, birth certificate, school enrollment form, or court filing. Coverage or relationship is not a clinical patient record.",
+      "a subscriber-versus-patient pair on an explanation of benefits. Claim and amount structure makes the Finance situation; the two names alone cannot activate this template or be swapped.",
+      "a school, camp, daycare, clinic, hospital, care home, insurer, pharmacy, portal, or government name. Organization names have many roles and require the file's own labelled structure.",
+      "a medication, vaccine, condition, diagnosis, therapy, disability, allergy, or clinical topic term. It can occur in coursework, public guidance, blank forms, research, shopping records, or veterinary material.",
+      "source_type or extension alone, including PDF, image, OCR, archive, spreadsheet, email, calendar, structured data, or opaque binary. Format routes inspection and never proves a dependant-health situation.",
+      "a filename, parent folder, archive path, portal account name, email thread, calendar title, scanning batch, or download session. Context may retrieve a candidate for review but cannot activate the template, write a fact, or establish authority.",
+      "missing EXIF, missing text layer, dense OCR, exact display resolution, scanner metadata, or a screenshot-shaped PNG. Positive content structure is required; absence and density prove neither screenshot origin nor medical meaning.",
+      "a court seal, notarization, power-of-attorney phrase, guardianship phrase, advance-directive heading, or statutory citation. Those are Legal evidence and do not by themselves make the document a clinical record held for another person.",
+      "a bare date, a four-digit token, an appointment time, or a school year. It cannot establish age, capacity, consent, date of service, access period, or folder placement.",
+      "possession of the bytes. The product cannot infer that the corpus owner lawfully obtained the file, is the named proxy or guardian, has current access, or may disclose the contents merely because the file is present."
+    ]
+  },
+  "work_types": [
+    "child immunization or vaccination record",
+    "paediatric visit or discharge summary",
+    "child laboratory or imaging result",
+    "school, nursery, daycare, camp, or activity health form",
+    "medication authorization or medication-administration record",
+    "allergy, asthma, seizure, diabetes, or emergency action plan",
+    "developmental, speech, occupational, behavioural, or therapy assessment",
+    "proxy-access request, approval, review, or withdrawal record",
+    "dependant patient-portal export",
+    "adult care plan or service assessment",
+    "representative consent, authorization, or information-release record",
+    "caregiver medication schedule or home-care log",
+    "dependant insurance or benefits statement as a protected supporting member",
+    "care-coordination email or appointment record",
+    "newborn or family discharge packet"
+  ],
+  "grouping_reasons": [
+    "one user-confirmed human subject's protected record set. A repeated name or relationship retrieves candidates only; this field-less template writes no subject or holder fact and creates no person-named path",
+    "one episode of care joining an order, visit, result, discharge record, medication plan, and related correspondence from their own explicit links. Membership never copies patient, provider, date, or relationship observations onto sparse members",
+    "one school, nursery, daycare, camp, or activity requirement packet whose completed clinical form remains protected and may also belong to an accepted Academic or Applications group without inheriting that packet's school, cycle, or purpose facts",
+    "one provider- or portal-issued proxy-access set across request, identity check, approval, scope change, review, or withdrawal. Grouping does not assert that authority is legally valid, current, complete, or portable to another service",
+    "one adult care arrangement across a care plan, assessment, medication sheet, service record, and representative correspondence, anchored by explicit in-file links rather than a shared surname or address",
+    "one export and its manifest, revisions, redownloads, and independently parsed members, using universal duplicate_family and version_family facts rather than invented medical fields",
+    "one protected record by itself. Sensitive material does not need a large or deeply named group before it is protected or offered the Protected Records residual home"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The Medical schema intentionally declares no fields under D1 and PR-6, so this template has no legal destination dimension to serialize and may not smuggle patient, holder, relationship, condition, provider, care service, record kind, or year into a folder tree. The empty order is independently the safer recommendation: a child, dependant adult, diagnosis, proxy status, or care need exposed in a path would disclose exactly what safety activation protects. The holder-versus-subject distinction is therefore recognition evidence and an unresolved future role-split question, not a stored fact or branch. Users may accept a shallow protected group or their own later structure, but activation unlocks no automatic depth. This is not time-first: one subject or care episode is the coherent unit, and a year-first tree would scatter it.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "archive",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "code_structured",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".jpg",
+      ".png",
+      ".tif",
+      ".zip",
+      ".json",
+      ".xml",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".ics",
+      ".bin"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Immunization Record - Emma.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "completed record header separately labels the child or patient and a parent or guardian",
+        "clinic and clinician attestation block",
+        "repeated vaccine rows contain administration dates and administering-site or lot slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a patient, parent, guardian, relationship, vaccine, provider, or school fact because Medical declares none",
+        "that the signer has current legal authority or that the record is complete or authentic",
+        "a person-named, condition-named, or year-first folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "School Medication Authorization - Emma.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school heading and completed student block",
+        "separate parent or guardian and prescribing-clinician signature blocks",
+        "labelled medication, dose, timing, and school-administration instructions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status",
+        "school",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "that the child is currently enrolled from the school heading alone",
+        "a medical subject, medication, diagnosis, guardian, or authority fact",
+        "that an Academic group may copy its school or year onto other medical members"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Asthma Action Plan - Summer Camp.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "completed participant and parent or guardian blocks",
+        "clinician and clinic attestation",
+        "patient-specific trigger, medication, response-zone, and emergency-contact structure",
+        "camp name appears only in a required-for-programme heading"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an event, school, condition, medication, participant, or guardian fact",
+        "that the camp is an active Academic institution or Photos event",
+        "a condition-named branch"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Proxy Access Approval - Jayden.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "provider portal heading",
+        "labelled patient and proxy blocks identify different people",
+        "relationship or authority-basis slot",
+        "access-scope, status, and review or withdrawal instructions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the approval is legally sufficient, current, complete, or valid outside this provider",
+        "any patient, proxy, relationship, authority, consent, scope, or status fact",
+        "that possession proves the holder is the named proxy"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "related-person-bundle.json",
+      "source_type": "code_structured",
+      "observations": [
+        "bundle contains a Patient resource",
+        "a distinct RelatedPerson resource explicitly references that Patient and carries a relationship coding",
+        "patient-linked Immunization and Observation resources are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "patient, related-person, relationship, clinical-result, consent, custody, capacity, or authority facts",
+        "that every resource is current, complete, valid, or about the corpus owner",
+        "a software-project activation from JSON structure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Child Portal Export.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest names a patient-demographics member and a separate authorized-proxy record",
+        "contained paths name visits, results, immunizations, medications, and access-history members",
+        "no member is extracted to the filesystem during the normal scan"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "member-level patient, proxy, relationship, condition, provider, or result facts from the manifest",
+        "that listed members were successfully parsed or are internally consistent",
+        "that every sparse member inherits the archive's situation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "After Visit Summary - Noah.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "patient-identification block names one person",
+        "provider, encounter, medication, and follow-up sections",
+        "no holder, guardian, proxy, representative, or carer role appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the patient is the corpus owner or is someone else's dependant",
+        "a parent or proxy relationship from the filename or surrounding folder",
+        "activation of this template without local contextual review"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grandma Medication Schedule.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "worksheets contain medication, dose, time, symptom, and caregiver-initial columns",
+        "one unlabelled name appears in a title cell",
+        "no provider, patient-role, representative-role, or authority block is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that Grandma is a particular person, a dependant adult, or the patient",
+        "that caregiver initials identify an authorized carer",
+        "a medication, condition, subject, relationship, or folder fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Care Plan - Mrs Li.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "care-service heading and completed resident or client block",
+        "distinct representative or carer and clinician roles",
+        "patient-specific assessment, medication-support, daily-care, and review sections"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "capacity, dependency, diagnosis, authority, or access rights",
+        "that the named representative is the corpus owner",
+        "a resident-, carer-, care-home-, or year-named branch"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Health and Welfare Power of Attorney.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "instrument title and operative appointment clauses",
+        "donor or principal, attorney or agent, witness, and notarization roles",
+        "health and care decision powers discussed without a clinical patient record or provider-access workflow"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this template from legal authority language alone",
+        "that the instrument is valid, effective, unrevoked, accepted by a provider, or held by the appointed person",
+        "patient, diagnosis, proxy-access, consent, or relationship facts"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Speech and Language Evaluation - Emma.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school district is the issuer",
+        "labelled evaluator-role and student blocks",
+        "stated purpose is educational eligibility",
+        "assessment narrative contains clinical vocabulary but no clinic patient-number or referring-provider block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status",
+        "school",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "activation of this template from a clinician credential or clinical topic alone",
+        "a diagnosis, patient, guardian, provider, or medical folder fact",
+        "that educational eligibility is a medical diagnosis"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IEP and Health Packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an IEP, school eligibility evaluation, immunization record, medication authorization, and parent notice",
+        "member filenames share a student-shaped name and school year",
+        "the archive supplies no member-level labelled facts by itself"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "download_session",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every member is medical or that every member belongs to one Academic template",
+        "school, student, patient, diagnosis, guardian, year, or purpose facts from member names",
+        "copying the rich immunization member's role evidence onto the sparse parent notice"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "K12 Admission Health Form - Emma.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "target school and entering-cycle slots in an admission packet heading",
+        "completed child and parent or guardian blocks",
+        "physician or clinic attestation plus immunization and medication sections",
+        "form role is a health document required for admission"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status",
+        "target_university",
+        "application_cycle",
+        "application_document_type"
+      ],
+      "must_not_conclude": [
+        "an admission decision, enrollment, or application purpose not stated by this file",
+        "a medical subject, guardian, vaccine, provider, or diagnosis fact",
+        "that packet membership permits copying its target or cycle to clinical attachments that omit them"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Dependant EOB - Emma.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "insurer heading and labelled claim number",
+        "subscriber and patient are different labelled people",
+        "date-of-service, provider, billed, plan-paid, and patient-responsibility columns",
+        "no clinical narrative, immunization, medication, or parent or proxy role block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status",
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "activation of this template from the subscriber-versus-patient pair",
+        "that subscriber means parent, guardian, proxy, holder, or person entitled to the patient's record",
+        "a diagnosis or clinical-service fact from claim wording"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "1095-C 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer or plan-sponsor block and tax-form heading",
+        "covered-individuals table lists several household members",
+        "labelled tax year and coverage-month grid",
+        "no patient, provider, encounter, result, medication, guardian, or proxy structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status",
+        "institution",
+        "tax_year",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "that any covered individual is a patient, child, dependant adult, or subject of care",
+        "a health event, diagnosis, provider, guardian, or holder fact",
+        "activation from the word dependant or the household table"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Birth Certificate - Emma.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "vital-record authority and certificate heading",
+        "labelled registrant and parent roles",
+        "birth-event details and certification block",
+        "no clinical provider, patient record, proxy-access, or care structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this template from child, parent, name, or date-of-birth evidence",
+        "that a listed parent is the corpus owner, guardian, proxy, or current carer",
+        "a medical fact or folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Paediatric Appointment - Emma.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY names a paediatric appointment",
+        "LOCATION names a clinic",
+        "DESCRIPTION says appointment for Emma and lists one adult contact",
+        "no labelled patient-versus-proxy role or authority scope appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that Emma is a particular child or dependant of the calendar owner",
+        "that the adult contact is a parent, guardian, proxy, or carer",
+        "that the appointment occurred or that any diagnosis exists"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Your child's test results are ready.eml",
+      "source_type": "email",
+      "observations": [
+        "structured sender is a patient portal",
+        "body separately labels the recipient as proxy and identifies a patient",
+        "body describes portal access scope and links a result notice",
+        "attached result has its own patient and provider block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a diagnosis or result value from the email subject",
+        "that the recipient has present legal authority or that the linked access is still available",
+        "patient, proxy, relationship, provider, scope, or status facts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_4418.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF and capture timestamp are present",
+        "the frame contains a completed child immunization card",
+        "OCR regions recover separate child, parent or guardian, and clinic blocks plus repeated vaccine rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "capture_year",
+        "camera_information",
+        "media_type",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an event, location, people, child, guardian, provider, vaccine, or diagnosis fact",
+        "that camera metadata makes the protected document a photo-event destination",
+        "that OCR values are direct or safe for a cloud prompt"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Proxy Access Screenshot.png",
+      "source_type": "ocr",
+      "observations": [
+        "capture properties support screen origin without relying on missing EXIF",
+        "OCR finds a provider portal, a patient name, another person's name, and proxy-access wording",
+        "navigation truncates the role labels and access-scope panel"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which person is patient or proxy until bounded local review resolves the labels",
+        "legal authority, current access, consent, capacity, or completeness",
+        "screen origin from missing EXIF or PNG format alone"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "newborn-discharge-packet.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "scanned packet contains distinct birthing-parent and newborn patient blocks",
+        "shared facility and encounter details appear between the two sections",
+        "discharge, feeding, follow-up, and medication instructions are split unevenly across pages",
+        "one parent or guardian signature block appears at the end"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every page concerns the newborn or that every instruction concerns the birthing parent",
+        "copying a diagnosis, medication, provider, subject, or guardian role across the two patient zones",
+        "an age threshold, custody, consent, or entitlement"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "family-health-backup.bin",
+      "source_type": "opaque_binary",
+      "observations": [
+        "unknown binary signature",
+        "no readable manifest or extractable content",
+        "filename contains family and health terms"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "medical or dependant-health activation from the filename",
+        "any patient, holder, relationship, diagnosis, app, archive, or encryption fact",
+        "that an unreadable file may be opened or moved as if its purpose were known"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Blank Student Health Form.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school and clinic logos appear on an uncompleted template",
+        "empty student, parent or guardian, clinician, vaccine, medication, and signature slots",
+        "footer contains generic instructions for families"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this template from empty role slots or generic clinical vocabulary",
+        "a student, patient, parent, guardian, school, provider, medication, or vaccine fact",
+        "that downloading the form proves admission, enrollment, care, consent, or completion"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Milo - Veterinary Vaccination Certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "veterinary-practice heading",
+        "patient block identifies an animal species and animal name",
+        "owner or guardian contact block",
+        "repeated vaccine, administration-date, and lot rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this child-or-dependant-adult human template",
+        "that owner or guardian vocabulary establishes a human patient relationship",
+        "a person, medical, relationship, or folder fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "academic.iep-accommodation-plans",
+      "signal": "A speech, occupational-therapy, behavioural, or psychoeducational evaluation can be about one child, carry clinician credentials, and be held by a parent in either situation. A school issuer, evaluator-role slot, and stated educational-eligibility purpose make the IEP situation; a clinic patient-identification block, record-number or referring-provider slot, and clinical diagnosis or treatment purpose make this one. A child's name beside a clinician credential counts for neither side by itself.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.k12-schooling",
+      "signal": "School-required immunization, medication, sports-physical, and action-plan files carry a school name and child name while containing clinical structure. A clinician or clinic block plus completed patient-specific vaccine, medication, examination, diagnosis, or action-plan structure makes this protected situation; report-card, attendance, enrollment, homeroom, or ordinary school-record structure makes K-12 schooling. A school name or required-for-school line discriminates nothing, and protection runs first.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.k12-admission",
+      "signal": "A physician-completed health form can be a supporting member of a K-12 admission packet and name the target school, child, parent, and clinician. Completed clinical, vaccine, medication, examination, or provider-attestation structure makes this protected situation; application, entering-grade, target-school, cycle, fee, decision, offer, or waitlist structure makes the admission situation. Packet membership and a required-for-admission line never copy target or purpose facts onto a sparse clinical attachment.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-healthcare",
+      "signal": "A dependant's explanation of benefits names a subscriber and patient in different slots and can sit beside the child's clinical record. Claim-number, carrier, date-of-service, billed, plan-paid, and patient-responsibility structure keeps the EOB in Finance; patient-specific visit, result, immunization, medication, care-plan, or school-health structure plus an independently labelled parent, guardian, proxy, or carer role makes this situation. Neither side may swap subscriber and patient or treat a household member list as a clinical subject.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "The clinical bytes can look identical whether the corpus owner is the patient or keeps the record for someone else. Explicitly distinct patient and parent, guardian, proxy, representative, or carer roles, or a provider-issued proxy-access structure, support this situation; a record whose patient is evidenced as the holder supports personal health. A filename, possession, age term, one patient name, second name, shared address, or family relationship cannot choose either template, so ambiguous files remain protected without the role conclusion.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.estate-planning",
+      "signal": "A health-and-welfare power of attorney, advance directive, guardianship instrument, and provider proxy-access record all mention health decisions, representatives, and patients. Operative appointment clauses, execution formalities, witnesses, notarization, revocation, or legal-instrument headings make the estate-planning situation; a provider or portal access workflow, patient-specific clinical record, or care-plan structure with separately labelled patient and representative roles makes this one. Authority wording alone proves neither current legal effect nor access to a clinical record.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "This is the safe broad home when dependant-health material has no deeper user-accepted group. 00 says: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" A person-, relationship-, or condition-named path would undo that protection.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "These files may expose a different person's diagnoses, medications, test results, disability or care needs, identifiers, dates of birth, family relationships, custody or proxy context, contact details, and access arrangements. The subject may be a child or an adult whose privacy and decision-making situation cannot be inferred from possession. Raw names, relationships, diagnoses, identifiers, OCR, and group context therefore remain local; protection precedes any model or placement path. This row assigns only potentially_sensitive and does not author, copy, or infer a P7 handling class.",
+  "open_question": "Four decisions remain Joseph's. First, when the detector finds labelled patient-versus-proxy evidence, may it store the matched role and clinical text locally, or only a protected marker plus evidence locations? Second, if D1 ever permits Medical fields, does the domain need canonical subject, holder, relationship, authority-basis, or access-scope keys, and can any be destination-eligible given the path leak? Until then role_split and dimension_order remain empty. Third, what explicit policy permits local-model review of ambiguous proxy, minor, capacity, or confidential-section records, and is cloud review ever permissible after redaction? Fourth, should child and dependant-adult situations remain folded under the one holder-versus-subject invariant, or split only after corpus evidence shows different detection structures rather than jurisdiction-specific age or consent rules? No age threshold, jurisdictional entitlement, legal validity, consent rule, or access right is encoded here."
+}

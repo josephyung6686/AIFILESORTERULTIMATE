@@ -1,0 +1,566 @@
+{
+  "id": "finance.small-business-bookkeeping",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Small-business bookkeeping",
+  "one_line": "Working books for a person’s own small operation: journals and ledgers, sales invoices, vendor bills, expense reports, reconciliations, receivables and payables reports, financial statements, and accounting backups. The situation is function-first rather than institution-first because one working book refers to many banks, vendors, and clients; it remains a placeholder on the Finance safety schema, with local-only protection before any model or placement path.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": "PASSES on all three grounds available to a template. Detection differs from the Finance default: the anchor is a filled working-book structure (journal or ledger columns, a trial-balance pair, a reconciliation pair, an invoice series, or a receivables/payables report), not an institution-issued account record. Recommended dimensions differ: record_type leads, account_type is optional beneath it, and institution is deliberately omitted because a ledger references many institutions and the holder’s own operation is authorship-side identity rather than a collector. Privacy differs in degree: a company backup or general ledger aggregates an operation’s counterparties, balances, payroll-adjacent entries, and transaction history in one object, so an unreadable or proprietary backup remains local and never enters a cloud dossier. The node is therefore not a second copy of finance.json’s default template.",
+  "fields": [],
+  "fields_note": "EMPTY BY CONTRACT, not by omission. This kind-template row uses the Finance schema and never copies its field list. The inherited legal keys are institution, account_type, tax_year, and record_type. Two additional concepts are deliberately not smuggled in: client already exists canonically but the Finance schema does not reference it, while an operational reporting period has no canonical key. Both are recorded in open_question for R1c or Joseph rather than authored here.",
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a FILLED working-book workbook whose sheet names and labelled columns cohere as one accounting system: a chart or list of accounts beside journal or general-ledger sheets, with transaction-date, account, description, debit, credit and balance columns populated by recurring entries. This is an inference over the extraction surface 00 provides: 'Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells'. A blank template or an accounting exercise does not fire; see never_alone.",
+      "a trial-balance or management-accounts structure: labelled account rows under debit and credit columns, with report-period or as-of wording and companion profit-and-loss, balance-sheet, or cash-flow sheets. The structural bundle is the signal; a single money column or the word balance is not.",
+      "an ISSUED-INVOICE structure: a producer block naming the holder’s operation, a separately labelled Bill To or customer block, an invoice identifier, dated line items, payment terms, and an amount-due slot. The labels and table cells carry the evidence; 00 explains why this material cannot be reduced to prose: 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs'. The client name is an observation, not a Finance fact under today’s schema.",
+      "a VENDOR-BILL or EXPENSE-REPORT structure addressed to the holder’s operation: a record issuer in a weighted letterhead or sender zone, a distinct billed-to or claimant block, item or expense rows, and labelled approval, reimbursement, due, or payment-status slots. An isolated consumer receipt with no operation-side role stays with finance.receipts-expenses unless an accepted bookkeeping group later attaches it; group membership never activates the schema or writes a fact.",
+      "a BANK-RECONCILIATION structure that places a labelled bank-statement balance beside a labelled book or ledger balance and explains the difference with outstanding deposits, payments, fees, or adjustments, on a document already carrying an explicit account descriptor. This is the discriminator from an institution-issued statement, which reports one period and one balance sequence but does not compare book and bank sides.",
+      "a RECEIVABLES or PAYABLES report whose title or labelled heading names the account function and whose table carries counterparty, document identifier, due or transaction date, status, and balance columns. Counterparty names remain row content unless a schema legalises their role; repeated customer or vendor names do not become institution by frequency.",
+      "an accounting email whose labelled sender and recipient slots express the operation/counterparty role pair, whose subject carries an invoice or payment-status term and identifier, and whose attachment name or body repeats the same identifier beside a due or paid slot. 00’s extractor preserves 'sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context'. Email is only a source_type; it never fires alone.",
+      "an archive manifest that co-locates working-book members such as a general ledger export, trial balance, invoice register, vendor-bill register, reconciliation and financial statements, inspected without unpacking. 00: 'Archives should be inspected without being unpacked to disk'. The manifest supports a candidate books packet; facts on members are never copied to the outer archive or to one another."
+    ],
+    "needs_llm": [
+      "an unlabeled spreadsheet of dates, names and amounts with no header row or sheet titles: whether it is a business cashbook, a personal budget, a research dataset, or a one-off calculation. The model receives bounded excerpts and must abstain when the operation and accounting function are not evidenced.",
+      "a handwritten cashbook, photographed expense sheet, or OCR’d invoice whose role labels are incomplete. The language judgment may identify a bookkeeping record_type, but it may not invent a client, account_type, institution, or reporting period that the OCR does not support.",
+      "whether an otherwise ordinary invoice or receipt is part of the holder’s operation rather than a personal transaction. An accepted invoice series, expense claim, reconciliation, or user-confirmed books group may support template selection and reviewable membership, but the member keeps only facts from its own evidence.",
+      "which of two organizations on an unlabelled invoice is the holder’s operation and which is the client or vendor. An organization gazetteer hits both strings identically, so the model must cite role-bearing text or return unknown; the same name alone cannot settle the role.",
+      "whether a heterogeneous set of ledgers, invoices, bills, receipts, reconciliations, statements and reports forms one coherent books period. This is the purpose-coherent packet shape applied by inference, but purpose remains Applications-scoped under PR-1 and no purpose fact is written here.",
+      "an OCR’d accounting dashboard or client portal: distinguishing a live receivables/payables view from a generic chart, a tutorial screenshot, or shopping research. The model must be free to conclude that no meaningful association exists.",
+      "whether an accounting export in an unfamiliar language or proprietary layout carries a filled transaction system rather than an empty template. A product or software name is supporting evidence only."
+    ],
+    "never_alone": [
+      "A SPREADSHEET OR ACCOUNTING FILE EXTENSION ALONE. This is the row’s tempting false signal because the roster names spreadsheet as its file-kind owner: Budget Template.xlsx, a blank invoice template, a QuickBooks sample company, and a classroom ledger exercise are not the holder’s books. 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning'. The same rule covers .qbb and .qbw: they route to metadata-only handling when unreadable; the suffix does not prove ownership or purpose.",
+      "bookkeeping vocabulary or a table shape alone when the rows are blank, synthetic, or explicitly instructional. A file titled Bookkeeping Practice Set - Chapter 4.xlsx can contain Account, Debit and Credit columns and still be academic coursework rather than an operation’s records.",
+      "a currency symbol, total, rate, fee, or money-shaped figure alone. A proposal quotes a fee, a contract states consideration, a product listing shows a price, and an offer letter states compensation; none is a working book.",
+      "an organization, client, customer, vendor, accountant, bank, or accounting-software name alone. The role-bearing labelled position and accounting structure matter; frequency does not turn a counterparty row into the file’s institution.",
+      "an invoice number, purchase-order number, account code, or journal reference alone. The same digit string can be an order, case, policy, ticket, device, or course identifier unless a labelled slot and record structure establish its role.",
+      "a bare year, quarter token, statement date, or filename date read as tax_year. 00 warns about 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. An operational report period is not automatically a tax year.",
+      "an existing folder name, export batch, or download session labelled books, invoices, or expenses. A curated folder can support later template fitting, but 00 is explicit: 'A session should never be treated as proof of topic'. Neither source writes facts onto a member.",
+      "producer metadata naming an accounting package. A PDF exported by accounting software can be a blank template, tutorial, personal budget, or real books; producer identity is supporting evidence and never a destination dimension.",
+      "a receipt located beside an expense report or ledger. It may become a context-supported member of a bookkeeping group, but 00’s firewall remains binding: 'The graph does not automatically copy those missing facts onto sparse files'. No business-use, client, account, record_type, or tax_year fact propagates.",
+      "the absence of EXIF on a dashboard capture, read as proof it is a screenshot. 00 says 'the system must not mistake the absence of EXIF for proof that an image is a screenshot', and conflicting image signals lead to abstention rather than an invented classification."
+    ]
+  },
+  "proposed_context_terms": [
+    "general ledger",
+    "general journal",
+    "chart of accounts",
+    "trial balance",
+    "debit",
+    "credit",
+    "accounts receivable",
+    "accounts payable",
+    "invoice",
+    "bill to",
+    "payment terms",
+    "amount due",
+    "bank reconciliation",
+    "book balance",
+    "statement balance",
+    "expense report",
+    "reimbursement",
+    "profit and loss",
+    "balance sheet",
+    "cash flow"
+  ],
+  "work_types": [
+    "general ledger",
+    "general journal",
+    "chart of accounts",
+    "trial balance",
+    "cash book",
+    "bank reconciliation",
+    "sales invoice",
+    "customer credit note",
+    "vendor bill",
+    "vendor credit",
+    "expense report",
+    "reimbursement claim",
+    "accounts receivable aging report",
+    "accounts payable aging report",
+    "invoice or bill register",
+    "transaction export",
+    "profit and loss statement",
+    "balance sheet",
+    "cash-flow statement",
+    "accounting company file or backup"
+  ],
+  "work_types_note": "Values of Finance record_type, never child nodes. The list describes the working-book situation; personal purchase receipts remain finance.receipts-expenses, institution-issued statements remain finance.personal-records, filed returns remain finance.tax-filings, and client deliverables remain career.consulting-client-engagement even when they sit beside the books. Values may be created at runtime; fields may not.",
+  "grouping_reasons": [
+    "one coherent set of books for one operation and one reporting period, anchored by mutually consistent ledger, trial-balance, reconciliation and financial-statement structures. The period is a group label unless a legal field is supported; it is never copied as tax_year onto members",
+    "one issued-invoice series, anchored by the same explicit issuer role and a consistent invoice sequence. The operation name alone is not the anchor, and the customer name remains an observation until a legal schema field can hold that role",
+    "one transaction lifecycle across an issued invoice, payment-status email, ledger entry and bank deposit or reconciliation item. Shared identifiers support membership; they do not make every file carry every other file’s facts",
+    "one expense or reimbursement packet across an expense report and its receipts. The report is the rich anchor; sparse receipts stay context-supported and retain no business-use or account fact from the group",
+    "one account reconciliation packet containing the institution-issued statement and the holder-maintained reconciliation. The two files remain different template situations even when the group intentionally keeps them together",
+    "one working workbook across saved versions and exports, using duplicate_family and version_family rather than inventing a bookkeeping fact",
+    "one file may support several accepted groups: an issued invoice can be a bookkeeping record and a member of a client-engagement group. Multi-membership is retained; no client fact is copied from the engagement"
+  ],
+  "template": {
+    "dimension_order": [
+      "record_type",
+      "account_type"
+    ],
+    "why": "FUNCTION FIRST. The Finance default is institution, account_type, record_type because an institution-issued statement belongs to one issuer and one account. A working book reverses that logic: a general ledger, invoice register, expense report or receivables report refers to many banks and counterparties, while record_type states the function that makes the material intelligible. institution is therefore omitted from the default projection; using the holder’s own operation as the leading institution would turn authorship-side identity into the collector 00 forbids: 'A folder should not become a collection point for everything produced by the same person or organization'. account_type is an optional second level only where the file itself names a real account function or bank-account kind; a general ledger spanning the whole chart correctly flattens before it. tax_year is deliberately omitted: most working books carry a reporting month, quarter or fiscal period rather than a labelled tax-year scope, and widening tax_year to make a familiar year folder would change the shared field’s meaning. 00’s general order supports function before time: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders'. The canvas should flatten where record_type alone is sufficient because 'It should recommend flattening when a dimension does not materially improve retrieval'. Safety remains prior to structure: this placeholder’s detection never unlocks a deep branch from Finance activation alone, and the recommendation is user-editable - 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions'.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".xls",
+      ".csv",
+      ".ods",
+      ".numbers",
+      ".pdf",
+      ".docx",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".qbb",
+      ".qbw"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "General Ledger - Blue Finch Studio - 2026 Q2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names include Chart of Accounts, General Journal, General Ledger and Summary",
+        "populated columns are labelled Date, Journal, Account, Description, Debit, Credit and Balance",
+        "the report heading says Blue Finch Studio and Reporting period 2026 Q2",
+        "transaction rows cite many banks, vendors and customers"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from the most frequent organization in the rows; the ledger references many institutions and belongs to none of them",
+        "tax_year from 2026 Q2; a reporting period is not automatically a tax-year scope",
+        "client or our_firm; neither key is legal on the Finance schema today",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Management Accounts - Blue Finch Studio - June 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheets are labelled Trial Balance, Profit and Loss, Balance Sheet and Cash Flow",
+        "Trial Balance contains account rows under labelled Debit and Credit columns",
+        "the other sheets carry labelled report titles and an as-of or reporting-period slot",
+        "the workbook contains totals and cross-sheet references rather than raw purchase rows only"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "tax_year from June 2026",
+        "account_type from every account row; row values do not make the whole workbook belong to one account",
+        "that the operation name is a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "INV-1048 - Blue Finch Studio to Acme.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one producer block names Blue Finch Studio",
+        "a separate Bill To block names Acme and a project reference names Phase 2",
+        "labelled Invoice number, Invoice date, Payment terms and Amount due slots surround an item table",
+        "the footer repeats the issuer’s payment instructions"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "client = Acme as a Finance fact; the string is a recipient observation and client is not referenced by this schema",
+        "project from Phase 2 under Finance; an accepted engagement group may keep the invoice without copying its project fact",
+        "tax_year from the invoice date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Bill - North Star Hosting - 2026-06.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "vendor letterhead appears in the title zone",
+        "a Bill To block names Blue Finch Studio",
+        "labelled bill number, due date, service description, payment status and total surround line items",
+        "no recurring service-period or next-billing slot appears"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "account_type without a labelled account or payable-account slot",
+        "that a single bill is a bookkeeping group; isolated it is a transaction record",
+        "tax_year from the filename date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Bank Reconciliation - Operating Account - June 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled bank and account descriptor slots identify the account being reconciled",
+        "separate cells are labelled Bank statement balance and Book balance",
+        "a table lists outstanding deposits, outstanding payments, bank fees and adjustments",
+        "an adjusted balance pair agrees at the bottom of the sheet"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "that this is the institution-issued statement; the book-versus-bank comparison makes it the holder’s working record",
+        "tax_year from June 2026",
+        "facts from the attached statement copied onto this workbook or vice versa",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Expense Report - June - Maya Chen.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled claimant and operation slots appear above the table",
+        "columns are Date, Vendor, Description, Business purpose, Category, Amount and Receipt link",
+        "approval and reimbursement-status cells appear in a summary block",
+        "receipt links point to separate files"
+      ],
+      "facts_legal": [
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "purpose as a Finance fact; Business purpose is raw wording in a source column and PR-1 keeps the canonical purpose field Applications-scoped",
+        "institution from the Vendor column’s several values",
+        "record_type or business use copied to every linked receipt",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Accounts Receivable Aging - 2026-06-30.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "title zone names an Accounts Receivable aging report",
+        "columns identify Customer, Invoice, Due date, Status and Balance",
+        "customer rows repeat invoice identifiers and outstanding amounts",
+        "the report-period slot is labelled As of 2026-06-30"
+      ],
+      "facts_legal": [
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "institution from a customer row; customers are counterparties, not record issuers",
+        "client facts from the table under today’s Finance schema",
+        "tax_year from the as-of date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Invoice 1048 is overdue.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender and recipient slots show the accounting service, the operation and the customer",
+        "the subject carries invoice identifier 1048 and an overdue term",
+        "the body repeats the issuer, due date and amount due",
+        "an attachment is named INV-1048.pdf"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "activation from source_type email",
+        "client from the recipient address under Finance",
+        "that grouping by invoice identifier copies the PDF’s fields onto the email",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-07-03 at 10.14.22.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG has a platform screenshot filename pattern and display-shaped dimensions",
+        "OCR title reads Accounts receivable and the table has Customer, Invoice, Due and Balance columns",
+        "screen-origin software metadata is present",
+        "customer names and balances are visible in OCR regions"
+      ],
+      "facts_legal": [
+        "record_type",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "screenshot from missing EXIF alone; the positive screen-origin signals are the evidence",
+        "client or balance facts from OCR rows",
+        "membership in a particular invoice series without an identifier match and review",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "2026-Q2-books.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists General-Ledger.csv, Trial-Balance.xlsx, AR-Aging.pdf and AP-Aging.pdf",
+        "separate manifest paths hold Sales-Invoices, Vendor-Bills, Bank-Reconciliations and Receipts",
+        "archive metadata records member paths and formats without extracting them to disk",
+        "the outer filename carries a period token but no labelled tax-year slot"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "member facts written onto the archive or archive facts written onto members",
+        "tax_year from 2026 Q2",
+        "that every receipt member is a business expense; the manifest supports a candidate packet only",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "BlueFinch_2026-06-30.qbb",
+      "source_type": "opaque_binary",
+      "observations": [
+        "filesystem extraction records the filename, extension, MIME or signature result, size, timestamps and content hash",
+        "the proprietary backup is not readable by an approved extractor",
+        "no sheet names, report titles, labelled slots or transaction rows are available",
+        "the filename resembles an operation name and date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "Finance activation, record_type, institution or account_type from .qbb or the filename",
+        "tax_year from the date-shaped token",
+        "purpose from a neighbouring readable export",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_7712.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF, capture time and sensor-shaped dimensions are present",
+        "OCR is partial and recovers only a total-shaped figure",
+        "the image was retrieved beside Expense Report - June - Maya Chen.xlsx and several legible receipts",
+        "no merchant, invoice identifier, account or business-role label is readable"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "any Finance fact or business-use fact from the money figure",
+        "record_type or institution from group membership",
+        "that retrieval makes it part of the expense report without review",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Consulting Agreement - Acme - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title and recital name Blue Finch Studio and Acme as parties",
+        "numbered sections describe scope, deliverables, fees, payment terms and confidentiality",
+        "a signature-and-execution block carries both parties",
+        "there is no invoice identifier, line-item table, amount-due slot, ledger or reconciliation structure"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "record_type = invoice or any other Finance fact from the fee and payment-terms clauses",
+        "that the shared client name makes this bookkeeping material; it is a legal instrument and a client-engagement record",
+        "institution from either party",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Tax estimate worksheet.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "title zone names an estimated-tax worksheet",
+        "a labelled tax-year slot appears beside income and deduction summary cells",
+        "the sheet summarizes figures rather than recording ongoing dated transactions",
+        "authority or preparer instructions appear in notes"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "this template from spreadsheet structure or a year label; the document is filing-preparation material for finance.tax-filings",
+        "a general-ledger membership from summarized income and expenses",
+        "institution without a labelled issuer role",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bookkeeping Practice Set - Chapter 4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook contains populated Journal and General Ledger sheets with Debit and Credit columns",
+        "page heading says Chapter 4 Practice Set and a course code appears beside Assignment",
+        "the entities and transactions are explicitly marked sample data",
+        "no holder-operation role, bank reconciliation or live invoice series is present"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "Finance or small-business-bookkeeping activation from ledger structure alone",
+        "institution from a fictional company name",
+        "record_type as a live financial record",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "Reciprocates the landed neighbour. The shared evidence item is a business expense receipt, byte-for-byte identical to a personal purchase receipt. The discriminating evidence is not a merchant category or amount: an explicit operation name in a billed-to slot, or an accepted expense-report, ledger or reconciliation membership, supports the bookkeeping situation; without it the file stays a receipt and bookkeeping remains a reviewable membership only. A checkout or download session never settles the side. Fixture: IMG_7712.jpg against Expense Report - June - Maya Chen.xlsx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "The shared evidence item is an account name, balance and transaction table. The discriminator is who authored the record and what it does: an institution-issued statement carries one labelled statement period and a running balance sequence; a holder-maintained reconciliation places bank balance beside book balance and explains the difference with outstanding items. The statement can join the reconciliation packet without becoming the working workbook. Fixture: Bank Reconciliation - Operating Account - June 2026.xlsx against its bank statement.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "Reciprocates the landed neighbour. Ledgers and issued invoices feed a filing and are easily mistaken for it when a workbook carries a year. The discriminator is scope: a filing document is addressed to or issued by an authority and carries a labelled tax-year scope; a working book records ongoing operations and carries a transaction or reporting period. Tax estimate worksheet.xlsx is the boundary fixture and belongs to the filing side because its labelled summary and tax-year slots prepare a filing rather than record transactions.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "Reciprocates the landed neighbour. The shared evidence item is the client organization name, often accompanied by the same phase reference and payment language. The discriminator is structure: a labelled Bill To, invoice identifier, payment terms, item table and amount-due block is the bookkeeping record; scope, deliverables, confidentiality clauses and a countersignature block are the engagement or legal instrument. One client name must count for neither side. Fixtures: INV-1048 - Blue Finch Studio to Acme.pdf and Consulting Agreement - Acme - executed.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "A vendor agreement, service contract and invoice may name the same parties, fee and payment terms. The discriminator is what the document creates: recitals, obligations, numbered clauses and execution blocks make an agreement; an invoice identifier, line-item table, due slot and payment-status block make a bookkeeping record. A signed agreement can support both Finance and Legal at schema level on disjoint evidence, but a fee clause alone cannot choose this template. Fixture: Consulting Agreement - Acme - executed.pdf.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by CONNECTION.md: also_holds_with is schema-to-schema only. finance.json already records Finance co-activation with photos, legal, identity, medical and academic where appropriate. This template expresses the screenshot/receipt joins through file_examples[].also_schema and group memberships, never a duplicate template edge.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The roster-required residual. A standalone invoice-delivery email, accountant notice, or durable bookkeeping form that lacks an accepted books group fits 00’s Independent Records description: 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group'. Fixture: Invoice 1048 is overdue.eml when its series is not accepted.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The isolated transaction boundary is named by 00: 'isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents'. An invoice, vendor bill or receipt with no accepted operation-side group stays broad rather than earning a bookkeeping branch. Fixtures: INV-1048 - Blue Finch Studio to Acme.pdf, Bill - North Star Hosting - 2026-06.pdf and IMG_7712.jpg.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00 says 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision'. An unlabelled workbook or archive manifest can be recognisably financial without establishing that it is the holder’s working books or which record function it serves. Fixtures: General Ledger - Blue Finch Studio - 2026 Q2.xlsx when its rows are unavailable, and 2026-Q2-books.zip before member review.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "A general ledger, reconciliation, receivables report or full company backup aggregates balances, account references and counterparties. 00’s Protected Records residual covers 'sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials' and says it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. The residual decision is P7/P11’s; this edge records the broad safe home. Fixtures: Bank Reconciliation - Operating Account - June 2026.xlsx and Accounts Receivable Aging - 2026-06-30.xlsx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A proprietary company file or backup with no approved extractor remains represented without pretending it is empty. 00 requires that 'unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty'. Fixture: BlueFinch_2026-06-30.qbb.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "An accounting-dashboard capture with no accepted books group is still a screen capture and remains broad. The OCR may trigger review, but a customer table and totals do not justify an operation-specific folder. Fixture: Screenshot 2026-07-03 at 10.14.22.png.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A photographed slip whose OCR recovers no merchant, identifier or role label remains a one-off image when no transaction relationship lands. Fixture: IMG_7712.jpg.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "career.consulting-client-engagement",
+      "our_field": "institution",
+      "their_field": "client",
+      "why": "The same organization appears in different roles across the issued invoice and the engagement document: institution is the record issuer on the Finance side, while client is the counterparty the work is performed for on the Career side. 00 requires the mechanism: 'The system must separate roles that happen to contain the same entity type', and gives the consulting case directly: 'A consulting document may mention the author’s firm and the client organization.' The canonical list already contains both keys, but institution.role_split_with does not name client and the Finance schema does not reference client. This row records the finding; R1c or Joseph owns any canonical/schema change.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The row inherits the Finance safety posture and adds an aggregation risk: a working ledger, receivables/payables report or proprietary company backup can expose the operation’s balances, account references, client and vendor identities, expense detail, and payroll-adjacent transactions in one object. 00’s binding launch rule is 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed'. Complete text, OCR and raw values remain local; no handling class is authored here because D2 assigns classification to P7’s injected detector. This template is launch-placeholder, so its research can guide later fitting, but activation grants protection and the small Finance schema only. A full-books object never enters a cloud dossier by default, never exposes raw filenames or counterparty rows in a general summary, and never moves automatically without the user’s policy.",
+  "open_question": "Two linked vocabulary questions, neither resolved here. (1) COUNTERPARTY ROLES: the roster hint correctly ties client identity to career.consulting-client-engagement, and client/our_firm already exist canonically, but Finance references neither. On an issued invoice, institution can hold the explicit record issuer; nothing legal on Finance can hold the billed client, while widening institution to both sides would collapse the role split 00 requires. Should Finance reference the existing client key for this template, or should the client stay only a Career/group observation until Career’s field deferral lifts? (2) OPERATIONAL PERIOD: real ledgers, reconciliations and management accounts carry months, quarters or fiscal reporting ranges. tax_year is narrower, creation_date is a filesystem fact, term is academic, and application_cycle is Applications-scoped. Does the shared vocabulary gain a destination-eligible reporting_period key, or do operational periods remain group labels with record_type-only branches? finance.personal-records already records the same year-versus-period seam. proposed_fields stays empty because one template must not settle either shared-schema decision by minting a private field."
+}

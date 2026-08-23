@@ -1,0 +1,634 @@
+{
+  "id": "finance.household-property",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Home and property records",
+  "one_line": "Property-centred household administration across acquisition, ownership, tenancy, improvement, inspection, taxation and warranty records, using the protected Finance schema while keeping executed leases and other operative instruments on the Legal side of the boundary.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "property",
+      "type": "string",
+      "example": "42 Oak Street",
+      "reliability_ceiling": "direct",
+      "destination_eligible": true,
+      "rule_family": "an explicit Subject Property, Property Address, Premises, Parcel, Title Number or equivalent labelled slot on the record itself; filename and free-text mentions remain possible until a resolver binds them to the same property identity",
+      "why_no_existing_key_works": "A title register, closing packet, tax bill, inspection, improvement invoice and warranty belong together because they concern the same property, while their issuers change from registry to settlement agent to assessor to contractor. institution therefore identifies the record issuer, not the durable household subject. account_type identifies a kind of financial account, not a home or parcel. location is the place where a capture was taken and cannot safely be widened to the property a document is about. project is a named research or code project, and authored_by is metadata rather than a destination. record_type distinguishes documents but cannot keep two homes apart. One destination-eligible property key is therefore the smallest honest missing join handle.",
+      "provenance": "proposal",
+      "note": "This is proposed for R1c, not legalised by this template. Until the canonical field catalogue accepts it, property labels remain observations and accepted-group labels; they do not appear in facts_legal or dimension_order. R1c should compare a property-specific key with a broader asset key needed by vehicle and investment situations before minting either."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a PROPERTY-TITLE structure: a registry, recorder or land-authority issuer in a weighted title or heading zone, together with a labelled title or parcel identifier, a labelled property description or address, and ownership, tenure, boundary, easement or encumbrance sections. The issuer plus the structured property slots is the signal; the word title alone is not",
+      "a PURCHASE-OR-SALE CLOSING structure: a labelled subject-property address beside buyer, seller or borrower transaction blocks, settlement or closing-cost tables, and an execution or completion section. Tables are material here because 00 says 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs'. A principal-and-interest servicing structure is instead the finance.loans-mortgage situation",
+      "a PROPERTY-TAX or ASSESSMENT structure issued by a public authority: a labelled parcel or property-account slot, a property address, assessed or taxable value rows, a labelled tax period, and an amount-due or payment table. A labelled tax year may support tax_year; a bill date or bare year never does",
+      "a HOME-INSPECTION or APPRAISAL structure: a labelled Subject Property or Property Address slot, an inspector or appraiser identity in an issuer block, room-or-system condition sections or valuation-and-comparable tables, and a signed certification or report conclusion. A generic property listing or home-buying article lacks this completed engagement structure",
+      "a FILLED IMPROVEMENT-RECORD workbook whose heading identifies the home or improvement programme and whose populated rows carry work description, contractor, invoice date, amount, permit or certificate reference, warranty status and receipt link columns. This relies on 00’s spreadsheet surface: 'sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells'. A blank renovation budget or inspiration board does not fire",
+      "an IMPROVEMENT-COMPLIANCE structure: a building or permit authority in a heading, a labelled application or certificate reference, a property or site slot, a description of completed work, and an approval, inspection or completion result. The property-address-and-work pair distinguishes it from a generic government form",
+      "a PROPERTY-WARRANTY packet: a manufacturer, installer or warranty administrator in an issuer zone, a labelled installed-product or system description, a serial or registration identifier, the installation property or job reference, and coverage or claim instructions. The warranty word or serial number alone is insufficient",
+      "a TENANCY-ADMINISTRATION record other than the lease itself: a move-in or check-in inventory with a premises address, room, item and condition columns; a deposit or rent receipt with a labelled premises or tenancy reference; or a check-out report comparing recorded condition. An executed lease’s party recitals, covenants and signature block belong to legal.leases-agreements",
+      "an archive manifest that co-locates title, closing, survey, inspection, appraisal, tax, improvement, certificate and warranty-shaped member names for one property, inspected without unpacking. 00: 'Archives should be inspected without being unpacked to disk'. The manifest supports a candidate packet; it does not copy member facts onto the archive"
+    ],
+    "needs_llm": [
+      "whether a contractor invoice or store receipt is evidence of one property improvement rather than an ordinary household purchase. Explicit service-address or job-reference text may settle it; otherwise an accepted improvement packet can support reviewable membership but cannot write a property or business-use fact onto the receipt",
+      "an OCR’d deed, title plan, survey, inspection or compliance certificate whose labelled slots are partly lost. The model may interpret the document kind from bounded regions, but it must return unknown when it cannot separate the subject property from an issuer, mailing or neighbouring address",
+      "whether a condition report is a tenancy inventory, a sale listing, an insurance-loss schedule or a generic home-inspection checklist. Room names and photographs occur in all four; the role-bearing heading, issuer and completed report structure decide",
+      "whether a heterogeneous group is one acquisition, sale, tenancy or improvement packet. The model receives direct anchors, context-supported members and conflicts, and may propose membership only with citations",
+      "whether a prose contractor letter, property-manager email or warranty denial is part of a property lifecycle when it lacks a labelled form structure. A person name, address or money figure alone cannot settle the relationship",
+      "a multilingual or unfamiliar registry, tax, inspection or permit record whose document-kind labels are not present in the local term catalogue. The model may map the observed structure to record_type, but cannot invent a jurisdiction rule or property field",
+      "whether a damage photograph or contractor-portal screenshot joins a repair packet. Capture evidence activates Photos independently; the property association remains a reviewable group membership unless the file’s own OCR carries the necessary property-and-work structure"
+    ],
+    "never_alone": [
+      "A STREET ADDRESS, PARCEL-LIKE TOKEN OR POSTCODE ALONE. The same address can be the property, the recipient’s mailing address, a contractor’s office, a comparable sale, a utility service address or the location where a photograph was taken. Until the labelled role is clear it remains an observation, and the proposed property field remains unavailable",
+      "the words home, house, property, deed, title, closing, inspection, improvement, rent or warranty alone. A home-buying guide, vehicle title, academic case study, product warranty and real-estate listing can carry the vocabulary without being the holder’s property record",
+      "an institution, authority, contractor, landlord, agent, manufacturer or insurer name alone. The role-bearing issuer or party position and property-record structure matter; one organization may issue several unrelated kinds of record",
+      "a currency figure, valuation, rent, tax amount, invoice total or percentage alone. Money-shaped content appears across every Finance template and in contracts, offers, research and shopping material",
+      "a bare year, date or filename period read as tax_year. 00 warns about 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. Only an explicit tax-year slot on a property-tax or tax-support record can support the field",
+      "a source type or extension alone. A PDF is not a deed, a spreadsheet is not an improvement log, a photograph is not a repair record, and a ZIP is not a closing packet. 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning'",
+      "an existing folder named Home, House Documents, Closing, Renovation or Rental, or a download session containing several official-looking files. 00: 'A session should never be treated as proof of topic'. Existing curated structure can seed review but does not activate Finance or write facts",
+      "a mortgage lender or insurer named inside a closing or escrow document. The lender, carrier and tax authority can be counterparties or line items rather than the issuer of the record being examined; frequency does not choose a template",
+      "a photographed room, defect, appliance, boundary marker or receipt merely because it sits beside an inspection or improvement file. 00’s firewall is binding: 'The graph does not automatically copy those missing facts onto sparse files'",
+      "the absence of EXIF on a property screenshot or photographed document as proof it is a screenshot. 00 says 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'; conflicting capture signals require abstention",
+      "an unreadable file named Deed, Title, Closing or Warranty. 00 says unreadable files remain eligible for manual attachment, but the system 'should not infer a purpose from their filename alone'"
+    ]
+  },
+  "work_types": [
+    "purchase closing record",
+    "sale closing record",
+    "title register or deed",
+    "title plan or boundary survey",
+    "property tax bill or assessment notice",
+    "appraisal or valuation report",
+    "home inspection report",
+    "improvement invoice or receipt",
+    "improvement cost log",
+    "permit or building approval",
+    "completion or compliance certificate",
+    "property-system warranty",
+    "tenancy inventory or condition report",
+    "rent or deposit receipt",
+    "property correspondence"
+  ],
+  "grouping_reasons": [
+    "one property across acquisition, ownership, improvement, tenancy and sale. The anchor is an independently evidenced property identifier plus compatible record structures or a user-confirmed property group, never the address string alone; until property is canonical the identity stays on the group rather than on member facts",
+    "one acquisition or sale packet across a closing disclosure, deed or title, survey, inspection, appraisal, tax adjustment, loan instrument and correspondence. It is content-incoherent but purpose-coherent in 00’s sense; every member keeps only its own schema facts",
+    "one improvement project across a quote, executed contractor agreement, invoices, receipts, drawings, permit, inspection, completion certificate, warranty and before-or-after photographs. The rich work-scope and property records are anchors; a sparse receipt or photograph can join without inheriting the address, contractor, record_type or tax_year",
+    "one tenancy period across the legal lease, move-in inventory, deposit and rent receipts, maintenance correspondence and check-out report. The executed lease remains Legal material, while the accepted group lets the household view remain coherent without converting the lease into a Finance fact",
+    "one installed system across its purchase receipt, installation certificate, serial-labelled warranty, maintenance visits and claim correspondence. The shared serial or job reference supports membership; it does not make every file carry the manufacturer or property fact",
+    "one document saved twice or revised before execution, represented by duplicate_family and version_family rather than by a property fact",
+    "one file may support several accepted groups: a Closing Disclosure can sit in the property-acquisition packet and the mortgage packet; an improvement receipt can sit in the property project and a tax-support packet. Multi-membership remains visible and no group copies facts"
+  ],
+  "template": {
+    "dimension_order": [
+      "record_type"
+    ],
+    "why": "record_type is the only currently legal Finance dimension that remains stable across a property lifecycle. institution is deliberately omitted: one home produces records from a registry, assessor, lender, settlement agent, inspector, contractor, manufacturer, insurer and property manager, so issuer-first would scatter one coherent household subject across unrelated branches. account_type is omitted because ownership, tenancy, improvement and warranty are lifecycle or document roles, not financial account types. tax_year is omitted because most property records carry a transaction, inspection, installation or coverage date rather than an explicit tax year. The intended useful order, if R1c accepts the proposed key, is property then record_type; this row does not smuggle an unratified field into dimension_order. Without that key the honest v1 recommendation is a shallow record_type split over an accepted single-property group, and a multi-property corpus should remain group-led or flat rather than merge homes. This follows 00’s practical rule that 'a parent dimension should provide the context required to understand the child' and its record-domain guidance: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders'. Optional branch patterns keep a purchase, sale, tenancy or improvement packet whole when splitting by record_type would erase its purpose coherence. The user may reverse, remove or flatten the recommendation; 00 says 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.' Safety remains first: this is a placeholder proposal over a protected Finance area, not permission to move or expose a home address.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".ods",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Closing Disclosure - 42 Oak Street - 2024.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one labelled slots identify a borrower, lender, loan product and subject-property address",
+        "later tables separate loan costs, taxes, prepaids, cash to close and borrower and seller transactions",
+        "the document carries a settlement-agent or lender issuer block",
+        "the address is the property role, not the lender’s or borrower’s mailing address"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "property = 42 Oak Street until the proposed key is canonical; the labelled address remains an observation and group anchor",
+        "tax_year from the closing date or filename year",
+        "that this is only a property record and not also part of the mortgage packet; template groups may overlap on one Finance schema",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Official Copy of Register - Title AB123456.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "registry authority appears in the title and certification block",
+        "labelled title number and property description identify one registered parcel",
+        "ownership, tenure, mortgage, restriction and easement sections are populated",
+        "an official-copy certificate and issue timestamp are present"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a property fact until the proposed field is accepted",
+        "account_type from freehold or leasehold tenure; tenure is not a financial account type",
+        "the lender named in an encumbrance section as the record issuer",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Annual Property Tax Bill - Tax Year 2025 - 42 Oak St.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "municipal finance authority appears in the page-one issuer block",
+        "labelled Tax Year slot reads 2025",
+        "property-account or parcel identifier and service property address are separately labelled",
+        "market, assessed and exemption values lead to a labelled amount-due schedule"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "tax_year",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "tax_year from the filename; the legal source is the labelled Tax Year slot",
+        "account_type from the authority’s property class or parcel class",
+        "property as a fact before canonical acceptance",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Home Inspection Report - 42 Oak Street.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "inspector company and licence details appear in a report issuer block",
+        "a labelled Subject Property slot is followed by inspection date and client slots",
+        "roof, structure, electrical, plumbing, heating and interior sections record observed condition",
+        "photographs and a signed inspector certification support the completed-report structure"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that every defect is an insurance claim or an approved improvement",
+        "property as a fact before canonical acceptance",
+        "tax_year from the inspection date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Residential Appraisal Report - 42 Oak Street.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "appraisal firm appears in a certification and issuer block",
+        "labelled Subject Property and effective valuation date slots are present",
+        "property characteristics and comparable-sale tables support a stated opinion of value",
+        "a lender appears as the intended user but does not author the appraisal"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "the intended lender as institution when the appraisal firm is the explicit record issuer",
+        "a value or sale price as a schema fact; Finance has no amount field",
+        "property as a fact before canonical acceptance",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Kitchen Remodel - Bright Plumbing - Invoice 7841.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "contractor letterhead appears above a separately labelled Bill To block",
+        "a labelled Service Address matches the project property and differs from the contractor address",
+        "line items describe installed plumbing work, labour and materials under one job reference",
+        "invoice identifier, completion date and total are labelled"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "property as a fact before canonical acceptance",
+        "tax_year from the invoice or completion date",
+        "that every contractor invoice belongs to an improvement packet; the explicit service address and job scope are the supporting evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Home Improvements Log.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook heading names the household property and an Improvements sheet",
+        "populated columns include Work Description, Contractor, Invoice Date, Amount, Permit Ref, Warranty and Receipt Link",
+        "rows describe several completed projects from different contractors",
+        "a Summary sheet totals the rows but does not label any tax year"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "one institution from the most frequent contractor; the workbook aggregates several issuers",
+        "tax_year from invoice dates or the summary total",
+        "property as a fact before canonical acceptance",
+        "a folder path or purpose copied to linked receipts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Building Regulations Completion Certificate - Loft Conversion.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "building-control body appears in the official issuer block",
+        "application reference and site address are separately labelled",
+        "the completed work is described as a loft conversion",
+        "inspection result, completion date and certificate signature are present"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "tax_year from the completion date",
+        "property as a fact before canonical acceptance",
+        "that an official certificate is necessarily an executed agreement; its regulatory structure can activate Legal independently",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Boiler Warranty - SN-R4K8821.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "manufacturer and installer are named in separate labelled roles",
+        "product model, serial number and installation date are labelled",
+        "installation property and job reference appear in a registration block",
+        "coverage and claim instructions identify the warranty administrator"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "tax_year from the installation date",
+        "that the warranty administrator, installer and manufacturer are one institution; use the explicit record issuer",
+        "property as a fact before canonical acceptance",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Move-in Inventory and Condition Report - 18 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "letting agent appears in an issuer block and the premises is separately labelled",
+        "check-in date and tenant acknowledgement slots are present",
+        "room, item, condition and comment columns are populated",
+        "embedded dated photographs correspond to inventory rows"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "account_type from the word tenancy",
+        "tax_year from the check-in date",
+        "a lease or legal obligation when no party recitals, covenants or execution block exist",
+        "property as a fact before canonical acceptance or a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Rent Receipt - January 2026.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to the property manager’s domain",
+        "subject carries rent-received wording and a tenancy reference",
+        "body labels the premises, rental period, amount and payment status",
+        "an attached PDF repeats the same receipt identifier"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from January 2026",
+        "account_type from the tenancy reference",
+        "property as a fact before canonical acceptance",
+        "that email source_type or a rent word alone activates this template, or a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "property_packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a title register, title plan, closing statement, inspection, appraisal, tax adjustment and signed mortgage instrument",
+        "member names repeat one subject-property token while naming several issuers",
+        "the archive is inspected without extraction to disk",
+        "the outer filename contains no address, issuer or transaction date"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "member facts written onto the archive or archive facts written onto members",
+        "one institution from the most frequent member issuer",
+        "property as a fact before canonical acceptance",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_6021.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF records capture time, GPS and camera model",
+        "the frame shows a damaged roof edge and scaffolding",
+        "no address, job reference, contractor, claim or report label appears in the image",
+        "retrieval finds a nearby inspection report and repair invoice"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "media_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "any Finance fact, property identity, repair purpose, contractor or claim from visual resemblance or group context",
+        "record_type from the neighbouring inspection and invoice",
+        "tax_year from capture time",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-07-12 at 10.44.18.png",
+      "source_type": "ocr",
+      "observations": [
+        "platform screenshot filename and display-shaped dimensions support a screenshot hypothesis",
+        "OCR shows a contractor portal with an issuer logo, job reference and Service Address label",
+        "a status panel says completion certificate uploaded and invoice paid",
+        "no camera EXIF is present"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "capture_year",
+        "media_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "screenshot status from missing EXIF alone; the filename, dimensions and software pattern are the supporting capture signals",
+        "property as a fact before canonical acceptance",
+        "tax_year from the screenshot filename",
+        "facts from attached or linked portal documents that are not present in this OCR",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Lease Agreement - 18 River Court - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title and recitals name landlord and tenant as bound parties",
+        "the premises, term, rent, deposit and repair obligations appear in numbered clauses",
+        "signature and execution blocks are completed",
+        "no receipt, inventory, tax, inspection or property-record issuer structure appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "Finance activation or a Finance record_type merely because rent and a property address appear",
+        "institution from either party name; the parties are not record issuers",
+        "property as a fact before canonical acceptance",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Title Deeds.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the PDF is encrypted and exposes only filesystem metadata",
+        "no text, OCR, title number, property address, issuer or signature block can be read",
+        "the filename carries two property-shaped words",
+        "the file arrived beside readable closing documents in one download session"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "Finance or Legal activation from the filename",
+        "record_type, institution, account_type, tax_year or property",
+        "packet membership from the download session",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "First-Time Home Buyer Guide.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title and headings describe general steps for shopping, inspecting, financing and closing",
+        "examples mention fictional addresses, lenders, costs and warranties",
+        "no holder, subject property, completed transaction, account, invoice or official-record identifier exists",
+        "producer metadata names a public information website"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "Finance activation, record_type or institution from instructional examples",
+        "property from a fictional address",
+        "a purchase purpose from the download session or producer metadata",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "A home purchase produces both situations and a closing packet holds them side by side. A document reporting on serviced debt through principal, interest, escrow, payment and payoff slots is the loan situation; a title, ownership, inspection, improvement, warranty or tenancy-administration structure about the property itself is this situation. The property address is shared evidence and proves neither. This reciprocates the landed loans-mortgage edge.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-personal",
+      "signal": "A homeowners or renters declaration and a property file share the residential address, property description and sometimes an appraisal or loss photograph. Coverage limits, deductible, premium, policy period or claim number identify insurance; title, closing, tax, inspection, improvement or completion structure identifies this situation. The address is the item that must not count for both. This reciprocates the landed insurance-personal edge.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "An improvement invoice or installed-system receipt is byte-for-byte a purchase record: issuer, transaction identifier, item rows and total. An explicit service-property slot plus a property-work or installation reference supports this situation; without it the file remains a receipt and may join an improvement group only as a context-supported member. A merchant category, amount or nearby folder never decides. Fixture: Kitchen Remodel - Bright Plumbing - Invoice 7841.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "A property-tax bill and a periodic account record both carry an issuing institution, a period, an account-like identifier, a balance or amount due and a payment table. A parcel or property-account slot beside assessed-value and property-tax rows identifies this situation; a financial-account descriptor beside beginning and ending balances identifies personal records. The issuer name and amount must not count for both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.subscriptions-utilities",
+      "signal": "A home utility bill and a property record share a service address, account reference and amount. A recurring service period, meter or usage table and next-billing structure identifies subscriptions and utilities; title, ownership, inspection, improvement, permit or warranty structure identifies this situation. A service address alone activates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.hoa-residents-association",
+      "signal": "An association assessment and a general property record share the unit address, owner name and money figures. Dues, assessment, meeting, rule or association-account structure identifies the HOA situation; acquisition, title, inspection, improvement and installed-system records identify this one. A unit address or property-manager name alone must count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.vehicle-records",
+      "signal": "Both situations produce titles, inspection certificates, repair invoices and warranties, and the generic document vocabulary is identical. A parcel, premises address, building-system or room structure identifies household property; a vehicle identification, registration, odometer or make-and-model structure identifies the vehicle. The words title, inspection, repair and warranty are the shared evidence items and decide nothing alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "A tenancy packet mixes an operative lease with rent receipts, inventories and maintenance records. Party recitals, covenants, a term, consideration and an execution block identify the lease as Legal material; a property-record issuer plus receipt, inventory, inspection, tax or improvement structure identifies this household situation. The premises address and rent amount must not count for both. Fixture: Lease Agreement - 18 River Court - Signed.pdf.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Title, closing, property-tax and executed tenancy packets expose exact home addresses, ownership, signatures and financial details. 00 defines this home for 'sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials' and says it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A one-off inspection, appraisal, completion certificate, warranty or condition report has durable value without necessarily forming a broader accepted group. 00 defines Independent Records for 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group'.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated improvement invoice, rent receipt, installation confirmation or warranty registration is transactional without necessarily proving a property association. 00 places 'isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents' here.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A property-shaped workbook or OCR result whose issuer and purpose are only partly understood fits 00’s 'files whose meaning is partly understood but whose final location requires a future decision'.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Encrypted deeds, password-protected closing packets and unreadable proprietary property exports fit 00’s 'password-protected archives, unreadable documents, damaged files, and unknown formats'. Filename-only rescue remains forbidden.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "An ungrouped roof, room, defect or improvement photograph carries Photos facts but no property association. 00 defines this home for 'images with no event, project, reference collection, or photo-family association'.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "An ungrouped contractor-portal, property listing or inspection-booking capture may be temporary without being a property record. 00 defines this home for 'screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship'.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Home-buying guides, renovation articles and generic property reports are reading material rather than records about the holder’s property. 00 defines Reading Inbox for 'papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association'.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This situation concentrates an exact home address or parcel, ownership and tenancy roles, signatures, transaction terms, assessed value, building defects, access-relevant plans, installed-system identifiers and photographs that may carry GPS. 00 requires a local-first posture and says 'Protected material should not be included in cloud-model prompts by default'. It also keeps 'Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values' local. This row assigns only 00’s potentially-sensitive phrase; it does not author a P7 handling class. Property labels and thumbnails should be redacted in shared UI contexts until the user’s policy permits display.",
+  "open_question": "Two linked decisions remain. (1) FIELD IDENTITY: should R1c accept a destination-eligible property key, or generalise the need into an asset key shared with finance.vehicle-records and perhaps finance.investment-brokerage? Reusing location would collapse the property a document is about with where a capture was taken; reusing account_type would collapse an asset with an account kind; reusing institution would turn a changing issuer into the household subject. Until this is answered, property identity remains an observation and accepted-group label, and the legal dimension_order remains record_type only. (2) DUAL-SCHEMA SURFACING: deeds, closing instruments, completion certificates and leases can activate Finance and Legal on disjoint evidence because the schema-level also_holds_with edge already exists, while this template deliberately sends executed leases to legal.leases-agreements. When a property packet contains both, should P10 surface one property-centred branch with protected Legal members, or parallel Finance and Legal branches under the shared-material policy? The roster can represent either; choosing a default decides a real household filing shape and is not settled here."
+}
