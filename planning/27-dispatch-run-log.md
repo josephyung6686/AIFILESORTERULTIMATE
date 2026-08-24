@@ -594,3 +594,18 @@ outcome rather than the convenient one:
 
 **Net effect of catching this:** one row's recognition data is now provably consistent with its own
 reasoning, and the autopilot has a new pre-commit check that applies to every remaining row.
+
+## Debt clearing 28/64 — `business_operations.strategy-plan`, stands
+
+- **4,736B → 29,888B (6.3x)**, 10 file_examples, all universal keys, both files written, stands.
+- **Declined the easy discriminator.** "A roadmap is product-level, a strategy is company-level"
+  is refused outright as "exactly the move the schema anchor forbids" — *"Differing in business
+  function is not automatically a difference"* — because a function or a unit is a **value of a
+  dimension, not a structure**. It states plainly that a company-wide roadmap is still a roadmap
+  and this row does not claim it.
+- **The refusal is encoded in the data, twice**: a never-alone entry disclaiming horizon and period
+  axes, and a deterministic signal stating the discriminator as **decision axis vs period axis**.
+- Best detail: the discriminator is **falsifiable** — "testable by deleting the dates". A
+  discriminator you can run an experiment against is worth more than one you can only agree with.
+- Stays consistent with the requirements-vs-roadmap settlement rather than reopening it; its four
+  wanted changes are recommendations to R1c under NJ-BO-SP-3, not edits to neighbours.
