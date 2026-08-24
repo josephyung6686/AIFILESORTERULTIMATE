@@ -408,3 +408,21 @@ compliance-certificate — show the flagging discriminates rather than always pr
   (`service-charge`, `block-management`) both correctly want a year level — and noted that a
   negative difference is "the rarer and more useful kind". Worth propagating: rows have been
   arguing only from what they have, not from what they conspicuously lack.
+
+## Debt clearing 13-14/64 — `product-requirements` and `building-control`, both stand
+
+- `business_operations.product-requirements`: **4,296B → 41,012B (9.5x)**, 9 file_examples.
+  **It settled the pair question the gist pass left hanging.** Verdict: PRD and roadmap are TWO
+  worlds, discriminated by structural axis — the roadmap's is time (swimlanes, horizons, now/next/
+  later, no acceptance criteria anywhere), this row's is a specification of intended behaviour with
+  acceptance criteria. The roadmap's own bytes (`H1 roadmap.pptx`) are named as the collision
+  fixture by both rows. Principle worth keeping: *"a question stated identically on two rows is a
+  well-documented deferral, not an answer."*
+  It also **corrected an edge in its own JSON** after reading the `code.*` refusals, and adopted
+  `user-research`'s boundary wording unchanged rather than restating it — reciprocity by reuse.
+  Note: it names a row `engineering.requirements-specification` in an unwritten schema; that row
+  must exist or the reference dangles. **R1c to check.**
+- `construction_property.building-control`: **4,288B → 37,764B (8.8x)**, 11 file_examples.
+  Survived the charge that refused its own family's `compliance-certificate`, and wrote the
+  `government` seam 33 times for a schema nobody has written yet — the second row to specify a
+  boundary in advance of its neighbour existing.
