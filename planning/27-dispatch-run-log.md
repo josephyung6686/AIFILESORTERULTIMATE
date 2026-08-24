@@ -577,3 +577,20 @@ or corrects the memo's claim.
 
 **Rule for the autopilot:** a complete-looking memo is not proof the row is complete. Cross-check
 the memo's own "what changed" claims against the JSON before committing.
+
+## DEFECT RESOLVED — `business_operations.risk-register` reconciled, and committed
+
+The reconciliation pass closed the memo/JSON gap **in both directions**, which is the honest
+outcome rather than the convenient one:
+
+- **Applied** every JSON change the memo's arguments genuinely required: five new `collides_with`
+  edges, a `board-governance` `also_holds_with`, two seconded `proposed_fields`, two new
+  `never_alone` entries (7 → 9), and an FMEA file example.
+- **Corrected three memo claims to match reality** instead of inventing data to justify them —
+  including the `needs_llm` extension, which the memo had announced but its arguments never asked
+  for. Walking back an overstated claim is as valid a fix as applying it.
+- The memo now carries a standing note explaining the interruption and the repair, so the anomaly
+  is legible to R1c rather than invisible.
+
+**Net effect of catching this:** one row's recognition data is now provably consistent with its own
+reasoning, and the autopilot has a new pre-commit check that applies to every remaining row.
