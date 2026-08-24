@@ -1,9 +1,94 @@
 # Research dispatch — resumable state
 
-Date: 2026-08-22
-Status: **paused on credits, mid-R1b.** Everything below is on disk and verified except the 22 R1b rows listed in §2. Resume from §3 at any time.
+Date: 2026-08-24 (supersedes the 2026-08-22 revision)
+Status: **R1b complete. J-IND roster expansion complete. Industry gist swarm in progress — 147 of 358 rows landed, 211 owed.**
+Live progress log, newest entry at the bottom: [`27-dispatch-run-log.md`](27-dispatch-run-log.md) — **read it first.** It records every wave, kill, salvage, and process slip.
 Source of truth: [`00-database-agent-product-design.md`](00-database-agent-product-design.md) · contract: [`domains/CONNECTION.md`](domains/CONNECTION.md) · roster: [`domains/roster.json`](domains/roster.json)
-Ratifications: [`overnight/council/DECISION-BRIEF.md`](overnight/council/DECISION-BRIEF.md) — D1–D6 (2026-08-21) **plus J-IND (2026-08-22)**: professional worlds get placeholder schemas (~20 total) + gist-level per-industry research covering all of the old 574; depth much later.
+Standing brief every swarm agent reads: [`domains/dispatch/GIST-BRIEF.md`](domains/dispatch/GIST-BRIEF.md)
+Ratifications: [`overnight/council/DECISION-BRIEF.md`](overnight/council/DECISION-BRIEF.md) — D1–D6 (2026-08-21) plus J-IND (2026-08-22).
+
+---
+
+## 0. Resume in one command
+
+The owed rows are always *whatever the roster lists that has no node file*. Never work from a
+hand-written list — that error already cost five rows of a family once:
+
+```bash
+python3 -c "
+import json,os,collections
+r=json.load(open('planning/domains/roster.json')); n=r['nodes'] if isinstance(r,dict) else r
+todo=[x['domain_id'] for x in n if not os.path.exists('planning/domains/nodes/'+x['domain_id']+'.json')]
+print(len(todo),'owed'); print(collections.Counter(x.split('.')[0] for x in todo))"
+```
+
+Then dispatch 3–4 agents, each owning ~9–11 sibling rows of ONE schema, each pointed at
+`domains/dispatch/GIST-BRIEF.md` plus row-specific warnings (name the rows you expect to fail the
+node test — that is what makes agents argue instead of agree). Verify, then commit **by explicit
+file list**.
+
+## 0a. Where it stands (2026-08-24)
+
+| Stage | State |
+|---|---|
+| R0, R1a, R2–R6 | complete (§1) |
+| R1b — the 83 launch rows | **complete, 83/83** |
+| J-IND roster expansion | **complete** — 358 rows, 23 schemas, all 574 legacy ids reconciled |
+| Industry gist swarm | **147/358 landed, 211 owed** |
+| R1c merge gate | not started |
+| Final review panel + index | not started |
+
+Families finished end to end: `clinical_practice` (11), `business_operations` (25),
+`construction_property` (28).
+
+**Owed, by family:** creative 42 · law_practice 37 · government 32 · engineering 25 ·
+manufacturing 20 · retail_hospitality 15 · hr 12 · nonprofit 11 · resource_operations 9 ·
+logistics 8.
+
+`creative` was dispatched twice (4 agents, 42 rows) and both times the agents were killed by the
+usage limit before writing anything — **nothing to salvage, redispatch it whole.** It is the
+riskiest family: its central hazard is the professional-vs-hobby seam (a working photographer's
+client jobs are a filing world; a personal sketch folder is residual-library material), and it
+carries the open **NJ-R1a-1**, which agents must record a dependency on rather than resolve.
+
+Rows already flagged as likely node-test failures, for whoever redispatches `creative`:
+`creative-brief`, `deliverable-handoff`, `revision-round`, `post-production` (probably *stages* in
+one lifecycle); `illustration`, `motion-graphics`, `short-form-writing` (probably a *medium* or a
+*length*, i.e. a `work_type` value); `self-initiated-work` (defined by the *absence* of a client —
+a row with only negative evidence can never activate); `raw-photo-catalogue`, `shoot-day-media`
+(collide with the landed `photos.*` family — and must not contradict the argument already made in
+`construction_property.progress-photos`).
+
+## 0b. Refusals so far — R1c adjudicates, do not blindly re-fire
+
+Three from the gist swarm, each routing coverage through `falls_through_to` rather than dropping it:
+`business_operations.organisational-records` (its only signal is an organisation name, which is
+never-alone evidence, so the row could never activate), `construction_property.compliance-certificate`
+(a document type; dimensions and privacy identical to the schema default),
+`construction_property.timesheet` (three documents sharing a table shape, each already housed).
+Plus the three from R1b: `research.project-workspace`, `code.software-project`,
+`code.scratch-prototypes`.
+
+## 0c. Proposed fields awaiting R1c (extends §4)
+
+`organization` — proposed **independently by both** `business_operations` and
+`construction_property`; must be settled as ONE decision, not two. Also `fiscal_period`
+(business_operations); `property`, `instruction`, `revision` (construction_property);
+`subject_of_record` (clinical_practice).
+
+## 0d. Operating rules learned the hard way
+
+1. **Row lists come from the roster programmatically.** A truncated terminal listing once caused
+   5 rows of `clinical_practice` to be silently skipped.
+2. **Commit by explicit file list, never a wildcard.** A wildcard once swept an agent's files into
+   a commit before they had been verified.
+3. **Tell agents to write each row's two files as they finish it**, not hold them to the end.
+   Wave 1 died having written 4 salvageable files; wave 2 died having written none.
+4. **Log before re-dispatching, not after.** The log is what survives a kill.
+5. **A partial file with no memo is an UNTRUSTED DRAFT** — verify line-by-line, repair, complete,
+   own it. Do not discard unread (it cost real tokens); do not trust unverified.
+6. Waves of 3–4 agents, one family per wave where possible, so a completed wave is a clean commit
+   boundary. Each usage-limit window buys roughly one wave.
 
 ---
 
@@ -24,7 +109,11 @@ Every item passed a mechanical quote audit (verbatim vs `00`) plus an adversaria
 
 Gate: `python3 planning/domains/check.py` → legacy 574 baseline **566 in-file / 0 cross-file** (pre-existing audited debt, superseded by the roster; not new findings). `nodes/` is **not yet scanned** by the gate — extending it there is R1c's job.
 
-## 2. Interrupted: the R1b swarm tail (22 rows)
+## 2. SUPERSEDED — the R1b swarm tail (historical)
+
+> **This section is history. R1b is complete at 83/83.** All 22 rows below were landed and
+> committed (the last three in `1347e27`). Kept only as a record of what the interrupted session
+> owed. Do not act on it — §0 is the live resume point.
 
 One Opus agent per roster row; 60/83 agents completed before the session credit limit. Rows still owed:
 
@@ -32,7 +121,10 @@ One Opus agent per roster row; 60/83 agents completed before the session credit 
 
 **Partial — one of two files exists; treat as UNTRUSTED DRAFT, verify-complete-own (3):** `finance.insurance-corporate`, `finance.insurance-healthcare`, `finance.crypto-assets`
 
-## 3. How to resume (any session)
+## 3. SUPERSEDED — the original workflow-resume recipe (historical)
+
+> The `Workflow`/`resumeFromRunId` route below belongs to the original Claude swarm run and is no
+> longer the resume path. **Use §0.** Kept for provenance.
 
 **Preferred — resume the recorded workflow run** (cached rows replay free, only the 22 re-run):
 
