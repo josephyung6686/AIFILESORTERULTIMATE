@@ -340,3 +340,14 @@ the JSON and rewrite the memo. Corrected in the retry prompts.
   stands. Now a spine heavy enough to carry the siblings that define themselves against it.
 - Both expansions are the largest yet (11.5x, 11.8x), continuing the trend: richer anchors and
   neighbours give each new row more to genuinely argue with.
+
+## Debt clearing 8/64 — `business_operations.it-asset-inventory` deepened, stands
+
+- **3,912B → 35,723B (9.1x)**, 10 file_examples, all universal keys, `Depth: J-DEPTH` header.
+- Structure worth copying: it opens the node test with **"The hostile reading, stated first"** —
+  granting the dispatch's charge (an asset inventory is plausibly a spreadsheet shape, and its
+  obvious signals are never-alone) before defending. It also states outright that two legs pass on
+  real evidence and one "cannot pass at all", noting that saying which is which "is the point of
+  running the test rather than announcing a verdict".
+- Closes with an explicit attestation that nothing in it is padding — the right instinct now that
+  memo size is a visible metric. Size must not become the target; the argument is the target.
