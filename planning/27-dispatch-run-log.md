@@ -351,3 +351,16 @@ the JSON and rewrite the memo. Corrected in the retry prompts.
   running the test rather than announcing a verdict".
 - Closes with an explicit attestation that nothing in it is padding — the right instinct now that
   memo size is a visible metric. Size must not become the target; the argument is the target.
+
+## Debt clearing 9/64 — `business_operations.policy-handbook` deepened, stands
+
+- **4,091B → 33,624B (8.2x)**, 11 file_examples, all universal keys, `Depth: J-DEPTH`.
+- Survived the sharpest challenge set so far — it is the nearest sibling to the row this family
+  already refused, on the same document-type charge — and closed the trap deliberately: it cites
+  00's universal-facts sentence (file type, creation date, language, duplicate family, version
+  family, sensitivity status) to establish that **annual reissue is not an argument for this row**,
+  because version family is already a universal fact rather than a domain concern. Backed from the
+  other end by the content-hash-vs-filename collision sentence.
+- **Wrote the `hr` boundary 18 times for an author who does not exist yet.** `hr` is an unwritten
+  schema, and a staff handbook is its most obvious material; the seam is now specified in advance
+  rather than left to be negotiated when that family is written. Cheapest possible time to fix it.
