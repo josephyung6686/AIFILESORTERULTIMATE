@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Construction, trades and property (the professional record of a site, a job and a building)",
-  "one_line": "The working record of people whose OCCUPATION is building, certifying, valuing, selling, letting or managing real property for others: the priced job, the site under construction, the design information it is built from, the statutory approvals that let it happen, the appraisal that decided it would, and the letting, sale and block management of the finished building. Its anchor is a PROPERTY OR SITE joined to an INSTRUCTION — a job, a lease, a listing, a scheme, a managed block — and a document whose function sits inside that instruction's lifecycle. It is deliberately the PROFESSIONAL side of property: the householder's own records of their own home belong to finance.household-property, and an executed instrument held as the holder's own agreement belongs to the protected legal side (legal.leases-agreements). Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "one_line": "The working record of people whose OCCUPATION is building, certifying, valuing, selling, letting or managing real property for others: the priced job, the site under construction, the design information it is built from, the statutory approvals that let it happen, the appraisal that decided it would, and the letting, sale and block management of the finished building. Its anchor is a PROPERTY OR SITE joined to an INSTRUCTION — a job, a lease, a listing, a scheme, a managed block — and a document whose function sits inside that instruction's lifecycle. It is deliberately the PROFESSIONAL side of property: the householder's own records of their own home belong to finance.household-property, and an executed instrument held as the holder's own agreement belongs to the protected legal side (legal.leases-agreements). Placeholder schema row (J-IND, written to J-DEPTH): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). It is the schema row for 27 template siblings, and the default template, the vocabulary and the seams stated here are what each of those siblings must differ from to have a node at all.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -442,6 +442,29 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Building Regulations Completion Certificate - 18 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a building-control body's letterhead, an application-reference-shaped token and a completion declaration",
+        "a property address in a labelled slot",
+        "held in a folder beside a mortgage statement, a home insurance schedule and a boiler warranty"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a professional instruction. This is THE collision fixture for this schema: the address is present, the reference token is present, the authority structure is present, and every deterministic signal short of the instruction pair is satisfied — and it is still a householder's own record of their own home, which the landed finance.household-property row already claims (it lists completion and compliance certificates among its own work types). The discriminating evidence is the neighbourhood: no job reference, no fee or appointment, no client party, no works measurement, and a custody in which the holder is the owner rather than the instructed party.",
+        "that the word certificate discriminates anything — it is a work_type VALUE that appears in several worlds",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
     }
   ],
   "collides_with": [
@@ -473,6 +496,21 @@
     {
       "domain": "photos",
       "signal": "Site photographs and personal photographs are the same bytes from the same phone on the same day. “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” — but a photo event is not a professional instruction. A job or plot reference in OCR or a labelled slot, or membership of a set attached to a diary entry, supports this schema; a GPS cluster and a camera model alone support only a photo event. The clustering must not become the fact: “The graph does not automatically copy those missing facts onto sparse files.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "Not yet written, so this row states its half of the seam so that schema's author has something to write against. A delivery note, a consignment record, a purchase order and a haulage confirmation are logistics documents by structure — consignor, consignee, consignment reference, quantities, a signature on receipt. They become this schema's evidence only when they are keyed to a SITE and an INSTRUCTION: a delivery addressed to a plot against a job reference, signed by a site manager, filed against a contract. The shared evidence item is the delivery note itself, and it discriminates nothing on its own. This row STOPS at the site gate: what happened to the goods before they arrived — the carrier, the route, the fleet, the warehouse — is not this schema's, and construction_property.materials-delivery holds only the site-facing half.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "Also not yet written. Fabricated and offsite-manufactured building components produce documents that read as both: a shop drawing, a fabrication schedule, a works order, a material test certificate, a factory production control record. The seam this row proposes: where the document is about MAKING THE ARTICLE — a production run, a batch, a works order, a factory quality regime — it is manufacturing's; where it is about INSTALLING OR APPROVING THAT ARTICLE AT A NAMED SITE UNDER AN INSTRUCTION — a shop drawing carrying a project title block and a revision status, a test certificate attached to a handover pack — it is this schema's. Plant hire sits on the same seam and this row keeps only the hired-onto-a-site half. The shared evidence item is a material or test certificate; it names a standard on both sides and decides neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering",
+      "signal": "The nearest schema by structure rather than by subject: a drawing set under revision control, with a title block, a status word and an issue register, is engineering's own anchor as much as it is this family's. The discriminating evidence proposed here is the SUBJECT OF THE INSTRUCTION — a fixed property or site, with a postal address or plot identifier in a labelled slot, and a lifecycle running through statutory approval, construction, valuation and handover. A drawing set for a product, a machine, a vessel or a system that has no site is engineering's. A structural engineer's calculation package for a named building is genuinely both, on disjoint evidence.",
       "provenance": "inference"
     }
   ],
@@ -556,5 +594,5 @@
   ],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Three grounds, stated conservatively. First, the material routinely names a real person's home and who is in it: an occupier's address, a tenant's references and arrears, a leaseholder's correspondence, photographs of the inside of somebody's house taken to sell it. Second, 00's own corpus sentence names material this schema carries as a matter of course — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Third, and as inference: much of this world is confidential to a THIRD party (a client's appraisal, a tenant's financials, a building's security-relevant layout), so the exposed party is often not the user and cannot consent. That argues for the cautious setting. The handling class is P7's and is not set here.",
-  "open_question": "Four, and the first is this family's own NEEDS-JOSEPH. (1) NJ-CP-1: does `property` become a canonical key? Every row on this schema wants it, no canonical key holds it, and its absence is why all eight rows in this family recommend dimension orders in prose and declare none. It is the clearest field-shaped hole this pass found outside `fiscal_period`. (2) NJ-CP-2: does the construction JOB reuse the canonical `project` key, or does this family need `instruction`? This row's own preference is reuse where the instruction really is a project and a separate key only if lettings, sales and standing appointments cannot honestly be called projects — but shipping both would be the near-duplicate defect D6 exists to kill, so R1c must pick one. (3) NJ-CP-3: the professional-versus-householder line drawn against the landed finance.household-property row is drawn on INSTRUCTION, not on document type. It is defensible and it was drawn by this pass, not by 00 — a self-builder and a landlord with four flats sit exactly on it. (4) NJ-CP-4: this row does NOT carry is_safety_domain and should not, since 00 names four safety domains and construction is not among them; but occupier addresses and tenant records are personal data by any ordinary reading, so the substitute mechanism that forces P7 ahead of a model path for third-party personal material has to be named somewhere — the same gap the landed business_operations row records."
+  "open_question": "Four, and the first is this family's own NEEDS-JOSEPH. (1) NJ-CP-1: does `property` become a canonical key? Every row on this schema wants it, no canonical key holds it, and its absence is why all eight rows in this family recommend dimension orders in prose and declare none. It is the clearest field-shaped hole this pass found outside `fiscal_period`. (2) NJ-CP-2: does the construction JOB reuse the canonical `project` key, or does this family need `instruction`? This row's own preference is reuse where the instruction really is a project and a separate key only if lettings, sales and standing appointments cannot honestly be called projects — but shipping both would be the near-duplicate defect D6 exists to kill, so R1c must pick one. (3) NJ-CP-3: the professional-versus-householder line drawn against the landed finance.household-property row is drawn on INSTRUCTION, not on document type. It is defensible and it was drawn by this pass, not by 00 — a self-builder and a landlord with four flats sit exactly on it. (4) NJ-CP-4: this row does NOT carry is_safety_domain and should not, since 00 names four safety domains and construction is not among them; but occupier addresses and tenant records are personal data by any ordinary reading, so the substitute mechanism that forces P7 ahead of a model path for third-party personal material has to be named somewhere — the same gap the landed business_operations row records. (5) NJ-CP-5: the logistics and manufacturing seams are drawn HERE, one-way, because neither schema is written yet. Materials, plant and offsite fabrication sit exactly on them, and this row's proposed line — the site gate for goods, the article-versus-installation split for fabrication — was drawn by this pass and not by 00. Whoever writes those two schemas may reasonably draw it elsewhere; R1c owes the reciprocal either way. (6) The progress-photos consistency item: this family contains ONE row recognised by capture metadata rather than by document structure, and the landed creative.raw-photo-catalogue row has since argued with it and agreed. The schema-level question left open is whether a placeholder schema whose default recognition is documentary may host a capture-based template at all, or whether that row's honest home is a co-activation with photos. This row's position is that it may, because a template exists precisely where its DETECTION SIGNALS differ from the schema default — but the position is stated so it can be overruled once rather than 27 times."
 }

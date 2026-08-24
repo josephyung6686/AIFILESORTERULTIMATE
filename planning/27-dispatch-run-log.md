@@ -282,3 +282,17 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   shared with `medical`); files considered and rejected; reciprocal boundaries both ways
   (`medical.*` engaged 16 times); a sparse-file discipline section; and a "what changed in the JSON
   in this pass" section that makes the deepening auditable.
+
+## Debt clearing 2-3/64 — the other two schema anchors deepened
+
+- `business_operations`: **7,848B → 45,984B (5.9x)**, 15 sections, 10 file_examples, all universal
+  keys. Generalises its family's one refusal into a stated "never-alone principle, for all 24
+  siblings" — turning a single row's argument into a rule the whole family can apply.
+- `construction_property`: **7,329B → 43,353B (5.9x)**, 15 sections, 11 file_examples, all
+  universal keys. Stays explicitly consistent with the `progress-photos` reasoning and with
+  `creative.raw-photo-catalogue`, which had argued against it.
+- **The shared `organization` proposal is genuinely reciprocal, not two rival claims.** Each memo
+  names the other, quotes its edge, and states it is deliberately not contradicting it. R1c will
+  find one decision to make, not two competing ones — which is exactly what was asked for.
+- All three schema anchors are now at J-DEPTH. Their 61 templates can go out shallowest-first,
+  each measured against a default template that now actually exists.
