@@ -980,6 +980,19 @@ MODE_SWEEP: Mapping[str, int] = MappingProxyType({
     "cloud_assisted": 14,
 })
 
+#: 11 §9's second fixture path, named as data rather than left to be rediscovered:
+#:
+#:     P7/P8   a dossier that requires sensitive text
+#:             Gate.release returns NeedsConsent
+#:             P13 presents the four §8.4 options
+#:             choosing no_model_use does not become abstain inside P8
+#:
+#: 11 §9 also says what kind of test that is -- "a contract test of B2, not an LLM
+#: test ... the minimum that makes the one privacy-failure seam exercisable without
+#: waiting for full depth". P7 owns the first two lines; the third is P13's and the
+#: fourth is P8's Done-means 13.
+SKELETON_FIXTURE: int = 10
+
 _BY_NUMBER: Mapping[int, GateFixture] = MappingProxyType(
     {fixture.number: fixture for fixture in FIXTURES})
 
