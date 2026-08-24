@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Estate agency listings and property marketing",
-  "one_line": "The material made to SELL or LET a property that is not the holder's own: the agency instruction and its fee, the particulars and their drafts, the marketing photograph set and floor plan, the portal copy and its exports, the viewing schedule and feedback, the offers received and the memorandum of sale or letting that closes the instruction. The anchor is a MARKETING INSTRUCTION for a property with an asking price or rent and an audience. Absorbs the legacy row prop.listing. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "one_line": "The material made to SELL or LET a property that is not the holder's own: the agency instruction and its fee, the particulars and their drafts, the marketing photograph set and floor plan, the portal copy and its exports, the viewing schedule and feedback, the offers received and the memorandum of sale or letting that closes the instruction. The anchor is a MARKETING INSTRUCTION for a property with an asking price or rent and an audience. Absorbs the legacy row prop.listing. Placeholder row (J-IND, deepened to J-DEPTH): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -364,8 +364,13 @@
   ],
   "collides_with": [
     {
-      "domain": "finance.household-property",
-      "signal": "An owner selling their own home keeps the particulars, the photographs, the EPC and the memorandum, and they look identical to the agency's copies. The discriminating evidence is the INSTRUCTION: terms of business, a fee basis, an applicant register and viewing feedback support this row; the same documents held with none of that apparatus, as part of a household's own record of its own home, support finance.household-property. A property address, a price and a floor plan count for neither. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "domain": "construction_property.commercial-lease",
+      "signal": "Letting particulars for business premises sit between the two. The discriminating evidence is which phase the document serves: material made to FIND an occupier — particulars, portal listing, viewing feedback, offers — supports this row; material that runs the lease once granted — rent review, schedule of condition, dilapidations, service-charge apportionment — supports commercial-lease. A rent figure and a premises address count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.development-appraisal",
+      "signal": "Reciprocates that row's edge. A site offered for sale produces an appraisal and a marketing pack about the same plot, often bound together in one document. The discriminating evidence is what the document DOES: computing a residual value from build-cost, revenue and finance assumptions supports development-appraisal; presenting a property to a market with particulars, a price line, photographs and a viewing route supports this row. A site address, a plan and a price count for neither.",
       "provenance": "inference"
     },
     {
@@ -374,13 +379,38 @@
       "provenance": "inference"
     },
     {
-      "domain": "photos.camera-events",
-      "signal": "A marketing shoot IS a camera event: many images of one place in one short window with consistent metadata. The discriminating evidence is the instruction around it — particulars, a listing, a property under marketing — not the images. A GPS cluster, a camera model and a capture window support a photo event and never a marketing instruction, and the clustering must not become the fact: “The graph does not automatically copy those missing facts onto sparse files.”",
+      "domain": "construction_property.inventory-inspection",
+      "signal": "Reciprocates that row's edge, in the same terms it used. Marketing photographs and inventory photographs are of the same rooms on the same schema with no metadata that separates them. The discriminating evidence: a room-by-room schedule with condition gradings, a check-in or check-out purpose and a signature block supports the inventory row; a floor plan with a stated area, a price line, particulars text and agency branding around the same images supports this row. A wide interior shot alone supports neither. Stated as a craft observation rather than a rule: marketing frames are lit, wide and flattering and inventory frames are close, unlit and record wear - but that is a photographer's tendency, not evidence, and the engine must not be built on it.",
       "provenance": "inference"
     },
     {
-      "domain": "construction_property.commercial-lease",
-      "signal": "Letting particulars for business premises sit between the two. The discriminating evidence is which phase the document serves: material made to FIND an occupier — particulars, portal listing, viewing feedback, offers — supports this row; material that runs the lease once granted — rent review, schedule of condition, dilapidations, service-charge apportionment — supports commercial-lease. A rent figure and a premises address count for neither.",
+      "domain": "construction_property.progress-photos",
+      "signal": "Both rows are sets of photographs of one property, and that row's node test rests on being recognised by capture metadata and rhythm rather than by document structure. This row does not weaken that argument; it distinguishes itself on the same axis. The discriminating evidence is RHYTHM: one visit producing one complete set of every room, never repeated, supports a marketing shoot; the SAME place photographed again at intervals over weeks, in that row's own words a site walk that goes to one place many times, supports progress-photos. Subject matter reinforces it - finished and staged rooms here, unlovely structural state there - but a camera model, a GPS point or a capture window supports neither, and cluster membership must not become a fact about either: the graph does not automatically copy those missing facts onto sparse files.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.sale-purchase",
+      "signal": "Reciprocates the edge that row already authored toward this one. One sale produces two files with one shared document: the MEMORANDUM OF SALE, which closes the marketing instruction and opens the conveyance, and which both rows can legitimately hold. The discriminating evidence: material made to FIND a buyer - particulars, portal listing, viewing feedback, applicant register, offers and counter-offers - supports this row; material that CONVEYS the property once an offer is accepted - title register copies, searches, pre-contract enquiries and replies, the contract through its drafts, the transfer, the completion statement - supports sale-purchase. A property address, an agreed price and the buyer's name count for neither. The memorandum itself is the one file where both readings are correct and neither should suppress the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.survey-valuation",
+      "signal": "Reciprocates that row's edge. An estate agency market appraisal is written to resemble a professional valuation of the same property and gives the same kind of figure. The discriminating evidence: a stated basis of valuation, an inspection date and a limitation of liability support survey-valuation; a marketing recommendation, an asking price, a fee schedule and draft portal copy support this row. A property address and a money figure count for neither - a money figure alone is this schema's constitutional never-alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.tenancy-management",
+      "signal": "A letting instruction hands over to a tenancy the moment a let is agreed, and the same address, the same agency and often the same people appear on both sides. The discriminating evidence: material that FINDS an occupier - letting particulars, portal listing, applicant registrations, viewings, referencing and the holding deposit - supports this row; material that RUNS the tenancy once granted - the deposit protection certificate, the served statutory documents, the compliance calendar, the rent ledger and the end-of-tenancy reckoning - supports tenancy-management. That row states its own fingerprint as a CO-OCCURRENCE of agreement plus deposit certificate plus safety records for one address, and this row does not contest it: none of those five documents is marketing. Tenant referencing is the genuinely shared item and is the one both rows should expect to see twice.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "An owner selling their own home keeps the particulars, the photographs, the EPC and the memorandum, and they look identical to the agency's copies. The discriminating evidence is the INSTRUCTION: terms of business, a fee basis, an applicant register and viewing feedback support this row; the same documents held with none of that apparatus, as part of a household's own record of its own home, support finance.household-property. A property address, a price and a floor plan count for neither. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.camera-events",
+      "signal": "A marketing shoot IS a camera event: many images of one place in one short window with consistent metadata. The discriminating evidence is the instruction around it — particulars, a listing, a property under marketing — not the images. A GPS cluster, a camera model and a capture window support a photo event and never a marketing instruction, and the clustering must not become the fact: “The graph does not automatically copy those missing facts onto sparse files.”",
       "provenance": "inference"
     }
   ],

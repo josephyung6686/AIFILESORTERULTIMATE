@@ -316,3 +316,14 @@ The gist rows' **JSON payloads were already substantial** (~25KB, ~10 file_examp
 `.research.md` memos were shallow. Earlier log entries quoted memo bytes as if they were whole-row
 sizes. Deepening is therefore cheaper per row than the 3-4x projection: agents verify-and-extend
 the JSON and rewrite the memo. Corrected in the retry prompts.
+
+## Debt clearing 5/64 — `construction_property.agency-listing` deepened
+
+- **3,466B → 36,028B (10.4x)**, the largest expansion so far. 10 file_examples, all universal keys,
+  no proposed fields, stands.
+- The dispatch challenge — a listing is public-facing marketing material, so is it *less* sensitive
+  than the schema default? — was engaged head-on and answered **against** the intuition, with the
+  agent noting the intuition is reasonable before dismantling it. Privacy reasoning appears 13
+  times; leg 3 is the leg this row turns on.
+- This is the argument the gist row did not contain at all, and it is the kind that matters:
+  getting a privacy posture wrong in the permissive direction is the expensive error.
