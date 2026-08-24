@@ -494,3 +494,15 @@ statement of what else was left alone (development-appraisal).
 - Found and fixed a cross-family error: a fundraising term sheet was "one of this row's named
   instruments pointed at the wrong counterparty", producing a new reciprocal edge to
   `finance.cap-table-equity`.
+
+## Debt clearing 21/64 — `business_operations.contract-administration`, stands
+
+- **4,323B → 39,418B (9.1x)**, 12 file_examples, all universal keys, stands.
+- Engaged `legal.*` 16 times and followed `construction_property.subcontract`'s settlement of the
+  same contract-vs-`legal` charge 11 times, rather than re-deriving it.
+- **Best practice worth propagating: it encoded the trap into the data, not just the prose.** The
+  dispatch's charge — that if the only discriminator were a company rather than a person holding
+  the contract, the row would fail — is accepted outright AND written into the JSON as
+  `recognition.never_alone[2]`, "so that no downstream reader can mistake it for support."
+  A rejected signal recorded as machine-readable never-alone evidence survives; a rejected signal
+  argued only in a memo can be silently re-adopted later.
