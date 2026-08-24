@@ -426,3 +426,24 @@ compliance-certificate — show the flagging discriminates rather than always pr
   Survived the charge that refused its own family's `compliance-certificate`, and wrote the
   `government` seam 33 times for a schema nobody has written yet — the second row to specify a
   boundary in advance of its neighbour existing.
+
+## Debt clearing 15/64 — `construction_property.development-appraisal`, and the wave closes
+
+- **4,165B → 46,497B (11.2x)**, the largest memo yet. 12 file_examples, all universal keys, stands.
+- Survived the spreadsheet-shape charge and settled the `finance` seam (engaged 13 times), staying
+  consistent with the earlier `site-survey` vs `survey-valuation` split (engaged 6 times) — pricing
+  a scheme before it is built vs pricing an asset that exists.
+- **Qualified the gist draft's leg-2 claim** rather than preserving it, and stated explicitly that
+  nothing else was reversed. That is the deepening pass doing its actual job: not just expanding a
+  thin row, but correcting what the thin row got wrong, and saying so audibly.
+- Nice detail: it invokes the sparse-file rule because half this row's real files are an untitled
+  `Cashflow.xlsx` in a folder named after a site — reasoning about the unhelpful real-world file,
+  not the tidy imagined one.
+
+## Wave complete — 4 dispatched, 4 landed, 0 killed (verified this time before reporting)
+
+Expansions 9.0x / 9.5x / 8.8x / 11.2x. All four stand. Techniques worth propagating from this wave:
+arguing from a **conspicuous absence** (commercial-lease's missing period level), settling a
+deferred pair question outright (product-requirements), specifying a seam with an **unwritten**
+schema (building-control -> government), and **qualifying a predecessor's claim** with an explicit
+statement of what else was left alone (development-appraisal).

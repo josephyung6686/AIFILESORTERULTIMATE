@@ -4,14 +4,27 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Property development appraisals",
-  "one_line": "The financial case for building something on a site, made BEFORE it is built and revisited while it is: the residual appraisal that works backwards from end value through build cost, fees, finance and profit to what the land is worth; the cost plan and the cashflow underneath it; the sensitivity runs; the funding and viability submissions built from it. The anchor is a SCHEME ON A SITE and a set of assumptions that have not happened yet. Absorbs the legacy row prop.development-appraisal. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "one_line": "The financial case for building something on a site, made BEFORE it is built and revisited while it is: the residual appraisal that works backwards from end value through build cost, fees, finance and profit to what the land is worth; the schedule of accommodation and the peak-funding cashflow underneath it; the sensitivity runs; the pre-contract cost plan; and the bid, viability and funding packs built from all of it. The anchor is a SCHEME ON A SITE and a set of assumptions that have not happened yet — an appraisal solves for what you can afford to pay, where a budget totals to a total and a ledger reconciles to a balance. Absorbs the legacy row prop.development-appraisal. Placeholder row: it writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
   "refuse_node": false,
   "refuse_reason": null,
   "fields": [],
-  "proposed_fields": [],
+  "proposed_fields": [
+    {
+      "key": "property",
+      "why": "SECONDED, not minted — this is the construction_property schema row's own proposal (NJ-CP-1) and R1c must settle it ONCE, there, for the whole family. This row is a clean supporting case: a site outlives every scheme ever appraised on it, and a developer returns to an abandoned site's papers years later when the site comes round again. Nothing canonical holds it: `location` is the photos capture key and carries a capture reading, `institution` is a finance counterparty, `client` is a party rather than an asset. No variant is offered and no spelling is changed.",
+      "provenance": "inference",
+      "adjudicate": "R1c (NJ-CP-1)"
+    },
+    {
+      "key": "project",
+      "why": "NOT a mint — a REUSE of an existing canonical key, offered as this row's answer to the alternative the schema row itself invited (NJ-CP-2). The anchor proposes `instruction` *with a live alternative that R1c should feel free to take: reuse the canonical `project`*, and this row is the strongest single case for taking it: a development scheme is a project by any ordinary reading — a name, a start, a programme, a budget, an end. Minting `instruction` here would ship a near-duplicate of a canonical key, the exact defect D6 exists to kill: “The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.” This row therefore does NOT second `instruction`, and says so openly rather than omitting it silently. `organization` is likewise not this row's proposal — it is business_operations', seconded by the schema row, and settled there for all three.",
+      "provenance": "inference",
+      "adjudicate": "R1c (NJ-CP-2)"
+    }
+  ],
   "recognition": {
     "deterministic": [
       "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
@@ -353,6 +366,49 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Household budget 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "build cost lines, a contingency row and a finance cost row for a loft extension",
+        "a total, and a builder's quotation pasted in below it",
+        "a single named holder, no approver, no unit mix and no residual line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that build cost, contingency and finance rows make it an appraisal — it totals what the work will COST and never solves for what the site is WORTH, and there is no accommodation schedule because there are no units to sell or let",
+        "a scheme fact of any kind; the holder is the owner-occupier, not an instructed party, and finance.household-property claims this",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Extension - builder quotes.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "three columns of priced work against the same described items",
+        "a chosen-supplier highlight",
+        "no site other than the holder's own address, no funding line, no return metric"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that a comparison of prices is a sensitivity run; a sensitivity run varies ONE model's assumptions and shares an accommodation schedule across its members, while this compares three parties' prices for one job",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
     }
   ],
   "collides_with": [
@@ -374,6 +430,26 @@
     {
       "domain": "construction_property.agency-listing",
       "signal": "A site being sold produces both an appraisal and marketing material about the same plot, often in one pack. The discriminating evidence is whether the document computes a value from assumptions (this row) or presents a property for a market with particulars, a price line and photographs (agency-listing). A site address, a plan and a price count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "The developer's ACTUAL book against this row's model. Both are spreadsheets of money held by the same person about the same schemes. The discriminating evidence is TRANSACTIONS versus ASSUMPTIONS: populated journal or ledger columns, a trial-balance pair, a bank reconciliation, an invoice series or an AR/AP report supports that row, which is function-first and owns the working book; a residual chain terminating in a land value, with an accommodation schedule beside it, supports this one. A workbook holding an appraisal tab AND a reconciled-actuals tab is a real file with disjoint evidence on each tab, and one item never counts twice. Where neither is evidenced, finance is a safety schema and wins: “Finance, identity, medical, and legal material should be implemented first as safety domains”.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "A scheme model whose returns tab splits profit between joint-venture partners looks like ownership paperwork. The discriminating evidence is ASSUMPTION versus INSTRUMENT: a share register, an option ledger, a waterfall or an executed funding instrument — a durable ownership claim — supports that row; a promote or a JV split MODELLED inside a cashflow is an assumption this row holds, and the deed that governs it belongs to that row and to legal.leases-agreements. A partner name and a percentage count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.survey-valuation",
+      "signal": "The family's THIRD term, after the one it already drew between measuring the land and pricing the asset: this row prices a SCHEME THAT IS NOT THERE. The shared vocabulary is total — yield, capitalisation, comparables, value. The discriminating evidence is what is being priced and whether anyone may RELY on it: a standing asset, with an addressee, a stated purpose, a basis of valuation and a liability limitation, supports survey-valuation; a set of assumptions about unbuilt accommodation, resolving backwards to a land price, supports this row. A residual valuation prepared AS a reliance-bearing report is genuinely both, and the reliance furniture decides which reading leads. A yield figure and a property address count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.sale-purchase",
+      "signal": "An acquisition folder holds both, and they are adjacent rather than competing. The discriminating evidence is TITLE APPARATUS versus PRICE JUSTIFICATION: register entries, plan references, covenant schedules and a report on title support sale-purchase; the model that justified the bid supports this row. The edge is recorded not because the two contest a file but because the folder invites the copy — and a title fact must never be written onto an appraisal that merely sits beside one: “The graph does not automatically copy those missing facts onto sparse files.”",
       "provenance": "inference"
     }
   ],
@@ -408,5 +484,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "The strongest commercial-confidentiality case in this family, and the weakest personal-data one — recorded that way rather than flattened. An appraisal states what a party will pay for a site, what margin they require and at what point they walk away; disclosure of it to the counterparty destroys the position it describes, and these files carry explicit confidentiality legends more often than not. The exposed party is frequently a third party (a funder, a landowner, a joint-venture partner) who cannot consent to what the product does. Personal data is comparatively thin here, though comparable schedules list other people's transacted homes by address. That combination argues for the cautious setting. The handling class is P7's and is not set here.",
-  "open_question": "Three. (1) NJ-J-IND-3, the fork the landed business_operations row records, reaching this family: where does forward-looking money about a SCHEME live — with finance (which owns statutory and custodial money), with business_operations (which this pass reads as owning forward-looking management money), or with the property family that owns the scheme? This row asserts the third and does so on the SUBJECT rather than on the money, which is defensible and was drawn by this pass. (2) The near-duplicate sensitivity set is the hardest real grouping case on this schema: files that are near-identical by content and distinct by meaning, where 00's duplicate machinery is right about the bytes and wrong about the intent. Recorded, not solved, and flagged for P9. (3) Inherits NJ-CP-1 and NJ-CP-2 — this row is the strongest single argument for reusing canonical `project` rather than minting `instruction`, since a development scheme is a project by any reading."
+  "open_question": "Four, three of them extensions rather than new forks. (1) NJ-J-IND-3, the CONSTRUCTION face of the fork business_operations.budget-forecast already records: where does forward-looking money about a SCHEME ON A SITE live — with finance (which owns statutory and custodial money, and whose four fields per 00, “Finance files may use institution, account type, tax year, and record type”, cannot describe a scheme that has not been transacted), with business_operations (which owns forward-looking management money, but loses the site), or with the property family that owns the scheme? This row asserts the third, on the SUBJECT rather than on the money, and extends rather than contradicts budget-forecast's reading that a work type is a value and not a node. Recommendation offered and not taken: keep it here, with the seam stated as EVIDENCE-based — residual chain and accommodation schedule present, or finance's four slots present — never topic-based. (2) NJ-DA-1, the near-duplicate sensitivity set: files near-identical by content and distinct by meaning by one assumption cell. “A content-hash match supports deduplication review; a filename match alone does not.” cuts both ways — the hashes differ so they are not duplicates, the filenames differ only by a suffix so the names prove nothing. Alternatives: one version family (cheap and wrong, since the members are not successive versions of one thing), independent records (honest but scatters an exercise), or a purpose-coherent group (“The documents are content-incoherent but purpose-coherent.” is the nearest licence 00 gives, but it is written for content-INcoherent members and these are content-TOO-coherent). No mechanism invented; P9's call. (3) NJ-DA-2, new: is a pre-contract COST PLAN this row's or construction-project's? This row takes it only where there are no measured works to price — elemental rates against a described scheme at a stated design stage — and the cost of that line is that the design-stage marker is a LABEL, not a structure. The alternative, giving all cost planning to construction-project, is cheaper to detect but separates the cost assumption from the model that consumes it. (4) Inherits NJ-CP-1 and NJ-CP-2, and argues the REUSE side of NJ-CP-2: a development scheme is a project by any ordinary reading, so this row seconds `property` and declines to second `instruction`. Separately, seven of this row's eight boundaries are authored one-way — only construction_property.construction-project names this row back — and R1c owes the reciprocals."
 }
