@@ -268,3 +268,17 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   untrusted one. Its facts were checked; what it lacks is depth, cross-family argument, the node
   test argued leg by leg, and files-considered-and-rejected. Preserve what is right, deepen the
   rest, do not rewrite for the sake of rewriting.
+
+## Debt clearing 1/64 — `clinical_practice` schema deepened
+
+- **7,749B → 40,102B (5.2x)**, JSON 39,719B, 13 file_examples, all universal keys. Deepest row on
+  the roster. 23 sections, so the growth is structure and argument, not padding.
+- Preserved as instructed: the `subject_of_record` proposal, and the honest treatment of the node
+  test's unsatisfiable leg — now stated outright as "unsatisfiable, and I am not going to pretend
+  otherwise", with legs 2 and 3 carrying the row instead.
+- Added what gist depth lacked: the default template stated for the ten siblings **and each sibling
+  measured against it**; a collision fixture named in BOTH directions (over-firing on a blank
+  consultation-letter template, under-firing on the After Visit Summary — the reciprocal bytes
+  shared with `medical`); files considered and rejected; reciprocal boundaries both ways
+  (`medical.*` engaged 16 times); a sparse-file discipline section; and a "what changed in the JSON
+  in this pass" section that makes the deepening auditable.

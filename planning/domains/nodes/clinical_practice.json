@@ -4,7 +4,7 @@
   "schema_id": "clinical_practice",
   "parent_id": null,
   "name": "Clinical practice (clinician side)",
-  "one_line": "The practitioner's side of healthcare: the material a clinician, practice, pharmacy, or veterinary surgery authors and custodies ABOUT other people. It is the role-reverse of the medical safety domain - there the holder is the subject of the record, here the holder is its author and custodian and the subject is a third party who never chose this filesystem. Gist-level placeholder (J-IND): it declares NO field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6) and recommends NO folder dimensions, so activation unlocks recognition and protection plus the universal facts only.",
+  "one_line": "The practitioner's side of healthcare: the material a clinician, practice, pharmacy, or veterinary surgery authors and custodies ABOUT other people. It is the role-reverse of the medical safety domain - there the holder is the subject of the record, here the holder is its author and custodian and the subject is a third party who never chose this filesystem. Full-depth placeholder (J-IND, written to J-DEPTH): it declares NO field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6) and recommends NO folder dimensions, so activation unlocks recognition and protection plus the universal facts only.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -170,6 +170,33 @@
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consultation letter TEMPLATE - blank.docx",
+      "source_type": "text_document",
+      "observations": [
+        "practice letterhead, a sign-off block naming the holder, and a professional registration number - the full author-role structure",
+        "labelled patient, date-of-birth, and record-number slots that are EMPTY, or hold bracketed placeholder tokens",
+        "a history / examination / impression / plan heading skeleton with no narrative under any heading",
+        "the same file re-saved under several names in a practice's forms folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation from the author-role structure alone: this is THE collision fixture for this schema in the direction of over-firing - every deterministic signal except a named subject is present, and the whole node test turns on the second role being FILLED by a different person",
+        "that placeholder tokens in a patient slot are a subject",
+        "a sensitivity_status of protected from a labelled patient slot that holds nothing",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
     },
     {
       "filename": "After Visit Summary.pdf",
@@ -521,5 +548,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "00 names this material inside its own privacy language - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. This row carries an aggravating factor 00 does not separately address and which is stated as inference, not as a design claim: the sensitive party is a THIRD person who never chose this filesystem and cannot consent to, review, or correct anything the product does. That argues for the strictest available posture, not a lesser one. Only 00's phrases are asserted here; the handling class is P7's and is not set on this row.",
-  "open_question": "Four, and the first is the one that blocks the rest. (1) NJ-J-IND-4, restated with this row's evidence: `is_safety_domain: true` marks 00's four named domains, and this row does not carry it - but the material is patient-identifying by default and the case for the flag is stronger here than for some of the four, because the exposed party is not the user. If the flag is withheld, the substitute mechanism must be named, because CONNECTION section 4 step 5's protect-first ordering is keyed to the flag and nothing else currently forces P7 ahead of a model path for this schema. (2) Whether `subject_of_record` may exist as a stored field key at all (proposed_fields, for R1c) - this is not the medical row's holder-versus-subject question repeated, it is the sharper version of it, because here the subject is definitionally not the holder. (3) NJ-2 for this domain: may the matched clinical text be stored in the local evidence table like any other observation, or should detection store only a protected marker plus a location? A stored third-party narrative is a larger local surface than a flag, and every later dossier builder reads that table. (4) Whether ten templates on a field-less schema is the right shape at all, or whether some of the ten should fold - this row's own answer is that the five it can see (patient-chart, case-conference, licensure-credentialing, malpractice-incident, referral-correspondence) each pass the node test on detection signals and privacy rules, with licensure-credentialing the weakest and carrying its own fold question against career.credentials-licenses."
+  "open_question": "Four, and the first is the one that blocks the rest. (1) NJ-J-IND-4, restated with this row's evidence: `is_safety_domain: true` marks 00's four named domains, and this row does not carry it - but the material is patient-identifying by default and the case for the flag is stronger here than for some of the four, because the exposed party is not the user. If the flag is withheld, the substitute mechanism must be named, because CONNECTION section 4 step 5's protect-first ordering is keyed to the flag and nothing else currently forces P7 ahead of a model path for this schema. (2) Whether `subject_of_record` may exist as a stored field key at all (proposed_fields, for R1c) - this is not the medical row's holder-versus-subject question repeated, it is the sharper version of it, because here the subject is definitionally not the holder. (3) NJ-2 for this domain: may the matched clinical text be stored in the local evidence table like any other observation, or should detection store only a protected marker plus a location? A stored third-party narrative is a larger local surface than a flag, and every later dossier builder reads that table. (4) Whether ten templates on a field-less schema is the right shape at all, or whether some of the ten should fold. All ten are now written, and this row's answer measured against the default template stated in the memo: patient-chart, case-conference, referral-correspondence, malpractice-incident, protocol-guideline, teaching-material, pharmacy-operations and veterinary-practice each differ from the default on detection signals or on privacy rules, and pass. practice-administration is the one whose members most often carry no third-party subject at all, and licensure-credentialing is the weakest of the ten - it carries its own fold question against career.credentials-licenses. Those two, not the family size, are what R1c should look at."
 }
