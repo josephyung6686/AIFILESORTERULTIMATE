@@ -196,3 +196,18 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   present them as finished until they are.
 - Revised scope: **275 rows at full depth, one agent per row.** At one wave per usage window this
   is a run measured in weeks, not days. Recorded so the estimate is not rediscovered as a surprise.
+
+## First J-DEPTH row — the standard demonstrably changed
+
+- `creative.creative-brief`: memo **19,331B**, JSON 23,706B, 11 file_examples.
+  Benchmarks: gist median 4,921B · R1b launch-row median 12,993B. This row is 3.9x the gist depth
+  and above the launch-row median, so J-DEPTH is landing, not just declared.
+- All six required sections present, including the node test argued leg by leg (not a verdict) and
+  a "Files considered and rejected" section — the two things gist rows were skipping.
+- **REFUSED**, as flagged at dispatch, on a genuinely new argument: a brief-shaped document is the
+  strongest single evidence that a CLIENT ENGAGEMENT exists, and "a signal that is decisive for a
+  neighbour cannot also be constitutive of this row" — running both would let one evidence item
+  activate two templates, which is the collision discipline CONNECTION.md section 4 step 3 exists
+  to prevent. Routed to five residual templates.
+- Two NEEDS-JOSEPH items surfaced rather than smoothed, including one escalated upward about the
+  fieldless-schema consequence for the whole family.
