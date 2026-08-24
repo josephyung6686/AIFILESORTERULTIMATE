@@ -364,3 +364,21 @@ the JSON and rewrite the memo. Corrected in the retry prompts.
 - **Wrote the `hr` boundary 18 times for an author who does not exist yet.** `hr` is an unwritten
   schema, and a staff handbook is its most obvious material; the seam is now specified in advance
   rather than left to be negotiated when that family is written. Cheapest possible time to fix it.
+
+## Debt clearing 10/64 — `clinical_practice.case-conference` deepened, stands
+
+- **3,869B → 36,887B (9.5x)**, 11 file_examples, all universal keys, `Depth: J-DEPTH`, complete.
+- Engaged `business_operations.meeting-record` 6 times — the cross-family collision that mattered
+  here, since a clinical case conference and a corporate meeting record must not both claim the
+  same evidence. Third-party aggregation reasoned about explicitly for the privacy leg.
+- Ends with a stated list of exactly which files it modified — the auditability habit now showing
+  up unprompted across deepened rows.
+
+## Wave summary — 4 dispatched, 4 landed, 0 killed
+
+First wave since the limits reset with no agent losses. Expansions 9.1x / 8.2x / 9.5x, all
+stands, no refusals this wave despite three of four being flagged as likely failures. That is a
+reasonable outcome, not a rubber stamp: each granted the hostile reading first and answered it on
+cited evidence (spreadsheet-shape, document-type, and work_type-of-patient-chart charges
+respectively). The two flagged-likely-refusal rows that DID fail earlier — organisational-records,
+compliance-certificate — show the flagging discriminates rather than always producing "stands".

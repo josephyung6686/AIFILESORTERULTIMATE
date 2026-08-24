@@ -4,7 +4,7 @@
   "schema_id": "clinical_practice",
   "parent_id": null,
   "name": "Case conferences and multidisciplinary meetings",
-  "one_line": "The organizational situation of material prepared for, presented at, or produced by a recurring meeting at which SEVERAL named cases are discussed across services - tumour boards, multidisciplinary team meetings, morbidity and mortality reviews, safeguarding conferences, ward rounds recorded as documents. The organizing anchor is the MEETING, not any one patient, which is what makes it a different situation from a chart. Gist-level placeholder (J-IND): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "one_line": "The organizational situation of material prepared for, presented at, or produced by a recurring meeting at which SEVERAL named cases are discussed across services - tumour boards, multidisciplinary team meetings, morbidity and mortality reviews, the clinician's contribution to a safeguarding conference, ward rounds recorded as documents. The organizing anchor is the MEETING, not any one patient, which is what makes it a different situation from a chart. Full-depth placeholder (J-IND, written to J-DEPTH): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -323,6 +323,56 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Consultation 2026-05-15.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a single labelled subject block - one name, one date of birth, one record-number token - at the head of the file",
+        "a run of dated entries about that same one person, oldest first",
+        "the newest entry opens with a pasted paragraph naming the meeting, its date, and the agreed plan",
+        "a sign-off block naming the holder as the responsible clinician"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the pasted meeting paragraph - ONE subject accumulating dated entries is clinical_practice.patient-chart's shape, and this is the under-firing fixture: the meeting text is quoted INTO the chart, it does not carry the chart out",
+        "a meeting-series group anchor for this file from the pasted paragraph alone - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "any clinical_practice fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Initial child protection conference - minutes.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a meeting header naming a local authority, a conference kind, and an independent chair",
+        "an attendance list mixing a social worker, a school representative, a police officer, and a health visitor",
+        "one named child and named family members, with a plan category and a review date",
+        "a distribution list at the foot naming agencies rather than individuals"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row because the word conference appears and a clinician attended - the convening body is a public authority and the artifact is its record, which is government.social-services-casework's; only the clinician's OWN report prepared for the conference is this row's",
+        "that a single subject makes the file lower risk than a multi-case list - the third parties here include a minor and their family",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
     }
   ],
   "collides_with": [
@@ -349,6 +399,21 @@
     {
       "domain": "clinical_practice.practice-administration",
       "signal": "Departmental business meetings share the agenda, attendance, minutes, and actions shape exactly, and often the same recurring calendar series. The discriminating evidence is simply whether named cases are discussed: several subjects means this row, rotas and budgets mean administration. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "A corporate working meeting produces an agenda, an attendance list and an outcomes table with the same four-part structure and often the same recurring calendar series. The discriminating evidence is whether NAMED CASES - third parties who are not attendees - are discussed: if they are, this row owns the file and it is protected material; ordinary work discussion among the attendees themselves supports the business row. Stated to match the business row's own wording, which already names this row from its side. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.social-services-casework",
+      "signal": "A child-protection or adult-safeguarding conference is a multi-agency meeting whose record carries a header, a chair, a mixed attendance list including a clinician, a named family and a decision. The discriminating evidence is WHO CONVENED IT and who authored the artifact: a clinician's own report or contribution prepared for the conference is this row's; the convening authority's conference minutes, plan category and review record are the public-authority row's, with the clinician present as one attendee rather than as the anchor. Neither side may read the health attendee as proof of clinical custody. One-way edge; the neighbour has not landed and owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "A case conference about a MEMBER OF STAFF - occupational health, capability, a return-to-work meeting - has this row's structure exactly: header, attendance, a named subject, a decision and actions. The discriminating evidence: the subject is an employee of the holder's organisation and the apparatus is employment (an allegation, a right to be accompanied, an absence record, an appeal reference), which supports the employment row; a patient or service user receiving care supports this row. The confusion is real and this edge resolves what an earlier pass left unedged. One-way edge; the neighbour has not landed and owes the reciprocal. Provenance: inference.",
       "provenance": "inference"
     }
   ],
