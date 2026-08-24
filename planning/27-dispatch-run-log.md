@@ -609,3 +609,23 @@ reasoning, and the autopilot has a new pre-commit check that applies to every re
   discriminator you can run an experiment against is worth more than one you can only agree with.
 - Stays consistent with the requirements-vs-roadmap settlement rather than reopening it; its four
   wanted changes are recommendations to R1c under NJ-BO-SP-3, not edits to neighbours.
+
+## Debt clearing 29-30/64 — the wave closes, 4 dispatched 4 landed 0 killed
+
+- `construction_property.survey-valuation`: **4,558B → 35,675B (7.8x)**, 11 file_examples, stands.
+  Confirmed the `site-survey` split from its own side, where it had only ever been argued from the
+  other row's side.
+- `business_operations.customer-account-management`: **4,556B → 34,647B (7.6x)**, 11 file_examples,
+  stands. Barred from reusing `partnerships-bd`'s relationship-state discriminator (it sits on the
+  "already exists" side with `vendor-management`), it accepted and reciprocated that settlement
+  "not reopened" and found its own ground, reaching for `00`'s `our_firm`/`client` role split.
+- **The line worth keeping:** of the legacy id it absorbed, it says that inheritance "is **not** a
+  reason to keep the row." That is the 574's original failure — inventing or retaining a node to
+  save an id — named and refused by a row that had every incentive to lean on it.
+
+## Autopilot status
+
+Cron 7c720ee2 firing every 2h at :13. Wave size 4. Debt 64 -> 34. Total landed 180/358.
+Pre-commit checks now in force: JSON parses · all universal keys · `Depth: J-DEPTH` header · memo
+ends unbroken · both files modified · memo's "what changed" claims match the JSON · no file outside
+the row's two touched · commit by explicit file list.
