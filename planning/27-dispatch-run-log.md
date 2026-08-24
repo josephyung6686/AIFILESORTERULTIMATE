@@ -211,3 +211,17 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   to prevent. Routed to five residual templates.
 - Two NEEDS-JOSEPH items surfaced rather than smoothed, including one escalated upward about the
   fieldless-schema consequence for the whole family.
+
+## `creative.raw-photo-catalogue` — stands, at 24.5KB
+
+- Memo **24,470B** (gist median 4.9KB, launch-row median 13KB), 12 file_examples, every universal
+  key present. Not refused — argued to stand against a three-way collision.
+- **Engaged the prior cross-family argument rather than ignoring it:** cites
+  `construction_property.progress-photos` five times and reasons against it explicitly, as
+  instructed. This is the behaviour that grouped gist agents could not produce across families.
+- **Exemplary proposed-field discipline:** it needs `capture_date` and *seconds*
+  `photos.camera-events`' existing proposal instead of minting a variant — "a second independent
+  situation needing the same key is evidence for the proposal, not a second proposal." Keeps
+  `destination_eligible: false` as originally proposed and declines to widen it, citing 00's
+  warning about trees that create "a large number of tiny folders". Nothing written into
+  canonical_fields.json.
