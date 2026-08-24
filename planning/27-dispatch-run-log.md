@@ -506,3 +506,25 @@ statement of what else was left alone (development-appraisal).
   `recognition.never_alone[2]`, "so that no downstream reader can mistake it for support."
   A rejected signal recorded as machine-readable never-alone evidence survives; a rejected signal
   argued only in a memo can be silently re-adopted later.
+
+## Debt clearing 22/64 — `business_operations.go-to-market`, stands
+
+- **4,406B → 46,901B (10.6x)**, 10 file_examples, all universal keys, stands.
+- Quoted the dispatch's charge verbatim into the memo and answered it as "an answer rather than a
+  defence" — the phase-not-a-world objection engaged directly.
+
+## Wave of 8 — outcome, and an honest read on the flagging
+
+7 landed so far, all stand; 1 (`snagging-defects`) still running. **No refusals in this wave**
+despite 5 of 8 being flagged as likely failures. That could look like rubber-stamping, so the
+honest accounting:
+
+- The flagging is still producing corrections, just short of refusal. `drawings-revisions` reversed
+  three of four claims, withdrew a field proposal, and corrected the dispatcher's own diagnosis.
+  `partnerships-bd` settled a three-row merge question and fixed a mis-pointed instrument.
+  `contract-administration` wrote its disqualifying signal into the JSON as never-alone evidence.
+- Earlier waves DID refuse under the same flagging (organisational-records, compliance-certificate,
+  timesheet, creative-brief, self-initiated-work), so the mechanism discriminates.
+- **But the ratio is worth watching.** If flagged rows stop failing entirely across the next two
+  waves, the flagging has become theatre and the challenge needs re-designing, not repeating.
+  Recorded here so a future session checks it rather than assuming.
