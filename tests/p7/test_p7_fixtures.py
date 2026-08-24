@@ -34,9 +34,10 @@ from extractors.long_tail import (
     POTENTIALLY_SENSITIVE, SensitivitySignal, record_sensitivity_signals,
 )
 
-from privacy.audit import AUDIT_FIELDS, audit_record
+from privacy.audit import AuditRecord, AUDIT_FIELDS, audit_record
 from privacy.classification import ClassificationRecord, UNREADABLE_UNCLASSIFIED
 from privacy.classification_store import ClassificationStore, GateOutcomeNotAFileFact
+from privacy.denial import DENIAL_ORDER
 from privacy.fixtures import (
     EXTRA_OBSERVATIONS, FIXTURE_AREA, FIXTURE_BYTES, FIXTURE_CLOCK,
     FIXTURE_COMPONENT_VERSION, FIXTURE_COVERAGE, FIXTURE_RETRACTION_LIMIT,
@@ -311,7 +312,7 @@ def test_gate_arguments_fills_every_one_of_the_twelve_for_every_fixture():
 def test_the_two_optional_keywords_are_supplied_where_a_denial_needs_them():
     # 4 and 16 reach `protected_records_template` through `template_for`; 6 reaches
     # `dossier_over_budget` only through `measure_tokens`.
-    from privacy.denial import PROTECTED_RECORDS_TEMPLATE
+    from privacy.denial import DENIAL_ORDER, PROTECTED_RECORDS_TEMPLATE
     for number in (4, 16):
         fixture = by_number(number)
         assert fixture.residual_template == PROTECTED_RECORDS_TEMPLATE
@@ -802,6 +803,12 @@ def test_replaying_a_fixture_through_the_real_gate_reproduces_the_decision(
     decision, _ = replay(p7_conn, fixture, tmp_path)
     assert type(decision) is type(fixture.decision), fixture.spec_case
     if isinstance(fixture.decision, Denied):
+        # NOT the full comparison, and `test_the_published_fixtures_have_drifted`
+        # below is why. Tightening these three to equality fails 8 of the 18
+        # fixtures: the hand-written prose is a second implementation of the gate's
+        # own message and has diverged from it. Which text is CORRECT is a decision
+        # about the published contract P8 builds against, so it is reported rather
+        # than settled here.
         assert decision.reason == fixture.decision.reason, fixture.spec_case
         assert decision.explanation
         assert decision.remedy_options
@@ -825,6 +832,10 @@ def test_replaying_a_fixture_reproduces_its_audit_record_field_for_field(
     fixture = by_number(number)
     decision, _ = replay(p7_conn, fixture, tmp_path)
     appended = audit_record(p7_conn, _audit_id_of(p7_conn, decision))
+    # `AUDIT_FIELDS` is the 19 with an `events` column; `AuditRecord` has 22, so
+    # `user_id`, `consent_request_id` and `redaction_manifest` are excluded from a
+    # test whose name says "field for field". Widening it fails 3 fixtures -- see
+    # `test_the_published_fixtures_have_drifted` below.
     for field in AUDIT_FIELDS:
         if field in MINTED_FIELDS or field in SUBSTITUTED_FIELDS:
             continue
@@ -915,3 +926,82 @@ def test_every_replay_leaves_exactly_one_audit_event(p7_conn, tmp_path, number):
     gate.release(request)
     after = p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"]
     assert after == before + 1
+
+
+
+#: The fixtures whose published values no longer match what the gate produces.
+#: Measured, not guessed — see the test below.
+#: EVERY Denied fixture — all fifteen of them. Not a few stale strings.
+DECISION_DRIFT: frozenset[int] = frozenset(
+    {1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 16, 17})
+#: The three whose `user_id` / `consent_request_id` / `redaction_manifest` differ.
+AUDIT_DRIFT: frozenset[int] = frozenset({9, 10, 18})
+
+
+@pytest.mark.parametrize("number", [f.number for f in FIXTURES])
+def test_the_published_fixtures_have_drifted_from_the_gate(p7_conn, tmp_path, number):
+    """A KNOWN OPEN ITEM, held visible rather than hidden (NEEDS-JOSEPH).
+
+    SPEC §11's fixtures are the published artifact P8 builds against, and the module
+    docstring says they must not be "a second hand-written copy" of the gate. Two
+    comparisons above are weaker than their names promise, and both are weak because
+    tightening them FAILS:
+
+      - the decision replay compares `Denied.reason` only. Comparing `explanation`,
+        `remedy_options` and `evidence_refs` too — 3 of `Denied`'s 4 fields — fails
+        EVERY ONE of the fifteen `Denied` fixtures. The divergence is total, not a few
+        stale strings, so the fixtures' prose was never checked against the gate at
+        all.
+      - the audit replay iterates `AUDIT_FIELDS` (19) rather than `AuditRecord`'s 22,
+        so `user_id`, `consent_request_id` and `redaction_manifest` are never checked.
+        Widening it fails 3 fixtures, which state `None` where the gate produces real
+        values.
+
+    This pins the drift so it cannot be forgotten, and fails when it changes in either
+    direction — including when it is FIXED. Closing it means deciding which side is
+    authoritative, the gate's live text or the published fixture, and that is a
+    decision about a contract another part builds against.
+    """
+    fixture = by_number(number)
+    decision, _ = replay(p7_conn, fixture, tmp_path)
+
+    if isinstance(fixture.decision, Denied):
+        drifts = (decision.explanation != fixture.decision.explanation
+                  or decision.remedy_options != fixture.decision.remedy_options
+                  or decision.evidence_refs != fixture.decision.evidence_refs)
+        assert drifts == (number in DECISION_DRIFT), (
+            number, "decision drift changed; update DECISION_DRIFT and say why")
+
+    carried = tuple(f.name for f in dataclasses.fields(AuditRecord)
+                    if f.name not in AUDIT_FIELDS)
+    assert carried == ("user_id", "consent_request_id", "redaction_manifest")
+    appended = audit_record(p7_conn, _audit_id_of(p7_conn, decision))
+    drifts = any(
+        getattr(appended, name) != getattr(fixture.audit_record, name)
+        for name in carried
+        if name not in MINTED_FIELDS and name not in SUBSTITUTED_FIELDS)
+    assert drifts == (number in AUDIT_DRIFT), (
+        number, "audit drift changed; update AUDIT_DRIFT and say why")
+
+
+def test_the_coverage_index_points_at_fixtures_that_actually_match():
+    """`FIXTURE_COVERAGE` is the published index P8 uses to FIND the fixture for a
+    denial reason. Only its key set was ever verified, so a wrong number could not
+    fail — an index nothing checks is a comment with a type annotation.
+
+    The eight `Denied.reason` keys are checkable mechanically: every fixture the index
+    names for a reason must actually carry that reason, and every fixture that carries
+    it must be named. The remaining keys are prose descriptions of §11 items and are
+    checked only for pointing at real fixture numbers.
+    """
+    numbers = {f.number for f in FIXTURES}
+    for key, listed in FIXTURE_COVERAGE.items():
+        assert set(listed) <= numbers, key
+        assert list(listed) == sorted(listed), (key, "index is unordered")
+        assert len(set(listed)) == len(listed), (key, "index repeats a fixture")
+
+    for reason in DENIAL_ORDER:
+        carrying = {f.number for f in FIXTURES
+                    if isinstance(f.decision, Denied) and f.decision.reason == reason}
+        assert set(FIXTURE_COVERAGE[reason]) == carrying, (
+            reason, sorted(FIXTURE_COVERAGE[reason]), sorted(carrying))

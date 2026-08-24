@@ -20,6 +20,7 @@ from database_agent.budget import CEILING_KEYS, set_ceiling
 
 import facts.budgets as budgets_module
 import facts.resolver as resolver_module
+from evidence_shape.canonical import canonical_json
 from facts.budgets import (
     CEILING_GATED_STAGES, DEGRADATION_ORDER, P6_CEILING_KEYS, UnknownCeiling,
     ceiling_values, deferred_counts, exhausted_ceilings,
@@ -331,7 +332,16 @@ def test_a_deferral_and_an_abstention_are_distinguishable_from_the_records_alone
     abstained = [row for row in rows if row["reason"] not in NOT_ABSTENTIONS]
     assert [row["reason"] for row in deferred] == [BUDGET_DEFERRED]
     assert [row["reason"] for row in abstained] == [NO_CANDIDATE_EVIDENCE]
-    assert result.reason_counts == {BUDGET_DEFERRED: 1, NO_CANDIDATE_EVIDENCE: 1}
+
+    # Done-means 20 is satisfied by the three assertions above, which read the TABLE.
+    # `reason_counts` is a different question -- "what did THIS pass do" -- and the
+    # `no_candidate_evidence` row above was written before `resolve` was ever called.
+    # Counting it here was the defect: the read was scoped to the file VERSION, so
+    # every prior pass's refusals were reported as this pass's and the stage-output
+    # payload stopped being byte-stable across two identical runs.
+    assert result.reason_counts == {BUDGET_DEFERRED: 1}
+    assert len(rows) == 2                      # both rows are on disk...
+    assert len(result.unresolved_ids) == 1     # ...and one of them is this pass's
 
 
 def test_multiple_exhausted_ceilings_are_all_attributed(p6_conn):
@@ -537,3 +547,39 @@ def test_the_resolver_imports_no_producer_module():
                    for value in vars(resolver_module).values())
                   if module and module.startswith("facts.")}
     assert from_facts <= allowed
+
+
+def test_two_identical_passes_report_the_same_counts_and_the_same_payload(p6_conn):
+    """The divergence Task 21's payload design says it exists to prevent, pinned.
+
+    `reason_counts` read `unresolved_for_file`, which is scoped to the file VERSION
+    and not to a pass, so a second resolve of one version reported the first pass's
+    rows as its own. That reached `fact_stage_output`'s payload and made it differ
+    across two identical runs — "every replay report[ing] a divergence that is not
+    one". Task 21's own guard compares two in-memory `ResolveResult`s, so it could
+    never catch this: the divergence is created by the database, not by the dataclass.
+    """
+    from facts.stage_output import fact_stage_output
+
+    def one_pass():
+        recorder = Recorder()
+        return resolve(a_resolver(recorder, llm=recorder.stage("llm"),
+                                  exhausted=("model.max_cost_per_scan",)), p6_conn)
+
+    first, second = one_pass(), one_pass()
+
+    assert first.reason_counts == second.reason_counts == {BUDGET_DEFERRED: 1}
+    assert len(first.unresolved_ids) == len(second.unresolved_ids) == 1
+    assert set(first.unresolved_ids).isdisjoint(second.unresolved_ids)
+
+    # two rows on disk, one charged to each pass
+    assert p6_conn.execute(
+        "SELECT count(*) c FROM unresolved").fetchone()["c"] == 2
+    assert deferred_counts(p6_conn, results=(first, second)) == {
+        "model.max_cost_per_scan": 2,
+        "model.max_llm_calls_per_thousand_files": 0,
+        "model.max_dossier_tokens_per_call": 0,
+    }
+
+    assert (canonical_json(fact_stage_output(result=first)["payload"])
+            == canonical_json(fact_stage_output(result=second)["payload"]))

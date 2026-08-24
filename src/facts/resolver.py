@@ -73,6 +73,10 @@ class ResolveResult:
     stages_run: tuple[str, ...] = ()
     stages_barred: Mapping[str, str] = field(default_factory=dict)
     deferred_against: tuple[str, ...] = ()
+    #: The `unresolved` rows THIS pass wrote, so a caller can scope to them instead of
+    #: re-reading the version's whole history. `budgets.deferred_counts` charged four
+    #: against two rows on disk before this existed.
+    unresolved_ids: tuple[str, ...] = ()
     error: str | None = None
 
     def __post_init__(self) -> None:
@@ -147,6 +151,18 @@ class FactResolver:
         deferred_against: tuple[str, ...] = ()
         fact_ids: list[str] = []
 
+        # THE ROWS THIS PASS WRITES, and no earlier pass's. `unresolved_for_file` is
+        # scoped to the file VERSION, not to a pass, so counting it directly reported
+        # every prior pass's refusals as this one's: a second resolve of one version
+        # wrote a single row and was charged two. That propagated into Task 21's
+        # `fact_stage_output` payload and broke its byte-stability across two
+        # identical runs -- the exact divergence that payload design exists to
+        # prevent. Snapshotting the ids is still "read back from the records rather
+        # than accumulated in memory" (Done-means 20): the ids ARE records, and this
+        # makes them ONE PASS's records.
+        already = {row["unresolved_id"]
+                   for row in unresolved_for_file(conn, file_id, content_hash)}
+
         # §2.2 fires before ranking. The return value is the survivor set;
         # stages that re-query observations still use field_permitted.
         # This call is what writes the unresolved row Done-means 22 requires.
@@ -184,7 +200,11 @@ class FactResolver:
         self._record_pass(conn, file_id, content_hash)
 
         counts: dict[str, int] = {}
+        written: list[str] = []
         for row in unresolved_for_file(conn, file_id, content_hash):
+            if row["unresolved_id"] in already:
+                continue
+            written.append(row["unresolved_id"])
             counts[row["reason"]] = counts.get(row["reason"], 0) + 1
 
         return ResolveResult(
@@ -192,6 +212,7 @@ class FactResolver:
             fact_ids=tuple(fact_ids), reason_counts=counts,
             stages_run=tuple(stages_run), stages_barred=barred,
             deferred_against=deferred_against,
+            unresolved_ids=tuple(written),
         )
 
     def _write_bars(self, conn: sqlite3.Connection, *, file_id: str,

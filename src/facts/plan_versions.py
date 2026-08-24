@@ -46,6 +46,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from facts.schema import VALUE_RENDERINGS_DDL, VALUE_RENDERINGS_TABLE
+
 #: §8.8: "User labels and aliases" are captured BY a plan version. A declaration of the
 #: boundary, not a column list -- only `display_label` has a writer today.
 PLAN_VERSIONED: tuple[str, ...] = ("display_label", "aliases")
@@ -68,14 +70,6 @@ VALUE_RENDERINGS_COLUMNS: tuple[str, ...] = (
     "value_id", "plan_version", "display_label",
 )
 
-_DDL = """
-CREATE TABLE IF NOT EXISTS value_renderings (
-    value_id      TEXT NOT NULL,
-    plan_version  TEXT NOT NULL,
-    display_label TEXT NOT NULL,
-    PRIMARY KEY (value_id, plan_version)
-)
-"""
 
 
 def create_plan_version_tables(conn: sqlite3.Connection) -> None:
@@ -83,11 +77,14 @@ def create_plan_version_tables(conn: sqlite3.Connection) -> None:
 
     Idempotent: a second call keeps every rendering a version already chose.
 
-    OWED, and reported rather than edited here: Task 23's Files block names no
-    `modify src/facts/schema.py`, so `facts.schema.create_facts_schema` must call
-    this, or the table exists only where a caller creates it.
+    NO LONGER OWED. `facts.schema.create_facts_schema` now creates this table, because
+    `VALUE_RENDERINGS_DDL` is in its `_TABLE_DDL`. Until it was, the table existed only
+    where a test fixture made it and every §8.8 read and write raised
+    `OperationalError` against a real database -- Task 23's positive half entirely.
+    This remains for a caller that wants the one table alone; it is idempotent, and a
+    second call keeps every rendering a version already chose.
     """
-    conn.execute(_DDL)
+    conn.execute(VALUE_RENDERINGS_DDL)
 
 
 def _value_row(conn: sqlite3.Connection, value_id: str) -> sqlite3.Row:

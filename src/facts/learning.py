@@ -9,7 +9,22 @@ I4 states P6's obligation as: before writing a `file_facts` row that would reviv
 `rejected` claim, query the learning store; on an unreset reject, leave the `rejected`
 row in place and do not propose the same (field, value) again.  `is_suppressed` is
 that query.  It ships with the fact tables because a guard that arrives after the
-first fact is written has already failed once.  Its call site is Task 20's resolver.
+first fact is written has already failed once.
+
+IT HAS NO CALL SITE YET, AND THAT IS THE OPEN ITEM.  This docstring previously read
+"Its call site is Task 20's resolver."  That sentence is not in the PLAN and it is not
+true: `facts.resolver` never imports this module, `FactResolver.__init__` has no slot
+for the guard, and nothing in `src/` calls `is_suppressed`.  So I4's obligation --
+query BEFORE writing a row that would revive a `rejected` claim -- is currently
+enforced by nothing, which is precisely the "already failed once" case named above.
+
+OWED, and the shape is constrained rather than free.  Task 20's own
+`test_the_resolver_imports_no_producer_module` pins the resolver's permitted imports
+to `facts.budgets`, `facts.unresolved` and `facts.resolver`, so the guard CANNOT be
+wired by import.  It has to arrive the way `pending_fields` and `budget_exhausted`
+already do: as an injected callable on `FactResolver`, bound by whoever constructs it.
+That is a change to Task 20's published constructor contract, so it is recorded here
+rather than made silently.
 
 WRITE (built, unreachable).  Corrections arrive through P13's `review_action`, and
 P13 does not exist.  `record_correction` is the surface P13 will route a fact-level

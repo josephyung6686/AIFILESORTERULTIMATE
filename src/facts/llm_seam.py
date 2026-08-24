@@ -64,8 +64,8 @@ from facts.cache import llm_pass_cache_key
 from facts.domains import active_field_allowlist
 from facts.evidence import cite, observations_for_version
 from facts.file_facts import LLM_INTERPRETATION, facts_for_file, write_fact
-from facts.states import EXCLUDED_STATE, is_stronger
-from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
+from facts.states import EXCLUDED_STATE, LLM_SUPPORTED, POSSIBLE, is_stronger
+from facts.unresolved import ATTEMPTED_PRODUCERS, LLM_ROUTE, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
 #: §3.6's four, in §3.6's own order. These are names for the CHECKS, which are P8's;
@@ -96,7 +96,7 @@ UNKNOWN_REASON: str = "model_returned_unknown"
 #: model conclusion that passed validation; §3.6 gives `possible` to one that is
 #: "useful but too weak to establish a fact". Which of the two is §3.7's question and
 #: is Deferred, so nothing here chooses between them.
-LLM_STATES: tuple[str, str] = ("llm_supported", "possible")
+LLM_STATES: tuple[str, str] = (LLM_SUPPORTED, POSSIBLE)
 
 
 class ProposalStateRefused(ValueError):
@@ -141,12 +141,20 @@ class FactRequest:
 class Proposal:
     """One thing the model said about one field, or its refusal to say anything."""
 
-    field_key: str | None
+    field_key: str
     value: str | None
     citations: tuple[str, ...]
     unknown: bool
 
     def __post_init__(self) -> None:
+        if self.field_key is None:
+            raise ValueError(
+                "a proposal names the field it is about, including when it is "
+                "`unknown`: §3.6's refusal is per field, `write_unresolved` takes "
+                "`field_key: str`, and a whole-file 'unknown' has no row to write. "
+                "This was `str | None`, so the None constructed cleanly and surfaced "
+                "later as `FieldNotInCatalogue: None is not in the field catalogue` "
+                "-- a catalogue error standing in for this seam's own refusal")
         if self.unknown and (self.value is not None or self.citations):
             raise ValueError(
                 "an `unknown` proposal is the model declining (§3.6); it carries no "
@@ -248,7 +256,7 @@ def apply_verdict(conn: sqlite3.Connection, *, request: FactRequest,
         write_unresolved(
             conn, file_id=request.file_id, content_hash=request.content_hash,
             field_key=proposal.field_key, reason=reason,
-            attempted_producers=(ATTEMPTED_PRODUCERS[2],),
+            attempted_producers=(LLM_ROUTE,),
             evidence_refs=tuple(proposal.citations), cache_key=cache_key)
 
     if proposal.unknown:

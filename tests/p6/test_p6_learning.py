@@ -439,3 +439,31 @@ def test_the_write_half_has_no_caller_inside_facts():
         if getattr(module, "record_correction", None) is record_correction:
             binders.append(info.name)
     assert binders == ["learning"]
+
+
+def test_the_i4_guard_still_has_no_caller_and_says_so():
+    """I4 is not enforced yet, and the module must not claim otherwise.
+
+    The docstring asserted "Its call site is Task 20's resolver" — a sentence the
+    builder added, absent from the PLAN, and false: nothing in `src/` calls
+    `is_suppressed`. A docstring stating a fact about OTHER code is a claim, and an
+    unchecked claim is how a guard ships unreachable.
+
+    This test fails the day the guard IS wired, which is the day the docstring must
+    stop saying it is owed.
+    """
+    import pathlib
+    import facts.learning as learning
+
+    callers = [
+        path for path in pathlib.Path("src").rglob("*.py")
+        if path.name != "learning.py" and "is_suppressed" in path.read_text()
+    ]
+    assert callers == [], (
+        "is_suppressed now has a caller; update the OWED paragraph in "
+        "facts/learning.py, which still says I4 is enforced by nothing")
+    # The docstring now QUOTES the old sentence in order to deny it, so the check is
+    # that the denial is present — not that the words are absent.
+    assert "That sentence is not in the PLAN and it is not\ntrue" in learning.__doc__
+    assert "enforced by nothing" in learning.__doc__
+    assert "OWED" in learning.__doc__

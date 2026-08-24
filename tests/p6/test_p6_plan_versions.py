@@ -6,7 +6,7 @@ record table has a plan-version column, so there is nowhere a version could be
 written. The positive half is one side table holding the label a plan version chose.
 
 The fixtures build on `p6_conn` (preamble §3.6) rather than re-creating the schema:
-the only thing this file adds is `create_plan_version_tables`, because Task 23's Files
+this file no longer creates the table itself, because Task 23's Files
 block names no `modify src/facts/schema.py` and the aggregate creator does not call it
 yet (reported as an owed line, not edited here).
 """
@@ -27,6 +27,8 @@ from facts.plan_versions import (
     SHARED_ACROSS_PLAN_VERSIONS,
     VALUE_RENDERINGS_COLUMNS,
     create_plan_version_tables,
+    VALUE_RENDERINGS_DDL,
+    VALUE_RENDERINGS_TABLE,
     display_label,
     set_display_label,
 )
@@ -53,7 +55,12 @@ CACHE_KEY = fact_cache_key(
 
 @pytest.fixture()
 def conn(p6_conn):
-    create_plan_version_tables(p6_conn)
+    """P6's schema, unmodified. `create_plan_version_tables` is deliberately NOT
+    called here any more: this fixture calling it was the only reason
+    `value_renderings` existed at all, so all twenty cases below passed against a
+    table production never made and every §8.8 read and write raised
+    `OperationalError` against a real database. `create_facts_schema` creates it now.
+    """
     return p6_conn
 
 
@@ -322,3 +329,26 @@ def test_p6_appends_no_event_for_a_rendering_change(conn, value_id, fact_id):
     set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
     after = conn.execute("SELECT COUNT(*) AS n FROM events").fetchone()["n"]
     assert after == before
+
+
+
+def test_create_facts_schema_creates_the_rendering_table(conn):
+    """The seam Task 23 recorded as OWED and nobody paid.
+
+    `create_plan_version_tables` had zero callers in `src/`, so `value_renderings`
+    existed only where this file's own fixture made it. Task 23's entire §8.8 positive
+    half — every `display_label` read and every `set_display_label` write — raised
+    `OperationalError: no such table` in production, and the suite was green.
+    """
+    rows = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (VALUE_RENDERINGS_TABLE,)).fetchall()
+    assert len(rows) == 1
+
+
+def test_the_rendering_table_has_exactly_one_ddl():
+    """§3.1's rule applied to schema: the DDL lives in `facts.schema` and
+    `facts.plan_versions` imports it, so a column added in one place cannot be missing
+    from the other."""
+    from facts import plan_versions, schema
+    assert plan_versions.VALUE_RENDERINGS_DDL is schema.VALUE_RENDERINGS_DDL

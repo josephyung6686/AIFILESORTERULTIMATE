@@ -122,13 +122,23 @@ def _slot(conn: sqlite3.Connection, *, file_id: str,
     hashes = sorted(row["content_hash"] for row in conn.execute(
         f"SELECT DISTINCT content_hash FROM {FACT_TABLE} WHERE file_id = ?",
         (file_id,)))
+    # The joined rows, kept rather than recomputed: `facts_for_file` is unfiltered,
+    # so a superseded row reachable through `chain()` is already in one of these
+    # results with its `canonical_value` and `display_label` attached.
+    joined: dict[str, sqlite3.Row] = {}
+    for content_hash in hashes:
+        for row in facts_for_file(conn, file_id, content_hash):
+            joined[row["fact_id"]] = row
+
     reachable: dict[str, sqlite3.Row] = {}
     for content_hash in hashes:
         for row in facts_for_file(conn, file_id, content_hash):
             if row["field_key"] != field_key:
                 continue
             for member in chain(conn, FACT_TABLE, _tail(conn, row["fact_id"])):
-                reachable[member["fact_id"]] = member
+                # `chain()` yields the RAW file_facts row; prefer the joined one, so
+                # `preferred_fact` returns a row a reader can actually show.
+                reachable[member["fact_id"]] = joined.get(member["fact_id"], member)
     return [reachable[fact_id] for fact_id in sorted(reachable)]
 
 

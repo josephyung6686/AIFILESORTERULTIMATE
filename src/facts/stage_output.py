@@ -30,6 +30,7 @@ from evidence_shape.store import runs_for_content
 from eval_harness.stage_output import DimensionValue
 from eval_harness.vocabulary import check_dimension, check_stage
 
+from facts.unresolved import PRIVACY_WITHHELD
 from facts.resolver import ResolveResult
 
 #: Stage 2 of §8.5's ten. Checked at import, so a P2 rename is a startup failure.
@@ -109,7 +110,7 @@ def _outcome_for(result: ResolveResult, *,
         return "deferred", "ceiling_reached"
     if result.fact_ids:
         return "produced", "within_ceiling"
-    if result.reason_counts.get("privacy_withheld"):
+    if result.reason_counts.get(PRIVACY_WITHHELD):
         raise UnsettledOutcome(
             "zero facts and a privacy-withheld refusal has no §8.5 outcome: the "
             "table would say 'abstained', the SPEC's unresolved rule 4 forbids it, "

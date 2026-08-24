@@ -7,7 +7,7 @@ anyone else's. `database_agent.db.create_schema` and
 invoked from here.
 
 Task 2 creates `fields`, Task 3 `values` and Task 4 `file_facts`. Task 5 adds its own
-DDL to `_TABLE_DDL`, and Task 19 adds `fact_passes` the same way.
+DDL to `_TABLE_DDL`, and Tasks 19 and 23 add `fact_passes` and `value_renderings` the same way.
 """
 from __future__ import annotations
 
@@ -202,8 +202,26 @@ CREATE TABLE IF NOT EXISTS {FACT_PASSES_TABLE} (
 )
 """
 
+#: Task 23's plan-version-keyed rendering table. NOT a fifth record table: it holds
+#: no claim, no evidence and no reliability state, and nothing reads it to decide a
+#: fact. Here for the same reason `fact_passes` is -- the DDL has to reach
+#: `_TABLE_DDL`, and Task 23's own Files block named no edit to this module, so
+#: `plan_versions.create_plan_version_tables` documented the seam as OWED and it
+#: stayed owed. Without it `value_renderings` exists only where a test creates it and
+#: every §8.8 read and write raises `OperationalError` in production.
+VALUE_RENDERINGS_TABLE: str = "value_renderings"
+
+VALUE_RENDERINGS_DDL: str = f"""
+CREATE TABLE IF NOT EXISTS {VALUE_RENDERINGS_TABLE} (
+    value_id      TEXT NOT NULL,
+    plan_version  TEXT NOT NULL,
+    display_label TEXT NOT NULL,
+    PRIMARY KEY (value_id, plan_version)
+)
+"""
+
 _TABLE_DDL: tuple[str, ...] = (_FIELDS_DDL, VALUES_DDL, FILE_FACTS_DDL, UNRESOLVED_DDL,
-                               FACT_PASSES_DDL)
+                               FACT_PASSES_DDL, VALUE_RENDERINGS_DDL)
 
 
 def create_facts_schema(conn: sqlite3.Connection) -> None:

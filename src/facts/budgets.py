@@ -81,9 +81,15 @@ def deferred_counts(conn: sqlite3.Connection, *,
     """How many fact-resolution requests were deferred against each ceiling.
 
     Scan-scoped, and cross-checked against the records: the count for a result is
-    the number of `budget_deferred` rows that result actually wrote, so the report
+    the number of `budget_deferred` rows THAT RESULT actually wrote, so the report
     cannot drift from the table. A result exhausted against two ceilings counts
     against both — §8.6 asks what each ceiling cost, not which one to blame.
+
+    "That result" is the load-bearing word, and it used to be false. This read
+    `unresolved_for_file`, which is scoped to the file VERSION and not to a pass, so a
+    second resolve of one version wrote one row and was charged two, and passing both
+    results charged four against two rows on disk. `ResolveResult.unresolved_ids` is
+    the pass's own rows; the read stays a read of the table, filtered to them.
 
     There is no per-ceiling column on `unresolved` and P6 owns exactly four tables,
     so the DURABLE per-ceiling record is Task 21's `stage_output.payload`, which
@@ -93,8 +99,10 @@ def deferred_counts(conn: sqlite3.Connection, *,
     for result in results:
         if not result.deferred_against:
             continue
-        rows = unresolved_for_file(conn, result.file_id, result.content_hash,
-                                   reason=BUDGET_DEFERRED)
+        rows = [row for row in unresolved_for_file(
+                    conn, result.file_id, result.content_hash,
+                    reason=BUDGET_DEFERRED)
+                if row["unresolved_id"] in set(result.unresolved_ids)]
         for key in result.deferred_against:
             if key not in P6_CEILING_KEYS:
                 raise UnknownCeiling(
@@ -105,6 +113,15 @@ def deferred_counts(conn: sqlite3.Connection, *,
     return counts
 
 
-# Asserted at import so a P1 rename is a startup failure rather than a silent
-# miscount: P6 names three of P1's sixteen keys and owns none of them.
-assert set(P6_CEILING_KEYS) <= set(CEILING_KEYS)
+# Checked at import so a P1 rename is a startup failure rather than a silent miscount:
+# P6 names three of P1's sixteen keys and owns none of them.
+#
+# NOT an `assert`. `python -O` strips assert statements, so the guard that exists to
+# turn a rename into a loud failure would itself vanish under the one flag a
+# production run is most likely to carry -- leaving exactly the silent miscount the
+# comment promises it prevents.
+if not set(P6_CEILING_KEYS) <= set(CEILING_KEYS):
+    raise ImportError(
+        f"P6 names ceiling keys P1 no longer publishes: "
+        f"{sorted(set(P6_CEILING_KEYS) - set(CEILING_KEYS))}. P1 owns "
+        "`CEILING_KEYS`; a rename there is a contract change, not a miscount here")

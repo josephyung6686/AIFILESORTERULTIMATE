@@ -57,7 +57,8 @@ CONTENT_HASH_D = "d" * 64
 #: The eight fields Task 20 publishes on `ResolveResult`, which are exactly the
 #: attributes `facts.stage_output` reads off a result and the whole of its input.
 RESULT_FIELDS = ("file_id", "content_hash", "fact_ids", "reason_counts",
-                 "stages_run", "stages_barred", "deferred_against", "error")
+                 "stages_run", "stages_barred", "deferred_against",
+                 "unresolved_ids", "error")
 
 
 def a_result(**overrides) -> ResolveResult:
