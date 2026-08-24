@@ -528,3 +528,23 @@ honest accounting:
 - **But the ratio is worth watching.** If flagged rows stop failing entirely across the next two
   waves, the flagging has become theatre and the challenge needs re-designing, not repeating.
   Recorded here so a future session checks it rather than assuming.
+
+## Debt clearing 23/64 — `construction_property.snagging-defects`, and the wave of 8 closes
+
+- **4,308B → 52,309B (12.1x)**, largest memo of the run, 14 file_examples, stands.
+- Re-tested properly against the deepened spine after surviving the same `work_type` charge on thin
+  reasoning at gist depth. Engaged `progress-photos` 14 times — the photographic-evidence
+  collision, since a snag list is often annotated photographs and that row earned its place on
+  detection *method*. Consistent with it rather than competing.
+
+## WAVE OF 8 — COMPLETE. 8 dispatched, 8 landed, 0 killed, 0 double-edits.
+
+Doubling the wave size cost nothing. The two overlapping pairs deepening simultaneously
+(`board-governance`/`meeting-record`, `contract-administration`/`partnerships-bd`) each stated
+their boundary reciprocally without editing the other — the no-double-edit rule held under
+parallel load, and `meeting-record` even reciprocated `board-governance` **in that row's own
+words** while it was still being written.
+
+Debt: 64 -> 41 remaining. Total landed 173/358.
+
+**Wave size 8 is validated.** Nothing in this wave argues for going back to 4.
