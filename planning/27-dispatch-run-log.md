@@ -181,3 +181,18 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
 - Resume point is `26-research-dispatch-state.md` §0. Its stale §2 and §3 are now marked
   SUPERSEDED — they claimed 22 R1b rows were still owed, which would have caused a future session
   to redo finished work.
+
+## J-DEPTH ratified 2026-08-24 — gist depth overruled
+
+- Joseph ruled the industry rows must reach the **same depth as the 83 launch rows**. J-IND's gist
+  clause is overruled; recorded as J-DEPTH in DECISION-BRIEF.md.
+- `GIST-BRIEF.md` renamed `RESEARCH-BRIEF.md` and its depth section rewritten: full R1b depth, the
+  `Depth: GIST` label retired, and six explicit requirements (evidence not assertion; node test
+  argued on all three legs; files considered-and-rejected; reciprocal boundaries; a collision
+  fixture; open questions surfaced). Agents are told to calibrate against landed *launch* rows
+  (~13KB memos), and explicitly told the gist families are debt, not exemplars.
+- **The 64 committed gist rows are now debt, not done** — clinical_practice (11),
+  business_operations (25), construction_property (28). They must be deepened. The index must not
+  present them as finished until they are.
+- Revised scope: **275 rows at full depth, one agent per row.** At one wave per usage window this
+  is a run measured in weeks, not days. Recorded so the estimate is not rediscovered as a surprise.
