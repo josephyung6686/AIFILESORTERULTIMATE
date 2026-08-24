@@ -4,7 +4,7 @@
   "schema_id": "clinical_practice",
   "parent_id": null,
   "name": "Patient charts held by a clinician or practice",
-  "one_line": "The organizational situation of holding, as the author and custodian, the longitudinal record of ONE other person's care: the notes, entries, treatment plans, filed results, and consent forms that accumulate about a named patient over time. Absorbs the legacy rows med.clinician-patient-chart, med.clinician-clinical-note and med.clinician-treatment-plan - a note and a plan are the chart's own contents, not separate worlds. Gist-level placeholder (J-IND): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "one_line": "The organizational situation of holding, as the author and custodian, the longitudinal record of ONE other person's care: the notes, entries, treatment plans, filed results, and consent forms that accumulate about a named patient over time. Absorbs the legacy rows med.clinician-patient-chart, med.clinician-clinical-note and med.clinician-treatment-plan - a note and a plan are the chart's own contents, not separate worlds. Full-depth placeholder (J-IND, written to J-DEPTH): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -31,6 +31,7 @@
     ],
     "never_alone": [
       "clinical documentation headings alone. Blank templates, teaching handouts, exam scripts, and software documentation all carry them faithfully and none is anyone's chart. This is the tempting false file for this row.",
+      "a filled subject block alone, with no author role beside it. This is the family seam read in the direction this row most often gets wrong: a name, a date of birth and a record number under a clinic letterhead describe the holder's OWN record as faithfully as a patient's. The schema row states it - two person-shaped blocks in two different labelled roles is the shape, and either block alone is never enough.",
       "a record-number-shaped token alone, and a bare 4-digit number read as a record number, a year of birth, or a ward number.",
       "a facility or practice gazetteer hit alone - the multi-role problem 00 states for a university - “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - read across to a clinic by inference.",
       "source_type or extension alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
@@ -328,6 +329,56 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Consultation 2026-05-15.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a single labelled subject block - one name, one date of birth, one record-number token - at the head of the file",
+        "a run of dated entries about that same one person, oldest first",
+        "the newest entry opens with a pasted paragraph naming a multidisciplinary meeting, its date, and the agreed plan",
+        "a sign-off block naming the holder as the responsible clinician"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of clinical_practice.case-conference from the pasted meeting paragraph - the meeting text is quoted INTO the chart and does not carry the chart out. THIS IS THE SHARED-BYTES MIRROR: the sibling names these same bytes as its under-firing fixture, and this entry is the same claim from the chart side",
+        "a meeting-series group anchor for this file from the pasted paragraph alone - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "any clinical_practice fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Referral Letter - Orthopaedics.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "practice letterhead, an addressee block naming a department the holder does not work in, and a reason-for-referral section",
+        "a labelled patient block naming a person; whether that person is the holder is not settled by the letter's shape",
+        "a copies-to line",
+        "a sign-off block whose occupant is the discriminator"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the letter's shape alone: these exact bytes are ALREADY a fixture on medical.personal-health-records, where the holder is the patient copied in, and the sibling clinical_practice.referral-correspondence holds the outbound register copy. Three rows, one artefact, and the sign-off block is the only evidence that separates them",
+        "that a filed-on slot may be inferred from a copies-to line - a chart membership must be observed, not assumed from distribution",
+        "any clinical_practice fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
     }
   ],
   "collides_with": [
@@ -349,6 +400,26 @@
     {
       "domain": "medical.dependant-child-health",
       "signal": "A parent holding a child's records and a clinician holding a patient's records both hold a record about someone else. The discriminating evidence: an author-role or practice-system custody structure supports this row; a household relationship with no professional authorship supports the dependant row. A record about a third person alone discriminates neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.case-conference",
+      "signal": "THE RECIPROCAL THAT WAS MISSING, now authored: a conference outcome is filed into each discussed patient's chart, so the same paragraph exists in both situations. The discriminating evidence is CARDINALITY AND CONTAINER, not text: ONE subject accumulating dated entries in one artefact supports this row even when a meeting paragraph is pasted into the newest entry; a meeting header with attendance, apologies and SEVERAL named subjects supports the case-conference row. Clinical content discriminates neither. SHARED FIXTURE BYTES, named identically on both sides: `Consultation 2026-05-15.docx` beside `MDT outcomes 2026-05-14.xlsx` - the sibling holds the outcomes record, this row holds the chart the outcome was quoted into. NOTE FOR R1c: the sibling's memo states that this row already named it; it did not, and this entry is the correction. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.malpractice-incident",
+      "signal": "The clinical entry describing an adverse event and the incident file about that event are different situations sharing one narrative, and a duty-of-candour letter is filed into the chart as well as into the incident pack. The discriminating evidence: continued accumulation of routine dated entries about one subject under a responsible-clinician sign-off supports this row; an incident-reporting-system reference, a complaint, a letter of claim, an indemnity schedule, or an expert report supports the incident row. Event vocabulary - `unexpected`, `harm`, `escalated` - discriminates neither, and the incident row's own file names the same non-discriminator from its side. A material asymmetry the incident row states and this row must not flatten: there the holder's OWN jeopardy is at stake, so a wrong answer here loses a protection the chart's third-party posture does not supply. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.practice-administration",
+      "signal": "Administrative traffic ABOUT a record is not the record: a records-request acknowledgement, a chase, a retention or destruction schedule, and a transfer-out cover sheet all carry a patient banner without carrying any account of care. The discriminating evidence: a dated clinical entry, a plan, or a filed result about the subject supports this row; a purely procedural request or return concerning the record's handling supports administration. A record-number token discriminates neither. The sibling `referral-correspondence` already draws the same line for onward-sends, and this row does not restate it differently. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "The structural analogue in another family, edged so the two stay consistent rather than because bytes are usually contested: both are a practitioner's field-less file ABOUT another named person, both are discriminated by the holder's role rather than by content, and both refuse a subject-named branch. Where they genuinely contest bytes is the medico-legal report - a clinician's report about a patient, commissioned by a solicitor for a matter. The discriminating evidence: a signed engagement record, a firm matter-system identifier, or counsel work product supports the legal row; a clinical account written by the holder about a person in the holder's care, filed into that person's accumulated record, supports this row. A tribunal caption or a claim identifier supports neither, and where the commission is unevidenced the correct outcome is neither. The two families diverge at exactly one key - the legal row can lean on canonical `client`/`our_firm` because a legal client IS the engaging counterparty, and a patient is not - which is why this row proposes nothing and defers to the schema's `subject_of_record`. Provenance: inference.",
       "provenance": "inference"
     }
   ],

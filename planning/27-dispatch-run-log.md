@@ -654,3 +654,21 @@ the row's two touched · commit by explicit file list.
   - every quotation machine-checked verbatim with `grep -F` *before* being written into either file;
   - the memo's own claims "re-read against the written JSON **after** writing, not before" — the
     new cross-check rule, followed and reported rather than assumed.
+
+## Debt clearing 33-34/64 — the wave closes, 4 dispatched 4 landed 0 killed
+
+- `clinical_practice.patient-chart`: **4,886B → 37,837B (7.7x)**, 11 file_examples, stands.
+  **The best single argument of the run so far.** Charged with naming what it does NOT hold — since
+  a chart that absorbs everything becomes a residual in disguise — it answers: *"everything about a
+  patient is Protected Records with a nicer label"*, and then draws a distinction the catalogue did
+  not previously have:
+  > a row supported by a **relation between two labelled roles** is not a row supported by
+  > never-alone tokens, even though each of its tokens is never-alone on its own
+  The never-alone failure `00` describes is **role ambiguity** (one token, many possible roles);
+  this row's activation requires two person-shaped blocks with roles separately labelled and filled
+  by different people, which resolves exactly that ambiguity. The JSON records it token by token.
+  **This generalises** — every row whose evidence is a two-role structure can now be argued this way
+  instead of dying on never-alone. R1c should consider promoting it to a contract-level rule.
+  It also found and fixed a missing reciprocal edge to `case-conference`: "It did not; it does now."
+- `construction_property.site-health-safety`: **4,773B → 35,357B (7.4x)**, 12 file_examples, stands.
+  Survived the document-type charge that refused `compliance-certificate` in its own family.
