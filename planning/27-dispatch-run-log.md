@@ -239,3 +239,19 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   consistency J-DEPTH was adopted to get.
 - Running J-DEPTH tally: 3 rows, memos 19.3 / 24.5 / 27.6 KB (gist median 4.9KB, launch median
   13KB). Two refusals, one stands. The depth is buying arguments, not adjectives.
+
+## `creative` schema row — the anchor for 41 siblings, 28.9KB
+
+- Memo **28,917B**, deepest row to date. 13 file_examples, every universal key present, stands.
+- Written deliberately as an anchor: it states the family's posture, vocabulary, default template
+  and seams explicitly, "on the assumption that a sibling author reads *this file* before writing
+  theirs" — which is what 41 siblings need, since each measures its node test against the default
+  template defined here.
+- **NJ-R1a-1 handled correctly: recorded, NOT resolved.** Referenced 5 times, with the alternatives
+  and their costs spelled out, and the reasoning for leaving it open stated plainly — "this is the
+  row where a silent resolution would be least visible and most consequential."
+- Verified `source_type` values programmatically against `src/evidence_shape/vocabulary.py`'s
+  `SOURCE_TYPES` rather than assuming them — rigor no gist row showed.
+- `proposed_fields` for R1c: `project`, `stage`, `artifact_type`, `client` — the same four the
+  roster already names as NJ-R1a-1's option (b) candidates, so the proposal and the open question
+  are consistent rather than competing.

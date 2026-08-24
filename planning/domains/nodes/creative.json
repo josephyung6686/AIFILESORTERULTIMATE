@@ -1,0 +1,659 @@
+{
+  "id": "creative",
+  "kind": "schema",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Creative and media practice (the making record of a work)",
+  "one_line": "The record of MAKING a work - designed, filmed, photographed on commission, modelled, recorded, written, translated, reported, published, marketed, exhibited, printed or performed - where the unit is one named piece of work moving through revisions toward something delivered, shown or published. Its anchor is a PROJECT at a STAGE producing an ARTIFACT, sometimes for a CLIENT: a working file that references media it does not contain, a version family that is the work's own history rather than an accident, and an export whose whole reason for existing is that someone else receives it. It is not the finished piece shown as a work sample (career), not capture metadata (photos), not a repository (code), and not the business of running the studio (finance, business_operations). Gist-free placeholder schema (J-IND, written to J-DEPTH): it declares NO field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6) and therefore recommends NO folder dimensions, so activation unlocks recognition, the sensitivity posture, and the universal facts only. The 41 creative.* templates measure themselves against the default template held as prose below.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "project",
+      "type": "string",
+      "example": "the named piece of work - one campaign, one album, one book, one identity, one production - as the maker names it in their own folders and filenames",
+      "why_no_existing_key": "ADOPTION PROPOSAL, NOT A NEW KEY. This row mints nothing; `project` is already canonical, seeded from 00's Research sentence (\"Research files may use project, stage, artifact type, lab, and venue\") and already shared with `code` - which is why the canonical table records `shares_field` as derived and never authored. The roster's own answer to NJ-R1a-1 names exactly these candidates: if option (b) is ever taken, the field set is `project`, `stage`, `artifact_type`, `client`, all of them existing keys. The argument for `project` specifically is that this world's group anchor is a NAMED WORK and nothing else: the same .psd, the same .prproj, the same manuscript .docx are indistinguishable by format, by tool, by subject and by author, and become organisable only once the work they belong to is known. R1c decides whether the creative schema may reference it; this row may not decide that for Joseph.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Inherit canonical (true). 00 puts it above authorship explicitly - \"Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement\" - and this is the one world where that sentence is hardest and most necessary, because the author is usually the corpus owner and an author level would collect the entire disk.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A project name in this world arrives from a filename stem, a parent folder the maker made, a project-file interior name, or a brief's title line. All four are 00's `possible` sources (\"filename, free text, OCR\"). A `direct` claim would need a labelled slot, and the labelled slots that do exist here - a Premiere project name, an InDesign document title - name the FILE, not reliably the work. A `validated` claim would need a rule family this row cannot honestly name, because project names in creative practice are freely invented values (00: \"The system may create new values when it sees a new course, project, company, university, or event\") and no gazetteer can hold them."
+    },
+    {
+      "key": "stage",
+      "type": "string",
+      "example": "where the work sits in its own progression - brief, concept, draft, review round, approved, delivered, published, archived",
+      "why_no_existing_key": "ADOPTION PROPOSAL, NOT A NEW KEY. `stage` is canonical from the same Research sentence. The reason a separate creative key is NOT proposed, even though the values differ completely, is the node test's own rule: work types and stage names are VALUES, not fields and not nodes. A `creative_stage` key would be precisely the 574's failure - one concept in two vocabularies - and would break the join `stage` is meant to be. What differs from research is what the progression is FOR: research stage moves toward publication and is largely internal to the author; creative stage moves toward acceptance by someone else, which is why revision rounds are numbered and dated in the filename itself.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Inherit canonical (true). It is the level that makes an export intelligible: a delivery folder and a working folder holding byte-different versions of the same artwork are the distinction this world most needs preserved, and it is also the level most users already keep by hand.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Filename tokens (`_v3`, `_R2`, `_FINAL`, `_approved`, `_delivered`, `_WIP`) and folder names carry it; those are free text. A version-shaped token is 00's universal `version_family` evidence and is a strong structural signal, but reading a stage OUT of it is an interpretation, not a labelled slot - `logo_final_v3_FINAL.ai` is the standing proof that the token lies."
+    },
+    {
+      "key": "artifact_type",
+      "type": "enum",
+      "example": "working file, export, proof, master, stem, cut, render, layout, script, transcript, release form, brief",
+      "why_no_existing_key": "ADOPTION PROPOSAL, NOT A NEW KEY. `artifact_type` is canonical, an enum whose members are values discovered at runtime, and it is already shared by research and code. The whole media-form vocabulary of this family - poster, showreel, stem, mix, cut, plate, edition, atlas, sprite, lookbook - is VALUES of this one field, which is the single most important thing this schema row can say to its 41 siblings: no sibling may ask for a node per media form, and no sibling may mint a `deliverable_type` or `asset_type` synonym.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Inherit canonical (true), with a caution the siblings should carry: it is the deepest level, not a top one. Putting artifact type above project produces the folder shape this world already suffers from - every PSD in one place, every export in another, and no way to find the job.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Format is a routing signal, never the fact: 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\". A .tiff is a proof, a scan, a texture or a master depending on evidence outside itself, so the ceiling cannot exceed `possible` without a rule family, and the rule family that would raise it (a linked-asset or export-preset structure inside the file) is P4's to name, not this row's."
+    },
+    {
+      "key": "client",
+      "type": "string",
+      "example": "the commissioning organisation a job is made for, in the counterparty role - never the maker's own studio",
+      "why_no_existing_key": "ADOPTION PROPOSAL, NOT A NEW KEY. `client` is canonical, seeded directly from 00's role-split sentence - \"A consulting document may mention the author’s firm and the client organization.\" \"The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client\" - and it already carries `role_split_with: our_firm`. This is the key that draws the professional-versus-personal seam without pretending format or tool can draw it, and it is the reason `creative` cannot simply fold into `research`: research declares no counterparty role at all.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Inherit canonical (true) - the canonical note already says why: 00 places purpose, project, subject or target above authorship. But this row records a REAL LIMIT for its siblings: a client level is honest only in a corpus that genuinely serves more than one client. In a single-client or in-house corpus it is a one-child level, which 00's own template validator rejects (\"create meaningless one-child levels\", \"use an author or organization merely as a collector\"). That is a template-time check against the accepted group, not a field-time ban.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "An organisation name on a brief, a purchase order, a contract party block or an export filename prefix is free text, and an organisation name is exactly the multi-role token 00 warns about - it can appear as the commissioner, the maker's own studio, a licensor, a media owner, a sub-supplier, or a brand merely depicted in the work. A `direct` claim needs a labelled counterparty slot, which exists only on the contract-shaped members of this world, and a `validated` claim needs an org gazetteer plus a role-bearing context zone (the canonical row already marks `client` gazetteer: orgs) - a rule family R4 owns, not this row."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised as a making record, kept local where the sensitivity posture says so, and offered honestly rather than scattered by format. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "a LINKED-ASSET structure: a project or working file whose interior names media it does not contain - placed images, linked footage, referenced samples, external textures, imported fonts. 00 requires the extractor to yield exactly this for creative formats: \"Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text\". A file that points at a named set of neighbouring media, and a folder of media that resolves those names, is the most creative-specific structure in this whole world, and it belongs to no other schema.",
+      "a LAYER or ARTBOARD structure: multiple named layers, artboards, boards, comps, bins or tracks inside one document, where the names are content-descriptive rather than structural. This is the shape 00 names in the same sentence, and it separates an authored working file from an exported flat one that happens to share an extension.",
+      "a REVISION-ROUND structure: a version-shaped token in the filename occurring across a run of same-stem files (`_v1`, `_v2`, `_R3`, `_rev`, `_WIP`, `_final`) together with a same-stem export in a different format - the working file and its output existing side by side. 00 already collects the structural half universally (\"duplicate and version-family signals\") and this world is where the family is intentional rather than accidental.",
+      "a BRIEF structure: a short document carrying an addressee organisation, a deliverables list, a deadline or schedule block, and a description of what the work must achieve rather than what it is about. This is 00's purpose-coherence shape - the analogue of the heading it names for applications (\"Please tell us what you are interested in studying at college and why\") - and it is what makes a folder of format-incoherent files one job.",
+      "a DELIVERY or HANDOFF structure: an export set whose members share one stem across format and size variants (print/web, CMYK/RGB, @1x/@2x/@3x, multiple aspect ratios or market cuts) accompanied by a note listing what is enclosed. The multiplicity IS the signal; a single .png is nothing.",
+      "a PRODUCTION-PAPERWORK structure: a dated document naming a shoot day, a call time, a location, a cast or crew list, a scene or shot list, or a schedule - the one part of this world whose documents are strictly formatted and machine-legible.",
+      "a SCRIPT structure: the strict element grammar of a screenplay or stage script - scene headings, character cues centred above dialogue, transitions - which survives even a flat PDF export and is the most deterministic single fixture this family has.",
+      "a TIMELINE-and-MEDIA structure: an editing, session or compositing project file beside a media folder of camera-original or take-numbered members, where the project references media by path. \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\".",
+      "an INDEXED-BUT-UNREADABLE proprietary creative format: 00 makes the abstention itself a recorded state - \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\". In this world that state is ORDINARY, not exceptional, and a file in it is still evidence of a making record when it sits inside a linked-asset or revision-round structure.",
+      "a RELEASE or RIGHTS structure: a signed one-page form naming a person or a property, a usage grant, a territory and a term - the document that made it lawful to make or to publish the work.",
+      "a CATALOGUE-SIDECAR structure: camera-original files each accompanied by a same-stem sidecar carrying non-destructive edit instructions, plus a catalogue database file that indexes them - the professional archive shape, which is NOT the same object as the pictures themselves."
+    ],
+    "needs_llm": [
+      "deciding whether a folder of format-incoherent files (a brief, a spreadsheet of costs, a font, three JPEGs, a signed PDF) is one job or a coincidence of one download afternoon - 00's purpose-coherence question, asked of a group dossier and never of a lone file",
+      "reading an untitled working file whose only evidence is layer names and preview text, where the question is what work it belongs to",
+      "distinguishing a personal experiment from a paid job when both use the same tool, the same filename habits and the same subject matter, and the only difference is whether a counterparty exists anywhere in the neighbourhood",
+      "naming a work in the maker's own vocabulary when the folder is called `New Folder 2` and the files are `Untitled-1.psd` through `Untitled-9.psd`",
+      "judging whether an export set is a delivery, a portfolio upload, or a backup of the same thing three times",
+      "deciding whether a photographed or screenshotted reference image is inspiration for this work or a member of another domain entirely"
+    ],
+    "never_alone": [
+      "a design_creative SOURCE_TYPE, or a creative extension (.psd .ai .indd .prproj .aep .blend .fig .sketch .logicx .als), on its own - a .psd is as often a screenshot someone opened and saved, an exported mockup, a downloaded template, or a stock asset as it is an authored work, and file_kind_plausible is constitutionally never-alone",
+      "a studio, agency, label, publisher or brand NAME with no role context - the direct read-across of 00's own warning: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" A brand name in this world appears as the commissioner, the maker's own studio, a licensor, a media owner, a subject merely depicted, and a font vendor in a licence footer",
+      "a `_final` or `_v2` token alone read as a stage - the version token is universal `version_family` evidence and is famously untruthful here; `logo_final_v3_FINAL.ai` is the fixture",
+      "a maker's own name, or DOCX/PSD author metadata, read as anything placement-bearing - \"DOCX author metadata should remain supporting information only, because it may identify a prior editor, a document template, or a script rather than the meaningful subject or purpose of the file\", and \"It should avoid using authorship or creator identity as a destination dimension.\" In a corpus whose owner IS the maker, this is the single most tempting and most useless signal available",
+      "a bounded download session read as a project - a Friday of downloading fonts, stock photos, LUTs and templates is a session, not a work",
+      "high-resolution pixel dimensions, or a CMYK colour profile, read alone as professional work - a phone screenshot of a magazine has neither and a downloaded wallpaper has both",
+      "a parent folder named Design, Work, Projects, or Clients read as a fact - it is user vocabulary that legitimately influences retrieval (\"Existing curated folders and user-entered labels should influence retrieval because they represent the user's vocabulary\") and is not itself a project, a stage or a client",
+      "the mere ABSENCE of a client read as proof the material is personal - `creative.self-initiated-work` exists precisely because a professional's unpaid work is still a making record; absence of a counterparty selects a template, it does not deactivate the schema",
+      "an .mp4 or .wav on its own read as a production - the same containers carry a phone video, a voice memo, a lecture recording and a downloaded trailer",
+      "a font file read as a typeface project - an installed or licensed font is a stock asset; the design of a typeface has sources, a build and a specimen"
+    ]
+  },
+  "proposed_context_terms": [
+    "brief",
+    "creative brief",
+    "deliverables",
+    "revision",
+    "round",
+    "amends",
+    "sign-off",
+    "approved",
+    "artwork",
+    "proof",
+    "press-ready",
+    "bleed",
+    "imposition",
+    "master",
+    "mixdown",
+    "stems",
+    "picture lock",
+    "grade",
+    "call sheet",
+    "shot list",
+    "scene",
+    "storyboard",
+    "moodboard",
+    "lookbook",
+    "specimen",
+    "edition",
+    "install",
+    "programme",
+    "usage rights",
+    "licence term",
+    "territory",
+    "model release",
+    "property release",
+    "embargo",
+    "byline",
+    "commissioned by",
+    "on behalf of"
+  ],
+  "work_types": [
+    "working file",
+    "export or deliverable",
+    "proof",
+    "master",
+    "brief",
+    "moodboard or reference sheet",
+    "storyboard",
+    "production paperwork",
+    "script",
+    "manuscript draft",
+    "transcript",
+    "stem or take",
+    "cut or edit version",
+    "render",
+    "layout",
+    "specimen",
+    "documentation of a physical work",
+    "release or rights document",
+    "stock or library asset"
+  ],
+  "grouping_reasons": [
+    "one named work across its working files, exports and paperwork",
+    "one revision round - what was shown on one date and what came back",
+    "one brief and everything assembled to answer it, however format-incoherent",
+    "one delivery or handoff set, recognised by a shared stem across format and size variants",
+    "one project file and the media it links to by name",
+    "one shoot day, session or performance date and everything recorded on it",
+    "one client engagement across several works",
+    "one version family of a draft, which in this world is intentional rather than accidental",
+    "an existing curated folder the maker already made and named"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT. A dimension may only branch on a field the same entry's schema declares (D6, _CONTRACT rule 8) and this placeholder declares none (D1 as narrowed, rules 10 and 15, CONNECTION PR-6). The recommendation is therefore held here as PROSE, and it is the DEFAULT TEMPLATE the 41 creative.* siblings are measured against - a sibling template row exists only where its detection signals, its dimensions, or its privacy rules differ from THIS. The default, if option (b) of NJ-R1a-1 is ever taken: client only where the corpus genuinely serves more than one client (otherwise it is the collector level 00's own validator rejects), then project, then stage, then artifact_type as the optional deepest level. Not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The parent-context test is what fixes the order - \"a parent dimension should provide the context required to understand the child. A work type such as Homework 3 is meaningful only after the course is known\" - and `Round 2` or `_v3` is meaningless without the work, exactly as Homework 3 is meaningless without the course. TWO NAMED EXCEPTIONS the siblings may claim, and only these two: creative.shoot-day-media and creative.raw-photo-catalogue are legitimately time-first, because their material is capture-based and 00 grants that exception by name - \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" A sibling claiming time-first on any other ground is claiming the photos exception without the photos evidence. Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "design_creative",
+      "image",
+      "audio_video",
+      "text_document",
+      "presentation",
+      "archive",
+      "opaque_binary",
+      "spreadsheet",
+      "ocr",
+      "filesystem",
+      "email",
+      "calendar",
+      "code_structured"
+    ],
+    "extensions": [
+      ".psd",
+      ".ai",
+      ".indd",
+      ".idml",
+      ".svg",
+      ".fig",
+      ".sketch",
+      ".xd",
+      ".afdesign",
+      ".prproj",
+      ".aep",
+      ".fcpxml",
+      ".drp",
+      ".edl",
+      ".mov",
+      ".mp4",
+      ".mxf",
+      ".r3d",
+      ".braw",
+      ".wav",
+      ".aiff",
+      ".logicx",
+      ".als",
+      ".ptx",
+      ".flp",
+      ".mp3",
+      ".blend",
+      ".c4d",
+      ".fbx",
+      ".obj",
+      ".usdz",
+      ".exr",
+      ".dng",
+      ".cr3",
+      ".nef",
+      ".arw",
+      ".xmp",
+      ".tif",
+      ".png",
+      ".jpg",
+      ".pdf",
+      ".eps",
+      ".docx",
+      ".fdx",
+      ".indt",
+      ".otf",
+      ".ttf",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "logo_final_v3_FINAL.ai",
+      "source_type": "design_creative",
+      "observations": [
+        "an Illustrator document; canvas properties and artboard names are readable, full interior structure is not",
+        "artboard names read as one-colour, reversed, and horizontal",
+        "linked asset names reference two font families not present in the folder",
+        "filename carries two competing finality tokens and a version-shaped token",
+        "four same-stem siblings sit beside it with earlier version tokens and later filesystem timestamps"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a stage of `final` from the filename token; the token is the standing counter-example and the later timestamps contradict it",
+        "that the newest filesystem timestamp is the newest version - 00 requires the engine not to assume that time only moves forward",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Creative Brief - Northwind Rebrand.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a heading naming a rebrand and an addressee organisation",
+        "a table of deliverables against dates, in cells rather than body paragraphs",
+        "a paragraph stating what the work must achieve rather than what it depicts",
+        "a footer naming a second organisation in an authorship position",
+        "DOCX author metadata naming a person who is not the corpus owner"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none; `client` and `project` are adoption proposals awaiting R1c",
+        "which of the two named organisations is the client and which is the maker's own firm, from the names alone - that is exactly the role split 00 requires be modelled as distinct facets",
+        "a `purpose` fact: PR-1 keeps `purpose` where 00's sentence puts it, on College applications, and no per-domain clone may be minted",
+        "an author-based destination from the DOCX author slot",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "NW_Rebrand_R2_amends.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a flattened multi-page PDF of laid-out designs",
+        "annotation objects carrying comment text from two named commenters and a date",
+        "page furniture reading Round 2",
+        "shares a filename stem with a working file and an export set in the same folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a `people` fact from the commenter names; `people` is a photos-schema key, is seeded destination-ineligible, and its ceiling is user_confirmed",
+        "that the round number is a stage fact rather than a possible clue",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Northwind_Logo_Pack_v1/ (CMYK.eps, RGB.svg, @1x.png, @2x.png, @3x.png, README.txt)",
+      "source_type": "filesystem",
+      "observations": [
+        "six members sharing one stem across colour spaces, formats and pixel-density variants",
+        "a plain-text note listing what is enclosed and what each variant is for",
+        "no working file present anywhere in the folder",
+        "member timestamps cluster within one hour"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the members are duplicates because they render identically; \"A content-hash match supports deduplication review; a filename match alone does not.\"",
+        "a delivery date from the clustered timestamps alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "A047_C013_0219AB.braw",
+      "source_type": "audio_video",
+      "observations": [
+        "camera-original clip; container and codec metadata and a creation-time tag are present",
+        "filename carries a reel, clip and date-shaped card pattern",
+        "sits beside a folder of same-day clips and a separate folder of numbered audio rolls",
+        "a spreadsheet in the parent folder lists shot numbers against takes and circled takes"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a photos-schema `event` fact - a shoot day is a production unit, not a photo event proposed from agreeing camera, capture time and GPS",
+        "a transcript - \"only under an explicit privacy and compute policy\"",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Session 04 - vocals comp.logicx",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a package-shaped project whose interior is not readable by any approved extractor",
+        "a same-stem folder of numbered take files and a bounce named with a mix-version token sits beside it",
+        "the package references audio it does not contain",
+        "recorded as indexed-but-unreadable rather than empty"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that an unreadable interior means the file is meaningless - \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\"",
+        "that the neighbouring takes may be moved away from the package that references them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Model Release - J. Okafor - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a one-page form with a signature block, a printed full name, a date of birth field and an address",
+        "a usage grant naming a territory and a term",
+        "a second party block naming a photographer's trading name",
+        "no reference to any project by name"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a project association from the signing date, or from the folder it happens to sit in",
+        "that the making-record reading permits the identity content into a model prompt; protection precedes any model or placement path",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Untitled-1.psd",
+      "source_type": "design_creative",
+      "observations": [
+        "canvas properties readable; layer names are Layer 1 through Layer 6",
+        "no linked assets, no preview text, no embedded metadata beyond format",
+        "sits in a folder named New Folder 2 with eight same-pattern siblings",
+        "no export, no brief and no counterparty anywhere in the neighbourhood"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none, and this file would license none even if it declared four",
+        "that a design_creative SOURCE_TYPE alone makes this a work",
+        "a project from the parent folder name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "kitchen-remodel-inspiration-14.jpg",
+      "source_type": "image",
+      "observations": [
+        "a downloaded JPEG with all EXIF stripped and no camera slots",
+        "sits in a folder with thirty similar saved images downloaded across one afternoon",
+        "no working file, no brief, no counterparty, no export, no version family",
+        "OCR recovers a watermark and a retailer's product code"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - this is the schema's clearest false positive; saved visual inspiration with no project around it is residual library material, not a making record",
+        "a project from the bounded download session that produced the folder",
+        "media_type = screenshot from the absent EXIF",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "MidnightRiver_ch01-12_draft7.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a long document with chapter-level heading structure and tracked revision metadata",
+        "filename carries a work title, a chapter span and a draft-shaped token",
+        "six same-stem siblings with earlier draft tokens",
+        "a separate folder holds query letters addressed to three named agencies"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the query letters belong to the same group as the manuscript by content similarity; they share a purpose and share almost no text",
+        "a `venue` fact from the agency names - `venue` is the research schema's key for a journal or conference, and an agency is not one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 14.08.11.png (a reference frame grabbed from a film)",
+      "source_type": "image",
+      "observations": [
+        "PNG at an exact known display resolution with screen-capture software metadata and no camera EXIF",
+        "sits inside a folder beside a working file and a brief",
+        "OCR recovers burnt-in subtitle text and a player interface"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that proximity to a working file writes a project onto it; the neighbourhood may group it without any fact being copied",
+        "media_type = screenshot from missing EXIF - the support is the resolution, format and software metadata together",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Invoice 2026-041 - Northwind Ltd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered invoice with a line-item table, a net/VAT/gross block and payment terms",
+        "a bill-to block naming the same organisation the brief addresses",
+        "a remit-to block naming a bank account and a sort-code-shaped token",
+        "the line-item description names the same work the brief names"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the shared organisation name makes this a member of the creative job's group; the account and amount structure is the discriminating evidence and it is finance's",
+        "any creative fact - the schema declares none",
+        "that the creative reading and the finance reading may be merged into one home",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "submission.zip (Rebrand deliverables)",
+      "source_type": "archive",
+      "observations": [
+        "the manifest lists mixed members - two EPS, a PDF, a font file, a text note and a spreadsheet",
+        "member paths carry one shared top folder named for the work",
+        "no member is extracted to disk",
+        "the archive's own timestamp is the day it was assembled"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that format-incoherent members mean the archive is incoherent; a delivery packet is purpose-coherent by construction, the same shape 00 names for an application packet",
+        "member facts from the archive's own timestamp",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career",
+      "signal": "THE LOAD-BEARING COLLISION OF THIS FAMILY, and the reason career.portfolio-work-samples keeps the design_creative file_kind_owner assignment. The same bytes appear on both sides: one exported PDF of a poster is the deliverable of a job AND the third page of a portfolio. The discriminating evidence is what the file is FOR, not what it depicts. Making-record evidence - a working file, a linked-asset structure, a revision family, a brief, a counterparty, production paperwork - is this schema. Self-presentation evidence - a curated set of finished exports with no working files, ordered for showing, sitting beside a resume or a reel, or named for a submission - is career. Where a lone export has neither, neither activates and it falls through, because \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement\"."
+    },
+    {
+      "domain": "photos",
+      "signal": "The confusable evidence is capture metadata on professional camera originals: a commissioned shoot's RAW files carry the same EXIF make, model, DateTimeOriginal and GPS that a family photograph carries, and that evidence alone would propose a deterministic photo event and a capture-year home for a job. The discriminating evidence is the engagement structure AROUND the captures - a brief, a call sheet, a selects or delivery set, a sidecar-plus-catalogue archive, a release form. The reciprocal statement photos must carry: a personal picture never acquires a client or a project because a professional camera made it. The SAME fixture bytes sit on both sides here - A047_C013_0219AB.braw and the RAW-plus-sidecar catalogue - and this row claims neither reading exclusively."
+    },
+    {
+      "domain": "code",
+      "signal": "The confusable evidence is a repository root sitting on top of creative material - a game project, a generative-art repo, a design-system library under version control - where a package manifest and a .git marker would fire the code schema over material whose unit is an authored asset. The discriminating evidence is which structure explains the folder: a manifest, lockfile and source layout is code and its internal layout is preserved rather than re-filed; a linked-asset and layer structure with binary sources and exported variants is this schema. The reciprocal: code must not claim an assets folder merely because a repository encloses it, and this schema must not propose re-filing anything inside a preserved repository root."
+    },
+    {
+      "domain": "research",
+      "signal": "The confusable evidence is the field vocabulary itself: the four adoption candidates here (project, stage, artifact_type, client) overlap research's declared set (project, stage, artifact_type, lab, venue) on three of four keys, which is precisely why NJ-R1a-1's option (b) is still open. The discriminating evidence is the two keys that DO differ: a lab or a target venue on one side, a commissioning counterparty on the other - and a stage that moves toward publication versus a stage that moves toward someone else's acceptance. A documentary, a data-visualisation commission and a scientific-illustration job sit exactly on this line. Recorded as a collision rather than a fold, and flagged in open_question so R1c can fold it if Joseph prefers."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "photos",
+      "signal": "A commissioned shoot's camera originals are legitimately BOTH a capture and a making record, on disjoint evidence: EXIF make, model, capture time and GPS on one side; a brief, a call sheet, a selects set and a delivery on the other. This is 00's stated shape - \"One file may hold facts from more than one domain without losing information\" - and neither reading may drop the other's fields. It is listed as a collision as well because the same bytes can also be claimed WRONGLY, when the capture reading fires with no engagement structure present at all; the collision entry carries the discriminator, this entry carries the legitimate double reading."
+    },
+    {
+      "domain": "legal",
+      "signal": "A signed commissioning contract, a licence agreement, a release form and an assignment of copyright are legally operative instruments AND the rights record of a specific work. The evidence is disjoint: a numbered clause set, defined terms, a parties block and an execution block on one side; the named work, its usage grant, its territory and its term on the other. Neither reading may suppress the other, and where the instrument carries a person's identifying details the protective posture governs the file's handling regardless of which reading is more informative for placement."
+    },
+    {
+      "domain": "business_operations",
+      "signal": "An in-house creative team's material carries both readings at once: a campaign is a making record AND a marketing programme with a budget, an approval chain and a reporting line. The evidence is disjoint - linked assets, revision rounds and exports on one side; a controlled-document header, an approval block and a period-and-variance table on the other. Filed as also_holds_with rather than a collision because the two do not compete for the same evidence item; a brand guideline PDF genuinely is both a designed artefact and a governing document."
+    },
+    {
+      "domain": "career",
+      "signal": "Also listed as a collision, and both edges are true of different files. The legitimate double reading: a freelance maker's own showreel, portfolio site export or agency-submission packet is simultaneously the presentation of their work (career) and an artefact assembled from named works (creative). What must not happen is the double reading being used to smuggle a client-facing delivery into the portfolio branch, or a portfolio export into a job's delivery set."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Reference Clips",
+      "why": "The most important fallthrough this schema has, because it is where the family's commonest false positive belongs: saved inspiration, downloaded references, stock and template material with no work around it. \"Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.\" The clause \"does not belong to a current project\" is the exact test, and it is the residual side of the professional-versus-personal seam.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest home for a real-looking creative file whose work, stage or side is unresolved - which in this world is the normal case, because untitled working files and version-token filenames are the norm rather than the exception. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary here rather than exceptional: proprietary project packages, password-protected client deliveries and formats no approved extractor reads. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A lone export, render or documentation photograph with no work, no event and no family around it. \"One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Reference frames, UI grabs and captured comments are a working habit of this world, and most of them are disposable. \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone delivered artefact or a lone signed release with a durable purpose and no group - the poster PDF that is simply kept. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The transactional edge of a practice - a stock licence purchase, a font invoice, a print-order confirmation - where no job register exists to hold it. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Release forms carrying a person's identifying details, unpublished work under embargo, and a reporter's source material need the protective home rather than the informative one. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Marked inference because 00's list does not name creative material; the mechanism it describes is what this row is invoking.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "client",
+      "other_field": "our_firm",
+      "other_domain": "business_operations",
+      "why": "The commissioning organisation and the maker's own studio are the same entity TYPE in two roles, and this world puts both names on the same page - a brief footer, a contract parties block, an invoice header. 00 requires them modelled as distinct facets: \"A consulting document may mention the author’s firm and the client organization.” “The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.\" `our_firm` stays destination-ineligible for the authorship reason; `client` is the target-side key. Neither is declared by this placeholder; the split is recorded so that whichever pass declares them cannot collapse them into one.",
+      "provenance": "design"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Four independent reasons, none of them the generic one. (1) UNPUBLISHED WORK. A campaign before launch, a manuscript before submission, an identity before reveal and a cut before release are confidential by default, and the harm is disclosure rather than identity theft; 00's boundary sentence is the operative protection - \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\" (2) RELEASES AND PAPERWORK CARRY THIRD-PARTY IDENTITY. Model and property releases, call sheets and cast lists hold names, addresses, dates of birth and signatures of people who are not the corpus owner and never consented to a filing agent, let alone a model prompt. (3) SOURCE MATERIAL. A reporter's notes, recordings and documents are the sharpest case in the family (creative.journalism-reporting) and the one where a wrong disclosure is not recoverable; 00's own limit applies - \"Revocation cannot necessarily retract data already sent to an external provider, so the product must communicate that distinction clearly.\" (4) THE CLIENT'S CONFIDENCE. Briefs, unreleased product imagery and pre-announcement material are the client's secret, not the maker's, so the maker cannot consent on their behalf. Against all four: \"Privacy policy must be enforced before content reaches any model or external connector.\" This row does NOT carry is_safety_domain - that flag stays with 00's four - and it assigns no handling class, which is P7's vocabulary.",
+  "open_question": "Four, and the first is the reason this row exists. (1) NJ-R1a-1 IS NOT FULLY CLOSED. The roster records it as answered by J-IND with option (a) - a field-less placeholder schema - and adds that \"If a later pass wants option (b), the candidate fields are still the existing keys `project`, `stage`, `artifact_type`, `client`; nothing here forecloses it.\" This row deliberately does NOT resolve the remainder, because it is exactly the row where doing so would be invisible. The alternatives, spelled out: (a) STAY FIELD-LESS - activation legitimises recognition and the universal facts only, 41 templates recommend no dimensions, and a creative corpus gets grouped but never structured; costs the family its only shot at a folder shape, and leaves `client` unavailable to the row that most needs it. (b) DECLARE THE FOUR EXISTING KEYS - no key is minted, D6 is untouched, the default template above becomes real, and the 41 siblings gain something to differ from; costs the D1 deferral its uniformity, since career, identity, medical and legal would still be field-less while creative would not, and Joseph would have to say why creative is the exception. (c) FOLD INTO `research` - three of four candidate keys are already research's, and the fold would cost one schema row; it fails on the counterparty (`research` declares no client role), on the privacy posture (research has no embargo, release-form or source-protection case), and on the large part of the family - performance, publishing, marketing, print, fashion, games - whose material research's `lab`/`venue` pair cannot describe at all. This row's own recommendation, offered and not taken: (b), narrowed so that only `project` and `artifact_type` open folder levels at launch. (2) THE RIGHTS-AND-LICENCE HOLE. `creative.licensing-rights`, `creative.stock-asset-library` and `creative.typeface-font` all want to state a usage grant - what may be used, where, for how long. No canonical key holds it: `record_type` is finance's, `purpose` is fenced to College applications by PR-1, and `artifact_type` names the document rather than the grant. NO KEY IS PROPOSED HERE, deliberately - minting one on a field-less schema would be the 574's mistake at the exact point of maximum temptation. Recorded for R1c as the family's one genuinely field-shaped hole. (3) THE PROFESSIONAL-VERSUS-HOBBY SEAM'S RESIDUAL EDGE. This row draws the seam by engagement evidence, not by tool, format or subject, and routes the unstructured personal end to Reference Clips. What it cannot settle is the middle: a serious amateur with real project structure, real revision families and no counterparty is indistinguishable from a professional's self-initiated work, and `creative.self-initiated-work` exists to hold both. Whether that is one template or two is a question about someone's real filesystem. (4) WHETHER 41 TEMPLATES SURVIVE R1c ON A FIELD-LESS SCHEMA. If (1) resolves to (a), every one of the 41 must justify itself on detection signals and privacy rules alone, since the dimensions leg of the node test is unavailable to all of them equally - and several (creative.print-production, creative.motion-graphics, creative.sound-design) may then be values of `artifact_type` on a neighbour rather than rows."
+}
