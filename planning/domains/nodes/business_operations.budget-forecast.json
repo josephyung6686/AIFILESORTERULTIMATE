@@ -4,14 +4,26 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Operational budgeting and forecasting",
-  "one_line": "The forward-looking money plan of an organisational unit and the running comparison of that plan against what actually happened: budget submissions and consolidations, forecasts and reforecasts, variance commentary, headcount and capex models, and the sign-off trail around them. The anchor is a PLANNING ROUND for a unit and a period — money that has not happened yet, or money being explained after the fact — which is what separates it from a custodial accounting record held with an institution. Absorbs the legacy row ops.operating-plan-budget. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "The forward-looking money plan of an organisational unit and the running comparison of that plan against what actually happened: budget submissions and consolidations, forecasts and reforecasts, variance commentary, headcount and capex models, and the sign-off trail around them. The anchor is a PLANNING ROUND for a unit and a period — money that has not happened yet, or money being explained after the fact — which is what separates it from a custodial accounting record held with an institution. Absorbs the legacy row ops.operating-plan-budget. A PLACEHOLDER TEMPLATE ROW written to J-DEPTH: it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
   "refuse_node": false,
   "refuse_reason": null,
   "fields": [],
-  "proposed_fields": [],
+  "proposed_fields": [
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "example": "FY2026, Q3 FY26, the 2026-27 planning round",
+      "why_no_existing_key": "SECONDING, NOT MINTING. This key is proposed by the landed business_operations SCHEMA row and this entry adds no variant, no synonym and no second spelling - it exists only to record that of the four rows in the family that cycle annually, this is the one that needs the key most, and to put a THIRD-PARTY CONFLICT in front of R1c that the schema row could not see. The conflict: the landed finance.small-business-bookkeeping row raises the identical concept in its own open_question under a DIFFERENT NAME - it asks whether \"the shared vocabulary gain a destination-eligible reporting_period key\", having rejected tax_year for the same reason the schema row rejects it. One concept, two spellings, proposed independently by two families that contest the same workbook, is exactly the bug D6 exists to prevent. R1c must adjudicate fiscal_period and reporting_period as ONE question, not two, and whichever spelling survives must be the one both families use. The underlying argument is the schema row's and is not restated here.",
+      "destination_eligible": true,
+      "destination_eligible_why": "As proposed on the schema row, unchanged: it is a period, not a person, so 00's authorship-as-destination prohibition does not reach it. Not first - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
+      "reliability_ceiling": "validated",
+      "reliability_why": "As proposed on the schema row, unchanged: a fiscal-period token pattern co-occurring with a period-context term in the same labelled block. This row writes no regex and no term list. Without that rule the honest ceiling drops to `possible`.",
+      "adjudicate": "R1c"
+    }
+  ],
   "recognition": {
     "deterministic": [
       "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
@@ -41,7 +53,8 @@
       "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
       "membership in a download session that emptied a document-management system or a mail thread's attachments at once. “A session should never be treated as proof of topic”",
       "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — a corporate template stamps the same entity on every blank form it ever generated.",
-      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version."
+      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version.",
+      "a filename version or finality token alone - v7, FINAL, FINAL2, (2), Copy of, ~$ - as proof that two files are one model's version family. This row is where those tokens are densest and where they lie most often, and 00 settles it: “A content-hash match supports deduplication review; a filename match alone does not.” The version_family fact is a UNIVERSAL file fact (00 lists “duplicate family, version family, and sensitivity status” among the shared set), so it is neither this row's to write nor this row's to earn activation from."
     ]
   },
   "proposed_context_terms": [
@@ -363,6 +376,11 @@
   ],
   "collides_with": [
     {
+      "domain": "finance",
+      "signal": "AUTHORED AGAINST A LANDED ROW AND STATED PLAINLY: the landed finance safety schema already carries “budget sheet” in its own work_types list, so finance has claimed budget-shaped bytes on the roster before this row existed. This row does not contradict that and does not ask for it to be removed. The reading it proposes instead: finance's “budget sheet” is a work_type VALUE, and 00 is explicit that work-type values are not nodes - what finance owns through it is a budget sheet that arrives with finance's own evidence, which is an institution-and-account header, a statutory issuer, or a personal holder. The discriminating evidence for this row is the absence of all three plus the presence of a unit-and-round structure: cost centres, budget holders, a submission deadline, an approval line. Where neither is evidenced, finance is a SAFETY schema and CONNECTION section 4 step 5's protective ordering means it wins the file rather than this row: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.” Reciprocal owed by R1c; finance carries no edge back to business_operations. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
       "domain": "finance.small-business-bookkeeping",
       "signal": "The load-bearing collision on this row and the edge form of NJ-J-IND-3. Both hold an entity's money in tables and both routinely live in one workbook. The discriminating evidence: a budget / forecast / variance column set over cost centres, with no institution and no account, supports this row; an institution-and-account header, a double-entry ledger structure, a reconciliation, or an accountant's compilation note supports bookkeeping — which sits on the finance SAFETY schema, so where they co-activate the protective ordering runs first. Where the evidence does not settle it, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.” Provenance: inference.",
       "provenance": "inference"
@@ -393,7 +411,13 @@
       "provenance": "inference"
     }
   ],
-  "also_holds_with": [],
+  "also_holds_with": [
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "One workbook holding a forecast sheet AND a reconciled-actuals sheet sourced from an accounting system is genuinely BOTH, on DISJOINT evidence: the forecast sheet's period-and-variance structure is this row's, the reconciliation's book-versus-bank balance and its accounting-package provenance are that row's. CONNECTION invariant 1 licenses carrying both edges to one neighbour precisely because the collides_with entry above names discriminating evidence, and the landed finance.research.md uses the same both-edges pattern for photos and for legal. The firewall: one evidence item - the money figure, the period label, the entity name - must never count for both sides. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
   "falls_through_to": [
     {
       "residual_template": "Review Later",
@@ -424,5 +448,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "A budget is usually impersonal and occasionally not, and the transition happens at one column. 00's corpus sentence names what is at stake — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” — and a people-cost model is employment material, a cash-flow forecast attached to a bank facility is an account statement's neighbour, and a redundancy scenario names individuals. Second, and as inference: an unannounced plan is confidential to an employer whose material a person may be keeping on a personal machine, so the exposed party is often not the user. The cautious setting is the honest one. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
-  "open_question": "Two. (1) NJ-J-IND-3, which this row cannot settle and most needs: where does an ORGANISATION's money live? The roster's reading — statutory and custodial to the finance safety schema, forward-looking management to business_operations — is defensible but was drawn by the roster pass rather than by 00, and this row is the one that breaks if it is wrong. (2) `fiscal_period` as a canonical key (raised in the schema row's proposed_fields): this row wants it more than any other in the family, and reusing `tax_year` would quietly assert that an entity's management calendar coincides with a jurisdiction's statutory one, which it routinely does not."
+  "open_question": "Four. (1) NJ-J-IND-3, which this row cannot settle and most needs: where does an ORGANISATION's money live? The roster's reading — statutory and custodial to the finance safety schema, forward-looking management to business_operations — is defensible but was drawn by the roster pass rather than by 00, and this row is the one that breaks if it is wrong. (2) `fiscal_period` as a canonical key (raised in the schema row's proposed_fields): this row wants it more than any other in the family, and reusing `tax_year` would quietly assert that an entity's management calendar coincides with a jurisdiction's statutory one, which it routinely does not. (3) NJ-BF-1, IS A BUDGET AND A FORECAST ONE SITUATION OR TWO? A budget is agreed once and fixed; a forecast is revised repeatedly. This row holds them as ONE situation and treats the revision sequence as the UNIVERSAL version_family fact rather than as a domain distinction - 00 lists “duplicate family, version family, and sensitivity status” among the shared file facts, and a file may be “a member of a version family” without any schema activating. The alternative, splitting the row, would mint a node whose only discriminator is a universal fact the product already computes, which is the 574's mistake in a new costume; the cost of NOT splitting is that a fixed approved budget and a fourth reforecast sit in one situation despite having different authority. (4) NJ-BF-2, ONE CONCEPT UNDER TWO NAMES: this row's proposed_fields seconds the schema row's `fiscal_period`, but the landed finance.small-business-bookkeeping row raises the same concept as `reporting_period` in its open_question. R1c must settle it once, for both families."
 }

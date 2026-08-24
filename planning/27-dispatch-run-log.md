@@ -327,3 +327,16 @@ the JSON and rewrite the memo. Corrected in the retry prompts.
   times; leg 3 is the leg this row turns on.
 - This is the argument the gist row did not contain at all, and it is the kind that matters:
   getting a privacy posture wrong in the permissive direction is the expensive error.
+
+## Debt clearing 6-7/64 — both salvaged from a limit-kill, both complete
+
+- The usage limit killed both agents, but **the write-as-you-go instruction paid off**: both had
+  written complete files before dying. Verified rather than assumed — JSON parses, all universal
+  keys present, memos end on finished sentences, no truncation.
+- `business_operations.budget-forecast`: **3,777B → 43,409B (11.5x)**, 10 file_examples, stands.
+  Notes that "nine of the ten boundaries in this memo are one-way" — a reciprocity observation R1c
+  will want, since one-way boundaries are exactly what the merge gate checks.
+- `construction_property.construction-project`: **3,261B → 38,433B (11.8x)**, 15 file_examples,
+  stands. Now a spine heavy enough to carry the siblings that define themselves against it.
+- Both expansions are the largest yet (11.5x, 11.8x), continuing the trend: richer anchors and
+  neighbours give each new row more to genuinely argue with.
