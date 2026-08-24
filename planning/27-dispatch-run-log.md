@@ -478,3 +478,19 @@ statement of what else was left alone (development-appraisal).
     schema." The agent found a failure mode the dispatcher had not identified.
 - Lesson recorded: **expansion ratio is not a quality signal.** The smallest growth in this wave
   produced the most correction. Judge rows on reversals, withdrawals and arguments, never on bytes.
+
+## Debt clearing 20/64 — `business_operations.partnerships-bd`, and a second pair question settled
+
+- **4,486B → 35,864B (8.0x)**, 13 file_examples, all universal keys, stands.
+- **Settled the three-row counterparty question** (partnerships vs `customer-account-management` vs
+  `vendor-management`, engaged 14 times) rather than restating it — explicitly citing the principle
+  established by `product-requirements` that a question stated identically on several rows is a
+  deferral, not an answer.
+- The discriminator is **relationship state, not counterparty role**: this row holds a commercial
+  relationship *that does not exist yet* — prospects, pitches, proposals, NDAs, letters of intent —
+  where its two siblings hold relationships that already do. Role would have been a field value;
+  state is structural. This is the same class of move as `commercial-lease`'s tenancy-vs-job
+  argument.
+- Found and fixed a cross-family error: a fundraising term sheet was "one of this row's named
+  instruments pointed at the wrong counterparty", producing a new reciprocal edge to
+  `finance.cap-table-equity`.
