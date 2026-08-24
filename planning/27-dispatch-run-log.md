@@ -459,3 +459,22 @@ statement of what else was left alone (development-appraisal).
   the same time; this row read that row's `collides_with` entry naming it and reciprocated **in
   that row's own words**, without editing it. It also adopted `clinical_practice.case-conference`'s
   wording (7 references) rather than competing with it. The no-double-edit rule held.
+
+## Debt clearing 17-19/64 — and the dispatcher gets corrected
+
+- `business_operations.board-governance`: **4,373B → 49,734B (11.4x)**, largest memo to date,
+  11 file_examples, stands, no proposed fields.
+- `construction_property.block-management`: **4,298B → 43,055B (10.0x)**, 11 file_examples, stands.
+  Had to beat `finance.hoa-residents-association` on something other than "a company does the
+  work", and did.
+- `construction_property.drawings-revisions`: **4,373B → 30,062B (6.9x)** — the SMALLEST expansion
+  of the wave, and the most valuable row in it.
+  - **Verdict: KEPT, but on one leg instead of three, on a different structure than the gist named,
+    and with the gist's `revision` field proposal WITHDRAWN.** `proposed_fields` is now empty.
+  - "Three of its four claims are reversed below and each reversal is stated as a reversal."
+  - **It corrected the dispatch itself:** the warning "was correct about the *danger* and wrong
+    about *where* the danger was. The trap this row nearly fell into was not the version family —
+    the gist had already seen and refused that. It was standing on a signal that belongs to its own
+    schema." The agent found a failure mode the dispatcher had not identified.
+- Lesson recorded: **expansion ratio is not a quality signal.** The smallest growth in this wave
+  produced the most correction. Judge rows on reversals, withdrawals and arguments, never on bytes.
