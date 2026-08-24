@@ -4,20 +4,41 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Compliance evidence and audit",
-  "one_line": "Evidence that an entity meets an external standard or an internal control obligation, and the reviews that test it: certification and standard documentation, control descriptions and their evidence, internal and external audit reports, findings and corrective actions, attestations, and the auditor correspondence around them. The anchor is a CONTROL and the ASSESSMENT that tested it — a claim about the entity's own conduct, proved by artifacts gathered for someone else to check. Absorbs the legacy rows corp.compliance-audit and soft.tech-compliance-evidence. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "The organizational situation of an ASSESSMENT that tests whether an entity meets an external standard or an internal control obligation, together with the evidence chain gathered for it: the audit plan and scope, the evidence-request (PBC) list, the control descriptions and the artifacts pulled to prove them, the report, the findings and their corrective actions, and the closure evidence. The organizing anchor is an ASSESSMENT OCCURRENCE and the cross-referenced chain it leaves behind - request number to evidence artifact to finding reference to corrective action to sign-off - assessed by a party structurally distinct from the party assessed. That chain is a structure paired with labelled slots, which is what the business_operations schema row requires of every sibling; it is not a document type, and the row is deliberately NOT built on the word 'certificate' or the word 'audit'. A STANDALONE certificate with no assessment around it is NOT this row - it is Independent Records, following the refusal landed at construction_property.compliance-certificate, which this row seconds rather than contradicts. Absorbs the legacy rows corp.compliance-audit and soft.tech-compliance-evidence. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
   "refuse_node": false,
   "refuse_reason": null,
   "fields": [],
-  "proposed_fields": [],
+  "proposed_fields": [
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "example": "FY26 - the year an internal audit plan covers and the year a findings tracker's rows are dated to",
+      "why_no_existing_key": "SECONDING, NOT MINTING. `fiscal_period` is proposed by the landed business_operations SCHEMA row, which names this row as one of four siblings that want it and none of which may have it. This entry adds no variant and no second spelling, and does not restate the schema row's argument. What it adds is a HONEST WEAKENING: for this row the key is real but secondary. An internal audit plan is annual and a findings tracker's rows carry a financial year, so the key does fire here. But this row's dominant cycle is NOT the fiscal calendar - a certification runs initial, surveillance, surveillance, recertification, joined by a certificate number across periods, and a single finding routinely opens in one year and closes in another. R1c should weigh this row's vote for the key below budget-forecast's and board-governance's, and should NOT read this row as evidence that a fiscal period is the family's universal second axis.",
+      "destination_eligible": true,
+      "destination_eligible_why": "As proposed on the schema row, unchanged, and with an extra restriction from this row: eligible but explicitly not first and, here, not second either - an assessment occurrence outranks it, because an evidence artifact is unintelligible above the assessment that requested it, the same reason 00 gives for putting a course above a homework number. “the user can reverse, remove, add, or flatten dimensions.”",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Unchanged from the schema row's proposal: a fiscal-period token pattern co-occurring with a period-context term in the same labelled block. This row writes no regex and no term list; R2/R6 own those. Without that rule family the honest ceiling is `possible`, because a bare 4-digit number here is equally a certificate number, a control identifier, a standard's publication year, or a document version."
+    },
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the entity whose conformity is being tested - one employer's ISO pack among the supplier assurance packs kept beside it",
+      "why_no_existing_key": "SECONDING, NOT MINTING. `organization` is proposed by the landed business_operations SCHEMA row and independently by the landed construction_property schema row, which asks that it be adjudicated once for both; business_operations.policy-handbook seconds it too. This row adds no variant. What it adds is the sharpest reason in the family for wanting it AND the sharpest reason the single key is not enough. Wanting it: a real corpus holds the holder's own compliance record, a supplier's evidence the holder collected, and a customer's questionnaire the holder answered, side by side, structurally identical, separable only by custody. Not enough: this row's documents carry TWO organisation roles at once - the assessor and the assessed - and 00 is explicit that co-occurring roles of the same entity type are distinct facets, not one field: “The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.” The assessor role has no key. Following the schema row's own discipline with the supplier and customer roles, this row RAISES that hole (see open_question) rather than minting a key on a field-less schema.",
+      "destination_eligible": true,
+      "destination_eligible_why": "As proposed on the schema row, unchanged, with its seeded-ineligible caveat intact: in a single-entity corpus it names the user's own employer above everything, which is 00's collector failure - “It should avoid using authorship or creator identity as a destination dimension.” Conditional on the accepted group genuinely spanning more than one entity.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A letterhead or a filename yields `possible` at best; an entity name is constitutionally never-alone here and is worse than usual, because an audit report's letterhead is the ASSESSOR's, not the assessed's. Promotion needs a labelled slot - a certificate's scope-of-certification block, an audit report's 'entity audited' line. Confirmation is a gazetteer-plus-context rule family; R4 owns the gazetteer, R2 the rule."
+    }
+  ],
   "recognition": {
     "deterministic": [
       "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
       "a finding structure: a numbered or referenced finding with a severity or rating slot, a description, a management response, a named owner and a target date — usually as a table, and this is the single most characteristic structure in the row. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
       "a control structure: a control identifier crossed with a control objective, a control description, an owner, a frequency, and a test result or effectiveness conclusion. Control identifiers are a labelled slot, and their presence beside evidence references is what distinguishes real control documentation from a policy.",
-      "a certification structure: a certificate carrying an issuing body, a standard reference, a labelled scope-of-certification statement, a certificate number, and an issue-and-expiry date pair.",
+      "a certification structure, and it is the WEAKEST signal in this list and never sufficient by itself: an issuing body, a standard reference, a labelled scope-of-certification statement, a certificate number and an issue-and-expiry date pair. It supports this row only when an assessment cycle is visible around it - a stage-1/stage-2 or surveillance sequence, an audit report, or a non-conformity record carrying the same certificate or standard reference. Alone it is the material construction_property.compliance-certificate was refused for, and this row does not reclaim it.",
       "an audit-report structure: a scope-and-objectives section, a methodology or approach section, an opinion or conclusion, and an appendix of findings — with a named auditor or firm distinct from the entity being audited.",
       "an evidence-request structure: a prepared-by-client or information-request list — numbered requests against due dates and a received or outstanding marker — which is the operational spine of an audit and appears in no other situation.",
       "an attestation or acknowledgement register: a roster of names or roles against a document version and a date acknowledged, produced by a policy or training platform.",
@@ -42,7 +63,8 @@
       "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
       "membership in a download session that emptied a document-management system or a mail thread's attachments at once. “A session should never be treated as proof of topic”",
       "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — a corporate template stamps the same entity on every blank form it ever generated.",
-      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version."
+      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version.",
+      "a standard's name, an audit year, or the audited entity's name acting as the ONLY link between the members of a candidate pack. This row's members are individually unremarkable, so a single repeated token is exactly the failure 00 names in its stop rules: a group must not form “when one high-frequency entity acts as the only bridge”. This row needs the cross-reference chain - a request number, a control identifier, or a finding reference recurring ACROSS members - not a repeated name."
     ]
   },
   "proposed_context_terms": [
@@ -111,7 +133,7 @@
   ],
   "template": {
     "dimension_order": [],
-    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and business_operations declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question. The recommendation, held as prose: the standard, framework, or obligation the evidence answers to, then the audit or assessment occurrence, then the control or finding, then the document function. Evidence artifacts are meaningless above their assessment, which is the same reason 00 gives for putting a course above a homework number. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and business_operations declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape - it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question. THE RECOMMENDATION: the standard, framework, or obligation the evidence answers to, then the audit or assessment occurrence, then the control or finding, then the document function. HOW THIS DIFFERS FROM THE FAMILY DEFAULT, stated against the schema row's paragraph verbatim in intent - entity where the corpus spans more than one, then the governance body, project, contract, or account, then the fiscal period, then the document function. Two real divergences and one non-divergence, argued honestly. (a) NON-DIVERGENCE: an assessment occurrence is a cycle, and the family default's second level already admits 'project'. This row does not pretend that level is new. (b) DIVERGENCE, the top level: the STANDARD sits above the occurrence and it is neither the entity nor a project. It is an EXTERNAL referent the entity is measured against, and it outlives every occurrence beneath it - a certification runs initial, surveillance, surveillance, recertification under one standard and one certificate number. No other sibling has a level above its own cycles that belongs to somebody else. (c) DIVERGENCE, the fiscal period: the family default puts fiscal_period third, and here it must drop below the control-or-finding level or fall out entirely. A finding routinely opens in one year and closes in another, and a certification cycle is not annual; filing a finding under the year it was raised separates it from its own closure evidence. That is the family default producing a wrong answer in this situation, which is what a dimension divergence means. AND THE FOURTH LEVEL EARNS ITSELF: evidence artifacts are meaningless above their assessment, the same reason 00 gives for putting a course above a homework number, so the control-or-finding level cannot be collapsed into function. Not time-first, and this row makes no claim to the exception - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
     "time_first": false
   },
   "file_kinds": {
@@ -278,13 +300,14 @@
         "language"
       ],
       "must_not_conclude": [
+        "activation of this row from the certificate ALONE. A standalone certificate with no assessment cycle around it is the exact material construction_property.compliance-certificate was refused for, and 00 answers it by name: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” This row claims the certificate only when a surveillance-audit report, a non-conformity record, or a stage-1/stage-2 sequence carries the same certificate or standard reference.",
         "any business_operations fact — the schema declares no field rows",
         "that expiry within the file is a durable fact this row may store",
         "that any certificate-shaped PDF is this row's — insurance, training and trade certificates share the shape exactly",
         "a folder path"
       ],
       "also_schema": null,
-      "group_without_copying_facts": false,
+      "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
     },
     {
@@ -375,6 +398,74 @@
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Information Security Policy v3.2 - approved.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a document-control block pairing owner, approver, version, effective date and next-review date",
+        "governing clauses addressed to a population of staff, not to an assessment",
+        "found inside a folder named for an audit year, alongside screenshots and exports"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of THIS row. The same bytes are named by business_operations.policy-handbook, whose anchor is the document-control block, and that row's own collides_with already cedes the audit side to this row and keeps the governing document itself. This row must not steal it back merely because a copy sits in an evidence folder - folder context never fires alone, and this is the file most likely to be lost TO this row.",
+        "any business_operations fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Statutory accounts FY26 - signed audit opinion.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an independent auditor's report addressed to the members, naming an accounting framework",
+        "a balance sheet, profit and loss account and notes bound in the same file",
+        "an audit firm's signature block and a filing-ready cover"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row. The word 'audit' is present and decides nothing: the assessed object is a set of ACCOUNTS, which is finance's custodial material - finance.small-business-bookkeeping lists 'balance sheet' and 'profit and loss statement' among its own work_types, and finance is a safety schema whose protection runs before any model or placement path. Where the audited object is money, finance wins in both directions, and it wins on privacy, not merely on topic.",
+        "any business_operations fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "ISO 27001 Gap Analysis - what we can do for you.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a consultancy's letterhead, pricing tiers and a case-study page",
+        "the full compliance vocabulary - control, gap, remediation, certification - in body prose",
+        "no entity under assessment, no finding reference, no request number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row. This is the row's second collision fixture and the harder one: it carries every context term in proposed_context_terms and none of the structures. Vocabulary without a cross-reference chain is reading material.",
+        "any business_operations fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
     }
   ],
   "collides_with": [
@@ -415,7 +506,12 @@
     },
     {
       "domain": "finance.tax-filings",
-      "signal": "A statutory financial-statement audit is an audit and a finance record at once, and the word audit covers both. The discriminating evidence: an opinion on financial statements, an accounting framework reference, and a set of accounts support the finance side; an operational, certification, or control audit supports this row. Provenance: inference.",
+      "signal": "A statutory financial-statement audit and a tax authority's enquiry are both audits and both finance records. Stated in both directions: finance.tax-filings already lists 'audit or query correspondence' among its own work_types, so an authority's enquiry into a return is ITS material and this row does not claim it; conversely an operational, certification, or control audit is not a tax record and finance should not claim that on the strength of the word 'audit'. The discriminating evidence: a tax year, a return reference, an authority's assessment or notice supports finance; a standard reference, a control identifier, or a non-conformity supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "A statutory financial-statement audit produces an assessor's opinion over the very accounts this neighbour holds - it lists 'balance sheet', 'profit and loss statement' and 'trial balance' among its own work_types. Stated in both directions: where the object under assessment is a set of accounts or a ledger, the FINANCE row takes it, and it takes it on privacy as well as topic, because finance is a safety schema kept local-only before any model path; where the object is a control, a management system, or a process, this row takes it and the presence of an accountancy firm on the letterhead decides nothing. Provenance: inference.",
       "provenance": "inference"
     }
   ],
@@ -455,5 +551,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Compliance evidence is an aggregation problem: individually dull artifacts are gathered precisely because together they describe how an entity protects itself, and an evidence pack routinely contains access lists, employee training records and system configuration in one place. 00's corpus sentence names several of these — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” — and an access-review export names employees while a credentials or key-management evidence item is exactly the material 00 requires to be protected at once: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” Second, as inference: an open finding is a description of a live weakness, and its exposure harms an entity that is often not the user. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
-  "open_question": "Two. (1) This is a PURPOSE row whose members are mostly other rows' artifacts — an export, a screenshot, a policy, a log — and it therefore depends more than any sibling on 00's purpose-versus-topic separation holding at scale. If NJ-3 (the scope of `purpose`) resolves narrowly, this row loses its anchor and should fold into business_operations.risk-register and the policy row. (2) The legacy fold of soft.tech-compliance-evidence into this row is defensible but leaves a real seam with code.software-project: the same configuration file is repository content and audit evidence at once, and only the purpose separates them. R1c should confirm the fold rather than inherit it."
+  "open_question": "Four. (1) This is a PURPOSE row whose members are mostly other rows' artifacts - an export, a screenshot, a policy, a log - and it therefore depends more than any sibling on 00's purpose-versus-topic separation holding at scale. If NJ-3 (the scope of `purpose`) resolves narrowly, this row loses its anchor and should fold into business_operations.risk-register and the policy row. (2) The legacy fold of soft.tech-compliance-evidence into this row is defensible but leaves a real seam with code.software-project: the same configuration file is repository content and audit evidence at once, and only the purpose separates them. R1c should confirm the fold rather than inherit it. (3) THE ASSESSOR ROLE HAS NO KEY. This row's documents carry two organisation roles at once - the party assessing and the party assessed - and one `organization` key cannot hold both, though 00 requires co-occurring roles of the same entity type to be distinct facets. Raised here, deliberately not minted, exactly as the schema row raised the supplier and customer roles without minting them. (4) THE STANDARD OR FRAMEWORK REFERENT HAS NO KEY EITHER, and it is this row's real top dimension - a certification cycle is joined by a standard and a certificate number across fiscal periods, not by a fiscal period. `fiscal_period` is seconded above as the available approximation and is honestly the wrong axis for the certification half of the row. R1c should decide whether the family gets a standard-or-obligation key or whether this row's dimension recommendation stays prose forever."
 }

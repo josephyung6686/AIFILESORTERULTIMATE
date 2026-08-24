@@ -548,3 +548,32 @@ words** while it was still being written.
 Debt: 64 -> 41 remaining. Total landed 173/358.
 
 **Wave size 8 is validated.** Nothing in this wave argues for going back to 4.
+
+## Debt clearing 24-26/64 — three rows, all salvaged intact from a limit-kill
+
+The usage limit killed all four agents, but three had written both files completely. Verified:
+JSON parses, all universal keys, memos end on finished sentences, `Depth: J-DEPTH`.
+
+- `construction_property.trade-job`: **4,512B → 50,740B**, stands. Beat the charge that it is
+  `construction-project` at smaller scale (scale is not a structural difference); fixture bytes
+  named on its side of the seam.
+- `business_operations.procurement-sourcing`: **4,534B → 37,717B**, stands. Placed itself relative
+  to the counterparty settlement `partnerships-bd` made, rather than reopening it.
+- `business_operations.compliance-audit`: **28,176B**, stands. Survived the same document-type
+  charge that refused `construction_property.compliance-certificate`, and routed its overflow into
+  reciprocal edges (including one to `hr.training-records`) "instead of being written into other
+  rows" — the no-double-edit rule applied by the agent itself.
+
+## DEFECT CAUGHT — `business_operations.risk-register` memo and JSON disagree
+
+Its memo is complete (45,609B, J-DEPTH, ends cleanly) and its **"What changed" section claims the
+`needs_llm` and `never_alone` lists were "extended, not rewritten"** — but `risk-register.json` is
+**unmodified** in the working tree. The agent was killed between writing the memo and writing the
+JSON, so the memo documents changes the data does not contain.
+
+**Not committed.** A memo that describes edits its JSON lacks is worse than a shallow row: it reads
+as done and audits as done. Held back for a reconciliation pass that either applies the extensions
+or corrects the memo's claim.
+
+**Rule for the autopilot:** a complete-looking memo is not proof the row is complete. Cross-check
+the memo's own "what changed" claims against the JSON before committing.
