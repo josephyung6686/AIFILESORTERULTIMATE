@@ -115,10 +115,24 @@ def _functions(module: ModuleType, *,
             found.append((name, value, False))
         elif isinstance(value, type) and _defined_here(value, module):
             for attribute, member in vars(value).items():
-                if attribute.startswith("__"):
+                # `__init__` IS checked. Every other dunder is skipped: they are
+                # value-semantics methods a dataclass generates (`__repr__` returns
+                # `str` by definition, `__eq__` takes `object`) and counting them
+                # would make every dataclass a finding. A CONSTRUCTOR is different --
+                # it is the one dunder that ADMITS content, and skipping it let
+                # `class Client: def __init__(self, prompt: str)` and
+                # `@dataclass class PromptEnvelope: text: str` through the guard
+                # entirely: constructible un-released string paths, neither counted
+                # nor content-checked, in a module whose whole claim is that no such
+                # path exists. Rule 3 says "every function in the module is checked;
+                # only the public ones are counted", and `__init__` is a function in
+                # the module.
+                if attribute.startswith("__") and attribute != "__init__":
                     continue
                 if public_only and attribute.startswith("_"):
                     continue
+                if public_only and attribute == "__init__":
+                    continue          # checked, never COUNTED as an egress point
                 if isinstance(member, (staticmethod, classmethod)):
                     found.append((f"{name}.{attribute}", member.__func__,
                                   isinstance(member, classmethod)))

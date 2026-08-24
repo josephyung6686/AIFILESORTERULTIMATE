@@ -120,6 +120,12 @@ def suppressed(conn: sqlite3.Connection, file_id: str, handling_class: str) -> b
     return False
 
 
+#: §8.2 retains "the old observation and the reason it was superseded". A system
+#: re-assignment has no user reason to carry, so it carries this one -- a named
+#: constant rather than a literal, because §3.1 forbids spelling a stored value twice.
+REASSIGNED_BY_SYSTEM: str = "reassigned_by_system"
+
+
 def assign(conn: sqlite3.Connection, record: ClassificationRecord, *,
            store: ClassificationStore,
            component_version: str) -> ClassificationRecord | None:
@@ -133,11 +139,24 @@ def assign(conn: sqlite3.Connection, record: ClassificationRecord, *,
     This appends no `correction_*` field and no `user_id`, so a system assignment can
     never become the learning record that suppresses the next one -- P1's reader
     requires `user_id IS NOT NULL`.
+
+    A SECOND ASSIGNMENT SUPERSEDES THE FIRST, and this is not optional. Without it,
+    two system assignments at one `(file_id, content_hash)` leave two unsuperseded
+    live rows and PERMANENTLY WEDGE the store: `current`, `may_move_automatically`,
+    `summarize_protected` and even the user's own `reclassify` all raise
+    `AmbiguousCurrentClassification`, and no code path is left that can repair it --
+    every repair has to read the current row first. §8.2 is "supersede, never
+    overwrite", and the store's own error says "one must supersede the other (§8.2)".
+    `reclassify` below has always done this; `assign` was the same write with the
+    supersede missing.
     """
     check_handling_class(record.handling_class)
     if suppressed(conn, record.file_id, record.handling_class):
         return None
-    store.write(record)
+    prior_fact_id = store.current_fact_id(record.file_id, record.content_hash)
+    fact_id = store.write(record)
+    if prior_fact_id is not None:
+        store.supersede(prior_fact_id, fact_id, REASSIGNED_BY_SYSTEM)
     mirror(conn, record, component_version=component_version)
     append_event(conn, **event_defaults(
         event_type=CLASSIFICATION_ASSIGNED,

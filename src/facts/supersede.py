@@ -68,6 +68,22 @@ class PreferredNeverReverses(ValueError):
     """
 
 
+class SupersedeMerge(ValueError):
+    """Two facts cannot be superseded BY THE SAME fact.
+
+    P1 stores one `supersedes` per row, so `mark_superseded` writes the link
+    unconditionally: a second `a -> c` after `b -> c` silently OVERWRITES `c.supersedes`
+    and the first link is gone. Both old rows still say `superseded_by = c`, so the
+    slot grows two chain tails whose forward walks both reach `c`, `fact_history`
+    emits it twice and is no longer oldest-first, and §8.2's "inspect the origin of
+    the conclusion" has two answers.
+
+    Refused rather than repaired: the storage cannot represent the merge, and
+    accepting a write whose meaning is discarded is worse than declining it. A caller
+    with two facts to retire supersedes them in a chain, which P1 does represent.
+    """
+
+
 class SupersedeAcrossSlots(ValueError):
     """§8.2 replaces an ANSWER, so both rows answer the same question."""
 
@@ -134,6 +150,15 @@ def supersede_fact(conn: sqlite3.Connection, *, old_fact_id: str,
             f"{old_fact_id!r} is {USER_CONFIRMED!r}; §3.13's ordering is not negotiable "
             "and `preferred` never reverses it, so a weaker fact cannot take the "
             "pointer from a user's own answer")
+    if new["supersedes"] is not None and new["supersedes"] != old_fact_id:
+        raise SupersedeMerge(
+            f"{new_fact_id!r} already supersedes {new['supersedes']!r}; P1 stores one "
+            f"`supersedes` per row, so linking {old_fact_id!r} to it would overwrite "
+            "that pointer and lose the first link (§8.2 retains, never discards)")
+    if old["superseded_by"] is not None and old["superseded_by"] != new_fact_id:
+        raise SupersedeMerge(
+            f"{old_fact_id!r} is already superseded by {old['superseded_by']!r}; a "
+            "second supersession of one row would fork the slot's history")
     mark_superseded(conn, FACT_TABLE, old_id=old_fact_id, new_id=new_fact_id,
                     reason=reason)
     conn.execute(f"UPDATE {FACT_TABLE} SET preferred = 0 WHERE fact_id = ?",
@@ -185,6 +210,16 @@ def fact_history(conn: sqlite3.Connection, *, file_id: str,
     rows = _slot(conn, file_id=file_id, field_key=field_key)
     tails = sorted({_tail(conn, row["fact_id"]) for row in rows})
     history: list[sqlite3.Row] = []
+    seen: set[str] = set()
     for tail in tails:
-        history.extend(chain(conn, FACT_TABLE, tail))
+        for row in chain(conn, FACT_TABLE, tail):
+            # Two tails can only converge on one row if a merge was written, which
+            # `supersede_fact` now refuses. The de-duplication stays as the second
+            # line: this function's contract is "every row for the slot, oldest
+            # first", and a row emitted twice breaks it whatever wrote the fork.
+            if row["fact_id"] in seen:
+                continue
+            seen.add(row["fact_id"])
+            history.append(row)
+    history.sort(key=lambda row: (row["created_at"], row["fact_id"]))
     return history

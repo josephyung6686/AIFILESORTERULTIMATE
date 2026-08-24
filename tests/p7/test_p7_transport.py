@@ -302,3 +302,39 @@ def test_running_this_over_the_real_transport_is_p8s_obligation():
     assert inspect.isfunction(module.assert_single_egress)
     assert list(inspect.signature(module.assert_single_egress).parameters) == [
         "module"]
+
+
+def test_a_content_taking_constructor_fails():
+    """Rule 3: "every function in the module is checked; only the public ones are
+    counted". `__init__` is a function in the module, and skipping it let a
+    constructible un-released string path through the one guard that exists to say
+    there is no such path."""
+    with pytest.raises(UnreleasedContentParameter) as caught:
+        assert_single_egress(fixtures.transport_with_a_content_taking_constructor())
+    assert "__init__" in str(caught.value) and "prompt" in str(caught.value)
+
+
+def test_a_dataclass_envelope_fails_through_its_generated_constructor():
+    """The same hole with nothing dunder-shaped in the source to notice."""
+    with pytest.raises(UnreleasedContentParameter):
+        assert_single_egress(fixtures.transport_with_a_dataclass_envelope())
+
+
+def test_a_constructor_is_checked_but_never_counted_as_an_entry_point():
+    """The distinction rule 3 draws. A conforming class with a harmless `__init__`
+    must still have EXACTLY ONE egress point — if `__init__` were counted, every
+    client wrapper would fail as `MultipleEgressPoints`."""
+    module = fixtures.conforming_transport_as_a_class()
+
+    class Client:                                   # same shape, plus a constructor
+        def __init__(self, timeout: int = 30) -> None:
+            self.timeout = timeout
+
+        def send(self, released: Released) -> str:
+            return released.release_id
+
+    Client.__module__ = module.__name__
+    Client.__init__.__module__ = module.__name__
+    Client.send.__module__ = module.__name__
+    module.Client = Client
+    assert assert_single_egress(module) is None

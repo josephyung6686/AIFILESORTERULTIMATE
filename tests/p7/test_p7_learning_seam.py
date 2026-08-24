@@ -18,7 +18,7 @@ from privacy.authorship import (
 )
 from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
-from privacy.learning_seam import (
+from privacy.learning_seam import (REASSIGNED_BY_SYSTEM, 
     ACCEPT, FILE_SCOPE, PROPOSAL_CLASS, RECORDED_ACTIONS, RECORDED_ACTION_SOURCES,
     REJECT, UnknownRecordedAction, assign, basis_key_for, check_recorded_action,
     reclassify, suppressed,
@@ -441,3 +441,58 @@ def test_open_question_7_is_not_answered_here(p7_conn, file_id, content_hash, st
     assert not [name for name, value in vars(module).items()
                 if not name.startswith("__")
                 and isinstance(value, (int, float)) and not isinstance(value, bool)]
+
+
+def test_a_second_system_assignment_supersedes_the_first(
+        p7_conn, file_id, content_hash, store):
+    """§8.2 is "supersede, never overwrite", and `assign` used to do neither.
+
+    Two system assignments at one (file_id, content_hash) left TWO unsuperseded live
+    rows. That is not a cosmetic defect: it permanently wedges the store, because
+    every reader and every repair path has to read the current row first.
+    """
+    first = assign(p7_conn, a_record(file_id, content_hash), store=store,
+                   component_version=COMPONENT)
+    second = assign(p7_conn, a_record(file_id, content_hash), store=store,
+                    component_version=COMPONENT)
+    assert first is not None and second is not None
+
+    # both rows are kept -- superseded, not overwritten
+    assert len(store.history(file_id)) == 2
+    # and exactly one is live, so the store still answers
+    assert store.current(file_id, content_hash) is not None
+
+
+def test_a_second_assignment_does_not_wedge_every_reader(
+        p7_conn, file_id, content_hash, store):
+    """The failure this prevents, named one reader at a time. Before the fix each of
+    these raised `AmbiguousCurrentClassification` — including `reclassify`, which is
+    the user's own correction and the only thing that could have repaired it."""
+    assign(p7_conn, a_record(file_id, content_hash), store=store,
+           component_version=COMPONENT)
+    assign(p7_conn, a_record(file_id, content_hash), store=store,
+           component_version=COMPONENT)
+
+    assert store.current(file_id, content_hash) is not None
+    assert store.current_fact_id(file_id, content_hash) is not None
+    # the user can still correct it -- the repair path is not lost
+    fixed = reclassify(
+        p7_conn, file_id, "personal_non_sensitive", "user says otherwise",
+        store=store, content_hash=content_hash, protected=False,
+        evidence_refs=(), user_id="joseph", component_version=COMPONENT,
+        observed_at=LATER)
+    assert fixed.handling_class == "personal_non_sensitive"
+
+
+def test_the_supersede_reason_is_a_named_constant_not_a_literal(
+        p7_conn, file_id, content_hash, store):
+    """§3.1: a stored value spelled twice is a value that can drift."""
+    assign(p7_conn, a_record(file_id, content_hash), store=store,
+           component_version=COMPONENT)
+    first_id = store.current_fact_id(file_id, content_hash)
+    assign(p7_conn, a_record(file_id, content_hash), store=store,
+           component_version=COMPONENT)
+    row = p7_conn.execute(
+        "SELECT supersede_reason FROM classifications WHERE fact_id = ?",
+        (first_id,)).fetchone()
+    assert row["supersede_reason"] == REASSIGNED_BY_SYSTEM

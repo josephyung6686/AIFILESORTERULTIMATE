@@ -227,3 +227,42 @@ def transport_whose_docstring_mentions_released() -> ModuleType:
         return prompt
 
     return _module("transport_whose_docstring_mentions_released", send)
+
+
+# --- the constructor gap: neither counted nor content-checked -----------------
+
+def transport_with_a_content_taking_constructor() -> ModuleType:
+    """A hand-written `__init__` that admits a prompt string.
+
+    The eighteenth non-conforming shape, and it used to PASS. `_functions` skipped
+    every `__`-prefixed attribute, so a constructor was neither counted as an egress
+    point nor content-checked — a constructible un-released string path inside a
+    module whose entire claim is that no such path exists.
+    """
+
+    class Client:
+        def __init__(self, prompt: str) -> None:
+            self.prompt = prompt
+
+        def send(self, released: Released) -> str:
+            return released.release_id
+
+    return _module("transport_with_a_content_taking_constructor", Client)
+
+
+def transport_with_a_dataclass_envelope() -> ModuleType:
+    """The same hole reached through a GENERATED `__init__`.
+
+    `@dataclass class PromptEnvelope: text: str` writes the constructor for you, so
+    nothing in the source looks like a dunder at all.
+    """
+    import dataclasses
+
+    @dataclasses.dataclass
+    class PromptEnvelope:
+        text: str
+
+    def send(released: Released) -> str:
+        return released.release_id
+
+    return _module("transport_with_a_dataclass_envelope", PromptEnvelope, send)

@@ -21,7 +21,7 @@ from evidence_shape.store import record_observation, record_run
 
 from facts.file_facts import FILE_FACTS_COLUMNS, RULE, facts_for_file, write_fact
 from facts.states import USER_CONFIRMED
-from facts.supersede import (
+from facts.supersede import (SupersedeMerge,
     FACT_TABLE, PreferredNeverReverses, SupersedeAcrossSlots, fact_history,
     preferred_fact, supersede_fact,
 )
@@ -456,3 +456,84 @@ def test_preferred_is_not_plan_versioned():
     for function in (supersede_fact, preferred_fact, fact_history):
         names = set(inspect.signature(function).parameters)
         assert not [name for name in names if "plan" in name or "version" in name]
+
+
+def test_two_facts_cannot_be_superseded_by_the_same_fact(scanned, p6_conn):
+    """The merge P1's storage cannot represent, refused instead of silently accepted.
+
+    `mark_superseded` writes `new.supersedes` unconditionally, so a second `a -> c`
+    after `b -> c` overwrote the first link and lost it, while both old rows still
+    pointed forward at `c`. The slot then had two chain tails converging on one row:
+    `fact_history` emitted `c` twice, was no longer oldest-first, and §8.2's "inspect
+    the origin of the conclusion" had two answers for one slot.
+
+    Every case in this file before now was a linear chain or disjoint live rows, so
+    nothing exercised the fork.
+    """
+    file_id, content_hash, first, second = scanned
+    a = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+              field_key="subject", value="C0lumb1a", key=first,
+              state="possible", cache_key="sha256:a")
+    b = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+              field_key="subject", value="Columbia Univ", key=second,
+              state="possible", cache_key="sha256:b")
+    c = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+              field_key="subject", value="Columbia University", key=second,
+              state="validated", cache_key="sha256:c")
+
+    supersede_fact(p6_conn, old_fact_id=b, new_fact_id=c, reason="pass three")
+    with pytest.raises(SupersedeMerge):
+        supersede_fact(p6_conn, old_fact_id=a, new_fact_id=c, reason="also retire a")
+
+    # the refusal leaves the first link intact and the history well-formed
+    history = [r["fact_id"] for r in
+               fact_history(p6_conn, file_id=file_id, field_key="subject")]
+    assert len(history) == len(set(history))
+    assert history == sorted(history, key=history.index)
+    assert b in history and c in history
+    assert history.index(b) < history.index(c)
+
+
+def test_one_fact_cannot_be_superseded_twice(scanned, p6_conn):
+    """The other half of the fork: retiring one row into two different successors
+    would give the slot two futures."""
+    file_id, content_hash, first, second = scanned
+    a = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+              field_key="subject", value="C0lumb1a", key=first,
+              state="possible", cache_key="sha256:a2")
+    b = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+              field_key="subject", value="Columbia Univ", key=second,
+              state="possible", cache_key="sha256:b2")
+    c = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+              field_key="subject", value="Columbia University", key=second,
+              state="validated", cache_key="sha256:c2")
+
+    supersede_fact(p6_conn, old_fact_id=a, new_fact_id=b, reason="pass two")
+    with pytest.raises(SupersedeMerge):
+        supersede_fact(p6_conn, old_fact_id=a, new_fact_id=c, reason="and again")
+
+
+def test_re_linking_the_same_pair_is_refused_by_p1_not_by_the_merge_guard(
+        scanned, p6_conn):
+    """Where the two refusals divide, so neither is mistaken for the other.
+
+    The merge guard here lets an identical re-link through — `new.supersedes` already
+    IS `old`, so nothing would be overwritten — and P1's `mark_superseded` then
+    refuses it on its own rule, that "the first supersede_reason is never overwritten
+    (§8.2)". P6 does not re-implement that check, and this pins which layer owns it.
+    """
+    file_id, content_hash, first, second = scanned
+    a = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+              field_key="subject", value="C0lumb1a", key=first,
+              state="possible", cache_key="sha256:a3")
+    b = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+              field_key="subject", value="Columbia Univ", key=second,
+              state="validated", cache_key="sha256:b3")
+    supersede_fact(p6_conn, old_fact_id=a, new_fact_id=b, reason="pass two")
+    with pytest.raises(ValueError) as caught:
+        supersede_fact(p6_conn, old_fact_id=a, new_fact_id=b,
+                       reason="pass two again")
+    assert not isinstance(caught.value, SupersedeMerge)      # P1's rule, not P6's
+    assert "supersede_reason is never overwritten" in str(caught.value)
+    assert preferred_fact(p6_conn, file_id=file_id,
+                          field_key="subject")["fact_id"] == b
