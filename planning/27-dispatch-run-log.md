@@ -629,3 +629,16 @@ Cron 7c720ee2 firing every 2h at :13. Wave size 4. Debt 64 -> 34. Total landed 1
 Pre-commit checks now in force: JSON parses · all universal keys · `Depth: J-DEPTH` header · memo
 ends unbroken · both files modified · memo's "what changed" claims match the JSON · no file outside
 the row's two touched · commit by explicit file list.
+
+## Debt clearing 31/64 — `business_operations.project-delivery`, narrowed not refused
+
+- **4,793B → 35,090B (7.3x)**, 13 file_examples, both files written, all universal keys, stands.
+- **A third outcome, and a healthy one: "The row is narrowed, not refused."** It clears leg 2
+  outright, leg 3 "by a genuine downward difference", and **leg 1 narrowly — reported as "a narrow
+  win, argued and flagged rather than claimed."** Grading its own margin honestly instead of
+  presenting a marginal pass as a clean one is exactly what R1c needs to prioritise its review.
+- Stated the cross-schema boundary against `construction_property.construction-project` (5 refs) —
+  the charge that two "project" rows on two schemas differ only by industry, and industry is a
+  value not a structure.
+- Note for the tripwire: outcomes are now spread across refuse / narrow / stand rather than
+  clustering on "stands", which is evidence the charges still bite.
