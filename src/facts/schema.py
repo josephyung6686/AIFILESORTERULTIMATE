@@ -7,7 +7,7 @@ anyone else's. `database_agent.db.create_schema` and
 invoked from here.
 
 Task 2 creates `fields`, Task 3 `values` and Task 4 `file_facts`. Task 5 adds its own
-DDL to `_TABLE_DDL`.
+DDL to `_TABLE_DDL`, and Task 19 adds `fact_passes` the same way.
 """
 from __future__ import annotations
 
@@ -183,7 +183,27 @@ CREATE INDEX IF NOT EXISTS unresolved_by_version
     ON unresolved (file_id, content_hash);
 """
 
-_TABLE_DDL: tuple[str, ...] = (_FIELDS_DDL, VALUES_DDL, FILE_FACTS_DDL, UNRESOLVED_DDL)
+#: Task 19's pass record. P6-internal bookkeeping -- not one of the four published
+#: records, and read by no other part. `analysis_tiers` is canonical JSON of the
+#: sorted tier names, so one pass has one representation.
+#:
+#: It lives HERE rather than in `facts.usable` because the DDL has to reach
+#: `_TABLE_DDL`, and `facts.schema` importing `facts.usable` would close the cycle
+#: schema -> usable -> file_facts -> fields -> schema. `facts.usable` imports these
+#: two names back; the direction that works is the only one taken.
+FACT_PASSES_TABLE: str = "fact_passes"
+
+FACT_PASSES_DDL: str = f"""
+CREATE TABLE IF NOT EXISTS {FACT_PASSES_TABLE} (
+    pass_id        TEXT PRIMARY KEY,
+    file_id        TEXT NOT NULL,
+    content_hash   TEXT NOT NULL,
+    analysis_tiers TEXT NOT NULL
+)
+"""
+
+_TABLE_DDL: tuple[str, ...] = (_FIELDS_DDL, VALUES_DDL, FILE_FACTS_DDL, UNRESOLVED_DDL,
+                               FACT_PASSES_DDL)
 
 
 def create_facts_schema(conn: sqlite3.Connection) -> None:

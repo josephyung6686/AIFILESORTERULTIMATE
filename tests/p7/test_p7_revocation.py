@@ -486,8 +486,20 @@ def test_p7_creates_no_trigger_of_its_own_on_events(p7_conn):
 def test_the_gate_publishes_revoke_and_delete_derived(p7_conn):
     # SPEC §8 publishes both on the facade. D13 kept CUT 4, so this is certain rather
     # than provisional. `Gate` published exactly one public method before this task.
+    #
+    # WIDENED, not weakened. This asserted exactly {release, revoke, delete_derived},
+    # which was the whole facade when Task 15 wrote it. Tasks 16, 17 and 18 each list
+    # "Modify: src/privacy/gate.py" to add one or two more, on the same D13/CUT 4
+    # ruling this test cites -- so the old set became a snapshot of a facade the plan
+    # had already grown. It stays an EQUALITY against the full published surface, so
+    # a seventh method arriving from anywhere still fails here.
     published = {name for name in vars(Gate) if not name.startswith("_")}
-    assert published == {"release", "revoke", "delete_derived"}
+    assert published == {
+        "release", "revoke", "delete_derived",                 # SPEC §8
+        "reclassify",                                          # SPEC §8, Task 16
+        "may_move_automatically",                              # SPEC §9, Task 17
+        "display_policy", "summarize_protected",               # SPEC §10, Task 18
+    }
 
 
 def test_gate_revoke_delegates_and_carries_constructor_state(p7_conn, in_force,
@@ -541,3 +553,46 @@ def a_gate(conn) -> Gate:
                 scope_for=lambda file_id: SCOPE,
                 files_in_scope=lambda scope: ("file-1",),
                 component_version=COMPONENT, now=lambda: LATER, user_id="joseph")
+
+
+def test_the_four_added_facade_methods_hold_no_rule_of_their_own(p7_conn):
+    """Tasks 16-18's seam: each new method is a DELEGATION, not a second home.
+
+    The duplication this project has paid most for is a rule written out twice. Every
+    added method must forward to the module that owns it and add nothing, so the body
+    is asserted to contain exactly one call and no branching.
+    """
+    import ast
+    import inspect
+    delegations = {
+        "reclassify": "learning_seam",
+        "may_move_automatically": "moves",
+        "display_policy": "display",
+        "summarize_protected": "display",
+    }
+    for name, owner in delegations.items():
+        method = getattr(Gate, name)
+        tree = ast.parse(inspect.getsource(method).lstrip())
+        body = [n for n in tree.body[0].body
+                if not isinstance(n, ast.Expr)          # drop the docstring
+                or not isinstance(n.value, ast.Constant)]
+        assert len(body) == 1 and isinstance(body[0], ast.Return), name
+        called = ast.unparse(body[0].value.func)
+        assert called == f"{owner}.{name}", (name, called)
+        # no branching: a facade that decides anything is a second home for the rule
+        assert not [n for n in ast.walk(tree)
+                    if isinstance(n, (ast.If, ast.For, ast.While, ast.Try))], name
+
+
+def test_the_facade_binds_its_own_plan_version_and_never_takes_one(p7_conn):
+    """SPEC §9 writes `may_move_automatically(file_id, plan_version)`. Taking a plan
+    version here would let a caller ask this gate about a policy it is not bound to —
+    the one thing binding exists to prevent — so it comes from constructor state, as
+    `release` and `revoke` already do."""
+    import inspect
+    for name in ("reclassify", "may_move_automatically", "display_policy",
+                 "summarize_protected"):
+        parameters = inspect.signature(getattr(Gate, name)).parameters
+        assert "plan_version" not in parameters, name
+        assert "store" not in parameters, name
+        assert "user_id" not in parameters, name

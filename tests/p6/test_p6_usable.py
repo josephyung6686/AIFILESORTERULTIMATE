@@ -32,17 +32,20 @@ NATIVE = frozenset({ANALYSIS_TIERS[1]})            # "native"
 WITH_OCR = frozenset({ANALYSIS_TIERS[1], ANALYSIS_TIERS[2]})
 
 
-@pytest.fixture(autouse=True)
-def fact_passes_table(p6_conn):
-    """PLAN Task 19 Step 3b puts this call inside `create_facts_schema`.
+def test_create_facts_schema_creates_the_pass_record(p6_conn):
+    """The seam PLAN Task 19 Step 3b asks for, proved rather than assumed.
 
-    `src/facts/schema.py` is a shared file this task may not edit, so the two-line
-    seam is reported to the integrator and the table is created here meanwhile.
-    Nothing else about the task changes: `create_fact_passes` is the same call the
-    schema module is owed, and every case below runs against the table it makes.
+    This test is why the fixture that used to stand here is gone. `fact_passes` was
+    created ONLY by an autouse fixture calling `create_fact_passes`, so every case
+    below passed against a table production never made: consulting the verdict early
+    raised `sqlite3.OperationalError`, which `orchestrator._extract_one` swallows into
+    one `failed` run, instead of the `FactPassNotRun` the orchestrator re-raises by
+    name. The whole safety argument of the module was unreachable in a real database.
     """
-    create_fact_passes(p6_conn)
-    return p6_conn
+    rows = p6_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (FACT_PASSES_TABLE,)).fetchall()
+    assert len(rows) == 1
 
 
 def _any_fact(facts, unresolved) -> bool:

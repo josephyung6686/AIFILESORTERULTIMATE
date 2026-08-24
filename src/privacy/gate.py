@@ -69,7 +69,7 @@ from privacy.resolve import Materialised, materialise
 # Imported as a MODULE, not by name: `Gate.revoke` and `Gate.delete_derived` are the
 # same two words as the functions they delegate to, and an aliased import would give
 # each of them a second spelling inside the one file that publishes both.
-from privacy import revocation
+from privacy import display, learning_seam, moves, revocation
 
 #: §4's two item kinds that address local text and therefore resolve to a value.
 #: `candidate_label`, `metadata_field`, `evidence_reference` and `filename` carry no
@@ -274,6 +274,48 @@ class Gate:
             release_id=release_id, audit_id=audit_id,
             policy_version=policy.policy_version, materialised_items=resolved,
             redaction_manifest=manifest, model_target=request.model_target)
+
+    # -- SPEC §8/§9/§10's other published surfaces --------------------------
+    #
+    # Tasks 16, 17 and 18 each list "Modify: src/privacy/gate.py ... and D13 kept
+    # CUT 4, so the facade is certain rather than provisional". The builders were
+    # forbidden from editing this shared file and reported the seam instead; it is
+    # applied here. Each method is a DELEGATION and holds no rule of its own -- the
+    # rule lives in the module named, and a second copy on the facade would be the
+    # duplication that has cost this project most.
+    #
+    # Every one of them binds `plan_version`, `store`, `user_id`, `component_version`
+    # and the clock from CONSTRUCTOR STATE, the way `release` and `revoke` already do.
+    # SPEC §9 writes its surface as `may_move_automatically(file_id, plan_version)`;
+    # taking a plan version as an argument here would let a caller ask this gate about
+    # a policy the gate is not bound to, which is the one thing binding it exists to
+    # prevent. The published shape a caller sees is otherwise unchanged.
+
+    def reclassify(self, file_id: str, handling_class: str, reason: str, *,
+                   content_hash: str, protected: bool,
+                   evidence_refs: Sequence[str],
+                   correction_scope: str = "file"):
+        """SPEC §8's user correction, delegating to `privacy.learning_seam`."""
+        return learning_seam.reclassify(
+            self._conn, file_id, handling_class, reason, store=self._store,
+            content_hash=content_hash, protected=protected,
+            evidence_refs=evidence_refs, user_id=self._user_id,
+            component_version=self._component_version, observed_at=self._now(),
+            correction_scope=correction_scope)
+
+    def may_move_automatically(self, file_id: str):
+        """SPEC §9's move predicate, delegating to `privacy.moves`."""
+        return moves.may_move_automatically(self._conn, file_id, self._plan_version)
+
+    def display_policy(self):
+        """SPEC §10's display settings, delegating to `privacy.display`."""
+        return display.display_policy(self._conn, plan_version=self._plan_version)
+
+    def summarize_protected(self, scope: str):
+        """SPEC §10's protected summary, delegating to `privacy.display`."""
+        return display.summarize_protected(
+            self._conn, scope, store=self._store,
+            files_in_scope=self._files_in_scope)
 
     # -- §8.4's other two published surfaces --------------------------------
 

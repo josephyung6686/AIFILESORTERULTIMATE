@@ -56,22 +56,8 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 from extractors.failure import ContractViolation
 
 from facts.file_facts import facts_for_file
+from facts.schema import FACT_PASSES_DDL, FACT_PASSES_TABLE
 from facts.unresolved import unresolved_for_file
-
-#: P6-internal bookkeeping. Not one of the four published records, and read by no
-#: other part. `analysis_tiers` is canonical JSON of the sorted tier names, so one
-#: pass has one representation.
-FACT_PASSES_TABLE: str = "fact_passes"
-
-FACT_PASSES_DDL: str = f"""
-CREATE TABLE IF NOT EXISTS {FACT_PASSES_TABLE} (
-    pass_id        TEXT PRIMARY KEY,
-    file_id        TEXT NOT NULL,
-    content_hash   TEXT NOT NULL,
-    analysis_tiers TEXT NOT NULL
-)
-"""
-
 
 class FactPassNotRun(ContractViolation):
     """The verdict was consulted before the pass that defines it.
@@ -89,7 +75,17 @@ class FactPassNotRun(ContractViolation):
 
 
 def create_fact_passes(conn: sqlite3.Connection) -> None:
-    """Create the pass record. Called from `facts.schema.create_facts_schema`."""
+    """Create the pass record, alone. Idempotent.
+
+    `facts.schema.create_facts_schema` already creates this table -- the DDL is in
+    `_TABLE_DDL` and `FACT_PASSES_DDL` is imported from there -- so no production
+    caller needs this. It stays for a test that wants the one table without the rest.
+    An earlier docstring here claimed the schema module CALLED it, which it never did:
+    the table then existed only where a test fixture had made it, and the whole point
+    of `FactPassNotRun` -- a `ContractViolation` the orchestrator re-raises by name --
+    was defeated in production by `sqlite3.OperationalError: no such table`, which
+    `_extract_one`'s broad `except Exception` records as the file's own failure.
+    """
     conn.execute(FACT_PASSES_DDL)
 
 
