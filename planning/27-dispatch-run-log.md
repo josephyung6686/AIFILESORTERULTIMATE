@@ -255,3 +255,16 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
 - `proposed_fields` for R1c: `project`, `stage`, `artifact_type`, `client` — the same four the
   roster already names as NJ-R1a-1's option (b) candidates, so the proposal and the open question
   are consistent rather than competing.
+
+## Clearing the gist debt — Joseph's call, 2026-08-24
+
+- Ordered to clear the 64 gist rows to J-DEPTH **before** writing the 207 unwritten rows.
+- Sequencing: **the three schema rows go first** (`clinical_practice` 7.7KB, `business_operations`
+  7.8KB, `construction_property` 7.3KB). Every sibling measures its node test against its schema's
+  default template, so deepening a template before its schema guarantees redoing it.
+- Then the 61 templates, one agent per row, shallowest first. Debt inventory: 332,767 bytes across
+  64 rows, median 4,921B, against a J-DEPTH floor of ~13KB and observed J-DEPTH rows of 19-29KB.
+- Deepening rule for these agents: the existing row is a VERIFIED-BUT-SHALLOW draft, not an
+  untrusted one. Its facts were checked; what it lacks is depth, cross-family argument, the node
+  test argued leg by leg, and files-considered-and-rejected. Preserve what is right, deepen the
+  rest, do not rewrite for the sake of rewriting.
