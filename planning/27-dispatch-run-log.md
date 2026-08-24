@@ -376,9 +376,20 @@ the JSON and rewrite the memo. Corrected in the retry prompts.
 
 ## Wave summary — 4 dispatched, 4 landed, 0 killed
 
-First wave since the limits reset with no agent losses. Expansions 9.1x / 8.2x / 9.5x, all
+**Correction:** this heading was written when only THREE had landed; `subcontract` was still
+running and was reported as complete prematurely. It landed shortly after (11.0x, stands) and the
+summary below now reflects all four. Do not report a wave complete until every row is verified.
+
+First wave since the limits reset with no agent losses. Expansions 9.1x / 8.2x / 9.5x / 11.0x, all
 stands, no refusals this wave despite three of four being flagged as likely failures. That is a
 reasonable outcome, not a rubber stamp: each granted the hostile reading first and answered it on
 cited evidence (spreadsheet-shape, document-type, and work_type-of-patient-chart charges
 respectively). The two flagged-likely-refusal rows that DID fail earlier — organisational-records,
 compliance-certificate — show the flagging discriminates rather than always producing "stands".
+
+## Debt clearing 11/64 — `construction_property.subcontract` deepened, stands
+
+- **3,882B → 42,561B (11.0x)**, 10 file_examples, all universal keys, `Depth: J-DEPTH`.
+- Survived a two-sided charge: that it is a document type inside `construction-project`'s
+  lifecycle, or that it is `legal`'s material wearing a construction label. Engaged the `legal.*`
+  launch rows 11 times to settle the contract seam reciprocally rather than assuming it.
