@@ -296,3 +296,23 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   find one decision to make, not two competing ones — which is exactly what was asked for.
 - All three schema anchors are now at J-DEPTH. Their 61 templates can go out shallowest-first,
   each measured against a default template that now actually exists.
+
+## Debt clearing 4/64 — `business_operations.market-research` deepened, and survives
+
+- **3,755B → 29,398B (7.8x)**, 9 file_examples, `Depth: J-DEPTH` header replacing the retired
+  `Depth: GIST`. **Not refused** — but the gist verdict was genuinely retested, not rubber-stamped.
+- It read the family's refusal FIRST, explicitly "on the assumption that this row was heading the
+  same way", applied the schema anchor's generalised never-alone principle to itself, and then
+  argued its way out. That is the debt-clearing pass working as intended: a thin "stands" verdict
+  re-examined against a real test.
+- Engaged the `research.*` collision 31 times, and **followed its sibling `user-research`'s
+  reasoning rather than re-deriving it** — including `research.project-workspace`, a landed
+  refusal it calls "the sharpest precedent for what a default-template row looks like when it is
+  caught". Cross-family consistency, which the gist pass could not produce.
+
+## Note: the debt was mis-measured, corrected
+
+The gist rows' **JSON payloads were already substantial** (~25KB, ~10 file_examples). Only the
+`.research.md` memos were shallow. Earlier log entries quoted memo bytes as if they were whole-row
+sizes. Deepening is therefore cheaper per row than the 3-4x projection: agents verify-and-extend
+the JSON and rewrite the memo. Corrected in the retry prompts.
