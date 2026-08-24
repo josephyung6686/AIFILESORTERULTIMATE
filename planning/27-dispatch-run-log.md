@@ -166,3 +166,18 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   fails once you ask what the deliverable is (measuring the land vs pricing the asset).
 - Running refusal tally across the swarm: 3 of 60 rows (organisational-records,
   compliance-certificate, timesheet). Every one routed to residuals or siblings, none dropped.
+
+## Wave 3 (creative, 42 rows) — killed twice, zero survivors both times
+
+- 4 agents dispatched over the whole `creative` family; all died on the session limit before
+  writing any file. Nothing on disk, nothing to salvage. Redispatch the family whole.
+- The node-test warnings seeded for those agents are preserved in `26-research-dispatch-state.md`
+  §0a so the next dispatch does not have to re-derive them.
+
+## Saved at user request — end of session 2026-08-24
+
+- Working tree clean; every landed row committed. **147/358 rows landed, 211 owed.**
+- 13 commits pushed to `build/p6-p7-first-packages`.
+- Resume point is `26-research-dispatch-state.md` §0. Its stale §2 and §3 are now marked
+  SUPERSEDED — they claimed 22 R1b rows were still owed, which would have caused a future session
+  to redo finished work.
