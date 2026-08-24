@@ -225,3 +225,17 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   `destination_eligible: false` as originally proposed and declines to widen it, citing 00's
   warning about trees that create "a large number of tiny folders". Nothing written into
   canonical_fields.json.
+
+## `creative.self-initiated-work` — REFUSED, 27.6KB, the hardest case on the roster
+
+- Memo **27,633B**, the deepest row written so far. Refused, which was the flagged likely outcome.
+- The argument is the one the row was dispatched to test: **"the row's defining condition is the
+  absence of a signal, and absence never activates."** Strip the client and what remains — a .psd
+  with layers, a RAW with EXIF, a .docx with headings — is byte-for-byte the schema's own material.
+- Fails all three limbs of the node test plus a fourth that 00 states about this row's shape in
+  advance. Routed to six residual templates rather than dropped.
+- **Engaged the landed `code.*` refusals six times** (`code.software-project`,
+  `code.scratch-prototypes`), which were refused on nearly identical grounds — the cross-family
+  consistency J-DEPTH was adopted to get.
+- Running J-DEPTH tally: 3 rows, memos 19.3 / 24.5 / 27.6 KB (gist median 4.9KB, launch median
+  13KB). Two refusals, one stands. The depth is buying arguments, not adjectives.
