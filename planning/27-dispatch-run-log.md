@@ -393,3 +393,18 @@ compliance-certificate — show the flagging discriminates rather than always pr
 - Survived a two-sided charge: that it is a document type inside `construction-project`'s
   lifecycle, or that it is `legal`'s material wearing a construction label. Engaged the `legal.*`
   launch rows 11 times to settle the contract seam reciprocally rather than assuming it.
+
+## Debt clearing 12/64 — `construction_property.commercial-lease` deepened, stands
+
+- **4,251B → 38,129B (9.0x)**, 11 file_examples, all universal keys, `Depth: J-DEPTH`.
+- The charge was the strongest available: `legal.leases-agreements` is a landed launch row that
+  owns leases by name, and "the tenant is a business" is an organisation name — never-alone
+  evidence that cannot activate a row. Engaged that row 14 times.
+- **It found a structural discriminator instead**, on dimensions rather than subject matter: the
+  family's `instruction` level assumes a commissioned job with a start and an end, but a tenancy is
+  a *relationship with a term* — one shop let in 2014, surrendered 2019, re-let 2021 is three
+  tenancies on one premises whose papers "are meaningless in the others' company".
+- It also argued a **negative** difference — no period level, where its two folder-sharing siblings
+  (`service-charge`, `block-management`) both correctly want a year level — and noted that a
+  negative difference is "the rarer and more useful kind". Worth propagating: rows have been
+  arguing only from what they have, not from what they conspicuously lack.
