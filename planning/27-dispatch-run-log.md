@@ -447,3 +447,15 @@ arguing from a **conspicuous absence** (commercial-lease's missing period level)
 deferred pair question outright (product-requirements), specifying a seam with an **unwritten**
 schema (building-control -> government), and **qualifying a predecessor's claim** with an explicit
 statement of what else was left alone (development-appraisal).
+
+## Debt clearing 16/64 — `business_operations.meeting-record` deepened, stands
+
+- **4,446B → 40,526B (9.1x)**, 11 file_examples, all universal keys, `Depth: J-DEPTH`.
+- Answered its real charge rather than the easy one: it names the values-are-not-nodes rule, then
+  says the harsher objection is that **a meeting may be a *format*** — the SOURCE_TYPE boundary
+  that got 18 legacy ids dropped in triage — and calls that "this row's actual risk", answered
+  head-on.
+- **Cross-agent reciprocity worked under parallel edit.** `board-governance` was being deepened at
+  the same time; this row read that row's `collides_with` entry naming it and reciprocated **in
+  that row's own words**, without editing it. It also adopted `clinical_practice.case-conference`'s
+  wording (7 references) rather than competing with it. The no-double-edit rule held.

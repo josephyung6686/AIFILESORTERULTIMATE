@@ -4,14 +4,26 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Working meeting records - agendas, notes, minutes and actions",
-  "one_line": "The organizational situation of a WORKING meeting that no other situation already owns: a recurring team meeting, a one-to-one, a standup, a client or supplier call, an internal decision meeting. The organizing anchor is the MEETING SERIES or the counterparty, and the file's purpose is to carry a decision and an action forward, not to record a subject. Deliberately narrowed: agendas and minutes produced INSIDE a governance cycle, a project, a sourcing event, a retrospective or a clinical case conference belong to those rows, where they are values of work type. Absorbs the legacy row ops.meeting-record. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "The organizational situation of a WORKING meeting that no other situation already owns: a recurring team meeting, a one-to-one, a standup, a client or supplier call, an internal decision meeting. The organizing anchor is the MEETING SERIES or the counterparty, and the file's purpose is to carry a decision and an action forward, not to record a subject. Deliberately narrowed: agendas and minutes produced INSIDE a governance cycle, a project, a sourcing event, a retrospective or a clinical case conference belong to those rows, where they are values of work type. Absorbs the legacy row ops.meeting-record. A PLACEHOLDER TEMPLATE ROW written to J-DEPTH: it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
   "refuse_node": false,
   "refuse_reason": null,
   "fields": [],
-  "proposed_fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the entity whose meeting series this is - the user's employer, or the user's own limited company, whose weekly notes sit in the same folder",
+      "why_no_existing_key": "SECONDING, NOT MINTING. This row proposes no key of its own; it seconds the `organization` key already proposed by the landed business_operations schema row (and independently by construction_property), and it must be adjudicated once, there, for all three. The argument from THIS row: a meeting series is identified by its name plus its custody, and the name alone is worthless - `Weekly sync` names hundreds of unrelated series across two employers and a side company, and the notes files are near-identical in shape. Without a custody fact, the row's own grouping reason (one recurring series across dates) can join two different organisations' series that happen to share a heading skeleton, which is precisely the collector failure inverted. This row does NOT propose `fiscal_period` - a meeting occurrence is a calendar date, not a management period, and claiming the key here would misuse it. Nor does it propose a meeting-series key: see the row's open_question and the memo's NJ-BO-MR-1, where the series-identity hole is raised for R1c rather than minted by the row that most wants it.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Proposed FALSE, following the schema row without re-arguing it: “A folder should not become a collection point for everything produced by the same person or organization.” In a single-employer corpus an organisation level over the meeting notes is a meaningless one-child level. Seeding it false does not deny the user the level - “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+      "reliability_ceiling": "possible",
+      "reliability_why": "An entity name in a meeting note is the multi-role token in its least reliable setting: it appears as the host, as a counterparty being discussed, as a supplier named in one agenda item, and on the letterhead of an attached pre-read. Read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - inference. A higher ceiling would need the gazetteer-plus-context rule family R4 owns; this row writes no regex and no term list.",
+      "adjudicate": "R1c, as one decision with the business_operations schema row and construction_property. If that decision refuses the key, this row keeps its situation but loses its safest grouping discriminator, and the memo says so."
+    }
+  ],
   "recognition": {
     "deterministic": [
       "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
@@ -301,6 +313,54 @@
       "falls_through_if_inactive": "Independent Records"
     },
     {
+      "filename": "MDT outcomes 2026-05-14.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a header row reading case, decision, responsible, action by",
+        "an attendance list of clinicians above the table",
+        "a weekly recurring series name in the sheet tab",
+        "the case column carries identifiers rather than attendee names"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the four-part meeting structure and the actions table are both present, but the rows of the table are people who are NOT in the room, and clinical_practice.case-conference owns it as protected material - this is the third collision fixture, and it is the one where a wrong answer costs protection rather than tidiness",
+        "that an outcomes table shaped like an actions table is evidence of a working meeting - the column header is identical on both sides",
+        "any business_operations fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Team meeting minutes 2026-05-14.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an attendance list of clinicians in a hospital department",
+        "agenda items about rotas, an equipment order and study leave",
+        "an actions table with owners and due dates",
+        "no patient, case or identifier anywhere in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a clinical setting owns the file: the subjects are the attendees' own departmental business, so clinical_practice.case-conference must not take it - that row names this same file from its side for the same reason",
+        "activation of this row in preference to clinical_practice.practice-administration where the corpus is a clinical practice's own - a department's rota-and-budget meeting is that row's, and this row holds the company equivalent",
+        "a clinical fact from the attendees' job titles",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
       "filename": "IMG_5522.jpg",
       "source_type": "image",
       "observations": [
@@ -328,7 +388,7 @@
   "collides_with": [
     {
       "domain": "business_operations.board-governance",
-      "signal": "A board or committee produces agendas, minutes and actions in exactly this shape, and the same file may be called minutes by both. The discriminating evidence: a notice of meeting, a quorum statement, numbered papers, register of interests, or formal resolutions supports governance; an unowned working meeting with no constitutional apparatus supports this row. Provenance: inference.",
+      "signal": "A board or committee produces agendas, minutes and actions in exactly this shape, and the same file may be called minutes by both. The discriminating evidence: a notice of meeting, a quorum statement, numbered papers, register of interests, or formal resolutions supports governance; an unowned working meeting with no constitutional apparatus supports this row. Stated reciprocally with that row, which names this one as “The load-bearing collision for this row, and the one both siblings must state.” and draws the same line - a constituted body with terms of reference on its side, “a team, project or stand-up record with owners and next steps and no constitution” on this one. Neither side may use meeting vocabulary as a discriminator. Provenance: inference.",
       "provenance": "inference"
     },
     {
@@ -353,7 +413,7 @@
     },
     {
       "domain": "clinical_practice.case-conference",
-      "signal": "A clinical multidisciplinary meeting produces an agenda, an attendance list and an outcomes table indistinguishable in structure from a working meeting record. The discriminating evidence is simply whether named patients are discussed; if they are, the clinical row owns it and the file is protected material. Provenance: inference.",
+      "signal": "A clinical multidisciplinary meeting produces an agenda, an attendance list and an outcomes table indistinguishable in structure from a working meeting record, and often the same recurring calendar series. The discriminating evidence is whether NAMED CASES - third parties who are not attendees - are discussed: if they are, the clinical row owns it and the file is protected material; ordinary work discussion among the attendees themselves supports this row. Stated to match that row's own wording, which names this row back. This direction matters more than the other: a wrong answer here LOSES protection, not just tidiness, because this row's residual posture is not protective. Provenance: inference.",
       "provenance": "inference"
     },
     {
