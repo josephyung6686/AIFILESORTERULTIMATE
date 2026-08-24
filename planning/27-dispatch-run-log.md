@@ -642,3 +642,15 @@ the row's two touched · commit by explicit file list.
   value not a structure.
 - Note for the tripwire: outcomes are now spread across refuse / narrow / stand rather than
   clustering on "stands", which is evidence the charges still bite.
+
+## Debt clearing 32/64 — `business_operations.support-operations`, stands at the format boundary
+
+- **4,857B → 32,336B (6.7x)**, 10 file_examples, both files written, all universal keys, stands.
+- Conceded the dispatch's premise while holding the verdict: it "sits closer to the format boundary
+  than any other survivor in this family", and answers that charge **"with bytes rather than with
+  confidence"** — the right instinct for a row whose material is ticket exports, chat logs and mail
+  threads, the class 18 legacy ids were dropped for.
+- **Two verification habits now appearing unprompted and worth keeping:**
+  - every quotation machine-checked verbatim with `grep -F` *before* being written into either file;
+  - the memo's own claims "re-read against the written JSON **after** writing, not before" — the
+    new cross-check rule, followed and reported rather than assumed.
