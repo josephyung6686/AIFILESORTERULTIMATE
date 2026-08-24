@@ -1,0 +1,916 @@
+{
+  "id": "legal.leases-agreements",
+  "kind": "template",
+  "schema_id": "legal",
+  "parent_id": null,
+  "name": "Leases and signed agreements",
+  "one_line": "A person or small team's own agreement records: leases, service and employment agreements, and the amendments, schedules, signing evidence, renewals and termination records around them. This safety template detects and protects an executed-agreement lifecycle; the fieldless Legal schema authorizes no agreement facts and no deep destination tree.",
+  "launch": "safety",
+  "provenance": "inference",
+  "design_cite": "This situation is an inference inside 00's named Legal safety domain: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" 00 also includes \"legal matters\" among the organizational situations the eventual template library covers; neither span names this narrower situation or supplies fields for it.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a PARTY-AND-OPERATIVE-TERMS structure: a title or page-one heading identifies an agreement or lease, an early recital presents the holder and another person or organization in distinct party roles, numbered or labelled clauses state reciprocal duties or a grant of use, and a completed execution block or finalization record refers to that same document version. This is evidence of an agreement-shaped record, not a conclusion about validity, enforceability or present effect",
+      "a WRITTEN-LEASE structure: separately labelled landlord or lessor and tenant or lessee roles, a premises or dwelling description, rent or other consideration, use or occupancy terms, and execution or explicit final-document evidence. An address, rent figure, tenancy word or signature does not supply the structure alone",
+      "an AMENDMENT-OR-ADDENDUM structure: the document identifies a parent agreement by title, date or reference, identifies the provisions varied or added, and carries its own party or execution block. The parent reference supports a reviewable group; no fact is copied from the parent",
+      "an ELECTRONIC-SIGNING record tied to a specific agreement version: a platform audit report or completion certificate identifies the document, signers, completed fields and signing events, and the corresponding agreement is independently recognized. Platform metadata, a completion subject line or an isolated signature image never suffices",
+      "an ARCHIVE manifest that lists a recognized agreement together with amendments, schedules, exhibits or a signing certificate. The manifest can support a protected candidate packet without unpacking; it does not prove any member's contents or copy a party, date, address or status onto the archive",
+      "an EMAIL with structured sender, recipient and subject slots plus an attached agreement that independently clears the party-and-operative-terms test. The email can join the agreement lifecycle; an attachment name or signing-service sender alone cannot activate it"
+    ],
+    "needs_llm": [
+      "a complete-looking agreement with clear obligations but no reliable indication whether it is a blank form, a negotiation draft, a final unsigned record or the holder's operative copy. The model may describe the document shape from cited evidence and must return unknown on legal status",
+      "a click-through, account-opening or online-service record where published terms and a user-specific acceptance event are separate files. The model may connect the records only when the dossier identifies the same service and terms version; it may not infer assent or enforceability",
+      "a multilingual agreement, a handwritten lodging arrangement or a low-quality OCR scan whose party roles and operative terms require bounded language interpretation",
+      "an exchange of letters or email that may record agreed terms without a formal instrument. The model may surface it for review but may not declare that a contract was formed",
+      "whether the holder is a party keeping their own agreement, an employer keeping another person's agreement, or a legal practitioner keeping negotiation apparatus for a client. Custody and party role determine the template boundary and cannot be inferred from a signature block",
+      "an agreement-shaped document whose subject could instead be employment, equity, lending, insurance, research participant data, association governance, vehicle administration or study-abroad housing. Shared names, amounts and signature blocks must be allocated to neither side until the subject-specific structure is read"
+    ],
+    "never_alone": [
+      "a SOURCE_TYPE or extension, including PDF, DOCX, email, image, archive or structured data. 00 says to \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "the words agreement, contract, lease, tenancy, signed, countersigned, executed, final, amendment or addendum in a filename",
+      "a signature, initials field, witness line, seal, stamp or electronic-signature image without the document's party and operative-term structure. A signed permission slip, receipt, form or acknowledgment is not thereby this template's agreement",
+      "an e-signature platform producer string, completion email, audit JSON or certificate without a verified link to the corresponding agreement version",
+      "numbered clauses, a governing-law heading, limitation language, confidentiality language or other legal boilerplate. Blank forms, saved terms of service, policies, licences and public precedents contain the same vocabulary",
+      "a person, company, institution, provider, landlord, employer or university name. Entity names do not establish which role the entity plays",
+      "an address, property description, rent, fee, salary, recurring payment, insurance limit, purchase price or other money figure",
+      "a date, term, renewal date, notice date or bare four-digit number. The product must not infer present effect, expiry, renewal, breach or a domain fact from it",
+      "an archive, folder, version family, retrieval neighborhood or download session containing agreement-looking filenames. Group context does not propagate facts",
+      "a checkbox, button, screenshot or OCR excerpt reading accept or I agree without the terms version, identified parties and user-specific event context",
+      "the absence of EXIF on a photographed or captured page as proof it is a screenshot",
+      "a filename on an encrypted, damaged or unsupported file. Unreadable content does not become an agreement from its name"
+    ]
+  },
+  "work_types": [
+    "lease or tenancy agreement",
+    "service agreement",
+    "consulting or independent-contractor agreement",
+    "employment agreement",
+    "confidentiality or non-disclosure agreement",
+    "vehicle or equipment lease",
+    "purchase or sale agreement",
+    "account or subscription agreement",
+    "loan agreement",
+    "equity or investment agreement",
+    "data use agreement",
+    "settlement agreement or release",
+    "amendment, addendum or variation",
+    "renewal or extension",
+    "schedule, statement of work or exhibit",
+    "signing certificate or audit report",
+    "termination, cancellation or non-renewal notice"
+  ],
+  "grouping_reasons": [
+    "one AGREEMENT LIFECYCLE across a final copy, amendments, renewals, schedules, signing evidence, notices and termination records",
+    "one LEASE PACKET across the written agreement, inventory or condition report, deposit or rent records, guaranty, renewal and notices. Finance-side members keep their own schema facts; nothing is copied from the lease",
+    "one SERVICES RELATIONSHIP across a master agreement and its statements of work, but only when each instrument identifies the same parent relationship on its own evidence",
+    "one universal version_family across drafts, redlines and the final copy. Draft membership does not make a draft executed, effective or enforceable",
+    "one sparse email, calendar reminder, audit record or schedule attached to an independently recognized agreement as a context-supported member. 00's firewall remains exact: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+    "multi-membership where one agreement is also an employment, finance, research, housing or vehicle record. 00 permits the file to remain in more than one accepted group while physical placement is decided later",
+    "an isolated durable agreement may need no group at all. It is still safety-detected, then offered only an approved Protected Records or Independent Records residual under the privacy ordering below",
+    "NOT a grouping reason: a shared party name, address, legal phrase, signature platform, year, file extension or the word agreement across unrelated files"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT AND SAFETY, not by omission. The Legal schema declares no fields under D1 as narrowed / PR-6, and a template cannot copy or mint a private field list; therefore no destination-eligible key exists on which this row may branch. Safety activation protects before any cloud or automated placement path, and a visible counterparty, premises or agreement label would itself disclose protected material. The future organizational finding is recorded only as prose: an agreement or relationship identity would need to make an amendment, schedule or termination record intelligible before artifact role or time, just as 00 says \"a parent dimension should provide the context required to understand the child\" and \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Those concepts are not fields today and are not serialized as dimensions. The user may later flatten, reverse or omit any accepted recommendation.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".rtf",
+      ".txt",
+      ".html",
+      ".jpg",
+      ".jpeg",
+      ".heic",
+      ".png",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".json",
+      ".xml",
+      ".xlsx",
+      ".csv",
+      ".zip",
+      ".7z",
+      ".bin"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Residential Tenancy Agreement - 18 River Court - Countersigned.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading identifies a residential tenancy agreement",
+        "separate landlord and tenant recitals and a labelled premises description",
+        "numbered clauses state rent, deposit, occupancy and notice terms",
+        "final page carries completed signature and date lines for the presented parties"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any lease-specific fact: the Legal schema declares no fields",
+        "that the premises address is a Legal or Photos location fact",
+        "that completed signature lines prove validity, current effect, renewal state, compliance or enforceability",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lease Renewal Addendum - 18 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading identifies an addendum and names the earlier tenancy agreement by date",
+        "body identifies the clauses varied and the new written terms",
+        "party names and completed execution lines appear on the final page",
+        "normalized stem and direct parent reference support one version neighborhood"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts copied from the parent agreement",
+        "that the addendum took effect or that the earlier agreement remains current",
+        "a renewal date fact or a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Move-in Inventory and Tenancy Packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Tenancy Agreement.pdf, Condition Report.pdf, Deposit Receipt.pdf, Signing Certificate.json and two room photographs",
+        "manifest is inspected without writing members to disk",
+        "outer filename is generic and the members carry different document roles",
+        "archive header exposes file count and uncompressed size but no member content"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a party, premises, payment, condition or execution fact from member filenames",
+        "one schema for every member",
+        "that archive co-location proves a shared legal status",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consulting Services Agreement - Blue Finch - Acme - Executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title and recital present two organizations in provider and customer roles",
+        "labelled sections describe scope, deliverables, fees, confidentiality and intellectual-property terms",
+        "completed countersignature blocks appear after the operative clauses",
+        "there is no invoice identifier, line-item table, amount-due slot or payment-status block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a Finance record from the fee clause",
+        "a Career field from either organization name: Career is also fieldless today",
+        "that executed in the filename established the document state",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "ISP Service Agreement - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "party block presents an internet provider and customer",
+        "schedule labels a plan, service address, recurring fee and effective-date slot",
+        "numbered clauses state continuing service and payment obligations",
+        "completed signature block follows the clauses"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a recurring fee makes this a utility bill",
+        "that a service address is a Legal or Photos location fact",
+        "that Finance activation erases the independent Legal reading",
+        "a permanent physical home"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Employment Agreement - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one party block presents an organization as employer and a natural person as employee",
+        "labelled sections identify position, start date, compensation and notice terms",
+        "completed employee and employer signature blocks appear on the final page",
+        "producer metadata names an electronic-signing platform"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an employer or role fact: the Career and Legal schemas both declare no such field",
+        "a Finance fact from compensation",
+        "execution from the platform producer string or filename",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mutual NDA - Northstar - Countersigned.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title identifies a mutual non-disclosure agreement",
+        "recital presents two organizations as disclosing and receiving parties in both directions",
+        "defined terms and numbered clauses describe confidential information, exclusions, use and duration",
+        "both signature blocks are completed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an employment relationship from the NDA alone",
+        "that every referenced item is confidential as a product fact",
+        "validity, enforceability, breach or present duration",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vehicle Lease Agreement - Corolla - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "lessor and lessee roles appear in labelled party slots",
+        "vehicle block carries a labelled identifier and description",
+        "schedule states periodic payments, permitted use, mileage terms and end-of-term options",
+        "completed execution blocks follow the agreement terms"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a canonical vehicle fact: Legal declares no fields and the vehicle proposal is another row's question",
+        "that a payment figure alone chooses Finance or Legal",
+        "ownership, current registration or payoff state",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Post-Money SAFE - Northstar Ventures - Countersigned.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title identifies a future-equity instrument and its form",
+        "party blocks present a company and investor",
+        "defined terms address purchase amount, conversion, liquidity and dissolution events",
+        "company and investor signature blocks are completed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a generic agreement-template choice from signatures alone: equity subject matter supports the cap-table neighbor",
+        "an account or tax-year fact from the instrument date",
+        "that the Finance reading erases Legal safety activation",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "DUA_signed_UChicago_PVA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "agreement heading appears above provider and recipient institutional party blocks",
+        "numbered clauses address permitted use, safeguards, return or destruction of study data",
+        "the study and a protocol-shaped identifier appear in an operative clause",
+        "two signature blocks and an effective-date slot are completed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that generic agreement structure chooses this template over research.ethics-compliance; participant-data subject matter is the neighbor's evidence",
+        "a lab fact from the counterparty institution",
+        "a target university from the university name",
+        "legal validity, study approval or a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Study Abroad Housing Agreement - Bologna - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "housing heading and party block identify a residence provider and student occupant",
+        "room or premises, occupancy period, deposit and recurring charge appear in labelled sections",
+        "house rules are incorporated as a schedule",
+        "student and provider signature lines are completed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an academic term from the occupancy period",
+        "school or target_university from the residence provider",
+        "that directory proximity to a learning agreement supplies any fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Welcome to your new account - Accepted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "financial institution appears in the issuer role",
+        "labelled account descriptor, masked account block, fee schedule and rate table",
+        "final page contains an acceptance and signature block",
+        "there is no statement period or balance pair"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the signature block alone chooses the agreement template; the account structure supports finance.personal-records",
+        "record_type = statement",
+        "that a masked account identifier may appear in a model dossier",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Settlement Agreement and Release - Claim 88213.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title identifies an agreement and release",
+        "party block presents the holder, a claimant-side role and an insurer-side role",
+        "recitals and numbered clauses refer to an identified dispute, payment and release",
+        "execution block contains completed signature lines"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the claim reference or release clause chooses this template over legal.personal-legal-matters",
+        "that the carrier name and payment amount make it only an insurance record",
+        "liability, admission, performance or enforceability",
+        "a folder path or cloud dossier"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Declaration of Covenants Conditions and Restrictions - Recorded.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "recorded-instrument heading identifies a declaration and an association",
+        "definitions distinguish association, owners, lots and common areas",
+        "articles address membership, assessments, use restrictions and enforcement",
+        "recording and certification pages are present"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "this template from operative clauses alone: association governance and member-administration structure supports finance.hoa-residents-association",
+        "that every current owner signed or is presented as a party to this copy",
+        "a property, party or agreement-status fact",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Move-in Inventory and Condition Report - 18 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading identifies an inventory and condition report rather than an agreement",
+        "room, item and condition rows appear beside dated photographs",
+        "premises and check-in date are labelled",
+        "tenant acknowledgment line is completed"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "an agreement from the address, rent-neighborhood context or acknowledgment signature",
+        "terms or party facts copied from the neighboring lease",
+        "that condition observations are admissions or legal conclusions",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PG&E Energy Statement - August 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "provider heading and labelled service-account identifier",
+        "covered period, usage rows, prior payment, current charges and amount due",
+        "service address and plan appear in labelled statement slots",
+        "no party recital or execution block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a service agreement from the provider, service address, plan or recurring amount",
+        "an agreement from a service-agreement identifier used as an account label",
+        "a legal fact or folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consulting Invoice 7841.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier and customer names appear in From and Bill To slots",
+        "labelled invoice identifier, issue date and due date",
+        "line-item table, subtotal, tax and amount-due block",
+        "a purchase-order or statement-of-work reference appears in a footer"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a service agreement from shared parties, fees or a statement-of-work reference",
+        "that the invoice incorporates or proves the terms of the referenced agreement",
+        "a Legal fact or folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Mortgage Loan Agreement - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "lender and borrower appear in party recitals",
+        "labelled principal, interest, repayment, maturity and payoff terms",
+        "property collateral is described in a schedule",
+        "completed execution block follows the numbered clauses"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that periodic payments make this a lease; repayment of principal with interest supports finance.loans-mortgage",
+        "a property-address fact or tax year",
+        "that one physical home is decided because both Finance and Legal evidence are present",
+        "validity, current balance, payoff or a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Commercial Insurance Policy Declarations.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled Named Insured, Policy Number and Policy Period slots",
+        "coverage and limit tables describe existing insurance",
+        "carrier and broker appear in distinct labelled roles",
+        "no party recital or clause requiring someone to procure coverage"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "an agreement from policy vocabulary or coverage limits; the labelled coverage-reporting structure supports finance.insurance-corporate",
+        "that an insurance-requirements clause in another contract proves this policy exists",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vehicle Registration Renewal 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "motor-vehicle authority heading identifies a registration renewal",
+        "labelled plate and vehicle-identification slots and year, make and model block",
+        "registered-owner name, address, fee and renewal-period sections",
+        "authorized issuer mark but no bilateral party or obligation structure"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a lease or sale agreement from an owner name, fee, identifier or authorized mark",
+        "current title, ownership or registration status from the renewal notice",
+        "a year fact or folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Employment Agreement - Jordan Lee - Employer Copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "party block presents the holder's organization as employer and another natural person as employee",
+        "position, start date, compensation and signature blocks match an employment agreement",
+        "the file sits in a requisition packet with candidate evaluations and onboarding forms",
+        "custody context shows the holder is keeping another person's agreement"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is the holder's personal agreement merely because it is an executed agreement",
+        "that the employer name plus signature block discriminates custody or party role",
+        "permission to expose the other person's name, evaluation context or agreement terms",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Blank Residential Lease Template.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading and clause structure resemble a residential lease",
+        "landlord, tenant, premises, rent and date slots are blank placeholders",
+        "signature lines are empty",
+        "DOCX template metadata names a document generator"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a blank form is the holder's agreement",
+        "parties, premises, terms or execution from placeholder labels",
+        "a legal status or folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Terms of Service.html",
+      "source_type": "text_document",
+      "observations": [
+        "publisher heading and clause-numbered terms",
+        "body includes governing-law, limitation and dispute-resolution language",
+        "the reader is addressed generically and no holder-specific party block appears",
+        "no acceptance record or terms-version link is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "download_session"
+      ],
+      "must_not_conclude": [
+        "the holder's agreement from boilerplate the user merely saved",
+        "acceptance from the download session",
+        "a party, purpose, legal status or folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Lease signature complete.eml",
+      "source_type": "email",
+      "observations": [
+        "structured sender and subject slots identify an electronic-signing service and completion event",
+        "body identifies a document title and a platform document identifier",
+        "attachment list includes Residential Tenancy Agreement - 18 River Court.pdf and Signing Certificate.json",
+        "recipient addresses and message content are potentially sensitive"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an agreement from the email subject or attachment names alone",
+        "validity, delivery, acceptance or party identity from a generic platform message",
+        "facts copied from either attachment",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Signing Certificate - Agreement 91F2.json",
+      "source_type": "code_structured",
+      "observations": [
+        "structured keys identify a platform document identifier, completed fields and signing-event timestamps",
+        "signer email addresses and device or network metadata appear in labelled fields",
+        "the certificate names the corresponding PDF but contains no agreement clauses",
+        "a matching document identifier appears in the signing email"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the meaning or legal effect of the agreement from the audit record",
+        "that signer contact or network values may enter a model prompt",
+        "agreement facts copied from the corresponding PDF",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lease Renewal Reminder.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY says Review lease renewal",
+        "structured start time and reminder metadata are present",
+        "description names a premises nickname but no agreement reference",
+        "no party, operative term, execution or attached agreement evidence"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "Legal activation from source_type = calendar or the reminder title",
+        "a current lease, renewal date, expiry, counterparty or premises fact",
+        "facts copied from a neighboring lease group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_8821.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF and capture time are present",
+        "image shows one photographed signature page",
+        "OCR recovers two party-name fragments and signature labels but no title or operative clauses",
+        "page footer contains a document identifier that may link to a recognized agreement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an agreement from signatures and party fragments without the document body",
+        "that camera EXIF makes the content only a photo rather than a potentially protected document capture",
+        "facts from a neighboring PDF until the identifier link is validated",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-14 at 10.32.08.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG dimensions and software metadata support a screenshot hypothesis",
+        "OCR reads All parties have completed beside an electronic-signing service logo",
+        "a document title is truncated and no terms version or full party list is visible",
+        "no camera EXIF is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "screenshot status from absent EXIF alone",
+        "an agreement, its parties or legal effect from a partial portal confirmation",
+        "a date fact from the filename",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Rent Schedule.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row labels month, base rent, utilities, payment date and status",
+        "rows contain recurring amounts and dates",
+        "workbook title names a premises nickname but no party or agreement reference",
+        "file was saved beside a recognized tenancy agreement"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "an agreement from a payment schedule",
+        "party, premises, term or legal status copied from the neighboring lease",
+        "that every planned row is a completed payment",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "signed-agreements-backup.bin",
+      "source_type": "opaque_binary",
+      "observations": [
+        "filesystem extraction records the filename, MIME guess, size, timestamps and content hash",
+        "no approved extractor exposes text, form fields, signature data or a manifest",
+        "filename is the only agreement-shaped clue"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "an agreement or packet from the filename",
+        "parties, subject, execution, sensitivity details or purpose from an unreadable file",
+        "that unsupported means empty",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "academic.study-abroad",
+      "signal": "Host-city housing sits inside the same program folder as academic and immigration material. Parties, rent, deposit, occupancy terms and execution support the agreement reading; a home/host institution role, enrolment, course mapping or credit-transfer structure supports study abroad. A host city, university residence name or shared directory counts for neither. The housing file may remain a context-supported member of the exchange group without receiving academic facts.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employer-side-hiring",
+      "signal": "An executed employment agreement can be the individual's own copy or an employer's custodial copy about a hire. The discriminator is holder role: this situation needs the holder presented as the employee party; employer-side hiring needs the holder's organization presented as employer while the agreement concerns another person. Employer name and signature block alone discriminate nothing, and custody privacy is protected before either template is proposed.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "An employment agreement, NDA or non-compete presents the same parties, term, governing clauses and execution block to both templates. Employer/employee relationship evidence such as an employee-party label, position or start-of-employment slot supports career.employment-records; property, service or other non-employment subject matter supports this template. A signature block alone counts for neither, and an employment agreement may still keep both Legal and Career schema readings on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "A SAFE, stock-purchase agreement, option agreement or exercise notice has parties, defined terms, governing clauses and execution blocks like another signed agreement. Equity-instrument title plus issuance, share, conversion, grant, vesting or exercise terms supports finance.cap-table-equity; property, service, tenancy or other non-equity subject matter supports this situation. Signatures alone count for neither, while a signed equity instrument may independently activate the Legal schema.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.hoa-residents-association",
+      "signal": "Recorded declarations, covenant packets and association contracts can be operative instruments and association records. Party recitals, reciprocal obligations and an execution block creating or amending duties support this situation; member-account, governance, meeting or routine association-administration structure supports finance.hoa-residents-association. An association name, unit, assessment amount or isolated clause cannot count for both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "A tenancy packet mixes an operative lease with rent receipts, inventories, inspections and maintenance records. Party recitals, covenants, grant of occupancy, consideration and execution support this agreement situation; issuer plus receipt, inventory, inspection, tax or improvement structure supports finance.household-property. Premises address and rent amount are shared observations and must not count for both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "A client contract, commercial lease or vendor agreement may contain an insurance-requirements clause beside the firm's actual policies and certificates. Labelled Named Insured, Policy Number, Policy Period and coverage tables report on insurance that exists and support finance.insurance-corporate; party recitals and numbered clauses requiring coverage support this agreement situation. A coverage-line term, limit or carrier name counts for neither alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "A loan agreement and a lease both carry parties, recitals, numbered clauses, a term, periodic payment and execution block. Repayment of principal with interest, amortization or payoff structure supports finance.loans-mortgage; a grant of property use for rent with occupancy and deposit terms supports this situation. Property address, recurring amount and signature block discriminate nothing alone, and an executed loan instrument may still activate the Legal schema.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "An account-opening agreement and another signed agreement both carry an institution, terms and an acceptance or execution block. A labelled account descriptor, masked account block and fee or rate schedule issued by an institution about an account supports finance.personal-records; party recitals, reciprocal obligations and an execution block support this situation. Institution name, fee or signature cannot count for both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "A vendor agreement, service contract and invoice may name the same parties, fee and payment terms. Party recitals, reciprocal duties, numbered clauses and execution support this agreement situation; invoice identifier, line-item table, due slot and payment-status or reconciliation structure support finance.small-business-bookkeeping. A client name or fee clause alone cannot choose either template.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.subscriptions-utilities",
+      "signal": "A service agreement and a recurring bill share provider, service address, plan and recurring fee. Party recitals, continuing obligations and execution support this agreement situation; service or account identifier plus covered period, usage, billed amount or account state supports finance.subscriptions-utilities. Provider name, address, plan or fee cannot count twice.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.vehicle-records",
+      "signal": "A vehicle purchase, lease or service contract is both agreement-shaped and a vehicle-lifecycle record. Parties, obligations, numbered terms and execution support this situation; official ownership or registration structure or vehicle-specific service history supports finance.vehicle-records. A signature, money figure or vehicle identifier alone counts for neither, while the file may remain in both accepted groups.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.ethics-compliance",
+      "signal": "A data use agreement, confidentiality agreement and signed consent form can share named parties, clauses, effective-date slots and signatures with other agreements. Study protocol, participant or participant-data subject matter supports research.ethics-compliance; a lease, personal contract or unrelated commercial subject supports this situation. University name, signature block or agreement heading alone discriminates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "A settlement agreement or release is an agreement by form and a dispute record by function. A matter or proceeding reference, allegations, claim history, court correspondence or dispute-resolution apparatus supports legal.personal-legal-matters; reciprocal agreement terms and execution without a broader dispute file support this situation. A release clause, payment amount, party name or signature block alone cannot choose either.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.estate-planning",
+      "signal": "Wills, powers of attorney and advance directives may carry signatures, witnesses, notarization and formal operative language but are not thereby reciprocal agreements between the holder and a counterparty. Testamentary disposition, delegation of authority or end-of-life instruction supports legal.estate-planning; distinct party roles plus reciprocal duties or a grant of use supports this situation. Signature, witness or notarial evidence alone counts for neither.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "First offer after Legal safety activation when P7 or user policy protects the file and no deeper group is accepted. 00 says: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" This residual is opt-in and does not authorize a move or a model call.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "Offer only after privacy classification and user policy allow it, for a durable isolated agreement with no broader accepted group. 00 says: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" The roster's isolated-signed-PDF hint is implemented under this ordering, never as an extension-driven automatic destination.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For a partly understood draft, reminder, correspondence chain or packet whose agreement status, party role or relationship remains unresolved. 00 says: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" It is a user-approved residual choice, not a legal conclusion.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For encrypted, damaged or unknown agreement-looking files whose contents cannot be inspected. 00 says: \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\" The filename never activates the template.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "For a captured signing or renewal screen only when no agreement or protected-record relationship is supported and the user approved this residual. 00 says: \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\" A protected screenshot stays protected instead.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "For generic terms, public precedents and reference agreements the holder saved to read but did not enter. 00 says: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\" Boilerplate vocabulary alone does not turn reference material into the holder's agreement.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names legal records directly in the highly personal corpus and requires the gate to lead: \"Privacy policy must be enforced before content reaches any model or external connector.\" Agreements commonly expose names, signatures, addresses, employment terms, compensation, account or payment details, confidential duties, asset descriptions and dispute terms. 00's operational boundary therefore controls every example: \"Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.\" This row sets no P7 handling class and no release rule.",
+  "open_question": "Three unresolved choices, none of which this row silently answers. (1) Scope: official primary sources show that a tenancy can be oral and that an employment contract can be broader than one written statement. Should this roster id remain document-bound to signed or otherwise finalized written records, as its name and hint say, or later widen to evidence of oral/click-through arrangements? Today those cases are review-only and no legal formation or enforceability conclusion is produced. (2) Vocabulary and disclosure: if D1's Legal deferral is lifted, which shared canonical concepts, if any, may identify an agreement or relationship and an artifact role, and may any of them become destination dimensions? A party, counterparty, premises or matter label can leak sensitive information on a shared screen, so this row authors no fields, proposed fields, role split or dimension. (3) Residual ordering: the roster says an isolated signed PDF may use Independent Records, while 00 makes Legal a safety domain and names legal forms under Protected Records. This row provisionally applies P7 and user policy first, then Protected Records when protected and Independent Records only when release is allowed. Joseph should confirm whether any Legal-activated agreement may ever take that second branch or whether Legal activation always forces the protected residual."
+}

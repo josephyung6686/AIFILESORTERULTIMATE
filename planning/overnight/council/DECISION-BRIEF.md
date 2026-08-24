@@ -805,3 +805,28 @@ authoritative stays empty, and §8.4's door denies every file.
 only one of the six whose failure is invisible at rest, on a concept this project has already shipped
 wrong once. That ranking is right about severity. It is D6 that is right about sequence, because a
 record choice you cannot spell is not yet an answer.
+
+---
+
+## RATIFIED — Joseph, 2026-08-24
+
+### J-DEPTH — the industry rows get the same depth as the 83
+
+**J-IND's gist clause is overruled.** J-IND said the professional-world and industry rows would get
+placeholder coverage plus *gist-level* research ("a good gist of each"), with full depth deferred to
+a much later pass. Joseph has ruled that this is not acceptable: **every industry row is researched
+to the same depth as the 83 launch rows** — the deep R1b standard, not a shortened one.
+
+| | Answer | Applied where |
+|---|---|---|
+| **J-DEPTH** | Industry rows are researched at **full R1b depth**, not gist depth. One agent per row, the same authority stack, the same evidence and quote discipline, the same argued node test, the same reciprocal boundary statements. A row is not finished until it would be indistinguishable in depth from a landed launch row. | `domains/dispatch/GIST-BRIEF.md` (rewritten — the depth section now says R1b depth, and the `Depth: GIST` label is retired); all 211 unwritten rows; **and the 64 rows already written at gist depth, which must be deepened, not left as they are** |
+
+**What this costs, recorded so nobody is surprised later.** 275 rows at one agent per row, against a
+budget where a usage-limit window currently buys one wave of three or four agents. This is a run
+measured in weeks. The 64 gist rows already committed (`clinical_practice`, `business_operations`,
+`construction_property`) are now **debt, not done** — they are individually verified and internally
+consistent, but they are 2.6x shallower than the standard J-DEPTH sets, and the index must not
+present them as finished until they have been deepened.
+
+**What does not change.** The roster stays at 358 rows; J-IND's triage of the 574 stands, including
+its folds and documented drops. Refusals stand and remain R1c's to adjudicate. D1–D6 are untouched.

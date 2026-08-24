@@ -1,0 +1,460 @@
+{
+  "id": "business_operations.go-to-market",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Go-to-market and launch planning",
+  "one_line": "The coordinated effort to bring one OFFERING to market by a dated launch: positioning and messaging, the cross-functional launch plan and its readiness gates, pricing and packaging decisions, sales enablement and battlecards, announcement material, beta and reference programmes, and the post-launch review. The anchor is a LAUNCH — one offering, one date, several functions having to be ready at once — which is what separates it from analysing a market, sequencing a roadmap, or running a campaign. Absorbs the legacy row ops.go-to-market. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a launch-plan structure: a dated plan whose rows are cross-functional WORKSTREAMS (product, marketing, sales, support, legal, operations) against owners and a shared launch date — the several-functions-one-date shape is what makes this a distinct situation rather than a campaign or a roadmap.",
+      "a readiness structure: a gate or checklist with criteria per function, a go / no-go marker, and a decision record against a date. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a positioning structure: a document with labelled slots for target segment, problem, category, differentiators, proof points and messaging pillars — a recurring, template-driven shape that appears in no other family.",
+      "an enablement structure: a deck or battlecard organised as objection-and-response, competitor-and-counter, or discovery-question sets, addressed to an internal selling audience rather than to a customer.",
+      "a packaging-and-pricing structure: tiers or editions crossed with features and price points, with an effective date and an approval line — distinct from a quotation by being a policy rather than an offer.",
+      "an announcement structure: a press release with a dateline and a boilerplate block, an embargo statement, or a launch communications calendar keyed to a date.",
+      "a post-launch structure: a retrospective or results review measuring outcomes against the pre-launch targets named in the plan.",
+      "parent-folder context naming an offering and a launch or a release, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this world is commercially confidential and often confidential to a THIRD party, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row, and the reason it carries a fold question: separating the LAUNCH of an offering from the CAMPAIGN that promotes it, the ROADMAP that scheduled it and the RESEARCH that justified it. All four name the same offering and often the same date, and a real launch folder contains members of all four.",
+      "separating a real launch plan from a template, a downloaded framework, a conference talk about launches and a course case study. This world is unusually template-driven, so the shape is a weak signal and the values carry the meaning. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating internal enablement from external marketing. A battlecard and a customer-facing one-pager are near-identical documents whose audience is the discriminator and is rarely stated.",
+      "unlabelled commercial prose: a positioning memo, a naming debate, a pricing rationale note with no template furniture.",
+      "a purpose-coherent launch packet whose members are individually unremarkable — a plan, a deck, a press release draft, a pricing sheet, a support macro and a legal review note. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "launch vocabulary alone — launch, GTM, positioning, messaging, enablement, readiness. Marketing thought-leadership PDFs, saved frameworks, conference decks and job descriptions are saturated with it, and this is the tempting false file for this row.",
+      "a product or offering name alone, which appears on engineering tickets, support articles, invoices, contracts and press coverage equally.",
+      "a deck shape alone. This row's characteristic artifact is a deck and so is every other commercial row's.",
+      "a date-shaped token read as a launch date. Effective dates, embargo dates, release dates and meeting dates present identically without a labelled slot.",
+      "a slide master or brand template alone, which stamps the same organisation on every deck anyone ever started from it.",
+      "a company, charity, or regulator gazetteer hit alone. 00 states the ambiguity for a university — “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — and a company name is worse, appearing as employer, customer, supplier, competitor, regulator, and as the letterhead of a document that is merely ABOUT the holder. Stated as inference; 00 writes that sentence about a university, not a company.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session that emptied a document-management system or a mail thread's attachments at once. “A session should never be treated as proof of topic”",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — a corporate template stamps the same entity on every blank form it ever generated.",
+      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version."
+    ]
+  },
+  "proposed_context_terms": [
+    "go-to-market",
+    "launch plan",
+    "launch date",
+    "launch tier",
+    "go / no-go",
+    "launch readiness",
+    "gate review",
+    "workstream",
+    "positioning",
+    "messaging framework",
+    "value proposition",
+    "target segment",
+    "ideal customer profile",
+    "category",
+    "differentiator",
+    "proof point",
+    "competitive battlecard",
+    "objection handling",
+    "enablement",
+    "sales play",
+    "packaging",
+    "pricing tier",
+    "list price",
+    "price book",
+    "effective date",
+    "press release",
+    "embargo",
+    "boilerplate",
+    "announcement",
+    "beta programme",
+    "early access",
+    "reference customer",
+    "launch retrospective",
+    "post-launch review"
+  ],
+  "work_types": [
+    "launch plan and workstream tracker",
+    "launch readiness checklist or gate record",
+    "go / no-go decision record",
+    "positioning and messaging document",
+    "competitive battlecard",
+    "sales enablement deck or play",
+    "packaging and pricing decision or price book",
+    "announcement or press release draft",
+    "launch communications calendar",
+    "beta or early-access programme material",
+    "reference customer or case-study material",
+    "launch FAQ and support enablement",
+    "post-launch review or results readout",
+    "naming, trademark, or brand-approval record"
+  ],
+  "grouping_reasons": [
+    "one launch: the plan, the positioning, the enablement, the announcement, the readiness record and the retrospective — the definitive purpose-coherent group in this family, and its members are genuinely content-incoherent. “The documents are content-incoherent but purpose-coherent.”",
+    "one offering across successive launches and releases, joined by an offering name and a version rather than by filenames — and the reason most likely to tempt an offering label onto every file that mentions the product, which is exactly what must not happen. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one readiness gate: the criteria, the evidence, the decision.",
+    "one positioning document across its drafts, joined by the universal version_family fact rather than by any business fact.",
+    "no group at all is a valid outcome: a single downloaded launch framework is an ordinary standalone file.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two offerings' launch material in one folder does not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and business_operations declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question. The recommendation, held as prose: the offering, then the launch or release, then the function or document type. An enablement deck is unintelligible above its offering, and a readiness checklist above its launch, which is 00's own reason for putting a course above a homework number. A date level is tempting here because the whole situation is date-anchored, and it is still the wrong first level —  Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "presentation",
+      "text_document",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "image",
+      "design_creative",
+      "archive",
+      "audio_video",
+      "calendar"
+    ],
+    "extensions": [
+      ".pptx",
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".mp4",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Launch plan - Atlas 2.0.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows naming product, marketing, sales, support and legal workstreams",
+        "owner, status and due-date columns against a single shared launch date",
+        "a go / no-go summary row",
+        "a tab of dependencies"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "an offering fact copied onto any other file naming the same product",
+        "that a project plan shape means the project-delivery row; the cross-functional single-date structure is the discriminator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Atlas 2.0 - positioning and messaging v4.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for segment, problem, category, differentiators and proof points",
+        "messaging pillars with supporting claims",
+        "tracked changes from three reviewers",
+        "a version in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that a claim in a messaging pillar is a fact about the product; every line is a raw observation",
+        "a creative campaign conclusion — this is the input a campaign consumes, not the campaign",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Launch readiness - go-no-go 2026-05-06.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a criteria slide per function with red, amber and green markers",
+        "a decision slide naming attendees and a recorded outcome",
+        "a dated header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that a decision slide is a governance resolution: this is a launch gate, not a constituted body's record",
+        "a readiness judgement of the product's own from a colour marker",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Battlecard - vs Northwind.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an objection-and-response structure",
+        "a competitor-and-counter table with claims about a third party",
+        "an internal-use-only footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that the competitor claims are facts; they are the holder's own assertions about a third party",
+        "that an internal-use footer makes this market research — the audience is an internal seller, which is the discriminator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Pricing and packaging - Atlas - effective 01 Jun 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "tiers crossed with features and list prices",
+        "an effective-date row and an approval line naming a signatory",
+        "a discount-policy sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "which row owns it: pricing analysis is the market-research row's and a price book in force is this row's, and one workbook often holds both",
+        "a price as a durable fact; it carries an effective date and supersession",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Press release - Atlas 2.0 - EMBARGOED.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a dateline and a boilerplate block",
+        "an embargo statement with a date and time",
+        "quotes attributed to named executives and a named customer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that a draft announcement is public because a press release is a public form — an embargoed draft is precisely not",
+        "a customer fact from a quote attribution",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "The Ultimate Product Launch Playbook.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a vendor's branded ebook with chapter structure and a lead-capture page",
+        "complete launch furniture — templates, checklists, sample plans",
+        "no offering, no date, no owner"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a published playbook is reading material, and this is the collision fixture for the row",
+        "an organisation fact from a brand on a cover",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Atlas roadmap FY26.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a timeline of themes and epics across four quarters",
+        "a now-next-later structure",
+        "no readiness criteria, no functions, no single date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a sequence of intent over time is the product-roadmap sibling's situation — the discriminator is whether one dated launch is being made ready",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-05-06 at 11.20.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR text showing a launch tracker board with swimlanes and status chips",
+        "no document header and no labelled slot",
+        "a system-generated filename with a capture timestamp"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "an offering, a launch, or a status from a board capture with no labelled slot",
+        "a screenshot conclusion from any image property — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "atlas-launch-kit.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing decks, a press release, logos, a pricing sheet and a video file",
+        "the archive is not encrypted"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "a purpose fact from the manifest alone",
+        "a creative asset conclusion from the presence of logos and a video",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.ad-campaign",
+      "signal": "The load-bearing collision on this row, and the one that drives its fold question. A launch and its campaign share the offering, the date, the messaging and often the folder. The discriminating evidence: a cross-functional readiness plan with gates and owners across product, sales, support and legal supports this row; a channel plan, creative concepts, asset versions, media buying and a revision round support the campaign row. Neither activates on an offering name and a date alone. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.content-marketing",
+      "signal": "Launch content — a blog post, a landing page, a customer story — is produced FOR a launch and BY the content function. The discriminating evidence: an editorial calendar, a content brief, or an asset production trail supports the content row; the launch plan and readiness record that commissioned it supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.market-research",
+      "signal": "Positioning and pricing rest on competitive and pricing analysis, and both often live in one workbook. The discriminating evidence: a market sizing, a competitor teardown, a survey, or a pricing sensitivity study supports the research row; a decided positioning, a price book in force, or a battlecard for sellers supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.product-roadmap",
+      "signal": "A roadmap sequences what will be launched. The discriminating evidence: a multi-period sequence of themes with no readiness criteria supports the roadmap row; one offering being made ready for one dated launch across several functions supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.product-requirements",
+      "signal": "A requirements document and a positioning document describe the same offering to different audiences. The discriminating evidence: user stories, acceptance criteria, or a specification structure supports the requirements row; a market-facing segment-and-differentiator structure supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "A launch is a project and carries a project's furniture. The discriminating evidence: a project identifier, a schedule with dependencies, a decision log and a status report structure supports project delivery; a go / no-go gate against per-function readiness criteria supports this row. This pair is genuinely thin. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "Beta programmes, reference customers and case studies belong to both. The discriminating evidence: a named customer's own plan, usage and renewal record supports the account row; the launch programme those customers were recruited into supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.strategy-plan",
+      "signal": "A launch business case and a strategy document overlap at the investment decision. The discriminating evidence: goals, horizons and initiative portfolios support the strategy row; one offering and one launch date support this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The commonest honest outcome here, because a launch artifact rarely names its launch on its own face and the surrounding pack is what identifies it. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Embargoed announcements, unreleased pricing and competitor battlecards are confidential before their date and name third parties. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Published playbooks, marketing ebooks and saved frameworks are the tempting false files of this row and belong here. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone launch artifact with no launch file around it — a single approved price sheet, a naming approval. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Blank launch templates, checklists and sample plans kept for reuse. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Launch kits arrive as archives and video bundles, and are safest represented without moving. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Almost everything in this row is confidential for a period and public afterwards, which is an unusual shape and argues for the cautious setting rather than against it: an embargoed announcement, an unreleased price book and a competitor battlecard are damaging before their date and harmless after it, and a file gives no reliable signal about which side of that line it is on. 00's corpus sentence reaches this row through the named individuals in draft quotes and reference-customer records — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Second, as inference: much of this material is an employer's, held on a personal machine by someone who has since moved on, and the exposed party is then not the user. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "One, and it is a fold question this row states against itself. This is the weakest of the nine rows in this chunk, and the schema row named it so. It passes the node test on a real anchor — one offering, one date, several functions gated to be ready together, which is a genuinely different organisational situation from a campaign, a roadmap or a market study — but its members are overwhelmingly borrowed from creative.ad-campaign, business_operations.market-research and business_operations.product-roadmap, and its detection signals reduce to two structures (the cross-functional workstream plan and the readiness gate) that a determined reader could place on business_operations.project-delivery. This pass's honest answer is KEEP, on the readiness gate; the alternative — folding it into the roadmap row and letting the campaign row hold the external material — is defensible and cheap, and R1c should decide it deliberately rather than inheriting it."
+}

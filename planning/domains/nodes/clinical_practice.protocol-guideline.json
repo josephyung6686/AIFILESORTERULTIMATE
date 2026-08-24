@@ -1,0 +1,444 @@
+{
+  "id": "clinical_practice.protocol-guideline",
+  "kind": "template",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Clinical protocols, pathways, and guidelines",
+  "one_line": "The organizational situation of instruction ABOUT a class of patients rather than a record OF one: national and specialty guidelines, local protocols and standard operating procedures, care pathways and order sets, safety alerts, and the approval-and-review governance that keeps each of them current. Absorbs the legacy row med.clinical-protocol-guideline. The organizing anchor is the GOVERNED DOCUMENT and its version - a thing with an issuing body, an approval, an effective date, and a review date - which is exactly what no other row in this family has, because every other row's anchor is an event or a person. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry is a DETECTION signal, never an extraction licence - this template's schema declares no field rows. Unlike its siblings this row's precondition is not protection but the opposite caution: a guideline names nobody, so nothing here may be read as evidence that a NEIGHBOURING file about a person is safe.",
+      "a governance-block structure: a version token beside an approved-by or ratified-by body, an approval or effective date, and a review-due date, in a cover-page or footer band that repeats on every page. Four governance slots co-occurring is the discriminating structure for this row, and it is a structure a patient record never carries.",
+      "a population-scope structure: a labelled scope, applies-to, or intended-audience block naming a class of people by condition, age band, or setting - and naming no individual anywhere in the document.",
+      "a pathway or algorithm structure: numbered decision steps with branch conditions, an escalation or when-to-refer step, and often a rendered flow diagram - instructions written in the second person or the imperative about what a reader should do next.",
+      "an evidence-and-recommendation structure: numbered recommendations each carrying a strength or evidence designation drawn from a published grading scheme, with a reference list. The designation is a raw observation from the issuing body and never becomes this product's own confidence, ranking, or classification.",
+      "an order-set or proforma structure: a pre-populated list of investigations, medicines, or observations with blank completion slots and no completed entries - a form in its EMPTY state, which is what separates a protocol from the record made on it.",
+      "a safety-alert or bulletin structure: an issuing-body reference, a required-action list, and an action-by date, distributed rather than authored locally. “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.”",
+      "a controlled-document register: a repeated log-row shape of document title, version, owner, approved date, and review date across many documents at once."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row's own material is not patient-identifying, but the corpus it sits in is - a model step on a folder of protocols may still surface a completed proforma filed beside them, so the folder is not a licence. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the central judgement of this row: whether a proforma, checklist, or order set is BLANK - a protocol - or COMPLETED about a named person - a record. The two are the same document twice, and OCR of a scanned completed form frequently loses the handwritten entries that are the only difference. The model must abstain rather than assert: “A model that cannot cite sufficient evidence must return unknown.”",
+      "distinguishing an institutional guideline the holder must follow from a published paper, a textbook chapter, or a review article the holder is merely reading - the reference list and the recommendation language are shared. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "distinguishing a guideline the holder is subject to from a guideline the holder is AUTHORING or consulting on, where the same draft carries tracked changes and a consultation deadline.",
+      "an unlabelled algorithm image or a photographed wall poster, where the governance band is cropped out and only the decision steps remain.",
+      "guideline and governance vocabulary in a language the deterministic structure catalogue does not cover."
+    ],
+    "never_alone": [
+      "clinical vocabulary alone, and disease-name density alone. A dense run of condition names is equally the signature of a guideline, a teaching deck, a discharge summary, a research protocol, a coding manual, and a patient's own printout - and this is the tempting false file for this row, because the guideline is the one that names nobody and so has the LEAST evidence, not the most.",
+      "the words protocol, guideline, pathway, policy, or SOP alone, in a filename or a heading. Every organisation on this roster writes documents with those words on them, clinical or not.",
+      "a version token alone - “numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.” - and a version token is this row's own strongest signal, which is exactly why it may not fire by itself.",
+      "an issuing-body or facility gazetteer hit alone - the multi-role problem 00 states for a university - “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - read across to a college, society, or health body by inference.",
+      "the ABSENCE of a named subject, read as proof that a document is about a population. Absence is not evidence; a de-identified teaching case, a redacted disclosure bundle, and an OCR failure all produce the same absence.",
+      "source_type or extension alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Guidelines, Protocols, Policies, or Pathways alone. Folder context raises plausibility; it never fires by itself.",
+      "membership in one bulk download of an intranet document library - “A session should never be treated as proof of topic”"
+    ]
+  },
+  "proposed_context_terms": [
+    "guideline",
+    "protocol",
+    "pathway",
+    "standard operating procedure",
+    "order set",
+    "care bundle",
+    "scope",
+    "applies to",
+    "intended audience",
+    "approved by",
+    "ratified",
+    "effective date",
+    "review date",
+    "version",
+    "document owner",
+    "recommendation",
+    "strength of recommendation",
+    "escalation",
+    "when to refer",
+    "safety alert",
+    "required action",
+    "supersedes",
+    "archived"
+  ],
+  "work_types": [
+    "national or specialty guideline",
+    "local protocol or standard operating procedure",
+    "care pathway, algorithm, or flow diagram",
+    "order set, care bundle, or blank proforma",
+    "checklist or safety brief",
+    "safety alert, bulletin, or required-action notice",
+    "formulary, prescribing, or antimicrobial policy",
+    "clinical policy or position statement",
+    "consent information or patient-information leaflet",
+    "controlled-document register or review schedule",
+    "consultation draft with tracked changes",
+    "superseded or archived version",
+    "guideline summary card or wall poster"
+  ],
+  "grouping_reasons": [
+    "one governed document across its versions - the single strongest and most useful group on this row, joined by the universal version_family fact rather than by filename similarity. A superseded version is a member, not a duplicate to be discarded.",
+    "one pathway and its parts: the algorithm, the order set it prescribes, the patient leaflet that explains it, and the audit tool that measures it - content-incoherent while purpose-coherent: “The documents are content-incoherent but purpose-coherent.”",
+    "one review or ratification cycle: the consultation draft, the comments, the approved version, and the register entry that records it.",
+    "one issuing body's document set, where the same governance band and reference style recurs. The anchor supports a candidate packet; it does not write an issuer fact onto members - “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome; one downloaded guideline with no local practice around it is reading material and is surfaced without a group."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and clinical_practice declares none (D1 as narrowed, _CONTRACT rules 10 and 15, PR-6). Held as prose for whoever answers the schema row's open_question: this is the ONE row in the family whose natural dimensions are safe to publish, because none of them names a person - the issuing body or the specialty, then the document, with versions collected under it rather than beside it. That order matches 00's own recommendation for record domains - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - and it is emphatically not time-first, because a guideline's own effective date is a governance slot rather than the axis a reader looks along. Recorded so that if fields ever land, this row is the family's least dangerous place to start rather than the last.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".xlsx",
+      ".png",
+      ".jpg",
+      ".tif",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Sepsis pathway v4.2 - ratified 2026-01.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a cover page with approved-by, effective-date, review-date, and document-owner slots",
+        "a scope block naming an adult inpatient population and naming no individual",
+        "numbered decision steps with escalation criteria and a rendered flow diagram",
+        "a footer band repeating the version token on every page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - the schema declares no field rows",
+        "a clinical recommendation, an escalation, or an action of the product's own from the pathway steps: the document instructs a clinician, never this system",
+        "a year fact from the 4-digit token in the filename",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Sepsis screening tool - COMPLETED - BROWN A.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the identical proforma layout to the blank tool, with the same version token in the footer",
+        "handwritten entries in the observation slots and a signature",
+        "a patient addressograph label in the top-right corner naming a third person",
+        "a filed-on date stamp"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row - THE collision fixture for the whole row: a completed proforma is clinical_practice.patient-chart material and the shared version token is not evidence of anything except which form was used",
+        "that the shared version token joins it to the blank tool's version_family: the completed form is a record made ON a document, not a version OF one",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Sepsis screening tool BLANK v4.2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the same proforma layout with every entry slot empty",
+        "the same version token and governance footer as the pathway",
+        "merge-field markers where an addressograph would be applied",
+        "no signature region completed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that emptiness is proven by OCR alone: a scanned completed form whose handwriting OCR drops reads as blank, and “conflicting signals should lead to abstention rather than an invented classification”",
+        "any clinical_practice fact - none is declared",
+        "that a blank clinical form is protected material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "NICE NG51 full guideline.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a published national guideline with an issuing-body reference and a publication date",
+        "numbered recommendations each carrying an evidence designation",
+        "a long reference list and an appended evidence review",
+        "publisher metadata in the PDF producer string"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "an issuing-body fact from the PDF producer string - “PDF metadata should be treated as supporting evidence, not as truth”",
+        "the product's own ranking, confidence, or classification from a published evidence designation: it is a raw observation belonging to the issuing body",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "antimicrobial guidance - trust intranet.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a local body's letterhead with an approval committee and a review date",
+        "a two-column mapping of indication to preferred agent, dose, and duration",
+        "a restriction column naming agents requiring approval",
+        "no named subject and no quantity supplied"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of clinical_practice.pharmacy-operations from the medicines content: a policy about which agent to prefer is not a record of any agent's custody, and the reciprocal discriminator is stated on both sides",
+        "any clinical_practice fact - none is declared",
+        "a dose or a duration as an instruction the product may act on",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Patient Safety Alert - required action by 30 June.eml",
+      "source_type": "email",
+      "observations": [
+        "a distribution-list recipient block rather than a named addressee",
+        "an issuing-body reference and a required-action list",
+        "an action-by date in the subject slot",
+        "an attached notice PDF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = email alone: the issuing-body reference and the required-action structure is what fires",
+        "an action-by date as a scheduled product action of any kind",
+        "the attachment's contents from its filename - the attachment is its own file and is extracted as one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_2214.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a phone photograph of a laminated algorithm poster on a wall",
+        "camera EXIF make, model, and DateTimeOriginal present, with GPS present",
+        "OCR yields decision steps and an escalation line; the governance band is cropped out of frame",
+        "no person visible"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "location",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the poster's flat appearance - camera EXIF is present, and 00 warns the system “must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "a version fact from a governance band that is not in the frame",
+        "any clinical_practice fact - none is declared; the photos facts come from the photos schema on its own EXIF evidence",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "document review schedule.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers read title, version, owner, approved, review due, status",
+        "a few hundred rows naming documents rather than people",
+        "a status column with current, overdue, and archived values",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "an overdue, a compliance, or a governance judgement of the product's own from the status column",
+        "an owner fact about a named staff member from the owner column - “It should avoid using authorship or creator identity as a destination dimension.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "guideline consultation draft - tracked.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the governance band present but with the approval slot empty and a consultation-closes date",
+        "tracked changes and margin comments carrying named commenters",
+        "several near-identical files differing in a draft token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that an empty approval slot means the document is not this row's: an unratified draft is the row's own work type",
+        "an authorship fact from a tracked-change or comment author string",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "guidelines_library_backup.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists several hundred documents partitioned by specialty folder",
+        "many member names carry version tokens and superseded markers",
+        "one member path resembles a completed audit return",
+        "no member is opened to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that a member may be extracted to the filesystem - “the normal scan should never extract archive contents to the filesystem”",
+        "that the whole archive is non-sensitive because its manifest reads as a document library: one member path suggests a completed return, and a manifest is not a content reading",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "clinical_practice.patient-chart",
+      "signal": "The row's defining collision, and the reciprocal of the chart row's own blank-versus-completed concern: an order set, checklist, or proforma is this row's material when EMPTY and the chart row's when COMPLETED, and the two files carry the same layout, the same headings, and the same version token. The discriminating evidence: populated entry slots, a signature, an addressograph, or a filed-on stamp support the chart row; empty slots, merge-field markers, and a governance band with an approval and a review date support this row. Layout, headings, and the version token discriminate neither, and OCR that drops handwriting produces a false blank - abstention is the correct outcome. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.teaching-material",
+      "signal": "A guideline summary card, an algorithm slide, and a teaching deck about a pathway are physically the same content shaped for two different readers. The discriminating evidence: a governance band - approval body, effective date, review date - and instruction written for a clinician to ACT on support this row; learning objectives, discussion questions, an audience or session designation, and assessment items support the teaching row. Clinical vocabulary and a flow diagram discriminate neither, and the same deck is legitimately both when a governed document has been reshaped to teach it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.pharmacy-operations",
+      "signal": "The reciprocal of an edge the pharmacy-operations row already states: a formulary, a substitution policy, and a national monograph are instructions ABOUT medicines without being a record of any medicine's custody. The discriminating evidence: a version token, an approval committee, a review date, and population-level prose support this row; a dated supply, a quantity, a running balance, or a named recipient supports the pharmacy row. Medicines vocabulary alone supports neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.malpractice-incident",
+      "signal": "The reciprocal of an edge the landed malpractice-incident row already states: an incident-reporting policy and a safety alert are ABOUT incidents without being one. The discriminating evidence: a version token, a review date, an approval committee, and a worked example support this row; a real reference, a real subject, or a real account supports the incident row. Incident vocabulary alone supports neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.lab-notebook-protocols",
+      "signal": "A research protocol and a clinical protocol share the word, the numbered-procedure structure, the version control, and the approval block, and a trial protocol is genuinely both a governed document and a research artifact. The discriminating evidence: an ethics or review-board reference, a study identifier, an investigator and sponsor block, a recruitment target, and an endpoint definition support the research row; a standing instruction for routine care of a population, with no study identifier and no recruitment, supports this row. An approval block and a version token discriminate neither. AUTHORED ONE-WAY HERE: the research.lab-notebook-protocols node file has not landed, so R1c owes the reciprocal - see this row's memo (NJ-CP-14). Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "A clinical protocol and an organisational policy are both governed documents with an owner, a version, an approval, and a review date, and a practice files them in the same library. The discriminating evidence: a population scope defined by a clinical condition, setting, or age band, with instruction about care, supports this row; a scope defined by staff, premises, procurement, conduct, or employment supports the business_operations row - and a document that governs BOTH, such as an infection-control policy, is the normal case rather than an error, resolved from an accepted group by P10 rather than forced here. A governance band alone discriminates nothing. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The primary home for this row, and the reason it is the family's outlier: a recognised guideline, protocol, blank proforma, or alert names nobody and has a durable purpose without a group. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The honest home for a published national guideline or society statement downloaded with no local practice attached to it. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for the row's central ambiguity: a proforma whose blank-versus-completed reading is unresolved, or a draft whose approval state is not readable. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Not this row's own home, and named here deliberately as the safe destination the moment a document turns out to carry a real entry or a real subject - the completed-proforma case. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "The home for a photographed wall algorithm or a saved summary card kept purely for later retrieval. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a single photograph of a poster or screen with no reference collection around it. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an encrypted intranet export or a document library backup that cannot be read. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "none",
+  "sensitivity_why": "Deliberately and exceptionally `none`, and this is the only row in the clinical_practice family that carries it. A guideline, a pathway, a blank proforma, and a safety alert are about a POPULATION and name no individual; most are published or intranet-distributed documents whose whole purpose is to be read widely. Marking them potentially_sensitive would be dishonest, and it would be actively harmful: it would sweep the family's least dangerous material into the protected path, dilute what the value means when it appears on a chart or a dispensing extract, and cost the user the one clinical branch that is genuinely safe to see in a summary. The value is a property of THIS row's material and is not read across to any neighbour: a completed proforma is the chart row's file and carries the chart row's value, a worked example that turns out to name a real person is not this row's material at all, and the moment a document is found to carry a real entry the Protected Records fallthrough above is the destination. The catalogue value is the whole of this claim; a P7 handling class is not assigned, aliased, ranked, or implied, and 00's transition rule - “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” - is untouched by this row because none of its material is one of those things.",
+  "open_question": "Two, both narrow. (1) NJ-CP-13 · Should a SUPERSEDED version be treated as a version_family member or as a duplicate? The universal version-family fact joins them, and a reasonable deduplication courtesy would offer to retire the old one - but for a governed clinical document the superseded version is precisely what has to be retrievable, because what mattered is which instruction was in force on a given day. This row's position is that a governance band makes a version family non-collapsible, which is a rule about a KIND of document rather than a fact about any file, so it is not this row's to set. (2) NJ-CP-14 · The reciprocal owed against `research.lab-notebook-protocols`, stated here one-way because that node file has not landed. A trial protocol is honestly both a governed clinical document and a research artifact, so R1c should decide whether the pair is a collision at all or a case for co-activation on the research side."
+}

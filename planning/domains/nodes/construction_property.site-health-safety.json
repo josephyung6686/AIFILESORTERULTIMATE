@@ -1,0 +1,467 @@
+{
+  "id": "construction_property.site-health-safety",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Site health and safety documentation",
+  "one_line": "The documents that say how dangerous work will be done safely, prove that the people doing it were told, and record what happened when it went wrong: method statements and risk assessments (kept as one RAMS pack), COSHH assessments, permits to work, induction and toolbox-talk registers, plant and access-equipment inspection records, competence and training cards, and the incident and near-miss reports. Its defining property is that it is written FOR AN INSPECTOR — a regulator, a client's auditor, an insurer or a coroner — which is why it is signed, dated, version-controlled and kept long after the works finish. The anchor is A HAZARD AND ITS CONTROLS, not a document kind and not a project phase. Absorbs the legacy row cons.method-statement-ra. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The construction_property schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row’s sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the risk-assessment matrix structure, which is this row's fingerprint and appears in no other construction document: a table whose columns read hazard, who might be harmed, existing controls, a likelihood and a severity rating, a residual rating, and further action with an owner and a date. The paired likelihood/severity/residual triple is the discriminating signal. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "the method-statement structure: a sequenced description of how a task will be carried out, with labelled sections for scope, sequence of operations, plant and equipment, personal protective equipment, emergency arrangements and a sign-off sheet at the back on which operatives print, sign and date to confirm they were briefed.",
+      "a COSHH or substance assessment: a named substance with a hazard classification, exposure routes, control measures and a reference to a supplier safety data sheet.",
+      "a permit-to-work form: a numbered, time-bounded authorisation for a specific high-risk task, carrying an issue time, an expiry time, an issuer, an acceptor and a cancellation or hand-back signature. The issue-and-hand-back time pair is characteristic.",
+      "a register structure with a signature column: induction registers, toolbox-talk attendance sheets and briefing sign-off sheets — a list of names, each with a signature and a date, under a single topic heading.",
+      "a statutory inspection record for plant or access equipment: a periodic examination report or a scaffold or excavation inspection sheet, carrying an item identifier, an inspection date, a next-due date and an inspector's name and qualification.",
+      "an incident, accident or near-miss report: a labelled form with a date and time, a location, a person's details, an injury or damage description, immediate causes and actions taken, sometimes with a regulator-notification reference.",
+      "a competence or training evidence pack: cards, certificates and matrix spreadsheets mapping named individuals to qualifications with expiry dates.",
+      "parent-folder context naming a site, a package or a safety function, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row holds named individuals' injuries, health surveillance and disciplinary events, which is the most sensitive material in the whole construction family. Any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: separating a GENERIC template pack — a downloaded or purchased RAMS document with placeholders and a supplier's footer — from a SITE-SPECIFIC one that has been edited for a real task at a real address. The generic one is reference material; the site-specific one is a record. They are the same document ninety percent by word count.",
+      "separating a safety document held because the holder WROTE it from one held because a subcontractor SUBMITTED it. The pack is identical and the filing consequence is not; this is the same two-roles-in-one-parties-block problem the canonical field list has no key for.",
+      "an unlabelled prose risk assessment: a page of paragraphs describing hazards with no matrix and no form furniture — common in small trades and the hardest file in this row.",
+      "separating an incident report about a WORKER from one about a MEMBER OF THE PUBLIC or a client, which changes who the affected data subject is without changing the form.",
+      "a purpose-coherent audit or pre-qualification pack whose members are individually unremarkable — a policy, three RAMS, an insurance certificate, a training matrix and an accident statistic sheet, assembled for one submission. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "safety vocabulary alone — hazard, risk, control, PPE, safe system of work, near miss. Office fire risk assessments, school trip forms, event stewarding plans, laboratory protocols and care-home records are all dense in it, and none of them is this row.",
+      "a signature column alone. A list of names with signatures is also an attendance register, a petition, a delivery log, a payroll sign-off and a meeting sheet.",
+      "a UK-style postcode or a street address alone. An address is the single most tempting token in this whole family and it appears in every role at once — the site, the client’s home, the contractor’s registered office, the architect’s letterhead, a supplier’s depot, and a comparable property cited in a report. 00 states the same ambiguity for a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the address case is worse, and this is recorded as inference because 00 writes that sentence about a university, not an address.",
+      "a personal name alone, and this row is dense in them; several of them appear beside an injury. 00's corpus sentence names the category the moment that happens: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”.",
+      "a date-shaped token read as an expiry or next-due date. These documents are dense in dates — issued, briefed, inspected, expired, reviewed — and only a labelled slot distinguishes them.",
+      "a regulator or awarding-body name alone. It appears on the holder's certificate, on a subcontractor's certificate, on a downloaded guidance leaflet and on a template's footer, and cannot say which.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated."
+    ]
+  },
+  "proposed_context_terms": [
+    "risk assessment",
+    "method statement",
+    "RAMS",
+    "safe system of work",
+    "COSHH",
+    "safety data sheet",
+    "permit to work",
+    "hot works permit",
+    "confined space",
+    "working at height",
+    "lifting plan",
+    "lift plan",
+    "exclusion zone",
+    "site induction",
+    "toolbox talk",
+    "briefing record",
+    "near miss",
+    "accident report",
+    "incident report",
+    "dangerous occurrence",
+    "first aid",
+    "emergency arrangements",
+    "assembly point",
+    "PPE",
+    "personal protective equipment",
+    "hazard",
+    "likelihood",
+    "severity",
+    "residual risk",
+    "control measure",
+    "scaffold inspection",
+    "excavation inspection",
+    "thorough examination",
+    "competent person",
+    "training matrix",
+    "principal contractor",
+    "construction phase plan",
+    "pre-construction information",
+    "asbestos awareness"
+  ],
+  "work_types": [
+    "risk assessment",
+    "method statement",
+    "combined RAMS pack",
+    "COSHH assessment",
+    "lifting or lift plan",
+    "permit to work (hot works, confined space, excavation, isolation)",
+    "site induction record",
+    "toolbox talk record",
+    "briefing or sign-off sheet",
+    "construction phase health and safety plan",
+    "statutory inspection report (scaffold, excavation, plant, lifting equipment)",
+    "training and competence matrix",
+    "competence card or certificate scan",
+    "accident, incident or near-miss report",
+    "regulator notification or correspondence",
+    "safety policy and organisation statement",
+    "safety audit or site inspection report",
+    "emergency and rescue plan",
+    "pre-qualification safety questionnaire response"
+  ],
+  "grouping_reasons": [
+    "one site or one works package and everything written to make it safe — the clearest group in this row.",
+    "one high-risk task: the lift plan, the permit, the briefing sheet and the photographs taken on the day — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one incident: the report, the witness statements, the photographs, the regulator correspondence and the resulting revised RAMS.",
+    "one submitting subcontractor's safety pack across several packages, which is a real reason to group and the reason a company name must never become an activation proof on its own.",
+    "one RAMS document across its revisions, joined by the universal version_family fact rather than by any construction fact.",
+    "no group at all is a valid outcome: a single downloaded generic risk assessment is reference material with no group.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts”."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry’s schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row’s open_question. The recommendation, held as prose: the site or project first, then the safety function (assessment and method / permits / briefings and registers / inspections / incidents), with the individual task or package as an optional third level where a site is large enough to have several. A permit numbered 044 is unintelligible without knowing which site issued it, which is 00's own reason for putting a course above a homework number. Two structural qualifications matter here and are recorded rather than resolved: generic template packs belong OUTSIDE any site branch because they belong to no site, and incident records may deserve to sit outside the project tree entirely for retention and privacy reasons rather than beside the RAMS they contradict. 00’s own ordering reason applies: “a parent dimension should provide the context required to understand the child”. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "presentation",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".pptx",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "RAMS - Oakfield Rd - roof strip and recover - Rev C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scope section naming a task and an address",
+        "a hazard/likelihood/severity/residual matrix",
+        "a sequenced method with plant and PPE sections",
+        "a briefing sign-off sheet with eleven printed names and signatures",
+        "a revision letter in the filename and a revision table on page 2"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that the eleven names are employees of the holder — a sign-off sheet catches subcontractors and visitors too",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Generic RAMS template - working at height.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a complete RAMS structure with bracketed placeholders for site, date and operative names",
+        "a safety consultancy's footer on every page",
+        "no signatures"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row as a site record: this is the collision fixture — a template is reference material, not evidence that anything was assessed",
+        "an entity fact from the consultancy footer",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Hot works permit 044.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered permit with issue and expiry times on the same day",
+        "an issuer signature and an acceptor signature",
+        "a hand-back and fire-watch confirmation block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a site fact from a permit number",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Induction register - March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "names, employers, card numbers, induction dates and signature-scan columns",
+        "a hundred and forty rows",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "an employment fact about any named person — the register lists several employers' people",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Accident report - 14-03-2026 - J Mensah.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled incident form with date, time and location",
+        "a named injured person with date of birth",
+        "an injury description and treatment given",
+        "an immediate-cause and actions-taken section"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that the construction reading is the only one: this is health information about a named individual and the medical safety schema's protective ordering runs first",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scaffold inspection - week 11.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scaffold identifier and location",
+        "a periodic inspection date and a next-due date",
+        "an inspector's name and qualification reference",
+        "a handover certificate stapled behind it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this is an installation compliance certificate — the neighbouring row's shape is close and the discriminant is periodic re-inspection versus a one-off statement of conformity",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CSCS card - front and back.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a competence card showing a person's photograph, name and an expiry date",
+        "camera EXIF present with capture time",
+        "no GPS"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that camera EXIF makes this a photo-domain event — “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” is about photo events, and a photographed identity-bearing card is not one",
+        "any construction_property fact — the schema declares no field rows",
+        "that this is only a construction record: a card bearing a photograph, a name and a number is identity material",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Office fire risk assessment 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a hazard matrix identical in structure to a construction risk assessment",
+        "premises described as an office over two floors",
+        "a responsible person named under fire legislation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the second collision fixture. The matrix structure is the row's own fingerprint and it fires perfectly on a document that belongs to business_operations.facilities-workplace",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PQQ safety pack - Meridian Ltd.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing a safety policy, three RAMS, an insurance certificate, a training matrix and an accident statistics sheet",
+        "password-protected"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "which side submitted it from the manifest alone",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Toolbox talk - manual handling - signed.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photograph of a paper sheet, OCR run over it",
+        "a topic heading and nine handwritten names with signatures",
+        "a date in the corner"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a site fact from a sheet that never names one",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "The load-bearing collision on this row. An office fire risk assessment, a workplace DSE assessment and a premises safety file carry exactly this row's matrix structure and vocabulary. The discriminating evidence: a construction task sequence, plant, a works package or a permit regime supports this row; a premises, an occupier, a floor plan and a responsible-person designation under fire legislation supports the facilities row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.hse-incident",
+      "signal": "Incident and near-miss reporting is the same form, the same regulator and often the same software in a factory. The discriminating evidence: a production line, a machine asset number or a batch reference supports the manufacturing row; a site address, a works package and a principal-contractor framing supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "The employer-side safety function — policy, training records, occupational health, accident statistics — overlaps this row almost completely on people-shaped evidence. The discriminating evidence: a site or task anchor supports this row; an employee record, occupational health surveillance, or an organisation-wide policy with no site supports the hr row. Where an individual's health is named, the hr and medical postures are stricter and win. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.compliance-certificate",
+      "signal": "Scaffold handover certificates, thorough-examination reports and installation certificates all state that something conforms. The discriminating evidence: periodic re-inspection with a next-due date supports this row; a one-off signed statement that a completed installation meets a named standard supports the certificate row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.subcontract",
+      "signal": "A subcontractor's RAMS, insurances and competence cards are submitted as part of engaging them, so the same pack is safety evidence and contractual evidence. The discriminating evidence: an order, a payment application or a payment notice supports the subcontract row; a hazard matrix, a permit or a briefing register supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-diary",
+      "signal": "Permits issued, inductions held and incidents are all written into the diary as well as kept as safety documents. The discriminating evidence: a hazard-and-control structure, a permit form or an injury form supports this row; a day narrative that merely mentions them supports the diary. Where an injury is named this row wins, for the protective reason. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "Safety audits, corrective actions and certification-body reports are simultaneously this row's inspection material and the audit row's evidence. The discriminating evidence: a management-system standard, an audit programme and an auditor's non-conformity register support the audit row; a site, a task and a hazard support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.permit-licensing",
+      "signal": "A permit to work and a public-authority permit share the word and the numbered-authorisation shape. The discriminating evidence: an issuing authority, a statutory instrument and an applicant support the government row; an internal issuer and acceptor and a same-day hand-back support this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for this row's people-bearing members — incident reports naming injuries, induction registers, competence cards showing photographs and dates of birth, and health surveillance. This is the row in the construction family where the protective residual is the default rather than the exception. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone permit, inspection sheet or RAMS that arrives with no site file around it — a durable record with no group. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Generic template RAMS, downloaded guidance and purchased assessment libraries are the row's tempting false files, and they are reference material rather than records. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for a photographed sign-off sheet or a briefing record whose site and task are unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected pre-qualification packs and safety-portal exports are ordinary here. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Regulator guidance notes, industry safety alerts and saved standards extracts are reading material rather than site records. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row holds named individuals' injuries, their medical treatment, their competence card numbers and photographs, and occasionally the disciplinary consequence of an incident — and most of those individuals are NOT the holder. 00's corpus sentence names three of the categories at once: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. An incident report is medical information about a third party in a construction folder, which is why several of this row's file examples carry also_schema medical or identity and route to the protective residual. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Two. (1) Whether incident and health-surveillance records should sit inside the site branch at all. Every organizational instinct says they belong with the RAMS they contradict; every privacy instinct says a named injury should not be one folder away from a subcontractor's quote. This row records the tension rather than resolving it, because the resolution is a retention-and-access decision about someone's real life. (2) The submitted-versus-authored role. A subcontractor's RAMS pack and the holder's own are the same document in two roles, and the canonical field list has no key for that role — the same hole business_operations.contract-administration records for buying versus selling. Worth one proposal at R1c rather than a per-row variant."
+}

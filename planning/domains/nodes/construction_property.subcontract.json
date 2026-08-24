@@ -1,0 +1,456 @@
+{
+  "id": "construction_property.subcontract",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Subcontractor engagement and management",
+  "one_line": "The paperwork of getting another firm to do part of the works and paying them for it: the enquiry and the comparison of prices, the subcontract order and its scope and programme, the insurances, accreditations and competence evidence demanded before anyone starts, the tax and employment-status paperwork, then the monthly cycle of payment applications, valuations, payment notices and pay-less notices, retention held and released, and the back-charges and terminations when it goes wrong. Its defining property is the STATUTORY PAYMENT CYCLE — an application answered by a notice within a period, or the sum applied for becomes payable — which makes this row's calendar legally sharp in a way no general supplier relationship is. Absorbs the legacy row cons.subcontract. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The construction_property schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row’s sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the payment-cycle structure, which is this row's fingerprint and exists nowhere else in the catalogue: a numbered periodic application for payment stating a gross valuation to date, less previously certified, less retention, giving a net sum applied for and a due date — answered by a payment notice or pay-less notice stating a different sum and the basis on which it was calculated, within a stated period. The application-and-answering-notice PAIR is the signal, not either half. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a subcontract order structure: a numbered order naming a works package, a scope, a lump sum or schedule of rates, a programme or period for the works, retention and payment terms, and the main contract it sits under — back-to-back references being characteristic.",
+      "a package comparison or enquiry schedule: a table of subcontractors against a common scope with prices, qualifications, exclusions and a recommendation — the pre-appointment half of the row.",
+      "a pre-appointment evidence pack: employer's and public liability insurance certificates with expiry dates, accreditation certificates, a health and safety questionnaire response, competence cards and a tax or employment-status verification reference, held together for one firm.",
+      "a retention structure: sums held at a stated percentage, a half-release at practical completion and a balance at the end of a defects period, tracked per package.",
+      "a back-charge or contra-charge record: a deduction against a subcontractor's account with a description, a cost build-up and a notice of intention to deduct.",
+      "a termination or default sequence: a notice to remedy within a period, a warning of determination, and a final account of the works completed by others.",
+      "parent-folder context naming a subcontractor, a works package or a payment application number, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row holds another firm's prices, its insurance details, its people's competence cards and sometimes the record of its failure. Any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: which SIDE the holder is on. A subcontract order, a payment application and a payment notice are the same documents in every subcontractor's file and every main contractor's file, with the roles reversed and nothing in the document saying whose filesystem it is. This is the same hole business_operations.contract-administration records for buying versus selling.",
+      "separating a SUBCONTRACT (labour and works, under the main contract, with a payment-notice regime) from a SUPPLY ORDER (materials delivered, paid on invoice). The paperwork rhymes and the legal machinery does not.",
+      "separating an application for payment from an invoice. In construction the application usually comes first and the invoice follows the certified sum, so the same money appears twice in two document families.",
+      "an unlabelled engagement: a price emailed by a trade, accepted by reply, with no order and no terms — the commonest real subcontract in small works.",
+      "a purpose-coherent package file whose members are individually unremarkable — an order, three insurance certificates, a RAMS pack, six applications and a retention schedule. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a company name alone. It appears here in at least five roles at once — the subcontractor, the main contractor, the client, the insurer and the accreditation body — and 00 states the same ambiguity for a university: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” The company case is worse, and this is recorded as inference because 00 writes that sentence about a university, not a company.",
+      "a currency figure alone, or a percentage read as retention. Percentages abound: discount, retention, VAT, completion, margin.",
+      "a UK-style postcode or a street address alone. An address is the single most tempting token in this whole family and it appears in every role at once — the site, the client’s home, the contractor’s registered office, the architect’s letterhead, a supplier’s depot, and a comparable property cited in a report. 00 states the same ambiguity for a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the address case is worse, and this is recorded as inference because 00 writes that sentence about a university, not an address.",
+      "the words “application”, “notice”, “order” or “certificate” alone. Every one of them names a different document family in three other schemas in this roster.",
+      "an insurance certificate alone. It is a finance record, a safety pre-qualification document and a subcontract condition simultaneously, and the certificate itself says only that a policy exists.",
+      "a numbered reference alone — SC/044, App 07, PO 3311. Prefixes are firm-specific and unstandardised.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated."
+    ]
+  },
+  "proposed_context_terms": [
+    "subcontract order",
+    "works package",
+    "package",
+    "back to back",
+    "main contract",
+    "enquiry",
+    "tender comparison",
+    "scope and exclusions",
+    "schedule of rates",
+    "lump sum",
+    "measured works",
+    "application for payment",
+    "interim application",
+    "valuation number",
+    "gross valuation",
+    "previously certified",
+    "payment notice",
+    "pay less notice",
+    "payment due date",
+    "final date for payment",
+    "retention",
+    "half release",
+    "retention release",
+    "defects retention",
+    "contra charge",
+    "back charge",
+    "notice to remedy",
+    "determination",
+    "collateral warranty",
+    "parent company guarantee",
+    "employer's liability",
+    "public liability",
+    "professional indemnity",
+    "employment status",
+    "CIS",
+    "verification number",
+    "gross payment status",
+    "attendance",
+    "free issue"
+  ],
+  "work_types": [
+    "package enquiry and scope of works",
+    "tender comparison or bid analysis",
+    "subcontract order or agreement",
+    "scope and exclusions schedule",
+    "programme for a package",
+    "insurance certificate held for a subcontractor",
+    "accreditation or membership certificate",
+    "safety pre-qualification questionnaire response",
+    "tax or employment-status verification record",
+    "application for payment",
+    "valuation or assessment of an application",
+    "payment notice",
+    "pay-less notice",
+    "remittance or payment record",
+    "retention schedule and release request",
+    "contra-charge or back-charge notice",
+    "notice to remedy or default notice",
+    "collateral warranty or parent company guarantee",
+    "subcontract final account"
+  ],
+  "grouping_reasons": [
+    "one package with one subcontractor on one project — the clearest group in this row and the one users expect.",
+    "one payment cycle: the application, the assessment, the notice and the remittance, which recur monthly and form a near-identical run.",
+    "one subcontractor across several projects over time — a real reason to group, and the one most likely to tempt a company label onto a bare certificate, which is exactly what must not happen. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one pre-appointment evidence pack — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one order across its revisions, joined by the universal version_family fact rather than by any construction fact.",
+    "no group at all is a valid outcome: a single insurance certificate with no package around it is an ordinary standalone record.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts”."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry’s schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row’s open_question. The recommendation, held as prose: the project first, then the package or subcontractor, then the function (appointment / compliance evidence / payment cycle / disputes and close-out), with the payment period as an optional fourth level where a package ran long enough to have many. Application 07 is meaningless without knowing whose package on which job — the number repeats everywhere — which is 00's own reason for putting a course above a homework number. One qualification is recorded rather than resolved: a subcontractor's insurance and accreditation certificates belong to the FIRM rather than to any one project, so a corpus with repeat subcontractors will want them once rather than copied into every project branch. 00’s own ordering reason applies: “a parent dimension should provide the context required to understand the child”. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".jpg",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Application 07 - Meridian Groundworks - Oakfield.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered periodic application with gross valuation, less previously certified, less retention",
+        "a net sum applied for and a stated due date",
+        "a measured build-up appended"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "which side holds it — the applying subcontractor and the assessing contractor file the same PDF",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Pay less notice - App 07.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a notice stating a lower sum and the basis of calculation",
+        "a reference to the application it answers",
+        "a service date within a stated period"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "whether the notice was valid or in time — a legal effect is not the product's question",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SC-044 Meridian Groundworks - order.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered order naming a works package and a lump sum",
+        "scope and exclusions schedule attached",
+        "retention and payment terms, back-to-back with a named main contract",
+        "a signature block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "which of the two named firms the filesystem belongs to",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "EL and PL certificates - Meridian.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two insurance certificates with policy numbers, limits and expiry dates",
+        "an insurer's letterhead",
+        "a broker's covering note"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this is the holder's own insurance — it is another firm's, held as a condition",
+        "any construction_property fact — the schema declares no field rows",
+        "that it belongs to only one row: it is simultaneously finance.insurance-corporate's document, this row's condition and site-health-safety's pre-qualification evidence",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Package comparison - groundworks.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "five subcontractors' prices against a common scope",
+        "qualification and exclusion columns",
+        "a recommendation row highlighted"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "a supplier fact about the four firms that did not win — their prices are their commercial information",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE_ price for the groundworks - ok to proceed.eml",
+      "source_type": "email",
+      "observations": [
+        "a price quoted in the thread and a one-line acceptance",
+        "no order, no terms, no reference",
+        "an attachment named quote.pdf"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a subcontract fact from an acceptance email — whether a contract exists is not the product's question",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PO 3311 - 40no lintels.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a purchase order for goods with line items, quantities and a delivery address",
+        "payment on invoice terms",
+        "no retention, no application cycle"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the collision fixture. A supply order rhymes with a subcontract order and has no payment-notice machinery, which puts it with construction_property.materials-delivery",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Retention schedule 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "packages down the rows, retention held, half released, balance due and release dates across",
+        "several projects on one sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that one schedule is one group — it spans many packages and projects, which is a real reason it may join none",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CIS statement March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a monthly statement of payments to a subcontractor with deductions",
+        "a tax verification reference",
+        "a named individual sole trader among the entries"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it outright — a tax deduction statement is a finance record and the finance safety schema's protective ordering runs first",
+        "an employment fact about a named sole trader",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "meridian-pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing insurances, accreditations, a RAMS pack and a questionnaire",
+        "password-protected"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "Reciprocal: the landed row already names this one, on the ground that subcontract administration is its shape in a sector with a statutory notice regime. Repeated here in the same terms. The discriminating evidence: a site, a works package, a valuation number or a statutory payment-notice reference supports this row; a general commercial register and a renewal calendar supports the business row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "The load-bearing collision on this row. A supply order and a subcontract order look alike and are paid on entirely different machinery. The discriminating evidence: an application-and-answering-notice pair, retention, and a works package support this row; line items, quantities, a delivery address, a delivery note and payment on invoice support the materials row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.final-account",
+      "signal": "Subcontract accounts roll up into the main account, and the same valuation numbers appear on both. The discriminating evidence: a named package and a subcontractor's application support this row; the main contract's interim certificates, the employer's valuations and the closing settlement support the final-account row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.variation-claim",
+      "signal": "Changes cascade down as subcontract variations and claims are defended downward on near-identical paper. The discriminating evidence: a subcontract order reference, an application and a payment notice support this row; a main-contract instruction and a claim against the employer support the variation row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-health-safety",
+      "signal": "Reciprocal with that row: a subcontractor's RAMS, competence cards and insurances arrive as engagement conditions and are simultaneously safety evidence. The discriminating evidence: an order, an application or a notice supports this row; a hazard matrix, a permit or a briefing register supports the safety row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "Package enquiries and tender comparisons are procurement's shape done by a construction team. The discriminating evidence: a works package, back-to-back main-contract terms and a site support this row; a general requirement, an evaluation matrix and an award letter with no site support the procurement row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "Approved-subcontractor lists, performance scorecards and insurance expiry trackers overlap this row's compliance half completely. The discriminating evidence: a package, an order and a payment cycle support this row; a relationship-level scorecard with no project anchor supports the vendor row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "A subcontractor's application, the invoice that follows it and the tax deduction statement are all bookkeeping entries in the same month. The discriminating evidence: a ledger, a period, a nominal code or a tax return support the finance row; an application-and-notice pair and retention support this row. Because finance is a safety schema, where both fire the protective ordering runs first. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Orders, tax deduction statements and comparison schedules carry another firm's commercial position and sometimes a sole trader's personal tax details — a private individual's financial information held by someone else. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone application, notice, certificate or warranty arriving with no package file around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for a retention schedule, a comparison sheet or an acceptance email whose project and side are unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Remittances, supply orders and isolated invoices are transactional documents rather than engagement records. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected pre-qualification packs and portal exports are ordinary here. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Standard subcontract forms, published notice templates and blank questionnaires are reference material, not records. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Almost everything in this row is somebody else's commercial information held by the holder: another firm's price, its margin, its insurance limits, its accreditation status, its failures and its back-charges — and, where the subcontractor is a sole trader, that firm is a private individual whose tax deduction statements and competence cards are here too. 00's corpus sentence names those categories: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. As inference rather than a design claim, the exposed party is normally NOT the user and cannot consent to what the product does with the file, which argues for the cautious setting. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Two. (1) Which side of the subcontract the holder is on has no canonical key, and this row is where the hole bites hardest, because the entire payment machinery is directional: an application is something you send or something you answer. business_operations.contract-administration records the same hole as buying-versus-selling and construction_property.survey-valuation as transaction-side; one canonical proposal at R1c should serve all three, and this row mints nothing. (2) Whether a subcontractor's insurance and accreditation certificates belong to the project branch or to a firm-level branch that several projects reference. They expire on the firm's calendar, not the project's, and copying them into every project branch is how a corpus ends up with eleven copies of one certificate and no idea which is current."
+}

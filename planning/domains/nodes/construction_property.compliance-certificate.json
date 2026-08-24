@@ -1,0 +1,269 @@
+{
+  "id": "construction_property.compliance-certificate",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Installation and compliance certificates",
+  "one_line": "REFUSED. The roster hint describes a DOCUMENT TYPE — an installer's signed statement that an installation at an address meets a standard — and a PURPOSE (it must be producible years later), not an organizational situation with detection signals, dimensions or privacy rules of its own. Certificates are already carried as work_type VALUES on rows that landed before this one and on rows in this family, and the purpose of keeping a durable document with no broader group is exactly what 00's residual library is for. Absorbs the legacy row trade.compliance-certificate, which is retired here rather than rebuilt. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the node test on two of three legs outright, and the third leg does not survive inspection either. CONNECTION.md section 2 states the test: a template row exists only when its detection signals, recommended dimensions, or privacy rules differ from its schema's default template, and ALIGNMENT adds that a template repeating its schema's fields and dimension order is not a node but the schema's default template. (1) DIMENSIONS: identical to the schema's default — property, then the instruction it belongs to, then function — and empty in any case, since construction_property declares no fields. Nothing about a certificate wants a different order. (2) PRIVACY RULES: identical to the schema's. A certificate names an address and an installer; so does every other row on this schema, and the schema's own potentially_sensitive setting already covers it. (3) DETECTION SIGNALS, the only leg with a case, examined honestly. The candidate signal is a signed declaration naming a scheme or standard, an installation address and an installer registration. Strip it and what remains is a document-type word plus an address — and BOTH halves are constitutionally never-alone. The address is the family's own never-alone, set by the construction_property schema row on 00's reasoning that “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” The word 'certificate' is a work_type VALUE, and CONNECTION.md section 9 lists work types as schemas among the failure modes forbidden by construction. A row whose entire support is never-alone evidence can never clear activation (CONNECTION.md section 4 step 2) — so this would be a row that never fires. What is left of the candidate signal, the scheme-plus-declaration structure, is not distinctive of a situation: it is the shape of the documents the SITUATIONS around it produce, and each of those situations already claims it. (4) THE DECIDING EVIDENCE, which is that the coverage is already carried. The landed finance.household-property row lists 'completion or compliance certificate' and 'property-system warranty' among its own work_types. This family's construction_property schema row lists 'installation or compliance certificate and test record' among its work_types, and construction_property.building-control owns the authority-issued completion certificate under an application reference. Building a row for the same documents a third time would be authoring one concept in three places — the defect the roster pass exists to remove. (5) AND THE PURPOSE IS A RESIDUAL'S PURPOSE. The roster hint's own framing — the document that has to be produced years later — describes a durable standalone record with no broader group, and 00 answers it by name: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” A row built on that framing is a residual wearing a domain's clothes, which _CONTRACT rule 6 and CONNECTION.md section 2 keep out of this namespace, and which CONNECTION.md section 9 lists as failure mode 6. Keeping the id as a row to preserve legacy coverage would be the 574's mistake: inventing a node to save an id.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "NONE ARE AUTHORED, because the row is refused and an authored signal set would be exactly the empty industry label ALIGNMENT forbids. Recorded instead, for whoever reads this file: the certified-declaration structure (address + named scheme or standard + installer registration + signed declaration + issue date) is a REAL structure and it is already listed on the construction_property schema row's own deterministic list, where it belongs. Detecting it makes the SCHEMA plausible; it does not identify a situation, because the situation is whichever job, application, block or household the certificate belongs to."
+    ],
+    "needs_llm": [
+      "NONE AUTHORED. Recorded: the genuinely hard question about one of these documents is never 'is it a certificate' — that is the easy part — but 'whose file does it belong in', and that is a question about the surrounding instruction, which the sibling rows answer."
+    ],
+    "never_alone": [
+      "the word certificate, or any of its neighbours (approval, declaration, test record, warranty). A work_type value, shared across at least four landed or sibling rows.",
+      "a postal address or a street name alone — the family's constitutional never-alone, set by the construction_property schema row on 00's own reasoning about a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "an installer, contractor or scheme name alone — 00's multi-role token again: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number alone — 00 warns that file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. Here they are also plot, drawing, valuation and unit numbers.",
+      "a source_type or extension alone. 00 requires that the engine “treat the file extension as a routing signal rather than an assumption about meaning”, and “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "RECORDED AS VALUES, NOT AS A ROW — this is the list the refusal hands back to the sibling rows that already carry it: electrical installation certificate, minor works certificate, gas safety record, heating or boiler commissioning certificate, fire alarm or emergency lighting certificate, sprinkler or suppression certificate, lift or lifting-equipment examination, air-tightness or energy performance certificate, structural warranty or latent-defects policy, asbestos or fire-door inspection record, thermal or acoustic test record, authority completion or final certificate."
+  ],
+  "grouping_reasons": [
+    "NONE AUTHORED. Recorded: certificates group by the INSTRUCTION they evidence — a handover pack for a job, a discharge submission for an application, a compliance folder for a managed block, a household's own record of its own home. Each of those is a group a sibling row already owns, and “The documents are content-incoherent but purpose-coherent.” describes the handover pack exactly.",
+    "and where there is no such instruction, the honest answer is no group at all: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and it would be empty anyway: construction_property declares no fields, so a dimension would branch on nothing (_CONTRACT rule 8 second half). Recorded: the order a certificate wants is the order its OWNING situation wants — property, then instruction, then function — which is the schema's default, which is the second leg of the node test failing.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "email",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Electrical Installation Certificate - 18 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a signed declaration that an installation complies with a named standard",
+        "an installer registration slot and a scheme logo",
+        "an installation address and an issue date",
+        "schedules of circuits and test results"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a situation. The file is real; the ROW is not. Which situation it belongs to depends entirely on evidence outside it — a job reference makes it a handover document, a condition number makes it a discharge document, a managed block makes it compliance evidence, and none of those makes it a template of its own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Gas safety record 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an annual inspection record for a dwelling",
+        "an engineer registration number",
+        "a landlord and a tenant named"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is professional material rather than a household's own record; the landed finance.household-property row and the tenancy rows both claim this document legitimately, which is the duplication the refusal avoids",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "EPC.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an energy rating graphic and a property address",
+        "an assessor identifier and a lodgement reference",
+        "a validity period"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a construction situation; this document is produced for a SALE or a LETTING far more often than for a build, and construction_property.agency-listing carries it as a work_type value",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Completion certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a statement that works under a named application reference comply",
+        "an AUTHORITY signature block",
+        "a site address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this is an installer's declaration at all; it is an authority document and construction_property.building-control owns it. Two documents, one filename, one word in common — which is the whole argument",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Structural warranty policy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a latent-defects insurance policy for a new dwelling",
+        "a policy number, a period and a premium",
+        "an insured party and a property address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a construction situation; the labelled policy apparatus is insurance evidence and finance owns it, while the landed finance.household-property row already lists property-system warranty as a work type",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_5510.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a phone photograph of a certificate held in someone's hand",
+        "OCR recovering a scheme name and a partial address",
+        "camera EXIF present, the lower half of the document out of frame"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an address from a partial OCR token",
+        "that a photographed document is a different kind of thing from the document; the situation question is unchanged and still unanswerable from the file alone",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Handover pack - Harbour Works.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing eleven certificates, test records, warranties and an operating manual",
+        "a job name in the archive name",
+        "no extraction performed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a fact about any member from the manifest",
+        "anything that needs this row: the pack is the GROUP, the job is the SITUATION, and construction_property.construction-project owns both. This example is the clearest demonstration that the coverage has a home",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fire door inspection - Harbour Works - Q1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of doors by location with inspection outcome and remedial columns",
+        "a managing agent's header",
+        "a quarter in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that a recurring compliance inspection belongs to a certificate row; it belongs to the block being managed, and construction_property.block-management owns the situation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The PRIMARY route for this refusal's coverage, and 00's sentence describes the material almost word for word — it names standalone certificates first: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” A certificate with no accepted job, application, block or household group around it is precisely a standalone document with a durable purpose and no broader group. This is not a fallback for the row; it IS the answer the row was trying to be.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the document is plainly real but its property, instruction or side is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Where the certificate names a tenant, an occupier or an insured party, the protective home is correct. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A single site or property photograph with no event, job or set around it. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Portal captures and phone photographs of a document on a wall are the tempting false files of this world and belong here when nothing else fires.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Set to match the schema rather than to distinguish this row — which is itself part of the refusal, since an identical privacy posture is the second leg of the node test failing. The material names a real address and often a named occupier, engineer or tenant, and 00's corpus sentence covers it: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. The handling class is P7's and is not set here.",
+  "open_question": "One, and it is a routing question for R1c rather than a doubt about the refusal. The coverage of the legacy id trade.compliance-certificate is routed four ways and R1c should confirm all four landed: (a) the AUTHORITY-issued completion or final certificate under an application reference goes to construction_property.building-control, which states it; (b) an INSTALLER's declaration inside a job goes to construction_property.construction-project as a handover-pack member, which lists handover pack, as-built record and O&M manual among its work types; (c) a MANAGED BLOCK's recurring compliance evidence goes to construction_property.block-management; (d) a HOUSEHOLDER's own certificate goes to the landed finance.household-property row, which already lists 'completion or compliance certificate' among its work types. Anything left over is Independent Records by design, not by omission. If R1c disagrees with the refusal, the minimum honest form of the row would be a detection-signal-only entry on the certified-declaration structure — but that structure is already on the schema row's deterministic list, which is where a signal that identifies a SCHEMA rather than a SITUATION belongs."
+}

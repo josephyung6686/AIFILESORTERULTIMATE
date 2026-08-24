@@ -1,0 +1,400 @@
+{
+  "id": "business_operations.risk-register",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Risk registers, risk management and continuity planning",
+  "one_line": "The organizational situation of maintaining a STANDING INVENTORY of things that could go wrong for an organisation or a unit - each entry carrying an owner, an assessment of likelihood and impact, a treatment or mitigation, and a review date - together with the plans that exist because of it: business continuity, disaster recovery, crisis response and their test records. The organizing anchor is a LIVING REGISTER with no end date, which is what separates it from a project's RAID log (bounded by the project) and from a retrospective (concerned with what already happened). Absorbs the legacy rows ops.risk-register (ROW) and ops.business-continuity (FOLD) - continuity planning is the register's treatment side. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a register structure whose header row carries a risk identifier, a description, a likelihood or probability column, an impact or consequence column, a derived score or rating, an owner, a mitigation or treatment, and a review or next-review date. Likelihood and impact as SEPARATE columns beside a treatment is the shape, and it is close to unique. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an inherent-versus-residual pair: the same risk scored twice, before and after controls, in adjacent column groups.",
+      "a heat map or matrix structure - a grid whose axes are labelled likelihood and impact with entries plotted in cells - rendered as a chart, an image, or a conditionally formatted block.",
+      "a risk-appetite or tolerance statement: prose or a table declaring how much of a named risk category the organisation is willing to accept, which no project log carries.",
+      "a continuity structure pairing a critical activity or process with a recovery time objective, a recovery point objective, a dependency list and an invocation procedure.",
+      "a continuity or crisis test structure: an exercise scenario, a participant list, an observation log and a set of improvement actions, dated and repeated periodically.",
+      "an issue-escalation structure where a register row records the date a risk was realised and became an issue, linking the standing inventory to an event."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating an organisational risk register from a project RAID log, a workplace risk assessment, an information-security risk treatment plan, a clinical risk register, a financial risk exposure schedule or a supplier risk questionnaire - all seven use likelihood, impact and owner columns. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "deciding whether a continuity plan belongs to the organisation as a whole, to one site, or to one system, when the document names all three.",
+      "an unlabeled spreadsheet whose columns are numbered rather than named, or a risk discussion written as free prose in a board paper.",
+      "a purpose-coherent risk pack whose members are individually unremarkable - a register export, a heat map image, a continuity plan, a test report and a blank assessment form. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "the word risk in a filename or a header alone. Risk assessment names a health-and-safety form, a credit assessment, a clinical scoring tool and a due-diligence questionnaire equally well - and a risk row inside a project log is the tempting false file for this row.",
+      "a likelihood-and-impact column pair alone, without a standing scope: the same pair sits in every RAID log ever written.",
+      "a heat-map-shaped image alone: a coloured grid is drawn for prioritisation matrices, effort-value plots and skills matrices too.",
+      "an extension or a source_type alone. 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number read as a year, a risk number, or a score.",
+      "membership in a download session that dropped a governance pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "risk register",
+    "risk appetite",
+    "risk tolerance",
+    "likelihood",
+    "probability",
+    "impact",
+    "consequence",
+    "inherent risk",
+    "residual risk",
+    "mitigation",
+    "treatment",
+    "control",
+    "risk owner",
+    "escalation",
+    "heat map",
+    "risk matrix",
+    "horizon scanning",
+    "business continuity",
+    "disaster recovery",
+    "recovery time objective",
+    "recovery point objective",
+    "critical activity",
+    "business impact analysis",
+    "invocation",
+    "crisis management",
+    "tabletop exercise",
+    "contingency"
+  ],
+  "work_types": [
+    "risk register or risk log",
+    "risk assessment or scoring worksheet",
+    "risk appetite or tolerance statement",
+    "heat map, matrix, or risk report to a committee",
+    "business impact analysis",
+    "business continuity or disaster recovery plan",
+    "crisis management or incident response procedure",
+    "continuity test, exercise, or tabletop report",
+    "call tree, contact list, or invocation procedure",
+    "risk policy or framework document"
+  ],
+  "grouping_reasons": [
+    "one register across its review cycles - a workbook re-saved each quarter is a version family, not four domains.",
+    "one risk pack for one committee date: the register export, the heat map, the narrative paper and the deep-dive appendix, held together by purpose rather than content. “The documents are content-incoherent but purpose-coherent.”",
+    "one continuity plan with its supporting analysis, contact lists and test reports - a purpose-coherent set whose members look nothing alike.",
+    "one risk as it travels from register entry to realised issue to post-incident review, which is a real reason to group and the one most likely to tempt a risk label onto a stray incident export. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single blank risk assessment template is a standalone form."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch. Held as prose for the pass that may license fields: the natural anchor is the organisational unit or entity whose register it is, then the document function - register, analysis, plan, test - with the review period last, since “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” and a test report is unintelligible before the reader knows which continuity plan it exercised. Emphatically not time-first: a register is a LIVING document rather than a dated series, so a period-first tree would fragment one continuously maintained artifact across calendar folders - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The user may reverse, remove or flatten any of this later. Privacy caveat specific to this row: a continuity plan is a description of an organisation's weakest points together with the contact details of the people who would respond, so it should not acquire automatic internal depth, and “Protected branches should have configurable redaction in the canvas and review screens”."
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "design_creative"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".docx",
+      ".pdf",
+      ".pptx",
+      ".png",
+      ".jpg",
+      ".eml",
+      ".zip",
+      ".vsdx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Corporate risk register Q2 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads risk ID, description, category, inherent likelihood, inherent impact, controls, residual likelihood, residual impact, owner, next review",
+        "one row per risk across four categories",
+        "conditional formatting rendering a colour scale",
+        "a second sheet holding the scoring scale definitions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "a risk score, a rating or a priority as a fact of the product's own; the cell is a raw observation, and no number in this catalogue is a threshold",
+        "that a spreadsheet of short cells is low-risk: an entity's candid list of its own weaknesses is unpublished commercial intelligence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Business continuity plan v4.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled sections read critical activities, recovery time objectives, invocation, roles, communications",
+        "a dependency table naming suppliers and systems",
+        "an appendix of names, mobile numbers and home addresses forming a call tree",
+        "a version token in the filename and a document-control table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the call-tree appendix is ordinary business content: personal contact details for named staff are protected material and govern how the whole document is handled",
+        "a supplier fact copied onto every file naming the same vendor",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RAID log.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "four sheets named Risks, Assumptions, Issues, Dependencies",
+        "the risks sheet carries likelihood, impact, owner and mitigation columns",
+        "a project name in the header row",
+        "the log ends at a closure date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the register shape is present in full and the scope is one bounded project - this is the collision fixture, and it belongs to business_operations.project-delivery",
+        "an organisational risk fact from a project risk row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "risk heatmap Q2.png",
+      "source_type": "image",
+      "observations": [
+        "a coloured grid with axes labelled likelihood and impact",
+        "numbered markers plotted in cells with no descriptions",
+        "exported from a spreadsheet, no EXIF camera data",
+        "sits beside the register"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a risk fact from the neighbouring register - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "activation from a coloured grid alone",
+        "that the absence of EXIF proves the image is a screenshot",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Fire risk assessment - Unit 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a statutory form layout with hazard, persons at risk, existing controls and further action columns",
+        "an assessor name, a competence statement and a review date",
+        "a site address and a floor reference",
+        "a signature block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the assessment shape is present and the frame is statutory duty of care to people on a premises - it belongs to hr.workplace-health-safety or to the facilities row, and reading it as corporate risk would file a statutory record in a management branch",
+        "a premises fact copied onto other files naming the same address",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DR test report - March.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an exercise scenario, a participant list, a timed observation log and an improvement-actions table",
+        "system names and recovery timings",
+        "a pass-or-fail statement against stated objectives"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.retrospective-postmortem owns it - a test report is a timed account with actions, and the discriminator is that the event was DELIBERATE and scheduled rather than a failure that occurred",
+        "a recovery capability as a fact of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Risk paper - Audit Committee May.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a summary slide of top risks with movement arrows",
+        "a heat map slide and a deep-dive slide on one named risk",
+        "a committee name and a date in the footer",
+        "a corporate slide master"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.board-governance owns it - a risk paper written FOR a committee carries both anchors, and P10 chooses from an accepted group later",
+        "a committee fact copied onto every file dated the same month",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Supplier risk questionnaire - responses.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per supplier with questionnaire answers and a derived rating",
+        "columns naming insurance, financial standing and security certification",
+        "a follow-up column with owners"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.vendor-management owns it - third-party risk is genuinely both an entry in the organisation's register and an artifact of managing a supplier",
+        "a supplier's financial standing as a fact of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "bcp_pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "an archive manifest listing a continuity plan, two call-tree spreadsheets, a site map and an unrelated personal photograph",
+        "mixed member types",
+        "no readable top-level document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - the members are extracted as their own files",
+        "that a stray personal member inherits the continuity context",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "A project RAID log carries the identical likelihood-impact-owner-mitigation columns. The discriminating evidence is SCOPE and lifespan: an organisational or unit scope, a risk-appetite statement, an inherent-versus-residual pair and a standing review cadence with no end supports this row; a project name in the header, assumptions and dependencies sheets beside the risks, and a closure date supports delivery. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "Health-and-safety risk assessments and fire risk assessments use hazard, likelihood, control and review columns and are called risk assessments outright. The discriminating evidence: a statutory duty-of-care frame, persons at risk, a premises or activity, an assessor competence statement and a regulator-facing form supports the safety row; an enterprise category set with an appetite statement supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "A control-risk assessment, an information-security risk treatment plan and an audit's risk-based scoping paper all pair risks with controls. The discriminating evidence: an external standard, a control identifier, an auditor and an assurance opinion supports the audit row; a management-owned register with treatment and appetite supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "The risk report written for an audit or risk committee is filed both as a governance paper and as a register artifact, and carries the committee name and the register content together. The discriminating evidence: a notice, agenda, pack pagination and minute structure supports governance; the register table itself and its supporting analysis supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.retrospective-postmortem",
+      "signal": "A continuity exercise report and a post-mortem are both timed accounts ending in improvement actions. The discriminating evidence: a deliberate, scheduled scenario with stated objectives supports this row; an unplanned failure with an impact statement and a causal analysis supports the retrospective. A lessons register and a risk register share the accumulate-forever shape, and there the discriminator is past versus future. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "Third-party and supply-chain risk sits in both rows: a supplier risk questionnaire feeds an organisational register and is also a supplier-relationship artifact. The discriminating evidence: one row per SUPPLIER with diligence answers supports vendor management; one row per RISK with a treatment and an internal owner supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "An insurance renewal submission restates the organisation's risk profile and its continuity arrangements, in the insurer's vocabulary. The discriminating evidence: a policy number, a premium, a schedule of cover and an underwriter counterparty supports the insurance row; an internally owned register with treatments and review dates supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone register export, framework document or blank assessment template with no accepted risk group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for an unlabeled likelihood-and-impact spreadsheet whose scope is unresolved - the single most common ambiguity for this row, since a project log and an enterprise register are the same table. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for a continuity plan or call tree carrying personal contact details for named staff, which must not travel as ordinary business content. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected continuity pack, which is a common way these are stored. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for an exported heat map or a photographed matrix with no accepted register association. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A risk register is an organisation's own written statement of where it is weakest, and a continuity plan is that statement joined to the procedure for exploiting it - including, in almost every real one, an appendix of named staff with personal mobile numbers and home addresses. That appendix alone puts the document inside the corpus 00 describes, which “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.”, and personal contact details for named individuals warrant the immediate transition 00 requires for account-shaped records: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”, and because a branch named after a risk theme discloses the theme, “Protected branches should have configurable redaction in the canvas and review screens”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether business continuity and disaster recovery should have stayed folded into this row. The roster's reason - continuity planning is the register's treatment side - is analytically right and organisationally often false: in many organisations continuity is owned by a different function, kept in a different place, and shaped as a PLAN with procedures and contact lists rather than as a register with rows. This pass kept the fold because the detection signals overlap heavily and the material is almost always stored together, and records the doubt rather than resolving it. A second, sharper question for Joseph: where does an individual's or a household's version of this live? A person's list of what to do if the boiler fails and who to call has the same shape and none of the organisational anchor, and quietly filing it under a work branch would be wrong."
+}

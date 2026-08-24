@@ -1,0 +1,417 @@
+{
+  "id": "construction_property.construction-project",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Construction project (branch root)",
+  "one_line": "One construction contract run from award to final account: the appointment and the contract sum, the programme, the instructions and variations that change it, the subcontracts and orders that deliver it, the site diary and progress record that evidences it, the interim valuations that pay for it, the completion and defects record that closes it, and the handover pack that survives it. The anchor is a JOB — one contract for works at one site — and it is the container that gives every drawing, instruction, valuation and diary entry in this family its meaning. Absorbs the legacy row cons.project. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a contract-sum-and-parties structure: an award letter, contract particulars page or appointment naming an employer and a contractor, a described works scope at a described site, a contract sum, a date for possession and a date for completion. This is the situation's seed document and it exists in no other row on this schema.",
+      "a periodic-payment-against-works structure: an application for payment or interim valuation carrying a valuation NUMBER, works executed to date, a less-previously-certified line, retention and a due or final date for payment. The 'to date, less previously certified' shape is peculiar to construction contracts. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an instruction-and-variation structure: a numbered instruction, variation, change order or confirmation of verbal instruction, referencing a contract and quantifying a time or cost effect. It is intelligible only above the job, which is why this row is the family's branch root.",
+      "a site-record structure: a dated diary or daily report with weather, labour and plant counts, deliveries and events; or a progress report with a programme-against-actual comparison and a percentage-complete table.",
+      "a completion-and-defects structure: a practical or substantial completion certificate, a defects or snagging schedule with per-item location and status columns, and a making-good record closing the same items.",
+      "a final-account structure: a reconciliation of the contract sum through variations, remeasurement, loss and expense and released retention to a final figure, usually signed by both parties.",
+      "a job-reference token appearing in a LABELLED reference slot (Our Ref, Job No, Contract No) on a document that also carries a site address or works description. Neither half fires alone (see never_alone).",
+      "parent-folder context naming a job number or a scheme, raising plausibility once one structure above is present. Folder context never fires alone.",
+      "an email whose labelled subject carries a job reference and whose attachment names a valuation, an instruction, a programme or a diary.",
+      "a calendar entry whose SUMMARY names a site meeting, a progress meeting or a handover and whose LOCATION resolves to the site address. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” The CONTENT fires; calendar is a SOURCE_TYPE, not a domain.",
+      "an archive whose manifest names a tender pack, a contract pack, a handover pack or an O&M manual — manifest names read without extraction."
+    ],
+    "needs_llm": [
+      "a letter about delay, disruption or a defect that could be a contractual claim, a courtesy update or the opening of a dispute — the difference decides whether the protected legal side should co-activate.",
+      "a programme exported to PDF with no title block and no job reference, indistinguishable from any other Gantt.",
+      "an unlabelled photograph of a completed room: as-built evidence, a defect record, or a marketing shot for the agency row.",
+      "deciding whether an appointment is a construction contract or a professional services agreement, where the vocabulary is shared and the filing world differs."
+    ],
+    "never_alone": [
+      "a postal address or a street name alone — the family's constitutional never-alone, set by the construction_property schema row on 00's own reasoning about a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a firm, practice, contractor, agency or authority name alone — same reasoning, same sentence.",
+      "a document-type word alone (certificate, drawing, schedule, survey, valuation, report, plan, lease). Each is a work_type VALUE that appears in several worlds; the landed finance.household-property row carries title, inspection, warranty and completion certificate as its own work types.",
+      "a bare 4-digit number alone — 00 warns that file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. Here they are also plot, drawing, valuation and unit numbers.",
+      "a money figure alone. Quotations, valuations, appraisals, service charges, rents, offers and appraisals all carry amounts, as does every other roster schema that touches money.",
+      "a download session alone. “A session should never be treated as proof of topic”",
+      "a job or contract reference alone. It is a short alphanumeric token and the same token space is used for invoices, orders, matters and cases across half the roster.",
+      "a programme or Gantt shape alone — every project in every industry produces one, and business_operations.project-delivery owns the generic case."
+    ]
+  },
+  "proposed_context_terms": [
+    "contract sum",
+    "date for completion",
+    "possession",
+    "employer",
+    "contractor",
+    "subcontractor",
+    "architect's instruction",
+    "variation",
+    "change order",
+    "confirmation of verbal instruction",
+    "application for payment",
+    "interim valuation",
+    "previously certified",
+    "retention",
+    "payment notice",
+    "pay less notice",
+    "extension of time",
+    "loss and expense",
+    "liquidated damages",
+    "site diary",
+    "daily report",
+    "progress report",
+    "programme",
+    "percentage complete",
+    "practical completion",
+    "sectional completion",
+    "defects liability",
+    "snagging",
+    "making good",
+    "final account",
+    "remeasurement",
+    "handover",
+    "operation and maintenance",
+    "as-built"
+  ],
+  "work_types": [
+    "tender enquiry, priced return or tender report",
+    "contract, appointment, subcontract or order",
+    "programme and progress report",
+    "instruction, variation or change order",
+    "site diary, daily report or site meeting minute",
+    "progress photograph set",
+    "application for payment, interim valuation or payment notice",
+    "extension-of-time or loss-and-expense submission",
+    "completion certificate and defects or snagging schedule",
+    "final account and release of retention",
+    "handover pack, as-built record or O&M manual"
+  ],
+  "grouping_reasons": [
+    "ONE JOB from award to final account. This is the family's primary group and the reason this row is called a branch root; it is purpose-coherent long before it is content-coherent — “The documents are content-incoherent but purpose-coherent.”",
+    "one valuation cycle within the job: the application, the notice, the certificate and the payment.",
+    "one site visit: the diary entry, the photographs from that day, the minute and the instruction that followed. This is the group most likely to tempt a job reference onto an unlabelled photograph, which is exactly what must not happen — “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one instruction and its consequences: the instruction, the contractor's quotation against it, the confirmation and the account line it becomes.",
+    "one repeatedly re-exported pack, joined by universal duplicate_family and version_family facts rather than by any construction fact — “A content-hash match supports deduplication review; a filename match alone does not.”",
+    "no group at all is valid. A single stray instruction with no job around it is a standalone record: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply as written: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two jobs' papers in one folder do not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question (NJ-CP-1). The recommendation, held as prose: the JOB first for this row specifically — deliberately reversing the family default of property first, because a construction contract's whole life is one instruction at one site and a property level above it would be a one-child level, the collector level 00's own template validator rejects (“use an author or organization merely as a collector”) — then the document function (contract / instruction / valuation / site record / completion), with a phase or section level only on schemes that genuinely have sections. Function above date, because an instruction number is meaningless under a month folder. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "calendar",
+      "presentation",
+      "design_creative",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Contract particulars - Kilnfield Phase 2 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an employer and contractor party block",
+        "a described works scope and site address",
+        "a contract sum, a date for possession and a date for completion",
+        "an execution block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares none",
+        "that the execution block makes this a legal-schema-only file; it is both",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Valuation 07 - application for payment.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a works line-item table with quantity, rate and amount",
+        "gross-to-date, less-previously-certified and retention rows",
+        "a labelled contract reference and a valuation number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a spreadsheet of money is a finance-schema record; the works description and measured quantity discriminate",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "AI 014 - relocate soil stack.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered instruction referencing a contract",
+        "a described change and an estimated cost and time effect",
+        "an issuer signature block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the job from the number 014 alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Site diary 2026-03-12.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a date, weather, labour and plant counts",
+        "deliveries and events narrative",
+        "no job reference anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a job fact copied from the surrounding diary series — this is the HW 3 case in construction clothing; “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_2231.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF and DateTimeOriginal present",
+        "a GPS point clustered with forty images across two days",
+        "no text in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a job fact from cluster membership",
+        "that the cluster proves a professional instruction; “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” proves a photo event and nothing more",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Snagging schedule - Block C - rev 2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of defects with location, trade, raised-date and status columns",
+        "a making-good column with dates",
+        "a filename carrying a revision-shaped token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a revision token in a filename establishes a version family; “A content-hash match supports deduplication review; a filename match alone does not.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Final account - Kilnfield Phase 2 - agreed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a reconciliation from contract sum through variations and remeasurement to a final figure",
+        "a released-retention line",
+        "signatures from both parties"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that agreement of the account is a dispute record",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Programme rev F.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a Gantt chart with task bars and a baseline comparison",
+        "no title block, no job reference, no site address",
+        "a parent folder named after a job number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a job fact from the parent folder alone; folder context never fires alone",
+        "that a Gantt shape is construction evidence — business_operations.project-delivery owns the generic case",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Sub-contract order 2431-08 groundworks.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an order reference, a described works package and a price",
+        "a main-contract reference in a labelled slot",
+        "payment and retention terms"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this is the organisation's generic contract register entry rather than a job document; both are true",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tender pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest naming drawings, a specification, a pricing schedule and preliminaries",
+        "mixed member formats including .dwg",
+        "no extraction performed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a fact about any member from the archive name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "The sharpest collision on this row and a genuinely thin line. Both situations produce a plan, a status report, a decision log, a change record and a closure document, and the SHAPE is identical. The discriminating evidence is the construction apparatus: a contract sum with a date for possession, measured works, a valuation-against-works-executed cycle, a site diary, a practical-completion certificate. A Gantt chart, a RAG status and a change log count for neither. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.development-appraisal",
+      "signal": "Both are money about one site and both are spreadsheets. The discriminating evidence is TENSE and MEASUREMENT: an appraisal is a forecast of a scheme that may not happen, built from land cost, build cost, values and return; this row is the record of works actually executed and certified. A site address and a build-cost figure count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "A homeowner's extension produces a contract, instructions, invoices and completion paperwork that read exactly like a small job file. The discriminating evidence is the INSTRUCTION apparatus — a contract sum with valuations against measured works and a job reference — versus a householder's own record of work done to their own home with an invoice and a receipt. The landed row's own fixture Kitchen Remodel - Bright Plumbing - Invoice 7841.pdf is the negative example. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.commercial-lease",
+      "signal": "A fit-out sits in both: it is works under a contract and it is a tenant's obligation under a lease with a licence to alter and a reinstatement duty. The discriminating evidence is which instrument the document serves — a valuation and an instruction serve the building contract (this row); a licence to alter, a schedule of condition and a dilapidations line serve the lease.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the document is plainly real but its property, instruction or side is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone member of this situation with no accepted group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members — a delivery note, a hire confirmation, a fee invoice with nothing around it. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exotic here: CAD and BIM formats recorded as indexed-but-unreadable, and password-protected data-room and tender exports. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A single site or property photograph with no event, job or set around it. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Where the material carries an occupier's, tenant's or leaseholder's identity, or a commercially confidential figure, the protective home is correct. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Three grounds. A job file names the people on site and in the building, carries commercially confidential prices and margins belonging to a third party, and routinely contains photographs of the interior of somebody's property. 00's own corpus sentence covers the attachments this situation accumulates — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. The handling class is P7's and is not set here.",
+  "open_question": "Two, both inherited rather than new. (1) NJ-CP-1 and NJ-CP-2 from the schema row: without a `property` or `instruction`/`project` key this row can recommend a job-first order only in prose. (2) Row-specific: whether the job-first reversal of the family default is right, or whether a property level should sit above it for the small proportion of corpora where one building receives repeated contracts over years. This pass's answer is job-first for this row and property-first for the family, and it is a judgement, not a design claim."
+}

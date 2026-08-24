@@ -1,0 +1,412 @@
+{
+  "id": "construction_property.development-appraisal",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Property development appraisals",
+  "one_line": "The financial case for building something on a site, made BEFORE it is built and revisited while it is: the residual appraisal that works backwards from end value through build cost, fees, finance and profit to what the land is worth; the cost plan and the cashflow underneath it; the sensitivity runs; the funding and viability submissions built from it. The anchor is a SCHEME ON A SITE and a set of assumptions that have not happened yet. Absorbs the legacy row prop.development-appraisal. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a RESIDUAL-APPRAISAL structure: a labelled block working from a gross development value through build cost, professional fees, contingency, finance cost and a required profit to a residual land value — the arithmetic runs BACKWARDS to what the site is worth, and that direction is peculiar to this situation. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a SCHEDULE OF ACCOMMODATION: rows of unit types with counts, areas and values or rents, feeding a value total. It pairs with the appraisal block and is the second half of the same structure.",
+      "a RETURN-METRIC block: profit on cost, profit on GDV, an internal rate of return or a yield applied to a rent roll — return metrics computed on a scheme rather than on an entity or a portfolio.",
+      "a DEVELOPMENT CASHFLOW: a period column series over build-cost and revenue rows with a cumulative funding requirement line and a peak-debt point. The peak-debt line is what distinguishes it from an ordinary budget.",
+      "a SENSITIVITY structure: the same appraisal run repeatedly against varied cost, value or timing assumptions, presented as a grid or as a set of near-identical sheets.",
+      "a COST-PLAN structure: elemental cost rows with a rate per unit area against a described scheme, at a stated design stage, prepared before works exist to measure.",
+      "a VIABILITY or FUNDING submission built from the above: an appraisal presented to an authority or a lender with a site address, a scheme description and a stated conclusion.",
+      "a site address or plot identifier in a labelled slot together with a scheme description and a unit count. Neither half fires alone.",
+      "parent-folder context naming a scheme, a site or an appraisal — a clue only, never firing alone.",
+      "an archive or data-room export whose manifest names an appraisal, a cost plan, a site pack or a funding pack — read from the manifest without extraction."
+    ],
+    "needs_llm": [
+      "a spreadsheet of costed lines with no header naming the world: a developer's appraisal, a builder's quotation, an owner's budget or an accountant's cost report all look the same at cell level.",
+      "an investment memorandum written as prose, whose numbers live in the narrative rather than in cells.",
+      "deciding whether an appraisal concerns a scheme the holder is actually pursuing or one they looked at and declined — which decides whether it is a live record or reading material, and which no rule will answer.",
+      "separating a development appraisal from an investment valuation of an existing income-producing building, where the yield vocabulary is shared."
+    ],
+    "never_alone": [
+      "a money figure alone. Quotations, valuations, appraisals, service charges, rents, offers and appraisals all carry amounts, as does every other roster schema that touches money. This row's whole content is money, which is precisely why the money is not the signal — the BACKWARDS arithmetic and the scheme are.",
+      "a spreadsheet source_type alone, and a period column series alone. The landed business_operations row's own budget-forecast situation produces the same shape, and the discriminating evidence is a SCHEME with an area schedule, not a series of periods.",
+      "a postal address or a street name alone — the family's constitutional never-alone, set by the construction_property schema row on 00's own reasoning about a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a firm, practice, contractor, agency or authority name alone — same reasoning, same sentence.",
+      "a bare 4-digit number alone — 00 warns that file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. Here they are also plot, drawing, valuation and unit numbers.",
+      "a source_type or extension alone. 00 requires that the engine “treat the file extension as a routing signal rather than an assumption about meaning”, and “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”",
+      "a download session alone. “A session should never be treated as proof of topic”",
+      "a yield, IRR or profit percentage alone — these appear in corporate finance, in fund reporting and in a personal investment spreadsheet."
+    ]
+  },
+  "proposed_context_terms": [
+    "appraisal",
+    "residual value",
+    "residual land value",
+    "gross development value",
+    "GDV",
+    "net development value",
+    "build cost",
+    "construction cost",
+    "cost per square",
+    "abnormals",
+    "professional fees",
+    "contingency",
+    "finance cost",
+    "interest roll-up",
+    "peak debt",
+    "profit on cost",
+    "profit on GDV",
+    "developer's return",
+    "internal rate of return",
+    "hurdle",
+    "yield",
+    "capitalisation",
+    "rent roll",
+    "schedule of accommodation",
+    "unit mix",
+    "net saleable area",
+    "sensitivity",
+    "scenario",
+    "viability",
+    "affordable provision",
+    "section agreement contribution",
+    "cost plan",
+    "elemental",
+    "design stage",
+    "cashflow",
+    "drawdown",
+    "exit"
+  ],
+  "work_types": [
+    "residual appraisal or feasibility model",
+    "schedule of accommodation and unit mix",
+    "development cashflow and funding requirement",
+    "sensitivity or scenario run",
+    "cost plan or order-of-cost estimate",
+    "viability assessment or submission",
+    "funding proposal, term sheet or lender pack",
+    "investment or offer memorandum",
+    "site acquisition pack or bid",
+    "comparable evidence schedule",
+    "appraisal review or audit note"
+  ],
+  "grouping_reasons": [
+    "ONE SCHEME across every version of its appraisal — the row's primary group, and an unusually version-heavy one, since an appraisal is re-run constantly. The group is established by the scheme and the site, not by the filename stem: “A content-hash match supports deduplication review; a filename match alone does not.”",
+    "one BID or acquisition: the appraisal, the comparables, the cost plan, the offer letter and the site pack, assembled for one purpose and content-incoherent while purpose-coherent — “The documents are content-incoherent but purpose-coherent.”",
+    "one funding round for a scheme: the pack, the term sheet, the lender's queries and the revised model.",
+    "one sensitivity exercise: a set of near-identical files that differ only in assumptions. These are the hardest real case in this row, because they are near-duplicates by content and distinct by meaning, and “A content-hash match supports deduplication review; a filename match alone does not.”",
+    "one site across schemes that were never built — the abandoned appraisals a developer keeps and returns to years later when the site comes round again.",
+    "no group at all is valid: a single appraisal of a site somebody looked at once is a standalone record, or reading material. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two schemes' models do not merge because they share a cost assumption or a spreadsheet template."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question (NJ-CP-1). The recommendation, held as prose: the SITE or SCHEME first — the family default, and unusually clear here because a developer's whole mental model is site-first and an abandoned site's papers must stay together for years. Then the EXERCISE (acquisition / viability / funding / review) rather than the document function, because the same model file recurs in every exercise and the exercise is what distinguishes the copies. Then, and only for schemes that genuinely run long, a period level. Explicitly NOT a level per appraisal version: the sensitivity set would scatter, which is the same argument the drawings-revisions row makes about revisions. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "presentation",
+      "email",
+      "ocr",
+      "archive",
+      "image",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".xls",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Kilnfield appraisal v11.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a labelled block running GDV less build cost, fees, contingency, finance and profit to a residual land value",
+        "a schedule of accommodation with unit types, areas and values",
+        "a profit-on-cost cell",
+        "a filename carrying a version-shaped token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares none",
+        "that v11 supersedes v10; a version-shaped filename is not a version fact and “A content-hash match supports deduplication review; a filename match alone does not.”",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Kilnfield appraisal v11 - build cost +10pc.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a near-identical sheet differing in one assumption row",
+        "a different content hash",
+        "the same schedule of accommodation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a near-duplicate is a duplicate; these files differ in meaning by one cell and the distinction is the point of the sensitivity group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Cost plan - stage 2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "elemental cost rows with rates per unit area",
+        "a stated design stage and a scheme description",
+        "no measured works and no valuation apparatus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that it is a job record; there are no works executed to measure, which is the discriminating evidence against construction-project",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Cashflow.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a period column series over cost and revenue rows",
+        "a cumulative funding line and a peak-debt marker",
+        "no scheme name and no site address anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a scheme fact from the surrounding folder; folder context never fires alone, and business_operations.budget-forecast produces the same column shape",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Funding pack - Harbour Works.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scheme description, a site plan, an appraisal summary and a return table",
+        "a lender addressee and a requested facility",
+        "a confidentiality legend on every page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a lender addressee makes it a loan record; finance.loans-mortgage owns serviced debt and this is a request",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Viability assessment - 24-01187-FUL.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an appraisal presented in support of a planning application",
+        "an application reference in a labelled slot",
+        "a stated conclusion about affordable provision"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the application reference makes it a building-control document; it is genuinely both, on disjoint evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Comparables - Q1 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of transacted properties with addresses, dates, areas and prices",
+        "a source column naming portals and agents",
+        "no scheme of the holder's own"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a property fact about the holder's own site from a table of other people's addresses — this is the row's clearest must-not, since every row in the table is an address and none of them is the subject",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Development appraisal - a practical guide.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a published guide explaining the method",
+        "worked examples with invented figures",
+        "no site, no scheme, no holder involvement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a scheme record; the worked examples contain every context term this row lists, which is exactly why the reading residual matters here",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "IM - Harbour Works.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles naming the scheme, the location and the return",
+        "a render, a site plan and a summary appraisal table",
+        "a confidentiality slide"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the render makes it visualisation material; the appraisal table is the discriminating evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Data room export.zip",
+      "source_type": "archive",
+      "observations": [
+        "a password-protected archive",
+        "a manifest that cannot be read",
+        "a scheme name in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a fact from the archive name alone",
+        "that an unreadable archive is empty — “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "The load-bearing collision, and it is the construction face of the landed business_operations row's own finance fork. Both produce a spreadsheet of money that has not happened yet, with period columns and variance commentary. The discriminating evidence is the SUBJECT and the ARITHMETIC: a scheme on a site with a schedule of accommodation and a residual value computed backwards from end value supports this row; an organisation's own cost lines by department over a fiscal period supports budget-forecast. A period column series and a money total count for neither. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "Both are money about one site. The discriminating evidence is TENSE and MEASUREMENT: this row forecasts a scheme that may never be built, from rates per unit area; construction-project records works actually executed and certified, from measured quantities. A site address and a build-cost figure count for neither. The reciprocal is stated on the construction-project row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "A development finance pack and a loan file share a lender, a facility amount, a rate and a term. The discriminating evidence is direction: a REQUEST built from an appraisal supports this row; a serviced debt reported through principal, interest, drawdown and payoff slots supports finance.loans-mortgage. A lender name and a facility figure count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.agency-listing",
+      "signal": "A site being sold produces both an appraisal and marketing material about the same plot, often in one pack. The discriminating evidence is whether the document computes a value from assumptions (this row) or presents a property for a market with particulars, a price line and photographs (agency-listing). A site address, a plan and a price count for neither.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the document is plainly real but its property, instruction or side is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Where the material carries an occupier's, tenant's or leaseholder's identity, or a commercially confidential figure, the protective home is correct. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Standards, guidance notes, market reports and saved technical PDFs accumulate heavily in this world and are not instruction records. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exotic here: CAD and BIM formats recorded as indexed-but-unreadable, and password-protected data-room and tender exports. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone member of this situation with no accepted group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strongest commercial-confidentiality case in this family, and the weakest personal-data one — recorded that way rather than flattened. An appraisal states what a party will pay for a site, what margin they require and at what point they walk away; disclosure of it to the counterparty destroys the position it describes, and these files carry explicit confidentiality legends more often than not. The exposed party is frequently a third party (a funder, a landowner, a joint-venture partner) who cannot consent to what the product does. Personal data is comparatively thin here, though comparable schedules list other people's transacted homes by address. That combination argues for the cautious setting. The handling class is P7's and is not set here.",
+  "open_question": "Three. (1) NJ-J-IND-3, the fork the landed business_operations row records, reaching this family: where does forward-looking money about a SCHEME live — with finance (which owns statutory and custodial money), with business_operations (which this pass reads as owning forward-looking management money), or with the property family that owns the scheme? This row asserts the third and does so on the SUBJECT rather than on the money, which is defensible and was drawn by this pass. (2) The near-duplicate sensitivity set is the hardest real grouping case on this schema: files that are near-identical by content and distinct by meaning, where 00's duplicate machinery is right about the bytes and wrong about the intent. Recorded, not solved, and flagged for P9. (3) Inherits NJ-CP-1 and NJ-CP-2 — this row is the strongest single argument for reusing canonical `project` rather than minting `instruction`, since a development scheme is a project by any reading."
+}

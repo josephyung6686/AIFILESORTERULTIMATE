@@ -1,0 +1,423 @@
+{
+  "id": "clinical_practice.referral-correspondence",
+  "kind": "template",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Referrals and correspondence sent by a clinician",
+  "one_line": "The organizational situation of a clinician's OUTBOUND letter file: referrals made, clinic and discharge letters written to other clinicians, replies received against them, reports issued to third parties on a patient's behalf, and the register that tracks whether each one was sent and answered. Absorbs the legacy row med.clinician-referral-sent. The organizing anchor is the correspondence ITEM and its direction of address, not the patient's accumulated record. Gist-level placeholder (J-IND); it writes NO field rows, because the clinical_practice schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry is a DETECTION signal, never an extraction licence - this template's schema declares no field rows. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "an outbound-letter structure: an addressee block naming a clinician, service, or practice OTHER than the holder; a labelled re or subject block naming a THIRD person with a date of birth or record-number token; a body; and a sign-off naming the holder. Three distinct person-shaped roles in three labelled positions is the shape, and the direction of address is the discriminating evidence.",
+      "a referral-form structure: a labelled referred-by slot, a referred-to service slot, a reason-for-referral section, an urgency or pathway designation, and an attached-information list. The urgency designation is a raw observation from a source system and never becomes this product's classification.",
+      "a copied-to structure: a distribution or cc block listing further recipients including, often, the patient - which is what makes one letter a correspondence item rather than a chart entry.",
+      "a reply-pairing structure: a letter whose own header quotes the reference or date of an earlier referral, or an acknowledgement carrying an appointment offer against a named referral. Reply chains are the register's own join.",
+      "a third-party report structure: an insurer, employer, school, court, or benefits agency as addressee, a consent-obtained line, and a factual-report body about a patient - issued by the clinician at someone's request.",
+      "an email whose labelled recipient slot resolves to a clinical or secure-messaging domain and whose labelled subject slot names a third person's referral or case, with the holder in the sender slot. The addressing direction is what fires; source_type contributes only as a file-kind signal.",
+      "a correspondence-register structure: a repeated log-row shape of date, subject, addressee, kind, and a sent or acknowledged status. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”"
+    ],
+    "needs_llm": [
+      "PRECONDITION: patient-identifying by default; any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "an unlabelled letter - prose with a greeting and a sign-off and no blocks, or a scanned dictated letter with no recoverable structure.",
+      "distinguishing an outbound clinical letter from an INBOUND one the holder received about their own care, when both carry a clinician sign-off and a patient block and the holder's name appears in each - the central determination for this row. The model must abstain rather than assert: “A model that cannot cite sufficient evidence must return unknown.”",
+      "distinguishing a real letter from a template, an exemplar, a portfolio sample, or a completed teaching exercise reproducing the letter structure.",
+      "separating a clinical referral from an administrative onward-send - a records request, a chase, an invoice covering letter - that shares the addressee-and-patient shape. “Topic answers what a file is about, while purpose answers what the file was for.”"
+    ],
+    "never_alone": [
+      "letter structure alone - an addressee, a greeting, a body, and a sign-off describe every letter ever written, and this is the tempting false file for this row.",
+      "referral vocabulary alone. Referral appears in guidance, in policy, in marketing, in recruitment, and in a patient's own copy of a letter about them.",
+      "a clinician name in an addressee or sign-off block alone, including in a PDF author or producer string - “PDF metadata should be treated as supporting evidence, not as truth”",
+      "a facility gazetteer hit alone, read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” by inference.",
+      "a bare 4-digit number read as a record number, a referral number, or a year.",
+      "source_type = email alone, and extension alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Letters, Referrals, or Sent alone.",
+      "membership in a download session that dropped a batch of letters out of one practice system - “A session should never be treated as proof of topic”",
+      "a copied-to line naming the patient, read as proof the patient is the holder."
+    ]
+  },
+  "proposed_context_terms": [
+    "dear",
+    "re",
+    "referred by",
+    "referring clinician",
+    "referral to",
+    "reason for referral",
+    "thank you for referring",
+    "i saw",
+    "in clinic today",
+    "copies to",
+    "cc",
+    "yours sincerely",
+    "urgency",
+    "pathway",
+    "triage outcome",
+    "appointment offered",
+    "acknowledgement",
+    "please find enclosed",
+    "with the patient's consent",
+    "onward referral"
+  ],
+  "work_types": [
+    "referral letter or referral form sent",
+    "clinic or outpatient letter written",
+    "discharge or transfer-of-care letter written",
+    "reply or acknowledgement received against a referral",
+    "appointment offer or triage-outcome notice",
+    "onward or tertiary referral",
+    "report issued to an insurer, employer, school, or agency",
+    "certificate or fitness statement issued about a patient",
+    "records-request response or covering letter",
+    "correspondence register, sent log, or chase list",
+    "secure-message thread with another clinician",
+    "dictation awaiting typing or verification"
+  ],
+  "grouping_reasons": [
+    "one referral and everything answering it: the letter sent, the acknowledgement, the appointment offer, the reply letter - joined by an exact reference or a quoted date rather than by similar filenames. Membership copies nothing - “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one correspondence item across its versions: dictation, typed draft, verified letter, signed and sent copy, joined by the universal version_family fact.",
+    "one subject's outgoing letters over time - a real reason to group and the one most likely to tempt a subject label onto members, which must not happen.",
+    "one third-party report and the request, consent, and invoice around it - purpose-coherent while content-incoherent: “The documents are content-incoherent but purpose-coherent.”",
+    "no group at all is a valid outcome; a single sent letter is still protected material."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract and by privacy. By contract: clinical_practice declares no fields, so no dimension can branch (D1 as narrowed, _CONTRACT rules 10 and 15, PR-6). By privacy: the anchors this situation wants are a patient and a receiving service, and both publish third-party information as folder LABELS - a service name in a branch discloses what a named person is being investigated for almost as directly as a diagnosis would. “Protected branches should have configurable redaction in the canvas and review screens”. The present recommendation is one shallow, redacted, user-approved correspondence packet with no automatic internal depth. Held as prose: if fields ever land, the correspondence direction (sent versus received) and then the document function is the recorded starting recommendation, because direction is the property this situation is actually organized by and it discloses nothing about any patient. A subject level would remain off by default. Not time-first - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "email",
+      "spreadsheet",
+      "archive",
+      "audio_video"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".txt",
+      ".eml",
+      ".msg",
+      ".jpg",
+      ".png",
+      ".tif",
+      ".csv",
+      ".zip",
+      ".m4a"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Referral - BROWN A - urgent - to gastroenterology.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an addressee block naming a hospital service",
+        "a labelled patient block naming a third person with a date of birth",
+        "a labelled referred-by block naming the holder's practice",
+        "a reason-for-referral section and an urgency designation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - the schema declares no field rows",
+        "a clinical urgency or triage judgement of the product's own from the urgency designation: it is a raw observation",
+        "that this row owns the file rather than clinical_practice.patient-chart - the same letter is legitimately a register entry and a chart member, and P10 chooses from an accepted group later",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Clinic letter - SMITH J - 2026-04-08.docx",
+      "source_type": "text_document",
+      "observations": [
+        "addressee block names a GP practice, sign-off block names the holder",
+        "a re block names a third person with a record-number token",
+        "a copies-to line naming the patient",
+        "history, examination, impression, and plan sections"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the copies-to line naming the patient means the holder is the patient",
+        "any clinical_practice fact - none is declared",
+        "a diagnosis or an outcome of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Letter from cardiology re Mr Smith.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an addressee block naming the HOLDER as the recipient clinician",
+        "a sign-off naming a different consultant",
+        "a re block naming the same third person",
+        "a thank-you-for-referring opening line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that inbound direction excludes this row: a reply received against a referral the holder made is part of the same correspondence item, and the thank-you-for-referring line is the pairing evidence",
+        "any clinical_practice fact - none is declared",
+        "that the holder is the subject because the holder is the addressee",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Your appointment - outpatient cardiology.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a hospital letterhead and an appointment date",
+        "second-person instructional prose about where to attend",
+        "the holder occupies the patient slot",
+        "no addressee clinician and no sign-off naming the holder as author"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the holder is the SUBJECT and the letter is addressed to them, so this is medical.personal-health-records material - the reciprocal boundary case, stated identically on both sides",
+        "that a hospital letterhead implies practitioner custody",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Insurance medical report - consent attached.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an insurer as addressee with a claim or policy reference",
+        "a consent-obtained line naming the patient",
+        "a factual report body about a named third person",
+        "a fee note at the end"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared; the finance fields come from the finance schema on its own insurer-and-reference evidence (CONNECTION PR-8)",
+        "that recorded consent makes the content non-protected",
+        "a claim outcome or an entitlement of any kind",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Referral letter template.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the full letter structure with placeholder tokens where names would go",
+        "a practice logo and a version token in the footer",
+        "merge-field markers throughout",
+        "author metadata names a clinician"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation from letter structure alone: there is no subject and no addressee - this is the collision fixture for this row",
+        "a clinician fact from author metadata - “PDF metadata should be treated as supporting evidence, not as truth”",
+        "that a blank template is protected material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "sent letters log 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers read date, record number, subject, addressee, kind, sent, acknowledged",
+        "several hundred rows across many different subjects",
+        "a status column with sent and chased values",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that a register is administrative and therefore not patient material: a multi-subject register is bulk-sensitive as a whole",
+        "a year fact from the 4-digit token in the filename",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Referral - BROWN A.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot is a hospital service's secure-messaging address, recipient slot is the holder",
+        "labelled subject slot carries a reply prefix and a third person's name",
+        "a thread identifier joining three earlier messages",
+        "one attachment name: an appointment letter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = email alone: the addressing direction and the subject content is what fires",
+        "the attachment's contents from its filename - the attachment is its own file and is extracted as one",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "letters_to_type_20260408.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "a dictation file with a recorder-generated timestamp filename",
+        "container metadata names a dictation application",
+        "no transcript at scan time",
+        "sits beside typed drafts bearing the holder's sign-off"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a subject or letter fact from the neighbouring drafts - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that the file is harmless because it is unreadable at scan time: a letters dictation speaks several patients' names aloud",
+        "that transcription may proceed outside the protected path",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "scan0142.tif",
+      "source_type": "ocr",
+      "observations": [
+        "a flatbed-style capture at scanner resolution, no camera EXIF",
+        "OCR yields an addressee block, a re line with a name, and a handwritten signature region",
+        "a fax header strip along the top edge",
+        "OCR confidence is poor in the handwritten region"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF - “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "the signatory's identity from an illegible signature region",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "clinical_practice.patient-chart",
+      "signal": "The reciprocal of the chart row's own entry, and the sharpest overlap inside this family: every letter this row holds is also filed into a chart, frequently as a byte-identical copy that the universal duplicate_family fact will join. The discriminating evidence: an addressee block, a copies-to distribution, a sent or acknowledged status, or a reply pairing supports this row; the same letter sitting inside ONE subject's accumulated dated record, under a filed-on slot, supports the chart row. The letter's own body discriminates nothing, and where both readings hold the correct outcome is to let P10 choose from an accepted group rather than to force one here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "The clinician-authored versus patient-held boundary in its most confusable form, because appointment letters, clinic letters, and discharge letters are physically the SAME documents on both sides - the patient is routinely copied in. The discriminating evidence: the holder in the sign-off or referred-by block, with a differently named subject, supports this row; the holder in the patient or re slot, or second-person prose addressed to the holder, supports medical.personal-health-records. Letterhead, headings, and record numbers discriminate neither. AUTHORED ONE-WAY HERE: the landed medical.personal-health-records node does not name clinical_practice, and R1c owes the reciprocal - see this row's memo (NJ-CP-1). Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "A clinician's report issued to an insurer, employer, or agency for a fee has an addressee, a scope, a factual body, and a fee note, which is also the shape of a consulting deliverable. The discriminating evidence: a named patient with a consent line, and clinical content about that person, supports this row; a client engagement anchor - a signed statement of work, a commercial scope - supports the consulting row. A fee note supports neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.practice-administration",
+      "signal": "Administrative onward-sends - records requests, chases, invoice covering letters - carry the addressee-and-patient shape without being clinical correspondence. The discriminating evidence: a clinical reason-for-referral or clinical body content supports this row; a purely procedural request about a record rather than about care supports administration. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for a recognised letter, referral, reply, or register when no accepted correspondence group or approved branch exists. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a letter-shaped document whose direction of address and subject role stay unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an untranscribed dictation or an encrypted correspondence export. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone letter template or blank referral form carrying no subject at all. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The inactive home for referral guidance, pathway documents, and service directories with no case attached. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A clinical letter is unusually disclosive for its size: the addressee service alone can reveal what a named person is being investigated for, before a single body line is read, and the same file names a referring clinician, a receiving clinician, and a patient together. 00 names the material - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. The disclosive-addressee point is stated as inference, not as a 00 claim. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether this row and clinical_practice.patient-chart should remain two rows. They pass the node test today on genuinely different detection signals (direction of address and a sent-or-answered register, versus longitudinal accumulation about one subject) and on a different organizing anchor, and a real clinician keeps a sent-letters file that is not the chart. But the SAME letter is routinely in both, often byte-identical, so a large fraction of files will legitimately evidence both rows and neither has dimensions today. This row's position is that they should stay two, because the correspondence register is a workflow the chart does not contain - but the question belongs to R1c with the whole family in view, not to this row alone. A second, narrower fork for R1c: whether a clinician's report issued to a third party for a fee is correspondence at all, or a deliverable that belongs with practice administration."
+}

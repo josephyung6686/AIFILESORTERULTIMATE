@@ -1,0 +1,413 @@
+{
+  "id": "construction_property.building-control",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Building control, planning and statutory inspection",
+  "one_line": "The public-authority side of building, held from the APPLICANT's side: the planning and building-regulations applications and the drawings and statements submitted with them, the acknowledgements and reference numbers, the decision notice and its numbered conditions, the discharge of those conditions, the inspection visits and their records, and the completion or final certificate that closes the file. The anchor is an APPLICATION REFERENCE issued by a named authority about a named site. Absorbs the legacy row cons.building-control. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "an AUTHORITY-DECISION structure: a letterhead or issuing block resolving to a planning, building-control or statutory inspection body, together with an application-reference-shaped token in a labelled reference slot, a decision word (granted, approved, refused, rejected, approved subject to conditions), and a numbered schedule of conditions or reasons. The four together are the signal; the authority name alone is never-alone.",
+      "an APPLICATION-FORM structure: a statutory form whose issuing body is named, with labelled applicant, agent, site address, proposal description and declaration slots, and an accompanying fee or validation reference. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a CONDITION-DISCHARGE structure: correspondence citing a condition NUMBER against an application reference and submitting the information that condition requires, or the authority's confirmation that it is discharged. The condition-number-against-application-reference pair exists in no other row.",
+      "an INSPECTION-VISIT structure: a dated record naming a stage of works inspected (excavation, foundation, damp proof course, drainage, structure, insulation, completion), an outcome or defect note, and an inspector identifier — issued by the authority, not by the contractor.",
+      "a COMPLETION or FINAL certificate from the authority: a statement that the works described under a named application reference comply, with an issue date and an authority signature block. This is an authority document and is distinct from an installer's own compliance declaration.",
+      "a STATUTORY-CONSULTATION structure: a neighbour notification, a site notice, a consultee response or an objection, each citing the application reference and the site address.",
+      "a submitted-drawing pairing: a sheet whose title block status reads for planning or for building regulations, referenced by number in an application form's drawing schedule. The sheet itself is the drawings row's; the pairing with an application reference is this row's.",
+      "parent-folder context naming an application reference, a planning or building-control label, or a site address — a clue only, never firing alone.",
+      "an email whose labelled sender resolves to an authority domain and whose subject carries an application reference; or a portal notification naming a case and a status change.",
+      "an archive whose manifest names an application pack, a submission or a consultation bundle — read from the manifest without extraction."
+    ],
+    "needs_llm": [
+      "an unlabelled letter from a council that could be a planning decision, a council-tax matter, an enforcement notice or a highways issue — all arrive on the same letterhead about the same address.",
+      "a design and access, heritage or flood-risk statement, which reads as an essay and whose only application evidence may be a single reference line.",
+      "distinguishing an ENFORCEMENT communication from an ordinary decision, which changes the sensitivity posture and may make the protected legal side co-activate.",
+      "deciding whether the holder is the applicant, the agent, the objecting neighbour or the authority — the same letter reaches all four."
+    ],
+    "never_alone": [
+      "an authority or council name alone. It is 00's multi-role token read across to a public body: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” A council appears as a planning authority, a landlord, a client, a tax collector, an employer and a service provider, frequently to the same person.",
+      "a postal address or a street name alone — the family's constitutional never-alone, set by the construction_property schema row on 00's own reasoning about a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "an application-reference-shaped token alone. It is a short structured token in the same space as case, matter, claim and account references across the roster.",
+      "a document-type word alone (certificate, drawing, schedule, survey, valuation, report, plan, lease). Each is a work_type VALUE that appears in several worlds; the landed finance.household-property row carries title, inspection, warranty and completion certificate as its own work types. 'Certificate', 'notice', 'approval' and 'inspection' are the four most overloaded words in this family and all four appear on the refused compliance-certificate coverage as well.",
+      "a bare 4-digit number alone — 00 warns that file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. Here they are also plot, drawing, valuation and unit numbers.",
+      "a source_type or extension alone. 00 requires that the engine “treat the file extension as a routing signal rather than an assumption about meaning”, and “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”",
+      "a download session alone. “A session should never be treated as proof of topic”"
+    ]
+  },
+  "proposed_context_terms": [
+    "planning permission",
+    "planning application",
+    "application reference",
+    "validated",
+    "decision notice",
+    "granted",
+    "refused",
+    "approved subject to conditions",
+    "conditions",
+    "discharge of conditions",
+    "reserved matters",
+    "permitted development",
+    "lawful development",
+    "prior approval",
+    "listed building consent",
+    "conservation area",
+    "appeal",
+    "building regulations",
+    "full plans",
+    "building notice",
+    "plans certificate",
+    "initial notice",
+    "approved inspector",
+    "site inspection",
+    "stage inspection",
+    "damp proof course",
+    "drainage test",
+    "completion certificate",
+    "final certificate",
+    "enforcement notice",
+    "breach of condition",
+    "neighbour notification",
+    "site notice",
+    "consultee"
+  ],
+  "work_types": [
+    "planning or building-regulations application form",
+    "supporting statement (design and access, heritage, flood risk, transport)",
+    "submitted drawing schedule",
+    "validation or acknowledgement letter and fee receipt",
+    "consultee response, neighbour notification or objection",
+    "officer report or delegated report",
+    "decision notice with conditions",
+    "condition-discharge submission and confirmation",
+    "inspection record or site visit note",
+    "completion or final certificate",
+    "enforcement or breach correspondence",
+    "appeal submission and decision"
+  ],
+  "grouping_reasons": [
+    "ONE APPLICATION from submission to decision to discharge to completion — the row's primary group, keyed to the application reference and purpose-coherent across wildly different member types: “The documents are content-incoherent but purpose-coherent.”",
+    "one condition and everything submitted to discharge it.",
+    "one site's regulatory history across several applications and several owners — the group a conveyancer and a surveyor actually want, and one that spans decades.",
+    "one inspection sequence across the stages of one build.",
+    "one repeatedly re-downloaded portal document, joined by duplicate_family alone. Authority portals hand out the same PDF on every visit, and “A content-hash match supports deduplication review; a filename match alone does not.”",
+    "no group at all is valid: a single decision notice with nothing around it is exactly what the residual library is for. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two applications' papers do not merge because they concern neighbouring plots."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question (NJ-CP-1). The recommendation, held as prose: the PROPERTY or SITE first — this row follows the family default rather than construction-project's job-first reversal, and deliberately so: a site's regulatory history outlives every job, every owner and every applicant, and it is the thing a future purchaser searches for. Then the APPLICATION, then the document function (submission / decision / condition / inspection / completion). Function above date, because a condition number under a month folder is unreadable. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "calendar",
+      "presentation",
+      "design_creative",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Decision Notice - 24-01187-FUL - 18 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an authority letterhead and issuing block",
+        "an application-reference-shaped token in a labelled slot",
+        "a decision word and a numbered schedule of conditions",
+        "a site-address block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares none",
+        "that the holder is the authority rather than the applicant; that is the government boundary and needs role evidence",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Application form - full plans.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a statutory form with labelled applicant, agent, site and proposal slots",
+        "a declaration and a fee line",
+        "an authority name in the form header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an applicant identity as a destination dimension; authorship is never a destination",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Condition 4 discharge - drainage details.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a covering letter citing a condition number against an application reference",
+        "attached drainage details",
+        "an agent's letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the application from the number 4 alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Inspection record - DPC - 2026-02-19.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a dated visit record naming a stage of works",
+        "an outcome note and an inspector identifier",
+        "an authority issuing block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this is the contractor's own quality record; the authority issuing block is the discriminating evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Completion certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a statement that works under a named application reference comply",
+        "an authority signature block and issue date",
+        "a site address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the word certificate identifies the world; it is a work_type value shared with an installer's declaration, with the landed finance.household-property row's work types, and with the coverage this family refused a separate row for",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Objection letter - 22 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a neighbour's letter citing the application reference",
+        "a named private individual and their home address",
+        "prose objection grounds"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the objector's address is the site; two addresses appear and only one is the subject",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-01-08 at 09.14.02.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR text showing a planning portal case page with a reference and a status line",
+        "screen-shaped pixel dimensions and no camera EXIF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the absence of EXIF proves a screenshot — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "an application fact from a portal page that may be a neighbour's case or idle browsing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Council letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a council letterhead and a date",
+        "no reference line, no decision word, no conditions",
+        "prose about an address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "anything at all from the council letterhead; this is the row's never-alone made concrete and it may equally be council tax, highways or housing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Planning application pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest naming a form, a location plan, elevations, a design and access statement and a fee receipt",
+        "mixed member formats",
+        "no extraction performed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a fact about any member from the archive name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Householder guide to permitted development.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a published guidance document from a national body",
+        "no site address, no reference, no applicant",
+        "generic explanatory prose"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a regulatory record; it is reading material and belongs in the reading residual",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.planning-application",
+      "signal": "The load-bearing collision on this row, and it is a SIDE collision rather than a topic one: the authority's copy and the applicant's copy of a decision notice are the same document. The discriminating evidence is which side the holder is on — an issuing or deciding authority's letterhead, internal case file, officer report and statutory power supports government; an applicant's or agent's submission, its acknowledgement, and the conditions the holder must discharge supports this row. The application reference appears on both copies and discriminates nothing. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.permit-licensing",
+      "signal": "Same shape, different permit family: a street works permit, a scaffold licence, a skip permit and a hoarding licence are issued by the same bodies about the same sites. The discriminating evidence is whether the instrument approves BUILDING WORKS under a planning or building-regulations regime (this row) or licenses an activity or occupation of the public realm (permit-licensing). An authority name and a site address count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "A householder keeps their own extension's planning permission and completion certificate, and the landed row already lists permit or building approval and completion or compliance certificate among its own work types. The discriminating evidence is whether the material sits inside a live application or inspection sequence with an authority (this row) or is a single durable document kept as part of the household's own record of its own home (finance.household-property). A site address and the word certificate count for neither, and where the role does not settle the household side is the safer home because it is the protected one. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.drawings-revisions",
+      "signal": "A submitted drawing is both a controlled sheet and an application document. The discriminating evidence for THIS row is the application reference and the form's drawing schedule; for the drawings row it is the title block. Where both are present the file is genuinely both and neither excludes the other — the collision exists to stop a bare title block activating this row.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone member of this situation with no accepted group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the document is plainly real but its property, instruction or side is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Where the material carries an occupier's, tenant's or leaseholder's identity, or a commercially confidential figure, the protective home is correct. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Standards, guidance notes, market reports and saved technical PDFs accumulate heavily in this world and are not instruction records. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Portal captures and phone photographs of a document on a wall are the tempting false files of this world and belong here when nothing else fires.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members — a delivery note, a hire confirmation, a fee invoice with nothing around it. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Genuinely mixed, and set cautiously rather than accurately. Much of this material is public record by design — a decision notice is published — which argues for the lower setting. Against that: the file routinely contains named private individuals' objections with their home addresses, an applicant's personal details and declaration, enforcement correspondence that is an allegation against the holder, and a complete internal layout of a real dwelling. 00's own corpus sentence names material of this kind — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Where a row is mixed, the stricter setting is the honest one. The handling class is P7's and is not set here.",
+  "open_question": "Three. (1) Row-specific and real: this row is defined by the holder's SIDE, and side is the least reliably extractable thing in the family — a decision notice looks identical in the authority's file and the applicant's. If side cannot be established, the honest outcome is abstention on both sides rather than a default to either, and that should be stated where the government rows are written too; it is authored one-way here. (2) The jurisdiction question in its sharpest form: every term in proposed_context_terms is a regime's vocabulary, and D4 already settles that jurisdiction is a VALUE and never a field or a dimension — so this row is correct as written, but it is also the row where a single-jurisdiction gazetteer will most visibly under-serve everyone else. R4 owns the gazetteer; this is recorded as a scoping fact, not a request. (3) Inherits NJ-CP-1."
+}

@@ -1,0 +1,429 @@
+{
+  "id": "construction_property.agency-listing",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Estate agency listings and property marketing",
+  "one_line": "The material made to SELL or LET a property that is not the holder's own: the agency instruction and its fee, the particulars and their drafts, the marketing photograph set and floor plan, the portal copy and its exports, the viewing schedule and feedback, the offers received and the memorandum of sale or letting that closes the instruction. The anchor is a MARKETING INSTRUCTION for a property with an asking price or rent and an audience. Absorbs the legacy row prop.listing. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a MARKETING-PARTICULARS structure: a property description carrying an asking price or rent line, a tenure or term line, a room or accommodation schedule with dimensions, a floor-plan image, a photograph set and agency branding, laid out for an audience rather than for a file. The co-occurrence of price line, room schedule and branding is the signal; none of the three fires alone.",
+      "a PORTAL-EXPORT structure: a listing record with a portal reference, a status (available, under offer, let agreed, withdrawn), a published date and a media list, frequently arriving as a screenshot or a data export rather than as a document.",
+      "an AGENCY-INSTRUCTION structure: a terms-of-business or instruction letter naming the vendor or landlord, the property, a fee basis and a sole or multiple agency term. This is the situation's seed document.",
+      "a VIEWING-AND-FEEDBACK structure: a schedule of dated viewings by applicant with feedback notes, or a run of short feedback records against one property.",
+      "an OFFER structure: a written offer or offer summary naming an amount, a position (chain, funding, proceedability) and conditions; or a memorandum of sale or letting naming both sides and their representatives.",
+      "a MARKETING PHOTOGRAPH SET: many images of one property's rooms and exterior, taken within a short window, consistently exposed and consistently oriented, often with the same camera. “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” The photo event is the photos schema's; the marketing instruction is this row's, and neither is assumed from the other.",
+      "a MARKETING FLOOR PLAN: a drawn layout annotated with room names and areas and a total, carrying agency branding and NO title block, no drawing number, no revision and no status.",
+      "a property address in a labelled slot together with a price or rent and a marketing status. Neither half alone.",
+      "parent-folder context naming a property address or a listing reference — a clue only, never firing alone.",
+      "an email whose subject carries a property address and a viewing, offer or particulars word, or a portal notification naming a listing and an enquiry."
+    ],
+    "needs_llm": [
+      "a photograph of a room with no caption: a marketing shot, an inventory photograph, a defect record or the occupier's own picture of their home. This is the row's hardest recurring case and the one where a wrong answer is most intrusive.",
+      "a draft particulars document, which reads as prose about a house and may equally be a description written by the owner, a competitor's listing saved for reference, or an AI-generated draft.",
+      "deciding whether the holder is the agent, the vendor, the landlord or an applicant browsing — the same particulars PDF reaches all four and only the surrounding evidence separates them.",
+      "separating a live instruction from a comparable kept for evidence, where the document is byte-identical and only the reason for keeping it differs."
+    ],
+    "never_alone": [
+      "a postal address or a street name alone — the family's constitutional never-alone, set by the construction_property schema row on 00's own reasoning about a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” In this row it is doubly true: a marketing folder is FULL of other people's addresses, held as comparables and competitor listings.",
+      "a firm, practice, contractor, agency or authority name alone — same reasoning, same sentence.",
+      "a price or rent figure alone. a money figure alone. Quotations, valuations, appraisals, service charges, rents, offers and appraisals all carry amounts, as does every other roster schema that touches money.",
+      "a photograph of a room alone, and a floor plan alone — both are shared with the drawings row, with an inventory, and with a householder's own record of their own home.",
+      "an image without EXIF alone. “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+      "a document-type word alone (certificate, drawing, schedule, survey, valuation, report, plan, lease). Each is a work_type VALUE that appears in several worlds; the landed finance.household-property row carries title, inspection, warranty and completion certificate as its own work types.",
+      "a source_type or extension alone. 00 requires that the engine “treat the file extension as a routing signal rather than an assumption about meaning”, and “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”",
+      "a download session alone. “A session should never be treated as proof of topic”"
+    ]
+  },
+  "proposed_context_terms": [
+    "asking price",
+    "guide price",
+    "offers over",
+    "per calendar month",
+    "per annum",
+    "freehold",
+    "leasehold",
+    "share of freehold",
+    "tenure",
+    "lease remaining",
+    "ground rent",
+    "particulars",
+    "brochure",
+    "floor plan",
+    "approximate gross internal area",
+    "EPC rating",
+    "viewing",
+    "viewing feedback",
+    "applicant",
+    "open house",
+    "offer",
+    "offer accepted",
+    "under offer",
+    "sold subject to contract",
+    "let agreed",
+    "withdrawn",
+    "memorandum of sale",
+    "chain",
+    "proceedable",
+    "holding deposit",
+    "referencing",
+    "sole agency",
+    "multiple agency",
+    "terms of business",
+    "commission",
+    "marketing period",
+    "comparable",
+    "portal",
+    "listing reference"
+  ],
+  "work_types": [
+    "agency instruction or terms of business",
+    "draft and final particulars or brochure",
+    "marketing photograph set",
+    "marketing floor plan",
+    "EPC or marketing-required certificate",
+    "portal listing record or export",
+    "advertisement, board or mailing artwork",
+    "viewing schedule and feedback record",
+    "applicant registration or enquiry record",
+    "offer, counter-offer or offer summary",
+    "memorandum of sale or letting",
+    "tenant referencing or affordability record",
+    "comparable evidence and market appraisal",
+    "withdrawal or re-launch record"
+  ],
+  "grouping_reasons": [
+    "ONE INSTRUCTION for one property — from terms of business through particulars, marketing, viewings and offers to the memorandum. The row's primary group, purpose-coherent across members with nothing in common: “The documents are content-incoherent but purpose-coherent.”",
+    "one marketing photograph shoot: the images from one visit, which is a photo event AND a marketing deliverable, and where the photo-event half must not become the marketing fact — “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one applicant across their viewings, offers and correspondence — a group about a PERSON, which is why the row's sensitivity is set where it is and why an applicant is never a destination dimension.",
+    "one property across repeated instructions over years — relaunches, re-lettings, the same flat marketed five times by three agencies, which is the group a long-serving agency actually has.",
+    "one repeatedly re-exported brochure, joined by duplicate_family alone; agency systems regenerate the same PDF on every edit, and “A content-hash match supports deduplication review; a filename match alone does not.”",
+    "no group at all is valid: a single saved particulars PDF of somebody else's house is reference material. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+    "and the stop rules apply: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two properties' marketing does not merge because the photographs were taken on the same afternoon."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question (NJ-CP-1). The recommendation, held as prose: the PROPERTY first — the family default, and unarguable here, since an agency's entire filing life is address-first. Then the INSTRUCTION, because one property is marketed repeatedly and the instruction is what separates the 2019 letting from the 2026 sale. Then the document function (instruction / marketing material / viewings / offers / conclusion). Explicitly NOT applicant-first and never an applicant level at all: an applicant is a person, and 00 is direct that “A folder should not become a collection point for everything produced by the same person or organization.” — an applicant level would also surface named private individuals in folder names, which is the wrong place to make that decision. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "image",
+      "text_document",
+      "ocr",
+      "spreadsheet",
+      "email",
+      "presentation",
+      "archive",
+      "design_creative",
+      "calendar"
+    ],
+    "extensions": [
+      ".jpg",
+      ".heic",
+      ".png",
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".pptx",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "18 River Court - particulars FINAL.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an asking price line and a tenure line",
+        "a room schedule with dimensions and a total area",
+        "a photograph montage and a floor plan",
+        "agency branding on every page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares none",
+        "that the holder is the agent rather than a buyer who downloaded it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "DSC_0041.JPG",
+      "source_type": "image",
+      "observations": [
+        "a wide-angle interior of a furnished living room",
+        "camera EXIF with a consistent make and lens across forty images from one afternoon",
+        "personal possessions and framed photographs visible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a property fact from cluster membership — “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that a photo event is a marketing instruction; “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” proves the event and nothing more",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Floorplan - 18 River Court.png",
+      "source_type": "image",
+      "observations": [
+        "a drawn layout with room names, areas and a stated total",
+        "agency branding and a disclaimer",
+        "no title block, no drawing number, no revision, no status"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "controlled design information; the absent title block is the discriminating evidence against the drawings row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Terms of business - Mr and Mrs Okonkwo.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an instruction naming a vendor and a property",
+        "a fee basis and a sole agency term",
+        "a signature block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a vendor identity as a destination dimension; authorship and personal identity are never destinations",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Viewing feedback March.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of dated viewings by applicant name with feedback text",
+        "phone numbers in one column",
+        "a property address in a header cell"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "anything that would put an applicant's name into a folder name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Offer - 18 River Court - 615000.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a named buyer, an amount, a funding position and conditions",
+        "a chain description",
+        "an agent's covering note"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a money figure identifies the world; every row on this schema carries figures",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-02-11 at 16.03.55.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR text showing a portal listing page with an address, a price and a status line",
+        "screen-shaped pixel dimensions, no camera EXIF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the absence of EXIF proves a screenshot — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "that the listing is the holder's own instruction rather than a competitor's or a comparable",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "EPC.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an energy rating graphic, an assessor identifier and a lodgement reference",
+        "a property address and a validity period"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a marketing instruction; this document is required for marketing and is equally a householder's own record, which is why this family refused a certificate row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Comparables - Riverside.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of other properties with addresses, dates and achieved prices",
+        "a source column naming portals",
+        "no instruction of the holder's own"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a property fact about any one of the listed addresses; they are evidence, not subjects",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Brochure artwork.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest naming layered design files, high-resolution images and a print-ready PDF",
+        "proprietary design formats among the members",
+        "no extraction performed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a fact about any member from the archive name",
+        "that design_creative members make this creative work rather than marketing for a property instruction",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.household-property",
+      "signal": "An owner selling their own home keeps the particulars, the photographs, the EPC and the memorandum, and they look identical to the agency's copies. The discriminating evidence is the INSTRUCTION: terms of business, a fee basis, an applicant register and viewing feedback support this row; the same documents held with none of that apparatus, as part of a household's own record of its own home, support finance.household-property. A property address, a price and a floor plan count for neither. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.drawings-revisions",
+      "signal": "A marketing floor plan and a general arrangement drawing can show the same rooms and be drawn from the same model. The discriminating evidence is the title block with drawing number, revision and status (drawings row) versus room-area annotation, a stated total and agency branding (this row). Room labels and dimension strings count for neither. Reciprocates the drawings row's edge.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.camera-events",
+      "signal": "A marketing shoot IS a camera event: many images of one place in one short window with consistent metadata. The discriminating evidence is the instruction around it — particulars, a listing, a property under marketing — not the images. A GPS cluster, a camera model and a capture window support a photo event and never a marketing instruction, and the clustering must not become the fact: “The graph does not automatically copy those missing facts onto sparse files.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.commercial-lease",
+      "signal": "Letting particulars for business premises sit between the two. The discriminating evidence is which phase the document serves: material made to FIND an occupier — particulars, portal listing, viewing feedback, offers — supports this row; material that runs the lease once granted — rent review, schedule of condition, dilapidations, service-charge apportionment — supports commercial-lease. A rent figure and a premises address count for neither.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Where the material carries an occupier's, tenant's or leaseholder's identity, or a commercially confidential figure, the protective home is correct. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Saved visual reference — competitor particulars, detail photographs kept for later, product pages. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A single site or property photograph with no event, job or set around it. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Portal captures and phone photographs of a document on a wall are the tempting false files of this world and belong here when nothing else fires.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone member of this situation with no accepted group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the document is plainly real but its property, instruction or side is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exotic here: CAD and BIM formats recorded as indexed-but-unreadable, and password-protected data-room and tender exports. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strongest personal-data case in this family, and it deserves to be said plainly rather than in the abstract. This row's ordinary working material is photographs of the inside of a real person's home, complete with their possessions and often their family photographs on the walls; the names, phone numbers and financial positions of applicants who have not bought anything; tenant referencing and affordability records; and offers that state what a named private individual can afford. Almost none of those people are the product's user, and none of them can consent to what the product does. 00's own corpus sentence names material of this kind — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. The cautious setting is not a hedge here; it is the correct reading. The handling class is P7's and is not set here.",
+  "open_question": "Two. (1) Row-specific and the sharpest privacy question this pass met: an APPLICANT is a natural person who has no relationship with the product's user beyond having viewed a flat, and their name, contact details and affordability sit in ordinary agency files. This row forbids an applicant destination dimension outright on 00's collector sentence, but forbidding a folder level is not the same as protecting the data, and the mechanism that forces P7 ahead of a model path for third-party personal material is the same gap the landed business_operations row records (NJ-CP-4). (2) Inherits NJ-CP-1 — property-first is this row's clearest recommendation and it cannot be declared without a `property` key."
+}

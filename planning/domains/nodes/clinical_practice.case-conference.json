@@ -1,0 +1,387 @@
+{
+  "id": "clinical_practice.case-conference",
+  "kind": "template",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Case conferences and multidisciplinary meetings",
+  "one_line": "The organizational situation of material prepared for, presented at, or produced by a recurring meeting at which SEVERAL named cases are discussed across services - tumour boards, multidisciplinary team meetings, morbidity and mortality reviews, safeguarding conferences, ward rounds recorded as documents. The organizing anchor is the MEETING, not any one patient, which is what makes it a different situation from a chart. Gist-level placeholder (J-IND): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry is a DETECTION signal, never an extraction licence - this template's schema declares no field rows. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a meeting-agenda structure carrying a meeting name, a service or specialty, a date, an attendance or apologies list of clinicians, and a numbered case list in which each item names a DIFFERENT subject. Several subjects in one document under one meeting header is the shape.",
+      "a per-case slide or section structure repeating a fixed sub-shape - identifier, summary, imaging or results, question for the meeting - across multiple subjects in one file.",
+      "an outcome-and-actions structure: a table recording, per case, a decision, a responsible clinician, and an action or review date. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a recurring calendar event whose labelled SUMMARY names a meeting kind and a service and whose attendee slots resolve to clinical addresses, with a recurrence rule present. The CONTENT fires; source_type = calendar contributes only as a file-kind signal (CONNECTION-EXAMPLES fixture 5).",
+      "an email whose labelled subject slot names the meeting and whose attachment-name slot names an agenda, a list, or an outcomes document, addressed to a distribution list of clinicians.",
+      "a review-meeting structure that names no external patient at all but names an INCIDENT - a morbidity and mortality or significant-event review - which is the shared edge with clinical_practice.malpractice-incident."
+    ],
+    "needs_llm": [
+      "PRECONDITION: patient-identifying by default; any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "separating a real case conference from a journal club, a teaching round, a departmental business meeting, or a research review that shares the agenda-and-attendance shape exactly.",
+      "an unstructured meeting note - free prose recording several discussions with no headings and no list.",
+      "whether initial-shaped or number-shaped case identifiers refer to real patients or to a de-identified teaching set. The model must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "a purpose-coherent meeting pack whose members are individually unremarkable - an agenda, several imaging exports, a spreadsheet, a blank outcomes form. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "an agenda, attendance list, or minutes structure alone. Every organisation on earth produces those, and this is the tempting false file for this row.",
+      "meeting vocabulary alone - MDT, board, round, review, conference, huddle - which names a research meeting, a business meeting, and a teaching session equally well. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "source_type = calendar or email alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a facility or service gazetteer hit alone, read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” by inference.",
+      "a bare 4-digit number read as a meeting year or a case number.",
+      "membership in a download session that dropped a meeting pack's attachments at once - “A session should never be treated as proof of topic”",
+      "a recurring calendar entry alone, without content evidence of clinical cases."
+    ]
+  },
+  "proposed_context_terms": [
+    "multidisciplinary",
+    "case discussion",
+    "case presentation",
+    "tumour board",
+    "morbidity and mortality",
+    "significant event",
+    "safeguarding conference",
+    "attendance",
+    "apologies",
+    "outcome",
+    "agreed plan",
+    "action",
+    "responsible clinician",
+    "presented by",
+    "referred for discussion",
+    "quorum"
+  ],
+  "work_types": [
+    "meeting agenda or case list",
+    "case presentation deck or slide set",
+    "supporting imaging, result, or pathology export",
+    "outcome, decision, or minutes record",
+    "action or follow-up tracker",
+    "attendance and quorum record",
+    "meeting invitation or distribution email",
+    "meeting recording or transcript",
+    "meeting terms of reference or standard operating procedure"
+  ],
+  "grouping_reasons": [
+    "one meeting occurrence: the agenda, the presentations, the supporting exports, and the outcomes record for one date and one service, held together by purpose rather than by content - “The documents are content-incoherent but purpose-coherent.”",
+    "one recurring meeting series across dates, joined by an exact meeting identifier or recurrence rather than by similar filenames.",
+    "one case as it travels across several meetings - a real reason to group, and the one most likely to tempt a subject label onto members, which is exactly what must not happen: “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome; a stray outcomes sheet naming several patients is still protected material."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract and by privacy. By contract: clinical_practice declares no fields, so no dimension can branch (D1 as narrowed, _CONTRACT rules 10 and 15, PR-6). By privacy: this situation's natural anchor is the MEETING rather than a patient, which is genuinely less exposing than the chart row's anchor - but a meeting-named branch still discloses a service, a cadence, and, through its members, a caseload, and the members themselves name several third parties at once. “Protected branches should have configurable redaction in the canvas and review screens”. The present recommendation is a shallow, redacted, user-approved meeting packet with no automatic internal depth. Held as prose: if fields ever land, the meeting occurrence would precede document function, and a subject level would remain off by default. Not time-first as a rule - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - although this is the one row on this family where a date-anchored series is a defensible alternative the user may choose, which is a user edit, not a catalogue default.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "ocr",
+      "image",
+      "archive",
+      "audio_video"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".m4a"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Lung MDT agenda 2026-05-14.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a meeting header naming a service, a date, and a venue",
+        "an attendance and apologies list of named clinicians",
+        "a numbered case list, each item naming a different person and a record-number token",
+        "a question-for-the-meeting line per case"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - the schema declares no field rows",
+        "that a list of short entries is low-risk: a multi-subject case list is bulk-sensitive as a whole",
+        "a clinical priority or judgement of the product's own from a question line",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "MDT outcomes 2026-05-14.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers read case, record number, discussion, decision, responsible clinician, action by",
+        "one row per subject",
+        "a sheet per meeting date in the same workbook",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "a decision or an outcome as a fact of the product's own; the cell is a raw observation",
+        "a subject fact copied onto any other file that mentions the same meeting date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Journal club - May.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a meeting header, a date, and an attendance line",
+        "slides summarising a published trial with a citation block",
+        "a discussion-questions slide",
+        "no named subject anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the agenda-and-attendance shape is present but there are no cases - this is the collision fixture, and the material belongs with reading or research",
+        "a research project fact from a citation block alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "MDT 14 May - lung.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "one slide per case, each with an initial-shaped identifier and an imaging panel",
+        "speaker notes naming presenting clinicians",
+        "a final outcomes-and-actions slide",
+        "embedded images exported from an imaging system"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that initials rather than full names make the deck de-identified",
+        "an academic instructor or subject fact because the file is a deck",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "MDT Lung - weekly.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY names a meeting and a service",
+        "a recurrence rule and a LOCATION naming a seminar room",
+        "attendee slots resolve to clinical-system addresses",
+        "no case content in the event body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone: SUMMARY and attendee content is what fires",
+        "any clinical_practice fact - none is declared",
+        "a contact fact used as a folder proposal",
+        "an event fact in the photos sense; this is not a capture",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "FW MDT pack for Thursday.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject slot names the meeting and a date",
+        "recipients slot resolves to a clinical distribution list",
+        "four attachment names: an agenda, a list, a deck, and a blank outcomes form",
+        "a short boilerplate body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the attachments' contents from their filenames - each attachment is its own file and is extracted as one",
+        "activation from source_type = email alone",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "M&M review - Feb 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a meeting header and an attendance list",
+        "a structured case account with a timeline, contributory factors, and learning points",
+        "one named subject and an incident reference token",
+        "a recommendations table with owners"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which of this row and clinical_practice.malpractice-incident owns the file - both anchors are genuinely present, and P10 chooses from an accepted group later",
+        "a causation, blame, or error finding of the product's own from a contributory-factors section",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Team meeting minutes 2026-05-14.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a meeting header, an attendance list, numbered agenda items",
+        "items concern rotas, budgets, and equipment",
+        "an actions table with owners and dates",
+        "no subject and no clinical content"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: no cases are discussed - the sibling clinical_practice.practice-administration owns departmental business",
+        "a clinical purpose from a departmental setting",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "mdt_recording_20260514.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "an audio file with a recorder-generated timestamp filename",
+        "container metadata names a conferencing application",
+        "no transcript exists at scan time",
+        "sits beside the meeting's agenda and outcomes files"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a meeting or subject fact from the neighbouring files - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that the file is harmless because it is unreadable at scan time: a case-conference recording speaks several patients' names aloud",
+        "that transcription may proceed without the protected path; any transcription is a model path P7 gates first",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "clinical_practice.patient-chart",
+      "signal": "A case-conference outcome is routinely filed into each discussed patient's chart, so the same text exists in both situations. The discriminating evidence: a meeting header with attendance and SEVERAL named subjects supports this row; the same outcome pasted under a filed-on slot inside ONE subject's accumulated record supports the chart row. Clinical content discriminates neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.malpractice-incident",
+      "signal": "Morbidity-and-mortality and significant-event reviews are meetings ABOUT incidents and carry both anchors. The discriminating evidence: a recurring meeting series with attendance and a multi-case agenda supports this row; an incident reference number, a formal reporting form, a duty-of-candour letter, or an indemnity or claims correspondence chain supports the incident row. A single review document carrying both is a real file, not a defect - P10 chooses later. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.teaching-material",
+      "signal": "Case-based teaching sessions and grand rounds share the meeting shape and the per-case slide structure. The discriminating evidence: real identifiers, a service caseload, and an outcomes-and-actions record support this row; learning objectives, discussion questions, age-and-sex descriptors, and a student or trainee audience support teaching material. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "Trial management meetings, data monitoring committees, and ethics review meetings produce agendas, attendance lists, and per-case discussions that look identical. The discriminating evidence: a project identifier, an approval or protocol number, or participant-facing framing is research; routine care of named patients with no study anchor is this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.practice-administration",
+      "signal": "Departmental business meetings share the agenda, attendance, minutes, and actions shape exactly, and often the same recurring calendar series. The discriminating evidence is simply whether named cases are discussed: several subjects means this row, rotas and budgets mean administration. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for a recognised case list, deck, or outcomes record when no accepted meeting group or approved branch exists. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a meeting-shaped document whose clinical-case content is unresolved, including an invitation with no readable body. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an encrypted meeting pack or an untranscribed recording. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The inactive home for a journal club deck, a guideline discussion, or a meeting pack with no cases. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone administrative meeting artifact carrying no subject - terms of reference, a quorum record. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A single case-conference artifact concentrates SEVERAL third parties' identities and clinical situations in one file, which is the aggregation problem in its sharpest form - the per-case entries are individually short, and the document as a whole is not. 00 names the material - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether a MEETING is an acceptable organizing anchor for a v1 branch when a patient is not - the question is genuinely different from the chart row's, because a meeting name discloses a service and a cadence rather than a person, and a clinician's real filing habit is overwhelmingly meeting-first. If the answer is yes, this row is the only one on this family that could carry a shallow non-redacted level, and that would be a deliberate exception to the family's posture rather than a drift into one. It is Joseph's call and it does not depend on whether clinical_practice ever gets field rows."
+}

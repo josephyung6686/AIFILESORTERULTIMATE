@@ -1,0 +1,464 @@
+{
+  "id": "construction_property.survey-valuation",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Property surveys and valuations",
+  "one_line": "A qualified professional's OPINION about a built asset, written down and addressed to whoever commissioned it: home condition and building survey reports, mortgage valuations, market and rental valuations, insurance reinstatement-cost assessments, red-book and probate valuations, structural engineer's and specialist defect reports (damp, timber, subsidence, drainage), and the schedules of condition and dilapidations that fix a state as evidence. Its defining property is RELIANCE — the document names an addressee, states a purpose, carries a limitation of liability, and exists so that someone can act on it and hold the author responsible. It is an input to a TRANSACTION or a DISPUTE, never to a design. Absorbs the legacy row prop.survey-valuation. Distinct from construction_property.site-survey, which produces measured geometry with no addressee; see this row's collides_with entry for the discriminant. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The construction_property schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row’s sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the reliance structure, which is this row's fingerprint and appears in no other construction document: a labelled addressee block naming the party entitled to rely, a stated purpose of the valuation or inspection, a basis or standard the opinion is given under, an inspection date distinct from the report date, and a limitation-of-liability, exclusions or third-party-reliance clause.",
+      "a condition-rating structure: building elements listed down the page — roof, walls, windows, services, drainage — each carrying a coded condition rating and a narrative, with a summary of urgent and further-investigation items at the front. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a valuation figure presented as a labelled conclusion: a market value, a rental value, a reinstatement cost or a value subject to stated assumptions, given as of a specific valuation date, usually with a comparables table showing addresses, dates, prices and adjustments behind it.",
+      "a specialist defect report structure: a named defect investigated (damp, timber decay, movement, drainage), the evidence recorded (moisture readings, crack widths and monitoring intervals, borescope or CCTV findings), a cause conclusion and a remedial recommendation with an estimated cost.",
+      "a schedule of condition or dilapidations: a room-by-room or element-by-element written record cross-referenced to numbered photographs, produced at the start or end of a lease term and explicitly framed as evidence between two named parties.",
+      "a lender-facing valuation return: a short standardised form addressed to a lender, referencing a mortgage or case reference, and stating retentions, reinspection requirements or essential-repairs conditions.",
+      "a professional's signature block carrying a designation, a firm and a registration or scheme reference, together with a professional indemnity statement — the combination is characteristic of an opinion document rather than a record.",
+      "parent-folder context naming a property address, a transaction, a lender or a surveying firm, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row's files name a private individual, a property they are buying or own, a lender and a sum of money, which is one of the more directly identifying combinations in the whole catalogue. Any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: separating an OPINION from a MEASUREMENT, which is the boundary with construction_property.site-survey. A structural engineer's inspection report measures crack widths and then concludes; the reliance furniture is what decides it.",
+      "separating WHICH SIDE holds the document. A mortgage valuation is commissioned by a lender, paid for by a buyer, seen by a broker and filed by all three, and the addressee block states one name in one role without saying whose filesystem this is.",
+      "separating a professional valuation from an estate agent's marketing appraisal. Both give a figure for a property; only one is given under a professional basis with a liability limitation, and agents' appraisals are deliberately written to look like the real thing.",
+      "an unlabelled specialist letter: two paragraphs on a firm's letterhead saying a wall is not moving, with no ratings, no figure and no form furniture.",
+      "a purpose-coherent transaction pack whose members are individually unremarkable — a valuation, a damp report, a search result, a quote for remedial works and an email chain, assembled for one purchase decision. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "the word 'survey' alone — the row's own name is the trap. It is also a questionnaire, a measured survey, an engagement survey and a market-research instrument, three of which live in other schemas in this roster.",
+      "a currency figure alone. This row is dense in them and so is every quote, invoice, valuation, insurance schedule and bank statement in the catalogue; a number with a currency symbol proves nothing about which document family it sits in.",
+      "a UK-style postcode or a street address alone. An address is the single most tempting token in this whole family and it appears in every role at once — the site, the client’s home, the contractor’s registered office, the architect’s letterhead, a supplier’s depot, and a comparable property cited in a report. 00 states the same ambiguity for a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the address case is worse, and this is recorded as inference because 00 writes that sentence about a university, not an address.",
+      "a person's name alone, and this row pairs it with a property and a sum, which is exactly why it routes protectively. 00's corpus sentence covers the combination: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”.",
+      "a surveying firm's or a lender's name or logo alone. It appears on the report it wrote, on the template it publishes, on a competitor's comparison table and on a leaflet.",
+      "a date-shaped token read as a valuation date. These reports carry an inspection date, a report date, a valuation date and comparables dates, and only a labelled slot distinguishes them.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated."
+    ]
+  },
+  "proposed_context_terms": [
+    "market value",
+    "valuation date",
+    "basis of valuation",
+    "special assumptions",
+    "comparable evidence",
+    "reinstatement cost assessment",
+    "rental valuation",
+    "probate valuation",
+    "red book",
+    "RICS",
+    "home survey",
+    "condition report",
+    "homebuyer report",
+    "building survey",
+    "level 1",
+    "level 2",
+    "level 3",
+    "condition rating",
+    "urgent attention",
+    "further investigation",
+    "limitations",
+    "exclusions",
+    "third party reliance",
+    "professional indemnity",
+    "inspection date",
+    "mortgage valuation",
+    "retention",
+    "essential repairs",
+    "reinspection",
+    "damp report",
+    "timber and damp",
+    "moisture reading",
+    "structural report",
+    "crack monitoring",
+    "subsidence",
+    "heave",
+    "underpinning",
+    "drainage investigation",
+    "schedule of condition",
+    "dilapidations",
+    "terminal schedule",
+    "scott schedule",
+    "interim schedule"
+  ],
+  "work_types": [
+    "home condition report or homebuyer report",
+    "full building survey report",
+    "mortgage valuation report",
+    "market valuation report",
+    "rental valuation or rent review appraisal",
+    "probate or matrimonial valuation",
+    "insurance reinstatement cost assessment",
+    "structural engineer's inspection report",
+    "damp and timber report",
+    "subsidence or movement report with monitoring schedule",
+    "drainage or specialist investigation report",
+    "schedule of condition",
+    "schedule of dilapidations and response",
+    "remedial specification following a report",
+    "comparables schedule",
+    "valuation instruction or terms of engagement",
+    "estate agent market appraisal"
+  ],
+  "grouping_reasons": [
+    "one property and everything professionally written about it over time — the clearest group in this row and the one that outlives any transaction.",
+    "one transaction: the valuation, the specialist reports it triggered, the renegotiation correspondence and the remedial quotes — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one dilapidations dispute: the schedule, the response, the photographs and the negotiation record.",
+    "one report across draft and final issues, joined by the universal version_family fact rather than by any construction fact.",
+    "no group at all is a valid outcome: a single downloaded specimen report is reference material with no group.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two properties' reports in one folder do not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry’s schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row’s open_question. The recommendation, held as prose: the property first, then the purpose or transaction the opinion was given for (purchase, lending, insurance, probate, lease end, dispute) where a property has been reported on more than once, then the report type. Purpose is the load-bearing second level in this row and in almost no other construction row, because the same property, the same surveyor and nearly the same report exist in three purposes with three different audiences — 00's own distinction applies exactly: “Topic answers what a file is about, while purpose answers what the file was for.”. The report type is unintelligible above the property, because 'Level 2 report' names no property at all. 00’s own ordering reason applies: “a parent dimension should provide the context required to understand the child”. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Level 2 Home Survey - 14 Oakfield Rd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to a named individual",
+        "element-by-element condition ratings with a summary of urgent items",
+        "an inspection date and a separate report date",
+        "a limitations and third-party-reliance section",
+        "a surveyor's designation and firm"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that the addressee is the holder — a report is commissioned by one party and circulated to several",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mortgage valuation - case 88213.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a short standardised form addressed to a lender",
+        "a case reference and a property address",
+        "a market value figure and a retention condition",
+        "essential repairs listed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "which side of the transaction holds it — lender, broker and borrower all file the same PDF",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "1042-EX-01 Existing site plan Rev A.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scaled plan with a north point, spot levels and a datum note",
+        "a surveying practice's title block",
+        "no addressee, no purpose statement, no liability wording"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the load-bearing collision fixture, stated reciprocally with construction_property.site-survey. Measured geometry with no addressee and no reliance clause is that row's, not this one's",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Structural inspection - rear bay - Meridian Eng.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "crack widths recorded against a numbered crack schedule",
+        "a monitoring interval proposed",
+        "a cause conclusion and a remedial recommendation",
+        "an addressee and a professional indemnity statement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that measurement makes it a site survey: the hard middle case, resolved by the reliance furniture — an addressee, a purpose and a liability limitation mean the opinion reading wins",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Comparables - Oakfield.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "addresses, sale dates, prices, floor areas and adjustment columns",
+        "a derived value per square metre",
+        "no addressee and no narrative"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a valuation conclusion of the product's own from a spreadsheet",
+        "that the addresses in the rows are the subject property — most of them are other people's homes",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Schedule of dilapidations - Unit 4 - served.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a breach-by-breach schedule with clause references and costed remedies",
+        "two named parties, landlord and tenant",
+        "numbered photographs cross-referenced",
+        "a served-on date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it outright — a served schedule is also an operative step in a lease dispute, and the legal safety schema's protective ordering runs first",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Free market appraisal - Oakfield - Hart & Co.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a suggested asking price and a marketing recommendation",
+        "an agency fee schedule at the back",
+        "no basis of valuation, no liability limitation, no inspection date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the second collision fixture. An agent's appraisal is written to resemble a valuation and is marketing material, which is construction_property.agency-listing's situation",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "damp report photos.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing forty JPEGs and one PDF",
+        "member names are camera-default",
+        "no password"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "that camera-default member names mean the images are unrelated to the report",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_3310.png",
+      "source_type": "image",
+      "observations": [
+        "a screenshot of a portal page showing a valuation figure",
+        "exact display resolution, PNG, software metadata present",
+        "no camera EXIF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a valuation fact from a screenshot",
+        "a screenshot classification from missing EXIF alone — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Reinstatement cost assessment 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a rebuild cost figure with a stated basis and assumptions",
+        "a floor area schedule",
+        "addressed to a managing agent on behalf of a building's owners"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that an insurance figure makes it a finance record — the opinion is this row's and the policy it feeds is finance.insurance-corporate's",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.site-survey",
+      "signal": "The load-bearing collision on this row, stated reciprocally with that row and argued in both research memos because the dispatch brief asked for it. The discriminating evidence is the deliverable: a named ADDRESSEE, a stated purpose, a basis or standard, condition ratings or a figure, and a limitation-of-liability or reliance clause support this row; coordinates, levels, a datum, a scale, feature codes and a sample register support the measured-survey row. The hard middle case is a structural engineer's inspection, which measures then opines — where the reliance furniture is present, this row wins, because that is what the document is FOR. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.agency-listing",
+      "signal": "An estate agent's market appraisal is deliberately written to resemble a professional valuation and gives the same kind of figure for the same property. The discriminating evidence: a basis of valuation, an inspection date and a liability limitation support this row; a marketing recommendation, an asking price, a fee schedule and portal copy support the agency row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "A mortgage valuation is a step in a lending decision and lands in the borrower's finance file as readily as in a property file. The discriminating evidence: an offer, a product, a rate, a repayment schedule or an account number supports the finance row; an inspection, a basis of valuation and a professional's reliance clause support this row. Because finance is a safety schema, where both fire the protective ordering runs first. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "A homeowner's own file of reports about their own home is exactly this row's content held for a household-administration reason, and the landed household row claims property-centred administration across ownership and inspection. Stated reciprocally: the professional OPINION document is this row's situation; its role as one record in a household's property-and-money file is that row's. The discriminating evidence: an institution, an account or a tax year supports the finance row; a surveyor, an inspection date and a reliance clause support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.commercial-lease",
+      "signal": "Schedules of condition and dilapidations are produced under a lease and argued between its parties. The discriminating evidence: the lease itself, its rent reviews and its schedules support the lease row; a surveyor's dated inspection, costed remedies and a professional opinion support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.inventory-inspection",
+      "signal": "A schedule of condition and a tenancy inventory are both dated, photographed, room-by-room records made so a state can be proved later. The discriminating evidence: a tenancy, a tenant, a deposit and a check-in/check-out framing support the inventory row; a professional author, a lease clause reference and costed breaches support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.development-appraisal",
+      "signal": "A development appraisal contains valuations and a valuation report contains development assumptions. The discriminating evidence: a residual land value calculation, build cost inputs and a finance and profit model support the appraisal row; a completed asset inspected on a date and reported on to an addressee supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.expert-materials",
+      "signal": "A surveyor's report written for proceedings is an expert report, and a Scott schedule in a dilapidations dispute is a pleading annex. The discriminating evidence: a matter reference, a duty-to-the-court declaration, or an instruction from a solicitor supports the practitioner row; a client-addressed report given under a professional basis supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for this row. A single file here typically names an individual, the property they are buying or own, a lender, and a sum of money, and it is routinely about a third party who cannot consent. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone assessment or specialist letter with a durable purpose and no transaction file around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for a comparables spreadsheet or a photograph archive whose property and purpose are unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Agents' appraisals with fee schedules, survey booking confirmations and inspection-fee invoices are transactional documents rather than opinions. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Screenshots of portal valuations and price estimates are the row's commonest low-value member. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Specimen reports, published guidance on survey levels and downloaded template schedules are reference material, not records. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is one of the more directly identifying rows in the construction family: a single report names a private individual, the address they live at or are buying, a lender or an insurer, a sum of money, and often a defect that would affect what the property is worth. 00's corpus sentence covers several of those categories at once — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Beyond that, and as inference rather than a design claim, the exposed party is frequently NOT the holder: a comparables schedule lists other people's homes and sale prices, a dilapidations schedule is about a tenant, and a probate valuation is about someone who has died. They cannot consent, which argues for the cautious setting. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Two. (1) Which side of a transaction holds the file has no canonical key, and this row makes the hole vivid: a mortgage valuation is commissioned by a lender, paid for by a buyer and filed by a broker, and the addressee block names one party in one role without saying whose filesystem it is. business_operations.contract-administration records the same hole as buying-versus-selling and construction_property.site-health-safety as authored-versus-submitted; one canonical proposal at R1c should serve all three, and this row deliberately mints nothing. (2) Whether PURPOSE may be a dimension here at all. Purpose is the natural second level in this row — the same property reported on for purchase, for lending and for probate — but under PR-1 `purpose` stays a College-applications field, so this row records the recommendation as prose and asserts no key."
+}

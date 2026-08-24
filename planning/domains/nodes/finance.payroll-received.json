@@ -1,0 +1,615 @@
+{
+  "id": "finance.payroll-received",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Payroll and income records received",
+  "one_line": "The employee-side payroll situation on the Finance schema: recurring pay statements, corrections, off-cycle payments, annual earnings summaries and employer-issued year-end income records received from one employer. It requires a payer/employee role structure plus pay-period or aggregate earnings evidence, recommends institution then tax_year then record_type, and keeps offers, bank credits, retirement-plan statements and employer-wide payroll runs on their own neighbouring templates.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "00 names the legal Finance vocabulary exactly: “Finance files may use institution, account type, tax year, and record type.” It names the broader template world that permits this row as “financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections” and states that “Each template should define the domain’s allowed fact fields, detection signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation constraints.” 00 does not name payroll as its own organizational situation, so the payroll-specific boundaries and examples below are inference rather than design.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "record_period",
+      "type": "string",
+      "example": "2026-08-01 to 2026-08-15",
+      "reliability_ceiling": "direct",
+      "destination_eligible": false,
+      "why_no_existing_key_works": "A pay statement normally identifies the interval whose earnings it reports, and that interval is the strongest distinction between a recurring payroll record and an offer, bank credit, annual tax form or account statement. creation_date is the timestamp of this file version, not the interval covered. tax_year is the tax role of a financial record, not a fortnightly or monthly pay period. The broader record_period key is the same cross-record proposal already made by finance.subscriptions-utilities; it avoids minting a private pay_period synonym and leaves R1c one shared proposal to adjudicate.",
+      "provenance": "proposal",
+      "note": "Direct only from an explicit labelled Pay Period, Period Beginning/Ending, From/To or equivalent slot. A pay date, filename date, year-to-date column, email sent date or neighbouring statement does not fill it. It remains search/grouping metadata and never a folder level, because one branch per pay cycle would fragment the employer history."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a PAY-STATEMENT structure on one evidence item: an employer or payer in a labelled issuer/header role, an employee or recipient block, an explicit pay-period or period-ending slot, and a gross-to-net table that labels earnings, taxes or deductions, and net pay. The roles and table structure are the signal; a company name plus an amount is not",
+      "an OFF-CYCLE, BONUS, COMMISSION, FINAL-PAY or CORRECTED-PAY statement that retains the same employer/recipient roles and gross, deduction and net slots, plus an explicit adjustment, correction, off-cycle or prior-statement reference. The lifecycle word alone is insufficient",
+      "an EMPLOYER ANNUAL EARNINGS structure: a labelled employer/payer block, a separate employee/recipient block, an explicit tax-year slot, and aggregate wage, withholding, pension or contribution slots. A jurisdiction-specific form name is only a record_type value supplied by the injected jurisdiction catalogue; no form name becomes a field or a dimension",
+      "a populated pay-history spreadsheet or structured export whose labelled columns jointly identify employer, pay-period start/end, gross earnings, taxes or other deductions, and net pay across recurring rows. A money column or a payroll-themed sheet name alone does not fire",
+      "an archive manifest, inspected without extraction, whose member names repeatedly carry pay-statement or payslip terms, coherent period-labelled filenames, and one employer token. The manifest may support a payroll-series candidate; it never copies member facts onto the archive"
+    ],
+    "needs_llm": [
+      "a multilingual or unfamiliar pay statement whose employer, recipient, pay-period and gross-to-net roles are visible but whose labels are not covered by the injected jurisdiction vocabulary. Under the Finance safety boundary, only a local or explicitly consented redacted dossier may be used, and the model must cite the bounded zones",
+      "a photographed, faxed or badly OCRed statement where rows are recovered but table alignment is broken. The model may decide whether the observed amounts play earnings, deduction and net roles; it must return unknown when it cannot reconstruct the labelled relationship",
+      "a statement mixing wages, expense reimbursement, leave, pension, insurance and equity lines. The model may identify the dominant pay-statement structure, but it may not activate every neighbouring template from a line item or create fields for those amounts",
+      "an employer-issued annual income statement that is also plausible support for a tax-filing packet. The file’s Finance facts stay the same; the model may only explain candidate group membership and cannot choose a permanent home or manufacture a tax_year from an unlabelled date",
+      "a sparse payroll-delivery email or portal notification whose attachment or linked record is absent. It may join a confirmed payroll series as a context-supported member, but the email does not inherit the employer, recipient, pay period or tax year from that group"
+    ],
+    "never_alone": [
+      "an employer, company, payroll bureau, payroll-product or government-authority name alone. The employer may be a payer, a prospective employer, a bank transaction counterparty or a plan sponsor; payroll-provider producer metadata never overrides the labelled employer/payer role",
+      "a currency amount, salary figure, withholding term, deduction name, year-to-date value or net-payment figure alone. The same evidence appears in offers, tax records, account statements, retirement-plan records, budgets and invoices",
+      "the words pay, paid, salary, wages, earnings, payroll, payslip, pay statement, bonus or commission in a filename or folder name. An unreadable file never gains a purpose from its filename",
+      "a pay date, month, year, pay-period-shaped string or recurring calendar event alone. tax_year requires its own explicit tax-year role, and record_period requires a labelled period slot",
+      "a masked tax, social-insurance, employee, bank or account identifier alone. Mask shapes recur across tax forms, bank records, payroll files and identity material and stay sensitive observations unless a declared field permits them",
+      "a bank deposit, repeated salary-description transaction or direct-deposit alert. A posted credit proves a bank transaction, not the gross-to-net payroll record that produced it",
+      "a spreadsheet, PDF, email, image, OCR result, archive, extension or source_type alone. File kind is a routing signal and cannot establish payroll meaning",
+      "an existing folder named Payroll, Payslips, Salary or Tax, a download session, or adjacency to an identified pay statement. Existing structure and session evidence can seed review, but cannot activate the template or write facts",
+      "missing EXIF or dense OCR text as proof that an image is a screenshot. A photographed payslip and a payroll-portal screenshot can carry the same words; capture evidence and payroll content must be evaluated separately"
+    ]
+  },
+  "proposed_context_terms": [
+    "pay period",
+    "period beginning",
+    "period ending",
+    "pay date",
+    "gross pay",
+    "gross earnings",
+    "taxes",
+    "deductions",
+    "net pay",
+    "year to date",
+    "employee number",
+    "employer",
+    "payer",
+    "earnings statement",
+    "pay statement",
+    "payslip",
+    "off-cycle",
+    "payroll correction",
+    "tax year"
+  ],
+  "work_types": [
+    "pay statement or payslip",
+    "off-cycle pay statement",
+    "bonus or commission pay advice",
+    "corrected or reissued pay statement",
+    "back-pay or payroll-adjustment statement",
+    "final pay statement",
+    "statutory-pay statement",
+    "annual earnings or payroll summary",
+    "employer-issued year-end wage-and-tax statement",
+    "income statement or payment summary",
+    "pay-history spreadsheet or export",
+    "payroll delivery or availability notice"
+  ],
+  "grouping_reasons": [
+    "one employer-issued payroll history across recurring pay statements, off-cycle payments, corrections, final pay and the annual summary. The labelled employer/payer role anchors the group; a shared payroll bureau does not",
+    "one employer within one explicitly supported tax year. Statements without their own tax_year may join an accepted employer-year group as context-supported members, but the group never writes the missing tax_year onto them",
+    "one pay-period record across an original statement, correction and reissued copy. Content hash and version-family evidence distinguish a corrected version from an unrelated statement with the same pay date",
+    "one payroll-portal export packet containing statements, a pay-history export and a delivery notice. Sparse notices may join without inheriting institution, account_holder or record_period",
+    "one employer-issued year-end form may participate in both a payroll-history group and a tax-filing packet. Multi-membership preserves both organizational relationships; it does not change the file’s Finance facts or duplicate the bytes",
+    "different employers remain different payroll histories even when they use the same payroll bureau, tax authority or pension provider. The provider is a service/producer observation, not the institution value when the employer is explicitly labelled"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "tax_year",
+      "record_type"
+    ],
+    "why": "institution leads because Pay Statement, Correction or Annual Summary is not intelligible until the paying employer is known, and one person may have several employers in one year. This applies 00’s rule that “a parent dimension should provide the context required to understand the child.” tax_year comes next only where its own explicit role is supported; it keeps a long employer history navigable without putting time first, because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” record_type is the leaf separating recurring statements, corrections and annual records. account_type is omitted: ordinary payroll documents do not describe a financial account, and inventing Payroll as an account value would create a decorative one-child level. record_period remains metadata because a level for every pay cycle “creates a large number of tiny folders”; the canvas should “recommend flattening when a dimension does not materially improve retrieval.” Missing tax_year produces a shallower employer/record-type branch rather than an inferred year. The order is editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".html",
+      ".csv",
+      ".xlsx",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "ADP Pay Statement - 15 August 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one header has separate labelled Employer and Employee blocks naming Acme Corporation and the recipient",
+        "labelled Period Beginning, Period Ending and Pay Date slots appear above the table",
+        "table sections label Earnings, Taxes, Other Deductions, Gross Pay, Net Pay and Year to Date",
+        "PDF producer metadata names ADP, while the document’s Employer slot names Acme Corporation"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "record_period",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "institution = ADP from producer metadata; the explicitly labelled employer/payer is the issuing-role value for this record",
+        "tax_year from August 2026, the Pay Date or the Year to Date column; none is an explicit tax-year slot",
+        "account_type = payroll or salary; the record describes pay, not a financial account",
+        "a folder path or a branch for this individual pay period"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_5184.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF and sensor-shaped dimensions identify a photograph of a printed page",
+        "OCR recovers a labelled employer block, employee block and Pay Period Ending slot",
+        "OCR table regions recover Gross Earnings, Tax, Pension, Other Deductions and Net Pay labels",
+        "one line is partly occluded and the employee identifier is blurred"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "record_period",
+        "account_holder",
+        "capture_year",
+        "camera_information",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that this is a screenshot; camera EXIF is direct photo evidence and dense OCR text is not a screenshot detector",
+        "the blurred employee identifier or any missing amount",
+        "tax_year from the photographed pay-period date",
+        "facts from another statement photographed in the same session"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Payroll portal - Net Pay.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG dimensions and software metadata support a screenshot hypothesis",
+        "OCR regions recover an employer name, Pay Period start/end, Gross Pay, Deductions and Net Pay",
+        "navigation chrome names a payroll portal provider that differs from the employer",
+        "the recipient name is not visible in the captured viewport"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "record_period",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "account_holder when the recipient block is outside the screenshot",
+        "institution = the portal provider rather than the labelled employer",
+        "tax_year from the browser clock or displayed pay date",
+        "a screenshot destination from PNG format alone"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Your pay statement is ready.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot names a payroll portal and the subject says a new pay statement is available",
+        "body contains a sign-in link and a generic privacy warning",
+        "no employer name, recipient name, pay-period slot, earnings table or attached statement appears",
+        "message date is available as email metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "institution from the payroll portal sender",
+        "account_holder from the mailbox owner",
+        "record_period or tax_year from the email sent date",
+        "any facts from a pay statement downloaded later"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bonus Pay Advice - Q2 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer letterhead and a separate employee block appear above a table",
+        "labelled Off-cycle Pay Period and Pay Date slots identify the payment event",
+        "table labels Bonus Earnings, Tax Withheld, Other Deductions and Net Pay",
+        "the title and body do not state a tax year"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "record_period",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "tax_year from Q2 2026 or the pay date",
+        "that the stated bonus amount is the employee’s recurring base compensation",
+        "a recruiting offer from the word bonus",
+        "account_type from the payment method"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Corrected Pay Statement - 2026-08-15.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled employer and employee blocks match an earlier statement",
+        "Correction heading references the prior statement identifier and the same explicit pay period",
+        "side-by-side rows label Previously Reported, Corrected Gross, Corrected Deductions and Corrected Net",
+        "content hash differs from the original statement and the normalized stems are related"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "record_period",
+        "account_holder",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that the original and correction are exact duplicates",
+        "tax_year from the correction date",
+        "that corrected values overwrite the earlier evidence record",
+        "a separate employer group for the payroll provider"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Annual Earnings Statement - Tax Year 2025-26.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled Employer and Employee blocks identify the payer and recipient",
+        "heading explicitly labels Tax Year 2025-26",
+        "aggregate rows label Salary and Wages, Tax Withheld, Pension Contributions and Net Paid",
+        "the document is an employer annual summary and has no per-pay-period table"
+      ],
+      "facts_legal": [
+        "institution",
+        "tax_year",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "record_period from the tax-year value; tax_year already carries that explicit role",
+        "account_type when no financial account is named",
+        "a jurisdiction field or destination level",
+        "that every statement from this employer inherits the tax_year"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "W-2 2025 - Acme Corp.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "jurisdiction-specific form name appears in the heading beside an explicit year",
+        "separate labelled employer and employee blocks contain masked identifiers",
+        "numbered aggregate boxes contain wages and withholding amounts",
+        "there is no pay-period slot or per-period gross-to-net table"
+      ],
+      "facts_legal": [
+        "institution",
+        "tax_year",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a field named for the form; the form name is a jurisdiction-catalogue record_type value",
+        "that this file’s evidence alone settles payroll-history versus tax-filing packet membership",
+        "record_period from the tax year",
+        "account_type from a deposit account mentioned elsewhere"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "pay_history_2025.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header metadata labels Employer and Employee Name",
+        "populated columns label Period Start, Period End, Pay Date, Gross, Tax, Deductions and Net",
+        "each row is one pay event and several rows carry adjustment markers",
+        "the filename has a year token but the export has no explicit tax-year slot"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "record_period",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "tax_year from the filename or row dates",
+        "one folder per row or per record_period",
+        "that an adjustment row is a separate employer history",
+        "facts for a row whose labelled cells are blank"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "payslips-2025.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest is inspected without unpacking and lists recurring PayStatement member names",
+        "member stems carry coherent monthly or fortnightly period tokens and one employer-like token",
+        "the outer filename is generic and no member content or labelled employer slot is read",
+        "manifest contains no explicit tax-year field"
+      ],
+      "facts_legal": [
+        "file_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "institution from the employer-like member-name token",
+        "tax_year from 2025 in the outer filename",
+        "record_period values from each member name",
+        "member facts copied onto the archive"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Offer letter - Acme Corp.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer letterhead and a labelled role title appear in the opening",
+        "body labels proposed base compensation, start date and reporting manager",
+        "closing contains acceptance and countersignature slots",
+        "there is no pay period, employee pay history, deduction table or net-pay result"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "any Finance field from the employer name or compensation figure",
+        "that proposed pay is pay actually received",
+        "this payroll template from a future start date",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Direct Deposit Authorization.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer name appears in the form header as the recipient of instructions",
+        "separate labelled Account Holder, bank, routing and account-number slots identify the employee’s deposit account",
+        "employee signature and date authorize a future payment method",
+        "no pay period, earnings, withholding, deduction or net-pay table appears"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "institution = the employer; the bank is the account issuer in this finance.personal-records fixture",
+        "this payroll template from the form’s employment context",
+        "record_period or tax_year from the signature date",
+        "a pay statement that does not exist"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Fidelity 401k Contribution Confirmation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "custodian heading, labelled Participant block and labelled plan-account slot identify the holder and retirement account",
+        "table labels employee deferral, employer contribution and total contribution",
+        "confirmation date and plan year appear, but there is no pay period or gross-to-net payroll table",
+        "employer name appears only as plan sponsor"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "this payroll template from employee and employer contribution lines",
+        "institution = the employer rather than the labelled plan custodian",
+        "tax_year from the plan year",
+        "record_period from the contribution date"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Payroll Register - August 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook sheets label Payroll Register, Payroll Journal and Remittance Summary",
+        "populated rows contain several employees, run identifiers, gross-to-net columns and employer totals",
+        "a payroll bureau name appears in export metadata and the holder’s operation appears in the company header",
+        "the file describes an employer-wide run rather than one record received by one employee"
+      ],
+      "facts_legal": [
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "this employee-side payroll template from the gross-to-net columns",
+        "account_holder from any one employee row",
+        "institution from the payroll bureau metadata",
+        "individual payroll facts copied from the register onto separate people or files"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Payday reminder.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY says Payday",
+        "DTSTART and a recurring schedule are labelled calendar fields",
+        "organizer, employer, payroll account, gross pay, deductions and net pay are absent",
+        "the event contains no linked or attached pay record"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Finance activation from recurrence or the word Payday",
+        "institution or record_type from the event title",
+        "record_period from calendar recurrence",
+        "that a scheduled event proves payment occurred"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Bank Alert - Salary Deposit.eml",
+      "source_type": "email",
+      "observations": [
+        "bank is named in the labelled sender slot",
+        "body labels a deposit amount, posted date, masked bank account and transaction description containing Acme Payroll",
+        "there is no employer/payer block, pay period, gross earnings, deductions or net-pay calculation",
+        "the transaction description is free text supplied through the payment rail"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "institution = Acme from the transaction description; the issuing institution is the bank",
+        "this payroll template from a salary-labelled deposit",
+        "record_period or tax_year from the posted date",
+        "gross pay, deductions or employee status from the credited amount"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "payroll-records-protected.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "file signature identifies a password-protected PDF",
+        "filesystem extraction supplies filename, MIME type, size, timestamps and content hash",
+        "no text, form field, table, manifest or OCR observation is available",
+        "the password is not supplied and the file is not forced open"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "this template from the filename",
+        "institution, account_type, tax_year, record_type, account_holder or record_period",
+        "a purpose from another file stored nearby",
+        "that unreadable means unimportant"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career.recruiting",
+      "signal": "An offer letter and a pay statement both carry an employer name beside a compensation figure. A labelled role title, future start date, proposed compensation and acceptance or countersignature block identifies recruiting; an employer/employee role pair plus a labelled pay period and gross, deduction and net rows identifies payroll actually received. The employer name and amount are shared evidence and cannot choose either template.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "A pay statement and an employment record both name an employer, employee relationship and date. A recurring pay-period structure with gross-to-net rows belongs here; executed terms, onboarding, benefits election, performance, compensation-change or separation language describing the document itself belongs to employment records. A payroll deduction line does not turn the pay statement into every lifecycle document it mentions.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "Payroll and bank-account records both carry organization names, masked identifiers, periods and money. A labelled employer/employee pair with a pay period and gross, deduction and net table belongs here; a labelled bank or card account with statement period, transactions and beginning/ending balance belongs to personal records. A direct-deposit authorization or salary credit is not a pay statement.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "A pay statement’s year-to-date withholding and an employer year-end wage statement repeat employer, recipient and tax concepts. A labelled pay period with per-period gross-to-net rows is the recurring payroll discriminator; a tax-authority return, assessment, filing acknowledgement or numbered aggregate form with an explicit tax-year role is the tax-filing discriminator. A jurisdiction-specific employer year-end form can legitimately join both an employer payroll-history group and a tax-year packet, so the bare form alone must not cause facts or group membership to propagate in either direction.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.investment-brokerage",
+      "signal": "A pay statement deduction line and a retirement-plan statement can both name an employer, employee contribution and employer contribution. A labelled pay period with gross, deductions and net pay belongs here; a labelled plan account, custodian and holdings, contribution-confirmation or distribution structure belongs to investment-brokerage. The employer name and contribution amount must not count for both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "An employee pay statement and an employer-wide payroll register share gross, tax, deduction and net labels. A single recipient/employee block and one covered pay period identifies a record received by that employee; multiple employee rows, a payroll-run identifier, employer totals, journal postings or remittance summaries identify the holder’s business books. One person’s row in a register does not turn the register into their personal pay statement.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "A sensitive pay, income or year-end record whose payroll series or deeper template fit is unresolved remains local-only and redacted rather than being exposed or forced into a branch.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A durable employer-issued earnings confirmation or payroll notice that lacks enough structure for this recurring situation may remain a standalone record after protection.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated payment, reimbursement or deposit confirmation with no employer/employee pay-period and gross-to-net structure is transactional evidence, not a manufactured payroll history.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A confirmed screenshot whose OCR does not recover a payroll structure may use the broad screenshot residual; PNG format or missing EXIF never chooses it alone.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A partly understood foreign-language, damaged-layout or role-ambiguous earnings record can wait for local review rather than receiving invented employer, period or tax facts.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A password-protected, malformed or unsupported payroll-looking file remains safely represented from universal metadata without inferring its purpose from the filename.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This template uses the Finance safety schema, for which 00 requires: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” Payroll also falls inside the corpus categories 00 explicitly names: “identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” Pay records contain earnings, withholding, deductions, employee identifiers and sometimes bank or benefit data, so P7 classification precedes every model path; no raw amounts or identifiers enter a cloud dossier by default. The canvas follows 00’s redaction rule: “a Finance or Identity proposal may be visible as a protected area, but the product should avoid showing sensitive filenames or sending their contents to cloud services by default.” This row records only potentially_sensitive. D2’s authoritative ClassificationRecord and P7’s handling-class value are not derived or assigned here.",
+  "open_question": "R1c/Joseph has two linked merge decisions. First, should the destination-ineligible record_period proposal already shared with finance.subscriptions-utilities become a canonical fact for explicit pay, billing, statement and coverage intervals, or remain raw evidence only? Second, when one employer-issued statutory year-end form is retained in both an employer payroll history and a tax-filing packet, should P10 explicitly permit both template memberships despite also_holds_with being schema-only, or should one template own the form? This row remains usable either way: the period is not a dimension, and the year-end fixture can stay protected and reviewable without copied facts."
+}

@@ -1,0 +1,458 @@
+{
+  "id": "construction_property.variation-claim",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Variations, instructions and claims",
+  "one_line": "Changes to what was agreed, and the arguments about who pays for them: architect's and employer's instructions, confirmations of verbal instruction, variation orders and their registers, requests for information whose answers change the work, early-warning and delay notices, extension-of-time submissions, loss-and-expense and disruption claims, and the adjudication or dispute bundles those become. Its defining property is that it is ADVERSARIAL and NOTICE-BOUND — a right is lost if a notice is late, so the paperwork exists to be produced later against someone, and it pulls diaries, photographs, programmes and correspondence into purpose-coherent bundles that share no content at all. Absorbs the legacy row cons.variation-claim. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The construction_property schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row’s sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the instruction structure: a numbered, dated instruction issued by a named contract role — architect, contract administrator, employer's agent, engineer — describing a change to the works, referencing a contract clause that empowers it, and often stating whether it carries a cost or time consequence.",
+      "the variation-register structure, this row's fingerprint: a table whose columns read variation number, description, originating instruction or RFI, a quoted or agreed value, a time effect in days, a status (submitted, agreed, disputed, rejected) and a date, with running totals of agreed and disputed sums at the foot. The pairing of a MONEY column with a TIME-EFFECT column beside a DISPUTE STATUS is what no other table in this catalogue has. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a notice structure with a time bar: a dated letter or form referring to a clause, stating an event, and asserting that it is served within a stated number of days of becoming aware — early warning, delay notification, compensation event, or notice of claim. The self-referential timeliness statement is characteristic and appears in almost nothing else.",
+      "a request for information and its response: a numbered query about the design, an answer, and a note of whether the answer changes the works — the commonest origin of a variation.",
+      "an extension-of-time submission: a narrative of delay events mapped onto a programme, with a critical-path or as-planned-versus-as-built analysis, an entitlement claimed in days, and appendices of diaries, weather records and correspondence.",
+      "a loss-and-expense or disruption claim: heads of claim (preliminaries, prolongation, thickening, finance, head office overhead), a quantified build-up per head, and a causal narrative linking each to an event.",
+      "a dispute bundle: a paginated, indexed compilation of correspondence, records and submissions produced for adjudication, mediation or arbitration, with a referral or response document at the front.",
+      "parent-folder context naming a variation number, a claim, a notice or an adjudication, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: claim material is prepared against a named opponent, frequently reviewed by lawyers, and is among the most commercially damaging material a construction business holds. Any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: separating a VARIATION (a change the client wants, to be paid for) from a DEFECT (something built wrong, to be put right free). The same item is presented as each by the two sides, in good faith, and both readings are written down.",
+      "separating a CONTEMPORANEOUS RECORD from CLAIM MATERIAL made out of it. A diary page, a photograph and a delivery note become exhibits when a claim is built; the bytes do not change and the purpose does. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating which SIDE the holder is on. A claim submission and a claim response are the same document family with the roles reversed, and the letterhead is often a consultant's rather than a party's.",
+      "an unlabelled instruction: an email saying 'yes go ahead with the extra sockets' that is legally an instruction and looks like nothing at all — the commonest real variation in small works and the hardest file in this row.",
+      "a purpose-coherent claim bundle whose members are individually unremarkable — three diary pages, a weather report, a programme extract, two photographs and a subcontractor's quotation, assembled for one argument. This row is 00's own example shape: “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a numbered reference alone. VO 17, AI 44, RFI 231, EW 06 — every construction row numbers its documents, and the prefixes are not standardised across contracts, firms or countries.",
+      "the word 'variation', “instruction”, “claim” or “notice” alone. An insurance claim, a warranty claim, a legal notice, a payment notice and a work instruction in manufacturing are five different rows in this roster that all match.",
+      "a UK-style postcode or a street address alone. An address is the single most tempting token in this whole family and it appears in every role at once — the site, the client’s home, the contractor’s registered office, the architect’s letterhead, a supplier’s depot, and a comparable property cited in a report. 00 states the same ambiguity for a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the address case is worse, and this is recorded as inference because 00 writes that sentence about a university, not an address.",
+      "a currency figure alone. This row is dense in them and so is every quote, valuation, invoice and account in the family.",
+      "a clause reference alone. It looks like a section number, a drawing reference, a standard reference or a version number, and only the surrounding sentence says which. This is 00's bare-number problem in a different costume.",
+      "a contract role name alone (architect, contract administrator, engineer). It appears as an author, an addressee, a copied party and a template's default heading.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated."
+    ]
+  },
+  "proposed_context_terms": [
+    "architect's instruction",
+    "employer's instruction",
+    "contract administrator's instruction",
+    "confirmation of verbal instruction",
+    "variation order",
+    "variation register",
+    "change order",
+    "request for information",
+    "RFI",
+    "technical query",
+    "early warning",
+    "compensation event",
+    "notice of delay",
+    "delay notification",
+    "extension of time",
+    "EOT",
+    "relevant event",
+    "relevant matter",
+    "critical path",
+    "as-planned versus as-built",
+    "prolongation",
+    "disruption",
+    "loss and expense",
+    "thickening",
+    "preliminaries",
+    "head office overhead",
+    "acceleration",
+    "time bar",
+    "condition precedent",
+    "quotation for variation",
+    "dayworks",
+    "provisional sum",
+    "contract sum adjustment",
+    "adjudication",
+    "referral notice",
+    "notice of dissatisfaction",
+    "without prejudice",
+    "Scott schedule"
+  ],
+  "work_types": [
+    "architect's or contract administrator's instruction",
+    "employer's instruction",
+    "confirmation of verbal instruction",
+    "variation order or change order",
+    "variation register",
+    "variation quotation or price for a change",
+    "request for information and response",
+    "early-warning or compensation-event notice",
+    "delay notification",
+    "extension-of-time submission",
+    "delay analysis or programme impact assessment",
+    "loss-and-expense or disruption claim",
+    "claim response or assessment",
+    "without-prejudice offer or settlement correspondence",
+    "adjudication referral, response or decision",
+    "dispute bundle or index",
+    "expert or consultant claim report"
+  ],
+  "grouping_reasons": [
+    "one variation from origin to settlement: the RFI or instruction that started it, the quotation, the register entry, the agreement or rejection and the sum that reached the account.",
+    "one claim: the notice, the submission, the appendices, the response and the outcome — the strongest purpose-coherent group in the whole construction family, because 00's own sentence describes it exactly: “The documents are content-incoherent but purpose-coherent.”",
+    "one contract's whole change history, which is what the final account is built from.",
+    "one submission across its drafts, joined by the universal version_family fact rather than by any construction fact.",
+    "no group at all is a valid outcome: an isolated instruction with no reference is an ordinary standalone record.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — and this row makes the reason vivid: a claim bundle deliberately contains files from other projects as comparators, and they must not be absorbed."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry’s schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row’s open_question. The recommendation, held as prose: the project or contract first, then the change or claim itself as its own container (the variation number, or the named claim), then the document function inside it — origin, quotation, notice, submission, response, outcome. The change must be its own level rather than a document-type shelf, because this row's defining artefact is a BUNDLE of otherwise unrelated files held together by one argument, and a type-first tree would scatter exactly the files that must stay together. A variation number is meaningless without its contract — VO 17 exists on every job — which is 00's own reason for putting a course above a homework number. 00’s own ordering reason applies: “a parent dimension should provide the context required to understand the child”. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "presentation",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".pptx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "AI 044 - additional sockets to unit 3.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered dated instruction on a contract administrator's letterhead",
+        "a clause reference empowering the instruction",
+        "a note that a cost consequence is to be submitted"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "a contract fact from an instruction number",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Variation register - Oakfield - April.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns reading VO number, description, origin, value, time effect, status, date",
+        "running totals of agreed and disputed sums",
+        "seventeen rows, four marked disputed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that one register is one group: it spans many variations, which is a real reason it may join none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE_ extra sockets - go ahead.eml",
+      "source_type": "email",
+      "observations": [
+        "a two-line reply from a client saying to proceed",
+        "no reference, no clause, no cost",
+        "a quoted thread beneath it describing the work"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "a legal effect of the product's own — whether this constitutes an instruction is not the product's question",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Notice of delay - exceptional weather - 12 Mar 26.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a dated notice referring to a clause and asserting service within the contractual period",
+        "an event described with a start date",
+        "a reservation of rights"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "whether valid notice was given — a legal effect is not the product's question",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "EOT submission 02 - final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a delay narrative mapped to a programme",
+        "an as-planned versus as-built analysis with critical path commentary",
+        "an entitlement claimed in days",
+        "an appendix index listing diaries and weather records"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that the appendices named in the index are thereby claim documents — they are diary and weather records serving a purpose, and their own rows still hold them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Site Diary - Oakfield Rd - 2026-03-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a day-sheet with weather, labour and a delay narrative",
+        "cited in the EOT submission's appendix index",
+        "identical to hundreds of siblings"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row from citation alone: the file is construction_property.site-diary's record, serving this row's purpose — “The graph does not automatically copy those missing facts onto sparse files.”, and a bundle index is not a fact writer",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Plot 14 snagging list rev 3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "item, room, description, trade, status columns",
+        "several items also appearing as priced variations elsewhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the load-bearing collision fixture, stated reciprocally with construction_property.snagging-defects. A status-and-trade fault list with no money or time consequence is that row's",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Adjudication bundle - Oakfield - vol 2.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing a paginated index, correspondence, submissions and appendices",
+        "password-protected",
+        "a solicitor's naming convention"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "that this row owns it outright — a referral bundle is also proceedings material and the legal safety schema's protective ordering runs first",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "WP - settlement proposal.docx",
+      "source_type": "text_document",
+      "observations": [
+        "marked without prejudice",
+        "an offer figure and a walk-away position",
+        "internal commentary on the opponent's weaknesses"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that a without-prejudice document may be summarised or exposed like ordinary project material — it is the most damaging file in this row if mishandled",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Change order 12 - line 3 guarding.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered change to a scope of supply with a price and a lead-time effect",
+        "a machine and a production line referenced",
+        "an approval signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the second collision fixture. The shape is identical and the anchors are a machine and a line, which is engineering.change-order's world",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.snagging-defects",
+      "signal": "The load-bearing collision on this row, stated reciprocally in the same words on both. The same item is a paid VARIATION on one side's paper and a free DEFECT on the other's. The discriminating evidence: a numbered instruction reference, a quantified cost and time consequence, and an approval or notice support this row; a location, a responsible trade, a status column and a re-inspection history support the snagging row. Where both are present the file is genuinely both, and abstention is the correct outcome. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "signal": "A change order to a scope of supply has this row's exact structure — numbered, priced, time-affecting, approved. The discriminating evidence: a machine, a line, a part number or a specification revision supports the engineering row; a site, a contract clause and a construction instruction role support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.final-account",
+      "signal": "Agreed variations become account line items and the boundary is agreement itself. The discriminating evidence: a valuation number, a certified sum, retention and a settlement statement support the final-account row; a disputed or unagreed change, a notice and a claim narrative support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-diary",
+      "signal": "Diaries and confirmations of verbal instruction are simultaneously the diary's serial record and this row's opening evidence, and a claim bundle is largely made of diary pages. The discriminating evidence: a numbered claim or variation reference and a quantified consequence support this row; an unaddressed daily entry in an unbroken run supports the diary. Citation in a bundle index never transfers ownership. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.subcontract",
+      "signal": "The same change cascades down as a subcontract variation and the same claim is made upward and defended downward, on near-identical paper. The discriminating evidence: a subcontract order reference, a payment application or a statutory payment notice supports the subcontract row; a main-contract instruction and a claim against the employer support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.evidence-exhibits",
+      "signal": "An adjudication bundle is simultaneously this row's compilation and a practitioner's exhibit set. The discriminating evidence: a matter reference, a paginated exhibit convention and a solicitor's framing support the practitioner row; a party's own claim file supports this row. Because legal is a safety schema, where both fire the protective ordering runs first. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "Reciprocal with the landed row, which already names construction_property.subcontract for the same reason. Variations, notices and obligation tracking are the general commercial shape of this row. The discriminating evidence: a site, a works package, a programme impact and a statutory construction notice regime support this row; a general contract register and a renewal calendar support the business row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "A disruption claim against an employer and an insurance claim for the same event are argued from the same photographs and the same diary pages. The discriminating evidence: a policy number, an insurer, a loss adjuster and a claim reference support the insurance row; a contract clause, an entitlement in days and a head-of-claim build-up support this row. Because finance is a safety schema, where both fire the protective ordering runs first. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for the row's most damaging members — without-prejudice correspondence, settlement positions, claim submissions and adjudication material. This row is prepared against an opponent, and exposure has consequences that no other construction row's does. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone instruction or notice arriving with no contract file around it — a durable record with no group. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for a variation register, an unlabelled go-ahead email, or a bundle whose contract and side are unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected dispute bundles and legal-platform exports are ordinary here and arrive routinely. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Standard-form notice templates, published contract guidance and precedent claim structures are reference material, not records. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Contract commentaries, adjudication case summaries and published guidance on time bars are reading material rather than claim files. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row is prepared for a fight. Its files state a party's own weaknesses, its walk-away figure, its internal assessment of an opponent, and its legal advice; a without-prejudice settlement note is the single most damaging document a construction business can leak. 00's corpus sentence covers the category — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” — and legal records are named in it directly. Beyond that, and as inference rather than a design claim, the exposure risk here is asymmetric in a way most rows' is not: the harm is not embarrassment but the loss of the claim itself. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Two. (1) The defect-or-variation boundary, stated reciprocally with construction_property.snagging-defects: often undecidable, because both sides write their reading down in good faith, and the correct behaviour is to recognise both and abstain — “conflicting signals should lead to abstention rather than an invented classification”. Whether a genuinely-both file is offered in two places or held in one is Joseph's. (2) The bundle problem, which this row raises more sharply than any other in the catalogue. A claim bundle is 00's purpose-coherent group made literal: its members are diaries, photographs and delivery notes owned by other rows, assembled for one argument, and sometimes deliberately including comparator files from OTHER projects. Grouping must not copy a claim purpose onto a diary page, and this row asserts no mechanism for that beyond the firewall CONNECTION.md already states."
+}

@@ -1,0 +1,571 @@
+{
+  "id": "identity.immigration-visa",
+  "kind": "template",
+  "schema_id": "identity",
+  "parent_id": null,
+  "name": "Immigration and visa paperwork",
+  "one_line": "A protected, government-facing lifecycle for permission to enter, remain, study, work, or otherwise hold immigration status: submitted applications, acknowledgements, fees, biometrics and interview notices, evidence requests, decisions, permits, digital status records, and entry records. It is the personally held immigration packet rather than an admissions packet, a travel booking, a core identity-document collection, or a practitioner's matter file; because the Identity schema is a field-less safety placeholder, this template detects and groups but writes no identity-specific facts and recommends no folder dimensions.",
+  "launch": "safety",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an official application or submission-confirmation structure on the file itself: a government immigration, border, or consular issuer in a high-weight heading, sender, or verified-service slot together with an application-kind label, an applicant or travel-document slot, and a labelled application reference, receipt reference, or barcode. The authority name and the reference are never sufficient separately; the labelled workflow structure is the signal. The authority and form-term vocabulary is a proposed detector family for R2/R6, not a gazetteer or regex authored here.",
+      "an official case-notice structure: an immigration authority plus a labelled applicant or case reference and one lifecycle function such as receipt, biometrics appointment, interview, request for evidence or additional documents, transfer, approval, refusal, review, or decision. The lifecycle term is a work-type value, not an identity field, and no case status is written while the schema remains empty.",
+      "a visa, residence-permission, or digital-status proof whose own structured regions pair bearer identity with an issuing authority and permission-specific slots such as category, conditions, validity, or status. A passport biographical page without a separate permission or entry region belongs to identity.core-documents instead; an issuer name, portrait, or document number alone cannot choose between them.",
+      "an official border-admission or arrival/departure record whose structured fields identify a border authority, traveler, travel document, class or basis of admission, and arrival or permission information. A carrier itinerary, boarding pass, airport code, or travel date has a different transactional structure and is not this signal.",
+      "an email whose structured sender is an immigration authority or its official application service, whose subject names a case action, and whose body or attachment slot carries the same applicant or case reference as the attached notice. source_type = email is routing evidence only; a generic appointment or application email does not fire.",
+      "a school-, employer-, or family-sponsor document that explicitly states it was issued for an immigration application and contains both a sponsor-side role and an applicant or travel-document reference. The school, employer, family relationship, offer, or enrolment evidence remains legal only under its own independently active schema; proximity to a visa packet never copies it onto the immigration file.",
+      "an archive manifest inspected without unpacking that lists a coherent immigration workflow: an application or confirmation, identity-document copy, photograph, supporting evidence, fee record, appointment or request, and decision or status document. The manifest can make the outer archive a packet candidate; member-level facts stay on independently extracted member files and are never copied to the archive.",
+      "a carefully curated existing folder whose local-only name contains immigration or visa workflow language together with at least one member that independently clears an in-file rule above. Folder context can retrieve a packet and express user intent; the folder name alone never activates Identity and is never exposed in a model prompt."
+    ],
+    "needs_llm": [
+      "whether a heterogeneous collection of identity copies, bank evidence, school or employer letters, photographs, forms, and notices serves one immigration application rather than an admissions, recruiting, travel, or general-records packet. The result is a reviewable group membership; it does not create purpose or any other fact on a sparse member.",
+      "a multilingual or unusually formatted authority notice whose function is stated only in prose and whose authority, decision, or requested action cannot be resolved from labelled slots. The model must cite locally extracted evidence and return unknown when the function remains ambiguous.",
+      "an OCR capture of an application portal, digital immigration status, electronic travel authorization, or case-status page: deciding whether it is an official status record, a generic travel page, an admissions portal, a payment screen, or an informational page. This is a local-model or abstention path by default; the entry is not permission to send raw OCR, identifiers, or the screenshot to a cloud model.",
+      "a letter from an adviser or lawyer discussing an application, refusal, review, or appeal without a government notice attached. It may support Identity and Legal on disjoint evidence, or it may belong only to a practitioner's matter file; a law-firm letterhead and the word visa do not settle the holder-side situation.",
+      "a school or employer document that can serve both its original administrative purpose and an immigration submission, such as an enrolment certificate or employment support letter. The model may judge packet membership from explicit submission language while retaining the school or career reading and copying no packet fact.",
+      "whether several applications are one linked family packet or separate cases when a notice names dependants, sponsors, or derivative applicants inconsistently. Shared surnames, addresses, or download sessions never merge them; the model may abstain and preserve separate protected records.",
+      "whether a request, decision, or entry record belongs to the same application lifecycle when the authority changes its reference format or the document omits the earlier reference. Semantic similarity alone cannot establish the link; conflicting applicant, authority, or permission evidence makes the file an outlier."
+    ],
+    "never_alone": [
+      "the word visa. It is an immigration term, a payment-network brand, and ordinary prose; even a word-boundary hit does not distinguish a permission document from a card statement, merchant receipt, travel article, or filename.",
+      "immigration, permit, status, residence, entry, application, petition, sponsorship, biometric, consular, embassy, approval, refusal, or decision vocabulary by itself. Public guidance, news, blank forms, contracts, and unrelated applications use the same words.",
+      "a country, nationality, city, airport, border crossing, foreign address, or consulate name. A place or authority can appear in a travel booking, university offer, employer letter, news article, or cited example without evidencing an immigration application.",
+      "a person's name, date of birth, address, photograph, nationality, signature, passport number, national identifier, or document-number-shaped token. Those observations are privacy signals and may occur on finance, academic, employment, medical, and legal records; none is an immigration fact under this field-less schema.",
+      "an application number, case reference, barcode, QR code, receipt number, or form identifier without a labelled immigration-authority and workflow context. The same shapes occur on orders, tickets, claims, admissions files, and court matters.",
+      "official-looking letterhead, a seal, a signature block, a form layout, or a government-domain URL. Blank forms and public guidance can have every one of those features without being the holder's case record.",
+      "a university offer, enrolment certificate, employer offer, job description, sponsor letter, family invitation, bank statement, medical certificate, police certificate, or travel itinerary without explicit in-file immigration submission or authority evidence. These are common supporting materials whose original schema and protection remain intact.",
+      "a fee amount, card tail, payment receipt, or transaction date. A receipt with no immigration authority, applicant, or case linkage is a Finance record or a residual receipt, not proof of an immigration packet.",
+      "a flight number, booking reference, passenger name, route, gate, entry date, or trip date. Transport and lodging records belong to travel.bookings-confirmations unless their own content independently carries immigration evidence.",
+      "source_type or extension alone, including text_document, email, image, ocr, archive, .pdf, .eml, .html, .png, .jpg, or .zip. File kind is a routing signal and never establishes meaning.",
+      "a filename or local path containing passport, visa, permit, immigration, status, application, or case. Filenames are possible clues, paths stay local, and an unreadable file never acquires a purpose from its name.",
+      "membership in the same folder, archive, email thread, upload batch, or download session as a rich immigration anchor. These relationships may retrieve a candidate member but never activate Identity or copy an application association onto it.",
+      "missing EXIF, a missing text layer, PNG format, or dense OCR as proof of a portal screenshot or scanned permit. Positive capture evidence may activate Photos independently; absence and density discriminate nothing.",
+      "an encrypted, damaged, password-protected, or unsupported file whose only clue is its outer filename. It remains metadata-only or partially inspected and falls through safely rather than being forced open or assigned an immigration purpose."
+    ]
+  },
+  "work_types": [
+    "visa or permission application",
+    "application confirmation or receipt notice",
+    "application-fee confirmation",
+    "biometrics instruction or appointment notice",
+    "interview appointment notice",
+    "supporting-evidence checklist",
+    "request for evidence or additional documents",
+    "passport-submission request",
+    "approval, refusal, or decision notice",
+    "visa vignette or residence permit",
+    "digital immigration-status proof",
+    "entry, admission, or arrival/departure record",
+    "electronic travel authorization",
+    "renewal, extension, replacement, or status-change record",
+    "school, employer, or family sponsor document",
+    "adviser or counsel correspondence",
+    "linked family or dependant application"
+  ],
+  "grouping_reasons": [
+    "one evidenced application lifecycle across its submitted form, acknowledgement, fee record, appointment, evidence request, decision, status proof, and entry record, anchored by the authority and an explicit application or case linkage rather than by document composition alone",
+    "one authority-issued case across notices that repeat an applicant and reference in labelled slots. The reference remains raw evidence because Identity declares no field for it; it is not copied to a member that omits it",
+    "one explicitly linked family or dependant submission where the authority's own notice connects the cases. A shared surname, address, sponsor, or download session is never enough",
+    "one permission document across replacement scans, corrected downloads, front/back images, and renewed versions, using universal duplicate_family and version_family facts rather than an immigration-specific field",
+    "one immigration file as a member of another accepted workflow, such as study abroad, employment, or a legal matter. Membership may overlap; the protected posture stays and no neighbouring group supplies Identity facts",
+    "one protected record with no neighbours. The design expressly allows a passport, visa, or legal document to surface as protected without satisfying an ordinary group-size rule",
+    "not a grouping reason: shared nationality, destination country, authority, adviser, school, employer, family name, folder, or time period across unrelated cases"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract, not by missing research. Identity is a D1/PR-6 field-less safety placeholder, so this template may not put applicant, destination, permission type, application, case, stage, decision, sponsor, status, or validity into dimension_order; none is a legal field. Safety independently reaches the same result: Identity activation exists to protect before any cloud or automated placement path, and no deep template unlocks from safety activation. A path level named after a visa category, refusal, sponsor, or person's status would itself disclose protected information, so the current recommendation is one shallow protected area whose names, previews, thumbnails, and OCR remain redacted under user policy. Any depth is an explicit later user decision after fields and privacy policy are settled, not a folder structure smuggled into this row. This is not time-first: immigration files are one workflow or status record, and ordering them by date would scatter the application lifecycle.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "image",
+      "ocr",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".html",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Visa application confirmation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading identifies an official consular application service and a submitted visa application",
+        "labelled applicant and travel-document slots",
+        "a labelled application reference and machine-readable confirmation barcode",
+        "the selected application category and application post appear in structured fields"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "an identity-specific fact for applicant, travel-document number, application category, destination, or reference; the Identity schema declares none",
+        "purpose from the submission confirmation; purpose remains College-applications-scoped under PR-1",
+        "approval, eligibility, permission, or entry from proof that an application was submitted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Biometrics instruction letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "government immigration authority in the issuing heading",
+        "labelled applicant and application-reference slots",
+        "letter function instructs the recipient to arrange fingerprint and photograph collection",
+        "official service links and document checklist in labelled sections"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the file contains reusable biometric measurements; it is an instruction notice",
+        "an appointment date or location when the letter only explains how to book",
+        "application status, permission, or a destination field",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Visa interview appointment.eml",
+      "source_type": "email",
+      "observations": [
+        "structured sender belongs to the official appointment service used by the issuing authority",
+        "subject names a visa interview appointment",
+        "body carries a labelled applicant, application reference, appointment date, time, and consular location",
+        "attachment slot names an appointment confirmation document"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "application approval or refusal from an interview appointment",
+        "a calendar-domain fact; calendar is a source type and the appointment slots are observations",
+        "purpose, destination, or case stage as an Identity fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Request for additional evidence.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority letterhead and formal notice heading",
+        "labelled applicant and case-reference block",
+        "numbered list of requested documents and a response instruction",
+        "review or consequence language in the notice body"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the request is a final refusal or approval",
+        "that every listed supporting document belongs to the packet before each file has its own evidence",
+        "a legal outcome, immigration status, or deadline fact under either field-less safety schema",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Visa decision letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing immigration authority and decision heading in the title zone",
+        "labelled applicant and application-reference block",
+        "body states a grant or refusal and any conditions, requested next action, or review route",
+        "issue date and authority signature block"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a stored decision, status, permission category, validity period, or review right; Identity and Legal declare no such fields",
+        "that the saved copy proves the decision remains current",
+        "automatic movement or cloud review from the apparent clarity of the document",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "eVisa status - saved page.html",
+      "source_type": "text_document",
+      "observations": [
+        "saved page identifies an official view-and-prove immigration-status service",
+        "structured regions display the holder's identity, permission type, conditions, and status",
+        "a share-code control and sign-in metadata appear in the page",
+        "the file is a saved snapshot rather than a live authority query"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "that a saved page proves current immigration status or current rights",
+        "a reusable share code, sign-in credential, status value, or condition as a catalogue fact",
+        "that the page, its code, or its raw HTML may enter a model prompt",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Residence permit front and back.jpg",
+      "source_type": "image",
+      "observations": [
+        "two card faces combined in one image with positive scan-app metadata and page geometry",
+        "OCR regions recover an issuing authority, bearer photograph and identity slots",
+        "permission category, conditions, document number, and validity labels occupy separate card regions",
+        "no reliable camera event or trip context"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that the bearer identity block alone distinguishes this from identity.core-documents; the permission-specific region is required",
+        "a status, document number, nationality, validity, or person-named folder level",
+        "that missing camera EXIF alone proves a scan",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Arrival and admission record.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "border authority heading and arrival or admission-record title",
+        "labelled traveler, passport, admission-number, and class fields",
+        "arrival, port, and permission-until fields in the official record",
+        "print or download provenance from an official retrieval service"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "a travel booking, carrier, itinerary, or trip event from an admission record",
+        "creation_date from the arrival or permission date",
+        "a stored class, status, passport number, destination, or validity fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Visa application fee receipt.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "official application-payment service in the issuer slot",
+        "receipt heading, payment identifier, amount, and payment date in labelled fields",
+        "applicant and application reference tie the transaction to a visa application",
+        "no decision or permission language"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "account_type from the payment method or card tail",
+        "tax_year from the payment date",
+        "approval, status, or purpose from payment of a fee",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "immigration_submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an application confirmation, passport copy, portrait, sponsor letter, bank evidence, fee receipt, appointment notice, and evidence index",
+        "member names expose several source domains and no single content topic",
+        "outer filename supplies workflow-shaped words but no authority or applicant",
+        "archive metadata and member paths are read without unpacking to disk"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "purpose from document composition or the outer filename; PR-1 forbids an immigration-purpose clone",
+        "member-level identity, finance, academic, career, or legal facts copied onto the archive",
+        "that the archive may be unpacked to confirm the packet during the normal scan",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Certificate of Enrollment for Visa Application.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "university international-office heading and labelled enrollment status",
+        "host institution, programme dates, and study load in structured slots",
+        "passport-number and date-of-birth slots in the applicant block",
+        "document is addressed to a consular authority for a visa application"
+      ],
+      "facts_legal": [
+        "school",
+        "term",
+        "work_type",
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "that the passport number, date of birth, consular addressee, or visa use is an Academic fact",
+        "subject from a programme or study-load label",
+        "that neighboring travel or immigration files can supply school or term to this file",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Employer support letter for work permission.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer letterhead and authorized signatory",
+        "letter is addressed to an immigration authority and explicitly supports a named applicant's work-permission application",
+        "role, proposed employment dates, salary, and employer registration details appear in the body",
+        "application reference appears in a labelled subject line"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "employer, role, salary, or recruiting-cycle facts while the Career schema remains field-less",
+        "that the letter itself grants work permission",
+        "an immigration status or sponsor field that Identity does not declare",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Portal status screenshot.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive display-resolution and screen-capture software metadata",
+        "OCR identifies an official immigration portal, applicant initials, and a case reference",
+        "a case-status line and document-download control appear in separate OCR regions",
+        "the pixels carry no native form or document structure"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "media_type from missing EXIF; positive screen-origin evidence is required",
+        "a status, applicant, destination, or application-stage fact from OCR",
+        "that a screen capture and a downloaded authority notice are the same file kind",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Flight confirmation - HKG to LHR.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "airline issuer and booking-confirmation heading",
+        "labelled passenger, booking reference, route, departure time, fare, and payment summary",
+        "destination country matches a nearby visa packet",
+        "no immigration authority, application, permission, entry, or status structure"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "Identity activation or immigration-packet membership from a passenger name, destination, or nearby files",
+        "purpose = visa travel; purpose is not a Finance or Identity field",
+        "an event or status value from the route and date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Graduate admission offer with visa guidance.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "university admissions letterhead, named programme, and offer heading",
+        "entry cycle and acceptance conditions in labelled sections",
+        "a generic paragraph directs international students to seek visa guidance",
+        "no immigration authority, application reference, permission category, or status record"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_cycle",
+        "application_document_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "Identity activation or an immigration packet from a generic visa-guidance paragraph",
+        "school from the target institution; the role is application addressee",
+        "purpose copied from a later visa packet",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Visitor visa guide.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "government publisher and public-guidance heading",
+        "generic eligibility, document, fee, and interview sections",
+        "no applicant, submitted form, case reference, appointment, decision, or personal status",
+        "saved from a public information page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language"
+      ],
+      "must_not_conclude": [
+        "Identity activation from public immigration vocabulary",
+        "that the reader has applied for, holds, or is eligible for any permission",
+        "a destination, purpose, or personal status from a generic guide",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Application Materials.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive is password-protected and its manifest cannot be read",
+        "outer filename contains application-shaped words and nothing domain-specific",
+        "size, timestamps, signature, and encryption state are available as metadata",
+        "no member names, text, authority, applicant, or case reference are observable"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Identity activation, immigration purpose, or packet membership from the filename",
+        "a hidden member list or authority from surrounding files",
+        "that the archive may be brute-forced, forced open, or unpacked to disk",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "identity.core-documents",
+      "signal": "The shared evidence item is an official bearer document with a portrait, issuing authority, document number, and validity labels. The discriminating evidence is the document's function: a passport biographical page, national ID, birth record, or citizenship certificate establishes identity or civil status and belongs there; a visa vignette, residence permit, digital status proof, or admission record establishes permission to enter, remain, study, or work and belongs here. If one scan contains both a passport page and a visa sticker, the zones supply separate evidence and protection applies before either organizational reading.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.purpose-packet",
+      "signal": "Both situations can be heterogeneous archives containing an ID copy, transcript, statement, certificate, form, photograph, and financial evidence. The discriminating evidence is the direct workflow anchor: admissions or enrolment submission language and an educational addressee support that row; an immigration or consular authority, permission category, application reference, biometrics or interview notice, evidence request, decision, or status record supports this row. Composition, a university name, a destination country, and a bounded session decide neither; PR-1 also forbids solving the ambiguity by minting an immigration-purpose fact.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.study-abroad",
+      "signal": "Reciprocal. An enrolment certificate issued for a visa can name a host institution, programme dates, passport number, and consular addressee, so the same page supports both readings. A registrar or international-office document whose function is to attest enrolment, term, or credit supplies Academic facts; a government document whose function is to grant, refuse, evidence, or condition entry or residence belongs here. Where both functions are explicit, both schemas may remain active on disjoint evidence and the identity safety gate runs before any academic placement.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "travel.trip-photos",
+      "signal": "Reciprocal. A phone photograph of a visa, permit, or entry stamp has genuine camera metadata and may sit inside a trip's capture span, so trip-photo evidence is real. The discriminating evidence for this item is document-identity and permission wording in the OCR region; it keeps the protected record from being absorbed into a photo event. Camera facts may still remain legal under Photos on their own evidence, but a trip group never supplies immigration facts or weakens protection.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "An immigration application, evidence bundle, authority notice, refusal, or appeal can appear byte-for-byte in a person's own records and in a lawyer's matter file. The practice-side discriminator is positive custody and work-product evidence: a client-matter or engagement reference, practitioner letterhead and fee-earner role, filing cover sheet, advice memorandum, or multi-client case-management export. Without that evidence this row holds the personally kept government-facing packet; with it the legal-practice situation may organize the matter while Identity still co-activates for protection.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home when an immigration record has no accepted packet. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a packet that cannot be read, with no purpose inferred from its filename. 00: \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The home for a public visa guide, immigration-policy report, or saved instructions with no personal case or accepted association. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The home for an isolated application-fee receipt, courier confirmation, or travel record whose transactional evidence resolves but whose immigration packet does not. 00: \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The home for a sparse portal or appointment capture when positive screen-origin evidence exists but OCR does not establish an immigration record or accepted packet. 00: \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Immigration packets combine identity documents, facial images, signatures, dates of birth, document and case references, contact details, addresses, family and dependant relationships, school or employer sponsorship, financial support, travel history, legal correspondence, and the person's immigration history or status. Identity is a safety domain, so protection precedes every model and automated-placement path. Paths, complete text, OCR, hashes, EXIF and GPS, group memberships, user edits, and raw sensitive values remain local; filenames, thumbnails, status labels, and packet summaries are redacted in shared UI by policy. This row asserts only potentially_sensitive and does not assign, restate, or infer a P7 handling class.",
+  "open_question": "Three inherited forks are load-bearing here and remain unanswered. First, D1/PR-6 leaves Identity with no fields: if that deferral ever lifts, Joseph must decide whether any application linkage, permission/status, validity, sponsor, or bearer value should be stored at all, given that the queryable fact would itself be a disclosure; this row proposes none. Second, NJ-3/PR-1 keeps purpose on College Applications, so an immigration packet can be grouped from its own authority-and-workflow evidence but cannot write purpose or branch on it; widening purpose is a schema-level decision, not a template patch. Third, the Identity schema's existing depth question is sharper here: even a branch label such as Refusals, Work Permission, or Family Sponsorship can disclose status. Until privacy policy and fields are settled, this template recommends no dimensions and no cloud-model path by default. R1c must also reconcile the one-way template collisions with identity.core-documents, applications.purpose-packet, and legal.practice-matter-file when those rows land or are revisited."
+}

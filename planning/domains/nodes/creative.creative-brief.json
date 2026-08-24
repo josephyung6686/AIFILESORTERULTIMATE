@@ -1,0 +1,275 @@
+{
+  "id": "creative.creative-brief",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Creative briefs and commissions",
+  "one_line": "REFUSED. A creative brief is a document type inside somebody else's organizational situation, not an organizational situation of its own. The design document already ruled on this shape in the academic world - Homework 3 and Syllabus are values of work type, not rows - and a brief is the creative world's syllabus: the document that opens one job and states what it must do. Its evidence is client-engagement evidence, its dimensions are client-engagement dimensions, and its privacy posture is the engagement's. The coverage is preserved three ways: the brief-shaped document is a detection signal on `creative.client-engagement` (and, for an inbound approach with no engagement yet, on the schema's own default template), `brief` is a work_type VALUE that a later field ratification would place at the terminal level, and Independent Records / Review Later are the broad homes when a brief arrives alone with nothing to attach it to. Absorbs the legacy row studio.creative-brief, retired here rather than rebuilt. Placeholder row (J-IND): it writes NO field rows, because the creative schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the node test on all three legs, and the failure is the one 00 and ALIGNMENT name by worked example. (1) DETECTION SIGNALS: the row has none that are its own. Its candidate signal is a labelled brief-shaped document - background, objective, audience, deliverables, mandatories, timing, budget, approver - and that document is the strongest single piece of evidence that a CLIENT ENGAGEMENT exists. A signal that is decisive for a neighbour cannot also be constitutive of this row; running both would mean one evidence item activating two templates, which is precisely the collision discipline CONNECTION.md section 4 step 3 exists to prevent. Subtract the engagement evidence and what remains is the word `brief` plus a document-type word, and a document-type word is never-alone by the same reasoning 00 gives for organisation names: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” The word `brief` is worse than a university name - an appellate brief, a design brief, a media brief and a briefing note share it across four unrelated worlds. A row whose entire support is never-alone evidence can never clear activation (CONNECTION.md section 4 step 2). (2) DIMENSIONS: identical to the neighbour's, and empty in any case because `creative` declares no field rows. Even under a future field ratification the brief's honest position is the LAST level, as a value: 00 says “A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.” Creative Brief.docx is meaningless until the client and the job are known - it is a terminal value under the engagement, not a branch above it. ALIGNMENT states the consequence in the academic case outright: Syllabus / Homework / Lectures are values of work type, not extra schemas. (3) PRIVACY RULES: identical to the engagement's. An unreleased campaign's brief and that campaign's artwork are embargoed by the same fact - the campaign is unreleased - so the brief has no privacy posture the engagement does not already carry. CONNECTION.md section 2 states the test directly: a template row exists only when its detection signals, recommended dimensions, or privacy rules differ from its schema's default template. None does. Keeping the id would rebuild the 574's error - inventing a node to save an id - and would additionally recreate the schema-per-work-type bug ALIGNMENT lists among the things the swarm must not rebuild.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None authored, and that is the finding rather than an omission. The candidate signal - a document whose own labelled sections run background, objective, audience, proposition, deliverables, mandatories, timing, budget and approver, naming a commissioning organisation and a producing person or studio - is real and is worth recognising. It is recognised on `creative.client-engagement`, where it is the anchor that opens the engagement, and secondarily on the `creative` schema's own default template for the case where a brief-shaped document arrives with no engagement in the corpus at all. Authoring it here as well would put one evidence item on both sides of a template pair, which activation step 3 forbids.",
+      "The signals stated here so a later reader can audit the refusal rather than take it on trust: nothing survives subtraction. Take the brief-shaped document away and this row's remaining evidence is the token `brief` or `commission` in a filename, a document-type heading, and a client name - each independently never-alone, and never-alone evidence in combination is still never-alone when every member is ambiguous in the same direction (all three are equally true of a legal brief, a media brief, a press briefing, a blank agency template and an unsolicited enquiry)."
+    ],
+    "needs_llm": [
+      "Nothing is routed here by this row. A brief-shaped document that matches no accepted engagement is 00's ordinary ambiguous case and goes to the bounded model step against the SCHEMA, then to a residual home if nothing lands - 00 admits to that step only files that “remain ambiguous, have multiple plausible domains, or contain language that requires interpretation.”",
+      "The one interpretation question worth recording for whoever owns `creative.client-engagement`: whether a document is a brief for a job the holder is doing, a brief the holder RECEIVED as a supplier's pitch input, a blank brief template, or an inbound commission enquiry from a stranger with no relationship yet. Those are four different roles for one document shape, and they are resolved by 00's role discipline - “A consulting document may mention the author’s firm and the client organization”, modelled as “distinct facets, such as authored_by and target_school, or our_firm and client” - not by a row named after the document."
+    ],
+    "never_alone": [
+      "The word `brief`, `creative brief`, `design brief`, `commission`, `commissioned`, `scope`, `deliverables`, `mandatories`, `objective`, `audience`, `tone of voice`, `KPI` or `deadline`. `Brief.pdf` is the collision fixture: an appellate brief, a design brief, a media-planning brief, a policy briefing note and a blank template all carry it, and three of those are not this schema at all.",
+      "A client, agency, studio, brand or freelancer name by itself. 00's reasoning about Columbia transfers exactly - the same organisation can appear as the commissioner, the producing studio, a cited competitor, a mandatory brand reference, a past employer, or merely the sender of the email the file was attached to.",
+      "A `design_creative` source type or a creative extension - PSD, AI, INDD, SVG, FIG, SKP, PRPROJ, AEP - as proof that anything creative is active. 00 treats extension as routing only: the engine should “treat the file extension as a routing signal rather than an assumption about meaning”. A brief is usually not even one of these formats; it is a DOCX, a PDF, a slide deck or the body of an email.",
+      "A `FINAL`, `APPROVED`, `v2`, `signed-off` or `_FINAL_v3` suffix as proof that a document is the approved brief. Those tokens are version-family observations across the whole corpus and belong to the universal version-family fact, not to a domain conclusion.",
+      "A filename or parent folder containing `Briefs`, `01 Brief`, `Client`, `Jobs` or a client name. Paths stay local and support review only; a folder named for a document type is the very habit this product exists to replace.",
+      "Membership in one email thread, download session, kickoff archive or shared drive. 00: “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "A date, a `by 12 September` phrase, or a bare four-digit number. A deadline in a brief is text, not a validated date, and the product calculates nothing from it.",
+      "The absence of EXIF on a screenshot of a brief pasted into a chat window as proof it is a screenshot. Positive screen-origin evidence belongs to Photos; its absence proves nothing."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "None authored. Grouping is P9's and a refused row changes nothing about what P9 may join. Where a brief does anchor a group it does so as a member of the engagement's neighbourhood - 00's purpose-coherence test asks “whether the files plausibly serve one shared workflow, whether the group is purpose-coherent despite topic diversity, which members appear to be supporting materials rather than unrelated records”, and a brief is the supporting material that names the workflow, not a workflow of its own."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty because the row is refused, and empty in any case by binding contract: `creative` declares no field rows (J-IND / PR-6, D1's deferral as narrowed). The emptiness is itself part of the refusal - a template that recommends what its neighbour already recommends is that neighbour's default under a second name. Note the trap this row would have fallen into if fields existed: `document_type`-first, a folder called Briefs holding every brief for every client. 00 forbids exactly that collector shape when it requires the engine to validate that a proposed template does not “use an author or organization merely as a collector”, and the reasoning - a level that gathers by what a file IS rather than what it is FOR - is the same. Not time-first: a brief's issue date, kickoff date, deadline and filesystem creation time are four different dates, and year-first branching would scatter one job."
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Creative Brief - Northwind Rebrand - v2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading `Creative Brief` on page one, followed by labelled sections Background, Objective, Audience, Proposition, Deliverables, Mandatories, Timing, Budget, Approver",
+        "a commissioning organisation named in a `Client:` slot and a producing studio named in a `Prepared by:` slot - two organisations in two explicit roles",
+        "Deliverables section lists three named items with formats and dates",
+        "filename carries a job-shaped token and a `v2` version token"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path such as a Briefs level or a client-named level",
+        "that a creative.creative-brief situation is active - the same bytes are the anchor evidence for creative.client-engagement, and one evidence item may not activate both sides of a template pair",
+        "that `Client:` names the holder's client rather than the holder's own employer - the role slot must be read, not assumed",
+        "that `v2` establishes which version was approved"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northwind_Brief_APPROVED_FINAL_v3.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "same section structure as the DOCX above, plus a signature block and a dated approval line",
+        "filename carries `APPROVED`, `FINAL` and `v3` simultaneously",
+        "content hash differs from the DOCX; text overlap is high"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that `FINAL` or `APPROVED` in the filename establishes approval - the signature block is the observation, the filename token is noise",
+        "that this row rather than the version family owns the draft-to-approved relationship; version_family is a universal fact and the iteration story is creative.revision-round's, not this row's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Brief for the summer campaign.eml",
+      "source_type": "email",
+      "observations": [
+        "no attachment; the brief is the message body, written as prose with an inline bulleted deliverables list",
+        "labelled sender and recipient slots cross an organisation boundary",
+        "subject carries a job-shaped phrase"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the absence of a brief-shaped DOCUMENT means no brief exists, or that its presence as prose creates a document-type fact",
+        "that thread membership establishes topic",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Brief.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename is the bare document-type word and nothing else",
+        "first page begins with a caption block and numbered argument headings"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the word `brief` makes this creative material - this is the row's own collision fixture, and on these observations it is an appellate brief",
+        "that a filename of a document-type word alone activates anything",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Appellant's Opening Brief.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "tribunal caption, case identifier, table of authorities, numbered argument sections, counsel signature block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any creative fact whatsoever - the discriminating evidence is the tribunal caption and counsel block, which no creative brief carries, and the shared word `brief` is a homonym",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Creative Brief Template.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the full labelled section structure of a brief with every value slot empty or filled with placeholder prompt text",
+        "no client, no job, no dates, no deliverables",
+        "document metadata names a template family"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that brief-shaped STRUCTURE proves a brief for a real job exists - this file has the whole signal and none of the situation, which is precisely why the structure cannot be a row",
+        "a client or project value from placeholder text",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 10.14.22 - brief in Slack.png",
+      "source_type": "image",
+      "observations": [
+        "screen-origin metadata and chat-window chrome visible in the capture",
+        "OCR of the region recovers brief-shaped prose - objective, audience, deadline",
+        "no EXIF camera block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that missing EXIF proves screen origin - the window chrome and screen-origin metadata prove it, and 00's rule stands on its own",
+        "that OCR'd brief prose creates a creative fact without the engagement anchor the prose is missing",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Northwind Kickoff Pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extraction lists a brief document, a moodboard PDF, a signed scope document, a schedule spreadsheet and a logo folder",
+        "one job-shaped token recurs across member paths"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the brief member makes the archive a brief - the archive is the engagement's opening packet, content-incoherent but purpose-coherent, and the brief is one member of it",
+        "member facts from directory names",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Commission request - character illustration.eml",
+      "source_type": "email",
+      "observations": [
+        "unsolicited inbound message from an individual with no prior thread",
+        "body describes a wanted piece, a rough budget and a date",
+        "no scope document, no agreement, no prior correspondence anywhere in the corpus"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an enquiry is an engagement - this is the `and commissions` half of the row name, and it is an approach, not a situation; nothing has been commissioned",
+        "a client fact from a stranger's signature block",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Brand Guidelines - Northwind.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "logo construction, clear-space, colour and typography rules across many pages",
+        "cited by name in the Mandatories section of the brief above"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that being CITED by a brief makes a file part of a brief situation - the reference retrieves a candidate for review and copies nothing; this file is creative.brand-identity's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Statement of Work - Northwind Rebrand - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two organisations in explicit prepared-for and prepared-by roles, fee schedule, milestone table, acceptance clause, two signatures"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a scope document is a brief - it is the engagement anchor, and it belongs to creative.client-engagement (or career.consulting-client-engagement where the work is not creative); confusing the two is the clearest demonstration that the brief is a document inside a situation that already has an owner",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a brief that arrives alone and stays alone - a real, readable, durable document with no engagement in the corpus to attach it to. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” That is the refused row's actual job description, already written and already owned.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious home for the half-resolved cases this row would have swallowed: a blank brief template, an inbound commission enquiry, a brief that lives only in an email body, a kickoff archive whose members have not been reviewed. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The home for the brief-shaped documents a person collects to LEARN from rather than to work to - published campaign briefs, agency case studies, awards-entry briefs. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected kickoff archive or an unreadable proprietary brief export whose only creative clue is its name. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Recorded so the refusal does not weaken protection: a brief can carry an embargoed product launch, named individuals, budgets and an NDA reference, and a legal brief shares the row's own homonym. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded even though the row is refused, so the refusal transfers the protection rather than dropping it. Brief-shaped documents routinely carry unreleased product, campaign and pricing information, embargo dates, named client contacts with their addresses, fee and budget figures, and explicit confidentiality or NDA references. The posture is not this row's to hold - it is the engagement's, and it is identical on the artwork, the schedule and the invoice for the same unreleased job, which is exactly why it is not a distinguishing privacy rule under the node test. Whoever owns creative.client-engagement inherits it. Nothing here assigns a handling class; those are P7's.",
+  "open_question": "Whether the roster meant something narrower by `and commissions` that this refusal has thrown away with the brief - specifically the INBOUND approach: an unsolicited request to make a piece of work, arriving before any relationship exists, with no scope document, no fee agreement and no project. That is a genuinely different situation from a brief inside a live engagement (its evidence is an unattached enquiry, its privacy posture is a stranger's contact details, and its correct outcome is usually that nothing was ever made). If that is what was intended, the honest fix is a NEW row named for the enquiry situation - and its nearest existing home may be career or creative.submission-query rather than creative at all - not the reinstatement of a row named after a document type. This row does not mint it. See also NEEDS-JOSEPH item 1 in the memo."
+}

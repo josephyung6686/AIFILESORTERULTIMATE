@@ -1,0 +1,399 @@
+{
+  "id": "creative.raw-photo-catalogue",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "RAW archive and photo catalogue",
+  "one_line": "The organizational situation of a MANAGED stills archive: camera originals that are never edited in place, a layer of sidecar files that carry every decision made about them, and a proprietary catalogue database that indexes thousands of files it does not contain. Its defining evidence items are not images — a .lrcat, a .xmp, a previews bundle — which is what separates it from the photos schema's camera-roll situations, and its defining recommendation is stability rather than depth, because the index records paths. Absorbs the legacy row photo.raw-catalogue (ROW). Placeholder row (J-IND): it recognizes the situation and writes NO field rows, because the creative schema declares none (PR-6; D1's deferral stands).",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "This row was one refusal away and is kept on a narrowed scope. The refusal case is real and is stated first: a folder of RAW files with camera EXIF is photos' own situation wearing a creative label, and photos.camera-events already owns it — that row names .dng, .cr2, .cr3, .nef, .arw, .raf in its own file_kinds and already joins \"a RAW and JPEG pair\" into one capture. This row therefore does NOT claim the loose camera originals; it claims the INDEX LAYER over them and the archive-as-a-whole that layer implies. The node test's three legs, argued separately. (1) Detection signals differ, and differ in evidence class: every signal photos.camera-events runs on is read out of a decoded image (\"camera EXIF is strong photo evidence; capture time, GPS, and sensor-shaped dimensions reinforce it\"), and this row's defining evidence items cannot be decoded as images at all — a catalogue database, a sidecar containing no pixels, a previews bundle, a catalogue backup. 00 routes those two classes through two different extractors: images to the image stack, and \"disk images, executables, databases, encrypted containers, damaged files, and unknown binary formats\" to \"safe metadata-only indexing unless a dedicated extractor has been explicitly approved\". A situation whose primary evidence never reaches the image extractor is not the camera-roll situation. (2) Recommended dimensions: cannot carry the argument here, and the row does not pretend otherwise — the creative schema declares no fields (PR-6), so dimension_order is empty by contract. What IS recorded, as prose for the pass that may license fields, is a recommendation unlike any other creative sibling's: capture date leads, and the tree stays shallow deliberately. (3) Privacy and handling rules differ in a way no sibling shares: the catalogue is a database that stores other files' PATHS, and 00 already treats a path as unstable and a hash as identity — \"A path can change when a file is renamed, moved, synchronized through cloud storage, restored from backup, copied to another volume, or reorganized by the user outside the product.\" A proposal that moves a catalogued original is therefore not merely a filing choice; it silently breaks a third-party index the product did not write. That is a constraint on ACTION, and it belongs to this row alone.",
+  "fields": [],
+  "proposed_fields": [
+    {
+      "field": "capture_date",
+      "type": "date",
+      "example": "2026-03-14",
+      "reliability_ceiling": "direct",
+      "destination_eligible": false,
+      "provenance": "design",
+      "why_no_existing_key_works": "REUSED, NOT MINTED. photos.camera-events already proposed this key for R1c and this row seconds that proposal rather than opening a variant; the brief's rule is to reuse an existing proposal rather than mint a synonym, and a second independent situation needing the same key is evidence for the proposal, not a second proposal. 00 names the fact in its own words — \"an EXIF field called DateTimeOriginal is raw metadata; capture date = 2026-07-17 is the file fact derived from it\" — and the canonical list has no day-grained key for it: capture_year is year-grained by construction, and creation_date is the filesystem/document timestamp that 00 explicitly distrusts across restores and migrations. This row needs the day grain for a reason of its own, distinct from camera-events': a managed archive's natural unit is the CARD or the SHOOT DAY, and the sidecar/original pairing that defines the row is verified within a day, not within a year. destination_eligible stays false as proposed there, and this row does not widen it: a day-level folder is exactly what 00 warns about when it says a tree design \"creates a large number of tiny folders\". Nothing is written into canonical_fields.json here."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, binding on every entry below: these are DETECTION signals and never extraction licences. This template's schema declares no field rows (PR-6; D1's deferral stands), so a signal firing makes the situation plausible and legitimises no fact.",
+      "A CATALOGUE DATABASE FILE — a .lrcat, a .cosessiondb, a .cocatalogdb, a .db beside a previews bundle of the same stem — whose bytes are a database and not an image. This is the row's one signal that no sibling can take, because no sibling's evidence class includes it. 00 routes it by name and forbids opening it casually: \"Compressed archives should yield their manifests without extraction, while disk images, executables, databases, encrypted containers, damaged files, and unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved.\" The catalogue is recognised, sized, hashed and left shut.",
+      "A SIDECAR PAIRED BY BASENAME to a camera original — DSC_0342.NEF beside DSC_0342.xmp, an .on1 / .pp3 / .dop / .cos beside its raw, an .aae beside a HEIC — where the sidecar carries develop settings, a rating, a colour label or a crop and carries no pixels. The pairing is the signal, not the extension: a lone .xmp is written by half a dozen unrelated applications. 00 licenses reading the reference layer without opening the proprietary body: creative formats should yield \"embedded metadata, layers or artboards where accessible, linked asset names, and preview text\".",
+      "A PREVIEWS OR SMART-PREVIEWS BUNDLE — a directory named for the catalogue stem holding a pyramid of generated JPEGs and an index — recognised as derived data belonging to an application rather than as thousands of loose photographs. Treating a previews pyramid as a photo event would flood the corpus with duplicates of files that already exist; 00's structural retrieval already names the right relation for it, \"a version family, duplicate family, archive family, photo event, or derived document set\", and this is a derived document set.",
+      "A CATALOGUE BACKUP: a dated .zip whose manifest contains one catalogue-shaped database and nothing else. 00 permits exactly this reading without unpacking — \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers\" — and forbids the alternative: \"the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.\"",
+      "A RAW-DOMINANT DIRECTORY WITH NO DERIVATIVES: a run of camera originals sharing one camera identity and one contiguous capture window, with no JPEG siblings of the same stems and no edited-derivative stems present. The absence of derivatives is the shape of an ingest that has not been worked yet, and it is a clue about the SITUATION only — never a fact and never proof, because an absence is the failure mode 00 already names for this material class in the screenshot case.",
+      "A DATE-SHAPED FOLDER TREE AT SCALE: a directory of sibling folders named as dates or as date-plus-slug, each holding originals of one camera identity, repeated across years. Repetition of a naming discipline across many folders is the evidence, not any one folder name — a single date-shaped folder is a name and names are never sufficient here.",
+      "A DERIVED EXPORT SET whose members' stems are the originals' stems with a suffix, sitting in a sibling folder named for a use rather than a date. This is a derived document set in 00's sense and belongs to the archive's outbound edge; it is recognition of the boundary with creative.deliverable-handoff, not a claim on it."
+    ],
+    "needs_llm": [
+      "Whether a body of dated folders is a working archive at all, or a one-off card dump that was never catalogued — the difference is a pattern across many folders, which is exactly the judgement 00 reserves for the model layer while keeping the underlying signals deterministic.",
+      "Whether a catalogue-shaped database belongs to a stills archive or to some unrelated application that also ships a SQLite file beside a media folder. Nothing in the bytes settles it under metadata-only indexing; the surrounding filenames may, and the honest outcome is often abstention.",
+      "Whether an archive is a professional practice's working store or a serious amateur's personal library. The files are identical. This matters only because it decides between this row and the photos schema's situations, and it is the one question in the row that no signal answers — recorded as an open question rather than guessed.",
+      "Whether a folder slug names a client, a location or an occasion. Reading a slug as a client would be the row quietly minting a creative fact it has no field for."
+    ],
+    "never_alone": [
+      "A RAW EXTENSION ALONE. .nef, .cr3, .arw, .dng and .raf are the single most tempting false signal on this row, and they are the extension-alone error 00 forbids in general — they are a SOURCE_TYPE fact, not a domain. Every one of them appears in photos.camera-events' own file_kinds. A raw file with camera EXIF and no index layer around it is that row's, not this one's.",
+      "A LONE .xmp. XMP is a general metadata container written by PDF producers, InDesign, scanners and stock tools. Without a basename-paired original beside it, an .xmp proves nothing about this situation.",
+      "A DATE-SHAPED FOLDER NAME ALONE. 2026-03-14 as a folder name is a name, and 00's standing rule for names of this shape holds: a bare date, like a bare 4-digit number, is not a fact and cannot activate a domain.",
+      "CAMERA MAKE AND MODEL ALONE. It is 00's strongest PHOTO signal and it is the wrong signal for this row: it is precisely what this row shares with every camera roll in the corpus, and taking it would make this row a second copy of photos.camera-events.",
+      "A BOUNDED IMPORT OR DOWNLOAD SESSION ALONE. A card ingest looks exactly like a bounded session and must not be promoted by it — \"A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.\"",
+      "AN UNREADABLE CATALOGUE'S FILENAME. When the database cannot be opened safely, its name is all that is left, and 00 closes that door: \"Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone.\"",
+      "A PHOTOGRAPHER'S NAME, A STUDIO NAME, OR AUTHOR METADATA. Never alone, and never a destination: \"Author and creator fields may be stale, generic, or generated by a tool rather than a person\"."
+    ]
+  },
+  "work_types": [
+    "camera original (raw)",
+    "camera original (jpeg or heic straight out of camera)",
+    "develop-settings sidecar",
+    "catalogue database",
+    "catalogue backup",
+    "previews or smart-previews bundle",
+    "selects or picks subset",
+    "derived export set",
+    "retouched master (layered)",
+    "card ingest or offload batch",
+    "archive manifest or checksum file",
+    "tethered-capture session folder"
+  ],
+  "grouping_reasons": [
+    "One camera original and its sidecars as a single work: a .NEF, its .xmp, and any second sidecar from another developer, joined by basename and by sitting in one directory. This is a version family in 00's sense and it groups the files without asserting anything about what the picture shows.",
+    "One card ingest: originals sharing a camera identity and a contiguous capture window, offloaded in one pass. It is a structural family and a retrieval clue only — the ingest is a session, and \"A session should never be treated as proof of topic\".",
+    "One original and its exports across uses: web, print and client-delivery derivatives whose stems descend from the original, held as a derived document set — 00: \"Structural relationships should retrieve nodes that contain a version family, duplicate family, archive family, photo event, or derived document set.\"",
+    "A duplicate family across an archive and its backup drive, or across a re-import of the same card, joined by hash rather than by name — \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates.\" This is the commonest real relationship in a working archive and the one filenames get wrong.",
+    "A catalogue and the originals it references, when the reference layer is legible. This is a genuine join between files that share no content at all, and it must never become fact propagation — \"The graph does not automatically copy those missing facts onto sparse files.\"",
+    "No group at all is a legitimate and common outcome: a single raw file recovered from a drive, with no sidecar, no catalogue and no run around it."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": true,
+    "why": "EMPTY BY BINDING CONTRACT, not by omission: the creative schema declares no field rows (J-IND / PR-6, D1's deferral as narrowed), so no dimension may branch — a dimension naming an undeclared field would open a tree level no fact could ever fill. What follows is held as prose for the pass that may license fields. The recommendation is CAPTURE DATE FIRST, then at most one slug level, and then nothing. This is the one row in the creative slice where 00's capture-media exception genuinely applies: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders. Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" The reason it applies HERE and not to this row's creative siblings is the roster hint's own: a working archive is organised by when it was shot because nothing else is universal — a client exists for some frames and not others, a project exists for some and not others, and a capture moment exists for every single one. A dimension that is missing on half an archive cannot be its top level. The parent-context rule points the same way for once — \"a parent dimension should provide the context required to understand the child\" — because in this material the date IS the context: it is what the photographer, the catalogue and the card all agree on. RECIPROCAL AND DELIBERATE CONTRAST WITH construction_property.progress-photos, which recommends site-or-job first and records time_first = false: that row is right on its own material and this row does not contradict it. Its discriminator, stated there, is that \"a camera roll goes to many places once, a site walk goes to one place many times\" — one place recurring is what makes PLACE the stable parent there, and one place recurring is exactly what a general stills archive does not have. The two rows agree on the rule and differ on which of their materials has a universal parent. SECOND RECOMMENDATION, and the one peculiar to this row: STAY SHALLOW AND STAY STILL. 00 asks for the first half already — \"It should recommend flattening when a dimension does not materially improve retrieval\", and \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders\" — and a per-day level over an archive is that warning's textbook case. The second half is this row's own inference from 00's identity rule: a catalogue is a database of PATHS, and \"A path can change when a file is renamed, moved, synchronized through cloud storage, restored from backup, copied to another volume, or reorganized by the user outside the product.\" The product survives that because \"The stable identity for a file version should therefore be the content hash\"; the user's Lightroom catalogue does not. So a proposal that relocates a catalogued original is a proposal to break a third-party index, and this template's recommendation is to leave the referenced originals where they are and organise around them. Nothing in 00 forbids the move — which is precisely why it is recorded here as a recommendation and in open_question as Joseph's decision, not silently enforced."
+  },
+  "file_kinds": {
+    "source_types": [
+      "image",
+      "design_creative",
+      "opaque_binary",
+      "filesystem",
+      "text_document",
+      "archive",
+      "audio_video"
+    ],
+    "extensions": [
+      ".nef",
+      ".cr2",
+      ".cr3",
+      ".arw",
+      ".raf",
+      ".rw2",
+      ".orf",
+      ".dng",
+      ".heic",
+      ".jpg",
+      ".tif",
+      ".psd",
+      ".xmp",
+      ".aae",
+      ".cos",
+      ".dop",
+      ".pp3",
+      ".on1",
+      ".lrcat",
+      ".lrdata",
+      ".cosessiondb",
+      ".zip",
+      ".md5",
+      ".mov"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "DSC_0342.NEF",
+      "source_type": "image",
+      "observations": [
+        "raw container; camera EXIF Make/Model and DateTimeOriginal present",
+        "a file of the same stem, DSC_0342.xmp, sits beside it in the same directory",
+        "no JPEG of the same stem is present"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the raw extension by itself makes this row plausible",
+        "a client, a project or a photographer's name from the folder slug",
+        "any creative fact at all — the creative schema declares no fields (PR-6)"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "DSC_0342.xmp",
+      "source_type": "text_document",
+      "observations": [
+        "XML sidecar; contains develop settings, a rating and a colour label; contains no image data",
+        "basename pairs exactly with DSC_0342.NEF in the same directory"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a rating or colour label is a fact about the archive — it is an application's private state",
+        "that an .xmp found alone anywhere else belongs to this row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Lightroom Catalog-v13.lrcat",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a database file, not an image; sits beside a directory of the same stem ending .lrdata",
+        "size is large relative to any single capture in the tree"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "anything read out of the database body — 00 defaults databases to safe metadata-only indexing unless a dedicated extractor has been explicitly approved",
+        "a purpose inferred from the filename when the file cannot be read",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Lightroom Catalog-v13 Previews.lrdata",
+      "source_type": "filesystem",
+      "observations": [
+        "a directory bundle holding a pyramid of generated JPEGs and an index file",
+        "its members' pixel content perceptually matches originals elsewhere in the tree"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that its thousands of members are photographs to be organised — they are an application's derived data",
+        "a duplicate-family action that would delete or move an original because a preview matches it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Lightroom Catalog-2026-03-14.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest names a single catalogue-shaped database and no media",
+        "filename carries a date-shaped token"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "the archive's contents by extracting it to the filesystem",
+        "that the date in the name is a capture date — it dates the backup",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "_1050788.RW2",
+      "source_type": "image",
+      "observations": [
+        "raw container from a different camera identity than the rest of the folder",
+        "no sidecar of the same stem; no catalogue anywhere above it in the tree"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a lone raw file with no index layer belongs to this row",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_4821.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF Make/Model, DateTimeOriginal and a GPS fix present",
+        "sits in a folder that also contains raw files and a sidecar",
+        "no sidecar or catalogue entry of its own stem"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that proximity to raw files puts a phone capture in this row — THIS IS THE COLLISION FIXTURE, and it is photos.camera-events' own fixture, which is the point",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Settings160/DSC_0342.cos",
+      "source_type": "text_document",
+      "observations": [
+        "a second developer's sidecar for the same original, in that application's own subdirectory layout",
+        "directory position, not filename, is what identifies the layout"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that two sidecars mean two photographs",
+        "that one developer's settings supersede another's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "web_export/DSC_0342-2.jpg",
+      "source_type": "image",
+      "observations": [
+        "stem descends from an original elsewhere in the tree with a suffix appended",
+        "sRGB, resized, EXIF partially stripped by the export step",
+        "sits in a folder named for a use, not a date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a duplicate suffix implies a version family with unrelated files — 00's adversarial suite names duplicate suffixes on unrelated files as a known failure",
+        "that it is a camera original",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Marsh Lane week 14/IMG_2044.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF plus a GPS cluster repeating at the same coordinates across many weeks",
+        "the folder sits inside a tree that also holds a catalogue database"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that being catalogued overrides the construction reading, or that the construction reading overrides being catalogued — 00: \"One file may hold facts from more than one domain without losing information\"",
+        "a folder path"
+      ],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "model_release_signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a signed one-page form sitting inside a dated capture folder",
+        "names a person and carries a signature block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that sharing a folder with camera originals makes it this row's evidence — it is creative.licensing-rights' material and this row only notes it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "20260314_cardB.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists several hundred raw-extension members and one checksum file",
+        "no sidecars and no catalogue among the members"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "the members' capture facts without opening them, which the normal scan must not do",
+        "that a bounded ingest is proof of a shared topic",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "photos.camera-events",
+      "signal": "THE ROW'S DEFINING COLLISION, and the one that nearly refused it. The confusable evidence item is a camera original: identical bytes, identical EXIF, identical extension list — that row already claims .dng, .cr2, .cr3, .nef, .arw and .raf and already joins \"a RAW and JPEG pair\" into one capture. Neither side may take a raw file on its extension, its camera make or its capture time. THE DISCRIMINATOR IS THE INDEX LAYER, not the picture: a basename-paired sidecar, a catalogue database above it in the tree, or a previews bundle referencing it puts the item here; a capture standing on its own metadata with no such layer is that row's. Stated in the other direction as well, so the boundary is not one-sided: where a catalogue exists over a personal camera roll, camera-events keeps the occasion — the year-then-event proposal 00 wrote for photo material — and this row keeps only the index layer and the archive-stability constraint. Fixtures on both sides, deliberately that row's own: IMG_4821.HEIC belongs to camera-events even when it sits beside raw files; DSC_0342.NEF plus DSC_0342.xmp belongs here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.shoot-day-media",
+      "signal": "The two rows are the same shape one step apart, and the boundary is stated reciprocally rather than assumed, since that row is being written in parallel. The confusable evidence item is a dated folder of camera originals fresh off a card. THE DISCRIMINATOR IS THE TIME AXIS OF THE SITUATION: shoot-day-media is the day — one production, one date, cards and sound rolls as they arrived, a bounded event that ends — while this row is the PERSISTENT store those days accumulate into, whose defining artefacts (the catalogue, the sidecar layer, the backup) only exist because the material outlives the day. A card dump with no index layer over it and a production around it is that row's; the same card six months later, catalogued and sidecared inside a years-deep archive, is this one's. Where both readings hold, they hold together rather than competing, because 00 permits it: \"One file may hold facts from more than one domain without losing information.\" Fixture on the seam: 20260314_cardB.zip, which this row can only call an ingest.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.commissioned-shoot",
+      "signal": "The confusable evidence item is a folder slug that names a client sitting above a set of camera originals. THE DISCRIMINATOR IS WHAT THE FILES HAVE IN COMMON: commissioned-shoot is held together by a job — a brief, a client, a selection, a delivery — and its members include documents that contain no pixels at all; this row is held together by the archive's own machinery and would still exist if the photographer never had a client. Reciprocally: a raw file inside a commissioned job is that row's by purpose and this row's by storage, and neither may read the other's evidence — in particular this row must not read a client name out of a slug, having no field to put it in.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.stock-asset-library",
+      "signal": "The confusable evidence item is a large, dated, well-named image library that belongs to no project. THE DISCRIMINATOR IS PROVENANCE AND USE: a stock library holds material acquired or made TO BE REUSED, typically delivered as finished JPEG/TIFF/vector with licence paperwork and no camera originals behind it; this row holds camera originals whose whole point is that they are unedited masters. A licence file beside the images is the strongest tell for that row; a sidecar layer is the strongest tell for this one.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.post-production",
+      "signal": "The confusable evidence item is the one 00 itself flags for creative formats: \"linked asset names\" — a working file that references media it does not contain. A .lrcat and an editorial project file are the same shape. THE DISCRIMINATOR IS THE MEDIA CLASS AND THE OPERATION: post-production's referencing file assembles moving image and sound into a timeline that is a NEW work; a stills catalogue indexes and rates existing frames without assembling anything. Reciprocally: neither row may claim a referencing database on the reference pattern alone, because the pattern is shared — the referenced media decides.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.family-archive",
+      "signal": "The confusable evidence item is a large, deliberately curated image collection with a batch structure over it. THE DISCRIMINATOR IS WHERE THE PIXELS CAME FROM: that row's material entered by DIGITIZATION — scanner Make/Model, scanner resolution slots, print-proportioned dimensions, no exposure slots — and its whole problem is that no true capture date survives; this row's material is camera-original and its capture date is the one thing that is always present. The two rows would recommend opposite tree orders for the same reason, and that is the cleanest sign they are different situations rather than one.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "photos",
+      "why": "The camera originals under a catalogue legitimately carry the photos schema's facts — 00 declares them: \"Photos may use capture year, event, location, people, camera information, and media type.\" This row declares no fields and cannot compete for them; it adds the archive situation over the top. 00 licenses the double holding outright — \"One file may hold facts from more than one domain without losing information\" — and CONNECTION.md makes activation a set-valued function per file version, so both may be plausible without either winning. This is recorded as also_holds_with rather than as a collision on purpose: the collision with photos is with the camera-events TEMPLATE over which situation is being organised, not with the photos SCHEMA over which facts are true.",
+      "provenance": "design"
+    },
+    {
+      "domain": "construction_property.progress-photos",
+      "why": "STATED RECIPROCALLY AND IN AGREEMENT WITH THAT ROW, which landed first. It argued its own distinctness on capture rhythm — a camera roll visits many places once, a site walk visits one place many times — and recorded photos as also_schema rather than as a rival, citing the same sentence: \"One file may hold facts from more than one domain without losing information.\" This row does not contradict either half. A builder or an architectural photographer who catalogues their site walks produces files that are progress photographs BY RHYTHM AND SUBJECT and catalogued originals BY STORAGE, and both readings are true of the same bytes at once. The one thing this row adds, and it runs in that row's favour rather than against it: being catalogued must never be read as evidence about subject matter, because a catalogue indexes whatever was imported. Fixture named on both sides: Marsh Lane week 14/IMG_2044.HEIC — that row's IMG_2044.HEIC, inside a catalogued tree.",
+      "provenance": "design"
+    },
+    {
+      "domain": "creative.licensing-rights",
+      "why": "Model releases, property releases and licence grants live physically inside dated capture folders and are legally about the originals stored there. The paperwork is that row's and the originals are this row's, and one folder holds both without either claiming the other's evidence. Fixture: model_release_signed.pdf.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "THE CHARACTERISTIC OUTCOME OF THIS ROW, and unusually its FIRST one — which is itself part of the argument that the row is not a photo row. Its two defining artefacts are things the engine deliberately does not open: a proprietary catalogue database, and raw containers the image stack may not decode. 00 defines the home — \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats\" — and the represent-without-moving clause is the operative half here, because moving a catalogue or its originals is the specific harm this row warns about. Fixtures: Lightroom Catalog-v13.lrcat, an .RW2 the stack cannot decode.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The roster's own residual for this row and the honest home for its partly-legible material: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" That is exactly a sidecar with no original in reach, a previews bundle, an uncatalogued card archive, or a catalogued file whose archive-versus-camera-roll reading did not resolve. Fixtures: DSC_0342.xmp, 20260314_cardB.zip, Lightroom Catalog-2026-03-14.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The right home for a camera original that resolved to nothing at all: \"One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.\" A recovered raw file with no sidecar, no catalogue and no run around it is precisely an image with no association. Fixtures: _1050788.RW2, web_export/DSC_0342-2.jpg.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The roster's second residual for this row, and it fits a narrow but real slice rather than the row's bulk — stated narrowly rather than claimed broadly. 00 defines it for \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\", which is the paperwork that strays into a capture folder: a signed model release, an equipment warranty, a usage confirmation. The row's image and database leftovers do NOT go here; sending a raw file to a records residual would bury it. Fixture: model_release_signed.pdf.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Three reasons, and the third is peculiar to this row. First, the material is camera-original: every frame carries the full metadata set 00 keeps behind the local boundary — \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\" — and GPS metadata is named by 00 in its list of what a personal corpus contains: \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\". An archive is worse than a single roll here because it is CUMULATIVE: years of unstripped GPS in one tree is a movement history, which no individual file is. Second, an archive holds people who did not choose to be in it — subjects, clients, bystanders — and the releases that would govern them sit in a different row. Third and specific to this row: the previews bundle means the archive contains THUMBNAILS OF EVERYTHING, including whatever protected material was imported by accident, in a form that is readable at a glance and that a naive duplicate pass could surface. Nothing here is a handling class; this row assigns only the catalogue value potentially_sensitive, and does not assign, alias, rank or infer a P7 class.",
+  "open_question": "Four, none of them smoothed. (1) THE MOVE QUESTION, which is this row's sharpest and is genuinely Joseph's: a catalogue is a database of paths, and 00 makes paths unstable by design — \"A path can change when a file is renamed, moved, synchronized through cloud storage, restored from backup, copied to another volume, or reorganized by the user outside the product.\" The product is safe because \"The stable identity for a file version should therefore be the content hash\"; a third-party catalogue is not. Should the product (a) refuse to propose moves for originals it can see are catalogue-referenced, (b) propose them with a warning, or (c) treat the catalogue as just another file and say nothing? 00 states no rule for a file another application indexes, and the three answers differ in whether the product can silently break something the user values. (2) THE SCOPE FORK THIS ROW NARROWED ITSELF TO SURVIVE: this row claims the index layer and cedes loose camera originals to photos.camera-events. The alternative reading — that a professional's whole archive is one situation including its originals — would make this row and camera-events genuine rivals rather than co-holders, and R1c may prefer it. Recorded as a fork, not settled here. (3) THE PROFESSIONAL/AMATEUR LINE: a serious amateur's Lightroom archive is byte-identical to a working photographer's, and this row sits on the creative schema, whose whole premise is professional practice. If no signal distinguishes them — and none does — either the creative schema activates for amateurs too, or this row also needs a home on the photos schema. (4) DEPENDENCY, NOT A QUESTION THIS ROW MAY ANSWER: NJ-R1a-1, the creative schema question, is open, and the creative schema row is being written in parallel. Its field set decides whether dimension_order here can ever be non-empty and whether the capture-date-first recommendation above becomes real or stays prose. This row records the dependency and resolves nothing about it."
+}

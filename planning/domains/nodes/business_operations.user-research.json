@@ -1,0 +1,423 @@
+{
+  "id": "business_operations.user-research",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "User and customer research",
+  "one_line": "The organizational situation of gathering evidence FROM THE PEOPLE WHO USE A PRODUCT OR SERVICE in order to decide what to build or change: recruitment screeners and consent forms, interview guides and their recordings and transcripts, usability session notes, diary studies, surveys and their raw responses, and the syntheses built on top - affinity maps, personas, journey maps and a findings readout. The organizing anchor is a STUDY run to inform a product decision, and its defining tension is that the raw material is other people's speech and faces while the output is an internal recommendation. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands), and this row's raw material is identifiable third-party speech and video, so the precondition governs everything below it. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a discussion-guide structure: a titled protocol with a warm-up block, numbered open questions, prompts or probes in a distinct typographic register, task instructions, and a wrap-up - written to be READ ALOUD, which is what separates it from a questionnaire.",
+      "a participant-facing consent structure naming what will be recorded, how it will be used, how long it is kept and how to withdraw, with a signature or an acceptance slot - the single most reliable signal for this row and the one that also triggers its protective posture.",
+      "a screener structure: a short qualifying questionnaire with quota or terminate logic and a recruitment or incentive note.",
+      "a session-notes structure: a per-participant record pairing a participant label with observed behaviour, verbatim quotes in quotation marks, and task success or failure notes, repeated across several participants in one file or one file per participant.",
+      "a survey-response export whose header row pairs a response identifier and a submitted timestamp with one column per question, including free-text columns. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a synthesis structure: a persona sheet (a named archetype with goals, frustrations and a demographic sketch), a journey map (stages across a horizontal axis with an emotion or pain row beneath), or an affinity cluster board of short quotes grouped under themes.",
+      "a findings-readout structure pairing each finding with supporting evidence references and a recommendation, addressed to a product audience rather than to an academic one."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating product user research from ACADEMIC human-subjects research, which is the sharpest boundary this row has: an interview guide, a consent form and a transcript are the same four artifacts in both worlds, and the discriminating evidence is a review-board approval reference, a protocol number, a funder and a publication intent on the academic side against a product, a release decision and an internal readout on this side. Where both are present the honest answer is both. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating a user interview from a customer support call, a sales discovery call, a job interview, a market-research focus group and a journalistic interview - all produce a guide, a recording and a transcript.",
+      "deciding whether a survey is run on CUSTOMERS (this row), on the workforce (hr.engagement-survey), or on a market population (market research), when the instrument alone is shown.",
+      "an unlabeled transcript with no header, and a raw recording with a machine-generated filename.",
+      "a purpose-coherent study pack whose members are individually unremarkable - a screener, six audio files, a spreadsheet of notes, a blank consent form and a deck. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "a transcript or an interview recording alone. This is the tempting false file: a transcript is produced by a support call, a sales call, a deposition, a clinical consultation, a podcast and a job interview, and reading any of those as user research would move somebody's private conversation into a product folder.",
+      "the words research, interview, study, participant or user in a filename alone: research names academic work, market work and desk work equally.",
+      "a survey export alone, without evidence of who was surveyed - the same export shape serves engagement surveys, market panels and academic questionnaires.",
+      "an extension or a source_type alone. 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number read as a year, a participant number, or a study reference.",
+      "a screen recording alone, and the absence of camera EXIF is not proof that a capture is a screenshot.",
+      "membership in a download session that dropped a study pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "discussion guide",
+    "interview guide",
+    "moderator",
+    "participant",
+    "P1",
+    "screener",
+    "recruitment",
+    "incentive",
+    "informed consent",
+    "withdraw at any time",
+    "usability test",
+    "task success",
+    "think aloud",
+    "diary study",
+    "contextual inquiry",
+    "affinity map",
+    "persona",
+    "journey map",
+    "pain point",
+    "verbatim",
+    "finding",
+    "recommendation",
+    "readout",
+    "sample size",
+    "saturation",
+    "survey response",
+    "net promoter"
+  ],
+  "work_types": [
+    "study plan, research brief, or discussion guide",
+    "screener or recruitment questionnaire",
+    "participant consent form or information sheet",
+    "session recording or screen capture",
+    "transcript",
+    "session notes or observation grid",
+    "survey instrument and response export",
+    "affinity map, cluster board, or coding sheet",
+    "persona, journey map, or service blueprint",
+    "findings readout, report, or highlight reel",
+    "research repository entry or atomic insight record"
+  ],
+  "grouping_reasons": [
+    "one study: the guide, the consent forms, the recordings, the transcripts, the notes, the synthesis and the readout, held together by purpose rather than content - the clearest instance in this family of “The documents are content-incoherent but purpose-coherent.”",
+    "one participant's session across its artifacts - recording, transcript, notes and consent - which is a real reason to group and simultaneously the grouping most likely to build an unwanted dossier on a named individual.",
+    "one readout across its drafts and its final - a version family, since findings decks are circulated before they are presented.",
+    "a raw recording with a machine-generated filename joins the study neighbourhood without acquiring a study or participant fact: “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single persona sheet with no study behind it is a standalone artifact."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch. Held as prose for the pass that may license fields: the natural anchor is the study, then the document function - protocol, raw session material, synthesis, readout - with the fielding period last, because “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” and a transcript is unintelligible before the reader knows which study produced it, exactly as 00's Homework 3 is meaningless before the course. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The privacy caveat constrains the recommendation directly and is the one thing this row is most confident about: a per-PARTICIPANT level must NOT be recommended. It is the natural second level, every researcher's instinct, and it would create a folder named after a named third party holding their recorded face, their voice and their signed consent - the collector 00 rules out, “A folder should not become a collection point for everything produced by the same person or organization.” Raw session material should stay shallow and protected, and “Protected branches should have configurable redaction in the canvas and review screens”."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "audio_video",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "design_creative"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".txt",
+      ".vtt",
+      ".mp4",
+      ".m4a",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".png",
+      ".fig",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Checkout study - discussion guide v2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a warm-up block, twelve numbered open questions with indented probes, three task instructions and a wrap-up",
+        "timings in the margin",
+        "a moderator note in a distinct style",
+        "a version token in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "that a moderator name is a destination: “It should avoid using authorship or creator identity as a destination dimension.”",
+        "a study fact copied onto every file in the same directory",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "P04 consent signed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scanned consent form with a participant's printed full name, an email address and a handwritten signature",
+        "recording, retention and withdrawal clauses",
+        "no extractable text layer until OCR",
+        "a date and a study title"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a person fact used as a folder proposal - a per-participant level is exactly what this row's template refuses to recommend",
+        "that a consent form is administrative paperwork: it is a signed identity document naming a third party, and it enters a protected state on its own evidence",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "P04_session_20260512.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "a screen-and-webcam recording from a remote session",
+        "machine-generated filename carrying a participant label and a date token",
+        "container metadata names a conferencing application",
+        "no transcript exists at scan time"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a study fact from the neighbouring guide - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that the file is harmless because it is unreadable at scan time: it is a named person's face and voice, and the screen share may show their own accounts",
+        "that transcription or frame extraction may proceed outside the user's policy; any model path is gated by P7 first",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "transcript_P04.vtt",
+      "source_type": "text_document",
+      "observations": [
+        "timestamped caption cues with two speaker labels",
+        "the participant volunteers an employer, a home city and a bank name while describing a task",
+        "no study title anywhere in the file",
+        "machine-generated by a transcription service"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a study fact when the file names none",
+        "that volunteered personal detail inside a transcript is research content - an account or employer named in passing is exactly the material 00 requires be protected on sight",
+        "activation of this row from a transcript alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "survey_responses_may.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a response identifier, a submitted timestamp, an email column and one column per question",
+        "several free-text columns",
+        "a few hundred rows",
+        "machine-generated filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "who was surveyed from the instrument alone - customers, employees and a market panel produce the identical export, and the three readings sit in three different rows with three different postures",
+        "that a table of short cells is low-risk: it is a bulk register of named respondents and their opinions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Personas - v3.fig",
+      "source_type": "design_creative",
+      "observations": [
+        "four named archetype cards with goals, frustrations and a demographic sketch",
+        "stock portrait images",
+        "a design-tool binary with a version token",
+        "a comments layer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that the archetype names are real people - a persona is a fabricated composite, and treating its name as a person fact is a specific error this row must avoid",
+        "which of this row and a creative design row owns it when the file lives in a design workspace",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Interview - Dr Adeyemi - IRB 2026-114.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a semi-structured guide with open questions and probes",
+        "a review-board approval reference and a protocol number in the header",
+        "a participant information sheet appended",
+        "a funder acknowledgement line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row alone: the guide-and-consent shape is present in full and the approval reference, protocol number and funder are academic anchors - this is the collision fixture against research.ethics-compliance, and it may legitimately hold BOTH readings where a study also informs a product",
+        "a product decision from an academic protocol",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Findings readout - checkout.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "eight findings, each with a verbatim quote slide and a recommendation",
+        "a method slide naming the number of sessions and the recruitment criteria",
+        "a highlight-reel video embedded in one slide",
+        "a corporate slide master"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a synthesis is de-identified because it uses participant labels - an embedded highlight reel shows faces and voices, so the deck inherits the raw material's exposure",
+        "a finding or a recommendation as a fact of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Discovery call - Northwind Ltd.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a question list about budget, authority, need and timing",
+        "notes on a named company's buying process and incumbent supplier",
+        "a next-steps block naming a proposal date",
+        "an account executive's name in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the interview-notes shape is present and the purpose is selling, not learning - this is the second collision fixture, and it belongs to the partnerships or account rows",
+        "a research finding from a sales note",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "research.ethics-compliance",
+      "signal": "The sharpest boundary this row has. A protocol, a participant information sheet, a signed consent form and a transcript are the same four artifacts in product research and in academic human-subjects research. The discriminating evidence: a review-board approval reference, a protocol number, a funder, a training certificate and a publication intent supports the academic row; a product, a release decision, an internal readout and a commercial recruitment incentive supports this row. Where both are present - industry research published at a venue, or academic work commissioned by a product team - the honest answer is both, and the also_holds_with edge below carries it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.project-workspace",
+      "signal": "A research project workspace holds a study's guide, data and analysis in the same arrangement this row would use, and the word study means the same thing in both. The discriminating evidence: a research question aimed at knowledge, a method section written for peers, and a venue or manuscript downstream supports the research row; a product decision downstream supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.market-research",
+      "signal": "Both investigate people to inform a commercial decision, and a survey export is identical in both. The discriminating evidence: existing or prospective USERS of a specific product, observed doing tasks, supports this row; a market, a category, a competitor set and a population that need not have used anything supports market research. Focus groups sit genuinely between them. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.product-requirements",
+      "signal": "Findings become requirements, and a requirements document routinely quotes research verbatim and cites session references. The discriminating evidence: evidence gathered from participants with a method supports this row; a specification of intended behaviour with acceptance criteria supports the requirements row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.engagement-survey",
+      "signal": "An engagement survey is a survey run on people, with the same instrument, the same export and the same free-text sensitivity - the only difference is that the respondents are the organisation's own workforce. The discriminating evidence: workforce framing, team or department breakdowns and an action-planning follow-up supports the hr row; a product, a customer segment and a design decision supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.support-operations",
+      "signal": "A support call transcript and a research interview transcript are the same artifact, and support corpora are routinely mined for research insight. The discriminating evidence: a ticket identifier, an agent, a fault and a resolution supports support; a discussion guide, a consent form and a task-based session supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "A job interview produces a guide, notes, a recording and a scoring grid - the same four shapes, with a candidate in the participant's place. The discriminating evidence: a role, a vacancy reference, a CV and a hiring decision supports the recruiting row - and carries its posture; a product task and a research question supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "A sales discovery call and a customer business review both interview a named customer about their needs, and are frequently mislabelled research. The discriminating evidence: a buying process, an incumbent supplier, a proposal date or a renewal frame supports the account rows; a study protocol with consent and a method supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "research",
+      "why": "One study can legally carry both schemas on disjoint evidence, and this is 00's abstract-and-application shape in a product setting: a usability study run inside a company and also submitted to a venue holds a product decision and an internal readout on one side, and a protocol number, a review-board approval and a publication intent on the other, in the same folder and often in the same document. This is a join, not a mutex - the collides_with entry above governs the case where the SAME evidence would be misread, and this edge governs the case where two independent evidence sets are both true. research is not a safety schema, but participant-identifying members carry protection on their own evidence regardless of which schema activates. AUTHORED ONE-WAY HERE: the landed research rows do not name business_operations, and R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for a signed consent form, a transcript carrying volunteered personal detail, or a survey export naming respondents, when no accepted study group or approved branch exists. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a persona sheet, a readout or an unlabeled transcript whose study association is unresolved - and the honest default whenever the product-versus-academic question above is open. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone guide, screener or blank consent template carrying no participant. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an untranscribed session recording or a password-protected study archive - the most common state of this row's rawest and most exposing material. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "The home for a highlight clip cut from a session and kept as illustrative material with no accepted study association. Named among 00's residual homes for video with no strong project link; stated as inference because 00's sentence describes the destination rather than this use of it.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The raw layer of this row is identifiable third-party speech and video collected under an explicit promise about how it would be used - which makes careless handling not merely a privacy problem but a breach of the consent that licensed the collection. A session recording is a named person's face and voice plus whatever their shared screen showed; a transcript routinely contains an employer, a home city, a bank or a health circumstance volunteered while describing a task; a signed consent form is itself an identity document naming a third party. 00 names the corpus - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and an account or medical detail surfacing inside a transcript warrants the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”, and the per-participant aggregation this row refuses to recommend is ruled out by “A folder should not become a collection point for everything produced by the same person or organization.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether this row and the landed research.* rows should stay separate. The dispatch brief asked the question directly and this pass read the research rows before answering rather than assuming. The answer is yes, separate, for two reasons that are about the situation rather than the vocabulary: the outputs differ absolutely - a product study ends in an internal readout that changes a backlog, an academic study ends in a manuscript at a venue and is governed by a review board - and the governance differs, since research.ethics-compliance exists precisely to hold the approval apparatus that product research usually does not have. What this pass could NOT settle, and states reciprocally: the industry-research case where BOTH are true, which is carried here as an also_holds_with join to the research schema with the reciprocal owed by R1c. A second open item for Joseph: whether the raw session layer (recordings, transcripts, consent) should be a protected sub-situation with its own posture rather than a work_type inside this row - it is the only material in the whole business_operations family collected under a promise to a third party, and that promise arguably deserves its own mechanism."
+}

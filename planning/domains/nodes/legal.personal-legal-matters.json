@@ -1,0 +1,760 @@
+{
+  "id": "legal.personal-legal-matters",
+  "kind": "template",
+  "schema_id": "legal",
+  "parent_id": null,
+  "name": "Personal legal matters",
+  "one_line": "A safety-only situation for court, tribunal, agency and pre-action records held by a person in their own dispute or proceeding: filings, service papers, hearing notices, evidence indexes, counsel correspondence, sworn statements, settlements, orders and appeals. It recognizes holder-facing matter structure, writes no Legal fields, recommends no folder dimensions, and protects before any model or placement path.",
+  "launch": "safety",
+  "provenance": "design",
+  "design_cite": "00 names the situation among its template coverage: 'covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections.' It then requires: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' It also permits isolated surfacing: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.'",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a PERSONAL COURT OR TRIBUNAL RECORD that satisfies the existing R2 rule family det-legal-court-filing - a caption in heading position together with case-structure labels - AND contains direct holder-role evidence in the same file, such as the holder named as a party, the document addressed or served to the holder, or the holder's completed signature block. The detector rule protects any matching filing; the added holder relation is what selects this narrower template. No labels, regexes, counts or jurisdiction values are copied here",
+      "a PARTY-FACING SUMMONS, WRIT, CLAIM, COMPLAINT, ANSWER, ORDER OR HEARING NOTICE with an official court or tribunal heading, a caption or labelled party-role block, a matter-reference slot, and a service, response, signature or recipient block tied directly to the holder. The matter reference is an observation only; the field-less Legal schema cannot store it",
+      "a NOTICE OF ELECTRONIC FILING or equivalent court-generated filing receipt in a native email record whose structured sender and subject slots, case name or reference, docket-entry description, attached-document name and recipient or service block cohere as one filing event involving the holder. The email source type and a court-looking sender domain are never enough",
+      "a REPRESENTATIVE-TO-HOLDER LETTER whose addressee block identifies the holder, whose subject or early body carries an explicit case, claim or dispute reference, and whose text states a concrete filing, instruction, request or procedural update. A law-firm name, lawyer title, privilege footer or letterhead is never enough",
+      "a SWORN MATTER STATEMENT that satisfies the existing R2 rule family det-legal-notarized-instrument through a populated notarial or attestation block AND separately carries a case, claim, agency proceeding or dispute reference tied to the holder. The R2 rule protects a broader class of instruments; the matter reference is what selects this template, and a blank jurat or notary advertisement selects nothing",
+      "a SIGNED SETTLEMENT, CONSENT ORDER OR RELEASE whose recitals identify an existing dispute, claim, proceeding or demand, whose operative provisions resolve that dispute, and whose execution block is completed. An execution block without dispute context belongs to broader Legal protection or legal.leases-agreements, not automatically to this personal-matter situation",
+      "a MATTER EVIDENCE INDEX or disclosure list in a spreadsheet or structured document whose title or header carries a caption or claim reference and whose labelled columns enumerate exhibits, filings or service records. The index can anchor a candidate matter group, but its row values never become Legal facts and never propagate to the indexed files",
+      "an ARCHIVE MANIFEST, read without unpacking, in which a caption or matter reference recurs across filing-, notice-, exhibit- and correspondence-shaped member names together with manifest-visible direct holder evidence through a party-, recipient- or signer-shaped member. The archive remains one file version; member observations do not become facts on the outer archive or vice versa",
+      "a CALENDAR record whose labelled summary carries both a hearing, conference, mediation or tribunal function and an explicit case or claim reference, with the holder present in a structured attendee, organizer or party-facing note. Calendar is a source type, not a domain, and the event's times are observations rather than Legal facts"
+    ],
+    "needs_llm": [
+      "an unlabelled demand, termination, complaint or response letter whose operative force is expressed only in prose. A bounded local or explicitly permitted model may distinguish a genuine dispute step from an ordinary customer complaint, negotiation draft or emotional note; it must cite the operative sentence or return unknown",
+      "a published judgment, law-school case, research download or news attachment whose court caption is byte-for-byte indistinguishable from a personal filing but has no direct holder relation. R2 may over-protect it safely; selecting this template requires local custody or purpose evidence and must remain unknown when that evidence is absent",
+      "a screenshot of a court, tribunal, regulator, mediation or lawyer portal. OCR may expose a caption, reference and status text, but a model must distinguish a holder-facing case page from a news result, public docket, training system or saved reference and must not treat the displayed status as current",
+      "a multilingual or jurisdiction-unmodelled filing whose labels are outside the injected legal-caption gazetteer. Protection stays first; a model may interpret only a compact, consent-authorized local dossier and may not invent a jurisdiction, document kind, party role or outcome",
+      "a heterogeneous evidence bundle whose lease, receipts, photographs, messages and forms may support one dispute. The model may assess candidate group coherence and outliers from manifest and file-local evidence, but it may not copy a matter reference, party, date, amount or allegation onto a sparse member",
+      "a representative's letter that names a firm and a matter but does not clearly identify whether the holder is client, opponent, witness, employee or a reader. Firm identity and legal vocabulary cannot decide the role",
+      "a shared pleading or order found in both a person's records and a law firm's exported client file. If neither party-facing custody evidence nor practice-only operational evidence is present, the personal-versus-practice template choice must abstain",
+      "a notice at the boundary with tax, insurance, association, licensing, schooling or immigration administration. The model may apply the authored collision discriminators to the same evidence item; it may not treat every appeal, hearing, penalty, deadline or statutory citation as a personal legal proceeding",
+      "a signed instrument that could be an estate-planning document, an ongoing lease or agreement, or a settlement inside an active matter. The operative function and surrounding matter evidence decide the template; signature, notary and governing-law language alone do not"
+    ],
+    "never_alone": [
+      "R2's det-legal-court-filing firing by itself. A published judgment or blank public court form may carry a caption and case labels; that is enough to protect, not enough to assert that the holder is personally involved",
+      "a court, tribunal, regulator, law firm, lawyer, mediator, bailiff or legal-aid organization name, logo, email domain, letterhead, footer or producer metadata. The same organization may be issuer, counsel, opponent, cited authority, publisher, employer or template producer",
+      "a person or organization name next to plaintiff, defendant, claimant, respondent, applicant, witness, attorney, client or party. The role must sit inside a coherent proceeding structure and connect directly to the holder; a named third party is not the holder",
+      "a case-, claim-, docket-, reference- or account-number-shaped token. Its digits do not become a year, its prefix does not prove a court, and no Legal field exists to store it",
+      "the words legal, case, claim, complaint, dispute, demand, notice, hearing, appeal, order, judgment, settlement, release, signed, executed, notarized, confidential, privileged or without prejudice in a filename, subject line or isolated body passage",
+      "a signature line, notary seal, jurat phrase, apostille, witness block, court stamp, barcode, watermark or statement-of-truth clause. Blank templates, school permissions, ordinary agreements and identity records share those observations",
+      "an amount, address, deadline, hearing date, filing date, statutory citation, regulation, clause number, allegation or remedy. These can occur in tax, insurance, housing, school, licensing and ordinary administrative records and none is a Legal fact on this field-less schema",
+      "a source type or extension: text_document, ocr, image, spreadsheet, email, calendar, archive or opaque_binary; .pdf, .docx, .eml, .ics, .xlsx, .png or .zip. File kind is a routing clue and is constitutionally never sufficient",
+      "a folder named Legal, Court, Case, Lawyer, Important or Evidence, a scanning or download session, or several files sharing one party name. Existing curated structure may retrieve a bounded neighborhood, but grouping and path context do not write facts or prove template membership by themselves",
+      "semantic similarity, a neighboring group's matter label, or another file's caption. The graph assembles context rather than propagating a case reference, party, outcome, date or document kind onto this file",
+      "missing EXIF, a missing or broken text layer, OCR density, scanner metadata or a screenshot-style filename. Those observations decide an extraction path or capture hypothesis, not legal content",
+      "a portal badge, search-result snippet or screenshot reading filed, granted, dismissed, paid, closed or served. It is a saved observation at one time, not proof of the matter's current status or legal effect",
+      "a public court record's availability or a filing's apparent redaction. Publicly accessible does not mean non-sensitive, complete or appropriate for a cloud dossier",
+      "an unreadable, encrypted, damaged or unsupported file's filename. It remains metadata-only and routes to controlled review; the system does not infer a personal matter from the name"
+    ]
+  },
+  "work_types": [
+    "claim, complaint, petition or application",
+    "summons, writ, service or acknowledgment record",
+    "answer, response, defence or counterclaim",
+    "motion, procedural application or submission",
+    "affidavit, declaration or witness statement",
+    "demand, cure or pre-action correspondence",
+    "counsel or representative correspondence",
+    "filing receipt, docket notice or electronic filing notice",
+    "hearing, conference, mediation or trial notice",
+    "evidence, disclosure or exhibit index",
+    "evidence or correspondence bundle",
+    "settlement, release or consent order",
+    "judgment, order, award or decree",
+    "appeal, review or reconsideration record",
+    "enforcement, lien or collection proceeding record",
+    "administrative or disciplinary proceeding record",
+    "family, custody or guardianship proceeding record",
+    "notarized matter affidavit or attestation"
+  ],
+  "grouping_reasons": [
+    "one personally held dispute or proceeding across its initiating papers, responses, notices, correspondence, evidence, settlement and order. A supported group keeps direct anchors separate from context-supported members and copies no matter attribute onto either",
+    "one pre-action dispute that later becomes a filed proceeding, when explicit references and direct party-facing evidence bridge the demand, response and filed papers. Similar subject matter or the same opponent name is not enough",
+    "one proceeding across native filings, filing-receipt emails, hearing calendar records and portal screenshots. Each file keeps only its own observations; the group label is not a fact",
+    "one evidence bundle whose index or manifest is the anchor and whose member files remain individually reviewable. Archive contents are inspected as a manifest and are not unpacked to disk",
+    "one filing or statement across drafts, corrected copies and served or stamped versions through the universal version_family and duplicate_family facts, not through a Legal-only status field",
+    "one personal matter that overlaps an accepted tax, insurance, association, school, credential, immigration, medical or identity group. Multi-membership is allowed at the group/schema level; the collision edge only prevents one shared observation from doing two jobs",
+    "one rare protected legal document by itself. The design explicitly permits legal documents to surface as protected records without meeting a normal group-size threshold",
+    "NOT a grouping reason: a shared law firm, court, party, statute, amount, date, folder name, download session or embedding neighborhood with no independently identified matter anchor"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract and by safety. This template uses the D1-deferred, field-less Legal schema, so no destination-eligible key exists and no matter, party, court, case number, status, outcome, deadline, jurisdiction or document kind may be smuggled in as a branch dimension. Safety activation unlocks protection rather than a deep filing tree, and a matter- or party-named branch could itself disclose protected information. The row remains useful because its holder-facing matter recognition, sibling boundaries and privacy rules differ from the broad Legal schema. It is not time-first: dates are evidence inside a matter, not an automatic folder axis. A user may later attach an accepted matter group to a user-approved protected node; this row recommends no automatic depth.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".rtf",
+      ".txt",
+      ".html",
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".heic",
+      ".tif",
+      ".tiff",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".7z"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Complaint - Lee v Northstar Retail Ltd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading carries a court name, a civil-action caption and a labelled case-number slot",
+        "separate plaintiff and defendant blocks name the parties and their roles",
+        "sections identify the factual allegations, requested relief and attached exhibits",
+        "the holder appears in a party block and completes the filing-address and signature sections"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a matter, court, case_number, party, allegation, remedy, filing date, status or outcome fact; the Legal schema declares no fields",
+        "that the allegations are true, that the complaint was accepted, served or adjudicated, or that the displayed address is current",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Summons and Complaint - served scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "the PDF has no usable native text layer and routes to OCR",
+        "OCR recovers a court heading, plaintiff and defendant labels, a civil-action reference and a summons title",
+        "a service section is completed with recipient, server and date-labelled values",
+        "the holder is named as the served party"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any Legal-domain field; OCR observations remain observations on a field-less schema",
+        "that service was legally effective, that the OCR'd response period is still live, or that a scanner timestamp is a service date fact",
+        "that dense OCR or a missing text layer proves legal content without the caption and role structure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice of Electronic Filing - Lee v Northstar.eml",
+      "source_type": "email",
+      "observations": [
+        "structured sender and subject slots identify a court filing-notice system and a case caption",
+        "the body labels a case reference, filing timestamp, filing party, document number and docket-entry text",
+        "recipient and non-electronic-service sections are separately labelled",
+        "an attachment name matches the filing event"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a filed, served, current_status, case_number, party or deadline fact; none exists in the Legal schema",
+        "that every party was served or that the attached filing says what the notice's docket text summarizes",
+        "a cloud dossier containing recipient addresses, case caption or docket text"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Letter from Counsel - Re Deposit Claim.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a law-firm letterhead appears in the header",
+        "the addressee block names the holder and the subject line carries an explicit claim reference",
+        "the body requests a document and describes a filing step",
+        "the footer contains a confidentiality notice and the DOCX creator metadata names a document-assembly tool"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "representation, privilege, advice, party role, matter, status or deadline as a Legal fact",
+        "activation from the firm name, privilege footer or creator metadata alone",
+        "that the requested document inherits any matter fact from this letter"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Demand for Deposit Refund.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose describes a deposit, a prior request and a requested repayment",
+        "the body cites a clause and states an intended next step if payment is not received",
+        "there is no court caption, case reference, law-firm letterhead or notarial block",
+        "the filename contains only a generic demand phrase"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "deterministic personal-matter activation; this is the bounded needs_llm case and the model must cite operative prose or return unknown",
+        "that a quoted clause proves a valid agreement, breach, amount owed, deadline or legal consequence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Small Claims Evidence Index.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "the title region names an evidence index and repeats a claim reference",
+        "column headers distinguish item, description, source file, date and page or exhibit marker",
+        "rows list a lease, receipts, photographs, messages and correspondence",
+        "the workbook contains links to local filenames but no embedded copies"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a case_number, evidence_type, party, date, amount or outcome fact; no Legal field exists for any of them",
+        "that every listed file belongs in the matter, exists, is authentic or inherits the index's reference",
+        "that spreadsheet source type or formula cells prove a legal record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Hearing Notice - Claim HKSCT-Example.ics",
+      "source_type": "calendar",
+      "observations": [
+        "the labelled SUMMARY slot carries a hearing function and a claim reference",
+        "the DESCRIPTION slot names a tribunal and identifies the holder's party-facing attendance instruction",
+        "structured start, end, location, organizer and attendee slots are present",
+        "no attachment is embedded"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar, the .ics extension, location or organizer address",
+        "an event fact in the Photos sense, a live deadline, hearing status, attendance, result or case fact",
+        "that neighboring filings inherit the calendar record's times"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Case Bundle - Tenancy Deposit Dispute.zip",
+      "source_type": "archive",
+      "observations": [
+        "the archive manifest is read without extracting members to disk",
+        "member paths include a claim form, acknowledgement, lease, evidence index, receipts, photographs and correspondence",
+        "a claim reference recurs in filing-shaped member names and one letter is addressed to the holder",
+        "the outer filename gives a proposed matter description but is not the decisive evidence"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every member belongs to one matter or that the archive's observations are facts on its members",
+        "a matter, party, amount, date, claim reference or document-kind fact on the outer archive",
+        "that the lease and receipts lose their independently supported Legal or Finance readings"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot - Tribunal Portal - Filing Accepted.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG format, display-shaped dimensions and software metadata support a screen-origin hypothesis",
+        "OCR recovers a tribunal heading, a claim reference, party-facing navigation and a filing-status badge",
+        "the holder's name appears in an account or party block",
+        "no camera EXIF is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from missing EXIF alone; the positive screen-origin evidence is required and Photos activates independently",
+        "that the displayed filing status is current, legally effective or a stored Legal fact",
+        "a personal matter when the same OCR could come from a public docket, training portal or saved news page without the holder relation"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Affidavit - Deposit Dispute - notarized.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the heading identifies an affidavit and repeats a claim reference",
+        "numbered paragraphs identify the affiant's role and attach referenced exhibits",
+        "a populated signature block and a labelled notary jurat appear at the end",
+        "the holder is the named affiant"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that notarization proves the statements true, authentic, admissible or current",
+        "an affiant, notary, case reference, execution date or exhibit fact; the schema is field-less",
+        "activation from the jurat phrase or signature line without the populated block and matter relation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Settlement Agreement and Release - Claim 88213.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title identifies an agreement and release",
+        "recitals name a carrier, claimant and underlying claim reference",
+        "numbered clauses state settlement and release terms",
+        "an execution block contains completed signatures and a notary line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that carrier, claim number or amount evidence belongs exclusively to Insurance, or that recitals and execution erase Finance activation",
+        "a settlement amount, party, claim, outcome, governing law or execution-date fact",
+        "that the release's legal effect or completeness can be determined by this organizer"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Order Granting Name Change.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a court heading, caption and labelled case reference appear on page one",
+        "the holder is named in the petitioner role",
+        "an operative order states the requested name change and carries a judicial signature block",
+        "a certification or filing stamp appears on the final page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an old_name, new_name, legal_status, court, case_number, order_date or current-identity fact; neither field-less schema legitimises those fields",
+        "that Identity and Legal are mutex on the file; identity function and proceeding structure may activate both on disjoint evidence",
+        "that a seal, authority or person name may count twice in the collision decision"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice of Assessment Appeal - Tax Tribunal.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an authority block and labelled assessment section identify a tax year and amount",
+        "a tribunal heading, appeal reference and party roles identify a contested proceeding",
+        "a representative block and hearing instruction are present",
+        "the same authority name and reference recur across the tax and proceeding sections"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "tax_year from the Legal schema; Finance may extract it only from its own labelled evidence",
+        "a liability, amount owed, deadline, appeal status, tribunal outcome or representation fact",
+        "that the authority name, reference, amount or deadline decides the Finance-versus-personal-matter collision"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "HOA Lien Demand and Hearing Notice.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "association and management roles are separately labelled",
+        "the document cites a governing rule, account charge and prior violation notice",
+        "an attorney demand section states a contested collection step and a hearing or lien process",
+        "the holder is identified as the recipient and owner or member"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that association, address, charge, rule citation, cure date or letterhead alone makes a personal legal matter",
+        "a valid lien, debt, violation, deadline, outcome or party fact",
+        "that the association's Finance reading disappears when disputed-proceeding evidence activates Legal"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Custody Order - School Enrollment and Records.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a family-court heading, case caption and party-role block appear on page one",
+        "the operative order addresses enrollment, educational decision-making and release of school records",
+        "a child and a school are named inside the order",
+        "a judicial signature and filed stamp appear at the end"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "school, term, subject, child, custody status, guardianship, case, outcome or order-date as Legal facts",
+        "that school letterhead, a statutory citation or a records-release clause alone decides between K-12, Homeschool and a legal proceeding",
+        "that the allegation or ordered arrangement is safe to expose in a branch label or cloud prompt"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Immigration Appeal Decision.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tribunal heading, appeal reference and appellant/respondent roles identify a proceeding",
+        "the decision discusses an immigration application and a prior administrative decision",
+        "the holder is named in the appellant block",
+        "an operative disposition and signature block appear at the end"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "immigration status, permission, nationality, appeal outcome, current validity, tribunal or case reference as Legal facts",
+        "that Identity and Legal template situations are mutex; the file may co-activate both schemas on disjoint evidence",
+        "that the personal-matter template supplies a purpose field outside College Applications"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Professional Board Disciplinary Hearing Notice.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a licensing board heading, proceeding reference and respondent role identify an administrative case",
+        "the notice names the holder's credential and schedules a disciplinary hearing",
+        "allegations and possible sanctions are listed separately from the holder's current credential display",
+        "a service block identifies the holder as recipient"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "credential status, discipline, guilt, sanction, hearing outcome, current authorization or case fact",
+        "that a board name, licence number, hearing date or allegation alone activates this template",
+        "a template-level mutex with career.credentials-licenses; proceeding and credential evidence may support both schemas rather than competing"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Last Will and Testament - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the title identifies a will and the body contains dispositive clauses",
+        "testator, witness and executor roles are labelled",
+        "signature, witness and notarial or self-proving blocks are completed",
+        "there is no court caption, dispute, claim, adversarial party or holder-facing proceeding"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this personal-matter template from notarization or execution alone; legal.estate-planning is the sharper situation",
+        "beneficiary, executor, validity, revocation, current effect, execution date or any Legal-domain fact",
+        "that R2's notarized-instrument protection is a template-selection verdict"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Residential Lease Agreement - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the title and recitals identify a residential lease and bound parties",
+        "numbered clauses cover the premises, term, payment and obligations",
+        "the execution block is completed",
+        "there is no demand, complaint, court caption, contested proceeding or settlement context"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this personal-matter template from the address, bound parties, numbered clauses or execution; legal.leases-agreements is the sharper situation",
+        "property, party, payment, term, governing law, validity or execution-date facts",
+        "that a later dispute group's facts may be copied backward onto the lease"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Practice Matter Export - Client Example-0087.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest exposes a client-matter identifier and a law-office case-management export structure",
+        "member paths separate client intake, conflicts, internal memoranda, research, time records, correspondence, pleadings, evidence and closing memorandum",
+        "several internal work-product and fee-record members have no party-facing counterpart",
+        "the archive is inspected as a manifest without unpacking"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this personal-matter template; professional custody and practice-only operational structure make legal.practice-matter-file the sharper situation",
+        "a client, matter, privilege, fee, status, deadline or outcome fact",
+        "that a standalone shared pleading with no custody evidence can be forced to either template"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Published Judgment - Public Interest Case.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the document carries a court heading, caption, case reference and judicial reasons",
+        "a public-law website appears in metadata or download provenance",
+        "no party, recipient, signature, service block or correspondence ties the holder to the case",
+        "the file was saved with several articles for reading"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "download_session",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this personal-matter template merely because det-legal-court-filing protects the document",
+        "that download provenance or a public URL proves topic, purpose, party involvement or non-sensitivity",
+        "a case, court, party, judgment, precedent or outcome fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Blank N1 Claim Form.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an official blank form contains court, claim-number, claimant, defendant, particulars and statement-of-truth labels",
+        "party, claim and signature slots are unpopulated",
+        "guidance text explains how the form may be used",
+        "no holder relation or live matter evidence appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this personal-matter template from form shape, official branding or legal vocabulary alone",
+        "that blank labels create party, case, court, claim or signature facts",
+        "that keeping a reusable form means the holder intends to file it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "encrypted-case-materials.7z",
+      "source_type": "archive",
+      "observations": [
+        "the archive is password-protected and its member manifest cannot be read",
+        "basic filesystem and archive-format metadata are retained",
+        "the filename contains a generic case phrase",
+        "no content, party, caption, service or holder-role evidence is available"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Legal or personal-matter activation, purpose, sensitivity class, matter, party or document kind from the filename",
+        "that the archive should be opened, unpacked, decrypted, moved or sent to a model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "academic.homeschool",
+      "signal": "Home-instruction filings and personal legal proceedings can name the same child, school year, education authority, statute, deadline and parent. A completed education-authority notice or home-instruction compliance form is the Homeschool situation; a court or tribunal caption, adversarial party roles, service or hearing structure, and direct holder relation make the personal-matter situation. A statute, parent signature, official addressee or attorney letterhead alone decides neither. This reciprocates the landed neighbor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.k12-schooling",
+      "signal": "Custody orders, guardianship affidavits, records-release authorizations and truancy papers can name the same child, school and year as ordinary K-12 records. Enrolled-student, school-issued record structure makes K-12; a proceeding caption, party roles, operative order or populated sworn block tied to the holder makes the personal legal matter. School letterhead, a child name, seal, citation or date alone decides neither. This reciprocates the landed neighbor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.hoa-residents-association",
+      "signal": "Association enforcement and a contested legal matter share the association, member, address, rule citation, charge and deadline. An association-issued cure, architectural, hearing or board-review workflow without filed or adversarial matter structure is the HOA situation; a filed lien, contested collection, representative-to-holder demand, court or tribunal caption, settlement, appeal or operative order makes the personal legal matter. The allegation, amount, address and letterhead settle neither side. This reciprocates the landed neighbor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "A corporate liability claim and its legal dispute repeat the carrier, organization, claim reference, loss description and amount. A labelled policy, coverage, reserve, claim-register or loss-run structure reports on insurance; recitals identifying a dispute, adversarial correspondence, proceeding structure or an executed settlement resolving that dispute supports the personal legal matter. Carrier, claim reference, amount or reservation wording alone counts for neither. This reciprocates the landed neighbor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-personal",
+      "signal": "A household liability claim and a personal legal matter share the people, loss event, claim reference and money figure. Carrier-issued claim, policy, estimate and coverage slots make Personal Insurance; a court caption, adversarial party roles, representative-to-holder matter letter or dispute-and-execution structure makes the personal legal matter. The claim number, person name and amount must not count twice. This reciprocates the landed neighbor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "A tax assessment, objection and tribunal dispute can repeat the authority, reference, tax year, amount and deadline. A labelled tax-year and assessment or return structure supports Tax Filings; a tribunal or case caption, adversarial roles, legal-representation block and contested-proceeding function support the personal legal matter. The authority, reference, amount and deadline decide neither side by themselves. This reciprocates the landed neighbor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "Birth, citizenship, naturalization and name-change records can establish identity or status and also record a legal act or order. A document whose own function is proving a bearer or civil status supports Core Identity; a proceeding caption, party roles, direct holder relation and operative order support the personal legal matter. One authority name, seal, person name or document number must not count twice. This reciprocates the landed neighbor.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.estate-planning",
+      "signal": "Wills, trusts, powers of attorney, advance directives, probate papers and contested-estate filings share people, signatures, witnesses, notarial blocks and legal vocabulary. A planning or end-of-life instrument that creates or delegates future authority without an adversarial matter belongs to Estate Planning; a contest, claim, court caption, party roles, service, hearing or operative adjudicative order supports Personal Legal Matters. A notary block, named relative, executor term or court name alone decides neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "An executed lease, agreement, amendment, release or settlement and a dispute file share parties, addresses, defined terms, numbered clauses and signatures. An instrument creating or recording an ongoing consensual obligation without dispute structure belongs to Leases and Agreements; a demand, filed claim, proceeding caption, contested party roles or settlement explicitly resolving an existing dispute supports Personal Legal Matters. Signature, governing-law language and party names alone decide neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "A party's personal copy and a lawyer's professional file can contain byte-identical pleadings, orders, evidence and correspondence. Direct service or addressing to the holder, holder party/signature roles and absence of practice-only operations support Personal Legal Matters; a client-matter system export, firm matter identifier, conflicts/intake records, internal legal research or work product, time or client-ledger records, task plan and closing memorandum support the Practice Matter File. A standalone shared pleading with neither custody signal remains unresolved rather than being forced to either template.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary fallthrough for an isolated court paper, sworn statement, representative letter, settlement or order whose deeper matter group is absent or unsafe to expose. Legal forms and documents are explicitly within the protected residual boundary, and protection does not require a large group.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For an unlabelled demand, ambiguous representative letter, sparse evidence index, custody-ambiguous pleading or mixed bundle whose legal reading is possible but whose personal-matter role is not resolved. Partial understanding remains reviewable rather than becoming a fabricated matter.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For password-protected archives, unreadable filings, damaged scans and unknown exports that cannot be inspected safely. The system retains metadata, does not infer purpose from the filename and may represent the file without moving it.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Only for a likely screenshot with no accepted matter group and OCR too weak or ambiguous to establish holder-facing legal content. A readable protected portal capture returns to normal Legal handling rather than being trapped as a generic screenshot.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "For a published judgment, legal guide, case brief or public form saved for reading when no direct holder relation or active matter evidence exists. R2 may still over-protect a court-caption document; protected classification and personal template membership are separate decisions.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For a durable blank form, standalone official notice or reusable filing reference whose function is understood but which has no reliable personal matter, accepted group or deeper association. Sensitive content, if present, keeps Protected Records ahead of this broad option.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Personal matter files can expose names, home and service addresses, contact details, signatures, identifiers, financial circumstances, children, health information, allegations, witness material, settlement terms, representative communications and data about opponents or other third parties. 00 names legal records and private correspondence inside the highly personal corpus, requires privacy policy before any model or external connector, and says paths, complete text, OCR, user edits, group memberships and raw sensitive values remain local. This row assigns only potentially_sensitive; it does not assign, quote or recreate any P7 handling class. Protection precedes interpretation, raw filenames and contents are redacted in general summaries, and no cloud or automatic placement path is unlocked by activation.",
+  "open_question": "Three product decisions remain open for this row. First, if D1's Legal deferral ever lifts, which canonical fields are legitimate - matter, proceeding role, instrument kind, counterparty and case reference are not present today, and this row neither reuses Finance fields nor proposes private replacements. Second, may a protected legal branch ever expose matter, party or document-kind labels in its path, or must the launch experience remain protected-flat and group-attached only? Third, when the same bytes appear in a party's own records and a practitioner's client file with no direct custody evidence, is user confirmation always required to select personal-matter versus practice-matter context? Until those decisions are ratified, fields, proposed_fields, dimension_order and role_split stay empty."
+}
