@@ -789,3 +789,36 @@ is actively writing is how a wave gets silently corrupted.
 - Reached across families for the right neighbour: read `clinical_practice.case-conference` for the
   **morbidity-and-mortality edge** — an M&M review is a clinical retrospective, and no prompt named
   that connection.
+
+## ★ MILESTONE — THE GIST DEBT IS CLEARED. 64/64 rows at J-DEPTH.
+
+Every row written under the retired gist standard has been deepened to launch-row depth.
+`clinical_practice` (11), `business_operations` (25), `construction_property` (28) are all J-DEPTH.
+
+**Cross-session autopilot worked.** The cron ticks ran in other sessions and carried the work
+without supervision: they committed the two rows this session had verified (`abb6e44`), finished the
+remaining debt, and moved on to authoring new schema anchors — `hr`, `engineering`, `manufacturing`,
+`government` (873d553, 4f24b7b, ee523a0, 2765f94). The autopilot file did its job: no session needed
+briefing from Joseph to continue.
+
+**Deepening reversed real gist verdicts.** Among the rows cleared while unsupervised:
+`veterinary-practice` REFUSED as species-valued overlap (it stood at gist depth);
+`protocol-guideline` REFUSED as a policy genre; clinical `teaching-material` REFUSED across
+academia; `practice-administration` and `pharmacy-operations` both **narrowed** to regulated scope;
+`progress-photos` narrowed beyond source type; `sale-purchase` routed to `legal` and `finance`.
+The debt-clearing pass was not cosmetic — it changed verdicts.
+
+**Refusal tally across the corpus: 16 rows.** The flagging tripwire is answered: flagged rows do
+still fail, so the challenge has not become theatre.
+
+## State at this point
+
+LANDED **155/358** · DEBT **0** · UNWRITTEN **203** · REFUSED 16.
+Unwritten by family: creative 38 · law_practice 37 · government 31 · engineering 24 ·
+manufacturing 19 · retail_hospitality 15 · nonprofit 11 · hr 11 · resource_operations 9 ·
+logistics 8.
+
+**Priority now: schema anchors before their templates.** Five remain unwritten — `law_practice`,
+`nonprofit`, `retail_hospitality`, `logistics`, `resource_operations`. Every template's node test is
+measured against its schema's default template, so a template written before its anchor must be
+redone. Four dispatched now.
