@@ -4,7 +4,7 @@
   "schema_id": "clinical_practice",
   "parent_id": null,
   "name": "Pharmacy operations",
-  "one_line": "The organizational situation of running a dispensary: prescriptions received and dispensed, the accountability register a controlled drug requires, stock and expiry management, formulary and substitution decisions, and the returns a pharmacy owes its regulator and its payers. Absorbs the legacy row med.pharmacy-operations. The organizing anchor is the MEDICINE and its custody chain - which is what separates it from the chart, where the anchor is a person, and from a shop's stock, where the anchor is a product with no accountability obligation. Gist-level placeholder (J-IND): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "one_line": "The regulated custody-and-supply record set of a dispensary: prescriptions received and dispensed, accountable-drug registers and reconciliations, witnessed destruction, batch recall action, and payer or regulator returns tied to medicines supplied. Absorbs the legacy row med.pharmacy-operations. It stands only on medicine-specific custody or supply-accountability structure; ordinary purchasing, stock, premises administration, published guidance, and patient-chart material route to their own rows. J-DEPTH placeholder: it recognizes and protects the situation and writes NO field rows because the clinical_practice schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -16,10 +16,10 @@
     "deterministic": [
       "PRECONDITION: every entry is a DETECTION signal, never an extraction licence - this template's schema declares no field rows. The signals exist so P7 runs first: “Privacy policy must be enforced before content reaches any model or external connector.”",
       "a dispensing-label structure: a product name beside a strength, a form, a quantity, a directions-for-use line, a dispensed-on date, and a dispensed-by or checked-by initial slot, printed against a named person who is not the holder.",
-      "a controlled-drug register structure: a running balance column beside a received / supplied pair, a witness or second-signature slot, and a per-product page. The running balance is the discriminating structure - ordinary stock records do not carry a signed reconciled balance, because ordinary stock is not accountable to anyone.",
+      "a controlled-drug register structure: a running balance column beside a received / supplied pair, a witness or second-signature slot, and a per-product page. The medicine-specific signed reconciliation structure, rather than the product name, is the discriminating inference.",
       "a prescription-intake structure: a prescriber identifier slot, a prescriber signature block, and an item list, arriving as a scan or a portal export rather than as something the holder authored - the direction of arrival is the evidence.",
       "a formulary or substitution structure: a two-column mapping of a requested product to a supplied or preferred product, with an approval, tier, or restriction column.",
-      "a stock, expiry, or destruction structure: a batch-and-expiry table, a recall or safety-alert notice naming a batch, or a witnessed destruction record with a denaturing note.",
+      "a medicine-accountability stock, expiry, recall-action, or destruction structure: batch and expiry appear with a schedule or medicine identifier and a reconciliation, quarantine, return, or witnessed-denaturing action. Batch-and-expiry columns alone remain ordinary inventory evidence.",
       "a dispensing-fee or reimbursement return: a periodic claim of items dispensed against a payer schedule, distinguished from an ordinary sales report by the per-item clinical product line and the payer scheme reference in a high-weight zone - “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.”",
       "a temperature or cold-chain log, and a fridge-failure excursion report, filed as periodic evidence rather than as an incident."
     ],
@@ -67,14 +67,13 @@
     "dispensing label or dispensing history entry",
     "controlled-substance register page or reconciliation",
     "witnessed destruction or denaturing record",
-    "stock count, order, or wholesaler delivery record",
+    "medicine-accountability stock reconciliation tied to a register, quarantine, recall, or witnessed destruction",
     "batch, expiry, or recall notice",
     "formulary, substitution, or restriction decision",
-    "clinical or medication review record",
     "dispensing-error or near-miss record",
     "cold-chain or temperature log",
     "reimbursement or dispensing-fee return",
-    "responsible-pharmacist and standard-operating-procedure record",
+    "responsible-pharmacist record tied to a dispensing accountability period",
     "inspection or regulator return"
   ],
   "grouping_reasons": [
@@ -353,6 +352,26 @@
       "domain": "clinical_practice.malpractice-incident",
       "signal": "A dispensing error sits on a continuum from a near-miss log line to a claim. The discriminating evidence: a routine periodic quality log with initials and an action column supports this row; a named complaint, a duty-of-candour letter, a claim notification, an indemnity reference, or a regulator's notice supports the incident row. The word error supports neither. Provenance: inference.",
       "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "A wholesaler purchase order or goods-received note remains supplier-order evidence even when every line is a medicine. This row requires the same bytes to add medicine-specific custody or regulated-supply accountability: a controlled schedule, register balance, named supply event, recall quarantine, or witnessed destruction. Drug names, batch numbers, expiry dates, and a pharmacy buyer name alone do not cross that boundary. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "A tender for a medicines wholesaler, evaluation matrix, framework award, or supplier due-diligence pack is the competitive process of choosing a supplier, not evidence of medicines entering or leaving accountable custody. A later register reconciliation or per-item dispensing return supports this row; the RFP-to-award sequence supports procurement-sourcing. Medicine vocabulary and regulator clauses can occur on both and discriminate neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.warehouse-ops",
+      "signal": "Warehouse stock, location, pick, despatch, and cold-chain records may concern medicines without becoming dispensary records. A bin-location or pallet movement anchored on storage and fulfilment supports warehouse-ops; a per-product accountable register, named supply, controlled schedule, witnessed destruction, or dispensing-payer return supports this row. Temperature readings and batch-and-expiry columns alone discriminate neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.practice-administration",
+      "signal": "A pharmacy rota, premises certificate, general inspection checklist, staff training matrix, or ordinary SOP is practice administration unless the same bytes are tied to a medicine custody event or accountable dispensing period. A responsible-pharmacist log can support this row only when it closes or governs a dispensing accountability interval; otherwise staffing, facility, and business continuity remain practice administration. Provenance: inference.",
+      "provenance": "inference"
     }
   ],
   "also_holds_with": [],
@@ -391,5 +410,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "A dispensing record is a medical record about a third party, and it is often a more revealing one than a chart entry: a single product name can disclose a condition the person named it to nobody. 00 names the material - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. The bulk case matters here more than anywhere else on this family, because dispensing systems export by period rather than by person: one CSV can carry thousands of people. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class, and it does not re-derive D2's ClassificationRecord.",
-  "open_question": "NJ-CP-11. A controlled-substance register is the one file class on this roster that a person may be legally obliged to keep, keep unaltered, and keep in a stated place for a stated period. The product's normal courtesies - propose a destination, move on approval, deduplicate a family, represent an archive without extracting it - are all defensible against an ordinary file and all questionable against a statutory register. The question is not whether the register is sensitive (it plainly is, and Protected Records already answers that); it is whether a recognised accountability register should be marked NOT MOVABLE at all, ahead of any user policy, the way 00 marks protected material as not automatically movable. That is a decision about someone's legal obligations rather than a fact about files, so it is Joseph's, and it does not depend on whether clinical_practice ever gets field rows."
+  "open_question": "NJ-CP-11. Some jurisdictions may impose integrity, retention, or location duties on controlled-substance accountability registers; this catalogue does not establish which duty applies to any file. The product's normal courtesies - propose a destination, move on approval, deduplicate a family, represent an archive without extracting it - may therefore be inappropriate for a recognized statutory register. Should such a record be marked NOT MOVABLE ahead of user policy, or should the ordinary protected-material rule permit an explicitly approved plan? This is a product-policy decision with jurisdictional consequences, so it is Joseph's and does not depend on whether clinical_practice ever gets field rows."
 }
