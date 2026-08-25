@@ -668,3 +668,65 @@ def test_validation_unavailable_names_missing_capabilities_and_is_not_abstain():
     assert unavailable.missing != (ABSTAIN,)
     with pytest.raises(MalformedRecord):
         ValidationUnavailable(missing=())
+
+
+def test_dossier_request_rejects_bare_string_evidence_refs():
+    with pytest.raises(MalformedRecord):
+        DossierRequest(
+            call_site=A_FACT,
+            subject_ref="file-1",
+            eligibility_reason=REMAINS_AMBIGUOUS,
+            evidence_refs="obs-key-1",
+            model_call_request=_model_call_request(),
+            plan_version=None,
+            evidence_snapshot_id="snap-1",
+            budget_context="scan-1",
+        )
+
+
+def test_dossier_request_freezes_evidence_refs_against_caller_mutation():
+    refs = ["obs-key-1"]
+    request = DossierRequest(
+        call_site=A_FACT,
+        subject_ref="file-1",
+        eligibility_reason=REMAINS_AMBIGUOUS,
+        evidence_refs=refs,
+        model_call_request=_model_call_request(),
+        plan_version=None,
+        evidence_snapshot_id="snap-1",
+        budget_context="scan-1",
+    )
+    refs.append("mutated")
+    assert request.evidence_refs == ("obs-key-1",)
+    assert isinstance(request.evidence_refs, tuple)
+
+
+def test_validation_unavailable_rejects_bare_string_missing():
+    with pytest.raises(MalformedRecord):
+        ValidationUnavailable(missing="normalize")
+
+
+def test_dossier_request_requires_plan_version_at_placement():
+    with pytest.raises(MalformedRecord):
+        DossierRequest(
+            call_site=C_PLACEMENT,
+            subject_ref="file-1",
+            eligibility_reason="several_legal_nodes_plausible",
+            evidence_refs=(),
+            model_call_request=_model_call_request(),
+            plan_version=None,
+            evidence_snapshot_id=None,
+            budget_context=None,
+        )
+
+
+def test_evidence_item_rejects_unknown_reliability_state_as_malformed_record():
+    with pytest.raises(MalformedRecord):
+        EvidenceItem(
+            evidence_ref="obs-key-1",
+            kind="excerpt",
+            location="body",
+            excerpt_span=(0, 4),
+            reliability_state="invented",
+            basis=DIRECT_ANCHOR,
+        )

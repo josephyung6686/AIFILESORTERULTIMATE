@@ -6,7 +6,7 @@ Internal modules import `P8Verdict` by that name. This package exports no bare
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 
@@ -45,6 +45,19 @@ def _require(value: str, vocabulary: tuple[str, ...] | frozenset[str], *,
             f"{name}={value!r} is not one of {tuple(vocabulary)}"
         )
     return value
+
+
+def _freeze_sequence(instance: object, name: str) -> tuple:
+    value = getattr(instance, name)
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        length = len(value) if isinstance(value, (str, bytes)) else 0
+        raise MalformedRecord(
+            f"{name} is a sequence; a bare string would become {length} "
+            "one-character references"
+        )
+    frozen = tuple(value)
+    object.__setattr__(instance, name, frozen)
+    return frozen
 
 
 def _require_plan_version(call_site: str, plan_version: str | None) -> None:
@@ -163,6 +176,7 @@ class DossierRequest:
                 "DossierRequest.model_call_request must be the live "
                 "privacy.release.ModelCallRequest"
             )
+        _freeze_sequence(self, "evidence_refs")
         if any(not ref for ref in self.evidence_refs):
             raise MalformedRecord("evidence_refs are ids only and must be non-empty")
 
@@ -179,7 +193,14 @@ class EvidenceItem:
     def __post_init__(self) -> None:
         if not self.evidence_ref:
             raise MalformedRecord("EvidenceItem.evidence_ref is required")
-        check(self.reliability_state, RELIABILITY_STATES, name="reliability_state")
+        if self.excerpt_span is not None:
+            span = _freeze_sequence(self, "excerpt_span")
+            if len(span) != 2 or any(not isinstance(n, int) for n in span):
+                raise MalformedRecord("excerpt_span must be a pair of ints")
+        try:
+            check(self.reliability_state, RELIABILITY_STATES, name="reliability_state")
+        except ValueError as exc:
+            raise MalformedRecord(str(exc)) from exc
         _require(self.basis, EVIDENCE_BASES, name="basis")
 
 
@@ -228,6 +249,7 @@ class Claim:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "payload", MappingProxyType(dict(self.payload)))
+        _freeze_sequence(self, "citations")
         has_unknown = self.unknown is not None
         has_citations = bool(self.citations)
         if has_unknown == has_citations:
@@ -273,6 +295,9 @@ class Dossier:
             )
         if self.max_dossier_tokens <= 0:
             raise MalformedRecord("max_dossier_tokens must be a positive echo of the ceiling")
+        _freeze_sequence(self, "allowed_vocabulary")
+        _freeze_sequence(self, "evidence_items")
+        _freeze_sequence(self, "conflicts")
         if any(not isinstance(item, EvidenceItem) for item in self.evidence_items):
             raise MalformedRecord("evidence_items must be EvidenceItem records")
         if any(not isinstance(item, Conflict) for item in self.conflicts):
@@ -308,6 +333,8 @@ class P8Verdict:
 
     def __post_init__(self) -> None:
         try:
+            _freeze_sequence(self, "reasons")
+            _freeze_sequence(self, "citations_checked")
             _require(self.outcome, OUTCOMES, name="outcome")
             _require(self.disposition, DISPOSITIONS, name="disposition")
             _require(self.scope, VERDICT_SCOPES, name="scope")
@@ -441,6 +468,7 @@ class ValidationUnavailable:
     missing: tuple[str, ...]
 
     def __post_init__(self) -> None:
+        _freeze_sequence(self, "missing")
         if not self.missing or any(not name for name in self.missing):
             raise MalformedRecord(
                 "ValidationUnavailable must name the missing injected capabilities"
