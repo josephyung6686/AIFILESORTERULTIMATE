@@ -263,3 +263,21 @@ def test_evidence_snapshot_id_is_stored_separately_and_does_not_enter_the_addres
     assert parameters["evidence_snapshot_id"].kind is inspect.Parameter.KEYWORD_ONLY
     assert _address(evidence_snapshot_id="snap-1") == _address(evidence_snapshot_id="snap-2")
     assert _address(evidence_snapshot_id="snap-1") == _address()
+
+
+def test_dossier_content_address_rejects_bare_string_allowed_vocabulary():
+    with pytest.raises(MalformedRecord):
+        _address(allowed_vocabulary="ab")
+
+
+def test_dossier_content_address_rejects_set_allowed_vocabulary():
+    with pytest.raises(MalformedRecord):
+        _address(allowed_vocabulary={"x", "y"})
+
+
+def test_dossier_content_address_is_stable_for_tuple_and_list_vocabulary_in_the_same_order():
+    members = ("school", "year")
+    from_tuple = _address(allowed_vocabulary=members)
+    from_list = _address(allowed_vocabulary=list(members))
+    assert from_tuple == from_list
+    assert _address(allowed_vocabulary=("school", "year")) == from_tuple

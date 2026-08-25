@@ -13,7 +13,20 @@ import hashlib
 from collections.abc import Sequence
 
 from evidence_shape.canonical import canonical_json
-from llm_harness.records import PromptDefinition
+from llm_harness.records import MalformedRecord, PromptDefinition
+
+
+def _as_str_list(value: object, *, name: str) -> list[str]:
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        length = len(value) if isinstance(value, (str, bytes)) else 0
+        raise MalformedRecord(
+            f"{name} is a sequence; a bare string would become {length} "
+            "one-character references"
+        )
+    frozen = list(value)
+    if not all(isinstance(item, str) for item in frozen):
+        raise MalformedRecord(f"{name} must be a sequence of strings")
+    return frozen
 
 
 def prompt_fingerprint(definition: PromptDefinition) -> str:
@@ -52,7 +65,9 @@ def dossier_content_address(
     del evidence_snapshot_id, release_id, audit_id
     payload = canonical_json({
         "allowed_schema_bytes": allowed_schema_bytes.hex(),
-        "allowed_vocabulary": list(allowed_vocabulary),
+        "allowed_vocabulary": _as_str_list(
+            allowed_vocabulary, name="allowed_vocabulary"
+        ),
         "released_material": released_material.hex(),
     }).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
