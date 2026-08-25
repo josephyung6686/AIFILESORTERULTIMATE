@@ -741,3 +741,24 @@ and a deletion-test closure. Only the JSON write is missing.
   with both without contradiction.
 - **Both of this wave's two-sided tests now pass** (site-survey/survey-valuation, and
   requirements/roadmap). Neither pair merely deferred to the other.
+
+## Debt clearing 41-42/64 — the wave closes, 4 dispatched 4 landed 0 killed
+
+- `clinical_practice.malpractice-incident`: **5,176B → 41,872B (8.1x)**, 12 file_examples, stands.
+  Verified its own scope with `git status` before finishing — "only this row's two files touched."
+- `construction_property.variation-claim`: **5,253B → 50,527B (9.6x)**, 15 file_examples, stands.
+  **It holds the load a landed refusal placed on it.** `timesheet` was refused partly by routing its
+  dayworks evidence here, so this row read that refusal in full "because its routing depends on this
+  row", and carries a dedicated section — *The load this row is carrying for a refusal*. Had it
+  refused, that routing would have broken; the dependency was made explicit rather than discovered
+  later by the merge gate.
+  It ends by listing what it did NOT do, including "no attempt to rescue leg 3" — declaring a leg
+  it could not win instead of quietly claiming it.
+
+## Push contention with the parallel workstream — handled
+
+Push rejected: the P6/P7 track had pushed `src/` and `tests/` work, including a commit merging 27
+of this track's J-DEPTH commits into theirs. Zero file overlap. The rebase initially failed on
+unstaged changes — two agents were still mid-write. **Deliberately did not stash live agent work;**
+waited for both rows to complete, verified them, committed, then rebased. Stashing files an agent
+is actively writing is how a wave gets silently corrupted.

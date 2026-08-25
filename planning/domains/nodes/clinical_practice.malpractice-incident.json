@@ -4,7 +4,7 @@
   "schema_id": "clinical_practice",
   "parent_id": null,
   "name": "Malpractice cover, claims, and patient-safety incidents",
-  "one_line": "The organizational situation of something having gone wrong, or being alleged to have gone wrong, in the holder's clinical care - and of the professional indemnity cover that stands behind it. It runs from an internal incident report through a complaint, a duty-of-candour letter, an investigation, an expert report, a claim, and an indemnity or regulatory outcome. It is a THREE-schema world by nature (clinical, legal, finance) and this row's job is to recognize and protect it, not to adjudicate it. Gist-level placeholder (J-IND); it writes NO field rows, because the clinical_practice schema declares none.",
+  "one_line": "The organizational situation of something having gone wrong, or being alleged to have gone wrong, in the holder's clinical care - and of the professional indemnity cover that stands behind it. It runs from an internal incident report through a complaint, a duty-of-candour letter, an investigation, an expert report, a claim, and an indemnity or regulatory outcome. It is a THREE-schema world by nature (clinical, legal, finance) and this row's job is to recognize and protect it, not to adjudicate it. Full-depth placeholder (J-IND, written to J-DEPTH); it writes NO field rows, because the clinical_practice schema declares none. NARROWED in the deepening pass, because the row was carrying more than it owns: its CENTRE is the practitioner-side record of an adverse event and the complaint about it - the incident form, the near-miss escalation, the duty-of-candour letter, the clinician statement, the root-cause analysis - which are authored by the holder about a named third party's care and are NOT litigation documents, most of which never become claims. The litigation members (letter of claim, expert report, disclosure bundle, tribunal notice) and the indemnity members (policy schedule, premium invoice) are RECOGNISED and PROTECTED here but are co-active with legal and finance rather than owned by this row, and neither an indemnity schedule nor a premium invoice activates this row on its own.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -15,6 +15,7 @@
   "recognition": {
     "deterministic": [
       "PRECONDITION: every entry is a DETECTION signal, never an extraction licence, and specifically never a licence to conclude that anything went wrong. This template's schema declares no field rows. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the ROLE STRUCTURE, stated separately because it is not the schema's: on the practitioner-authored members (incident form, candour letter, clinician statement, investigation report) the holder occupies the AUTHOR role beside a separately labelled subject block naming a different person, which is the schema's own two-role signal unchanged. On the litigation members the holder occupies the RESPONDENT role - addressee of an allegation, author of nothing - and the author is a third party entirely. The schema's two-role signal does NOT fire on those members, and what carries recognition there is a process structure (a reference plus a deadline plus an allegation list), not a relation between two labelled roles. Stated as inference.",
       "an incident-report structure: a labelled incident-reference slot beside a date-and-time-of-incident slot, a location or service slot, a category or severity designation copied from the reporting system's own vocabulary, and a free-text account. The severity designation is a RAW OBSERVATION from a source system and never becomes this product's sensitivity classification.",
       "a complaint-handling structure: a complainant block, an acknowledgement or response-deadline slot, a chronology of the care complained of, and a formal response letter naming a responsible officer.",
       "a duty-of-candour or open-disclosure letter structure: an addressee who is the patient or a relative, an account of what happened, an apology section, and a record of what was offered.",
@@ -39,7 +40,9 @@
       "any inference of fault, causation, breach, liability, privilege, or admissibility. The product records literal observations and abstains - “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
       "source_type or extension alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
       "a parent folder named Incidents, Complaints, or Claims alone.",
-      "membership in a download session that dropped a bundle's attachments at once - “A session should never be treated as proof of topic”"
+      "membership in a download session that dropped a bundle's attachments at once - “A session should never be treated as proof of topic”",
+      "a claim, matter, or case reference beside the holder's own name, read as establishing WHICH role the holder occupies. The identical token appears where the holder is the respondent clinician, where the holder is a personal party in an unrelated dispute, and where the holder is the instructed expert or the acting practitioner. Role is a separate observation and must be read from a labelled block, never from co-occurrence.",
+      "an incident-report FORM structure alone, read as a patient-harm incident. The same form is used for staff injury, property damage, security, and information-governance events; the subject of the event is a separate observation. This is the discriminator against hr.workplace-health-safety and it is not a vocabulary test."
     ]
   },
   "proposed_context_terms": [
@@ -189,6 +192,7 @@
         "sensitivity_status"
       ],
       "must_not_conclude": [
+        "activation of this row on the schedule alone: an indemnity schedule is a coverage record and nothing about it reports that anything went wrong. The incident context comes from an incident, a complaint, or a claim beside it, never from the existence of cover. This is the fixture that answers the two-worlds charge in-file",
         "any clinical_practice fact - none is declared; the finance fields come from the finance schema on its own policy-and-premium evidence (CONNECTION PR-8)",
         "a tax_year from the cover-period token",
         "that professional indemnity is a personal insurance record",
@@ -345,6 +349,81 @@
       "also_schema": "finance",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Ward incident - sharps injury - staff.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the SAME reporting-system form as the patient-harm fixture: labelled incident-reference slot, date and time of incident, location, a category drawn from the system's own vocabulary",
+        "the affected-person block names a member of staff, not a patient",
+        "an occupational-health referral line and a post-exposure follow-up section",
+        "no patient identified anywhere in the account"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the form structure is identical and discriminates nothing - the SUBJECT of the event is what decides, and here it is an employee. hr.workplace-health-safety owns it. This is the second over-firing collision fixture, added in the deepening pass",
+        "that a staff-subject incident is therefore low sensitivity: it names an employee's injury and an occupational-health referral",
+        "any clinical_practice fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consultation 2026-05-15.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a single labelled subject block at the head of the file and a run of dated entries about that same one person",
+        "one entry narrates an unexpected deterioration, an escalation, and the outcome",
+        "a sign-off block naming the holder as the responsible clinician",
+        "no reference number, no complainant, no correspondence, no deadline"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the adverse-event narrative: THIS IS THE UNDER-FIRING FIXTURE and the same bytes clinical_practice.patient-chart names on its side. A chart entry describing something going wrong is still chart accumulation; what would move it here is an incident reference, a complaint, or claims correspondence, none of which is present",
+        "that the event vocabulary - unexpected, escalated, harm - is evidence for either row",
+        "any clinical_practice fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "near miss log Q1.docx",
+      "source_type": "text_document",
+      "observations": [
+        "dated rows describing a wrong-strength selection caught at the check stage",
+        "initials rather than names in a staff column",
+        "an action-taken column with free prose",
+        "a periodic quarterly scope, no single named event, no reference number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the word error: THE SAME BYTES clinical_practice.pharmacy-operations names on its side, where its own fixture already states this boundary as reciprocal. A routine periodic quality log is dispensary material; a single named near-miss escalated into a report with a reference is this row's. The reciprocal was missing from this file before the deepening pass and its absence made the neighbour's claim untrue",
+        "an assignment of fault, a severity, or a harm judgement of the product's own",
+        "a staff identity fact from initials",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
     }
   ],
   "collides_with": [
@@ -371,6 +450,36 @@
     {
       "domain": "clinical_practice.protocol-guideline",
       "signal": "An incident-reporting policy and a safety alert are ABOUT incidents without being one. The discriminating evidence: a real reference, a real subject, or a real account supports this row; a version token, a review date, an approval committee, and a worked example support the guideline row. Incident vocabulary alone supports neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.patient-chart",
+      "signal": "The reciprocal of an edge the landed patient-chart row already states one-way, and its absence here was a real gap. One narrative, two situations: the clinical entry describing an adverse event accumulates in the chart, and the incident pack about that same event is a bounded lifecycle whose members include documents with no clinical content at all. The discriminating evidence: continued accumulation of routine dated entries about one subject under a responsible-clinician sign-off supports the chart row; an incident-reporting-system reference, a complaint, a letter of claim, an indemnity schedule, or an expert report supports this row. Event vocabulary discriminates neither. Shared bytes named on both sides: Consultation 2026-05-15.docx. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.pharmacy-operations",
+      "signal": "The reciprocal of an edge the landed pharmacy-operations row already states, whose own fixture asserts the boundary is 'stated on both sides' - which was not true until this pass. A dispensing error runs a continuum from a log line to a claim. The discriminating evidence: a routine periodic quality log with initials and an action column supports that row; a named single event with a reference, a complaint, a duty-of-candour letter, a claim notification, or a regulator's notice supports this row. The word error supports neither. Shared bytes named on both sides: near miss log Q1.docx. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "The single most under-argued boundary on this row before the deepening pass. One reporting system, one form, one reference-number vocabulary, used for patient harm and for staff injury alike - so the form structure discriminates NOTHING and must count for neither row alone. The discriminating evidence is the SUBJECT of the event: an affected-person block naming a patient, with a clinical account, supports this row; an affected-person block naming an employee, with an occupational-health or return-to-work line, supports the workplace row. Shared bytes: Ward incident - sharps injury - staff.pdf, this row's second over-firing fixture. Authored one-way; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "Named but deliberately left unedged by the gist draft on the ground that the hr row had not landed; that ground was wrong, because an edge needs a ROSTER id and not a landed file, and it is corrected here. A disciplinary process against a clinician-employee produces allegation letters, investigation reports, witness statements and hearing notices that are structurally identical to this row's. The discriminating evidence: an allegation about CLINICAL CARE of a named patient, an incident-system reference, or an indemnity or regulator anchor supports this row; an allegation about employment conduct - attendance, behaviour, capability - with a contractual disciplinary-procedure citation and an employment-relationship framing supports the hr row. An investigation report alone supports neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.licensure-credentialing",
+      "signal": "A claim can end a licence, and the regulator's paperwork is the joint. The same referral letter, allegation summary, case reference and response deadline appear in both corpora. The discriminating evidence: a regulatory or disciplinary notice arriving because of a NAMED CARE EVENT, filed beside the incident, complaint or claim it arose from, supports this row; the same notice read as a fact about the holder's standing to practise, filed beside registration, revalidation and privileging material, supports the credentialing row. A regulator letterhead supports neither, and a conditions-on-practice notice is a genuine both-rows file that P10 chooses from an accepted group later. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "Authored from the protected side on that row's own explicit invitation: its memo left the pair unedged because 'an edge authored unilaterally from the operations side could be read as pulling protected material toward a management branch' and filed it as NJ-BO-RR-3 for the protected side to state first. Stated: a register entry is a POSSIBILITY carried as a scored row in an inventory; an incident record is a REALISED event with a date, an affected person and an investigation. The discriminating evidence: repeated scored rows across many unrelated hazards under one review cycle supports the register; a single event with a reference, a subject and an account supports this row. A clinical-risk register naming litigation exposure carries both vocabularies and neither anchor. Provenance: inference.",
       "provenance": "inference"
     }
   ],
@@ -409,6 +518,6 @@
   ],
   "role_split": [],
   "sensitivity": "potentially_sensitive",
-  "sensitivity_why": "The exposure runs in two directions at once, which is unusual on this roster and is stated as inference rather than as a 00 claim: the material concerns a named patient's care AND it concerns an allegation against the holder, so a leak harms someone who is not the user and someone who is. 00 names both kinds of material in one corpus list - “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class, and it makes no finding about privilege, admissibility, disclosure, or fault - those are outside this product's vocabulary entirely.",
-  "open_question": "Two. (1) Whether an incident or claim packet may be MOVED at all, even inside a frozen tree - moving a claim bundle changes paths that other people's processes may depend on, and the mere existence of a differently-named branch is itself a disclosure. The other placeholder rows defer their tree to a field decision; this one has a reason to prefer represent-in-place permanently, and that is Joseph's call. (2) The boundary against legal.practice-matter-file when the holder is BOTH clinician and instructing party - a clinician-director of a practice receiving a claim about a colleague's care. The evidence supports both rows and the roster currently gives no rule for it; R1c should decide whether this needs a reciprocal edge on the legal side or whether it is simply an unresolved-outcome case."
+  "sensitivity_why": "The exposure runs in two directions at once, which is unusual on this roster and is stated as inference rather than as a 00 claim: the material concerns a named patient's care AND it concerns an allegation against the holder, so a leak harms someone who is not the user and someone who is. 00 names both kinds of material in one corpus list - “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and requires the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. The asymmetry that decides the posture, marked as inference: the patient whose care is described is not present, cannot review a proposal, cannot correct a wrong grouping, cannot consent, and gains nothing from the tidying - and the holder, who can do all of those things, has an interest in the same bytes that runs the opposite way. Where the two interests diverge the cautious setting is not a hedge but the only one that is safe for the party who is absent. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class, and it makes no finding about privilege, admissibility, disclosure, or fault - those are outside this product's vocabulary entirely.",
+  "open_question": "Three. (1) Whether an incident or claim packet may be MOVED at all, even inside a frozen tree - moving a claim bundle changes paths that other people's processes may depend on, and the mere existence of a differently-named branch is itself a disclosure. The other placeholder rows defer their tree to a field decision; this one has a reason to prefer represent-in-place permanently, and that is Joseph's call. (2) The boundary against legal.practice-matter-file when the holder is BOTH clinician and instructing party - a clinician-director of a practice receiving a claim about a colleague's care. The evidence supports both rows and the roster currently gives no rule for it; R1c should decide whether this needs a reciprocal edge on the legal side or whether it is simply an unresolved-outcome case. (3) ADDED IN THE DEEPENING PASS, and it is the sharpest of the three: the clinical_practice schema's defining activation signal is a holder-as-AUTHOR block beside a separately labelled subject block naming a different person, and that signal does not fire on this row's most characteristic litigation members, where the holder is the respondent and the author is a third-party solicitor. Those members are recognised here by a process structure instead. The alternatives: (a) accept that one template may recognise on two different structures, at the cost of a family whose defining signal is not universal across it; (b) narrow the row to the practitioner-authored incident and complaint record only, and route the litigation members wholly to legal, at the cost of splitting one obviously coherent lifecycle across two schemas and losing the protective posture on the half that leaves; (c) leave the litigation members co-active as they now are, which is what this row does and what CONNECTION PR-8 and the schema row's own legal and finance also_holds_with edges already license. The row takes (c) and says plainly that (b) is a defensible reading it did not take."
 }
