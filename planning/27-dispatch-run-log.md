@@ -762,3 +762,14 @@ of this track's J-DEPTH commits into theirs. Zero file overlap. The rebase initi
 unstaged changes — two agents were still mid-write. **Deliberately did not stash live agent work;**
 waited for both rows to complete, verified them, committed, then rebased. Stashing files an agent
 is actively writing is how a wave gets silently corrupted.
+
+## Debt clearing 43/64 — `construction_property.materials-delivery`, stands
+
+- **5,284B → 35,600B (6.7x)**, 12 file_examples, both files written, all universal keys, stands.
+- Beat the charge that a delivery note is `logistics`' material distinguished only by the
+  destination being a building site — which would be a location value, not a structure.
+- **Wrote the `logistics` seam 19 times for a schema nobody has written yet** — the third row to
+  specify a boundary in advance of its neighbour existing (after `policy-handbook`→`hr` and
+  `building-control`→`government`). This is becoming a house habit rather than a one-off, and it
+  is the cheapest possible moment to fix those seams: while the question is live, and before an
+  author on the other side has committed to anything that would have to be renegotiated.
