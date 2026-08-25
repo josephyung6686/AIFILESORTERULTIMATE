@@ -4,7 +4,7 @@
   "schema_id": "clinical_practice",
   "parent_id": null,
   "name": "Referrals and correspondence sent by a clinician",
-  "one_line": "The organizational situation of a clinician's OUTBOUND letter file: referrals made, clinic and discharge letters written to other clinicians, replies received against them, reports issued to third parties on a patient's behalf, and the register that tracks whether each one was sent and answered. Absorbs the legacy row med.clinician-referral-sent. The organizing anchor is the correspondence ITEM and its direction of address, not the patient's accumulated record. Gist-level placeholder (J-IND); it writes NO field rows, because the clinical_practice schema declares none.",
+  "one_line": "The organizational situation of a clinician's OUTBOUND letter file: referrals made, clinic and discharge letters written to other clinicians, replies received against them, reports issued to third parties on a patient's behalf, and the register that tracks whether each one was sent and answered. Absorbs the legacy row med.clinician-referral-sent. The organizing anchor is the correspondence ITEM and its direction of address, not the patient's accumulated record. Full-depth placeholder (J-IND, deepened to J-DEPTH); it writes NO field rows, because the clinical_practice schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
