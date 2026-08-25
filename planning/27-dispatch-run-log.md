@@ -717,3 +717,75 @@ and a deletion-test closure. Only the JSON write is missing.
   limit-kill loses, and the memo is the file that survives.
 
 ## Debt clearing 38/64 complete. Standing: 188/358 landed, 26 debt rows left.
+
+## Debt clearing 39/64 — `construction_property.site-survey`, and a boundary confirmed from both sides
+
+- **5,272B → 40,120B (7.6x)**, 11 file_examples, both files written, all universal keys, stands.
+- **The two-sided test worked.** Asked whether `survey-valuation`'s confirmation matched its own
+  original reasoning, it answered: *"It matches, and it is not a restatement. The two arguments run
+  in opposite directions and meet."* That is the difference between a boundary two rows agree on
+  and a boundary one row asserted and the other did not contradict.
+- The discriminator is now sharper than the gist version ("measuring the land vs pricing the
+  asset"): **measured data with no addressee**, consumed by the design that follows, versus **an
+  opinion addressed to a named party under a reliance clause**, consumed by a lender or buyer.
+  Addressee and reliance are testable on a real file; "measuring vs pricing" was a paraphrase.
+
+## Debt clearing 40/64 — `business_operations.product-roadmap`, pair question confirmed both ways
+
+- **5,058B → 44,506B (8.8x)**, 10 file_examples, both files written, all universal keys, stands.
+- **Confirmed the requirements-vs-roadmap settlement from this side with independent reasoning**,
+  explicitly accepting the framing that a boundary argued from one side is half a boundary and that
+  the gist's identical `open_question` on both rows was "a well-documented deferral, not an answer."
+- Also had to answer `strategy-plan`, which disclaims this row's horizon axis in its own JSON — so
+  this row sits between two neighbours that each defined themselves partly against it, and agrees
+  with both without contradiction.
+- **Both of this wave's two-sided tests now pass** (site-survey/survey-valuation, and
+  requirements/roadmap). Neither pair merely deferred to the other.
+
+## Debt clearing 41-42/64 — the wave closes, 4 dispatched 4 landed 0 killed
+
+- `clinical_practice.malpractice-incident`: **5,176B → 41,872B (8.1x)**, 12 file_examples, stands.
+  Verified its own scope with `git status` before finishing — "only this row's two files touched."
+- `construction_property.variation-claim`: **5,253B → 50,527B (9.6x)**, 15 file_examples, stands.
+  **It holds the load a landed refusal placed on it.** `timesheet` was refused partly by routing its
+  dayworks evidence here, so this row read that refusal in full "because its routing depends on this
+  row", and carries a dedicated section — *The load this row is carrying for a refusal*. Had it
+  refused, that routing would have broken; the dependency was made explicit rather than discovered
+  later by the merge gate.
+  It ends by listing what it did NOT do, including "no attempt to rescue leg 3" — declaring a leg
+  it could not win instead of quietly claiming it.
+
+## Push contention with the parallel workstream — handled
+
+Push rejected: the P6/P7 track had pushed `src/` and `tests/` work, including a commit merging 27
+of this track's J-DEPTH commits into theirs. Zero file overlap. The rebase initially failed on
+unstaged changes — two agents were still mid-write. **Deliberately did not stash live agent work;**
+waited for both rows to complete, verified them, committed, then rebased. Stashing files an agent
+is actively writing is how a wave gets silently corrupted.
+
+## Debt clearing 43/64 — `construction_property.materials-delivery`, stands
+
+- **5,284B → 35,600B (6.7x)**, 12 file_examples, both files written, all universal keys, stands.
+- Beat the charge that a delivery note is `logistics`' material distinguished only by the
+  destination being a building site — which would be a location value, not a structure.
+- **Wrote the `logistics` seam 19 times for a schema nobody has written yet** — the third row to
+  specify a boundary in advance of its neighbour existing (after `policy-handbook`→`hr` and
+  `building-control`→`government`). This is becoming a house habit rather than a one-off, and it
+  is the cheapest possible moment to fix those seams: while the question is live, and before an
+  author on the other side has committed to anything that would have to be renegotiated.
+
+## Debt clearing 44/64 — `business_operations.retrospective-postmortem`, retested and stands
+
+- **5,281B → 38,338B (7.3x)**, 11 file_examples, both files written, stands.
+- Faced four independent failure routes (work_type of `project-delivery`; a meeting output already
+  covered by `meeting-record`; a document type; content splitting entirely between two siblings)
+  and answered each rather than the easiest one.
+- **The retest was genuine on both sides.** `project-delivery` had already re-examined this row from
+  its side and kept it "while correcting one of its three grounds" — so the original thin gist
+  verdict has now been checked twice, from two directions, and one of its supports was replaced.
+- **Reversed a gist decision to decline an edge:** `meeting-record` had named this row and stated
+  the boundary; the gist draft declined that edge, and this pass accepts and reciprocates it, so the
+  edge is now written from both sides.
+- Reached across families for the right neighbour: read `clinical_practice.case-conference` for the
+  **morbidity-and-mortality edge** — an M&M review is a clinical retrospective, and no prompt named
+  that connection.

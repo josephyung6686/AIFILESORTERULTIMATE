@@ -4,7 +4,7 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Retrospectives, post-mortems and lessons learned",
-  "one_line": "The organizational situation of looking BACK at something that already happened - a finished piece of work, a failed launch, a service outage, a near miss - and producing a causal account of it: a timeline of what occurred, an analysis of why, and a set of changes the organisation commits to as a result. The organizing anchor is the EVENT OR EFFORT BEING REVIEWED plus the review's own occasion, and the material is retrospective and causal where the rest of this family is forward-looking and controlling. Absorbs the legacy rows ops.retrospective-postmortem (ROW) and soft.incident-postmortem (FOLD) - an engineering incident review and a project retrospective are one situation wearing two vocabularies. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "The organizational situation of looking BACK at something that already happened - a finished piece of work, a failed launch, a service outage, a near miss - and producing a causal account of it: a timeline of what occurred, an analysis of why, and a set of changes the organisation commits to as a result. The organizing anchor is the EVENT OR EFFORT BEING REVIEWED plus the review's own occasion, and the material is retrospective and causal where the rest of this family is forward-looking and controlling. The load-bearing half is the EVENT-ANCHORED review - an outage, a near miss, a failed launch - which has no bounded effort behind it at all and which business_operations.project-delivery expressly declines to hold. Absorbs the legacy rows ops.retrospective-postmortem (ROW) and soft.incident-postmortem (FOLD) - an engineering incident review and a project retrospective are one situation wearing two vocabularies. Placeholder row: it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -15,12 +15,13 @@
   "recognition": {
     "deterministic": [
       "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "an incident-header structure - a labelled slot set, not a vocabulary word: an incident or reference identifier, a severity or priority label, a detection time, a resolution time, and an impact statement naming affected users, customers or services, co-occurring in one header block. This is the row's cleanest structure-plus-labelled-slot pair and the one that answers the charge that this row is only a document type, because no plan, register, minute or status form in this family carries a detection-and-resolution time pair.",
       "a timeline structure whose rows pair a timestamp with an event or an action taken, written in the past tense and running to a resolution or a close - the single strongest shape for this row, and one that no plan, register or status report has.",
       "a causal-analysis structure: labelled blocks reading root cause, contributing factors, why this was not caught, or a repeated why-chain, sitting between a summary and a set of actions.",
       "the went-well / did-not-go-well / do-differently triad, in headings, in three columns of a table, or as three groups of short entries - the retrospective idiom in its most recognisable form.",
       "an action or remediation structure whose rows pair a committed change with an owner and a due date, placed AFTER a causal section rather than after a plan.",
-      "an incident-header structure pairing an incident or reference identifier with a severity or priority label, a detection time, a resolution time, and an impact statement naming affected users, customers or services.",
-      "a lessons-learned register: one row per lesson with a category, a recommendation and a project or period of origin, accumulated across efforts rather than written for one."
+      "a lessons-learned register: one row per lesson with a category, a recommendation and a project or period of origin, accumulated across efforts rather than written for one.",
+      "a review-pack structure: several files dropped or authored together around one occasion - a timeline export, a metrics chart, a chat log, a draft write-up and an actions sheet - held by purpose rather than by content. Never sufficient alone; it raises the packet, it does not activate the row."
     ],
     "needs_llm": [
       "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
@@ -32,12 +33,14 @@
     ],
     "never_alone": [
       "an actions-with-owners table alone. Every plan, minute, audit and register in this family ends with one - it is the tempting false shape, and what makes this row is the CAUSAL section above it.",
+      "a findings-document SHAPE alone - summary, then analysis, then recommendations. That is the shape of an audit report, a consultancy deliverable, a due-diligence memo, a research write-up and a school project. A document shape is one of the three things the business_operations anchor names as constitutionally never-alone in this family, alongside an entity name and a business vocabulary word, and this row rests on none of the three: its signals pair a STRUCTURE with a LABELLED SLOT (a timeline block plus a detection/resolution time pair; a causal block plus an owned-and-dated remediation row).",
       "the words retro, review, post-mortem, lessons or RCA in a filename alone: review names a performance review, a design review, a literature review and a board review equally well.",
       "past tense alone, or a timeline alone: a site diary, a case note and a travel itinerary are all timestamped past-tense sequences.",
       "an extension or a source_type alone. 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
       "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
       "a bare 4-digit number read as a year, an incident number, or a severity.",
-      "membership in a download session that dropped a whole review pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+      "membership in a download session that dropped a whole review pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "a meeting's apparatus alone - an attendee line, a date line and an actions section. That four-part shape is business_operations.meeting-record's own signal, and this row activates only on what sits ABOVE it: a went-well / did-not-go-well / try-next triad, or a timeline plus a causal section. A retrospective that left no such structure behind is a meeting record, and this row should not take it."
     ]
   },
   "proposed_context_terms": [
@@ -160,6 +163,31 @@
         "a project fact from a sprint number alone",
         "that short entries are low-risk: a candid retro column carries unguarded statements about named colleagues",
         "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Retro - sprint 41.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a date, an attendee list and a discussion section - the meeting-record shape in full",
+        "above the actions table, three headed groups reading what went well, what did not go well, what to try next",
+        "an actions section pairing a change with an owner and a date",
+        "no incident identifier and no severity label"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation from the meeting apparatus - the attendee line, the date line and the actions section are business_operations.meeting-record's own four-part signal, and that row names these same bytes from its side",
+        "any business_operations fact - the schema declares no field rows",
+        "that the absence of an incident header weakens this row here: the facilitation triad above the actions table is the discriminator, and it is present",
+        "a project fact from a sprint number alone",
         "a folder path"
       ],
       "also_schema": null,
@@ -328,12 +356,41 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "DR test report - March.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a timeline of timestamped events, a findings section and a remediation table with owners and dates",
+        "a scope block naming a planned exercise window and a set of success criteria agreed in advance",
+        "no incident identifier, no severity, no customer-impact statement",
+        "an appendix of screenshots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "an incident from a timeline plus a findings section: the event was DELIBERATE AND SCHEDULED, which is the discriminator business_operations.risk-register states from its side and this row accepts",
+        "which of the two rows owns it - a test whose findings feed a treatment plan is genuinely reachable from both, and P10 chooses from an accepted group later",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
     }
   ],
   "collides_with": [
     {
       "domain": "business_operations.project-delivery",
       "signal": "A lessons-learned section lives inside a closure report, and a retrospective is filed with the project it closes. The discriminating evidence: a forward-looking control artifact - scope, schedule, dependency, RAG - supports delivery; a backward-looking causal account with a timeline, contributing factors and remediation commitments supports this row. An incident post-mortem with no project at all is the case that makes this row necessary rather than a work_type value of the other. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "A retrospective IS a meeting that produces a document, and its record carries the same four-part meeting shape - a name, a date, an attendee list, an actions section. REVERSAL: the gist pass left this edge unwritten, reasoning that the confusion was already carried by the meeting row's own scope. That was wrong on the contract - CONNECTION requires the edge where the same evidence would confuse two rows, and it plainly would - so the edge is written here, one-way from this side and matching that row's wording rather than competing with it. The discriminating evidence is what sits ABOVE the actions table: a went-well / did-not-go-well / try-next triad, an incident timeline, or a contributory-factors or causal section supports this row; a forward-looking working meeting whose actions table it shares supports the meeting row. Shared fixture bytes, named identically on both sides: Retro - sprint 41.docx. Note the asymmetry that keeps the two rows distinct in the other direction: a large part of this row's material is not a meeting output at all - an outage post-mortem reconstructed from logs by one engineer, and a lessons register accumulated across years and efforts, have no meeting behind them. Provenance: inference.",
       "provenance": "inference"
     },
     {
@@ -398,5 +455,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "This row is marked where its sibling project-delivery is not, and the reason is specific rather than defensive: a retrospective is by construction a candid written account of what went wrong, naming the people who were involved and, in a blameless culture, deliberately recording statements that were made on the understanding they would not travel. An incident post-mortem additionally states how a system failed and what was not caught, which is operational intelligence about a live estate. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and a review that turns out to concern an individual's conduct is employment material in the plainest sense, for which the transition is immediate: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” - and, because a branch named after a failure is itself a disclosure, “Protected branches should have configurable redaction in the canvas and review screens”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
-  "open_question": "Whether this row survives R1c as its own node or collapses into a work_type value of business_operations.project-delivery. The dispatch brief flagged the doubt and this pass tested it rather than assuming: it passes the node test on three independent grounds - a large share of the material (outage and near-miss post-mortems) has no project anchor at all and would be homeless under a project-first row; its detection signals are a distinct shape (timeline plus causal analysis) rather than a vocabulary variant; and its privacy posture genuinely differs, which is why it carries potentially_sensitive and delivery does not. What this pass could NOT settle is the file that is both - a closure report whose last third is the retrospective - and that is a P10 question about accepted groups rather than a catalogue question. A second unresolved boundary is stated reciprocally against hr.employee-relations: the person-versus-effort discriminator is the one place where guessing wrong files a disciplinary record in a working branch."
+  "open_question": "Whether this row survives R1c as its own node. FOUR charges were put to it and it is graded honestly against each, not carried on the gist pass's verdict. (a) A work_type value of business_operations.project-delivery: ANSWERED, and this is the strongest of the four answers - the event-anchored half (outage, near miss, failed launch) has no bounded effort behind it, no charter, no scope-and-out-of-scope pair, no schedule and no acceptance, and that row states from its side that folding the half in would file an outage under a project that does not exist and that it actively does not want it. (b) Already covered by business_operations.meeting-record: ANSWERED in both directions - that row disclaims a look-back structure explicitly, and a large part of this row's material (a post-mortem reconstructed from logs by one engineer; a register accumulated across years) has no meeting behind it at all. The gist pass declined this edge; that decision is REVERSED here and the edge is written. (c) A document type - a findings doc: ANSWERED on the family's own bar, a structure paired with a labelled slot. The incident header carries a detection time and a resolution time in labelled slots and nothing else in this family does; the causal block sits in a fixed position above an owned-and-dated remediation row. A findings-document SHAPE alone is now an explicit never_alone, because that charge is correct about the shape and wrong about the slots. (d) Content splits entirely between project-delivery and risk-register, leaving nothing: THE WEAKEST-ANSWERED, and the one R1c should test hardest. It fails only because neither claimant will take the residue - project-delivery declines the incident half on structural grounds, and risk-register holds possibilities rather than realised events and states the tense discriminator from its side. The residue is therefore real but it is defined partly by what two neighbours refuse, and a row whose definition leans on refusals is closer to the organisational-records failure than this row is comfortable admitting. What keeps it on the right side of that line is that the residue has a POSITIVE structure of its own (the incident header, the timeline, the causal block, the facilitation triad) rather than being defined by subtraction. Two boundaries this pass could not settle: the file that is both - a closure report whose last third is the retrospective, named as a fixture from both sides and agreed by both to be not a defect - and the person-versus-effort discriminator against hr.employee-relations, the one place where guessing wrong files a disciplinary record in a working branch."
 }

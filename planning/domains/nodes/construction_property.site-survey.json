@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Site surveys and measured surveys",
-  "one_line": "The record of what was actually FOUND at a site, captured before anything was designed or priced: measured and topographical surveys, setting-out and level data, point clouds and scan registrations, drainage and CCTV surveys, service and utility searches, ground investigation and borehole logs, asbestos and intrusive opening-up surveys, and the photographs that evidence the existing condition. Its defining property is that it is an INPUT TO DESIGN expressed as geometry and measured data rather than an opinion — the deliverable is coordinates, levels, dimensions and layers, and its whole value is that it was true on the day it was taken. Absorbs the legacy row cons.site-survey. Distinct from construction_property.survey-valuation, which produces a professional OPINION addressed to a client about a built asset; see this row's collides_with entry for the discriminant. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "one_line": "The record of what was actually FOUND at a site, captured before anything was designed or priced: measured and topographical surveys, setting-out and level data, point clouds and scan registrations, drainage and CCTV surveys, service and utility searches, ground investigation and borehole logs, asbestos and intrusive opening-up surveys, and the photographs that evidence the existing condition. Its defining property is that it is an INPUT TO DESIGN expressed as geometry and measured data rather than an opinion — the deliverable is coordinates, levels, dimensions and layers, and its whole value is that it was true on the day it was taken. Absorbs the legacy row cons.site-survey. Distinct from construction_property.survey-valuation, which produces a professional OPINION addressed to a client about a built asset; see this row's collides_with entry for the discriminant. Placeholder row (J-IND, researched to J-DEPTH): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -104,7 +104,8 @@
     "existing-condition photograph set and photo schedule",
     "site sketch or hand-measured plan",
     "survey report letter",
-    "as-built or record survey"
+    "as-built or record survey — NOT CLAIMED HERE as a situation: the deepened construction_property.construction-project row lists \"handover pack, as-built assembly or O&M manual\" among its OWN work types, and this row accepts that reading. The value is retained only so that a file of this shape is recognised as survey-shaped and then routed, never so that this row activates on it. See open_question.",
+    "thermal or instrument-imaging survey output (assigned to this row by construction_property.progress-photos, which rejected it as \"a survey instrument output\"; accepted here)"
   ],
   "grouping_reasons": [
     "one site surveyed on one visit or one commission — the clearest group in this row: the coordinate file, the drawing, the photographs and the report are one deliverable in several formats.",
@@ -332,6 +333,30 @@
       "falls_through_if_inactive": "Protected Records"
     },
     {
+      "filename": "Structural inspection - rear bay - Meridian Eng.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered schedule of crack widths measured with a gauge, keyed to a location sketch",
+        "a covering page addressed to a named client",
+        "a conclusion on cause and a recommendation for remedial work",
+        "a limitation-of-liability paragraph and an engineer's professional designation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row. This is the reciprocal fixture — the file that must not be lost TO this row — and it is named in exactly these bytes on construction_property.survey-valuation, which claims it. It measures, which is why this row wants it; but it carries an addressee, a stated purpose and a reliance clause, and where those are present the opinion reading wins because that is what the document is FOR. “Topic answers what a file is about, while purpose answers what the file was for.”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
       "filename": "scan-registration-report.pdf",
       "source_type": "text_document",
       "observations": [
@@ -393,7 +418,7 @@
     },
     {
       "domain": "construction_property.progress-photos",
-      "signal": "Existing-condition images and progress images are indistinguishable on EXIF. The discriminating evidence: a pre-works date relative to an accepted project, a photograph schedule keyed to a location plan, and the absence of works in the frame support this row; a serial run across the construction period supports the progress row. Metadata alone never settles it — “conflicting signals should lead to abstention rather than an invented classification”. Provenance: inference.",
+      "signal": "Existing-condition images and progress images are indistinguishable on EXIF. The discriminating evidence: a pre-works date relative to an accepted project, a photograph schedule keyed to a location plan, and the absence of works in the frame support this row; a serial run across the construction period supports the progress row. Metadata alone never settles it — “conflicting signals should lead to abstention rather than an invented classification”. Provenance: inference. DEEPENED, and stated so as not to contradict that row: progress-photos earned its own node by arguing that it is recognised by CAPTURE METADATA, RHYTHM AND PLACE rather than by document structure, and that “a work_type value cannot carry a different detection method; only a template can”. This row does not make that claim and does not compete for it. This row's photographs are never self-sufficient evidence of this row: an existing-condition image activates here only as a member of a pack whose other members are documentary — a photograph schedule keyed to a location plan, a survey drawing, a sample register. Stated as a rule for R1c: where the ONLY evidence is a run of images on a site, progress-photos' capture-based method is the nearer reading and this row concedes; where the images arrive alongside a measured deliverable, this row leads. Its own discriminator — “a camera roll goes to many places once, a site walk goes to one place many times” — also separates it from this row, because a pre-works survey visits one place ONCE. Provenance: inference.",
       "provenance": "inference"
     },
     {
@@ -414,6 +439,11 @@
     {
       "domain": "business_operations.user-research",
       "signal": "Recorded because the word collides even though the worlds do not: a questionnaire export named 'survey results.csv' is a delimited data file about people, and this row's fingerprint is a delimited data file about places. The discriminating evidence: respondent rows, question headers and Likert values support the research row; coordinate triples and feature codes support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "The charge that this row is merely the stage you do before you build, i.e. a work_type value of the project row. Recorded here reciprocally although that row's own file does not name this one: its work_type list begins at 'tender enquiry, priced return or tender report (pre-award)' and contains no survey value, so the spine does not claim the survey and this edge does not contradict it. The discriminating evidence: an instruction reference — a contract, an appointment, a letter of intent, a programme, a payment application — supports the project row; a measured deliverable with a datum, a coordinate set or a location-keyed register and NO instruction apparatus supports this row. The asymmetry that makes this a node rather than a value: a survey routinely exists with no project at all (a scheme abandoned, a bid lost, a purchase not made, a survey commissioned by a previous owner twenty years ago), and a survey commissioned under one instruction is re-read under a different one decades later. A work_type value cannot outlive the instruction it is a value on. Provenance: inference.",
       "provenance": "inference"
     }
   ],
@@ -453,5 +483,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Most of this row is geometry and is not sensitive at all. Three of its members are, which is enough to set the cautious value for the row: an asbestos survey names hazardous materials in a building people occupy, a services search returns utility records for a specific address, and a mis-detected home survey report names a buyer, a lender and a figure. 00's corpus sentence covers the last of those directly — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Beyond that, and as inference rather than a design claim, precise location data about a real property is itself the kind of thing that should not leave the machine casually. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
-  "open_question": "One, plus the boundary argued in collides_with. The unresolved item: whether an AS-BUILT or record survey belongs to this row or to construction_property.construction-project's handover material. The deliverable is identical to a pre-works measured survey and the purpose is the opposite — 00's own distinction, “Topic answers what a file is about, while purpose answers what the file was for.” — and neither row's detection signals can separate them without the project timeline. This row claims the pre-works reading and explicitly does not claim the as-built one."
+  "open_question": "Two, plus the boundaries argued in collides_with. (1) The AS-BUILT or record survey, carried over from the gist pass and now HALF-ANSWERED from the other side: the gist note asked whoever owned the project row to state the other half, and the deepened construction_property.construction-project row has — it lists “handover pack, as-built assembly or O&M manual” among its OWN work types. This row accepts that and no longer competes; the residue for R1c is only that the two deliverables remain byte-for-byte identical, so no detection signal separates them and only the project timeline can, which activation may not read. 00's own distinction is the reason the answer is not in the bytes: “Topic answers what a file is about, while purpose answers what the file was for.” (2) NEW, and the sharper one: whether the recommended SURVEY DATE level survives R1c. The family anchor grants a period level only where a situation genuinely cycles, and a survey does not cycle — yet a survey's entire claim is that it was true on one day, and two surveys of one site ten years apart are different facts about the world rather than versions of one document. This row asks for a date level as a stated exception to the family default rather than taking one silently."
 }
