@@ -57,6 +57,34 @@ _REASON_TO_CHECK = {
 }
 
 
+def _freeze_sequence(value: object, *, name: str) -> tuple | ValidationUnavailable:
+    """Reject str/bytes; require a Sequence; copy to tuple.
+
+    Same idea as `records._freeze_sequence`: `in` on a string is substring
+    search, and iterating a bare string would become one-character members.
+    Does not mutate the P6 record. A bad shape is `ValidationUnavailable`,
+    so the public function still returns `P8Verdict | ValidationUnavailable`.
+    """
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        return ValidationUnavailable(missing=(name,))
+    return tuple(value)
+
+
+def _freeze_str_sequence(value: object, *, name: str) -> tuple[str, ...] | ValidationUnavailable:
+    frozen = _freeze_sequence(value, name=name)
+    if isinstance(frozen, ValidationUnavailable):
+        return frozen
+    if not all(isinstance(item, str) for item in frozen):
+        return ValidationUnavailable(missing=(name,))
+    return frozen
+
+
+def _require_bool(value: object, *, name: str) -> bool | ValidationUnavailable:
+    if value is not True and value is not False:
+        return ValidationUnavailable(missing=(name,))
+    return value
+
+
 @dataclass(frozen=True)
 class FactValidationDependencies:
     normalize: Callable[[str, str], object]
@@ -90,7 +118,7 @@ def proposal_state_from_p8(verdict: P8Verdict) -> str:
 
 
 def _checked_citations(
-    proposal: Proposal, citable_keys: set[str],
+    citations: Sequence[str], citable_keys: set[str],
 ) -> tuple[CheckedCitation, ...]:
     return tuple(
         CheckedCitation(
@@ -98,7 +126,7 @@ def _checked_citations(
             resolved=key in citable_keys,
             span_matched=key in citable_keys,
         )
-        for key in proposal.citations
+        for key in citations
     )
 
 
@@ -134,17 +162,31 @@ def _run_checks(
     dependencies: FactValidationDependencies,
     *,
     policy_version: str,
-) -> P8Verdict:
-    citable_keys = {item.observation_key for item in request.citable_observations}
-    checked = _checked_citations(proposal, citable_keys)
+) -> P8Verdict | ValidationUnavailable:
+    allowlist = _freeze_str_sequence(request.allowlist, name="allowlist")
+    if isinstance(allowlist, ValidationUnavailable):
+        return allowlist
+    citations = _freeze_sequence(proposal.citations, name="citations")
+    if isinstance(citations, ValidationUnavailable):
+        return citations
+    observations = _freeze_sequence(
+        request.citable_observations, name="citable_observations")
+    if isinstance(observations, ValidationUnavailable):
+        return observations
+    existing = _freeze_sequence(request.existing_facts, name="existing_facts")
+    if isinstance(existing, ValidationUnavailable):
+        return existing
 
-    if proposal.field_key not in request.allowlist:
+    citable_keys = {item.observation_key for item in observations}
+    checked = _checked_citations(citations, citable_keys)
+
+    if proposal.field_key not in allowlist:
         return _verdict(
             request, proposal, outcome=REJECT,
             reasons=(FIELD_NOT_IN_ACTIVE_SCHEMA,),
             citations_checked=checked, policy_version=policy_version,
         )
-    if not proposal.citations or any(key not in citable_keys for key in proposal.citations):
+    if not citations or any(key not in citable_keys for key in citations):
         return _verdict(
             request, proposal, outcome=REJECT,
             reasons=(CITATION_NOT_FOUND,),
@@ -158,8 +200,12 @@ def _run_checks(
             reasons=(VALUE_NOT_NORMALIZABLE,),
             citations_checked=checked, policy_version=policy_version,
         )
-    for row in request.existing_facts:
-        if dependencies.contradicts(proposal, row):
+    for row in existing:
+        conflict = _require_bool(
+            dependencies.contradicts(proposal, row), name="contradicts")
+        if isinstance(conflict, ValidationUnavailable):
+            return conflict
+        if conflict is True:
             return _verdict(
                 request, proposal, outcome=REJECT,
                 reasons=(CONTRADICTED_BY_STRONGER,),
@@ -200,6 +246,8 @@ def validate_fact_proposal(
         p8 = _run_checks(
             request, proposal, dependencies, policy_version=policy_version,
         )
+        if isinstance(p8, ValidationUnavailable):
+            return p8
 
     apply_verdict(
         conn, request=request, proposal=proposal,

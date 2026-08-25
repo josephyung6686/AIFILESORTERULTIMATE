@@ -667,3 +667,57 @@ def test_does_not_ship_a_domain_catalogue_or_default_oracles():
     assert "BUSIB 4300" not in strings
     assert "UChicago" not in strings
     assert "University of Chicago" not in strings
+
+
+def test_string_allowlist_does_not_accept_a_substring_field(subject_file, p6_conn):
+    request = dataclasses.replace(
+        _request(p6_conn, subject_file), allowlist="target_school")
+    assert "school" in request.allowlist
+    proposal = _proposal(subject_file, field_key="school", value="Booth")
+    result = _validate(p6_conn, request, proposal)
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("allowlist",)
+    schools = [
+        row for row in facts_for_file(
+            p6_conn, request.file_id, request.content_hash)
+        if row["field_key"] == "school"
+    ]
+    assert schools == []
+
+
+def test_none_citations_is_not_an_uncaught_type_error(subject_file, p6_conn):
+    request = _request(p6_conn, subject_file)
+    proposal = Proposal(
+        field_key="subject", value="BUSIB 4300", citations=None, unknown=False)
+    result = _validate(p6_conn, request, proposal)
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("citations",)
+    assert facts_for_file(p6_conn, request.file_id, request.content_hash) == []
+
+
+def test_contradicts_none_is_not_treated_as_no_conflict(subject_file, p6_conn):
+    file_id, content_hash, key = subject_file
+    value_id = ensure_value(
+        p6_conn, field_key="subject", canonical_value="BUSIB 4300",
+        first_evidence_ref=key, origin=VALUE_ORIGINS[0])
+    write_fact(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        field_key="subject", value_id=value_id,
+        reliability_state=VALIDATED, origin="rule",
+        evidence_refs=(key,), cache_key="sha256:the-native-pass-slot", active=True)
+    request = _request(p6_conn, subject_file)
+    assert request.existing_facts
+
+    proposal = _proposal(subject_file, value="ECON 1010")
+    result = _validate(
+        p6_conn, request, proposal,
+        dependencies=_deps(contradicts=lambda *a, **k: None),
+    )
+    assert not isinstance(result, P8Verdict) or result.outcome != ACCEPT_DIRECT
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("contradicts",)
+    subjects = [
+        row for row in facts_for_file(p6_conn, file_id, content_hash)
+        if row["field_key"] == "subject"
+    ]
+    assert [row["canonical_value"] for row in subjects] == ["BUSIB 4300"]
