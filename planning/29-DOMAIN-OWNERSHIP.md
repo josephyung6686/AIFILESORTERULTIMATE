@@ -18,7 +18,7 @@ Format: `<domain_id> | <TEAM> | active|complete`
 
 ## Claims
 
-law_practice | OTHER-TEAM | active
+law_practice | OTHER-TEAM | complete
 nonprofit | OTHER-TEAM | complete
 logistics | OTHER-TEAM | complete
 retail_hospitality | OTHER-TEAM | complete

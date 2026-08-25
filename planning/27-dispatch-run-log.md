@@ -871,3 +871,31 @@ redone. Four dispatched now.
   holds" — extending a neighbour's rule rather than duplicating it.
 
 ## OTHER-TEAM claim status: 3 of 4 complete (nonprofit, logistics, retail_hospitality). law_practice next.
+
+## Schema anchor authored — `law_practice` (OTHER-TEAM claim), stands. ALL 23 ANCHORS NOW EXIST.
+
+- JSON **86,076B**, memo **25,518B**, `kind: schema`, `fields: []`, 13 file_examples, all universal
+  keys, stands. The largest unwritten family (36 templates) now has its anchor.
+- Answered the existential charge — that this is `legal` with a practising certificate — and stated
+  the counterfactual, as `retail_hospitality` did.
+- Closes with a self-audit rather than a summary: quotations traced to `00` or the landed node they
+  were borrowed from (**0 unverified**); PR-6 shape confirmed field by field; **every neighbour id
+  in `collides_with` / `also_holds_with` / `role_split` checked to exist on the roster, no id
+  invented**; six `proposed_fields`, all reuses, four already canonical; and an explicit statement
+  that only its own two files were written.
+  That last check — verifying every referenced id actually exists — is worth generalising to R1c.
+
+## ★ ALL 23 SCHEMA ANCHORS ARE WRITTEN AT J-DEPTH.
+
+This is the gate that unblocks the rest of the catalogue: every remaining template measures its node
+test against its schema's default template, and all 23 default templates now exist.
+
+## OTHER-TEAM claims: 4 of 4 COMPLETE (law_practice, nonprofit, logistics, retail_hospitality).
+
+CODEX's four rows (`resource_operations`, `creative.performing-practice`, `creative.client-engagement`,
+`creative.revision-round`) have landed on disk but are **left uncommitted for CODEX** — they are not
+this team's to commit. `resource_operations.json` now has a memo alongside it, so CODEX's agent
+appears to have written over the stray partial this team left; that contested file is resolved.
+
+## STOPPING HERE at Joseph's instruction. Next session: see `28-AUTOPILOT.md` §0 (two-team rules)
+then §2 (the loop). Remaining: ~199 templates, then R1c, the review panel, and the index.
