@@ -132,17 +132,25 @@ def build_call_payload(
     canonical_dossier_bytes: bytes,
     *,
     model_target: ModelTarget,
-    prompt_fingerprint: str,
     policy_version: str,
     release_id: str,
+    prompt_fingerprint: str | None = None,
 ) -> CallPayload:
-    """Sole public factory. Always assembles model-visible bytes from the two sources."""
+    """Sole public factory. Always assembles model-visible bytes from the two sources.
+
+    The stored fingerprint is computed from `prompt_definition`; a caller-supplied
+    value cannot bind a digest that does not match the definition.
+    """
+    from llm_harness.fingerprint import prompt_fingerprint as fingerprint_of
+
+    # Caller-supplied fingerprints are ignored; the digest is always the definition's.
+    _ = prompt_fingerprint
     return CallPayload(
         prompt_definition=prompt_definition,
         canonical_dossier_bytes=canonical_dossier_bytes,
         model_visible_bytes=assemble(prompt_definition, canonical_dossier_bytes),
         model_target=model_target,
-        prompt_fingerprint=prompt_fingerprint,
+        prompt_fingerprint=fingerprint_of(prompt_definition),
         policy_version=policy_version,
         release_id=release_id,
     )
