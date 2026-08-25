@@ -46,6 +46,14 @@ def _new_id() -> str:
     return str(uuid.uuid4())
 
 
+def _require_response_bytes(response_bytes: object) -> bytes:
+    if not isinstance(response_bytes, (bytes, bytearray, memoryview)):
+        raise TypeError(
+            "response_bytes must be bytes; SQLite stores str as TEXT, not BLOB"
+        )
+    return bytes(response_bytes)
+
+
 def _explanation(*, audit_id: int | None, model_id: str | None,
                  prompt_fingerprint: str | None, **extra: object) -> str:
     body = {
@@ -89,6 +97,7 @@ def record_response(conn: sqlite3.Connection, *, dossier_id: str, response_bytes
                     model_id: str, prompt_fingerprint: str, release_audit_id: int,
                     observed_at: str) -> str:
     """Store raw response bytes and append `model_response_received`."""
+    response_bytes = _require_response_bytes(response_bytes)
     response_id = _new_id()
     with transaction(conn):
         conn.execute(
@@ -155,6 +164,12 @@ def supersede_verdict(conn: sqlite3.Connection, old_verdict_id: str,
     """Link two stored verdicts, keep both rows, append `verdict_superseded`."""
     supersession_id = _new_id()
     with transaction(conn):
+        new = conn.execute(
+            "SELECT verdict_id FROM llm_verdict WHERE record_id = ?",
+            (new_verdict_id,),
+        ).fetchone()
+        if new is None:
+            raise KeyError(f"unknown record {new_verdict_id!r} in llm_verdict")
         mark_superseded(
             conn, "llm_verdict",
             old_id=old_verdict_id, new_id=new_verdict_id, reason=reason,

@@ -145,6 +145,22 @@ def test_record_response_preserves_raw_bytes_and_appends_one_received_event(
     assert [event["event_type"] for event in events] == ["model_response_received"]
 
 
+def test_record_response_rejects_non_bytes(p8_conn, monkeypatch):
+    events = _capture_events(monkeypatch)
+    with pytest.raises(TypeError):
+        store.record_response(
+            p8_conn,
+            dossier_id="dossier-1",
+            response_bytes="not-bytes",
+            model_id="fixture-model",
+            prompt_fingerprint="fp-canonical",
+            release_audit_id=17,
+            observed_at=FIXED_CLOCK,
+        )
+    assert p8_conn.execute("SELECT count(*) AS c FROM llm_response").fetchone()["c"] == 0
+    assert events == []
+
+
 def test_record_verdict_inserts_a_row_and_appends_validation_verdict(
     p8_conn, monkeypatch,
 ):
@@ -190,6 +206,27 @@ def test_prior_verdict_survives_supersession(p8_conn, monkeypatch):
     ).fetchone()
     assert tuple(link) == (old.verdict_id, new.verdict_id, "validator revision")
     assert [event["event_type"] for event in events] == ["verdict_superseded"]
+
+
+def test_supersede_verdict_rejects_unknown_new_verdict_id(p8_conn, monkeypatch):
+    events = _capture_events(monkeypatch)
+    old = make_verdict(verdict_id="verdict-old")
+    store.record_verdict(p8_conn, old, observed_at=FIXED_CLOCK)
+    events.clear()
+    with pytest.raises(KeyError):
+        store.supersede_verdict(
+            p8_conn, old.verdict_id, "v-does-not-exist",
+            reason="validator revision", observed_at=FIXED_CLOCK,
+        )
+    prior = p8_conn.execute(
+        "SELECT superseded_by FROM llm_verdict WHERE verdict_id = ?",
+        (old.verdict_id,),
+    ).fetchone()
+    assert prior["superseded_by"] is None
+    assert p8_conn.execute(
+        "SELECT count(*) AS c FROM llm_verdict_supersession"
+    ).fetchone()["c"] == 0
+    assert events == []
 
 
 @pytest.mark.parametrize("table", TASK3_TABLES)
