@@ -838,3 +838,19 @@ redone. Four dispatched now.
   rather than an organisation name.
 - A schema that gives away nine-tenths of its plausible scope to keep a defensible tenth is the
   outcome this pass was designed to produce.
+
+## Schema anchor authored — `logistics` (OTHER-TEAM claim), stands
+
+- Memo **42,574B**, `kind: schema`, `fields: []`, 15 file_examples, all universal keys, stands.
+- Survived the format charge — a waybill, manifest, tracking export and delivery note are all
+  form- or log-shaped, and 18 legacy ids were dropped for exactly that.
+- **The write-the-seam-early strategy is now proven end to end.** `construction_property.materials-delivery`
+  wrote this seam 19 times before this schema existed; the anchor read it in full "as instructed"
+  and answered it in its own §1 — a boundary now argued from both sides before either family's
+  templates are written.
+- It also picked up work left by two other anchors without being told: `manufacturing`'s
+  `collides_with.logistics` entry and its `asset` / `site` / `record_type` proposals are "both
+  answered and reused" rather than duplicated, and it found the passage where
+  `business_operations.procurement-sourcing` **declined** an edge with this family and addressed it.
+- Followed `construction_property`'s NJ-CP-5, which had drawn this seam one-way and left it to
+  "whoever writes those schemas" — the open question was resolved by the row it was addressed to.

@@ -20,7 +20,7 @@ Format: `<domain_id> | <TEAM> | active|complete`
 
 law_practice | OTHER-TEAM | active
 nonprofit | OTHER-TEAM | complete
-logistics | OTHER-TEAM | active
+logistics | OTHER-TEAM | complete
 retail_hospitality | OTHER-TEAM | active
 
 resource_operations | CODEX | active
