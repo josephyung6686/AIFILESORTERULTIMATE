@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Installation and compliance certificates",
-  "one_line": "REFUSED. The roster hint describes a DOCUMENT TYPE — an installer's signed statement that an installation at an address meets a standard — and a PURPOSE (it must be producible years later), not an organizational situation with detection signals, dimensions or privacy rules of its own. Certificates are already carried as work_type VALUES on rows that landed before this one and on rows in this family, and the purpose of keeping a durable document with no broader group is exactly what 00's residual library is for. Absorbs the legacy row trade.compliance-certificate, which is retired here rather than rebuilt. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "one_line": "REFUSED. The roster hint describes a document type — an installer's signed statement that an installation at an address meets a standard — and a retention purpose, not an organizational situation with detection signals, dimensions or privacy rules of its own. Certificate is a work_type value whose owning situation may be a job, authority application, managed block, tenancy, sale or letting, delivery, safety cycle, household record, insurance policy, corporate filing, or personal credential. A durable standalone certificate routes to Independent Records. Absorbs and retires legacy trade.compliance-certificate without rebuilding the 574's document-type node.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -29,7 +29,7 @@
   },
   "proposed_context_terms": [],
   "work_types": [
-    "RECORDED AS VALUES, NOT AS A ROW — this is the list the refusal hands back to the sibling rows that already carry it: electrical installation certificate, minor works certificate, gas safety record, heating or boiler commissioning certificate, fire alarm or emergency lighting certificate, sprinkler or suppression certificate, lift or lifting-equipment examination, air-tightness or energy performance certificate, structural warranty or latent-defects policy, asbestos or fire-door inspection record, thermal or acoustic test record, authority completion or final certificate."
+    "RECORDED AS VALUES, NOT AS A ROW — electrical installation certificate, electrical installation condition report, minor works certificate, gas safety record, boiler or heating commissioning certificate, water-hygiene or pressure-test certificate, fire-alarm or emergency-lighting certificate, sprinkler or suppression certificate, lift or lifting-equipment examination report, air-tightness certificate, energy performance certificate, acoustic or thermal test certificate, materials declaration of performance or batch-conformity certificate, structural warranty or latent-defects policy, asbestos survey or clearance certificate, fire-door inspection record, authority completion or final certificate, warranty certificate, calibration certificate, training or competence certificate. Each value routes by the situation it evidences; this list is not an enum that activates this refused row."
   ],
   "grouping_reasons": [
     "NONE AUTHORED. Recorded: certificates group by the INSTRUCTION they evidence — a handover pack for a job, a discharge submission for an application, a compliance folder for a managed block, a household's own record of its own home. Each of those is a group a sibling row already owns, and “The documents are content-incoherent but purpose-coherent.” describes the handover pack exactly.",
@@ -43,6 +43,7 @@
   "file_kinds": {
     "source_types": [
       "text_document",
+      "spreadsheet",
       "ocr",
       "image",
       "email",
@@ -231,6 +232,73 @@
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "DoP - steel batch 8841.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a manufacturer declaration naming a product, harmonised standard and batch",
+        "the same batch token appears on a signed delivery note for a named site",
+        "performance characteristics are tabulated"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "an installation-certificate situation; the accepted group is the physical arrival evidenced by construction_property.materials-delivery",
+        "that a supplier library download belongs to a site merely because it names the same product",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "LOLER examination - Tower Crane 2 - next due 2026-10.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a uniquely identified lifting asset",
+        "examination outcome, defects and a labelled next-due slot",
+        "an examiner signature and site reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a certificate situation; the recurring inspection cycle and next-due slot route the record to construction_property.site-health-safety",
+        "that the asset or site token alone supplies group membership",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Certificate of incorporation - Harbour Works Ltd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a registry crest and registered entity number",
+        "an effective date and authority-issued certificate wording",
+        "no property, installation, job or site"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "construction_property merely because the entity name contains a building or project word; business_operations.corporate-regulatory-filings owns the registry submission apparatus",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
     }
   ],
   "collides_with": [],
@@ -265,5 +333,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Set to match the schema rather than to distinguish this row — which is itself part of the refusal, since an identical privacy posture is the second leg of the node test failing. The material names a real address and often a named occupier, engineer or tenant, and 00's corpus sentence covers it: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. The handling class is P7's and is not set here.",
-  "open_question": "One, and it is a routing question for R1c rather than a doubt about the refusal. The coverage of the legacy id trade.compliance-certificate is routed four ways and R1c should confirm all four landed: (a) the AUTHORITY-issued completion or final certificate under an application reference goes to construction_property.building-control, which states it; (b) an INSTALLER's declaration inside a job goes to construction_property.construction-project as a handover-pack member, which lists handover pack, as-built record and O&M manual among its work types; (c) a MANAGED BLOCK's recurring compliance evidence goes to construction_property.block-management; (d) a HOUSEHOLDER's own certificate goes to the landed finance.household-property row, which already lists 'completion or compliance certificate' among its work types. Anything left over is Independent Records by design, not by omission. If R1c disagrees with the refusal, the minimum honest form of the row would be a detection-signal-only entry on the certified-declaration structure — but that structure is already on the schema row's deterministic list, which is where a signal that identifies a SCHEMA rather than a SITUATION belongs."
+  "open_question": "NJ-CP-CC-1 for R1c: ratify the exhaustive route-by-owning-situation rule rather than a live certificate node. Authority completion/final certificates under an application reference route to construction_property.building-control; job handover and installer declarations route to construction_property.construction-project or construction_property.trade-job according to the accepted instruction; batch conformity documents travelling with a load route to construction_property.materials-delivery; recurring plant, inspection and next-due evidence routes to construction_property.site-health-safety or construction_property.block-management; landlord/tenant gas and electrical records route to the tenancy or block situation; sale/letting EPCs route to construction_property.agency-listing; household-held property certificates route to finance.household-property; latent-defects policies route to finance insurance; registry-issued entity certificates route to business_operations.corporate-regulatory-filings; personal licences and competence certificates route to the relevant identity/career credential situation. A certificate with no accepted broader group routes to Independent Records; an unresolved owner routes to Review Later; sensitive isolated material routes to Protected Records; image-only captures route to One-Off Images or Temporary Screenshots. If R1c overturns the refusal, the minimum honest alternative is detection-signal-only on the certified-declaration structure, but that structure identifies the construction_property schema rather than one situation and is already authored on the schema anchor."
 }
