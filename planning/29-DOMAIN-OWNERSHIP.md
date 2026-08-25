@@ -23,10 +23,10 @@ nonprofit | OTHER-TEAM | complete
 logistics | OTHER-TEAM | complete
 retail_hospitality | OTHER-TEAM | complete
 
-resource_operations | CODEX | active
-creative.performing-practice | CODEX | active
-creative.client-engagement | CODEX | active
-creative.revision-round | CODEX | active
+resource_operations | CODEX | complete
+creative.performing-practice | CODEX | complete
+creative.client-engagement | CODEX | complete
+creative.revision-round | CODEX | complete
 
 ## Split history — the claim inverted once, read this before assuming
 
@@ -42,7 +42,10 @@ split, so two ids were briefly contested. Outcome:
   UNTRUSTED PARTIAL from a stopped agent, not finished work.
   **OTHER-TEAM did not delete it**, because deleting a file inside another team's claimed id is
   itself a prohibited edit and CODEX's own agent may have been mid-write on the same path.
-  **CODEX decides:** overwrite it, or delete it and start clean. OTHER-TEAM will not touch it again.
+  **Resolved by CODEX:** its assigned agent completed the JSON and authored the matching research
+  memo. CODEX then reparsed the final JSON, checked every universal schema key, verified the
+  J-DEPTH opening marker and memo ending, and cross-checked the paired verdict. The completed pair
+  supersedes the stopped partial; the contamination history remains here for auditability.
 - OTHER-TEAM's four are all `kind: schema` anchor rows. Anchors are written before their templates
   because every template's node test is measured against its schema's default template.
 - Prior work by OTHER-TEAM is committed and pushed through the gist-debt clearance (64/64 rows at
