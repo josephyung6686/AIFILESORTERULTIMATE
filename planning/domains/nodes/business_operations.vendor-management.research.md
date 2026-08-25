@@ -1,92 +1,365 @@
 # business_operations.vendor-management — lab notes (template row)
 
-**Depth: GIST** (J-IND). Honest map, not deep per-industry research. Not padded.
+**Depth: J-DEPTH** (R1b deepening, 2026-08-25).
 
-## Sources
+Verdict: **keep the node, narrowly** (`refuse_node: false`). The surviving distinction is not
+“a supplier” or “an ongoing relationship”; it is a reusable buy-side governance apparatus.
 
-Same authority stack as `business_operations.project-delivery.research.md`; all quotations
-machine-verified verbatim against `00-database-agent-product-design.md`. Landed siblings read for key set
-and idiom: `business_operations.json` (read closely for the `supplier` field question and for the
-`our_firm` / `client` role split it already records), `business_operations.it-asset-inventory.json`
-(which carries the reciprocal-facing procurement and contract signals), `finance.insurance-corporate.json`,
-`legal.leases-agreements.json`. Legacy row absorbed per `ROSTER.md` Appendix A line 556:
-`biz.vendor-management` (ROW).
+## Sources and method
 
-## What it is for, and what it holds
+Read before editing: `planning/00-database-agent-product-design.md`, the structured rendering,
+ALIGNMENT, `_CONTRACT`, CONNECTION and its examples, canonical fields, roster, vocabulary, and the
+ratified decision brief. The stamped prompt came from `python3
+planning/domains/dispatch/make_prompt.py business_operations.vendor-management`. The required
+schema anchor `business_operations.research.md` was read first. Comparisons were then made against
+`business_operations.procurement-sourcing.research.md`,
+`business_operations.partnerships-bd.research.md`,
+`business_operations.contract-administration.research.md`, and
+`finance.small-business-bookkeeping.research.md` (the accounts-payable/finance boundary). None was
+edited. The gist draft was treated as verified but shallow; its sound fixtures and empty fields were
+preserved while its verdict was retested.
 
-An organisation deals with the same supplier repeatedly and needs to keep them set up, safe to deal with,
-and honest. The row holds onboarding and new-vendor forms, supplier registers and approved-supplier lists,
-due-diligence questionnaires and their responses, insurance certificates and credit checks, security and
-compliance attestations supplied by the vendor, signed supplier codes of conduct, scorecards and service
-reviews, escalation and remediation correspondence, and exit or transition records.
+Every quotation attributed to `00` below is exact. Everything else is identified as an inference.
+No external source supplies a threshold, retention rule, detector, or legal conclusion.
 
-## Node test — passes, and it is the weakest pass of my seven
+## Governing constraints
 
-Stated plainly rather than hidden. The relationship's detection signals *are* distinct from the two rows on
-either side — an onboarding form with a remittance block, a supplier register with a relationship owner, a
-diligence questionnaire, a scorecard — none of which appears on a solicitation or on an executed instrument.
-The dimension order and the privacy caveats differ too. So it passes.
+Role cannot itself be the node:
 
-What is uncomfortable is that a real supplier folder contains all three situations at once, and a user asked
-to choose would probably want *one* supplier branch. My recommendation, recorded in `open_question`: if R1c
-collapses anything in this family, the candidates to merge are **vendor-management and
-contract-administration**, not vendor-management and procurement-sourcing — because a sourcing event
-genuinely ends, and a relationship and its contract genuinely do not.
+> “The system must separate roles that happen to contain the same entity type.”
 
-## Files considered and rejected
+and:
 
-- **`Meridian invoice 2026-0417.pdf`** — kept as the collision fixture. Every supplier relationship generates
-  hundreds of invoices, and letting them in would swallow the finance side whole.
-- **`Signed MSA - Meridian - executed.pdf`** — kept as the second fixture, and the one that marks the family's
-  thinnest boundary. Carries `also_schema: "legal"`.
-- **`FW updated bank details - urgent.eml`** — kept deliberately, and it is the single most important example
-  in this row. A supplier bank-change instruction is the most impersonated document in commercial life; the
-  example exists to state that the product must never write, normalise or act on a payment fact.
-- **`Meridian - certificate of insurance 2026-27.pdf`** — kept because it demonstrates the row's own
-  `never_alone`: the certificate does not say whether the insured is a supplier or the holder.
-- **A supplier NDA** — folded into the legal edge rather than given an example.
-- **A sanctions or PEP screening result** — real and in scope; folded into a `work_type` value, since at gist
-  depth the credit-check example carries the same lesson.
+> “The agent should model these as distinct facets, such as authored_by and target_school, or
+> our_firm and client.”
 
-## proposed_fields
+Therefore supplier/customer/partner/prospect labels cannot distinguish four templates. If this row
+survived only because an organisation is on the buying side, it would be refused.
 
-**None, and this is a deliberate refusal.** The obvious candidate is `supplier` — the counterparty-as-vendor
-role, which genuinely has no canonical key (00's role split names only `our_firm` and `client`, two of the
-three roles in play). But the landed schema row already states, in its `organization` justification, that
-"`supplier` is proposed on the contract-administration template rather than smuggled in here." That template
-belongs to another agent in this pass. Proposing the same key from two rows would produce exactly the
-duplicate-vocabulary failure the contract warns about. So this row **endorses that proposal in prose and mints
-nothing**, and records the three-role gap in `open_question` and below.
+An organisation must not become a collector:
 
-**Checked after that row landed:** `business_operations.contract-administration.json` writes
-`proposed_fields: []` — it did not carry `supplier` either. So the key the schema row said was owed
-elsewhere is currently proposed by **nobody**. That is a real gap for R1c and it is flagged as NJ-BO-VM-2
-below rather than fixed here, because minting it unilaterally from the row that was told not to is exactly
-the failure mode the schema row was guarding against.
+> “A folder should not become a collection point for everything produced by the same person or
+> organization.”
 
-## Neighbours considered that did NOT get an edge
+The deepened schema anchor generalises that into a never-alone rule: entity name, business word, and
+document shape each need a structure-plus-labelled-slot pair. `Meridian/` may be a convenient user
+branch, but its existence is not activation evidence.
 
-- **`business_operations.facilities-workplace`** — facilities suppliers (cleaning, maintenance) are managed this
-  way. Same situation, different category; a category is a value.
-- **`hr.training-development`** — a training provider is a supplier. Same reasoning.
-- **`logistics`** — carriers and 3PLs are the archetypal managed suppliers. Left unedged at gist depth because the
-  confusion is about *which* supplier, not about evidence.
-- **`government`** — public procurement diligence is heavily regulated and the shape is the same. The regulation
-  attaches to the sourcing event, which is the sibling's row, so no edge from here.
+Unlike files may still form a purpose packet:
+
+> “The documents are content-incoherent but purpose-coherent.”
+
+But membership does not manufacture facts:
+
+> “The graph does not automatically copy those missing facts onto sparse files.”
+
+Thus an onboarding form, certificate, DDQ, scorecard, and remediation plan may form one accepted
+governance group, while a nearby invoice or MSA does not acquire relationship facts merely because
+it names the same company.
+
+## What survives after the role objection
+
+The gist phrase “supplier as an ongoing relationship” was too broad. It would take every invoice,
+purchase order, contract, message, and meeting for a frequent counterparty. The narrower inferred
+anchor is a **reusable buy-side governance apparatus**: an established supplier has a register entry
+or supplier identifier, an internal owner or approval state, standing evidence with review/expiry
+state, and later performance, remediation, or exit state.
+
+- **Reusable** excludes one quote, order, and negotiation.
+- **Buy-side** states posture but never proves it; holder-side evidence remains required.
+- **Governance apparatus** means maintained state, not supplier vocabulary.
+- **Established** separates the row from procurement and BD pursuits.
+- **Standing evidence** means continued eligibility is tracked; a certificate alone is insufficient.
+- **Performance/remediation/exit state** separates relationship governance from contract deadlines
+  and payment processing.
+
+No one file needs every element. A populated supplier register may anchor a validated group. Yet
+the register cannot copy a supplier role onto an invoice, and an isolated certificate remains
+unknown without its own evidence or a validated grouping decision.
+
+## Node test, leg by leg
+
+The business-operations default is:
+
+> the **organisational unit or entity** *only where the corpus genuinely spans more than one* →
+> the **governance body, project, contract, or account** the material belongs to → the **fiscal
+> period** → the **document function**. Not time-first.
+
+Because this template has `fields: []`, its JSON dimension order must remain empty.
+
+### Leg 1 — detection: passes narrowly
+
+“Vendor management” alone would be merely a function value. The distinct structures are:
+
+1. a populated supplier register with supplier identifier, relationship owner/approver, status,
+   and review or evidence-expiry state;
+2. an onboarding approval joining legal/remittance slots to internal approval and enabled/blocked
+   state;
+3. a standing-evidence tracker joining required evidence type to received, expiry, and review state;
+4. a performance scorecard joining one supplier to agreed measures, actions, owners, and
+   remediation state;
+5. an offboarding tracker joining access/payment/service shutdown tasks to owners and completion.
+
+These are not merely work-type names. Each maintains state across the life of a counterparty, and
+each pairs structure with labelled slots. `00` supports the evidentiary importance of that structure:
+
+> “Tables matter because resumes, forms, applications, invoices, and administrative documents
+> often place their most useful information in cells rather than body paragraphs.”
+
+A DDQ, certificate, QBR, or email alone does not establish the apparatus. It needs holder-side
+approval/governance evidence or a validated join to the register. Supplier vocabulary never
+substitutes for structure.
+
+### Leg 2 — dimensions: does not independently pass
+
+The gist draft overstated this leg. The intuitive order—supplier → lifecycle function → review
+period—cannot be serialized: supplier is not canonical, and organisation-first is the collector
+risk `00` warns against. It also resembles the schema default (entity/account → function → period).
+
+The parent-context rule still applies:
+
+> “The recommendation should follow the practical rule that a parent dimension should provide the
+> context required to understand the child.”
+
+A scorecard is unintelligible without its relationship, but that is a future field/group-label
+question, not an independent node-test pass. The user retains control:
+
+> “The system recommends an order based on the domain template, but the user can reverse, remove,
+> add, or flatten dimensions.”
+
+It is not time-first:
+
+> “For document and record domains, project, function, or subject usually comes before time because
+> putting year first scatters related work across calendar folders.”
+
+### Leg 3 — privacy: passes
+
+The row concentrates third-party contacts, pricing/performance, security disclosures, insurance,
+and sometimes bank details. A new-vendor form or bank-change email may combine legal identity,
+contacts, remittance data, and internal approval state.
+
+> “Privacy policy must be enforced before content reaches any model or external connector.”
+
+and:
+
+> “A model that cannot cite sufficient evidence must return unknown.”
+
+The row is therefore `potentially_sensitive`, but writes no P7 class and no payment fact. The
+bank-change fixture falls to Protected Records when inactive. Fraud-safe treatment is NJ-BO-VM-4.
+
+### Verdict
+
+**Keep, narrowly.** Detection passes on reusable governance-state structures and privacy passes on
+concentrated actionable third-party data. Dimensions do not pass. If implementation cannot require
+the structures above, refuse the row rather than degrading it to “files mentioning a supplier.”
+
+## Bottom-up fixtures and rejected inferences
+
+The JSON's nine fixtures cover form, register, certificate, questionnaire, invoice, presentation,
+instrument, scorecard, and email. Nine are enough; more extensions would be padding.
+
+**`New supplier form - Meridian Logistics.pdf`.** Legal-entity, tax/registration, remittance,
+contact, and internal-approval blocks strongly support onboarding governance. The word *supplier*
+does not. Rejected: the bank block does not authorize a normalized payment fact or action; the form
+may be an unapproved draft or impersonation artifact.
+
+**`Approved supplier list 2026.xlsx`.** Strongest positive: one row per supplier with supplier code,
+status, relationship owner, review date, and expired-evidence flag. It directly exhibits the
+apparatus. Rejected: table membership does not propagate supplier role to every same-name file; the
+filename year is not automatically a fiscal-period fact.
+
+**`Meridian - certificate of insurance 2026-27.pdf`.** It names the insured, policy, covers, limits,
+and validity period but not why the holder has it. It is standing evidence only inside an evidenced
+supplier diligence context. Rejected: insured party does not equal supplier; this is the primary
+collision with `finance.insurance-corporate`.
+
+**`DDQ response - Meridian v2.docx`.** Numbered answers on data protection, subprocessors, vetting,
+and financial standing are real diligence material. The same questionnaire may be collected during
+a competition or as audit evidence. Rejected: answers do not authorize a compliance conclusion;
+version token supports version-family reasoning, not relationship role.
+
+**`Meridian invoice 2026-0417.pdf`.** Primary negative collision. Invoice number, total, tax line,
+terms, and PO reference make it transactional accounts-payable evidence. Rejected: named payee does
+not activate vendor management. Admitting this file would prove the anchor was only supplier role.
+
+**`QBR - Meridian Q1 2026.pptx`.** Service metrics, issue/actions, roadmap, and two-party attendees
+can support periodic governance. Rejected: supplier branding does not settle holder side. To the
+buyer this may be vendor management; to the seller it may be customer account management.
+
+**`Signed MSA - Meridian - executed.pdf`.** Parties, clauses, schedules, and signatures make a legal
+instrument; obligation tracking may support contract administration. Rejected: execution does not
+prove supplier governance. It may join a real-world supplier group without activating this row.
+
+**`Supplier scorecard H1.xlsx`.** A populated supplier identifier, agreed measure, target/actual,
+owner, action, and remediation status is a strong positive. Rejected: a blank template, internal
+team scorecard, or scorecard without holder side cannot fire from vocabulary alone.
+
+**`FW updated bank details - urgent.eml`.** Kept to test safety, not as a positive anchor. Sender,
+recipient, urgent request, attachment, and account details are observations. Rejected: the product
+must not infer validity, approval, or a governed lifecycle from this alone.
+
+## Other tempting false files rejected
+
+- A lone **purchase order** is an order/call-off and may support accounting or contract
+  administration; without governance state it is not this row.
+- A **vendor bill, AP aging report, or remittance advice** is finance. Invoice/due/posted/paid/balance
+  columns do not become a supplier register merely because rows are vendors.
+- A **signed NDA or MSA** is a legal instrument; obligation tracking is contract administration.
+- A **vendor contact card** is a source type plus personal data, not a governance apparatus.
+- `Vendor review.ics` is calendar source type plus never-alone title vocabulary.
+- A **generic code-of-conduct** or **blank DDQ** describes possible process, not an actual supplier.
+- A **screening result** without subject-role context may concern customer, employee, investor, or
+  holder; screening vocabulary does not establish supplier posture.
+- A **partner proposal** is pre-relationship pursuit or procurement evidence depending on who holds
+  the evaluation apparatus.
+- A **supplier-authored QBR retained by the supplier** is customer account management from that
+  holder's side. Same bytes, different evidenced posture.
+- A **contract-renewal notice** with clause reference, notice window, and obligation deadline is
+  contract administration. An internal review date is cadence, not a contractual deadline.
+
+## Collision fixtures in both directions
+
+### Finance/accounts payable
+
+Wrongly fires here: `Meridian invoice 2026-0417.pdf`. Discriminator: invoice number, taxable total,
+due/payment state, and posting/payment reference; no relationship owner, evidence expiry, review
+action, or remediation state.
+
+Must not be lost to finance: `Approved supplier list 2026.xlsx`. Spend band/remittance setup may
+look financial, but approval/status/owner/review state is governance, not transactions or balances.
+The entity bytes are identical; maintained table state decides.
+
+### Procurement-sourcing
+
+Wrongly fires here: `PQQ response - ITT-2026-014.docx`. Discriminator: solicitation reference,
+deadline, candidate response, competing bids, scoring, and award state mean a selection event.
+
+Must not be lost to procurement: `Supplier scorecard H1.xlsx`. Actual service measures and
+remediation actions concern one approved relationship, not candidate comparison. DDQ bytes may join
+both groups at different stages without copying event/relationship facts.
+
+### Contract administration
+
+Wrongly fires here: `Contract register - live agreements.xlsx`. Discriminator: agreement reference,
+clause/obligation reference, notice date, renewal deadline, and obligation status.
+
+Must not be lost to contract administration: `Approved supplier list 2026.xlsx`. Supplier
+identifier, eligibility status, evidence expiry, review cadence, and performance state exist without
+a contract reference. Review cadence is not notice deadline.
+
+### Partnerships/BD
+
+Wrongly fires here: a supplier's outbound proposal. Offer, validity, negotiation, pipeline, or
+pre-relationship state exists; approved-supplier state does not.
+
+Must not be lost to BD: an approved new-supplier form with internal approval, vendor identifier,
+payment enablement, and operating state. Role alone is insufficient in both directions.
+
+## Reciprocal boundaries
+
+**↔ `business_operations.procurement-sourcing`.** Several candidates, solicitation reference,
+deadline, evaluation, award/regret → procurement. One established supplier, internal owner,
+standing evidence, scorecard, remediation/offboarding → this row. Same bytes: a DDQ/certificate
+packet collected during selection and reused after award. This matches the neighbour's
+existence/cardinality seam.
+
+**↔ `business_operations.contract-administration`.** Contract identity, obligations, clauses,
+notice windows, renewals, termination deadlines → contract administration. Eligibility, evidence
+validity, relationship owner, performance, remediation, operational exit → this row. Same bytes: a
+renewal spreadsheet with both contractual notice date and internal supplier-review date. The
+executed instrument alone belongs to Legal rather than either apparatus. Merge pressure is real,
+but a supplier-name merge recreates the refused organisation collector.
+
+**↔ `business_operations.partnerships-bd`.** Opportunity/offer, validity, negotiation, pipeline,
+closed-lost → BD. Approved relationship, vendor identifier, governance state, performance history,
+managed exit → this row. Same bytes: a proposal containing DDQ answers. The distinction is
+relationship existence and structure, never counterparty role.
+
+**↔ `business_operations.customer-account-management`.** Both may contain onboarding, QBRs,
+scorecards, renewal work, escalations, and exit. Buyer-side supplier register/remittance approval →
+this row; seller-side account number, adoption/usage, success plan, renewal recommendation → customer
+account management. Same bytes: `QBR - Meridian Q1 2026.pptx`. Without side evidence, abstain.
+
+**↔ `finance.small-business-bookkeeping` (accounts payable).** Bills, invoices, remittance advice,
+payment runs, AP aging, posting, tax treatment, totals, reconciliation → finance. Approval,
+eligibility, internal owner, evidence validity, performance/remediation/offboarding → this row. A
+supplier master exported from accounting software needs governance columns beyond payment setup;
+a supplier register's spend band does not turn it into a ledger.
+
+**↔ `business_operations.risk-register`.** One row per risk with likelihood, impact, treatment,
+owner, residual state → risk. One row per supplier with approval/evidence/performance state → here.
+Same bytes: a DDQ finding may create a third-party risk and stay in the relationship packet.
+
+**↔ `business_operations.compliance-audit`.** Control identifiers, test procedure, evidence,
+finding, assurance, remediation verification → compliance/audit. Collection of third-party
+assurance as a condition of dealing → here. Same bytes: SOC report/security attestation; alone it
+proves neither supplier role nor holder-side audit purpose.
+
+**↔ `finance.insurance-corporate`.** Holder as insured/policyholder administering its cover →
+insurance. Counterparty certificate tracked as standing evidence → here. Same certificate layout;
+holder identity against corpus context is required.
+
+**↔ `legal.leases-agreements`.** Rights/obligations in an executed instrument → Legal. Operational
+eligibility/performance around an established supplier → here. Same bytes: signed MSA. It may carry
+Legal schema facts and join a supplier group, but does not activate this template alone.
+
+## Grouping firewall
+
+The natural accepted group is one governed supplier lifecycle: onboarding approval, acknowledgments,
+certificates, DDQ, scorecards, reviews, remediation, offboarding. Permitted reasons include explicit
+supplier identifier across the register and artifact, a register row linking an evidence reference,
+a bounded diligence round with cover correspondence, version-family evidence, and an offboarding
+checklist referring back to the approved record.
+
+Forbidden propagation: an invoice does not acquire governance facts; a certificate does not acquire
+supplier role from name match; a QBR does not acquire side from branding; a download session does not
+prove topic; a folder name does not activate either contract or vendor management; a bank-change
+email does not acquire approval from proximity to an older form.
+
+No group is a valid outcome. A lone certificate, generic scorecard, or invite may remain Independent
+Records or Review Later.
+
+## Fields and dimensions
+
+`fields: []` is mandatory: this template uses the field-less placeholder schema.
+`proposed_fields: []` is deliberate. The missing buy-side role (`supplier`) is real, but one template
+must not mint a family-wide counterparty key while generic-counterparty versus role-specific modelling
+is unsettled. This is NJ-BO-VM-2.
+
+Desired future dimensions—supplier/relationship, lifecycle function, review period—remain prose.
+No key means no branch. `time_first` stays false.
+
+## Neighbours considered without an edge
+
+- `career`: individual-side engagement; broad schema edge would add little.
+- `hr.training-development`: training provider is a supplier category, not another apparatus.
+- `business_operations.facilities-workplace`: facilities vendors use the same governance structure;
+  service category is a value.
+- `logistics`: carrier/3PL is a supplier category; shipments retain their own evidence.
+- `government.public-procurement`: statutory procedure belongs to sourcing, not ongoing governance.
+- `retail_hospitality.supplier-order`: order structure is already excluded by procurement/finance;
+  a category-specific duplicate adds no discriminator.
 
 ## NEEDS-JOSEPH
 
-- **NJ-BO-VM-1 · Is the three-way split one row too many?** Stated above with a recommendation rather than left
-  open-ended: merge toward contract-administration if anything merges. Also stated reciprocally in
-  `collides_with` on both sides of the sourcing / contract boundary.
-- **NJ-BO-VM-2 · The third role has no key.** 00 gives `our_firm` and `client`. Vendor management needs the
-  *counterparty-as-supplier* role, and account management needs the same document read from the other side. This
-  row endorses the `supplier` proposal the schema row assigned to the contract-administration template rather
-  than duplicating it — **but that row landed with no proposed fields at all, so the key is presently proposed by
-  no one.** R1c must assign it to exactly one row, or decide the role stays unheld.
-- **NJ-BO-VM-3 · Which side of the relationship is the holder on?** A single QBR deck, scorecard or onboarding
-  pack frequently does not say. Stated reciprocally against `business_operations.customer-account-management`.
-- **NJ-BO-VM-4 · Payment-fact handling.** A bank-change instruction is a fraud vector, not merely confidential
-  material. This row states that the product must not write or act on a payment fact found in one; whether that
-  needs a mechanism beyond the protected state is a P7 question flagged here because this row is where it bites
-  hardest.
+- **NJ-BO-VM-1 · Is the apparatus enough?** Keep only if implementation requires register/onboarding
+  state joined to evidence-expiry, performance, remediation, or exit. Refuse into the schema default
+  if it would fire from role, name, or a lone DDQ/certificate/scorecard. Recommendation: **keep**.
+- **NJ-BO-VM-2 · Buying-side counterparty key.** Choose generic counterparty+role, widen an existing
+  key, or define one canonical supplier key once. This row proposes none.
+- **NJ-BO-VM-3 · Holder side.** For QBR/scorecard/certificate/onboarding bytes that do not reveal
+  buyer, seller, or subject posture, abstain or ask; branding/folder placement is insufficient.
+- **NJ-BO-VM-4 · Payment-change handling.** Decide whether bank-change instructions need a dedicated
+  fraud-safe state beyond potentially-sensitive protection. This row must never act on them.
+
+## What changed in this pass
+
+- Replaced retired GIST header with explicit `J-DEPTH` in the first eight lines.
+- Retested all three node-test legs against the deepened business anchor.
+- Narrowed “supplier relationship” to reusable governance state and rejected supplier role/value as
+  the distinction.
+- Withdrew the claim that dimensions independently pass; preserved `dimension_order: []`.
+- Added reciprocal procurement, partnerships/BD, contract, and AP/finance comparisons with same-byte
+  fixtures in both directions.
+- Expanded false positives, grouping firewall, proposed-field reasoning, and four NEEDS-JOSEPH items.
+- Preserved 27 JSON keys, `fields: []`, `proposed_fields: []`, closed edges, and zero neighbour edits.
