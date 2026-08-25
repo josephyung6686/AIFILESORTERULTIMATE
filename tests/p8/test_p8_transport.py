@@ -11,7 +11,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from database_agent.db import create_schema
+from database_agent.db import create_schema, transaction
 from evidence_shape.schema import create_evidence_schema
 from llm_harness.authorship import SUBSYSTEM
 from llm_harness.fingerprint import prompt_fingerprint
@@ -24,7 +24,12 @@ from llm_harness.records import (
     build_call_payload,
 )
 from llm_harness.schema import create_llm_schema
-from llm_harness.transport import ModelClient, ModelResponse, issue
+from llm_harness.transport import (
+    ModelClient,
+    ModelResponse,
+    TransportTransactionOpen,
+    issue,
+)
 from llm_harness.vocabulary import A_FACT
 from privacy.binding import (
     BindingMismatch,
@@ -326,6 +331,46 @@ def test_lying_payload_fingerprint_is_refused_before_spend_or_invoke(transport_c
     assert recorder.calls == []
     assert _spent(transport_conn, released.release_id) is None
     assert _events(transport_conn, "model_call_issued") == []
+
+
+def test_issue_rejects_an_already_open_transaction(transport_conn):
+    recorder = Recorder()
+    prompt = _prompt()
+    released = _mint(transport_conn, prompt=prompt)
+    payload = _payload(released, prompt=prompt)
+    client = _client(CLOUD, recorder)
+    with pytest.raises(TransportTransactionOpen):
+        with transaction(transport_conn):
+            issue(transport_conn, released, payload, model_client=client)
+    assert recorder.calls == []
+    assert _spent(transport_conn, released.release_id) is None
+    assert _events(transport_conn, "model_call_issued") == []
+    result = issue(transport_conn, released, payload, model_client=client)
+    assert isinstance(result, ModelResponse)
+    assert len(recorder.calls) == 1
+
+
+def test_empty_client_exception_returns_call_failed(transport_conn):
+    recorder = Recorder(error=RuntimeError())
+    prompt = _prompt()
+    released = _mint(transport_conn, prompt=prompt, audit_id=17)
+    payload = _payload(released, prompt=prompt)
+    result = issue(
+        transport_conn, released, payload, model_client=_client(CLOUD, recorder),
+    )
+    assert isinstance(result, CallFailed)
+    assert result.explanation
+    assert "RuntimeError" in result.explanation
+    assert result.release_id == released.release_id
+    assert result.audit_id == 17
+    assert _spent(transport_conn, released.release_id) is not None
+    assert len(_events(transport_conn, "model_call_issued")) == 1
+    assert _events(transport_conn, "model_response_received") == []
+    assert _events(transport_conn, "call_refused") == []
+    rows = list(transport_conn.execute("SELECT * FROM llm_call_failure"))
+    assert len(rows) == 1
+    assert rows[0]["failure_class"] == "client_raised"
+    assert rows[0]["explanation"]
 
 
 def test_client_raise_records_failure_and_returns_call_failed(transport_conn):

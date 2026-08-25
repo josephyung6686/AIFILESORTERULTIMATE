@@ -28,6 +28,10 @@ from privacy.binding import BindingMismatch, consume_release
 from privacy.release import ModelTarget, Released
 
 
+class TransportTransactionOpen(Exception):
+    """issue refuses to join an already-open transaction."""
+
+
 @dataclass(frozen=True, slots=True)
 class ModelClient:
     """Target-bound capability. Callers cannot supply a second destination to invoke."""
@@ -123,6 +127,18 @@ def _failed(released: Released, payload: CallPayload, *,
     )
 
 
+def _reject_open_transaction(conn: sqlite3.Connection) -> None:
+    if conn.in_transaction:
+        raise TransportTransactionOpen(
+            "issue rejects an already-open transaction so a rollback cannot "
+            "unspend a release after model-visible bytes have left"
+        )
+
+
+def _client_exception_explanation(exc: BaseException) -> str:
+    return str(exc) or type(exc).__name__
+
+
 def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
           model_client: ModelClient) -> ModelResponse | CallFailed:
     """Consume one live release, then invoke the bound client once.
@@ -131,6 +147,7 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
     is invoked only after `consume_release` returns, and it receives only
     `payload.model_visible_bytes`.
     """
+    _reject_open_transaction(conn)
     fingerprint = _require_sources(payload)
     _require_binding(released, payload, model_client)
     issued_at = _now()
@@ -148,11 +165,12 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
     try:
         raw = model_client.invoke(payload.model_visible_bytes)
     except Exception as exc:
+        explanation = _client_exception_explanation(exc)
         record_call_failure(
             conn, dossier_id=payload.release_id, failure_class="client_raised",
-            explanation=str(exc), observed_at=_now(),
+            explanation=explanation, observed_at=_now(),
         )
-        return _failed(released, payload, explanation=str(exc))
+        return _failed(released, payload, explanation=explanation)
     if not isinstance(raw, (bytes, bytearray, memoryview)):
         explanation = (
             f"client returned {type(raw).__name__}; transport bytes must be bytes"
