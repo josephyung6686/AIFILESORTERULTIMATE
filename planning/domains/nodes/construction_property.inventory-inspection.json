@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Property inventories, schedules of condition and check-in / check-out inspections",
-  "one_line": "The organizational situation of PROVING A MOMENT: a property's condition and contents are recorded in detail on a specific date, photographed room by room and signed, for one reason only - so that the state at that moment can later be set against the state at another moment and the difference argued over money. The organizing anchor is a PROPERTY plus an INSPECTION EVENT, and the row's defining property is that its documents are useless alone and only mean something in pairs: a check-in exists to be compared with a check-out. Absorbs the legacy row prop.inventory-inspection (ROW). Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "one_line": "The organizational situation of PROVING A MOMENT: a property's condition and contents are recorded in detail on a specific date, photographed room by room and signed, so that the state at that moment can later be set against the state at another moment and the difference argued over money. The organizing anchor is a PROPERTY plus an INSPECTION EVENT, and the row's defining property is that its strongest documents mean something in pairs: a check-in exists to be compared with a check-out. Absorbs the legacy row prop.inventory-inspection (ROW). A PLACEHOLDER TEMPLATE ROW written to J-DEPTH: it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -359,17 +359,17 @@
     },
     {
       "domain": "construction_property.survey-valuation",
-      "signal": "A surveyor's condition report and a schedule of condition share a form and a signature. The discriminating evidence: a valuation figure, a lender instruction or a defect-and-remedy narrative supports the survey row; a comparison record made for a future dispute supports this row.",
+      "signal": "A surveyor's schedule of condition and a tenancy inventory can be dated, signed, photographed and room-by-room. The discriminating evidence: a professional addressee, stated purpose or basis, reliance limitation, lease-clause reference or costed breach supports the survey row; a tenancy, tenant, deposit and check-in/check-out comparison framing supports this row. A pre-works schedule with neither framing requires abstention rather than assignment by document title.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-survey",
+      "signal": "Both rows can hold the same forty images of the same rooms or elevations. The discriminating evidence: a measured deliverable with datum, spot levels, coordinates, scale or an accuracy statement supports site-survey; a contents list, condition-and-cleanliness gradings, tenant or deposit context, and check-in/check-out framing supports this row. Standalone images support neither template without their documentary context. Reciprocal recommendation for R1c: the site-survey memo names this same image-set seam.",
       "provenance": "inference"
     },
     {
       "domain": "finance.household-property",
       "signal": "The receiving side: a tenant or a homeowner keeps their own copy of the inventory as part of household administration. The discriminating evidence: a clerk's or agent's professionally produced report supports this row; a household's own retained copies and correspondence support the household row. The professional/householder seam this schema sits on, stated reciprocally.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "business_operations.it-asset-inventory",
-      "signal": "The word inventory, and nothing else. The discriminating evidence: a property's rooms and fixtures supports this row; an organisation's owned equipment on a register supports the inventory row. Authored because the word alone is in never_alone and a reader should be able to see why.",
       "provenance": "inference"
     }
   ],
