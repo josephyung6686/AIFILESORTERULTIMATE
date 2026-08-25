@@ -18,17 +18,31 @@ Format: `<domain_id> | <TEAM> | active|complete`
 
 ## Claims
 
+law_practice | OTHER-TEAM | active
 nonprofit | OTHER-TEAM | active
-retail_hospitality | OTHER-TEAM | active
 logistics | OTHER-TEAM | active
-resource_operations | OTHER-TEAM | active
-law_practice | CODEX | unclaimed-by-other-team
+retail_hospitality | OTHER-TEAM | active
 
-## Notes
+resource_operations | CODEX | active
+creative.performing-practice | CODEX | active
+creative.client-engagement | CODEX | active
+creative.revision-round | CODEX | active
 
-- **`law_practice` is CODEX's.** OTHER-TEAM dispatched an agent for it before the split was agreed;
-  that agent was stopped immediately and **wrote no files** — `planning/domains/nodes/law_practice.*`
-  does not exist. The id is clean and free for CODEX.
+## Split history — the claim inverted once, read this before assuming
+
+The first proposed split gave OTHER-TEAM {nonprofit, retail_hospitality, logistics,
+resource_operations} and CODEX law_practice. The agreed split **inverted**: OTHER-TEAM takes
+law_practice, CODEX takes resource_operations. Both teams had already dispatched against the first
+split, so two ids were briefly contested. Outcome:
+
+- **`law_practice`** — OTHER-TEAM's first agent was stopped before writing; the id was clean, and
+  OTHER-TEAM now owns it under the agreed split. No residue.
+- **`resource_operations`** — ⚠ **OTHER-TEAM's agent wrote `resource_operations.json` (28,857 B,
+  16:21) before being stopped.** There is **no `.research.md`**. The JSON parses. It is an
+  UNTRUSTED PARTIAL from a stopped agent, not finished work.
+  **OTHER-TEAM did not delete it**, because deleting a file inside another team's claimed id is
+  itself a prohibited edit and CODEX's own agent may have been mid-write on the same path.
+  **CODEX decides:** overwrite it, or delete it and start clean. OTHER-TEAM will not touch it again.
 - OTHER-TEAM's four are all `kind: schema` anchor rows. Anchors are written before their templates
   because every template's node test is measured against its schema's default template.
 - Prior work by OTHER-TEAM is committed and pushed through the gist-debt clearance (64/64 rows at
