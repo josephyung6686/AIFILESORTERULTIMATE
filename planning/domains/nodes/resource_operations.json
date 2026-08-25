@@ -1,0 +1,275 @@
+{
+  "id": "resource_operations",
+  "kind": "schema",
+  "schema_id": "resource_operations",
+  "parent_id": null,
+  "name": "Energy, utilities and land-based operations",
+  "one_line": "The operator-side record of obtaining, growing, generating, transmitting or metering a physical resource at a licensed source or operating site: permits and tenements, wells and fields, mines and quarries, farms and forests, fisheries, generation assets, grid or utility meters, production and yield returns, source-to-volume reconciliations, and environmental monitoring tied to the authorised activity. Its anchor is a relation among an operating source/site, an authority or tenure, an asset or production unit, and measured output or environmental performance over a stated period. It is not manufacturing merely because material is produced, engineering merely because plant is designed, logistics merely because output moves, construction merely because land is involved, or government merely because a permit exists. Placeholder schema row (J-IND, full J-DEPTH): PR-6 keeps fields empty; the proposed field set is for R1c adjudication only.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "distinct_field_set": true,
+    "why": "The schema survives because the smallest useful grammar is source_or_site + operating_authority + asset + output_stream + reporting_period + record_type. The distinctive join is authorised source-to-measured-output: a permit or tenement defines where and under what right an activity occurs; operating records tie a well, pit, field, compartment, vessel, generator, feeder or meter to quantities and environmental observations for a period. Manufacturing instead keys recurring transformation to product/batch/lot and quality event; engineering keys controlled technical definition to design item and lifecycle; logistics keys custody and movement; construction_property keys a property/site to a professional instruction; government owns issuer-side licensing and regulatory case administration. None of those defaults can express an operator reconciling authorised source, operating unit and measured output without semantic distortion. Quantities themselves remain content/search evidence and are not proposed as folder dimensions."
+  },
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "site",
+      "type": "string",
+      "example": "North Quarry / Solar Farm A / Field 12",
+      "why_no_existing_key": "REUSE the exact `site` key already proposed by manufacturing; do not mint a resource-specific synonym. `location` is the Photos capture-location role, while this is the operating place a record is about. One environmental sample may be captured downstream while documenting North Quarry, so the roles cannot be collapsed. R1c should adjudicate `site` once for both operational schemas.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE for a genuinely multi-site corpus; otherwise flatten the one-child level. A site makes an asset, permit and output stream intelligible and is not authorship.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled Site, Field, Lease, Mine, Farm, Forest Unit, Facility or Supply Area slot can be direct evidence. An address, coordinate or place name in prose remains possible because it may be a regulator office, customer, delivery point, monitoring station or cited location.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "operating_authority",
+      "type": "string",
+      "example": "Mining Lease ML-2048 / Water Abstraction Permit WA-73",
+      "why_no_existing_key": "No canonical key identifies the right, tenure, licence, concession, quota or connection agreement under which the holder operates at a source. `institution` is a financial issuer; `purpose` belongs to applications; `project` is bounded work; `property` is a construction proposal. Government may hold the same identifier in its issuer-side case, but this key represents the operator's enduring authority and its conditions, not the issuing agency.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE only where one operator manages several authorities or tenements. It may sit beneath site; it must be flattened where it creates a single child or exposes a sensitive concession identifier unnecessarily.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires an identifier in a labelled Permit, Licence, Lease, Tenement, Concession, Quota or Connection Agreement slot plus an issuing-body/holder/effective-area structure. R2/R4 own identifier patterns and authority gazetteers; this row defines neither.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "asset",
+      "type": "string",
+      "example": "Well BR-17 / Turbine WT-04 / Meter MPAN …7812",
+      "why_no_existing_key": "REUSE the exact `asset` key already proposed by manufacturing. It names the enduring controlled operating unit that produces, conveys or measures output. `camera_information` is capture equipment; `repository` is code; `project` is work. Resource operations adds evidence that the same key must cover wells, pits, compartments, generators, feeders, pumps and meters without becoming a private synonym.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE in asset-led branches, where the asset makes a meter read, production return, maintenance record or monitoring series intelligible. It is optional beneath site and should not be forced into area-led farming or forestry records.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation needs an asset identifier in a labelled Well, Pit, Turbine, Generator, Feeder, Meter, Pump, Vessel or Compartment slot, preferably cross-checked against a local asset register. A serial-like token alone is never sufficient.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "output_stream",
+      "type": "string",
+      "example": "raw water abstraction / saleable ore / electricity exported / wheat harvest",
+      "why_no_existing_key": "No canonical key names what physical resource or metered service the operation produces, extracts, grows, lands, generates or supplies. Manufacturing's proposed `product` is close but implies an article or formulation made through transformation; crude production, standing timber, catch, abstraction, generation and metered utility service are not all products without erasing the source relation. R1c may widen `product` to a neutral output key, but must not retain both as synonyms if one global role works.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE as the subject below site/authority when one operation has materially different output streams. A quantity or unit is never part of the folder value.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Direct only from a labelled Commodity, Crop, Species, Product Stream, Fuel, Service or Export Register slot. Free prose and filenames remain possible because the same resource name appears in forecasts, engineering specifications, invoices and cited reports.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "reporting_period",
+      "type": "string",
+      "example": "June 2026 / crop year 2025-26 / settlement interval 14:00-14:30",
+      "why_no_existing_key": "No canonical key expresses the period the measured operation is ABOUT. `creation_date` is when bytes were created, `tax_year` is statutory finance, `term` is academic, `capture_year` is photos, and business_operations proposes `fiscal_period` for management cycles. This key covers daily production, monthly regulatory returns, crop years and metering intervals. R1c should consider a globally neutral period key rather than proliferating period synonyms.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE only after site/output or asset and normally as an optional leaf. It is never time-first because year-first scatters the same operating source across calendar branches.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a date or interval in a labelled Reporting Period, Production Date, Crop Year, Billing Period or Settlement Interval slot with an operational-measure context. A filename year or filesystem timestamp remains possible.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "record_type",
+      "type": "enum",
+      "example": "production return / meter-read export / environmental monitoring report",
+      "why_no_existing_key": "REUSE the canonical Finance key rather than minting `resource_record_type`. R1c must decide whether `record_type` is intentionally global; if its finance role is binding, the solution is one global document-function key, not another private spelling.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Inherited from the canonical row if widened/reused; it is the leaf below the operating subject and period.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled form title and its supporting structure may establish a value. Extension, filename and isolated type words do not.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an operator-side authority structure joining a labelled permit/licence/lease/tenement identifier, holder, authorised area or source, effective dates, activity and conditions; an approval notice with no evidence that the holder operates under it may instead be government or construction_property",
+      "a well, pit, field, compartment, farm block, forest unit, vessel, generator, feeder or meter register whose rows join stable operating-unit identifiers to one site/source and status",
+      "a production or yield return with a labelled site or authority, reporting period, output stream, opening/closing stock or source quantity, measured output and unit, and a submitted/approved status",
+      "a source-to-volume reconciliation linking extraction, generation, harvest, catch, treatment, transfer, loss and sale/export quantities by operating unit and period; the linked measurement roles, not a quantity column alone, are the signal",
+      "a utility meter-read or settlement export with stable meter/service-point identity, interval timestamps, import/export direction, reading or consumption values, units and quality/substitution flags",
+      "an environmental monitoring series tied to an authority condition and site/asset, with sampling point, parameter, method, limit or trigger, result, unit, date and exceedance/action status",
+      "a rehabilitation, restoration or closure-progress record joining disturbed/harvested area, authorised boundary, treatment performed, monitoring result and closeout obligation",
+      "a farm, forestry or fishery operational register that ties a field/compartment/vessel/quota to species/crop, activity dates, inputs or effort, harvested/landed quantity and traceability reference",
+      "a generation or grid-connection record joining plant and unit/meter identity to dispatch/export intervals, availability, curtailment or outage codes, and energy units",
+      "an archive manifest exposing one authority/site and several production, metering, monitoring and return members; manifests are read without extracting archive contents to disk"
+    ],
+    "needs_llm": [
+      "whether a spreadsheet of quantities is an operator's source-to-output reconciliation, a manufacturing batch summary, a logistics movement ledger, a finance valuation or a public statistical table when role labels are weak",
+      "whether a permit file is the operator's active authority, a government issuer-side case, a construction approval for one project, or merely reference material",
+      "whether a plant drawing defines a controlled design item (engineering), records constructed works (construction_property), or identifies an operating asset in a production/monitoring record",
+      "whether an environmental report is operator compliance evidence, a regulator's surveillance record, a consultant's study, or a general publication",
+      "whether a commodity or species name is an output-stream role, an input, a cited market topic, or cargo in transit",
+      "an OCR-poor field sheet whose table relationships survive visually but whose headings do not",
+      "a multilingual authority or monitoring form outside the local context-term and issuer catalogues"
+    ],
+    "never_alone": [
+      "the words energy, utility, oil, gas, mining, quarry, farm, fishery, forestry, generation, grid, water, waste, environment, production or output alone",
+      "a permit, licence, lease, tenement, concession, quota or certificate word or identifier alone; government, construction_property and business_operations all keep such files",
+      "a commodity, crop, species, fuel or service name alone; it may be an input, cargo, invoice line, research topic, market report or cited example",
+      "a site, field, farm, mine, forest, river, port, vessel, operator or authority name alone; role ambiguity is the same defect 00 identifies for a university name",
+      "a meter number, well number, asset tag, licence number, plot number or other identifier-shaped token outside a labelled role slot",
+      "a quantity, unit, time series, coordinate, map, chart or exceedance word alone",
+      "a source_type or extension alone; spreadsheets, PDFs, GIS exports, images, email, archives and structured data occur in every neighbour",
+      "a parent folder called Operations, Production, Assets, Environment, Sites or Projects alone",
+      "membership in one download or portal-export session alone; 00 states: \"A session should never be treated as proof of topic\"",
+      "absence of EXIF as proof that an image is a screenshot rather than a field photograph"
+    ]
+  },
+  "proposed_context_terms": [
+    "production return", "royalty return", "tenement", "concession", "licence area", "authorised activity", "abstraction", "wellhead", "run of mine", "ore mined", "recovery", "yield", "harvest", "landing declaration", "quota", "compartment", "stumpage", "meter point", "interval data", "import", "export", "generation", "curtailment", "settlement", "sampling point", "permit condition", "emission limit", "discharge", "exceedance", "rehabilitation", "restoration", "closure"
+  ],
+  "work_types": [
+    "permit, licence, lease, tenement, concession, quota or grid-connection record",
+    "site, field, block, compartment, well, pit, vessel, generator or meter register",
+    "daily, monthly or annual production, extraction, generation, harvest or landing return",
+    "meter read, interval consumption, settlement or billing-operation export",
+    "source-to-output, stock, loss or royalty reconciliation",
+    "resource estimate, reserve statement or depletion record",
+    "field, crop, livestock, forestry, fishery or aquaculture operational log",
+    "environmental sample result, monitoring report, exceedance notice or corrective-action response",
+    "water, emission, discharge, waste or biodiversity compliance return",
+    "land-access, rehabilitation, restoration, closure or decommissioning record",
+    "outage, curtailment, availability, dispatch or grid-event log",
+    "inspection, integrity, maintenance or calibration record tied to an operating asset"
+  ],
+  "grouping_reasons": [
+    "one authorised source or site across authority instruments, operating registers, production returns, monitoring and closure obligations",
+    "one asset or meter across commissioning, readings, outages, integrity work and retirement",
+    "one reporting period's source-to-volume chain across extraction or generation, transfers, losses, stock and sale/export totals",
+    "one environmental condition across sampling plan, laboratory result, exceedance, notification and corrective response",
+    "one field, crop year, forest compartment, quota or voyage across activity and output records",
+    "a sparse image or email may join an accepted site/asset group without receiving site, authority or asset facts; grouping does not copy labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by the placeholder contract because this schema declares no field rows. Subject to R1c, the researched default is site → operating_authority → output_stream → reporting_period → record_type, with an asset-led alternative site → asset → record_type for utilities, generation and integrity work. It is not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Quantities, units, coordinates, permit conditions and environmental results remain content/search evidence, never folder levels. The user may reverse, remove, add or flatten dimensions after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["filesystem", "text_document", "spreadsheet", "presentation", "image", "ocr", "email", "calendar", "code_structured", "audio_video", "design_creative", "archive", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".csv", ".xml", ".json", ".geojson", ".shp", ".tif", ".png", ".jpg", ".eml", ".ics", ".zip", ".las"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "ML-2048_Monthly-Production-Return_2026-06.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["header labels mining lease, operator, mine and reporting month", "rows distinguish ore mined, waste moved, processed feed and saleable output with units", "declaration block carries submitter and status"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["domain fields before R1c licenses them", "reporting_period from the filename alone", "that every quantity is output", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Water-Abstraction-Licence-WA-73.pdf",
+      "source_type": "text_document",
+      "observations": ["issuing-body block and labelled licence number", "holder, authorised abstraction point, annual condition and effective dates are labelled", "schedule lists monitoring and reporting conditions"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the holder currently operates from the permit alone", "government issuer-side ownership from letterhead alone", "domain fields before R1c", "a folder path"],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SCADA_Meter-MP-7812_2026-06.csv",
+      "source_type": "spreadsheet",
+      "observations": ["header labels meter point and interval start/end", "columns distinguish import, export, unit and substituted-data flag", "no customer name or invoice total"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a utility bill or finance account from meter data", "site from a neighbouring statement", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Outfall-3_Water-Quality_June-2026.pdf",
+      "source_type": "text_document",
+      "observations": ["sample table labels site, outfall, sample date, parameter, method, result and unit", "permit-condition reference and limit column are present", "signed conclusion records one exceedance and corrective response"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["regulator-side surveillance merely from the limit", "laboratory ownership from the analyst signature", "domain fields before R1c", "a folder path"],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Field-12_Harvest-Register_2025-26.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["labelled farm and field block", "rows carry crop, operation date, harvested weight, moisture and store destination", "seed and treatment inputs occupy separate roles from harvested output"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["manufacturing batch from a harvest lot word alone", "logistics ownership from the store destination", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "WT-04_Gearbox-Replacement-Work-Order.pdf",
+      "source_type": "text_document",
+      "observations": ["asset slot identifies turbine WT-04", "failure, parts, labour, downtime and return-to-service fields are populated", "site header names Solar Farm A but no generation quantities appear"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["resource_operations solely from asset/site vocabulary", "output_stream from the turbine model", "domain fields before R1c", "a folder path"],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "North-Quarry-Plant-Layout_RevC.dwg",
+      "source_type": "design_creative",
+      "observations": ["title block labels project, drawing number, revision, status and designer", "model depicts conveyors, crusher and stockpiles", "no production period, authority or measured-output structure"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["resource_operations from quarry vocabulary", "an operating asset fact from symbols in a design", "domain fields before R1c", "a folder path"],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "June-Ore-Shipments.csv",
+      "source_type": "spreadsheet",
+      "observations": ["rows label consignment, vessel, load port, discharge port, mass and bill-of-lading reference", "the commodity column says ore", "no mine, permit, production unit or source-to-output reconciliation appears"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["resource_operations from commodity and mass", "mine site from the load port", "domain fields before R1c", "a folder path"],
+      "also_schema": "logistics",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Environmental-Monitoring-Packet.zip",
+      "source_type": "archive",
+      "observations": ["manifest names permit schedule, sampling plan, laboratory results, site map and regulator correspondence", "members refer to two sites and two periods", "archive has not been unpacked to the filesystem"],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["one site or period for the whole archive", "facts copied from one member to all members", "domain fields before R1c", "a folder path"],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_4821.jpg",
+      "source_type": "image",
+      "observations": ["camera EXIF and capture time are present", "frame shows a gauge beside a pipe", "no readable asset tag, site, permit or unit appears"],
+      "facts_legal": ["file_type", "creation_date", "capture_year", "location", "people", "camera_information", "media_type", "sensitivity_status"],
+      "must_not_conclude": ["resource_operations from industrial appearance", "asset or site from neighbouring files", "missing purpose from EXIF", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {"domain": "manufacturing", "signal": "Both hold asset maintenance, environmental compliance and quantities. Manufacturing wins when product/batch/lot transformation or quality-event structure is central; resource_operations wins when an authorised natural/utility source and measured extraction, generation, harvest, landing, supply or environmental condition is central. Same fixture: WT-04_Gearbox-Replacement-Work-Order.pdf is manufacturing unless joined to an accepted operating-output series."},
+    {"domain": "engineering", "signal": "Both hold plant drawings, calculations and commissioning evidence. Engineering wins on controlled design item, revision/baseline and requirement verification; resource_operations wins on the operating source/authority and measured-period record. Same fixture: North-Quarry-Plant-Layout_RevC.dwg remains engineering."},
+    {"domain": "logistics", "signal": "Both hold commodity movements, vessels, storage and quantities. Logistics wins on consignment/custody/origin-destination movement; resource_operations wins on source-to-output reconciliation under an operating authority. Same fixture: June-Ore-Shipments.csv remains logistics."},
+    {"domain": "construction_property", "signal": "Both hold sites, land access, permits, surveys and handover records. Construction_property wins when property/site is joined to a bounded professional instruction or works contract; resource_operations wins after operation begins and authority/source/output recur. A grid-connection construction pack stays construction until operational meter/dispatch series exists."},
+    {"domain": "government", "signal": "Both can hold the same permit and environmental return. Government wins for issuer-side application, review, inspection, enforcement and public administration; resource_operations wins for the holder/operator's authority, production and compliance series. Same bytes may be legal in both schemas, so issuer/holder role must be cited rather than inferred from letterhead."},
+    {"domain": "business_operations", "signal": "Both hold budgets, audits, contracts, policies and project plans. Business operations wins for entity governance and generic delivery; resource_operations requires the source/site-authority-asset/output relation. A sustainability strategy with no measured site series is business_operations."}
+  ],
+  "also_holds_with": ["manufacturing", "engineering", "government", "photos"],
+  "falls_through_to": ["Independent Records", "Review Later", "Unsupported or Encrypted", "One-Off Images"],
+  "role_split": [
+    {"domain": "government", "roles": ["resource_operations.operating_authority = holder/operator-side right and conditions", "government = issuer-side licensing, surveillance or enforcement case"]},
+    {"domain": "photos", "roles": ["resource_operations.site/asset = what the image documents", "photos.location/camera_information = where and how the image was captured"]}
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Production rates, reserves, meter identifiers, coordinates, critical-infrastructure layouts, environmental exceedances, land rights and farm/vessel locations can be commercially sensitive, security-relevant or identifying. The row assigns no handling class and does not make raw quantities, coordinates or conditions destination dimensions.",
+  "open_question": "NEEDS-JOSEPH NJ-RESOURCE-1: should R1c license a shared operational core (`site`, `asset`, neutral output/product, neutral reporting period, global `record_type`) across manufacturing and resource_operations, with only `operating_authority` distinct, or preserve two schemas because authorised-source-to-output recognition and privacy differ materially? NJ-RESOURCE-2: should a permit/tenement identifier ever be destination-eligible by default, given retrieval value versus disclosure of concession and infrastructure identifiers?"
+}
