@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Plant and equipment hire — on-hire, off-hire, inspection and damage",
-  "one_line": "The organizational situation of a MACHINE ON SOMEONE ELSE'S SITE FOR A PERIOD: an excavator, a tower, a hoist or a generator is delivered under a hire agreement, it accrues charge every day it is there, it must be inspected while it is there, and the charge stops only when an off-hire is issued and acknowledged. The organizing anchor is an ASSET plus a HIRE PERIOD - a pairing no other row in this family has - and the defining risk is the opposite of every other row's: not losing a document but failing to send one, because an unissued off-hire keeps billing. Absorbs the legacy row cons.plant-hire (ROW). Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "one_line": "The organizational situation of a MACHINE SUPPLIED FOR TEMPORARY USE UNDER A CONTINUING CHARGE: the evidential core is not an excavator, a construction site, an inspection certificate or a delivery ticket, but an on-hire record paired with an operative off-hire instruction against the same asset and contract. That pair starts and stops a time-based liability and binds otherwise heterogeneous agreements, dockets, inspections, breakdowns and damage claims. Absorbs the legacy row cons.plant-hire (ROW). J-DEPTH placeholder: it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -21,7 +21,8 @@
       "a periodic hire docket or timesheet: a repeating charge line per day or per week against one asset, with an operator name where the item is hired with a driver.",
       "an inspection or thorough-examination record: a dated examination of a lifting or access item by a named competent person, with a next-inspection date and a report reference. It is a statutory-shaped record attached to an asset rather than to a site.",
       "a damage, loss or breakdown record: a photographed defect with a claim reference, a rechargeable-repair quotation, or an off-hire refused note. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
-      "a delivery or collection ticket for the machine itself - the same shape as a materials delivery note but naming an asset rather than quantities."
+      "a delivery or collection ticket for the machine itself - the same shape as a materials delivery note but naming an asset rather than quantities.",
+      "a hire-period reconciliation: successive dated charge lines for the same asset terminate at an acknowledged off-hire or collection event. A repeating equipment charge without the terminating event is evidence of an open liability, not proof that the equipment remained in use."
     ],
     "needs_llm": [
       "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
@@ -29,7 +30,8 @@
       "separating hired plant from owned plant. A firm's own excavator generates inspection records, service sheets and defect photographs that are identical in form and belong to an asset register, not to a hire.",
       "deciding whether a photograph of a damaged machine is a claim, an inspection, or ordinary progress photography.",
       "reading an idle-time or standing-charge dispute out of a hire statement, where the charge lines look identical to working ones.",
-      "a hire pack that is purpose-coherent and content-incoherent: an agreement, an inspection certificate, a docket run and a photograph. “The documents are content-incoherent but purpose-coherent.”"
+      "a hire pack that is purpose-coherent and content-incoherent: an agreement, an inspection certificate, a docket run and a photograph. “The documents are content-incoherent but purpose-coherent.”",
+      "separating a competitively sourced equipment award from the resulting hire lifecycle. A request for quotation, bid comparison and award recommendation belong to business_operations.procurement-sourcing; the awarded agreement begins this row only when it creates an asset-specific, time-charged on-hire/off-hire relationship."
     ],
     "never_alone": [
       "a hire company's name alone - it is on the agreement, the invoice, the statement and the marketing email alike, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
@@ -39,7 +41,9 @@
       "a bare 4-digit number: a contract number, a fleet number, a serial fragment and a year are indistinguishable.",
       "an image of a machine alone: construction sites are full of plant, and every progress photograph contains some - this is the tempting false file for the row.",
       "membership in a download session that pulled a hire desk's monthly paperwork at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
-      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”"
+      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "the fact that the destination is a construction site alone. The same temporary-equipment lifecycle exists at events, warehouses and factories; a site is a value selecting the construction/property family, not the structural reason this template stands.",
+      "the words hire, rental, plant or equipment alone. They occur in quotations, marketing sheets, invoices, owned-asset records and subcontract descriptions; the paired start/stop lifecycle and continuing time charge are the discriminator."
     ]
   },
   "proposed_context_terms": [
@@ -331,6 +335,54 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "RFQ comparison - 3T excavator hire.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "three supplier columns compare weekly rates, transport charges and waiver terms",
+        "a requested start date and estimated duration",
+        "an evaluation note recommends one bidder",
+        "no fleet number, delivered asset, on-hire confirmation or off-hire event"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: this is the outbound collision fixture and belongs to business_operations.procurement-sourcing because competition and selection are the document's purpose",
+        "that an estimated duration is an actual hire period",
+        "that the recommended bidder supplied any machine",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE_ Off hire excavator H-88213.eml",
+      "source_type": "email",
+      "observations": [
+        "the subject quotes a fleet number and hire contract",
+        "the body instructs collection from a named site on Friday",
+        "the supplier replies with an acknowledgement and collection reference",
+        "the thread contains no attached formal off-hire notice"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that charging stopped merely because collection was requested; the acknowledgement is evidence of receipt, not settlement of the account",
+        "a named sender or recipient as a destination dimension",
+        "a site or asset fact copied onto another sparse file in the thread's neighbourhood",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
     }
   ],
   "collides_with": [
@@ -362,6 +414,11 @@
     {
       "domain": "business_operations.it-asset-inventory",
       "signal": "An owned-asset register - serial numbers, custody, service history, inspection dates - has the same structure as a plant record and a firm that owns its machines keeps exactly that. The discriminating evidence: a hire contract with a rate and a period supports this row; an owned asset held on a register with no counterparty supports the inventory row. This is the row's cleanest structural collision and the reason 'hire' is load-bearing in the name.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "The same equipment requirement produces an RFQ comparison and then an awarded hire agreement. The reciprocal discriminator recommended for R1c is purpose and lifecycle: solicitation, competing offers, evaluation and award support procurement-sourcing; an identified asset under a continuing time charge with paired on-hire and off-hire events supports this row. The shared fixture is `RFQ comparison - 3T excavator hire.xlsx`; plant-hire must reject it unless the awarded lifecycle appears, and procurement-sourcing must not absorb the later dockets, inspections, breakdowns or off-hire instruction merely because they quote the award reference.",
       "provenance": "inference"
     },
     {
