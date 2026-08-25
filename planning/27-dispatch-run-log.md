@@ -701,3 +701,19 @@ memo is not evidence the row is complete.
 Note: the memo's substance is otherwise excellent — 33 references closing the two-role escape route
 with a stated pincer (two-role present, a sibling owns it; two-role absent, never-alone strikes it)
 and a deletion-test closure. Only the JSON write is missing.
+
+## DEFECT RESOLVED — `organisational-records` reconciled, and the escape route is now in the data
+
+- `refuse_node` still **true**. `never_alone` **5 → 6**, the new entry carrying the two-role closure;
+  a matching clause added to `refuse_reason`. Both verified present programmatically.
+- **All four load-bearing sentences preserved verbatim** — *constitutionally never-alone* · *a row
+  that never fires* · *a residual wearing a domain's clothes* · *inventing a node to save an id* —
+  which matters because a dozen neighbour files quote them as text.
+- **Why this repair mattered more than the last one:** the closure now lives in the JSON, so a
+  future reader holding only the data cannot use `patient-chart`'s two-role argument to resurrect
+  this row. Left in prose, the strongest argument in the catalogue would have been defeatable by
+  the second-strongest simply because nobody read 50KB.
+- Repair-order rule adopted: on a reconciliation, **write the JSON first** — it is the file a
+  limit-kill loses, and the memo is the file that survives.
+
+## Debt clearing 38/64 complete. Standing: 188/358 landed, 26 debt rows left.
