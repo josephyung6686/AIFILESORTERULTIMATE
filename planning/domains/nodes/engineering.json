@@ -1,0 +1,267 @@
+{
+  "id": "engineering",
+  "kind": "schema",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Engineering and product development (controlled design definition)",
+  "one_line": "The controlled technical definition of a physical product, system, plant or infrastructure item: requirements allocated to identified design items, CAD/models/drawings and analyses under revision control, approved changes, prototypes, and verification or validation evidence traced back to that definition. It is not a synonym for an engineering-industry project folder. The schema activates on a relation among an identified design item, a lifecycle/design state, and controlled technical artifacts; project plans alone remain business operations, site/contract records remain construction_property, production and maintenance execution records remain manufacturing, repositories remain code, and experiments whose object is knowledge rather than a designed item remain research. Placeholder schema row (J-IND, full J-DEPTH): PR-6 requires fields to remain empty; the proposed field set records the R1c adjudication needed for a real schema rather than pretending that industry vocabulary is enough.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "distinct_field_set": true,
+    "why": "The smallest honest default is project + design_item + lifecycle_stage + engineering_artifact_type, with revision_or_baseline as a metadata/search field. project can reuse the canonical key; the other four roles are not represented by canonical stage/artifact_type/version_family without changing their meanings. The decisive difference is configuration identity: engineering files say which designed item and controlled definition a requirement, drawing, analysis, change or verification result belongs to. Manufacturing keys on execution objects such as batch, asset and nonconformance; construction_property keys on property/site and instruction; business_operations keys on delivery/governance rather than technical definition; research keys on knowledge-producing project/stage/artifact/lab/venue. Revision control alone is shared with code and therefore never activates this schema alone."
+  },
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "design_item",
+      "type": "string",
+      "example": "Brake Pedal Assembly BPA-210",
+      "why_no_existing_key": "No canonical key identifies the physical or system configuration item whose definition the file controls. `project` names the undertaking, not the item: one project contains many assemblies and one design item can survive across projects. `subject` is the academic course key; `property` is only a proposal on construction_property and denotes a site or premises; `repository` denotes a code container. NASA's Systems Engineering Handbook describes a technical data package as the technical description of an item and says the package defines the required design configuration; that item-centered relation is the schema's distinct structural fact.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE. A requirement number, revision, test result or drawing type is not intelligible until the controlled item is known, matching 00's parent-makes-child-intelligible rule. It is not authorship or an organization collector.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A labelled title-block or requirements-table item/assembly/system slot can be direct. Otherwise validation requires an item-identifier pattern co-occurring with two independent controlled-definition structures such as a drawing number and revision block, a requirement identifier and verification-method column, or a BOM parent/child relation. R2 owns patterns; this row defines no regex or threshold.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "lifecycle_stage",
+      "type": "string",
+      "example": "detailed design",
+      "why_no_existing_key": "The canonical `stage` is explicitly the workflow position of a research artifact. Reusing it globally is a plausible alternative, but its current role and examples do not cover concept, preliminary design, detailed design, qualification and released design without semantic widening. This proposal is intentionally exposed for R1c: widen `stage` once or retain this role-specific key; do not ship both as synonyms.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE after project/design_item when a corpus spans genuine lifecycle gates. It must not be inferred from a filename suffix or filesystem date.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation needs a lifecycle/gate term in a labelled status, maturity or review field, or the formal document structure of a named design review. Free prose remains possible or llm_supported. No term list is claimed to be complete here.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "engineering_artifact_type",
+      "type": "enum",
+      "example": "interface control drawing",
+      "why_no_existing_key": "The canonical `artifact_type` currently belongs to research and code and its role/examples are manuscript, figure, dataset, notebook and model. Engineering requires a controlled-definition role spanning requirement, drawing, CAD model, schematic, calculation, interface definition, change request and verification record. R1c should either widen canonical `artifact_type` and reuse it here or accept this role-specific key; it must not retain both as duplicate spellings. Work types below are values, never child schemas.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE as the final default dimension after the item and lifecycle state; it groups the kinds of evidence needed to retrieve a controlled definition without making file extensions into meaning.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A labelled document-type/title-block field can be direct. Otherwise a type term must be confirmed by structure: requirement rows and trace columns, drawing title/revision zones, schematic connectivity, analysis inputs/results, or verification procedure/result tables.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "revision_or_baseline",
+      "type": "string",
+      "example": "Revision C / CDR baseline",
+      "why_no_existing_key": "`version_family` identifies membership in a family; it deliberately does not state the controlled revision, release or baseline represented by one member. Engineering needs the latter for retrieval, change impact and explanation. A revision token is not necessarily a version-family identifier and a baseline can include many artifacts at different revisions.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Proposed FALSE. Revision folders fragment a design item's definition and obsolete labels can leak into paths; version/revision relationships are better preserved as searchable facts and graph/version-family structure. A specific released-baseline template may later justify a different order, but the schema default does not.",
+      "reliability_ceiling": "direct",
+      "reliability_why": "Only a labelled revision, issue, release or baseline slot is direct. Filename `revC`, `final`, `_v7` and filesystem dates remain possible observations; none activates engineering alone.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a controlled drawing/title-block structure with an identified item or assembly, drawing identifier, revision/issue slot, status or approval slot, and sheet/title information; the relation among labelled slots is the signal, never `.dwg` or `Rev C` alone",
+      "a requirements structure whose rows carry stable requirement identifiers and whose columns or linked records name allocation, rationale, verification method and verification status for an identified system or item",
+      "a technical data package manifest joining drawings, associated lists, specifications, standards, performance requirements and quality/packaging provisions to one identified item or released baseline; this follows the NASA Systems Engineering Handbook's named package contents without treating any one member name as sufficient",
+      "an engineering-change structure that identifies an affected design item and current/replacement revision, states the technical reason and effect, and carries disposition or approval; an ordinary project change request lacks the affected controlled definition",
+      "a BOM or product-structure table with a parent assembly identifier, child item/part identifiers, quantities and drawing/revision references, where the table is design-authoritative rather than a production pick list",
+      "an analysis package whose labelled inputs include a model/configuration identifier and whose conclusion compares calculated margins or performance against named requirements for that same item",
+      "a verification matrix or test report that links stable requirement identifiers to method, procedure, configuration-under-test and pass/fail evidence; a generic test report without traceability is not enough",
+      "a prototype/build record that names the experimental article or prototype configuration and reconciles its deviations against the intended design definition",
+      "an archive manifest that exposes several of the above structures under one item/baseline without extracting members to disk",
+      "parent-folder context naming an item number or program may raise plausibility only after one controlled-definition structure is present; it never fires the schema by itself"
+    ],
+    "needs_llm": [
+      "whether a prose design rationale describes a controlled product decision or is merely research discussion, product-management discovery, or a cited reference",
+      "whether a spreadsheet headed BOM is the authoritative design product structure, a manufacturing pick list, a procurement list, or a costing sheet",
+      "whether a test report verifies a design requirement, validates user need, inspects production conformance, or records research experimentation when the trace links are prose rather than labelled slots",
+      "whether `stage` language denotes a lifecycle gate, a project schedule status, a manufacturing operation or a research workflow",
+      "whether a site drawing controls a reusable designed system/product or is construction contract information for one property",
+      "whether an embedded-firmware package is principally a repository/code artifact, a released configuration component of a physical product, or legally both"
+    ],
+    "never_alone": [
+      "the word engineering, design, product, system, model, drawing, requirement, prototype, validation or test alone; every token appears in neighboring domains",
+      "a project name or project plan alone. That is business_operations.project-delivery unless controlled technical-definition evidence also appears",
+      "a revision token, version suffix, baseline word or change-log heading alone. Code, policies, contracts, construction drawings and research manuscripts all use revision control",
+      "a part number, drawing number or other short identifier alone; it can be a stock code, purchase line, asset tag, site drawing, invoice reference or arbitrary number",
+      "a CAD/design extension or source_type alone. 00 requires extension to be a routing signal rather than an assumption about meaning",
+      "a table called BOM alone; procurement, costing, production and spare-parts records use the same label",
+      "a pass/fail table alone; manufacturing inspection, software tests, academic grading and certification all contain one",
+      "a company, laboratory, client or standards-body name alone; role ambiguity is the same defect 00 identifies for a university name",
+      "absence of EXIF or presence of a screenshot-like image alone; it does not prove a captured engineering diagram",
+      "a bounded download session alone; 00 says a session is never proof of topic"
+    ]
+  },
+  "proposed_context_terms": [
+    "configuration item", "design definition", "technical data package", "requirement identifier", "allocated to", "verification method", "interface control", "drawing number", "revision", "issue status", "released", "baseline", "superseded", "bill of materials", "parent assembly", "affected item", "engineering change", "change notice", "design review", "prototype configuration", "configuration under test", "verification matrix", "validation report", "as-designed"
+  ],
+  "work_types": [
+    "stakeholder or system requirement", "requirements traceability matrix", "architecture or interface definition", "CAD model", "engineering drawing", "electrical schematic", "PCB layout", "bill of materials", "material or component specification", "analysis model or calculation", "simulation report", "design review package", "engineering change request/order/notice", "risk analysis or design FMEA", "prototype configuration record", "verification plan/procedure/report", "validation report", "released technical data package"
+  ],
+  "work_types_note": "These are candidate VALUES of engineering_artifact_type (or widened canonical artifact_type), not child schemas. Specialized roster templates exist only where their situation changes signals, dimensions or privacy.",
+  "grouping_reasons": [
+    "one identified design item's requirements, definition, analyses, changes and verification evidence across its lifecycle",
+    "one released baseline or technical data package and the approved change trail that supersedes it",
+    "one requirement-to-verification trace chain, preserving links rather than copying a project or item fact onto sparse evidence",
+    "one prototype or test article's configuration, deviations, procedures and results",
+    "a sparse `margin_plot.png` may join an accepted analysis neighborhood without acquiring design_item or requirement facts; the graph assembles context and does not propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Binding PR-6 leaves this placeholder schema with no declared destination-eligible fields, so the machine-readable order must remain empty. Subject to R1c adjudicating the proposed set, the researched default is project → design_item → lifecycle_stage → engineering_artifact_type. Project/function/subject comes before time under 00's document-domain rule; design item makes a stage and artifact type intelligible; revision_or_baseline stays metadata by default. The user may reverse, remove, add or flatten dimensions. This conditional order is not silently encoded before its keys become legal.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["filesystem", "text_document", "spreadsheet", "presentation", "image", "ocr", "email", "calendar", "code_structured", "design_creative", "archive", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".csv", ".pptx", ".dwg", ".dxf", ".step", ".stp", ".iges", ".igs", ".stl", ".ifc", ".sch", ".brd", ".eml", ".ics", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "SYS-REQ-042_Braking-System-Requirements_RevB.docx",
+      "source_type": "text_document",
+      "observations": ["page-one control block labels document identifier, revision, system and approval status", "requirement rows have stable identifiers and verification-method columns", "filename contains a revision-shaped suffix"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["domain fields before R1c licenses them", "revision from the filename suffix alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BPA-210-001_Brake-Pedal-Assembly_RevC.dwg",
+      "source_type": "design_creative",
+      "observations": ["border title block labels assembly, drawing number, scale, revision, status and approver", "revision table records an approved change", "extension routes to a CAD extractor"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["engineering activation from `.dwg` alone", "construction_property without site/contract evidence", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "BPA-210_Product-Structure.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["labelled parent assembly field names BPA-210", "rows carry child item identifiers, quantities and drawing revisions", "a Released status cell and approver field are present"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that every BOM is a design-authoritative BOM", "production batch or procurement facts", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ECR-1187_BPA-210_Bushing-Material.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled affected-item and current/proposed revision slots", "reason and technical-impact sections describe a material substitution", "approval/disposition block records acceptance"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["an ordinary project-scope change from the word change", "manufacturing nonconformance without execution evidence", "domain fields before R1c", "a folder path"],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BPA-210_FEA_Loadcase-3_RevA.pdf",
+      "source_type": "text_document",
+      "observations": ["input section labels item configuration, material model and load case", "results compare calculated margin against requirement SYS-REQ-042", "approval block identifies checker and revision"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["research merely because simulation produced knowledge", "requirement satisfaction from a plot without the trace statement", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BPA-210_DVT-07_Verification-Report.pdf",
+      "source_type": "text_document",
+      "observations": ["configuration-under-test table identifies prototype serial and deviations", "matrix links requirement identifiers to procedure steps and results", "signed conclusion records pass/fail disposition"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["production inspection from pass/fail alone", "validation of user need when the report only verifies requirements", "domain fields before R1c", "a folder path"],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PDR_Braking-System_2026-04-18.pptx",
+      "source_type": "presentation",
+      "observations": ["title names a preliminary design review and system", "slides cover requirements allocation, interfaces, risks and open actions", "one slide is a project schedule"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["engineering from the project schedule slide alone", "a precise lifecycle stage from the date", "domain fields before R1c", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "TDP_BPA-210_Baseline-C.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists requirements, assembly drawing, parts list, material specification and verification matrix", "member names repeat the same item identifier and controlled issue", "members have not been extracted to the filesystem"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["facts from uninspected member contents", "that Baseline-C alone proves engineering", "domain fields before R1c", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "margin_plot.png",
+      "source_type": "image",
+      "observations": ["image contains axes and a legend but no item or requirement identifier", "no EXIF is present", "nearby accepted analysis files refer to BPA-210"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["engineering activation from an engineering-looking plot", "design_item copied from neighboring files", "screenshot status from missing EXIF", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Sprint-14-Project-Status.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows contain owner, due date, percent complete and traffic-light status", "an engineering department name appears in the header", "no design item, requirement, drawing, revision or verification trace exists"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["engineering from an engineering team name", "a controlled design definition", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "LOT-24-081_Final-Inspection.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["header identifies production lot and inspection station", "rows record measured values, acceptance limits and inspector disposition", "a drawing revision appears only as the governing reference"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["engineering merely because a drawing revision is cited", "that the inspection record defines the product", "a folder path"],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "A101_Ground-Floor-Plan_Rev4_IFC.pdf",
+      "source_type": "text_document",
+      "observations": ["drawing title block identifies a building site, contract drawing number, revision and issued-for-construction status", "sheet depicts the permanent works", "no reusable product/configuration-item relation is stated"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["engineering merely from a controlled drawing", "that a site drawing loses construction_property facts", "a folder path"],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {"domain": "manufacturing", "why": "The same item number, drawing revision and pass/fail language appears in design verification and production inspection. Engineering owns evidence that defines or changes the intended configuration and traces verification to requirements; manufacturing owns execution against that definition by batch, asset, operation, inspection or nonconformance. Fixture bytes: LOT-24-081_Final-Inspection.xlsx remains manufacturing even though it cites Rev C; ECR-1187 is engineering when it approves a design change, and may also hold manufacturing when a shop-floor nonconformance triggered it.", "provenance": "inference"},
+    {"domain": "code", "why": "Configuration management, requirements, versions, test evidence and embedded products exist on both sides. Repository roots, manifests and source structure activate code; identified physical/system design items, drawings/product structures and controlled technical data packages activate engineering. Firmware-release packages may legally carry both, but a repository is not engineering merely because its employer builds hardware.", "provenance": "inference"},
+    {"domain": "research", "why": "Models, experiments, prototypes, lab reports and validation language overlap. Research organizes knowledge production by project/stage/artifact/lab/venue; engineering organizes the controlled definition and realization evidence of an identified designed item. BPA-210 FEA traced to SYS-REQ-042 is engineering; an exploratory paper comparing material models without an affected design item is research; an R&D prototype may hold both on disjoint evidence.", "provenance": "inference"},
+    {"domain": "business_operations", "why": "Projects, risks, reviews, changes and status reports overlap. Business operations owns schedule/budget/governance/delivery evidence; engineering owns controlled technical-definition evidence. Sprint-14-Project-Status.xlsx is the collision fixture: an engineering team and project name do not make an engineering schema.", "provenance": "inference"},
+    {"domain": "construction_property", "why": "Both carry requirements, CAD, drawings, calculations, revisions and handover evidence. Construction_property owns a site/property joined to a professional instruction or contract lifecycle; engineering owns a design item/configuration definition. A101 site drawing is construction_property; a reusable equipment assembly drawing is engineering; a plant package can carry both when both relations are explicit.", "provenance": "inference"}
+  ],
+  "also_holds_with": [
+    {"domain": "manufacturing", "why": "A nonconformance-backed engineering change or a verification report on a production-representative article can truthfully carry both execution and design-definition evidence; neither side is inferred from the other.", "provenance": "inference"},
+    {"domain": "code", "why": "Embedded firmware can be a repository artifact and a controlled component of a physical product baseline at once, on repository evidence plus item/baseline evidence.", "provenance": "inference"},
+    {"domain": "research", "why": "An R&D prototype or experimental model may both produce generalizable knowledge and verify a named design requirement. The project/artifact facts remain independently evidenced.", "provenance": "inference"},
+    {"domain": "business_operations", "why": "A formal design review deck can include governed project decisions and controlled technical-definition evidence in one file.", "provenance": "inference"},
+    {"domain": "construction_property", "why": "Infrastructure and plant design packages may define engineered systems while also being contract/site records for one property; both relations may be true.", "provenance": "inference"}
+  ],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A standalone datasheet, calculation, certificate or drawing with durable meaning but no reliably evidenced controlled item or accepted project belongs here rather than activating from type words.", "provenance": "design", "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."},
+    {"residual_template": "Review Later", "why": "Use when a model, table or report appears technical but whether it defines, makes, inspects, researches or merely manages something cannot be established from its own evidence.", "provenance": "design", "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."},
+    {"residual_template": "Unsupported or Encrypted", "why": "Unreadable proprietary CAD and encrypted technical packages retain basic metadata without filename-only purpose inference.", "provenance": "design", "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Engineering packages routinely contain proprietary design definition, supplier data, vulnerabilities, safety analyses, export-controlled or critical-technology information, signatures and test evidence. This is not a new handling class and does not make engineering a safety schema. The NASA Systems Engineering Handbook explicitly discusses distribution statements and protection of critical technology, intellectual-property and proprietary technical data; locally, 00's binding rule remains that privacy policy is enforced before any model or connector receives content.",
+  "open_question": "NEEDS-JOSEPH NJ-ENG-1: should canonical `stage` and `artifact_type` be widened for engineering, or should lifecycle_stage and engineering_artifact_type remain role-specific keys? NJ-ENG-2: should revision_or_baseline be a domain fact distinct from universal version_family, or should revision remain only observation/version-graph metadata? NJ-ENG-3: for infrastructure and plant, is the primary seam reusable/controlled design item versus site instruction, or should all site-bound design packages activate both engineering and construction_property? NJ-ENG-4: does product-development discovery that has no controlled design item stay wholly in business_operations/product requirements and research, as recommended here?"
+}
