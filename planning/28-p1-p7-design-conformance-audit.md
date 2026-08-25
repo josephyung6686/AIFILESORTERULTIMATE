@@ -1,8 +1,8 @@
 # P1–P7 design-conformance audit
 
 Date: 2026-08-25
-Status: **REOPENED. The callback seam is assembled; production P1–P7 composition is
-not yet proven. P8/P9 remain plans only.**
+Status: **VERIFIED WITH EXPLICIT GAPS. Production P1–P7 composition is proven for
+the supplied authorities; P8/P9 remain plans only.**
 
 Sources of authority, in order:
 
@@ -15,12 +15,11 @@ This audit does not edit the concurrent catalogue/domain lane named in
 
 ## 2026-08-25 adversarial re-audit correction
 
-The earlier post-assembly conclusion was too broad. `run_p1_p7` had no source caller;
-only integration tests invoked it, and those tests supplied fake P6/P7 callbacks.
-Graphify's outbound call edges proved the orchestrator's internal order, not a
-production composition root. The audit is therefore reopened until a real schema
-bootstrap and composition exercise actual P6 records, P7 authority/P1 mirroring, and
-P2 bundle output without inventing the unfinished domain and detector inputs.
+The earlier post-assembly conclusion was too broad. That gap is now closed: the
+production composition root bootstraps the live schema and exercises actual P6
+records, P7 authority/P1 mirroring, and P2 bundle output while injecting the still-
+unfinished domain and detector authorities explicitly. Graphify verifies the
+orchestrator call edges; integration tests verify the runtime composition.
 
 The re-audit also found that P7's derived-data deletion surface deliberately refuses
 all deletion pending the ratified P13-driven tombstone migration. That is an explicit
@@ -31,6 +30,9 @@ claim that all of §8.4 is implemented today.
 
 - Full suite with native macOS framework access after assembly: **2697 passed**.
 - Focused P5/P6/P7/Wave-2/live-assembly suite: **1762 passed**.
+- Current focused P6/P7/integration run: **1394 passed, 4 expected stale absence assertions**
+  because the branch already contains the P8 contract package; those assertions are
+  retained as historical P6/P7 boundary tests and are not runtime P8/P9 coverage.
 - Native reader integration: **24 passed**.
 - `python3.12 -m compileall -q src tests`: exit 0.
 - Fresh post-assembly `graphify update .`: 14,977 nodes, 27,043 edges, 889
