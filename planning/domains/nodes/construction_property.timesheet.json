@@ -104,12 +104,12 @@
       "falls_through_if_inactive": "Independent Records"
     },
     {
-      "filename": "Site attendance - fire roll call.xlsx",
+      "filename": "Induction register - March 2026.xlsx",
       "source_type": "spreadsheet",
       "observations": [
-        "names, employers, induction dates and sign-in/sign-out times",
-        "a muster-point heading",
-        "printed daily"
+        "names, employers, induction dates and signature columns",
+        "a site heading and induction topic",
+        "the register is maintained as a serial site-safety record"
       ],
       "facts_legal": [
         "file_type",
@@ -118,7 +118,7 @@
         "sensitivity_status"
       ],
       "must_not_conclude": [
-        "activation of this refused row — a statutory roll of who is on site is construction_property.site-health-safety's",
+        "activation of this refused row — the register-with-signature-column structure and induction purpose make it construction_property.site-health-safety's",
         "any construction_property fact — the schema declares no field rows",
         "a folder path"
       ],
@@ -147,6 +147,30 @@
       ],
       "also_schema": "finance",
       "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Employer payroll register - March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "multiple employees appear in recurring rows under one labelled payroll period",
+        "columns distinguish gross pay, tax, pension and other deductions, and net pay",
+        "the workbook contains no site narrative, plant record, instruction reference or induction purpose"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this refused row — this is the employer-side payroll apparatus routed to hr.payroll-benefits-administration, not the employee-received statement owned by finance.payroll-received",
+        "finance.payroll-received merely because payroll words and gross-to-net columns appear; that row expressly rejects the holder's multi-employee payroll run",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
     },
     {
