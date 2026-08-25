@@ -3,13 +3,13 @@
   "kind": "template",
   "schema_id": "construction_property",
   "parent_id": null,
-  "name": "Residential sale and purchase — the conveyancing transaction file",
-  "one_line": "The organizational situation of ONE TRANSACTION IN PROGRESS: a property changes hands, and for a few months a pack of otherwise unrelated documents - title entries, searches, forms about boundaries and drains, identity evidence, a mortgage offer, a contract, a completion statement - is assembled by two sides who need it only until the keys move. The organizing anchor is the TRANSACTION, and the row exists because the pack is purpose-coherent and content-incoherent, and because it dissolves: after completion a handful of these documents become the owner's permanent property record and the rest are dead paper. Absorbs the legacy row prop.sale-purchase (ROW). Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "name": "Residential sale and purchase — refused duplicate of Legal conveyancing and Finance household property",
+  "one_line": "REFUSED: a residential sale or purchase pack is a conveyancing legal matter while active and a household acquisition or disposal record in the owner's corpus. Property is the subject, buyer and seller are party roles, and transaction stage is a document-function value; none creates a distinct construction_property template with its own detection, dimensions, or privacy rules. Absorbs the legacy label prop.sale-purchase without preserving its mistaken node.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
-  "refuse_node": false,
-  "refuse_reason": null,
+  "refuse_node": true,
+  "refuse_reason": "Reverses the gist draft after the required cross-family comparison. The node test fails on all three legs. (1) DETECTION: a memorandum of sale, title-and-search bundle, property questionnaires, enquiries, contract, transfer, completion statement, registration confirmation, identity checks and source-of-funds evidence are the documents and stages of conveyancing. They distinguish a conveyancing matter from generic Legal, but do not distinguish a construction_property situation from Legal's matter-file and personal-legal-matters coverage. The surviving owner-side title, closing, tax, insurance and acquisition or disposal records are already held by finance.household-property. Property addresses, buyer/seller labels and stage words are never-alone roles or values. (2) DIMENSIONS: property -> transaction -> stage merely combines the construction_property default property/site -> instruction -> document function with a legal matter lifecycle. The transaction is the legal matter or accepted group; buyer/seller is a party role; stage is a work_type or record_type value. The field-less schema supplies no legal dimension, and no distinct order remains after the Legal and Finance split. (3) PRIVACY: passports, bank statements, source-of-funds material, mortgage offers and client-account references require protection, but Legal and Finance are already safety domains and impose the same or stronger protection-first rule. Aggregation makes the pack sensitive, but does not create a construction_property privacy rule. Keeping this row would classify the same bytes by a property topic and party position, repeating the industry-label mistake the node test forbids.",
   "fields": [],
   "proposed_fields": [],
   "recognition": {
@@ -101,7 +101,7 @@
   "template": {
     "dimension_order": [],
     "time_first": false,
-    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the anchor is the PROPERTY, then the transaction (which side, and when), then the stage - title and searches, enquiries, contract, completion. Stage is the level that earns its place, because a conveyancing pack is read by stage and by nothing else, and because a member's meaning depends on it: a contract in the enquiries stage is a draft and the same words after exchange are the deal. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - and a property may be bought and sold more than once, so the property must sit above the transaction rather than the year. Privacy caveat specific to this row, and it is the strongest on this schema: the pack contains identity documents, bank statements and source-of-funds evidence for private individuals, collected under an anti-money-laundering duty and belonging in a protected state from the moment they are seen. 00: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” No part of that material should acquire automatic internal depth or reach a model prompt by default. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+    "why": "Empty because the row is refused, and empty independently because construction_property declares no fields. The apparent property -> transaction -> stage order is not a distinct construction/property recommendation: property is the subject of the Legal matter and household record, transaction is the matter or accepted group, and stage is document function. Legal protection and Finance household-property coverage already organize the same lifecycle without a duplicate template."
   },
   "file_kinds": {
     "source_types": [
@@ -335,48 +335,7 @@
       "falls_through_if_inactive": "Independent Records"
     }
   ],
-  "collides_with": [
-    {
-      "domain": "finance.household-property",
-      "signal": "The defining seam of this row, and it is a seam in TIME rather than in content. That row already declares purchase closing record and sale closing record among its work types, and it is right to: after completion, a handful of these documents - the transfer, the register, the completion statement - become the owner's permanent property record. The discriminating evidence: a transaction IN PROGRESS, evidenced by stage vocabulary, live enquiries, searches with issue dates and two represented sides, supports this row; a household's own retained ownership, tax, improvement and warranty records support the household row. A property address counts for neither, exactly as that row already says of its own neighbours. Stated reciprocally, and see open_question - the seam is a real one and the product cannot draw it by evidence alone.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "finance.loans-mortgage",
-      "signal": "The mortgage offer and the advance sit inside the pack and are also the borrower's own lending record. The discriminating evidence: principal, interest, term, payment and payoff structure supports the loan row; the conveyance the loan funds supports this row. Reciprocal to the signal that row's neighbour already states about closing packets.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "construction_property.mortgage-brokering",
-      "signal": "Three rows hold the mortgage offer: the borrower (finance.loans-mortgage), the broker who arranged it, and this transaction. The discriminating evidence: a fact find, a lender submission and a suitability letter supports the brokering row; the conveyancing pack around the property supports this row. Authored in both directions.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "legal.practice-matter-file",
-      "signal": "A conveyancer's file IS a legal matter file, and for a firm this row is a matter type. The discriminating evidence: a matter reference, engagement and billing structure, and a firm's own practice apparatus supports the practice row; the property transaction's own documents support this row. This is the row's closest structural relative and the collision is authored rather than resolved.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "legal.leases-agreements",
-      "signal": "The contract and the transfer are executed instruments, and a leasehold purchase carries the lease itself. The discriminating evidence: party recitals, covenants, a term, consideration and an execution block identify the instrument as legal material - the same signal that row states against finance.household-property; a transaction pack around it supports this row. Stated in that row's own terms so the pair reads consistently.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "identity.core-documents",
-      "signal": "Identity scans and address evidence collected for anti-money-laundering purposes sit inside the pack, and they are also the person's own identity documents. The discriminating evidence: a transaction file's checklist context supports this row's grouping; the document itself is identity material and is protected first regardless. Neither reading may delay protection.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "construction_property.agency-listing",
-      "signal": "The estate agency side of the same sale - particulars, floorplan, viewings, memorandum of sale - overlaps at the memorandum. The discriminating evidence: marketing material and viewing records support the listing row; the conveyance after an offer is accepted supports this row.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "construction_property.survey-valuation",
-      "signal": "A survey obtained for the purchase sits in the pack and is also a surveyor's own report. The discriminating evidence: an instruction, a valuation figure and a defect narrative supports the survey row; the transaction that commissioned it supports this row.",
-      "provenance": "inference"
-    }
-  ],
+  "collides_with": [],
   "also_holds_with": [],
   "falls_through_to": [
     {
@@ -408,5 +367,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "A conveyancing pack is one of the most concentrated collections of protected material a private person ever assembles: identity documents, months of bank statements, a source-of-funds declaration, a mortgage offer stating what a household can borrow, and a completion statement with client account references - all gathered in one place because a duty required it. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and identity documents and account statements head that list. The design is explicit about the moment protection begins: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
-  "open_question": "When does a transaction stop being a transaction? This row and finance.household-property both have a legitimate claim on the same documents at different times: during the conveyance the transfer, the register copy and the completion statement are working papers of a live matter; ten years later they are the owner's permanent property record and nothing else. The product cannot see the moment of change from the documents, because nothing in them announces it. The row's position is that the LIVE transaction is the situation - stage vocabulary, open enquiries, unexpired searches, two represented sides - and that after completion most of the pack becomes dead paper while a handful of members graduate to the household row. Which members graduate, and whether a completed pack should be moved or left where it is, is Joseph's. A second question of scope: this row is written from the transaction's side rather than any one party's, which means it is neither purely professional nor purely householder - unlike every other row on this schema. If that is wrong, the professional half belongs with legal.practice-matter-file and the householder half with finance.household-property, and the row would not survive the split. Both collisions are authored so that reading stays available."
+  "open_question": "NEEDS-JOSEPH NJ-CP-SP-1: confirm retirement of the legacy label rather than re-roster it under Legal. A distinct legal.conveyancing template would be justified only if its stage signals or protected view differ from legal.practice-matter-file and legal.personal-legal-matters; moving the same row across schemas without that test would preserve the duplication. NJ-CP-SP-2: decide whether buyer-side and seller-side transaction views are user-approved group views or stored role facts. This refusal treats buyer and seller as roles/values and the transaction as a reviewable group; it does not mint keys. NJ-CP-SP-3: decide which completed conveyancing records a household should retain and whether an accepted group dissolves after completion. That is a retention and user-organization decision, not evidence for a construction_property node."
 }
