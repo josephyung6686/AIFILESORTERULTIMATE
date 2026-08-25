@@ -105,22 +105,34 @@ _ZERO_COUNTS = dict(
 )
 
 
-def _released_view(resolved: object) -> Mapping[str, object]:
-    if isinstance(resolved, Mapping):
-        text = resolved.get("text") or resolved.get("released") or ""
-        metadata = resolved.get("metadata") or {}
+def _released_view(resolved: object) -> Mapping[str, object] | None:
+    if isinstance(resolved, str):
+        return {"text": resolved, "metadata": {}}
+    if isinstance(resolved, Mapping) and "text" in resolved:
+        text = resolved["text"]
+        if not isinstance(text, str):
+            return None
+        metadata = resolved.get("metadata")
+        if not isinstance(metadata, Mapping):
+            metadata = {}
         return {"text": text, "metadata": metadata}
-    return {"text": resolved if isinstance(resolved, str) else str(resolved), "metadata": {}}
+    return None
 
 
 def _parse_citation(raw: object) -> Citation | None:
     if not isinstance(raw, Mapping):
         return None
+    cited_span = raw.get("cited_span")
+    metadata_field_name = raw.get("metadata_field_name")
+    if cited_span is not None and not isinstance(cited_span, str):
+        return None
+    if metadata_field_name is not None and not isinstance(metadata_field_name, str):
+        return None
     try:
         return Citation(
             evidence_ref=str(raw.get("evidence_ref") or ""),
-            cited_span=raw.get("cited_span"),
-            metadata_field_name=raw.get("metadata_field_name"),
+            cited_span=cited_span,
+            metadata_field_name=metadata_field_name,
             why_it_supports=str(raw.get("why_it_supports") or ""),
         )
     except (MalformedRecord, TypeError, ValueError):
@@ -131,7 +143,7 @@ def _check_citation(
     citation: Citation,
     dossier: Dossier,
     evidence_resolver: Callable[[str], object],
-) -> tuple[CheckedCitation, str | None]:
+) -> tuple[CheckedCitation, str | None] | ValidationUnavailable:
     refs = {item.evidence_ref for item in dossier.evidence_items}
     if citation.evidence_ref not in refs:
         return (
@@ -145,8 +157,13 @@ def _check_citation(
             CITATION_NOT_FOUND,
         )
     view = _released_view(resolved)
+    if view is None:
+        return ValidationUnavailable(missing=("evidence_resolver",))
+    text = view["text"]
+    if not isinstance(text, str):
+        return ValidationUnavailable(missing=("evidence_resolver",))
     if citation.cited_span is not None:
-        matched = citation.cited_span in str(view["text"])
+        matched = citation.cited_span in text
     else:
         metadata = view["metadata"]
         matched = isinstance(metadata, Mapping) and citation.metadata_field_name in metadata
@@ -352,7 +369,10 @@ def _validate_claim(
     checked: list[CheckedCitation] = []
     reasons: list[str] = []
     for citation in citations:
-        item, reason = _check_citation(citation, dossier, evidence_resolver)
+        checked_result = _check_citation(citation, dossier, evidence_resolver)
+        if isinstance(checked_result, ValidationUnavailable):
+            return checked_result
+        item, reason = checked_result
         checked.append(item)
         if reason is not None:
             reasons.append(reason)
@@ -425,8 +445,6 @@ def validate_response(
         return ValidationUnavailable(missing=tuple(missing))
 
     oracle = contradicts
-    if oracle is None:
-        oracle = getattr(evidence_resolver, "contradicts", None)
 
     def _finished(verdicts: Sequence[P8Verdict]):
         return (

@@ -268,6 +268,83 @@ def test_omitted_contradiction_oracle_is_unavailable_when_check_four_is_needed()
     assert "contradicts" in result.missing
 
 
+def test_contradicts_none_does_not_fall_back_to_resolver_attribute():
+    class CombinedResolver:
+        def __init__(self) -> None:
+            self.contradicts = lambda *_a, **_k: False
+
+        def __call__(self, observation_key: str) -> str | None:
+            if observation_key == "obs-key-1":
+                return RELEASED_MATERIAL
+            return None
+
+    result = validate_response(
+        _dossier(),
+        DIRECT_BYTES,
+        evidence_resolver=CombinedResolver(),
+        site_validator=_noop_site,
+        contradicts=None,
+        model_id="fixture-model",
+        prompt_fingerprint="fp-canonical",
+        dossier_builder="fixture",
+        release_audit_id=17,
+    )
+    assert isinstance(result, ValidationUnavailable)
+    assert result.missing == ("contradicts",)
+
+
+def test_empty_released_text_does_not_fall_through_to_released_key():
+    def resolve(observation_key: str) -> Mapping[str, object] | None:
+        if observation_key == "obs-key-1":
+            return {"text": "", "released": "Columbia University extra secret"}
+        return None
+
+    verdicts, report = _validate(_dossier(), DIRECT_BYTES, evidence_resolver=resolve)
+    assert verdicts[0].outcome != ACCEPT_DIRECT
+    assert verdicts[0].outcome == "reject"
+    assert CITATION_SPAN_MISMATCH in verdicts[0].reasons
+    assert report.claims_accepted_direct == 0
+    assert verdicts[0].citations_checked[0].span_matched is False
+
+
+def test_non_str_resolver_material_is_not_coerced_for_span_match():
+    class RawRow:
+        def __str__(self) -> str:
+            return "RAW SECRET TEXT Columbia University confidential"
+
+    def resolve(observation_key: str) -> object:
+        if observation_key == "obs-key-1":
+            return RawRow()
+        return None
+
+    result = validate_response(
+        _dossier(),
+        DIRECT_BYTES,
+        evidence_resolver=resolve,
+        site_validator=_noop_site,
+        contradicts=_never_contradicts,
+        model_id="fixture-model",
+        prompt_fingerprint="fp-canonical",
+        dossier_builder="fixture",
+        release_audit_id=17,
+    )
+    assert isinstance(result, ValidationUnavailable)
+    assert "evidence_resolver" in result.missing
+
+
+def test_numeric_cited_span_is_schema_invalid():
+    numeric_span = (
+        b'{"claims":[{"claim_ref":"c1","payload":{"field":"school","value":"Columbia"},'
+        b'"citations":[{"evidence_ref":"obs-key-1","cited_span":123,'
+        b'"why_it_supports":"names the school"}]}]}'
+    )
+    verdicts, report = _validate(_dossier(), numeric_span)
+    assert verdicts[0].outcome == "reject"
+    assert verdicts[0].reasons == (SCHEMA_INVALID,)
+    assert report.reasons_histogram[SCHEMA_INVALID] == 1
+    assert report.claims_rejected == 1
+
+
 def test_explicit_unknown_abstains_and_is_not_a_failure():
     verdicts, report = _validate(_dossier(), UNKNOWN_BYTES)
     assert verdicts[0].outcome == ABSTAIN
