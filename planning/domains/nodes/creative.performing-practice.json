@@ -1,0 +1,191 @@
+{
+  "id": "creative.performing-practice",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "A performer's own practice archive - REFUSED",
+  "one_line": "REFUSED. Programmes, parts, scripts, set lists, rehearsal notes, session files, recordings, reviews and publicity accumulated by a musician, dancer or actor are real creative evidence, but 'performing' is a work_type or topic value and a named performance is an event/project value. The creative schema's default already recognizes performed work, scripts, production paperwork, timeline-and-media structures, recordings, revision families and one performance date as a grouping reason. This row therefore supplies no distinct organizational situation: it is the creative default narrowed by medium and by the corpus owner's occupation. The legacy rows perf.performing-artist and pers.music-practice are covered through the creative schema, its honest project/event neighbours, and residual fallthrough rather than rebuilt as a duplicate template.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three legs of the node test. (1) Detection: every positive structure in the proposed archive is already in the creative schema default: a stage script's element grammar, production paperwork naming a call time/cast/location, a session or editing project linked to named media, same-stem revisions and exports, and the schema's explicit grouping reason 'one shoot day, session or performance date and everything recorded on it'. The remaining candidate signals - performer name, instrument, repertoire title, venue name, a date, or extensions such as .wav/.mp4 - are never-alone observations. 'Musician', 'dancer', 'actor', 'programme', 'part', 'recording' and 'review' are work-type/topic values, not situations. (2) Dimensions: creative declares no fields, so no dimension is legal. Even if R1c later adopts the creative schema's proposed project/stage/artifact_type fields, this row would recommend the default project/event then artifact/stage order; putting performer above it would violate 00's rule against authorship as a destination dimension, while putting date first would confuse an event value with a universal creation timestamp and scatter one production's rehearsals, performance, recording and review. (3) Privacy: contracts, contact sheets, cast lists and private rehearsal recordings can be sensitive, but that is the creative schema's existing posture, not a distinct rule. A public programme does not make every neighbouring file public. The row cannot survive on the roster hint's medium, extensions, occupation or dated-event values without recreating the 574 failure the node test forbids.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None unique to this row. A script grammar, a call sheet or performance schedule, a linked multitrack/session project, and a same-stem recording/export family activate the creative schema or a narrower creative project/event template on their own evidence; duplicating them here would make the same bytes activate two same-schema templates with no discriminator."
+    ],
+    "needs_llm": [
+      "No file is routed to this refused row. The bounded model may still interpret an unlabelled rehearsal note or review against the active creative schema, but 'A model that cannot cite sufficient evidence must return unknown.'",
+      "A model may help decide whether a programme, recording and review describe one accepted performance group, but grouping does not create this template and must not copy the programme's date, venue or performer onto sparse neighbouring files."
+    ],
+    "never_alone": [
+      "a person's name, stage name, ensemble name or role label such as musician, dancer, actor, singer or performer - authorship and creator identity are metadata, and 00 says the system should avoid using them as destination dimensions",
+      "a repertoire title, character name, instrument, genre, movement, scene or production title without a role-bearing structure - each can be quoted, studied, reviewed or merely referenced",
+      "a venue name without a labelled event/performance role - an organisation or place can be presenter, employer, recording location, cited venue, ticket seller or merely the subject of a review",
+      "a date in a filename or folder name - it may be a creation date, rehearsal date, performance date, publication date, export date or download date, and a date is not proof of an event",
+      "the words programme, program, part, score, sides, script, set list, rehearsal, take, recording, review, press or showreel alone - they are document/work-type values and occur outside a performer's own archive",
+      "an audio_video SOURCE_TYPE or .wav, .aiff, .mp3, .m4a, .mov, .mp4 extension alone - the same containers hold lectures, voice notes, downloaded media and family video",
+      "a bounded download session containing a programme and review - 'A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.'",
+      "a curated folder called Music, Theatre, Dance, Gigs or Shows treated as a fact - it is useful retrieval vocabulary, not proof that every member belongs to one performance",
+      "a public-facing programme or published review treated as evidence that adjacent cast lists, contracts, contact details or unreleased recordings are non-sensitive"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "None authored for this refused row. The creative schema already owns one named work across working files, exports and paperwork; one shoot day, session or performance date and everything recorded on it; and one intentional version family.",
+    "A programme, part, rehearsal note, recording and review may join one accepted performance group when evidence supports the shared event, without copying the event date, venue or performer facts onto sparse members."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused and because the placeholder creative schema declares no fields. No date level can be smuggled in through universal creation_date: it is not destination-eligible and is not the performance date. Even after creative fields are adopted, project/event then stage or artifact_type is the schema default, while performer would be an author-as-collector level that 00 rejects.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Hamlet - Riverside Theatre - 2026-03-14 programme.pdf",
+      "source_type": "text_document",
+      "observations": ["cover labels a production title, venue and date", "cast list names performers and roles", "pages contain biographies, sponsors and production credits"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["activation of this refused row", "that every named cast member owns a performing-practice archive", "that the programme date is the file creation date", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Ophelia sides - Act 3.pdf",
+      "source_type": "text_document",
+      "observations": ["pages contain character cues and dialogue excerpts", "filename names a role and act but no production, venue or date", "handwritten annotations appear in the margins"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a performer identity from the role name", "membership in the Hamlet performance from nearby files", "a project or event fact the creative schema does not yet declare", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Riverside Hamlet call sheet 2026-03-14.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled blocks give call times, rehearsal and performance locations", "cast and crew names appear beside phone numbers", "production title and date agree with the programme"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that contact details may appear in a destination name or general summary", "that the labelled event date equals creation_date", "a distinct performing-practice template when creative production paperwork already recognizes the structure", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Hamlet rehearsal notes 2026-03-08.docx",
+      "source_type": "text_document",
+      "observations": ["heading names the production and rehearsal date", "free prose records blocking, cues and changes", "DOCX author metadata names an editor"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that DOCX author metadata identifies the performer", "that a rehearsal date is a performance date", "a stage fact from free prose without an allowed creative field", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Hamlet_20260314_multicam_v4.prproj",
+      "source_type": "design_creative",
+      "observations": ["project file contains a timeline and named video/audio tracks", "linked media paths share take and camera stems", "filename carries a production-shaped stem, date-shaped token and version token"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the date-shaped token is a validated performance date", "that _v4 is a creative stage rather than version-family evidence", "that .prproj proves performing rather than any post-production project", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Hamlet curtain call take 04.mov",
+      "source_type": "audio_video",
+      "observations": ["container metadata gives duration and creation time", "embedded title repeats the production and take label", "no labelled venue or performer slot exists"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a performer identity from visible faces", "a public-release status from the content", "the programme's venue or date copied from neighbourhood", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Review - Hamlet at Riverside - City Arts Weekly.pdf",
+      "source_type": "text_document",
+      "observations": ["headline names production and venue", "byline and publication date are labelled", "review prose names cast members and compares another production"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that every named performer owns the file", "that a cited comparison is another event membership", "that publication date is performance date", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Hamlet press pack.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists programme.pdf, cast-bios.docx, production-stills/, trailer.mp4 and review-quotes.txt", "members have mixed source types", "outer filename supplies no date or owner"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["one fact set copied to every archive member", "a performer identity from cast biographies", "that mixed members require a performing-practice node rather than one creative project group", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Blue Note set list 2026-05-09.jpg",
+      "source_type": "ocr",
+      "observations": ["OCR sees a venue-shaped phrase, handwritten song titles and a date", "camera EXIF identifies capture time and device", "no performer, ensemble or event label is present"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that Blue Note is the performance venue rather than a heading or brand", "an event from a handwritten date alone", "absence of other metadata as proof of screenshot or scan", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "piano-practice-2026-05-09.m4a",
+      "source_type": "audio_video",
+      "observations": ["filename carries an activity word and date-shaped token", "audio metadata gives duration but no title, artist or venue", "speech/music transcription is unavailable under the current privacy policy"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that practice is a distinct situation rather than a work_type/topic value", "a person, repertoire item or performance event", "that the filename date is recording or event date", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Dance showcase poster final.png",
+      "source_type": "image",
+      "observations": ["OCR finds a showcase title, date, venue and company logo", "flat pixels preserve no layer or linked-asset structure", "filename carries final but no project identifier"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the corpus owner designed or performed in the showcase", "that final is a validated stage", "that a promotional image defines a performing-practice archive", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Hamlet audition self-tape.mp4",
+      "source_type": "audio_video",
+      "observations": ["embedded title and spoken slate name a role and production", "video is a deliberately recorded work sample", "no evidence links it to the dated Riverside performance"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["membership in the Riverside performance because the production title matches", "that an audition artifact is evidence of having performed the role", "that this refused row owns a career work sample", "a folder path"],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a durable standalone programme, ticket, certificate or notice when no broader project/event group lands. 00: 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for a rehearsal note, sparse recording or mixed press packet whose creative nature is partly understood but whose project/event membership is unresolved. 00: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.'",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The refusal does not weaken protection. Call sheets and contact sheets can expose personal contact details and locations; contracts and payment correspondence can expose commercial terms; unreleased rehearsals and self-tapes can expose private likeness, voice and work. A published programme or review does not propagate a non-sensitive status to its neighbours. The catalogue assigns only potentially_sensitive and no handling class; privacy remains attached through the creative, career or photos schema and P7, not through this refused duplicate.",
+  "open_question": "NEEDS-JOSEPH / NJ-CPP-1: should performance occurrence become a shared canonical event value for creative material, or remain an accepted-group anchor only? The roster hint says the performance is the unit and the date is its name, but creative currently declares no fields; creation_date is not the event date, and photos.event is schema-specific. Alternatives: (a) keep a performance as a P9 accepted group assembled from programme, call sheet, recording and review without writing an event fact; (b) let R1c adopt an existing canonical project key and use one performance/production as its value; (c) later propose a cross-schema event key, which is a vocabulary decision this row may not make. None rescues this template because all three remain the creative default rather than a distinct performing-practice situation. NEEDS-JOSEPH / NJ-CPP-2: an audition self-tape and showreel can co-activate career and creative, but template-to-schema also_holds edges are forbidden; R1c should confirm that per-file also_schema is enough and that no same-kind collision edge should be invented."
+}
