@@ -717,3 +717,15 @@ and a deletion-test closure. Only the JSON write is missing.
   limit-kill loses, and the memo is the file that survives.
 
 ## Debt clearing 38/64 complete. Standing: 188/358 landed, 26 debt rows left.
+
+## Debt clearing 39/64 — `construction_property.site-survey`, and a boundary confirmed from both sides
+
+- **5,272B → 40,120B (7.6x)**, 11 file_examples, both files written, all universal keys, stands.
+- **The two-sided test worked.** Asked whether `survey-valuation`'s confirmation matched its own
+  original reasoning, it answered: *"It matches, and it is not a restatement. The two arguments run
+  in opposite directions and meet."* That is the difference between a boundary two rows agree on
+  and a boundary one row asserted and the other did not contradict.
+- The discriminator is now sharper than the gist version ("measuring the land vs pricing the
+  asset"): **measured data with no addressee**, consumed by the design that follows, versus **an
+  opinion addressed to a named party under a reliance clause**, consumed by a lender or buyer.
+  Addressee and reliance are testable on a real file; "measuring vs pricing" was a paraphrase.
