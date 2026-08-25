@@ -317,3 +317,47 @@ OPEN_QUESTIONS: Mapping[int, str] = MappingProxyType({
         "the floor -- the default must be one of those two and may never be `hybrid` "
         "or `cloud_assisted` -- and the design names no answer between them.",
 })
+
+
+#: The questions held open that are NOT among SPEC Open questions 1-11, each with the
+#: document that states it. They are separate from `OPEN_QUESTIONS` because that
+#: mapping is keyed by the SPEC's own numbering and these three are not in it: one is
+#: a cross-part conflict deferred to this build, one is a residue D2 deliberately left,
+#: and one belongs to P4 and reaches P7 only through redaction.
+#:
+#: Nothing here is answered anywhere under `src/privacy/`, and
+#: `tests/p7/test_p7_no_invention.py` fails the moment one of them is.
+HELD_OPEN: Mapping[str, str] = MappingProxyType({
+    "I6": (
+        "§8.4 gives the user the right to 'review and delete local derived data'; "
+        "§8.2 forbids updating or deleting an event. D3 (2026-08-21) ratified the "
+        "DIRECTION -- events append-only forever, derived projections tombstonable, "
+        "'derived' a literal enumerated list -- and ratified that NOTHING IS BUILT "
+        "until P13 drives it. `delete_derived` therefore refuses on both sides of the "
+        "enumeration and writes nothing. Also open in: P5 OQ6, P13 OQ11, P1 OQ16."
+    ),
+    "filename-sixth-releasable-kind": (
+        "§8.4's releasable list names FIVE kinds and puts 'Paths' in the always-local "
+        "set, while §7.7's residual dossier 'includes the filename' and §7.3 forbids "
+        "filenames in prompts only for `Protected Records`. P7's SPEC adds a sixth "
+        "kind and flags it itself (NEEDS-JOSEPH B5d / C9a). Task 7 builds it and makes "
+        "it unadmittable without `allow_unratified`, so a reviewer sees an unratified "
+        "reading rather than a shipped one."
+    ),
+    "round-5-cuts": (
+        "Round 5 recommended seven cuts. D5 ratified CUT 1 (P6 Task 26). D13 "
+        "(2026-08-22) ruled the remaining five KEPT, including CUT 2 (this part's "
+        "Task 19, the transport guard) and CUT 4 (the `Gate` facade). They are held "
+        "here because a kept cut is a decision that can be revisited, and the tasks "
+        "carry their callouts so a later reader can decide against them with the plan "
+        "in front of them."
+    ),
+})
+
+#: Two entries were REMOVED on 2026-08-22 because Joseph ruled them, and a guard that
+#: asserts a ruled question is still open fails the day the plan is executed -- the exact
+#: failure this task's own preamble diagnoses for P6 OQ11 under D2.
+#:   `P6-sensitivity-field-row` -> **D7**: P6 creates no `sensitivity_status` row and
+#:      P7's `ClassificationRecord` is the sole home. C24 and C25 closed.
+#:   `P4-region-origin`         -> **D10**: P4's `norm` means TOP-LEFT; the Vision
+#:      adapter converts (`readers.ocr_vision._box`, commit 87016b0). C22 closed.
