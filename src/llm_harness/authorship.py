@@ -2,8 +2,8 @@
 """P8 authors its store events; P1 writes them (M8). The name "P8" is written here, once.
 
 Registration is a spec-level act. P1 already compiled the five P8 event types into
-`_REGISTERED`. This module asserts authorship of the four store-owned names and does
-not register anything. `model_call_issued` is authored by transport in Task 5.
+`_REGISTERED`. This module asserts authorship of those names and does not register
+anything. Transport authors `model_call_issued`; the store authors the other four.
 
 `event_defaults` stamps `subsystem = SUBSYSTEM` and writes nothing.
 """
@@ -24,17 +24,19 @@ SUBSYSTEM: str = "P8"
 #: §8.2's "extractor or model version" slot for the harness itself.
 COMPONENT_VERSION: str = "P8/0.1.0"
 
+MODEL_CALL_ISSUED: str = "model_call_issued"
 MODEL_RESPONSE_RECEIVED: str = "model_response_received"
 VALIDATION_VERDICT: str = "validation_verdict"
 VERDICT_SUPERSEDED: str = "verdict_superseded"
 CALL_REFUSED: str = "call_refused"
 
-#: Store-owned names. Transport's `model_call_issued` is absent until Task 5.
+#: The five registered P8 event types. Transport appends `model_call_issued`.
 AUTHORED_EVENT_TYPES: tuple[str, ...] = (
     MODEL_RESPONSE_RECEIVED,
     VALIDATION_VERDICT,
     VERDICT_SUPERSEDED,
     CALL_REFUSED,
+    MODEL_CALL_ISSUED,
 )
 
 _PASSTHROUGH: frozenset[str] = frozenset(
@@ -50,8 +52,8 @@ def event_defaults(*, event_type: str, **fields) -> dict[str, object]:
     """
     if event_type not in AUTHORED_EVENT_TYPES:
         raise UnregisteredEventType(
-            f"{event_type!r} is not one of P8's store-authored event types "
-            f"{AUTHORED_EVENT_TYPES}. model_call_issued is Task 5 transport."
+            f"{event_type!r} is not one of P8's authored event types "
+            f"{AUTHORED_EVENT_TYPES}."
         )
     if "subsystem" in fields:
         raise MalformedEvent(

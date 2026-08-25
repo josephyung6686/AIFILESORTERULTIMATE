@@ -37,15 +37,15 @@ def _body(row) -> dict:
     return json.loads(row["explanation"])
 
 
-def test_authorship_names_p8_and_excludes_transport_issue():
+def test_authorship_names_p8_and_the_five_registered_types():
     assert SUBSYSTEM == "P8"
     assert AUTHORED_EVENT_TYPES == (
         "model_response_received",
         "validation_verdict",
         "verdict_superseded",
         "call_refused",
+        "model_call_issued",
     )
-    assert "model_call_issued" not in AUTHORED_EVENT_TYPES
     assert "llm_call_failure" not in AUTHORED_EVENT_TYPES
     for name in AUTHORED_EVENT_TYPES:
         assert name in REGISTERED_EVENT_TYPES
