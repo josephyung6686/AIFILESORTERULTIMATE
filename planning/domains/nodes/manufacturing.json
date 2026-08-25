@@ -1,0 +1,353 @@
+{
+  "id": "manufacturing",
+  "kind": "schema",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Manufacturing, quality and maintenance",
+  "one_line": "The recurring operating record of making, inspecting, releasing and maintaining physical output: production travellers and batch records, lot genealogy, line logs, inspection and test results, nonconformance and corrective-action files, calibration certificates, preventive-maintenance work orders, asset registers, and site HSE records. Its anchor is not an industry word or a purchase: it is a repeatable transformation or control cycle tied to a product, batch or lot, production site or line, controlled asset, or nonconformance. Placeholder schema row written to J-DEPTH; it declares no field rows under PR-6, but proposes the small fact set its children would need.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "product",
+      "type": "string",
+      "example": "AX-410 valve body",
+      "why_no_existing_key": "No canonical key names the physical article, formulation or SKU being made and controlled. `project` is bounded work and `artifact_type` is a research/code document kind; neither can represent one product made repeatedly across orders, sites and years. This key should hold a labelled product or part identity, never an organization name or an inferred topic.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE because a product is the stable subject above recurring lots and record types. It is not authorship or a collector organization.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled Product, Part, Material or SKU slot is explicit evidence, but free-text names are ambiguous with customer descriptions and purchased components. A validated ceiling would require a local item-master plus labelled-role context; R4/R6, not this row, own that rule family.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "site",
+      "type": "string",
+      "example": "Plant 2 - Kowloon",
+      "why_no_existing_key": "No canonical key names the facility that performs production or controls an asset. `location` is the Photos capture-location role and may differ from the site a record is about; a photograph taken off-site can document equipment installed at Plant 2. `institution` is a financial issuer and `organization` is only a proposal about record custody.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE only for genuinely multi-site corpora; otherwise the template validator should flatten the one-child level.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Direct only from a labelled Plant, Facility, Site or Manufacturing Location slot. Addresses and organization names in prose remain possible because they may identify a supplier, customer, laboratory or document issuer.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "batch_lot",
+      "type": "string",
+      "example": "Lot L240817-03",
+      "why_no_existing_key": "This is the genealogy key that distinguishes recurring manufacture from generic operations. No canonical key identifies a production quantity made under substantially shared conditions and traced through materials, process results, inspection, release and shipment. `project` cannot do this without turning every production run into a project, and `record_type` describes the document rather than the controlled unit.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE beneath product because the lot makes inspection, release and deviation records intelligible and supports recall-oriented retrieval.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A lot/batch identifier pattern may be confirmed only when it co-occurs with a labelled Lot, Batch, Heat, Run or Serial/Lot slot and product or production context. R6 owns the pattern; this row supplies no regex or threshold.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "asset",
+      "type": "string",
+      "example": "CNC-07",
+      "why_no_existing_key": "No canonical key names the maintained, calibrated or inspected equipment item. `repository` is software, `camera_information` describes capture equipment, and `project` is work rather than the enduring machine that receives many work orders over its life.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE in maintenance and calibration branches, where an asset is the parent that makes a work order or certificate intelligible; it should not be forced into product-led branches.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires an asset-tag pattern in a labelled Equipment, Instrument, Machine or Asset slot, preferably cross-checked against a local asset register. A serial number alone is never sufficient.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "quality_event",
+      "type": "string",
+      "example": "NCR-2026-041",
+      "why_no_existing_key": "No canonical key identifies the controlled deviation, nonconformance, complaint investigation or corrective-action case that joins containment, root-cause, disposition and effectiveness evidence. `stage` is a research workflow field and `project` does not express the regulated event or its closure discipline. The alternative is a broader globally canonical `case` key; R1c should prefer that if another schema proves the same semantics rather than retain a manufacturing-only synonym.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE for quality-event branches because the case identifier is the stable parent above investigation and action records.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires an event identifier in a labelled NCR, Deviation, CAPA, Complaint or Corrective Action slot plus a controlled status/disposition structure. The identifier alone is never enough.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "record_type",
+      "type": "enum",
+      "example": "batch production record",
+      "why_no_existing_key": "REUSE, not a new spelling: the canonical Finance key already names what kind of record a file is. R1c must decide whether that key is genuinely global enough for operational records; if its finance-specific role is binding, manufacturing needs a global document-function key rather than a private synonym.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Inherited from the canonical row if reuse is approved; it is normally a leaf below product plus lot, asset, or quality event.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Explicit document titles and labelled form headers support the value; filenames and isolated words do not.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a batch-production or traveller structure with a labelled product/part slot, batch or lot slot, planned-versus-actual quantities, sequential operation rows, operator/date signoffs, and release status; the co-occurring genealogy and execution slots are the signal, not the words batch or production alone",
+      "a lot-genealogy table linking incoming material lots to one output lot through quantity-consumed and operation or date columns",
+      "an in-process or final-inspection table with characteristic, specification/tolerance, measured result, pass/fail or disposition, instrument identifier and inspector/date slots",
+      "a nonconformance structure with a labelled event identifier, affected product and lot or asset, requirement-versus-observed condition, containment, disposition, approval and closure/status slots",
+      "a corrective-action structure joining problem statement, root-cause analysis, correction, corrective action, owner, due date and effectiveness-verification slots to one quality-event identifier",
+      "a calibration certificate or result sheet with instrument asset/serial identity, method or standard, as-found and as-left results, traceability reference, calibration date and due date; the word certificate alone never fires",
+      "a maintenance work order with an asset identifier, failure or task code, work performed, parts or labour used, downtime and returned-to-service approval; an invoice for the same work does not satisfy this structure",
+      "an asset register row set with stable asset identifiers, equipment descriptions, site or line, service/calibration interval and status, where multiple rows prove a controlled population rather than one purchase",
+      "a line or shift log with repeated timestamped entries for output count, scrap/rework, downtime reason, changeover and operator/shift, on one identified line or process",
+      "an HSE inspection, permit or incident structure tied to a controlled site or asset, with hazard, control, responsible role and closeout evidence; generic corporate policy text is not enough",
+      "an email whose labelled subject names a lot, asset or quality-event identifier and whose attachments name inspection, deviation, release or calibration records",
+      "an archive whose manifest links one lot, asset or quality-event identifier across several production, inspection and release members; archives are inspected without being unpacked to disk"
+    ],
+    "needs_llm": [
+      "an unlabelled shift notebook or scanned whiteboard whose rows may be production results, laboratory experiments or a project task log",
+      "an OCR-poor traveller where signoff boxes and column relationships survive visually but labels do not",
+      "a supplier certificate that may be procurement evidence, incoming-quality evidence, or both depending on whether the holder accepted it against a received lot",
+      "a spreadsheet called Tracker.xlsx whose columns could describe CAPA actions, engineering changes, project tasks or ordinary operations",
+      "a photograph of a defect where neither product/lot nor asset context appears in the image's own evidence",
+      "a multilingual controlled form whose slot labels are absent from the deterministic context catalogue",
+      "a maintenance manual that describes how to service a machine but does not evidence any owned asset or performed work"
+    ],
+    "never_alone": [
+      "the word manufacturing, production, quality, maintenance, plant, line, batch, lot, inspection, calibration, CAPA or HSE alone",
+      "a product name, part number, SKU, organization name, supplier name, site name or postal address alone",
+      "a serial number, asset tag, work-order number, deviation number or other identifier-shaped token outside a labelled role slot",
+      "a pass/fail word, tolerance, measurement, date, signature or approval stamp alone",
+      "a source_type or extension alone; spreadsheets, PDFs, images, email, archives and structured exports occur in every neighbouring schema",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "a parent folder called Quality, Operations, Plant or Projects alone",
+      "missing EXIF as proof an image is a screenshot or a field photograph",
+      "an invoice, purchase order, packing list or delivery receipt alone; those are procurement/logistics evidence until a lot-acceptance or equipment-control structure independently supports manufacturing"
+    ]
+  },
+  "proposed_context_terms": [
+    "batch record", "lot genealogy", "traveller", "router", "work instruction", "bill of materials", "yield", "scrap", "rework", "line clearance", "in-process inspection", "final inspection", "nonconformance", "deviation", "disposition", "containment", "corrective action", "effectiveness check", "as found", "as left", "calibration due", "traceability", "preventive maintenance", "returned to service", "downtime", "lockout", "permit to work"
+  ],
+  "work_types": [
+    "production order, traveller, router or batch production record",
+    "material issue, consumption or lot-genealogy record",
+    "work instruction, standard operating procedure or setup sheet",
+    "line, shift, yield, scrap, rework or downtime log",
+    "incoming, in-process or final inspection and test record",
+    "certificate of analysis or conformity",
+    "nonconformance, deviation, concession or material-review record",
+    "complaint investigation, corrective action or preventive action",
+    "calibration certificate, calibration result or instrument history",
+    "maintenance request, work order, service report or breakdown log",
+    "asset register, spare-parts list or maintenance schedule",
+    "changeover, cleaning, sanitation or line-clearance record",
+    "site HSE inspection, permit, risk assessment or incident record",
+    "training or competence evidence tied to a controlled process",
+    "release, quarantine, hold or disposition record"
+  ],
+  "grouping_reasons": [
+    "one product lot across material issue, production, inspection, deviation and release records",
+    "one asset across purchase/commissioning evidence, calibration, preventive maintenance, breakdown and retirement records",
+    "one quality event across initial report, containment, investigation, action and effectiveness evidence",
+    "one production line or site across shift logs, changeovers, downtime and HSE controls",
+    "one controlled procedure across revisions and the records executed under each effective version",
+    "duplicate and version families remain universal facts and never manufacture product, lot or asset facts by propagation"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because the schema declares no canonical fields. The recommendation held as prose is intentionally branch-shaped rather than one deep tree: product then batch/lot then record type for production and quality records; site then asset then record type for maintenance and calibration; quality event then record type for NCR/CAPA files. Site is optional above product only in a genuinely multi-site corpus. None is time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The user may reverse, remove or flatten after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "image", "ocr", "email", "calendar", "code_structured", "archive", "opaque_binary"],
+    "extensions": ["pdf", "docx", "xlsx", "csv", "pptx", "jpg", "png", "eml", "ics", "xml", "json", "zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "BPR_AX410_L240817-03.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled Product and Lot slots", "sequential operation table with planned and actual quantities", "operator and quality-release signoffs"],
+      "facts_legal": ["file_type", "creation_date", "language", "product (proposed)", "batch_lot (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": ["a customer or supplier", "a folder path", "that every file in the same folder has this lot"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Lot genealogy L240817-03.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["output lot in a labelled header", "rows link component lot, issued quantity and operation to output lot", "several material lots feed one output lot"],
+      "facts_legal": ["file_type", "creation_date", "batch_lot (proposed)", "product (proposed)"],
+      "must_not_conclude": ["that a component supplier is the record-owning organization", "a shipment from lot numbers alone", "a folder path"],
+      "also_schema": "logistics",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Final inspection AX410 lot L240817-03.csv",
+      "source_type": "spreadsheet",
+      "observations": ["columns for characteristic, lower/upper limit, measured value and disposition", "instrument and inspector slots", "labelled product and lot"],
+      "facts_legal": ["file_type", "product (proposed)", "batch_lot (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": ["that every measurement passed", "an engineering design revision", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "NCR-2026-041 cracked housing.pdf",
+      "source_type": "ocr",
+      "observations": ["OCR reads labelled NCR, affected lot and observed-condition slots", "containment and disposition boxes", "approval signatures"],
+      "facts_legal": ["file_type", "language", "quality_event (proposed)", "batch_lot (proposed)", "product (proposed)"],
+      "must_not_conclude": ["root cause from the defect title", "that the disposition was approved if the checkbox is unreadable", "a folder path"],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CAPA-2026-012 effectiveness review.docx",
+      "source_type": "text_document",
+      "observations": ["labelled problem, root cause, action, owner and effectiveness sections", "quality-event identifier repeated in header", "closure approval slot"],
+      "facts_legal": ["file_type", "quality_event (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": ["the named owner as a destination", "closure unless the status slot says closed", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Calibration certificate CNC-07 2026.pdf",
+      "source_type": "text_document",
+      "observations": ["instrument asset and serial slots", "as-found and as-left results", "traceability reference and calibration due date"],
+      "facts_legal": ["file_type", "asset (proposed)", "site (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": ["that 2026 is a tax year", "that the laboratory issuer is the manufacturing site", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "WO-8814 CNC-07 spindle alarm.xml",
+      "source_type": "code_structured",
+      "observations": ["labelled work-order and equipment fields", "failure code and work-performed payload", "returned-to-service status"],
+      "facts_legal": ["file_type", "asset (proposed)", "site (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": ["a software repository from XML format", "a purchased replacement part as the product made", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Line 2 shift log 2026-08-17.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["hourly rows for output, scrap and downtime", "labelled line and shift slots", "changeover and reason-code columns"],
+      "facts_legal": ["file_type", "site (proposed)", "product (proposed where labelled)"],
+      "must_not_conclude": ["a batch_lot where the sheet has none", "that Line 2 is a postal address", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Release packet L240817-03.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists batch record, inspection results, deviation and release certificate sharing one lot token", "mixed PDF and CSV members", "archive itself has no labelled slots"],
+      "facts_legal": ["file_type", "creation_date", "batch_lot (proposed, possible from manifest)"],
+      "must_not_conclude": ["facts from unread members", "that every member passed release", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "PO 45001982 - AX410 castings.pdf",
+      "source_type": "text_document",
+      "observations": ["buyer and supplier blocks", "purchase-order number", "line items, price and delivery terms", "no production lot, execution, inspection or release structure"],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": ["manufacturing activation from a part name", "batch_lot from the purchase-order number", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "ECN-1042 housing wall thickness.pdf",
+      "source_type": "text_document",
+      "observations": ["from/to drawing revision slots", "design-change rationale and approvals", "affected part number", "no lot, executed operation or disposition"],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": ["manufacturing activation from an affected part", "quality_event from a change number", "a folder path"],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Defect photo IMG_8841.jpg",
+      "source_type": "image",
+      "observations": ["image shows a cracked metal housing", "EXIF capture time and camera data", "no visible label, lot, asset tag or site marker"],
+      "facts_legal": ["file_type", "creation_date", "camera_information where Photos activates"],
+      "must_not_conclude": ["product, lot, quality event or site from visual appearance", "that missing GPS means screenshot", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Site safety inspection Plant 2.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled facility and inspection-area slots", "hazard/control/action table", "responsible-role and closeout fields"],
+      "facts_legal": ["file_type", "site (proposed)", "record_type (reuse proposed)", "sensitivity_status"],
+      "must_not_conclude": ["named staff as folder dimensions", "a construction site from the word site", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering",
+      "signal": "The same part number, drawing and change identifier appear in design-change and shop-floor records. Engineering owns the intended design and revision-controlled change: ECN-1042 with from/to drawing revisions and design rationale. Manufacturing owns execution against that design: BPR_AX410_L240817-03 and NCR-2026-041 with actual lot, operation, measurement and disposition. A part number or approval signature discriminates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "The same lot token and quantity appear on a genealogy sheet, packing list and dispatch record. Manufacturing owns transformation, inspection and release of the lot; logistics owns custody movement, shipment, carrier and receipt. The collision fixture is Lot genealogy L240817-03.xlsx beside a packing list for the same lot: consume/output-operation columns support manufacturing, ship-to/carrier/tracking columns support logistics.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "Operations trackers, procurement records, corporate policies and HSE registers share tables, owners, due dates and status fields. Manufacturing requires a controlled product/lot, asset/site or quality-event anchor plus execution or traceability structure. PO 45001982 is procurement/business operations until receipt acceptance or lot-control evidence appears; CAPA-2026-012 can carry both on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property",
+      "signal": "A maintenance work order, equipment register and site HSE inspection can describe a building service or a production asset with identical fields. Construction/property owns a property or site under a professional instruction and its built-asset lifecycle; manufacturing owns an operating plant's controlled machine or line and recurring production/control cycle. 'Site safety inspection Plant 2.pdf' needs the plant/line context; an office fit-out snag list belongs on the construction side.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "engineering",
+      "why": "An NCR can document an actual manufactured nonconformance and request a design change in the same bytes. Actual lot/measurement/disposition supports manufacturing; revision/change rationale supports engineering.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "why": "A released-lot packet may contain manufacturing genealogy and shipment custody evidence. Each schema activates from its own slots; a lot fact is not copied into a sparse packing list merely because the files group.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "why": "CAPA action tracking and site HSE closeout are organisational controls as well as manufacturing-quality records when one file contains both the controlled event/asset anchor and the management workflow.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone certificate, inspection sheet, manual or service report with durable purpose but insufficient product/lot, asset/site or quality-event evidence remains an independent record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A purchase, service or delivery acknowledgement that proves only a transaction and not a controlled manufacturing cycle belongs in the receipt/confirmation residual.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An OCR-poor tracker or defect note whose product/lot, asset or event role remains ambiguous should abstain rather than invent facts.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An unreadable machine export or encrypted release archive can be represented without inferring its purpose from a filename.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Production recipes, tolerances, yields, failures, supplier lots, plant layouts, asset condition and corrective actions can be commercially confidential; incident and competence records can name workers. The row assigns no handling class. Privacy policy must run before any model or connector, and person names remain search/privacy observations rather than destination dimensions.",
+  "open_question": "NEEDS-JOSEPH NJ-MFG-1: should `record_type` be widened from its canonical Finance role into a genuinely global document-function key, or must manufacturing propose a differently named global key? NJ-MFG-2: should the controlled-event proposal be the manufacturing-shaped `quality_event`, or a broader canonical `case`/`event` shared with incident, complaint and corrective-action schemas? NJ-MFG-3: does `site` remain distinct from Photos `location` as subject-versus-capture role, and if so should that role split be canonical? Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+}
