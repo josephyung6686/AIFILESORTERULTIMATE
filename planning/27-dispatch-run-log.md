@@ -729,3 +729,15 @@ and a deletion-test closure. Only the JSON write is missing.
   asset"): **measured data with no addressee**, consumed by the design that follows, versus **an
   opinion addressed to a named party under a reliance clause**, consumed by a lender or buyer.
   Addressee and reliance are testable on a real file; "measuring vs pricing" was a paraphrase.
+
+## Debt clearing 40/64 — `business_operations.product-roadmap`, pair question confirmed both ways
+
+- **5,058B → 44,506B (8.8x)**, 10 file_examples, both files written, all universal keys, stands.
+- **Confirmed the requirements-vs-roadmap settlement from this side with independent reasoning**,
+  explicitly accepting the framing that a boundary argued from one side is half a boundary and that
+  the gist's identical `open_question` on both rows was "a well-documented deferral, not an answer."
+- Also had to answer `strategy-plan`, which disclaims this row's horizon axis in its own JSON — so
+  this row sits between two neighbours that each defined themselves partly against it, and agrees
+  with both without contradiction.
+- **Both of this wave's two-sided tests now pass** (site-survey/survey-valuation, and
+  requirements/roadmap). Neither pair merely deferred to the other.
