@@ -233,6 +233,7 @@ def test_configurable_callbacks_thresholds_and_prompts_have_no_defaults():
     for field in dataclasses.fields(ScanBudget):
         if field.name in CONFIG_PARAMETERS:
             assert field.default is dataclasses.MISSING, field.name
+            assert field.default_factory is dataclasses.MISSING, field.name
 
     missing_defaults = []
     for fn in PUBLIC_CALLABLES:
@@ -320,15 +321,6 @@ def test_every_reason_outcome_site_reduction_value_has_one_named_home():
 def test_no_module_holds_a_numeric_threshold_or_gazetteer():
     holders = []
     gazetteers = []
-    skip_gazetteer = {
-        "llm_harness.vocabulary",
-        "llm_harness.authorship",
-        "llm_harness.schema",
-        "llm_harness.records",
-        "llm_harness.eligibility",
-        "llm_harness.placement_validation",
-        "llm_harness.fact_validation",
-    }
     for module in imported_modules():
         if module.__name__ == "llm_harness.fixtures":
             continue
@@ -338,7 +330,7 @@ def test_no_module_holds_a_numeric_threshold_or_gazetteer():
             if isinstance(value, (int, float)) and not isinstance(value, bool):
                 holders.append((module.__name__, name, value))
             if isinstance(value, (tuple, list, set, frozenset, dict, MappingProxyType)):
-                if module.__name__ in skip_gazetteer:
+                if value is ALL_REASON_CODES:
                     continue
                 if len(value) > 20:
                     gazetteers.append((module.__name__, name, len(value)))

@@ -12,7 +12,6 @@ from typing import get_type_hints
 
 from llm_harness.harness import run_call
 from llm_harness.transport import ModelClient, issue
-from privacy.binding import consume_release
 from privacy.release import Released
 
 
@@ -76,20 +75,47 @@ def imports_of(path: pathlib.Path) -> set[str]:
     return found
 
 
+def _is_getattr_invoke(node: ast.AST) -> bool:
+    """True for getattr(obj, "invoke") or builtins.getattr(obj, "invoke")."""
+    if not isinstance(node, ast.Call):
+        return False
+    func = node.func
+    is_getattr = (
+        (isinstance(func, ast.Name) and func.id == "getattr")
+        or (isinstance(func, ast.Attribute) and func.attr == "getattr")
+    )
+    if not is_getattr or len(node.args) < 2:
+        return False
+    key = node.args[1]
+    return isinstance(key, ast.Constant) and key.value == "invoke"
+
+
+def _is_invoke_binding(node: ast.AST) -> bool:
+    if isinstance(node, ast.Attribute) and node.attr == "invoke":
+        return True
+    return _is_getattr_invoke(node)
+
+
 def _is_invoke_call(node: ast.AST) -> bool:
     if not isinstance(node, ast.Call):
         return False
     func = node.func
     if isinstance(func, ast.Attribute) and func.attr == "invoke":
         return True
-    if isinstance(func, ast.Call):
-        inner = func.func
-        if (isinstance(inner, ast.Name) and inner.id == "getattr"
-                and len(func.args) >= 2
-                and isinstance(func.args[1], ast.Constant)
-                and func.args[1].value == "invoke"):
-            return True
+    if _is_getattr_invoke(func):
+        return True
     return False
+
+
+def _target_names(target: ast.AST) -> list[str]:
+    if isinstance(target, ast.Name):
+        return [target.id]
+    if isinstance(target, (ast.Tuple, ast.List)):
+        names: list[str] = []
+        for elt in target.elts:
+            names.extend(_target_names(elt))
+        return names
+    return []
 
 
 def invoke_sites(path: pathlib.Path) -> list[tuple[str, str | None]]:
@@ -104,29 +130,50 @@ def invoke_sites(path: pathlib.Path) -> list[tuple[str, str | None]]:
     class Visitor(ast.NodeVisitor):
         def __init__(self) -> None:
             self.stack: list[str] = []
+            self.bound: list[set[str]] = [set()]
 
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
             self.stack.append(node.name)
+            self.bound.append(set())
             self.generic_visit(node)
+            self.bound.pop()
             self.stack.pop()
 
         visit_AsyncFunctionDef = visit_FunctionDef
 
+        def _record_binding(self, value: ast.AST, names: list[str]) -> None:
+            if not names or not _is_invoke_binding(value):
+                return
+            self.bound[-1].update(names)
+            found.append((path.name, self.stack[-1] if self.stack else "aliased"))
+
         def visit_Call(self, node: ast.Call) -> None:
             if _is_invoke_call(node):
+                found.append((path.name, self.stack[-1] if self.stack else None))
+            elif isinstance(node.func, ast.Name) and node.func.id in self.bound[-1]:
                 found.append((path.name, self.stack[-1] if self.stack else None))
             self.generic_visit(node)
 
         def visit_Assign(self, node: ast.Assign) -> None:
-            if isinstance(node.value, ast.Attribute) and node.value.attr == "invoke":
-                found.append((path.name, self.stack[-1] if self.stack else "aliased"))
+            names: list[str] = []
+            for target in node.targets:
+                names.extend(_target_names(target))
+            self._record_binding(node.value, names)
+            self.generic_visit(node)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+            if node.value is not None and isinstance(node.target, ast.Name):
+                self._record_binding(node.value, [node.target.id])
+            self.generic_visit(node)
+
+        def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
+            if isinstance(node.target, ast.Name):
+                self._record_binding(node.value, [node.target.id])
             self.generic_visit(node)
 
         def visit_Lambda(self, node: ast.Lambda) -> None:
             for child in ast.walk(node):
-                if _is_invoke_call(child) or (
-                    isinstance(child, ast.Attribute) and child.attr == "invoke"
-                ):
+                if _is_invoke_call(child) or _is_invoke_binding(child):
                     found.append((path.name, "lambda"))
             self.generic_visit(node)
 
@@ -154,6 +201,76 @@ def calls_named(fn: ast.FunctionDef, name: str) -> list[ast.Call]:
     return found
 
 
+_NESTED_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+
+
+def nodes_in_own_body(fn: ast.FunctionDef) -> list[ast.AST]:
+    """AST nodes in fn.body, descending into With/Try/If, not nested defs."""
+    found: list[ast.AST] = []
+
+    class Own(ast.NodeVisitor):
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            return
+
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            return
+
+        def generic_visit(self, node: ast.AST) -> None:
+            found.append(node)
+            super().generic_visit(node)
+
+    for stmt in fn.body:
+        if isinstance(stmt, _NESTED_SCOPES):
+            continue
+        Own().visit(stmt)
+    return found
+
+
+def consume_release_in_own_body(fn: ast.FunctionDef) -> ast.Call | None:
+    """First consume_release Call that is a statement in fn's own body."""
+    for node in nodes_in_own_body(fn):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Name) and func.id == "consume_release":
+            return node
+        if isinstance(func, ast.Attribute) and func.attr == "consume_release":
+            return node
+    return None
+
+
+def invokes_in_own_body(fn: ast.FunctionDef) -> list[ast.Call]:
+    """Invoke Calls in fn's own body, including later calls of a bound invoke."""
+    bound: set[str] = set()
+    found: list[ast.Call] = []
+    for node in nodes_in_own_body(fn):
+        if isinstance(node, ast.Assign) and _is_invoke_binding(node.value):
+            for target in node.targets:
+                bound.update(_target_names(target))
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            if _is_invoke_binding(node.value) and isinstance(node.target, ast.Name):
+                bound.add(node.target.id)
+        elif isinstance(node, ast.NamedExpr):
+            if _is_invoke_binding(node.value) and isinstance(node.target, ast.Name):
+                bound.add(node.target.id)
+        elif isinstance(node, ast.Call):
+            if _is_invoke_call(node):
+                found.append(node)
+            elif isinstance(node.func, ast.Name) and node.func.id in bound:
+                found.append(node)
+    return found
+
+
+def consume_precedes_every_invoke(fn: ast.FunctionDef) -> bool:
+    consume = consume_release_in_own_body(fn)
+    invokes = invokes_in_own_body(fn)
+    if consume is None or not invokes:
+        return False
+    return all(node.lineno > consume.lineno for node in invokes)
+
+
 def code_strings(path: pathlib.Path) -> set[str]:
     tree = ast.parse(path.read_text(), filename=str(path))
     skip = _docstrings(tree)
@@ -175,12 +292,42 @@ def test_the_invoke_and_import_helpers_fail_on_planted_violations(tmp_path):
         "    return model_client.invoke(b'x')\n"
         "def issue(released, model_client):\n"
         "    fn = model_client.invoke\n"
-        "    return fn(b'y')\n",
+        "    return fn(b'y')\n"
+        "def getattr_bind(model_client):\n"
+        "    fn = getattr(model_client, 'invoke')\n"
+        "    return fn(b'x')\n"
+        "def annotated_bind(model_client):\n"
+        "    fn: object = model_client.invoke\n"
+        "    return fn(b'x')\n"
+        "def walrus_bind(model_client):\n"
+        "    return (fn := model_client.invoke)(b'x')\n"
+        "def invoke_then_consume(released, model_client):\n"
+        "    model_client.invoke(b'x')\n"
+        "    consume_release(released)\n"
+        "def nested_spend_then_invoke(released, model_client):\n"
+        "    def unused():\n"
+        "        consume_release(released)\n"
+        "    model_client.invoke(b'x')\n"
+        "def consume_then_invoke(released, model_client):\n"
+        "    consume_release(released)\n"
+        "    model_client.invoke(b'x')\n",
         encoding="utf-8",
     )
     sites = invoke_sites(planted)
     assert ("planted_bypass.py", "run_call") in sites
     assert ("planted_bypass.py", "issue") in sites  # aliased invoke
+    assert ("planted_bypass.py", "getattr_bind") in sites  # getattr bind-then-call
+    assert ("planted_bypass.py", "annotated_bind") in sites  # AnnAssign alias
+    assert ("planted_bypass.py", "walrus_bind") in sites  # NamedExpr alias
+    assert consume_precedes_every_invoke(
+        function_def(planted, "invoke_then_consume")
+    ) is False
+    assert consume_precedes_every_invoke(
+        function_def(planted, "nested_spend_then_invoke")
+    ) is False
+    assert consume_precedes_every_invoke(
+        function_def(planted, "consume_then_invoke")
+    ) is True
     imported = imports_of(planted)
     assert "openai" in imported
     assert "readers.pdf_pdfminer" in imported
@@ -226,19 +373,14 @@ def test_transport_issue_requires_live_released_and_calls_consume_release():
     assert "NeedsConsent" not in str(hints["released"])
 
     fn = function_def(HARNESS_ROOT / "transport.py", "issue")
-    consume_calls = calls_named(fn, "consume_release")
-    assert consume_calls, "issue must spend the live P7 release before egress"
-    invoke_in_issue = [
-        node for node in ast.walk(fn) if _is_invoke_call(node)
-    ]
-    assert invoke_in_issue, "issue is the invoke site"
-    consume_line = consume_calls[0].lineno
-    invoke_line = invoke_in_issue[0].lineno
-    assert consume_line < invoke_line, (
-        "consume_release must precede model_client.invoke so a call is not "
-        "constructible without spending the live Released"
+    consume = consume_release_in_own_body(fn)
+    assert consume is not None, "issue must spend the live P7 release before egress"
+    invokes = invokes_in_own_body(fn)
+    assert invokes, "issue is the invoke site"
+    assert consume_precedes_every_invoke(fn), (
+        "consume_release must be a statement in issue's own body, before every "
+        "invoke, so a call is not constructible without spending the live Released"
     )
-    assert consume_release is not None
     imported = imports_of(HARNESS_ROOT / "transport.py")
     assert "privacy.release" in imported
     assert "Released" in imported or "privacy.release.Released" in imported
