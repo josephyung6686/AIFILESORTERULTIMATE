@@ -4,7 +4,7 @@
   "schema_id": "clinical_practice",
   "parent_id": null,
   "name": "Practice administration and rostering",
-  "one_line": "The organizational situation of running a clinical practice as an organisation: the rota and clinic lists that decide who sees whom, the practice's own registration and inspection with a health regulator, the registered-population and activity returns it owes its payers, and the appointment, coding, and quality reports its clinical system produces. Absorbs the legacy row med.practice-administration. It is deliberately the NARROW reading: the generic half of running a business - contracts, vendors, facilities, payroll, staff policies - belongs to business_operations and hr and is not claimed here. What is claimed is the administration whose documents routinely CONTAIN patients, which is a privacy fact business_operations does not carry. Gist-level placeholder (J-IND): it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "one_line": "The organizational situation of running a clinical practice as a regulated care provider: clinic lists and clinical-session rotas, registered-population and activity returns, recall and overdue-review searches, and the practice's own provider registration, inspection, and action-plan record. Absorbs the legacy row med.practice-administration. It is deliberately the NARROW reading: contracts, vendors, facilities, payroll, staff policies, and ordinary business meetings belong to business_operations or hr and do not become clinical because their holder is a clinic. The distinguishing structures are administrative records that contain multiple patients and regulated-provider records whose subject is the organisation rather than an individual practitioner. J-DEPTH placeholder: it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -223,7 +223,7 @@
       ],
       "must_not_conclude": [
         "any clinical_practice fact - none is declared",
-        "activation of clinical_practice.licensure-credentialing: this registration is the PRACTICE's, not an individual's, and that is the discriminator stated on both sides",
+        "an individual clinician's credential: clinical_practice.licensure-credentialing is refused, so a personal registration, licence, or revalidation record falls to career.credentials-licenses rather than this row; this file names the PRACTICE as registered provider",
         "a government fact: an inspection report held by the inspected party is this row, while the regulator's own casework is government.professional-regulator",
         "a folder path"
       ],
@@ -331,7 +331,7 @@
     },
     {
       "domain": "hr.org-design-headcount",
-      "signal": "Named at the nearest template because collides_with joins same-kind rows only (CONNECTION section 5); the argument is against the whole hr family. A rota, a leave record, a staff list, and an appraisal are hr material in a practice as in any employer. The discriminating evidence: a staffing artifact that names clinics, sessions, or cover for a named service, filed beside clinic lists, supports this row; a staffing artifact that names only people, hours, and pay supports hr - and an individual clinician's own appraisal or revalidation portfolio supports neither, because the sibling clinical_practice.licensure-credentialing owns it. A staff-by-day grid alone discriminates nothing. Provenance: inference.",
+      "signal": "Named at the nearest template because collides_with joins same-kind rows only (CONNECTION section 5); the argument is against the whole hr family. A rota, a leave record, a staff list, and an appraisal are hr material in a practice as in any employer. The discriminating evidence: a staffing artifact that names clinics, patient-facing sessions, or clinical cover for a named service supports this row; a staffing artifact that names only people, hours, leave, and pay supports hr. An individual clinician's own appraisal or revalidation portfolio is career.credentials-licenses material after refusal of clinical_practice.licensure-credentialing. A staff-by-day grid alone discriminates nothing. Provenance: inference.",
       "provenance": "inference"
     },
     {
@@ -345,8 +345,8 @@
       "provenance": "inference"
     },
     {
-      "domain": "clinical_practice.licensure-credentialing",
-      "signal": "A practice's registration with a health regulator and an individual's registration with a professional regulator produce nearly identical documents: an application, a certificate, conditions, a renewal, an inspection or appraisal. The discriminating evidence is WHO is registered - a registered-provider or organisation block supports this row; a personal registration number, a scope of practice, or a revalidation cycle attached to one named practitioner supports the credentialing row. A certificate shape discriminates neither. Provenance: inference.",
+      "domain": "career.credentials-licenses",
+      "signal": "A practice's registration with a health regulator and an individual's professional credential produce nearly identical applications, certificates, conditions, renewals, and evidence packs. clinical_practice.licensure-credentialing is refused because regulator industry is only a value on the individual side. The discriminator here is WHO is regulated: a registered-provider or organisation block plus premises, service, inspection, or organisational action-plan structure supports this row; a personal registration number, scope of practice, continuing-competence cycle, or revalidation record attached to one named practitioner supports career.credentials-licenses. Certificate shape and regulator letterhead discriminate neither. Provenance: inference.",
       "provenance": "inference"
     },
     {
