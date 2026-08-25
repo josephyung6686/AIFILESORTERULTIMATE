@@ -773,3 +773,19 @@ is actively writing is how a wave gets silently corrupted.
   `building-control`→`government`). This is becoming a house habit rather than a one-off, and it
   is the cheapest possible moment to fix those seams: while the question is live, and before an
   author on the other side has committed to anything that would have to be renegotiated.
+
+## Debt clearing 44/64 — `business_operations.retrospective-postmortem`, retested and stands
+
+- **5,281B → 38,338B (7.3x)**, 11 file_examples, both files written, stands.
+- Faced four independent failure routes (work_type of `project-delivery`; a meeting output already
+  covered by `meeting-record`; a document type; content splitting entirely between two siblings)
+  and answered each rather than the easiest one.
+- **The retest was genuine on both sides.** `project-delivery` had already re-examined this row from
+  its side and kept it "while correcting one of its three grounds" — so the original thin gist
+  verdict has now been checked twice, from two directions, and one of its supports was replaced.
+- **Reversed a gist decision to decline an edge:** `meeting-record` had named this row and stated
+  the boundary; the gist draft declined that edge, and this pass accepts and reciprocates it, so the
+  edge is now written from both sides.
+- Reached across families for the right neighbour: read `clinical_practice.case-conference` for the
+  **morbidity-and-mortality edge** — an M&M review is a clinical retrospective, and no prompt named
+  that connection.
