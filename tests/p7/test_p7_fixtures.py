@@ -731,12 +731,10 @@ def test_the_consent_fixture_says_p8_must_return_the_branch_intact():
         "so P8 can prove it returns the branch to its caller intact")
 
 
-def test_done_means_11s_second_clause_is_p8s_test_run_and_not_assertable_here():
-    # "and P8's harness passes its own tests against those fixtures with P7
-    # unimplemented." P8 does not exist. This test exists so the limitation lives in
-    # the suite rather than in a report nobody rereads.
-    with pytest.raises(ModuleNotFoundError):
-        importlib.import_module("llm_harness")
+def test_done_means_11s_second_clause_is_owned_by_p8_tests():
+    # P7 publishes fixtures for P8; P8 may now be present, but this test does not
+    # execute or duplicate P8's harness assertions.
+    assert importlib.util.find_spec("llm_harness") is not None
     assert all(f.decision is not None for f in FIXTURES), (
         "the P7 half -- published, replayable request/decision pairs -- is what this "
         "part can deliver; the P8 half is P8's test run")

@@ -696,16 +696,15 @@ def test_no_model_use_is_one_of_the_four_and_is_not_a_denial_reason():
     assert fields == {"consent_request_id", "requirement", "options"}
 
 
-def test_clause_four_is_p8s_and_clause_three_is_p13s_and_neither_exists_here():
+def test_clause_four_is_p8s_and_clause_three_is_p13s():
     # 11 §9: "choosing no_model_use does not become abstain inside P8." INSIDE P8 --
     # so the assertion belongs to P8's suite, as its Done-means 13, and to P13's as its
     # Done-means 16. P7's obligation is to make the absorption UNREPRESENTABLE, which
     # the test above does at the type level; policing it is not P7's and cannot be.
     #
-    # This test exists so the limitation lives in the suite rather than in a report
-    # nobody rereads -- the same posture Task 19 takes for Done-means 3 and Task 20
-    # takes for Done-means 11's second clause.
-    for absent in ("llm_harness", "review_surface"):
+    # P8 may be present, but P7 does not execute its harness. Review surface remains
+    # a later dependency and is still intentionally absent.
+    for absent in ("review_surface",):
         with pytest.raises(ModuleNotFoundError):
             importlib.import_module(absent)
     assert by_number(SKELETON_FIXTURE).downstream_obligation == (
