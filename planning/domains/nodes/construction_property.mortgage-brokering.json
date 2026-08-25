@@ -3,13 +3,13 @@
   "kind": "template",
   "schema_id": "construction_property",
   "parent_id": null,
-  "name": "Mortgage and property finance brokering — the adviser's client file",
-  "one_line": "The organizational situation of HOLDING SOMEONE ELSE'S FINANCES IN ORDER TO BORROW FOR THEM: an adviser takes a fact find, collects payslips, bank statements and identity documents from a client, tests them against lenders' criteria, submits a case, receives a decision in principle and then an offer, and writes a suitability letter explaining the recommendation. The organizing anchor is the CASE - one client, one borrowing purpose, one lender submission - and the row's defining property is that almost every document in it belongs to somebody other than the person filing it, which makes it the most protection-first situation on this schema. Absorbs the legacy row prop.mortgage-brokering (ROW). Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "name": "Mortgage and property finance brokering — refused duplicate of Finance lending",
+  "one_line": "REFUSED: a broker's fact find, evidence checklist, lender submission, decision in principle, offer and suitability letter are stages and work-type values inside the Finance borrowing lifecycle already held by finance.loans-mortgage. Property is collateral or transaction subject, and broker is a counterparty role; neither creates a construction_property template with distinct dimensions, detection, or privacy rules. Absorbs the legacy label prop.mortgage-brokering without preserving its mistaken node.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
-  "refuse_node": false,
-  "refuse_reason": null,
+  "refuse_node": true,
+  "refuse_reason": "Reverses the gist draft after the required cross-family comparison. The node test fails on all three legs. (1) DETECTION: fact-find blocks, evidence checklists, affordability assessments, lender submissions, decisions in principle, offers and suitability letters are borrowing-application and advice stages already inside finance.loans-mortgage, whose landed row expressly covers the application and closing packet through servicing and release. They distinguish a lending case from generic Finance, but do not distinguish a construction_property situation from that Finance template. A property address or mortgage word is never-alone; property is collateral/subject, not a separate organizational structure. (2) DIMENSIONS: client -> case -> stage is a professional-client workflow, but the construction_property anchor's default is property/site -> instruction -> document function. Replacing property with client does not justify putting the row on this schema; Finance already supplies account_type -> record_type for the same lifecycle, while a broker case identifier is a P9 grouping anchor rather than a legal field. (3) PRIVACY: third-party payslips, bank statements, identity scans and credit material require protection, but finance.loans-mortgage already states the same stricter packet-level privacy rule for applications and closing packets. Broker custody changes who holds the bytes, not the content-based protection rule. The role test also fails: broker, borrower, lender, conveyancer and valuer are counterparties around one loan/property transaction; role words and custody alone are not nodes. Keeping this row would duplicate Finance because the loan concerns property and would repeat the 574's industry-label mistake.",
   "fields": [],
   "proposed_fields": [],
   "recognition": {
@@ -104,7 +104,7 @@
   "template": {
     "dimension_order": [],
     "time_first": false,
-    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields, with a warning attached: the natural anchor is the CLIENT, then the case, then the stage - fact find, evidence, submission, decision, advice. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - an evidence pack is meaningless without the case it was collected for. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The warning is the one 00 puts on safety domains, and it applies here even though the row sits on a non-safety schema: a client-first tree names private individuals in folder names, and the material underneath is their identity documents and bank statements. A row whose deep tree would itself be a disclosure should not be given deep automatic depth. The prose order above is what a broker's practice actually looks like; whether the product should BUILD it is a different question and it is flagged in open_question rather than assumed. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+    "why": "Empty because the row is refused, and empty independently because construction_property declares no fields. The apparent client -> case -> stage order is evidence against this schema assignment: it is the same bounded borrowing case that finance.loans-mortgage already groups across application, closing and servicing, expressed from an intermediary's custody perspective. A counterparty role and a case-stage vocabulary do not create a second template."
   },
   "file_kinds": {
     "source_types": [
@@ -339,48 +339,7 @@
       "falls_through_if_inactive": "Unsupported or Encrypted"
     }
   ],
-  "collides_with": [
-    {
-      "domain": "finance.loans-mortgage",
-      "signal": "The row's defining seam, and it is a seam of OWNERSHIP rather than content. Identical documents - offers, statements, payslips - are the borrower's own lending records in that row and a third party's copies here. The discriminating evidence: an adviser's apparatus around the documents - a fact find, an evidence checklist, a client agreement, a suitability letter, a commission disclosure - supports this row; a household's own servicing of its own debt, with principal, interest and payment structure, supports the loan row. A lender name or a loan amount counts for neither. Stated reciprocally: this is the same shape of distinction finance.household-property already draws against finance.loans-mortgage, applied one step further out.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "finance.payroll-received",
-      "signal": "Payslips supplied as proof of income are that row's material held by somebody else. The discriminating evidence: an employment record kept by its subject supports the payroll row; the same document inside an adviser's evidence pack supports this row. The document cannot tell them apart, which is why the never_alone list says so outright.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "identity.core-documents",
-      "signal": "Identity and address evidence collected from a client is that safety domain's material in a professional's hands. The discriminating evidence: a case checklist context supports this row's grouping; the document is identity material and is protected first regardless. Neither reading may delay protection, and this row never unlocks a deep tree over it.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "construction_property.sale-purchase",
-      "signal": "The offer and the identity pack appear in both. The discriminating evidence: a fact find, a lender submission and a suitability letter supports this row; the conveyancing pack around the property supports the transaction row. Reciprocal to the edge authored there.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "finance.small-business-bookkeeping",
-      "signal": "Procuration fee and commission statements are the adviser's own revenue. The discriminating evidence: a client case supports this row; the adviser's income, invoices and ledger supports bookkeeping. The fixture is authored so the row cannot quietly annex a business revenue record.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "finance.insurance-personal",
-      "signal": "Protection reviews are sold alongside mortgages and sit in the same case file. The discriminating evidence: a policy, a schedule and a claim history supports the insurance row; the advice process attached to a borrowing case supports this row.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "business_operations.customer-account-management",
-      "signal": "A brokerage's CRM view of a client is an account-management record. The discriminating evidence: pipeline, service history and relationship records support that row; a regulated advice case with an evidence pack supports this row.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "legal.practice-matter-file",
-      "signal": "Structurally the closest relative: a regulated professional's client matter file with an engagement, an evidence pack and an advice output. The discriminating evidence: a legal matter with a retainer and legal advice supports the practice row; a lending case supports this row. Authored because the two rows would otherwise both claim any regulated adviser's client folder.",
-      "provenance": "inference"
-    }
-  ],
+  "collides_with": [],
   "also_holds_with": [],
   "falls_through_to": [
     {
@@ -412,5 +371,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "This is the most protection-first row on the schema, and the reason is not the subject matter but the OWNERSHIP: almost every document in the file belongs to somebody other than the person whose computer it sits on. A broker's case folder holds a client's identity documents, months of their bank statements, their payslips, their credit report, their declared dependants and health circumstances, and a suitability letter that narrates all of it back in prose. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and identity documents, account statements and employment materials head that list. The design is explicit about when protection begins: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” And about the limits: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Two consequences specific to this row: a group summary would republish a client's circumstances in one place, and a client-first folder tree would put private individuals' names in folder names. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
-  "open_question": "Whether this row belongs on the construction_property schema at all. The roster puts it here and the reading is defensible - brokering is a property-adjacent professional service and it sits beside sale-purchase and survey-valuation in the same working world. But nothing in the file is about a building: it is about a household's money, and the material is finance's and identity's, which are two of 00's four safety domains. The row is written where the roster put it, and it is written protection-first, but if Joseph moves it to the finance family nothing in its research is lost - only the schema pointer changes. Recorded rather than silently resolved. A second question, narrower and more practical: whether a client-first destination tree should ever be built for third-party financial material. This row's prose order says client, then case, then stage, because that is what a broker's practice looks like; 00's own posture on safety material says a deep tree over it is exactly what should not be created automatically. The row does not resolve the contradiction, because the resolution is a policy decision and it is Joseph's."
+  "open_question": "NEEDS-JOSEPH NJ-CP-MB-1: confirm that the legacy label is retired rather than re-rostered as a Finance sibling. The evidence does not support a construction_property node, and creating finance.mortgage-brokering would still duplicate finance.loans-mortgage unless Joseph intends intermediary custody to be a first-class template distinction across Finance. If custody is intended to create templates, the rule must apply consistently to accountants, insurance brokers, investment advisers and legal representatives; if not, broker material remains a reviewable case group under finance.loans-mortgage. NJ-CP-MB-2: decide whether a user-approved client level is ever permitted over third-party financial evidence. This refusal does not resolve that product-policy question; it routes protected members through Finance and Protected Records without proposing a client-first tree."
 }
