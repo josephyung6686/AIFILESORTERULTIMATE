@@ -1,0 +1,523 @@
+{
+  "id": "retail_hospitality",
+  "kind": "schema",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Retail, hospitality and events (the operator's trading record)",
+  "one_line": "The record a TRADING OPERATION keeps of selling goods, meals, rooms, admissions or service to the public from a site, a venue or a channel: what is stocked and what was counted, what was ordered in and what arrived, what a trading session took and how the drawer reconciled, who booked what capacity on which date and with what requirements, what a dish contains and what it costs, what permission the premises holds to trade at all, and what the guest said afterwards. Its anchor is a TRADING UNIT running a TRADING OCCASION - a session, a count, an order cycle, a booking, a function, a licensed activity - and producing a record that pairs a COUNTED REALITY against a RECORDED BELIEF, or a FINITE CAPACITY against a DATED DEMAND. It is not a sector label on business_operations: trading in retail or hospitality is a field value, and this row is built only on the structures a generic company never files. It is the OPERATOR's side only - a customer's own booking confirmation or restaurant receipt is never this world. A PLACEHOLDER SCHEMA ROW written to J-DEPTH: it declares NO field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6) and recommends NO folder dimensions, so activation unlocks recognition, the family's guest-data privacy posture, the universal facts, and consideration of its fourteen child templates.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "site",
+      "type": "string",
+      "example": "the trading unit whose record this is - `Store 214 - Camden`, `The Bell, Wharf Street`, or the online channel `Shopify - UK store` when the corpus genuinely spans more than one",
+      "why_no_existing_key": "REUSE, NOT A MINT. `site` is already proposed by the landed `manufacturing` schema row with the example `Plant 2 - Kowloon`. The referent shape is identical - ONE physical operating location inside one entity, at which work happens and against which records are keyed - and only the world differs. This row therefore asks R1c to WIDEN manufacturing's `site` rather than adjudicate a second key, and it deliberately does not mint `store`, `venue`, `outlet`, `branch` or `property`, any of which would be exactly the synonym family the canonical list exists to prevent. `organization` (proposed thirteen times across business_operations and construction_property) is a DIFFERENT concept and this row does not want it: `organization` answers whose record this is and is seeded ineligible as a destination because in a single-entity corpus it names the holder's own business above everything - “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” A trading corpus, by contrast, genuinely spans several sites and channels under ONE entity, which is precisely why `site` is eligible where `organization` is not. NOT YET SETTLED: whether an e-commerce channel is a `site` at all, since it has no physical location; this row's reading is that a channel is a trading unit in the same sense and should be admitted, but R1c owes the ruling and `retail_hospitality.ecommerce-ops` depends on it.",
+      "reliability_ceiling": "validated",
+      "rule_family": "gazetteer-plus-context (R4 owns the content; this row writes no names) for a trade-name-plus-location token, backed by a labelled-slot rule where a header or export column is literally labelled Site, Store, Branch, Venue, Location, Channel or Outlet",
+      "provenance": "proposal"
+    },
+    {
+      "key": "trading_occasion",
+      "type": "string",
+      "example": "the bounded, dated thing the record is about - `Booking 88231 / 14 Mar 2026 / 8 covers`, `Stock count W12 2026`, `PO 4471`, `Wedding - Ashcroft, 6 Jun 2026`, `Trading session - 14 Mar 2026, dinner`",
+      "why_no_existing_key": "THE FAMILY'S ONE MINT, and it is the level without which this schema has no non-time top and collapses into a calendar, which “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” forbids. No existing proposal covers a DATED, CAPACITY-BEARING OCCASION. `project` (business_operations, research) is an internally initiated undertaking of open duration with a delivery record - a booking is not a project and a till session is not a project. `fiscal_period` and `record_period` are PERIODS, and a period cannot hold a party size, a counted quantity or a room-night; they answer when, this key answers which occasion. `batch_lot` (manufacturing) is the nearest structural relative, being a bounded, dated, countable run - but a lot is a production identity that travels with goods, whereas an occasion is consumed at a place and time and vanishes. `instruction` (construction_property) is a commission from a client, which the guest-facing world does not have. R1c should test whether this key is one concept or three wearing one name - the SESSION (a trading period at a till or a service), the COUNT-OR-ORDER CYCLE, and the BOOKED OCCASION - because if it is three, five of the fourteen templates lose their proposed top level. This row's reading is that it is one: each is a bounded occurrence identified by a reference or a date, against which a counted or booked quantity is recorded.",
+      "reliability_ceiling": "validated",
+      "rule_family": "term-pattern plus labelled-slot: a reference-shaped token in a slot literally labelled Booking / Reservation / Confirmation / PO / Order / Count / Session / Function, confirmed by a co-located date slot. Never a bare number, and never a filename date alone",
+      "provenance": "proposal"
+    },
+    {
+      "key": "record_period",
+      "type": "string",
+      "example": "the trading period a record covers - `2026-03-14`, `Week 12 2026`, or the service session `2026-03-14 dinner`",
+      "why_no_existing_key": "REUSE, NOT A MINT. `record_period` is already proposed by `finance.payroll-received` and `finance.subscriptions-utilities` for the bounded window a record covers, and a trading day or trading week is exactly that shape. This row explicitly does NOT propose `fiscal_period` - the nine rows that want it want an ACCOUNTING period, and a trading day is an operational one; conflating them is how a till reconciliation would be mistaken for a management account. TWO CAUTIONS FOR R1c, surfaced rather than smoothed. First, this family needs SUB-DAILY granularity (breakfast, lunch, dinner; the morning till session) and both finance examples are multi-day ranges, so either `record_period` widens or this family has no key for a service session. Second, whatever R1c decides, this level must never be promoted above `site` and `trading_occasion` in a template - see the family principle against time-first.",
+      "reliability_ceiling": "validated",
+      "rule_family": "term-pattern over a labelled date or period slot (Trading date, Business date, Week ending, Service, Session), never a filesystem timestamp and never a bare filename date",
+      "provenance": "proposal"
+    },
+    {
+      "key": "product",
+      "type": "string",
+      "example": "the thing sold - a SKU line `SKU 40182 - Merino crew, navy, M`, a dish `Confit duck leg`, a room type `Double, garden view`, a ticket class `Early bird`",
+      "why_no_existing_key": "REUSE, NOT A MINT. `product` is already proposed by the landed `manufacturing` schema row with the example `AX-410 valve body`. A SKU, a dish and a ticket class are the same concept in a selling world rather than a making one, and minting `sku`, `menu_item`, `line_item` or `room_type` would produce four synonyms for one fact. HONEST STRAIN, recorded for R1c: a room type and a ticket class are sold CAPACITY rather than an object, and if R1c judges that manufacturing's `product` cannot stretch that far, the correct outcome is to narrow this row's claim to goods and dishes and leave capacity unkeyed, NOT to mint a variant. This key is also the one most likely to be misused as a folder level: a catalogue of ten thousand SKUs would produce ten thousand one-child branches, which the validator sentence rejects outright, so it is proposed as a FACT and marked destination-hostile.",
+      "reliability_ceiling": "validated",
+      "rule_family": "labelled-slot plus term-pattern over a column header literally naming SKU, Item, Product, Dish, Room type or Ticket type; a code-shaped token alone is never sufficient",
+      "provenance": "proposal"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This schema declares no field rows, so nothing here writes a domain fact. Detection exists so that the material is recognised, kept local where this row's sensitivity says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "A RECONCILIATION-OF-COUNTED-AGAINST-RECORDED structure - the family's first and strongest signal, and the one a generic company never files. A record carrying, for ONE trading date and ONE identified till, terminal or service, a gross or net takings figure BROKEN OUT BY TENDER (cash, card, voucher, account) together with at least two of a declared-cash or banked figure, an over/short or discrepancy figure, a void, refund, no-sale or discount count, and a department or category sales split. The discriminator against business_operations.budget-forecast is exact: that row's variance is FORECAST against ACTUAL over line items and fiscal periods; this variance is MONEY PHYSICALLY COUNTED against MONEY THE SYSTEM BELIEVED, keyed to a till and a session. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "A COUNT-AGAINST-BOOK structure. A tabular record with one row per stock line and columns pairing a COUNTED quantity against a SYSTEM, book or expected quantity, with a variance quantity and usually a variance VALUE, scoped to a location and a count date. The discriminator against business_operations.it-asset-inventory is that an asset register carries one row per UNIQUE serialised asset with lifecycle dates and no count-versus-book pair; this structure is fungible, perishable and recounted. Wastage, shrinkage, spoilage or breakage columns strengthen it and appear nowhere in the business_operations family. “Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.”",
+      "A CAPACITY-AGAINST-DATED-DEMAND structure. A record in which a finite capacity is consumed by a dated occasion: a party size, cover count, pax, guest count, room-nights, table or seat allocation, or ticket count, bound to a date and a time window, with a status slot (confirmed, provisional, cancelled, no-show) and usually a requirements slot. A calendar entry with attendees is NOT this; the discriminator is the counted quantity against a stated or implied capacity. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” Where the evidence is an ICS file the CONTENT is what fires; source_type = calendar contributes only as a file-kind signal.",
+      "A PERMISSION-TO-TRADE structure. A document keyed to a PREMISES ADDRESS rather than to an entity, carrying a licence or registration reference, a schedule of LICENSABLE ACTIVITIES each with its own permitted hours, a conditions annex, and often a named responsible individual in a labelled role slot (premises supervisor, food business operator, designated person). The discriminator against business_operations.corporate-regulatory-filings is that a statutory filing is keyed to an ENTITY IDENTIFIER and a PERIOD and is made by the entity about itself, whereas this is keyed to a PLACE and to ACTIVITIES and is granted to whoever operates that place; it can also be objected to, reviewed, varied or transferred by third parties, which no confirmation statement can be.",
+      "A DAILY-SIGNED-CHECK structure. A recurring schedule of checks with, per row, a date, a check description, a reading or a tick, a target or tolerance, a corrective-action slot, and an INITIAL or signature slot - repeated per day over a period, and frequently a scan or photograph of a paper sheet. The discriminator against business_operations.compliance-audit is decisive in both directions: that row's anchor is an ASSESSMENT OCCURRENCE with a request-to-evidence-to-finding-to-sign-off chain performed by a party structurally distinct from the party assessed; this is the OPERATIVE'S OWN CONTEMPORANEOUS DIARY, self-recorded, which is the material an audit later pulls FROM. “A screenshot is always a screenshot of something—a receipt, application portal, conversation, code problem, document, calendar, or research figure—and without OCR the product sees only an image with a weak filename.”",
+      "AN INGREDIENT-AND-YIELD structure. A record pairing a finished item against a component list with quantities, a unit cost per component, a yield or portion count, and a derived cost-per-portion set against a selling price, a margin or a gross-profit percentage. The allergen variant of the same structure is a GRID: items down, a fixed allergen set across, and a contains/may-contain/free marking in each cell.",
+      "AN ORDER-CYCLE structure. A purchase-order-shaped document whose reference RECURS across an order confirmation or allocation, a delivery or goods-received note carrying quantities ordered against quantities received with a shortage, rejection or substitution annotation, and a credit note. The discriminator against business_operations.procurement-sourcing is that a sourcing event is ONE requirement, ONE competition, ONE award against stated criteria; this is REPEAT REPLENISHMENT against an already-agreed trade price list, with no competition and no evaluation matrix anywhere in it. A single invoice is NOT this structure - see file_examples.",
+      "A GUEST-VOICE structure. A record carrying, per row or per item, a rating on a bounded scale, a free-text comment, a date of visit or stay distinct from the date of writing, a channel or platform slot, and often an operator RESPONSE paired to the comment. The response pairing is what distinguishes it from a generic survey export.",
+      "A CATALOGUE-AND-PRICE structure. A record with one row per selling line carrying a code, a description, a price, and at least two of a cost, a margin, a range or season slot, a barcode-shaped token, and a stock-status slot; or a menu document whose structure is course sections, dish names and prices with a statutory allergen or calorie footnote.",
+      "Parent-folder context naming a trade name, a store or unit number, a venue, a trading week, or a service, treated as a clue that raises plausibility once one of the structures above is already present. Folder context never fires alone.",
+      "An email whose labelled subject slot names a booking or order reference, a covers or party size, a trading date, a delivery, or a licence, AND whose attachment-name slot names a function sheet, a rota, a count, a Z-read, a price list or a delivery note. The reference-plus-quantity pairing is what fires; a hospitality-sounding sender domain alone does not.",
+      "An archive whose manifest names a trading period export, a catalogue drop, a stocktake, an EPOS end-of-day, or a season's product photography - read from the manifest alone, because “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”"
+    ],
+    "needs_llm": [
+      "PRECONDITION, and it is stricter here than in business_operations: this family's ORDINARY DAILY OUTPUT is third-party personal data about members of the public, so a model step runs under the user's policy and after P7. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” A booking sheet, a guest complaint and a returns log are not edge cases in this world; they are the world.",
+      "Separating the OPERATOR'S side from the CUSTOMER'S side, which is this schema's central determination and the one that decides whether it activates at all. A booking confirmation, a restaurant receipt, an order dispatch note and an event ticket each exist twice - once as the operator's record (here) and once as the buyer's (finance, travel, or the Receipts and Confirmations residual). Filenames are identical and both are PDFs. The operator's copy carries a POPULATION or a CYCLE: many bookings, a whole trading day, an order plus its goods-in; the customer's copy carries exactly one transaction and no operational apparatus. Where evidence does not settle which side the holder is on, this schema must not activate.",
+      "Separating a REAL trading record from a TEMPLATE, a supplier's sample, a franchise operations manual, a training exercise, or a downloaded compliance pack. A blank temperature log and a completed one are the same sheet with the readings removed, and a wholesaler's specimen price list is written to look exactly like a live one. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "A purpose-coherent trading packet whose members are individually unremarkable - a function file carrying a signed proposal, a floor plan image, a run sheet, an allergen grid, a bar stock sheet and a final invoice. “The documents are content-incoherent but purpose-coherent.”",
+      "Unlabelled operational prose: a shift handover note, an incident write-up, a complaint reply, a supplier chaser. These have no header block, no grid, no reference, and are frequently the most sensitive files in the corpus.",
+      "Reading a SCANNED OR PHOTOGRAPHED paper sheet, which this family produces more of than any other in the roster - clipboard temperature logs, signed delivery notes, handwritten count sheets, till rolls. Handwriting is often the whole content, and OCR confidence on it is low.",
+      "A document in a language whose trading, licensing, food-safety and hospitality vocabulary the deterministic structure catalogue does not cover.",
+      "In every case above, abstention is the required outcome when evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "A SECTOR OR TRADE VOCABULARY WORD, standing alone: menu, store, guest, hotel, restaurant, bar, cafe, shop, table, room, cover, booking, stock, till. This is the family's defining never-alone and it is the direct answer to the charge that this schema is business_operations with a shopfront. TRADING IN A SECTOR IS A FIELD VALUE, NOT A STRUCTURE. The reasoning is read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - the sentence is about ROLE AMBIGUITY, and a hospitality word is worse than a university name, because `Menu.pdf` may be a restaurant's live menu, a designer's portfolio piece, a caterer's proposal to a client, a diner's souvenir, a training example, or a navigation specification in a software project.",
+      "A TRADE NAME or brand, standing alone - `The Bell`, `Ashcroft Deli`. Constitutionally never-alone for exactly the reason the university sentence gives: the same name appears as the holder's own business, an employer, a supplier, a competitor named in a market review, a venue someone booked for a party, and a cited example.",
+      "A DOCUMENT-TYPE WORD, standing alone - invoice, rota, log, price list, order, review. These are values of a function dimension, and a row resting on one is the schema's default template wearing a name.",
+      "A DATE, standing alone, however trading-shaped. Nearly every file in this world is dated; a date is therefore the family's least discriminating token, not its most. `2026-03-14.xlsx` is not a trading record.",
+      "A CURRENCY-DENOMINATED TABLE, standing alone. Money in cells is finance, business_operations, construction_property or manufacturing before it is this. What fires here is the PAIRING - counted against recorded, capacity against demand, cost against selling price - not the presence of amounts.",
+      "A PERSON'S NAME appearing as a guest, a customer, a reviewer or a party lead. This must never anchor a group and must never become a folder level, both because “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” and because doing so would publish a member of the public's name into the user's directory tree. This is a HARD rule for all fourteen templates.",
+      "A FOOD, DRINK OR PRODUCT IMAGE, standing alone. A photograph of a plated dish is `photos` or `creative` evidence until a catalogue, menu or listing structure claims it; a picture of food is not a food-safety record."
+    ]
+  },
+  "proposed_context_terms": [
+    "trading date",
+    "business date",
+    "end of day",
+    "Z read",
+    "X read",
+    "till",
+    "terminal",
+    "drawer",
+    "float",
+    "cash declaration",
+    "over/short",
+    "tender",
+    "void",
+    "no sale",
+    "refund",
+    "discount",
+    "department sales",
+    "sales mix",
+    "covers",
+    "pax",
+    "party size",
+    "no show",
+    "walk in",
+    "table plan",
+    "room nights",
+    "rate plan",
+    "occupancy",
+    "check in",
+    "check out",
+    "function sheet",
+    "run sheet",
+    "banqueting event order",
+    "stock count",
+    "stocktake",
+    "cycle count",
+    "system quantity",
+    "counted quantity",
+    "shrinkage",
+    "wastage",
+    "spoilage",
+    "goods received",
+    "delivery note",
+    "shortage",
+    "credit note",
+    "trade price list",
+    "allocation",
+    "SKU",
+    "barcode",
+    "range plan",
+    "gross profit",
+    "yield",
+    "portion cost",
+    "selling price",
+    "allergen",
+    "may contain",
+    "use by",
+    "best before",
+    "batch code",
+    "traceability",
+    "temperature log",
+    "probe",
+    "core temperature",
+    "cleaning schedule",
+    "opening checks",
+    "closing checks",
+    "corrective action",
+    "hygiene rating",
+    "premises licence",
+    "licensable activities",
+    "designated premises supervisor",
+    "food business operator",
+    "licensing objectives",
+    "variation",
+    "review of licence",
+    "personal licence",
+    "guest feedback",
+    "review response",
+    "complaint",
+    "goodwill gesture",
+    "chargeback",
+    "return authorisation"
+  ],
+  "work_types": [
+    "product, range and price record - catalogue line, price list, range plan, listing, product copy and imagery brief",
+    "stock record - count sheet, variance report, wastage log, allocation, transfer",
+    "supplier ordering record - purchase order, order confirmation, delivery or goods-received note with shortages, credit note, trade price list",
+    "trading period report - end-of-day or Z read, tender and cash reconciliation, department sales mix, hourly trade",
+    "e-commerce operating record - channel listing export, order export, fulfilment and dispatch record, platform settings",
+    "returns and claims record - return authorisation, refund decision, warranty claim, chargeback file",
+    "site operating record - rota against forecast trade, opening and closing checks, standards audit, reactive maintenance call, the compliance pack the site must hold",
+    "menu and costing record - recipe specification, ingredient cost build-up, gross-profit calculation, allergen matrix, printed menu",
+    "food safety record - temperature and probe log, cleaning schedule, delivery check, traceability and batch record, incident and corrective-action note",
+    "premises permission record - licence application, grant, conditions, variation, review, notice, hygiene inspection report",
+    "event delivery record - brief, plan, supplier schedule, run sheet, on-the-day log, post-event reconciliation",
+    "booking record - reservation, confirmation, deposit, requirements and dietary note, cancellation or no-show record",
+    "catering engagement record - proposal, function contract, function sheet, allergen sheet, final account",
+    "guest voice record - platform review export, direct complaint, survey result, operator response"
+  ],
+  "grouping_reasons": [
+    "ONE TRADING OCCASION across its whole paper trail: the booking, the deposit receipt, the function sheet, the allergen sheet, the run sheet and the final account for one function on one date. Purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "ONE ORDER CYCLE: the purchase order, the confirmation, the delivery note with its shortage annotation, and the credit note that settles it - joined by a recurring reference, never by the supplier's name.",
+    "ONE COUNT: the count sheets, the variance report and the wastage log for one location on one count date.",
+    "ONE TRADING PERIOD at one site: the end-of-day reads, the banking record and the exception report for one day or one week - and this is the reason most likely to be mis-drawn as a calendar, because every member is dated. The occasion is the trading day AT A SITE; the year is not a grouping reason.",
+    "ONE PERMISSION over its life: the application, the grant, the conditions, each variation and any review, for one premises - a long-running file whose members may be years apart.",
+    "ONE PRODUCT OR DISH over its life: the specification, the costing, the imagery and the listing - joined by a product code, never by a photograph that happens to show it.",
+    "One repeatedly re-exported EPOS or platform dump, joined by the universal duplicate_family and version_family facts rather than by any trading fact.",
+    "No group at all is a valid outcome, and in this family it is the COMMON outcome for the transactional single file. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.” That sentence names booking records, purchase receipts and event tickets explicitly, and an isolated one of any of them is a residual's business, not this schema's."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves this placeholder schema with no field rows, and a dimension may only branch on a field the same schema declares. THE DEFAULT IS THEREFORE HELD AS PROSE, AND THIS IS THE PARAGRAPH EVERY ONE OF THE FOURTEEN TEMPLATES MUST DIFFER FROM: the TRADING UNIT - site, venue or channel - ONLY where the corpus genuinely spans more than one, then the TRADING OCCASION - the session, count, order cycle, booking, function or licensed premises the material belongs to, then the OPERATIONAL RECORD FUNCTION. Trading period sits INSIDE the occasion level, never above the site. NOT TIME-FIRST. This family will be more tempted to break that rule than business_operations was, because almost every artefact it holds is identified by a trading date; the answer is that the date IDENTIFIES the occasion, it does not ROOT the tree - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - and the time-first exception belongs to capture-based media alone: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” A trading day, a licence year and a season are content periods, not capture dates, and any child template claiming time_first is claiming the photos exception without the photos evidence. The site level is conditional for the same reason business_operations makes `organization` conditional - a single-site operator's tree would gain a one-child branch naming their own shop above everything - but it is NOT seeded ineligible here, because a multi-site or multi-channel corpus under one entity is the normal case in this world and the site is then the most useful top level there is. A product or a guest name must NEVER become a dimension: the first produces a branch per SKU, the second publishes a member of the public's name into the directory tree, and “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” Any later order remains editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "presentation",
+      "archive",
+      "audio_video",
+      "opaque_binary",
+      "contacts",
+      "code_structured"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".pptx",
+      ".zip",
+      ".mp4",
+      ".json",
+      ".xml",
+      ".vcf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "EOD 2026-03-14 Till 2 - Camden.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a header naming a store and a terminal, with a labelled business date",
+        "a gross takings figure broken out by cash, card and voucher tender",
+        "a declared-cash figure set against an expected figure with an over/short line",
+        "void, no-sale and discount counts",
+        "a department sales split beneath",
+        "no bank account number and no balance-brought-forward line anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "a site, trading occasion or record period as a stored fact; all three are proposed keys awaiting R1c",
+        "that money in cells makes this a finance record - the absent account identity is the discriminator",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Stock count W12 2026 - counted vs system.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per stock line with a code and a description",
+        "paired columns headed Counted qty and System qty, with variance qty and variance value",
+        "a wastage sheet with a reason column",
+        "a labelled count date and a location header",
+        "no serial numbers and no asset lifecycle dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is business_operations.it-asset-inventory; the count-versus-book pair and the absent serials are the discriminator in both directions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Function sheet - Ashcroft wedding 06.06.26.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled event date and arrival, service and carriage times",
+        "a covers figure and a table plan reference",
+        "a named lead client with a mobile number",
+        "a dietary and allergen block naming two guests by first name",
+        "a bar, staffing and supplier schedule"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that the allergen block is a medical record; it is guest-supplied health-adjacent data and it raises the privacy posture without creating a medical claim",
+        "the lead client's name as a group anchor or a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Fridge temps March.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed paper sheet with a printed grid",
+        "one row per day with morning and evening readings, a target column and an initials column",
+        "two rows carrying a handwritten corrective-action note",
+        "OCR confidence low across the handwritten cells",
+        "no EXIF camera make, the image having come through a messaging app"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "a capture date as a trading date - the photograph's date is when the sheet was photographed, not the period it covers",
+        "that this is business_operations.compliance-audit evidence; a self-signed daily diary is not an assessment occurrence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Invoice 88231.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a food wholesaler's letterhead and VAT number",
+        "line items with quantities and a total",
+        "a payment-terms footer",
+        "NO purchase-order reference, no goods-received annotation, no shortage column, no credit note beside it",
+        "nothing else in the folder shares a reference with it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a wholesaler's letterhead makes this a retail_hospitality supplier-order record - THIS IS THE FAMILY'S COLLISION FIXTURE and the answer is no",
+        "any retail_hospitality fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Booking confirmation - Le Petit Jardin 14 Mar.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a restaurant name, a date, a time and a party of four",
+        "a booking reference",
+        "addressed to the holder of the machine as the diner",
+        "a cancellation-policy paragraph",
+        "sitting in a Downloads folder beside boarding passes"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this schema activates - it is the CUSTOMER'S side, and this family is the OPERATOR'S side only",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": "travel",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations",
+      "signal": "THE EXISTENTIAL SEAM, and the charge this row was required to answer. Shared fixtures: `Employee Handbook v4.2.pdf`, `FY26 budget v7 FINAL.xlsx`, `Supplier agreement - Harlow Foods.pdf`, `March 2026 board pack.pdf`, `Kitchen deep clean schedule signed.pdf`. RETAIL_HOSPITALITY MUST NOT TAKE the shop's or the venue's own running of ITSELF - its strategy, budget, board cycle, policies, IT estate, contract register, insurance, statutory filings or audit programme - merely because the entity happens to trade from a shopfront. Trading in a sector is a field value. BUSINESS_OPERATIONS MUST NOT TAKE the five structures this row is built on: the tender-and-drawer reconciliation, the count-against-book, the capacity-against-dated-demand, the premises-keyed permission with activity hours, and the operative-signed daily check diary. None of the five appears anywhere in that family's twenty-five landed rows, and each pairs a structure with a labelled slot as that family's own never-alone rule demands. Named sub-seams, each reciprocal: PROCUREMENT-SOURCING owns the bounded sourcing EVENT - one requirement, one competition, one award against stated criteria - and must not take repeat replenishment against an agreed trade price list, which has no competition and no evaluation matrix; this row must not take a tender pack merely because the goods are food. CUSTOMER-ACCOUNT-MANAGEMENT owns an ongoing NAMED B2B relationship after the sale and must not take a one-visit consumer or a review platform export; this row must not take a wholesale account plan for a trade customer. FACILITIES-WORKPLACE owns the occupier's premises administration - the fridge maintenance contract, the access control, the fit-out - and this row owns the trading floor as a SELLING space and the fridge's temperature LOG; the same appliance sits in both, and the discriminator is administration-of-the-place versus evidence-of-the-trade. COMPLIANCE-AUDIT owns the assessment occurrence and its PBC chain and must not take the daily diary it pulls from; this row must not take the audit report, the finding or the corrective-action register that follows. IT-ASSET-INVENTORY owns the EPOS terminals as serialised assets; this row owns what those terminals recorded.",
+      "design_cite": null
+    },
+    {
+      "domain": "finance",
+      "signal": "TAKINGS ARE ACCOUNTING, and the seam is real in both directions. Shared fixture: `Sales summary March 2026.xlsx`, and the same bytes are genuinely wanted by both. FINANCE owns the ACCOUNT and the LEDGER: a bank or merchant account identity, a balance, a posting or nominal code, a VAT or tax return, a bookkeeping period, a set of statutory accounts - `finance.small-business-bookkeeping` is the landed row that competes hardest. RETAIL_HOSPITALITY owns the OPERATIONAL read of a trading period: tender split by till and session, department sales mix, wastage value, covers against spend-per-head. The discriminator is exact and testable: presence of an ACCOUNT IDENTITY plus a posting structure decides for finance; presence of a TILL, SESSION, DEPARTMENT or TENDER structure with no account identity decides for this row. Where both are present the file is genuinely in both worlds and finance's protective ordering runs first, because finance is a safety schema. RETAIL_HOSPITALITY MUST NOT TAKE a bank statement, a merchant settlement statement, a VAT return or a set of accounts because the trader is a restaurant; FINANCE MUST NOT reduce a Z-read to a transaction list, because the over/short figure it would discard is the whole reason the record exists. AUTHORED ONE-WAY HERE; R1c owes the reciprocal on the landed finance rows. Provenance: inference.",
+      "design_cite": null
+    },
+    {
+      "domain": "government",
+      "signal": "LICENSING AND HYGIENE INSPECTION ARE STATUTORY, and this row writes its side to match the side `construction_property.building-control` already wrote. Shared fixtures: `Premises licence 12345 - conditions.pdf`, `Food hygiene inspection report - 12 Feb 2026.pdf`, `Licence variation - notice of application.pdf` - literally the same bytes, held by the council and by the publican. GOVERNMENT owns the AUTHORITY'S side: the administration of the licensing regime, the register, the inspection programme, the determination and the casework, and its own anchor already requires owner-or-custodian evidence for a public body. RETAIL_HOSPITALITY owns the OPERATOR'S own copy of its own application, grant, conditions, variation and inspection outcome - the permission it must be able to produce on demand. The discriminator is custody, not content, exactly as government's anchor states, and receipt of an authority-issued document does not activate government. RETAIL_HOSPITALITY MUST NOT TAKE a licensing authority's register, its policy statement, or another operator's application; GOVERNMENT MUST NOT TAKE a trader's own licence pack merely because the issuer is a council.",
+      "design_cite": null
+    },
+    {
+      "domain": "hr",
+      "signal": "SHIFT WORK IS THE SEAM, and it is the sharpest unresolved edge this row found. Shared fixture: `Week 12 rota.xlsx` - names down the side, days across the top, hours in the cells, and on those bytes alone both rows are plausible. HR owns the EMPLOYEE: contracts, payroll runs, absence, performance, personnel cases, and workforce health and safety as a people programme. RETAIL_HOSPITALITY owns the SHIFT AS A CAPACITY PLAN - labour hours scheduled against FORECAST COVERS OR SALES, with a sales-per-labour-hour or labour-percentage column. That column is the discriminator: with it the sheet is a trading plan; without it, keyed instead to contracted hours, absence codes or pay rates, it is hr's. RETAIL_HOSPITALITY MUST NOT TAKE a named employee's disciplinary file arising from a till variance, a training certificate, or a payroll register; HR MUST NOT TAKE the labour forecast, the opening-checks sheet, or a food-safety log merely because an operative signed it. The seam is recorded as NJ-RH-1 because the bare rota is genuinely undecidable on the fixture.",
+      "design_cite": null
+    },
+    {
+      "domain": "construction_property",
+      "signal": "A SHOP OCCUPIES A LEASED UNIT. Shared fixtures: `Unit 4 - service charge 2026.pdf`, `Unit 4 - schedule of condition.pdf`, `Unit 4 - opening checks March.pdf`. CONSTRUCTION_PROPERTY owns the PREMISES AS AN INTEREST: `commercial-lease` holds the tenancy of one occupier of one premises and the calendar of rent reviews, breaks, alienation licences, recharges and dilapidations it created; `agency-listing`, `survey-valuation` and `block-management` hold the other property-side situations. RETAIL_HOSPITALITY owns what is SOLD FROM the unit. The discriminator is that a lease record survives a change of trade and a trading record does not survive a change of premises. RETAIL_HOSPITALITY MUST NOT TAKE a rent review, a dilapidations schedule or a service-charge certificate because the tenant is a cafe; CONSTRUCTION_PROPERTY MUST NOT TAKE the trading records generated inside the demise. Note the three-way: the fit-out of the same unit is `construction_property.construction-project`, its ongoing maintenance is `business_operations.facilities-workplace`, and only the selling operation is this row.",
+      "design_cite": null
+    },
+    {
+      "domain": "logistics",
+      "signal": "INBOUND GOODS. Shared fixture: a delivery note. LOGISTICS owns the MOVEMENT as a transport record - consignment and manifest identity, carrier, route, proof of delivery as evidence that a carriage obligation was discharged. RETAIL_HOSPITALITY owns the RECEIVING CHECK against the operator's own purchase order - quantities ordered against quantities received, shortages, rejects, temperature-on-arrival, and the credit note that follows. The same sheet of paper can be both; the discriminator is whether the record is keyed to a CONSIGNMENT or to a PURCHASE ORDER. RETAIL_HOSPITALITY MUST NOT TAKE a carrier's manifest or a freight rate card; LOGISTICS MUST NOT TAKE a goods-in variance sheet keyed to the buyer's own order. AUTHORED ONE-WAY HERE - the `logistics` schema row had not landed when this was written; R1c owes the reciprocal. Provenance: inference.",
+      "design_cite": null
+    },
+    {
+      "domain": "creative",
+      "signal": "MENUS, PRODUCT PHOTOGRAPHY AND CAMPAIGN ARTEFACTS. Shared fixtures: `Menu_Spring2026_v7.indd`, `SKU40182_hero_final.psd`. CREATIVE owns the COMMISSION AND THE MAKING - the brief, the shoot, the layered source, the version family, the client approval. RETAIL_HOSPITALITY owns the LIVE SELLING RECORD - the priced menu as a trading document with its allergen footnote, the catalogue line as a row with a code and a margin. The discriminator is that creative's evidence is production apparatus and this row's is commercial apparatus. RETAIL_HOSPITALITY MUST NOT TAKE a design source file or a shoot folder; CREATIVE MUST NOT TAKE a gross-profit costing sheet because the subject is a dish.",
+      "design_cite": null
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "RECIPE AGAINST BILL OF MATERIALS, and the two are structurally near-identical. Shared fixture: an ingredient list with quantities, yields and unit costs. MANUFACTURING owns PRODUCTION AT SCALE for onward sale by others - a bill of materials, a batch or lot identity travelling with goods, process control, supplier qualification, quality events. RETAIL_HOSPITALITY owns COSTING A DISH FOR A MENU and the traceability a kitchen keeps for goods it received. The discriminator is the presence of a lot identity that leaves the premises: a batch code the operator RECEIVES is this row's traceability evidence; a batch code the operator ISSUES is manufacturing's. Both worlds want `product` and `site`, which is why this row reuses manufacturing's proposals rather than minting.",
+      "design_cite": null
+    },
+    {
+      "domain": "clinical_practice",
+      "signal": "THE BOOKING-SHAPED FALSE POSITIVE. Shared fixture: `Appointments_2026-03.csv` - named individuals, dates, time slots, durations, contact numbers, and a notes column. It is capacity-against-dated-demand on its face. CLINICAL_PRACTICE owns it when the slot is with a NAMED PRACTITIONER for a SUBJECT OF CARE, with a clinical or procedure code, a chart or patient reference, or a practitioner-registration token. RETAIL_HOSPITALITY owns it when the slot consumes a FINITE PHYSICAL CAPACITY - a table, a room, a seat - counted in covers, pax or room-nights against a floor, a plan or an inventory. Neither may take the other on the shape alone, and where the evidence does not settle it neither should activate. Note also that dietary and allergen data on a booking is guest-supplied health-adjacent information: it raises this row's privacy posture and creates NO clinical claim in either direction.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "finance",
+      "why": "The collision above is the mutex on ONE evidence item; this is the disjoint-evidence case and it is the family's most common join. A trading-period archive carries a Z-read set AND a merchant settlement statement; a supplier folder carries a goods-in variance sheet AND the invoice that was posted. Both schemas are true at once on different evidence. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). AUTHORED ONE-WAY HERE; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "why": "One packet, two schemas, disjoint evidence: a site pack carrying a standards audit, a supplier contract instrument, an insurance schedule AND the opening-checks sheets; a season pack carrying a range plan, a marketing calendar AND the catalogue price file. Neither takes the other's members. This is the join that keeps the existential seam from becoming a fight over whole folders. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "why": "A site operations folder holds a labour forecast, a rota and a named employee's return-to-work note in one place. hr's privacy posture governs the members that identify employees even where this row's structure is what recognised the folder. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "why": "A licence pack legitimately carries the operator's own application and the authority's notice, determination and inspection report in one bundle. Both schemas are true on disjoint evidence; custody decides which owns the group's reason, not which files may be read. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "why": "Product and dish photography, plated-food shots, and photographed compliance sheets are image evidence in a trading folder. The universal capture facts remain photos' business; this row must not claim a capture date as a trading date, and photos must not claim a photographed temperature log as a photo event. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The single most important fallthrough this family has, because 00 names its exact material: “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.” Booking records, purchase receipts, event tickets and isolated invoices are listed there by name. An isolated transactional document - including the family's collision fixture `Invoice 88231.pdf` and any customer-side booking confirmation - belongs here, not in this schema. This row activates on POPULATIONS and CYCLES; the lone transaction is a residual's business.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a durable standalone trading document with no cycle around it - a single hygiene rating certificate, a one-off licence grant with nothing beside it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home when trading material turns out to be a guest or staff dossier rather than an operating record - a reservation export carrying names, numbers, card tokens and dietary notes, a complaint file naming a guest and a staff member, an ID scan taken at check-in. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.” This family reaches this residual more often than any other in the roster, and that frequency is the reason for its sensitivity posture.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a trading-shaped file whose SIDE is unresolved - a booking-shaped export where the evidence does not settle whether the holder is the operator or the guest, or a scanned sheet whose handwriting OCR could not read. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected EPOS export or an unreadable platform dump. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "operator",
+      "other_field": "guest",
+      "other_domain": null,
+      "why": "THE FAMILY'S DEFINING ROLE SPLIT, and the reason this schema can be described in one sentence: it is the OPERATOR'S side only. The pattern is 00's own - “A consulting document may mention the author’s firm and the client organization.” and “The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.” - applied to a trading counter. Every artefact in this world names both parties, and the identical bytes exist twice: the operator's booking sheet and the guest's confirmation, the retailer's dispatch note and the buyer's delivery email, the venue's ticket allocation and the attendee's ticket. Neither role gets a key here. `guest` is DELIBERATELY NOT PROPOSED and must never be: it would be a folder level naming a member of the public, which the validator sentence forbids as an organization-or-author collector and which would expose protected information outright. `operator` is not proposed either, because in a single-business corpus it is the holder's own trade name and therefore a one-child collector - the same argument business_operations makes against `organization`. The split is recorded so that no child template smuggles either side in as a dimension. Provenance: design for the pattern; inference for this reading.",
+      "provenance": "inference"
+    },
+    {
+      "field": "site",
+      "other_field": "property",
+      "other_domain": "construction_property",
+      "why": "The same address is a TRADING UNIT here and a PROPERTY INTEREST there, and both families have proposed a key for their own view of it - `site` in this row (reused from manufacturing) and `property` five times across construction_property. They are not synonyms and must not be merged: `property` answers which interest in which land, and survives a change of trade; `site` answers which trading unit, and does not survive a change of premises. R1c should adjudicate them as a PAIR so that neither absorbs the other, exactly as construction_property asked for `organization`. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "THIS IS THE LEG THIS ROW PASSES MOST CLEARLY, and it is the sharpest difference from business_operations. That family holds material that is mostly COMMERCIALLY CONFIDENTIAL about an organisation; hr holds EMPLOYEE data about a known workforce under contract. This family's ordinary, everyday, highest-volume output is PERSONAL DATA ABOUT MEMBERS OF THE PUBLIC WHO HAVE NO RELATIONSHIP WITH THE HOLDER BEYOND ONE VISIT, and who never chose to be filed. Concretely: a reservation or order export is a list of names, telephone numbers, addresses, card tokens and stay or purchase histories; a function sheet carries dietary and allergen requirements and accessibility needs, which are health-derived data about named private individuals; an accommodation register may carry identity-document numbers taken at check-in; a guest complaint names a guest AND frequently makes an allegation against a named member of staff; a returns or chargeback file joins a named consumer to a payment dispute; till exception and cash-variance reports are, in substance, suspicion records about named staff; a food-safety incident log names the person who missed the check; and trading-floor CCTV and door-access media are images of customers and staff alike. Volume is itself the risk: one booking is a receipt, a year of bookings is a consumer database, and the second is produced by this family as a matter of routine. The design is therefore binding on every child template: “Privacy policy must be enforced before content reaches any model or external connector.” and “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” A guest-identifying record must be protected before any cloud step, must not have raw content shown in general group summaries, and must not be moved automatically. Two honesty notes, so this value is not read as more than it is. First, it does not invent a handling class - the dispatch allows only none or potentially_sensitive here, and P7 owns the classes. Second, it does not claim every file in this world is sensitive: a price list, a range plan, a printed menu and a stock count carry no person and stay ordinary; the posture exists because the family CANNOT BE SEPARATED into a safe half and a sensitive half at recognition time, since the sensitive members arrive inside the same exports and the same folders as the safe ones. This row does NOT carry is_safety_domain and does not ask for it; it asks that whatever mechanism forces P7 ahead of a model path for third-party personal data covers it, and that is recorded as NJ-RH-4.",
+  "open_question": "Six, all recorded rather than smoothed. NJ-RH-1 (the sharpest): the bare rota. `Week 12 rota.xlsx` with names, days and hours is undecidable between `retail_hospitality.store-operations` and `hr` on its own bytes. This row's proposed discriminator is a sales-per-labour-hour or labour-percentage column deciding for this family and contracted-hours/absence/pay deciding for hr; the alternative is that hr takes every rota and this family takes only the trade forecast it is built from. R1c must pick one, and both rows must say the same thing. NJ-RH-2: `event-production` against `business_operations.project-delivery` and `creative`. A venue delivering a function has capacity structure and is clearly this family; an agency PRODUCING an event for a client is an instructed commission and may not be. Alternatives: narrow the template to venue-side delivery, or refuse it and route to project-delivery plus this schema's default. NJ-RH-3: `catering-contract` may be a duplicate of `bookings-reservations` plus `event-production` plus `business_operations.contract-administration`, with nothing structural left of its own; this pass's reading is that it survives only if the FUNCTION SHEET plus allergen sheet plus final account chain is shown to be a structure none of the three holds, and R1c should test it hard rather than assume it. NJ-RH-4: trading-floor CCTV and door-access media. No landed row claims them, they are the family's highest-risk bytes, and they are audio_video rather than documents. Alternatives: `store-operations`; a privacy-only route straight to Protected Records with no domain claim; or a security world that does not yet exist. Related: whether the mechanism that forces P7 ahead of a model path reaches THIRD-PARTY personal data in a row that does not carry is_safety_domain - the same gap business_operations recorded, but sharper here because the data subjects are the public. NJ-RH-5: whether `record_period` may be sub-daily (a lunch service, a morning till session). Both finance proposals of that key are multi-day ranges; if it may not stretch, this family has no key for a service session and five templates lose a level. NJ-RH-6: the roster name says 'Retail, hospitality and events' but this pass found no schema-level structure for events beyond the capacity invariant the whole family shares, so events is carried INSIDE rather than as a third leg; if R1c disagrees the name should change rather than the shape."
+}

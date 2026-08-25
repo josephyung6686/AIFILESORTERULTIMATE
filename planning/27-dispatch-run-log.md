@@ -854,3 +854,20 @@ redone. Four dispatched now.
   `business_operations.procurement-sourcing` **declined** an edge with this family and addressed it.
 - Followed `construction_property`'s NJ-CP-5, which had drawn this seam one-way and left it to
   "whoever writes those schemas" — the open question was resolved by the row it was addressed to.
+
+## Schema anchor authored — `retail_hospitality` (OTHER-TEAM claim), stands
+
+- Memo **33,493B**, `kind: schema`, `fields: []`, 6 file_examples, all universal keys, stands.
+- Answered the existential charge first, before anything else, and stated the counterfactual
+  plainly: *"**The row would have been refused if it were.**"* A schema that names the condition
+  under which it would not exist is easier to audit than one that only argues it does.
+- Passes most clearly on **leg 3 (privacy)**, "not shared with any neighbour" — customer data,
+  bookings, CCTV and staff records give it a posture `business_operations` does not have.
+- **Its `recognition.never_alone` list is the longest of any anchor written so far, deliberately.**
+  The row defines itself substantially by what it refuses to accept as evidence, which is the
+  strongest available defence for a family whose obvious signals (an organisation name, a sector)
+  are all never-alone.
+- Inherits `business_operations`' never-alone principle and "does not restate where it already
+  holds" — extending a neighbour's rule rather than duplicating it.
+
+## OTHER-TEAM claim status: 3 of 4 complete (nonprofit, logistics, retail_hospitality). law_practice next.
