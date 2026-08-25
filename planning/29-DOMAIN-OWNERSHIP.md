@@ -27,6 +27,10 @@ resource_operations | CODEX | complete
 creative.performing-practice | CODEX | complete
 creative.client-engagement | CODEX | complete
 creative.revision-round | CODEX | complete
+creative.deliverable-handoff | CODEX | active
+creative.licensing-rights | CODEX | active
+creative.stock-asset-library | CODEX | active
+creative.graphic-design-project | CODEX | active
 
 ## Split history — the claim inverted once, read this before assuming
 
