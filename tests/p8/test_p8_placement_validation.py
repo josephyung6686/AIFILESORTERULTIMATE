@@ -1,6 +1,7 @@
 """Sites C/D placement and residual validation against P8-owned recorded pairs."""
 from __future__ import annotations
 
+import dataclasses
 import json
 from collections import Counter
 
@@ -26,6 +27,7 @@ from llm_harness.vocabulary import (
     ACCEPT_DIRECT,
     ACTION_NOT_IN_CONTROLLED_SET,
     BELOW_SUPPORT_THRESHOLD,
+    CHOOSE_RESIDUAL_DESTINATION,
     C_PLACEMENT,
     D_RESIDUAL,
     DESTINATION_NOT_IN_FROZEN_TREE,
@@ -43,6 +45,7 @@ from llm_harness.vocabulary import (
     RESIDUAL_DESTINATION,
     RETURN_TO_PLACEMENT,
     REVIEW_LATER,
+    SCHEMA_INVALID,
     SENSITIVITY_POLICY_VIOLATION,
     SENSITIVITY_RESTRICTION_IGNORED,
     SITE_C_REASON_CODES,
@@ -132,6 +135,15 @@ def _validate_d(pair, *, dependencies=None, contradicts=_never_contradicts):
     )
 
 
+def _with_payload_fields(pair, *, drop=(), **fields):
+    parsed = json.loads(pair.response_bytes)
+    payload = parsed["claims"][0]["payload"]
+    for key in drop:
+        payload.pop(key, None)
+    payload.update(fields)
+    return dataclasses.replace(pair, response_bytes=json.dumps(parsed).encode())
+
+
 def test_site_c_reason_registry_exercises_each_code_exactly_once():
     seen: list[str] = []
     for pair in SITE_C_REASON_PAIRS:
@@ -185,6 +197,45 @@ def test_site_c_two_condition_codes_are_weak_and_isolated():
         assert verdict.disposition == UNRESOLVED
         assert INSUFFICIENT_MARGIN not in verdict.reasons or pair is margin
         assert BELOW_SUPPORT_THRESHOLD not in verdict.reasons or pair is below
+
+
+def test_site_c_omitted_support_is_not_accept_direct():
+    pair = next(p for p in SITE_C_OUTCOME_PAIRS if p.name == "direct_accept")
+    result = _validate_c(_with_payload_fields(pair, drop=("support",)))
+    assert not isinstance(result, ValidationUnavailable)
+    verdict = result[0][0]
+    assert verdict.outcome != ACCEPT_DIRECT
+    assert verdict.may_propose is False
+    assert verdict.outcome in {WEAK, REJECT}
+    assert BELOW_SUPPORT_THRESHOLD in verdict.reasons or SCHEMA_INVALID in verdict.reasons
+
+
+def test_site_c_omitted_next_support_is_not_accept_direct():
+    pair = next(p for p in SITE_C_OUTCOME_PAIRS if p.name == "direct_accept")
+    result = _validate_c(_with_payload_fields(pair, drop=("next_support",)))
+    assert not isinstance(result, ValidationUnavailable)
+    verdict = result[0][0]
+    assert verdict.outcome != ACCEPT_DIRECT
+    assert verdict.may_propose is False
+    assert verdict.outcome in {WEAK, REJECT}
+    assert INSUFFICIENT_MARGIN in verdict.reasons or SCHEMA_INVALID in verdict.reasons
+
+
+def test_site_c_non_numeric_support_does_not_raise():
+    pair = next(p for p in SITE_C_OUTCOME_PAIRS if p.name == "direct_accept")
+    for fields in (
+        {"support": "high"},
+        {"next_support": None},
+        {"support": True},
+    ):
+        result = _validate_c(_with_payload_fields(pair, **fields))
+        assert not isinstance(result, ValidationUnavailable), fields
+        verdict = result[0][0]
+        assert verdict.outcome != ACCEPT_DIRECT, fields
+        assert verdict.outcome in {WEAK, REJECT}, fields
+        assert SCHEMA_INVALID in verdict.reasons or set(verdict.reasons) & {
+            BELOW_SUPPORT_THRESHOLD, INSUFFICIENT_MARGIN,
+        }, fields
 
 
 def test_site_c_slot_filled_without_evidence_rejects():
@@ -271,6 +322,21 @@ def test_site_d_same_file_evidence_and_controlled_set():
     assert _validate_d(folder)[0][0].reasons == (INVENTED_FOLDER,)
     assert _validate_d(dest)[0][0].reasons == (DESTINATION_NOT_IN_FROZEN_TREE,)
     assert _validate_d(restriction)[0][0].reasons == (SENSITIVITY_RESTRICTION_IGNORED,)
+
+
+def test_site_d_choose_destination_rejects_missing_or_invalid_target():
+    pair = next(p for p in SITE_D_OUTCOME_PAIRS if p.name == "direct_accept")
+    action = json.loads(pair.response_bytes)["claims"][0]["payload"]["action"]
+    assert action == CHOOSE_RESIDUAL_DESTINATION
+    for target in (None, "", 123, ["node-legal"]):
+        result = _validate_d(_with_payload_fields(pair, target=target))
+        assert not isinstance(result, ValidationUnavailable), target
+        verdict = result[0][0]
+        assert verdict.outcome == REJECT, target
+        assert verdict.may_propose is False, target
+        assert set(verdict.reasons) & {
+            DESTINATION_NOT_IN_FROZEN_TREE, ACTION_NOT_IN_CONTROLLED_SET,
+        }, (target, verdict.reasons)
 
 
 def test_site_d_outcome_pairs():

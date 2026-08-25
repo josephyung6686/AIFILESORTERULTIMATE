@@ -50,6 +50,7 @@ from llm_harness.vocabulary import (
     RETURN_CONFIRMED_GROUP,
     RETURN_TO_PLACEMENT,
     REVIEW_LATER,
+    SCHEMA_INVALID,
     SENSITIVITY_POLICY_VIOLATION,
     SENSITIVITY_RESTRICTION_IGNORED,
     SLOT_FILLED_WITHOUT_EVIDENCE,
@@ -176,6 +177,10 @@ def _dimensions(payload: Mapping[str, object]) -> tuple[Mapping[str, object], ..
     return tuple(item for item in raw if isinstance(item, Mapping))
 
 
+def _real_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def _invented_dimension(payload: Mapping[str, object], vocab: set[str]) -> str | None:
     for item in _dimensions(payload):
         value = item.get("value")
@@ -232,13 +237,20 @@ def _placement_site(
         return _reject(verdict, SENSITIVITY_POLICY_VIOLATION, NO_DESTINATION)
     if payload.get("generic_hub") is True or destination == "node-hub":
         return _weak(verdict, GENERIC_HUB_ONLY)
-    if "support" in payload:
-        support = payload["support"]
-        if float(support) < float(dependencies.support_threshold):
-            return _weak(verdict, BELOW_SUPPORT_THRESHOLD)
-        next_support = payload.get("next_support", 0)
-        if not dependencies.margin_predicate(support, next_support):
-            return _weak(verdict, INSUFFICIENT_MARGIN)
+    if "support" not in payload:
+        return _weak(verdict, BELOW_SUPPORT_THRESHOLD)
+    support = payload["support"]
+    if not _real_number(support):
+        return _reject(verdict, SCHEMA_INVALID, NO_DESTINATION)
+    if float(support) < float(dependencies.support_threshold):
+        return _weak(verdict, BELOW_SUPPORT_THRESHOLD)
+    if "next_support" not in payload:
+        return _weak(verdict, INSUFFICIENT_MARGIN)
+    next_support = payload["next_support"]
+    if not _real_number(next_support):
+        return _reject(verdict, SCHEMA_INVALID, NO_DESTINATION)
+    if not dependencies.margin_predicate(support, next_support):
+        return _weak(verdict, INSUFFICIENT_MARGIN)
     if payload.get("weak_retrieval") is True:
         return _rewrite(
             verdict,
@@ -302,7 +314,9 @@ def _residual_site(
     if isinstance(target, str) and "/" in target:
         return _reject(verdict, INVENTED_FOLDER, REJECTED)
     plan_version = dossier.plan_version or ""
-    if action in _TARGET_ACTIONS and isinstance(target, str) and target:
+    if action in _TARGET_ACTIONS:
+        if not isinstance(target, str) or not target:
+            return _reject(verdict, DESTINATION_NOT_IN_FROZEN_TREE, REJECTED)
         approved = set(dependencies.approved_target_ids)
         if not dependencies.node_exists(target, plan_version):
             return _reject(verdict, DESTINATION_NOT_IN_FROZEN_TREE, REJECTED)

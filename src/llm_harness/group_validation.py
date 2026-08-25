@@ -28,6 +28,7 @@ from llm_harness.vocabulary import (
     LABEL_WITHOUT_COHERENCE,
     REJECT,
     REJECTED,
+    SCHEMA_INVALID,
     TERM_MERGE_UNSUPPORTED,
     UNRESOLVED,
     WEAK,
@@ -86,21 +87,35 @@ def _dossier_members(dossier: Dossier) -> set[str]:
     }
 
 
-def _included_members(payload: Mapping[str, object]) -> tuple[str, ...]:
-    raw = payload.get("members")
-    if not isinstance(raw, Sequence) or isinstance(raw, (str, bytes)):
+def _included_members(payload: Mapping[str, object]) -> tuple[str, ...] | None:
+    if "members" not in payload:
         return ()
+    raw = payload["members"]
+    if isinstance(raw, (str, bytes)) or not isinstance(raw, Sequence):
+        return None
     found: list[str] = []
     for item in raw:
-        if isinstance(item, Mapping) and item.get("file_id"):
-            found.append(str(item["file_id"]))
+        if isinstance(item, str):
+            if not item:
+                return None
+            found.append(item)
+        elif isinstance(item, Mapping):
+            file_id = item.get("file_id")
+            if not isinstance(file_id, str) or not file_id:
+                return None
+            found.append(file_id)
+        else:
+            return None
     return tuple(found)
 
 
 def _conflicting_institution(dossier: Dossier, payload: Mapping[str, object]) -> bool:
     if not any(item.kind == "target_institution" for item in dossier.conflicts):
         return False
-    included = set(_included_members(payload))
+    included_members = _included_members(payload)
+    if included_members is None:
+        return False
+    included = set(included_members)
     outliers = payload.get("outliers")
     if not isinstance(outliers, Sequence) or isinstance(outliers, (str, bytes)):
         return False
@@ -120,7 +135,10 @@ def _group_site(dossier: Dossier, raw: object, verdict: P8Verdict) -> P8Verdict 
     coherent = payload.get("coherent")
     if payload.get("label") and coherent != "yes":
         return _reject(verdict, LABEL_WITHOUT_COHERENCE, REJECTED)
-    for file_id in _included_members(payload):
+    members = _included_members(payload)
+    if members is None:
+        return _reject(verdict, SCHEMA_INVALID, REJECTED)
+    for file_id in members:
         if file_id not in _dossier_members(dossier):
             return _reject(verdict, INVENTED_MEMBERSHIP, REJECTED)
     if "date" in payload and payload["date"] not in vocab:

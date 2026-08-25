@@ -1,6 +1,8 @@
 """Site B group validation against P8-owned recorded pairs."""
 from __future__ import annotations
 
+import dataclasses
+import json
 from collections import Counter
 from pathlib import Path
 
@@ -54,6 +56,15 @@ def _validate(pair, *, contradicts=_never_contradicts, evidence_resolver=_resolv
         dossier_builder="p8-fixture",
         release_audit_id=17,
     )
+
+
+def _with_payload_fields(pair, *, drop=(), **fields):
+    parsed = json.loads(pair.response_bytes)
+    payload = parsed["claims"][0]["payload"]
+    for key in drop:
+        payload.pop(key, None)
+    payload.update(fields)
+    return dataclasses.replace(pair, response_bytes=json.dumps(parsed).encode())
 
 
 def test_site_b_reason_registry_exercises_each_code_exactly_once():
@@ -115,6 +126,19 @@ def test_invented_membership_is_a_file_outside_the_dossier():
     verdict = _validate(pair)[0][0]
     assert verdict.reasons == (INVENTED_MEMBERSHIP,)
     assert verdict.outcome == REJECT
+
+
+def test_string_list_members_are_checked_against_dossier():
+    pair = next(p for p in SITE_B_OUTCOME_PAIRS if p.name == "direct_accept")
+    members = {item.evidence_ref for item in pair.dossier.evidence_items if item.kind == "member"}
+    assert "file-invented" not in members
+    invented = _validate(_with_payload_fields(pair, members=["file-invented"]))[0][0]
+    assert invented.outcome == REJECT
+    assert invented.reasons == (INVENTED_MEMBERSHIP,)
+    assert invented.may_propose is False
+    accepted = _validate(_with_payload_fields(pair, members=["file-a", "file-b"]))[0][0]
+    assert accepted.outcome == ACCEPT_DIRECT
+    assert accepted.reasons == ()
 
 
 def test_label_without_coherence_rejects():
