@@ -4,6 +4,14 @@
 
 **Goal:** Build P9 so validated P6 anchors produce bounded, privacy-safe, reviewable groups whose memberships remain evidence-backed, replayable, append-only, and incapable of being established by embeddings alone.
 
+**North-star user experience:** P9 proposes only what it can explain. Every suggestion
+must show the strongest independent evidence, its source location, uncertainty, and
+the next safe action. Users can accept, edit, reject, defer, or undo a proposal; no
+proposal silently becomes an irreversible organization decision. The default view is
+small and decision-focused, with layered detail for evidence, provenance, conflicts,
+and history. Missing knowledge or weak evidence produces a comprehensible candidate
+or review state—not a confident-looking guess.
+
 **Architecture:** P9 is a deterministic seed, retrieval, graph, stop-rule, and dossier layer around one injected P8 group-evaluation seam. Shared evidence (`Group`, `Membership`, dossiers, edges, failures, embeddings) is stored once; only `group_acceptance` is plan-versioned. Unfinished domain knowledge, compatibility tables, thresholds, embedding settings, prompt content, P8, and P13 are required injected inputs or dependency gates—never defaults.
 
 **Tech Stack:** Python 3.12, stdlib `sqlite3`, frozen dataclasses, P1 append-only provenance, P2 replay/stage outputs, P4 observation keys, P6 read surfaces, P7 classification/gate records, pytest, Graphify.
@@ -83,6 +91,35 @@ tests/integration/test_p9_walking_skeleton.py deterministic P6→P9→later fixt
 ```
 
 No task edits `planning/domains/`, deferred catalogues, prompts, or `.superpowers/`.
+
+### Evidence and review UX contract
+
+This is a P9 requirement, not a later interface polish task. The implementation must
+preserve the information needed for a trustworthy review surface:
+
+- Every edge, seed, candidate member, omission, stop rule, and membership proposal
+  carries typed evidence references (`observation_key` plus exact span/structure
+  locator where applicable), source file/version identity, and the producing
+  extractor/plan version.
+- A candidate group exposes separate `direct_anchor`, `context_supported`, and
+  `semantic_support` evidence. Semantic support can improve recall but can never be
+  the sole reason for an accepted membership.
+- Uncertainty is explicit: `unknown`, `ambiguous`, `conflicting`, `insufficient`,
+  and `deferred` are distinct from rejection and from consent pending. No empty
+  citation list is treated as support.
+- Review records include a concise reason, strongest evidence channels, conflicts,
+  affected files, and the safe next action. Detailed provenance is available on
+  demand; the default payload does not dump raw file content.
+- User actions are append-only and reversible at the P9 decision layer: accept,
+  edit, reject, defer, restore/reconsider, and reset-suggestion operations retain
+  their basis and scope. P9 does not delete or move source files.
+- Bulk review is permitted only for equivalent low-risk proposals with visible
+  counts and exceptions; context-supported or conflicting proposals remain
+  individually reviewable.
+
+These requirements keep P9 aligned with the original product design and with the
+privacy/review boundary: P9 prepares explainable proposals, P8 validates model
+interpretation, P7 controls release, and later parts own destination/placement.
 
 ---
 
@@ -922,6 +959,13 @@ Assert `src/grouping/` contains no prompt text, domain names, fixed numeric thre
 
 Assert P6 reads are through public surfaces and the direct/validated seed filter is visible; P7 classification is checked before every P8 dossier request; `llm_harness.run_call` is the only evaluation seam; P9 never materializes evidence or calls the privacy gate; P2 stage ids are exact; P13 remains fixture-mediated; P10/P11 consume fixture records without imports back into P9; embeddings can create only semantic support/edges and never anchors.
 
+Add north-star UX assertions: every surfaced proposal has at least one typed
+non-semantic evidence reference or is explicitly marked semantic-only/candidate;
+direct, context-supported, semantic-support, conflict, abstention, consent-pending,
+and deferred states remain distinguishable; review records expose reason, uncertainty,
+source identity, and reversible user-action scope; and no P9 record contains a
+destination, destructive action, or irreversible side effect.
+
 - [ ] **Step 3: Run focused verification**
 
 Run:
@@ -1011,6 +1055,7 @@ Only after all checks pass may P9 be described as complete. If G-P8 or G-P13 is 
 | P13 user actions and §8.7 suppression | 11 |
 | P2 retrieval/graph/grouping attribution; Done-means 8 three-stage failure log | 2, 12 |
 | Deterministic walking skeleton, multi-membership, degradation | 13 |
+| Evidence provenance, explicit uncertainty, explainable/reversible review proposals | 2, 9, 10, 12, 14 |
 | No invention and original mission fidelity | 14, 15 |
 
 ## Explicitly unresolved after this plan
