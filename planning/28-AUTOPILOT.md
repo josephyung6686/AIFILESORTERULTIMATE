@@ -4,6 +4,20 @@
 Companion state: [`26-research-dispatch-state.md`](26-research-dispatch-state.md) ·
 append-only history: [`27-dispatch-run-log.md`](27-dispatch-run-log.md)
 
+## 0. ⚠ STOP — TWO TEAMS ARE WRITING (added 2026-08-25)
+
+**Before dispatching anything, read `planning/29-DOMAIN-OWNERSHIP.md` and claim your ids there.**
+A second team (CODEX) writes rows into the same directory. An unattended tick that dispatches
+against their id will collide — this has already happened twice and cost two stopped agents.
+
+- Dispatch ONLY ids marked for this team (`OTHER-TEAM`), or unclaimed ids you claim first.
+- **Never** write, edit, or delete a file for an id claimed by CODEX, including deleting a stray
+  file left there by this team. Report it instead; deleting inside their claim is the edit the
+  rules forbid.
+- **Do not stash, rebase, pull, or reset while either team has uncommitted work.** If a push is
+  rejected, hold the commit locally and say so. (This overrides §3 below.)
+- Release each id to `complete` in the register when its row lands.
+
 ## 1. Standing orders (Joseph, 2026-08-25)
 
 - Run **4 agents at a time**, one row each. (8 was validated and worked; 4 is the standing order.)
@@ -60,11 +74,12 @@ PY
 
 6. **Go to 1.**
 
-## 3. If the push is rejected
+## 3. If the push is rejected — SUPERSEDED BY §0
 
-A parallel workstream commits to `build/p6-p7-first-packages` too (they own `src/`, this track owns
-`planning/domains/`). Check for overlap, then `git rebase origin/build/p6-p7-first-packages` and
-push again. There has never been a real conflict; verify rather than assume.
+Historically: the P6/P7 workstream also commits to `build/p6-p7-first-packages` (they own `src/`,
+this track owns `planning/domains/`), and rebasing onto them was safe.
+**That no longer applies while two teams are writing rows.** Per §0, do not rebase, pull, stash or
+reset while either team has uncommitted work — hold the commit locally and report it.
 
 ## 4. If agents are killed by the usage limit
 
