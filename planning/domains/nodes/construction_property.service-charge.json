@@ -3,417 +3,162 @@
   "kind": "template",
   "schema_id": "construction_property",
   "parent_id": null,
-  "name": "Service charges, leaseholder accounts and major works consultation",
-  "one_line": "The organizational situation of SPLITTING A BUILDING'S RUNNING COSTS AMONG THE PEOPLE WHO LIVE IN IT: a managing agent budgets what the block will cost next year, demands each flat's apportioned share on fixed dates, spends the money, has the year certified by an accountant, and consults everybody formally before spending a large sum on the roof. The organizing anchor is the BUILDING plus a SERVICE CHARGE YEAR, and the row's defining property is that every document exists in two versions of itself - the whole building's, and one leaseholder's share of it - which is what makes it a filing situation rather than a document type. Absorbs the legacy row prop.service-charge (ROW). Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "name": "Service charges and leaseholder accounts",
+  "one_line": "Refused specialization for building budgets, demands, apportionments, reconciliations and leaseholder accounts: the cycle is already part of the construction_property default, while the remaining distinctions are property, tenant and billing-stage values.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
-  "refuse_node": false,
-  "refuse_reason": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three template-node legs. Detection fails because the deepened construction_property default already names an apportionment structure and service-charge budget, demand and reconciliation work types; invoice/account, property, unit, landlord and tenant observations add only role values and billing-stage work_type values. Dimensions fail because this field-less schema requires the same empty dimension_order as its default; building, service-charge period and unit are undeclared. Privacy fails to differ because the default already protects tenant, address, payment and dispute material. The gist verdict is reversed: the files remain covered by the schema default, independently active neighbours, groups and residuals.",
   "fields": [],
   "proposed_fields": [],
   "recognition": {
     "deterministic": [
-      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
-      "an apportionment structure: a schedule of costs by heading - insurance, cleaning, lifts, grounds, management fee, reserve fund - against a percentage or fraction attributed to each unit, with the fractions summing across the building. A cost table split by a fixed share per flat is the discriminating shape and it exists in no other document in this catalogue. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
-      "a demand structure: a payment demand for a stated period naming a unit, an amount, a due date, and - distinctively - a block of prescribed statutory wording about the recipient's rights, printed on the face of the demand.",
-      "a service-charge year structure: a budget for a period, followed by a year-end account for the SAME period reconciling estimated against actual with a balancing charge or credit. The estimate-then-reconcile pair over a fixed year is what separates this from any ordinary bill.",
-      "an accountant's certificate: a signed statement that the year's account presents the costs incurred, addressed to leaseholders rather than to a company's members.",
-      "a consultation notice structure: a formal notice of intention to carry out works, an invitation to comment within a stated period, a statement of estimates naming contractors and prices, and a notice of the reason for the choice made. A staged, statutory-shaped consultation about spending exists in no other row here.",
-      "a reserve or sinking fund statement: a balance carried across years, with contributions and drawdowns - a fund belonging to a building rather than to a person.",
-      "a resale or management pack: a bundle answering a buyer's questions about charges, arrears, works planned and disputes, assembled for one flat at one moment."
+      "None unique: a building budget plus unit apportionment, demands and reconciliation is deterministic evidence for the construction_property default, which already owns that structure.",
+      "No invoice or account routes here merely because its subject is a building or its counterparty is a leaseholder; those are role values, not a second template."
     ],
     "needs_llm": [
-      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
-      "which side of the demand the file is on. The agent's file, the freeholder's file, the residents' company's file and one leaseholder's file all contain the same budget and the same accounts, and only purpose separates them. “Topic answers what a file is about, while purpose answers what the file was for.”",
-      "separating an estimated demand from the balancing account for the same year, when both are one-page documents naming the same period and different amounts.",
-      "distinguishing a service charge from ground rent, from a buildings insurance recharge and from a major works levy, which arrive together and are legally different things.",
-      "recognising a consultation notice as a stage in a sequence rather than a standalone letter, when the earlier stages are missing from the corpus.",
-      "reading a dispute out of correspondence where the operative content is a challenge to reasonableness rather than a refusal to pay.",
-      "a management pack that is purpose-coherent and content-incoherent: accounts, a budget, an insurance schedule, arrears figures and a works history. “The documents are content-incoherent but purpose-coherent.”"
+      "Nothing routes to this refused node. Review may choose the construction_property default, Finance, tenancy management, facilities/workplace, or a residual. “A model that cannot cite sufficient evidence must return unknown.”",
+      "A model may propose group membership but may not copy a property, unit, tenant, period, amount or payment-status fact onto sparse members."
     ],
     "never_alone": [
-      "a building or unit address alone. Every demand, every account, every bill and every neighbouring row carries one, and it does not say whether the file is the building's or one flat's. Read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
-      "a managing agent's or freeholder's organisation name alone.",
-      "a money total or a percentage alone: apportionments, interest, VAT and arrears all print as percentages.",
-      "a leaseholder's name alone.",
-      "the words charge, demand, statement or account alone - the most generic financial document words in the corpus.",
-      "a bare 4-digit number, as likely a unit reference, a scheme number or a fund balance fragment as a year - and a service charge year frequently does not run to the calendar, which makes a stray four-digit token especially misleading here.",
-      "membership in a download session that pulled a whole management portal folder at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
-      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”"
+      "service charge, demand, account, invoice, budget, reconciliation, reserve fund or apportionment alone; these are document-function or work_type values",
+      "a property address, block, unit number, landlord, managing agent or tenant name alone",
+      "an amount, percentage share, due date, accounting period or arrears balance alone",
+      "a source_type or extension alone; “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a portal folder or download session alone; “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
     ]
   },
-  "proposed_context_terms": [
-    "service charge",
-    "estimated service charge",
-    "actual expenditure",
-    "budget",
-    "year end accounts",
-    "balancing charge",
-    "balancing credit",
-    "apportionment",
-    "schedule",
-    "percentage share",
-    "reserve fund",
-    "sinking fund",
-    "major works",
-    "consultation",
-    "notice of intention",
-    "statement of estimates",
-    "observations",
-    "ground rent",
-    "insurance recharge",
-    "administration charge",
-    "arrears",
-    "demand",
-    "due date",
-    "payable in advance",
-    "summary of rights and obligations",
-    "managing agent",
-    "freeholder",
-    "landlord",
-    "leaseholder",
-    "right to manage",
-    "resale pack",
-    "management pack",
-    "section 20"
-  ],
-  "work_types": [
-    "annual budget or estimate",
-    "service charge demand",
-    "year-end certified accounts",
-    "accountant's certificate",
-    "apportionment schedule",
-    "balancing charge or credit statement",
-    "reserve or sinking fund statement",
-    "consultation notice of intention",
-    "statement of estimates",
-    "notice of reasons for award",
-    "major works specification and cost report",
-    "arrears or reminder notice",
-    "ground rent demand (adjacent, legally distinct)",
-    "buildings insurance schedule for the block",
-    "resale or management pack",
-    "leaseholder challenge or query correspondence",
-    "tribunal or determination papers (boundary case)"
-  ],
+  "proposed_context_terms": [],
+  "work_types": [],
   "grouping_reasons": [
-    "one service charge year for one building: the budget, the demands issued under it, the year-end accounts and the balancing statement - which only make sense as a set, because the account exists to reconcile the budget.",
-    "one major works consultation across its stages: notice of intention, estimates, observations, award, and the works cost that lands in a later year's account. Purpose-coherent, content-incoherent, and spread across two or three service charge years.",
-    "one unit's charges across years, which is how a leaseholder files and how an agent does not - the second axis, and the one that tempts the product to carry a building-level total onto a single flat's record. “The graph does not automatically copy those missing facts onto sparse files.”",
-    "a resale pack as a bundle assembled for one flat at one moment, which dissolves after the sale.",
-    "no group at all is a valid outcome: a single demand received by a leaseholder with no accounts around it is a transactional record."
+    "The graph may assemble estimate, demands, apportionment, actual-cost account and balancing statement around one building and period under the construction_property default; that does not activate this row.",
+    "A tenancy group may contain a lease, rent ledger, service-charge demand and correspondence while every member retains only its own facts.",
+    "An isolated demand remains transactional; nearby files do not copy property, tenant, period or payment facts onto it."
   ],
   "template": {
     "dimension_order": [],
-    "time_first": false,
-    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the anchor is the BUILDING or scheme, then the service charge year, then the document stage - budget, demands, accounts, consultation. The unit belongs BELOW the year on the professional side, because an agent's question is always about a building in a year and only then about a flat; a leaseholder's tree inverts it, and that inversion is the seam with finance.hoa-residents-association rather than a defect in this order. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - a balancing charge is unintelligible without the budget it reconciles. Not time-first at the top: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - though the service charge YEAR is the load-bearing second level, and it is worth recording that it frequently does not run to the calendar, so a year dimension here is a named accounting period and not a date. Privacy caveat specific to this row: arrears schedules name individual residents and what they owe, consultation and dispute correspondence names them taking positions against their neighbours, and a block's records are a list of who lives where. None of that should acquire automatic internal depth or reach a model prompt by default. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+    "why": "Empty because the row is refused and construction_property declares no destination fields. Building, service-charge period and unit are undeclared; billing stage is only work_type. The schema default already holds property/site -> instruction -> document function in prose, with a period where the situation cycles.",
+    "time_first": false
   },
   "file_kinds": {
-    "source_types": [
-      "text_document",
-      "spreadsheet",
-      "email",
-      "ocr",
-      "image",
-      "archive",
-      "opaque_binary"
-    ],
-    "extensions": [
-      ".pdf",
-      ".xlsx",
-      ".csv",
-      ".docx",
-      ".eml",
-      ".jpg",
-      ".zip"
-    ],
+    "source_types": ["text_document", "spreadsheet", "email", "ocr", "image", "archive", "opaque_binary"],
+    "extensions": [".pdf", ".xlsx", ".csv", ".docx", ".eml", ".jpg", ".zip"],
     "never_alone": true
   },
   "file_examples": [
     {
       "filename": "Service charge budget 2026-27 - Halstead Court.pdf",
       "source_type": "text_document",
-      "observations": [
-        "cost headings with estimated amounts for a stated period",
-        "a reserve fund contribution line",
-        "an apportionment schedule with a percentage per flat",
-        "a managing agent letterhead"
-      ],
-      "facts_legal": [
-        "file_type",
-        "creation_date",
-        "language",
-        "version_family"
-      ],
-      "must_not_conclude": [
-        "any construction_property fact - the schema declares no field rows",
-        "that the period is a calendar year - service charge years commonly do not run to one",
-        "an occupancy fact from an apportionment schedule, which lists units and not people",
-        "a folder path"
-      ],
+      "observations": ["estimated cost headings", "reserve-fund line", "percentage share by unit", "managing-agent letterhead"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": ["activation of this refused row", "a calendar year from the period", "an undeclared property or unit fact", "a folder path"],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
     },
     {
-      "filename": "Demand - Flat 12 - half year to Sept.pdf",
+      "filename": "Demand - Flat 12 - half year to September.pdf",
       "source_type": "text_document",
-      "observations": [
-        "a unit reference, an amount and a due date",
-        "a period stated to be payable in advance",
-        "a printed block of prescribed statutory wording about the recipient's rights",
-        "a payment instruction"
-      ],
-      "facts_legal": [
-        "file_type",
-        "creation_date",
-        "language"
-      ],
-      "must_not_conclude": [
-        "that the demand was paid or is owed - a demand records what was asked for",
-        "a resident's name as a destination dimension",
-        "that the demand and the year-end account for the same period are duplicates: they are different documents with different amounts",
-        "a folder path"
-      ],
-      "also_schema": null,
+      "observations": ["unit reference", "amount and due date", "advance period", "rights text"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["activation of this refused row", "that the demand was paid", "a tenant fact from the addressee", "a folder path"],
+      "also_schema": "finance",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Receipts and Confirmations"
     },
     {
       "filename": "Certified accounts - year to 31 March 2026.pdf",
       "source_type": "text_document",
-      "observations": [
-        "actual expenditure against the same headings as the budget",
-        "a comparison column and a balancing figure",
-        "an accountant's signed certificate addressed to leaseholders",
-        "a reserve fund movement"
-      ],
-      "facts_legal": [
-        "file_type",
-        "creation_date",
-        "language"
-      ],
-      "must_not_conclude": [
-        "a judgement about whether costs were reasonable - that is a leaseholder's argument and, ultimately, a tribunal's",
-        "an accountant's certification read as the product's own validation of the figures",
-        "a folder path"
-      ],
-      "also_schema": null,
-      "group_without_copying_facts": true,
-      "falls_through_if_inactive": "Independent Records"
-    },
-    {
-      "filename": "Notice of intention - roof works.pdf",
-      "source_type": "text_document",
-      "observations": [
-        "a formal notice describing intended works",
-        "an invitation to make observations within a stated period",
-        "an address for observations and a date",
-        "statutory-shaped wording"
-      ],
-      "facts_legal": [
-        "file_type",
-        "creation_date",
-        "language"
-      ],
-      "must_not_conclude": [
-        "that the works happened - a notice of intention precedes any decision",
-        "a cost fact: this stage names no price",
-        "that a statutory-shaped notice makes the file legal material rather than a management record - construction_property.block-management and legal.personal-legal-matters are the neighbouring readings and neither is automatic",
-        "a folder path"
-      ],
-      "also_schema": null,
+      "observations": ["actual expenditure", "estimate comparison", "balancing figure", "accountant certificate"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["activation of this refused row", "that certification validates every charge", "a tax year from a reporting period", "a folder path"],
+      "also_schema": "finance",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Independent Records"
     },
     {
       "filename": "Arrears schedule - March.xlsx",
       "source_type": "spreadsheet",
-      "observations": [
-        "one row per unit with a balance, an ageing profile and a status",
-        "resident surnames in a column",
-        "recovery notes in free text",
-        "a total"
-      ],
-      "facts_legal": [
-        "file_type",
-        "creation_date",
-        "sensitivity_status"
-      ],
-      "must_not_conclude": [
-        "a debt fact about a named individual for organisation purposes - this is a list of neighbours and what they owe, and a group summary would republish it",
-        "a resident name as a destination dimension",
-        "a folder path"
-      ],
-      "also_schema": null,
+      "observations": ["one row per unit", "resident names", "aged balances", "recovery notes"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["activation of this refused row", "that every balance is owed", "permission to expose resident names", "a folder path"],
+      "also_schema": "finance",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Protected Records"
     },
     {
-      "filename": "Ground rent demand - Flat 12.pdf",
+      "filename": "Notice of intention - roof replacement.pdf",
       "source_type": "text_document",
-      "observations": [
-        "a small fixed sum for a stated period",
-        "a unit reference and a freeholder name",
-        "prescribed wording of a different kind",
-        "a due date"
-      ],
-      "facts_legal": [
-        "file_type",
-        "creation_date",
-        "language"
-      ],
-      "must_not_conclude": [
-        "activation of this row: ground rent is a payment under the lease and legally a different thing from a service charge, even though it arrives in the same envelope - the collision fixture, and legal.leases-agreements holds the lease that creates it",
-        "a service charge fact copied onto it because it shares a unit and a period - “The graph does not automatically copy those missing facts onto sparse files.”",
-        "a folder path"
-      ],
-      "also_schema": null,
+      "observations": ["proposed works", "invitation to comment", "response date", "landlord and premises roles"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["that work occurred", "that an invoice was approved", "activation of this refused row", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Facilities recharge invoice - West Tower - Q2.pdf",
+      "source_type": "text_document",
+      "observations": ["invoice identifier", "occupied premises", "shared-services lines", "amount due"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["that an occupier is a leaseholder", "that shared services imply this row", "a tax year", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Rent and charges statement - 18 River Court.eml",
+      "source_type": "email",
+      "observations": ["sender and recipient", "tenancy reference", "rent and charge lines", "running balance"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["one template per charge line", "payment from a balance", "activation of this refused row", "a folder path"],
+      "also_schema": "finance",
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Receipts and Confirmations"
     },
     {
-      "filename": "Management pack - Flat 12 - for sale.zip",
+      "filename": "service-charge-pack.zip",
       "source_type": "archive",
-      "observations": [
-        "a manifest listing accounts, a budget, an insurance schedule, an arrears figure and a works history",
-        "a form of standard questions with answers",
-        "a fee note",
-        "no readable top-level document"
-      ],
-      "facts_legal": [
-        "file_type",
-        "creation_date"
-      ],
-      "must_not_conclude": [
-        "a single domain for the whole archive from its manifest - members are extracted as their own files, and the pack is also a member of a conveyancing transaction (construction_property.sale-purchase)",
-        "that the pack's contents are current beyond the date it was assembled",
-        "a folder path"
-      ],
+      "observations": ["manifest lists budgets, demands, accounts and correspondence", "mixed members", "no top-level statement", "some encrypted members"],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": ["member facts on the archive", "one period for every member", "activation from its name", "a folder path"],
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
     },
     {
-      "filename": "RE_ challenge to management fee.eml",
-      "source_type": "email",
-      "observations": [
-        "a leaseholder disputing a fee line in the accounts",
-        "a quoted extract from the certified accounts",
-        "several residents copied in",
-        "a reference to a tribunal application being considered"
-      ],
-      "facts_legal": [
-        "file_type",
-        "creation_date",
-        "language"
-      ],
-      "must_not_conclude": [
-        "an outcome or a merit - the product records the correspondence, not the argument",
-        "named residents' positions restated in a group summary",
-        "a folder path"
-      ],
-      "also_schema": null,
-      "group_without_copying_facts": true,
-      "falls_through_if_inactive": "Review Later"
-    },
-    {
-      "filename": "Scan_demand_flat12.jpg",
+      "filename": "Ground rent demand - Flat 12.pdf",
       "source_type": "ocr",
-      "observations": [
-        "a photographed demand on a kitchen table",
-        "glare across the statutory wording block",
-        "OCR recovers the amount and the unit and loses the period",
-        "no accounts anywhere in the corpus"
-      ],
-      "facts_legal": [
-        "file_type",
-        "creation_date",
-        "language"
-      ],
-      "must_not_conclude": [
-        "a period fact that OCR did not recover",
-        "activation of the professional situation from a leaseholder's single scanned demand: with no budget, no accounts and no apportionment schedule around it, finance.hoa-residents-association is the nearer home and a residual is the honest outcome",
-        "a folder path"
-      ],
-      "also_schema": null,
-      "group_without_copying_facts": true,
+      "observations": ["landlord and unit labels", "amount and due date", "ground-rent wording", "scanner metadata"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["service charge from any property demand", "activation of this refused row", "payment status", "a folder path"],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
       "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "IMG_4412.jpg",
+      "source_type": "image",
+      "observations": ["phone photograph of a demand", "partial OCR amount and address", "cropped recipient", "capture metadata"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["service-charge purpose from partial OCR", "a tenant or unit fact", "activation from neighbours", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
     }
   ],
-  "collides_with": [
-    {
-      "domain": "finance.hoa-residents-association",
-      "signal": "The row's defining seam, and it is the professional/householder seam this whole schema sits on, seen from the block side. That row holds the association-to-member relationship and a resident's own dues, assessments, meeting papers and correspondence; this row holds the managing agent's or freeholder's administration of a building's costs. The discriminating evidence: an apportionment schedule across a whole building, a budget-and-certified-accounts pair for a service charge year, or a consultation sequence supports this row; a single member's account, dues notices, meeting papers and association governance supports the association row. A unit address, an agent's name or a money figure counts for neither - stated in that row's own terms so the pair reads consistently.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "construction_property.block-management",
-      "signal": "The nearest sibling on this schema: the same agent, the same building, the same file. The discriminating evidence: the money cycle - budget, demand, account, consultation on spending - supports this row; the operational management of the building, its contractors, its compliance and its residents' day-to-day matters supports the block row. The two are genuinely one folder in practice, and the split is by function rather than by file.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "legal.leases-agreements",
-      "signal": "The lease is what creates the charge and fixes the apportionment, and ground rent arrives beside the service charge as a legally different payment under the same instrument. The discriminating evidence: party recitals, covenants, a term and an execution block identify the lease as legal material - that row's own stated signal; a demand or an account issued under it supports this row.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "finance.household-property",
-      "signal": "A leaseholder's own copies of demands and accounts are household property administration. The discriminating evidence: a household's retained records of its own home supports the household row; a building-wide administration file supports this row. Reciprocal to the seam that row already draws against finance.hoa-residents-association.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "construction_property.final-account",
-      "signal": "Major works produce a construction contract inside a service charge, so the same roof job generates valuations here and consultation notices there. The discriminating evidence: the contractual payment cycle with a contractor supports the final-account row; the consultation with, and recharge to, leaseholders supports this row.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "finance.small-business-bookkeeping",
-      "signal": "An agent's own ledger, client account and fee income sit beside the building's money and must not be mixed with it. The discriminating evidence: the agent's own revenue and accounting supports bookkeeping; money held and spent on behalf of a building supports this row.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "finance.insurance-personal",
-      "signal": "The block buildings insurance schedule is recharged through the service charge and is also an insurance record. The discriminating evidence: a policy, a schedule and a claim history supports the insurance row; the recharge and its apportionment supports this row.",
-      "provenance": "inference"
-    },
-    {
-      "domain": "construction_property.sale-purchase",
-      "signal": "The resale or management pack is a member of a conveyancing transaction as well as an output of this row. The discriminating evidence: the transaction pack around a property supports the sale row; the building's own charge records support this row. Reciprocal to the fixture authored there.",
-      "provenance": "inference"
-    }
-  ],
+  "collides_with": [],
   "also_holds_with": [],
   "falls_through_to": [
-    {
-      "residual_template": "Independent Records",
-      "why": "The home for a standalone budget, set of accounts or consultation notice with a durable purpose and no accepted year group. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
-      "provenance": "design"
-    },
-    {
-      "residual_template": "Receipts and Confirmations",
-      "why": "The correct home for the transactional side this row must not absorb - an isolated demand, reminder or payment confirmation, which is the most common single file in this situation. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
-      "provenance": "design"
-    },
-    {
-      "residual_template": "Protected Records",
-      "why": "The correct home for an arrears schedule or a dispute file with no accepted group - a list of named neighbours and what they owe. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
-      "provenance": "design"
-    },
-    {
-      "residual_template": "Review Later",
-      "why": "The cautious outcome for a demand whose period OCR lost, or a challenge thread whose status is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
-      "provenance": "design"
-    },
-    {
-      "residual_template": "Unsupported or Encrypted",
-      "why": "The safe outcome for a management portal export or a password-protected resale pack. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
-      "provenance": "design"
-    }
+    {"residual_template": "Receipts and Confirmations", "why": "Standalone demands, invoices and confirmations fit 00's residual for “isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”", "provenance": "design"},
+    {"residual_template": "Independent Records", "why": "Durable budgets, accounts and notices may remain standalone records without a duplicate template.", "provenance": "inference"},
+    {"residual_template": "Protected Records", "why": "Named arrears and dispute material may need a protected isolated home; protection is not dependent on this refused node.", "provenance": "inference"},
+    {"residual_template": "Review Later", "why": "Role-ambiguous statements may be partly understood without a safe final situation.", "provenance": "inference"},
+    {"residual_template": "Unsupported or Encrypted", "why": "Unreadable management packs remain represented without invented member facts.", "provenance": "inference"}
   ],
   "role_split": [],
   "sensitivity": "potentially_sensitive",
-  "sensitivity_why": "A block's charge file is a register of who lives where and how they are doing. Arrears schedules name individual residents against what they owe and how long they have owed it; consultation and challenge correspondence names neighbours taking positions against each other and against the agent; and the apportionment schedule, harmlessly, is a map of every flat in the building. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and account statements and private correspondence fall inside it. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” The concrete risk in this row is the group summary: a building's year assembled into one view republishes every resident's payment record in one place. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
-  "open_question": "Whether this row and construction_property.block-management should be one row rather than two. In practice they are one folder: the same managing agent, the same building, the same year, and the roof works appear in both as a cost and as a project. This row is written as the MONEY cycle - budget, demand, account, consultation on spending - and concedes operations, contractors, compliance and resident matters to the block row, but the split is by function and not by file, and a user filing a block would not naturally make it. The other agent owns that row and the collision is authored so the question is visible from both sides; whether to merge is Joseph's. A second question, on the other flank: a leaseholder's own copies of these documents are finance.hoa-residents-association's or finance.household-property's, and a single scanned demand with nothing around it should not activate this professional row at all - the fixture says so, but where exactly the threshold sits between one demand and a building's file is the same judgement NJ-CP-13 raises about transactions, and it is Joseph's for the same reason."
+  "sensitivity_why": "Demands and arrears schedules expose names, home addresses, unit identifiers, account references, balances and disputes. Refusal does not weaken P7 or independently active safety-schema protection and assigns no handling class.",
+  "open_question": "NEEDS-JOSEPH: should shared property/asset and operational accounting-period keys be added for grouping across construction_property, tenancy, facilities and Finance? This would not rescue this row: billing stage remains work_type and the enriched default still owns the cycle."
 }
