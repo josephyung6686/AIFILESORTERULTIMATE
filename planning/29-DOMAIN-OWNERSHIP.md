@@ -19,7 +19,7 @@ Format: `<domain_id> | <TEAM> | active|complete`
 ## Claims
 
 law_practice | OTHER-TEAM | active
-nonprofit | OTHER-TEAM | active
+nonprofit | OTHER-TEAM | complete
 logistics | OTHER-TEAM | active
 retail_hospitality | OTHER-TEAM | active
 

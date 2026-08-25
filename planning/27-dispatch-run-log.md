@@ -822,3 +822,19 @@ logistics 8.
 `nonprofit`, `retail_hospitality`, `logistics`, `resource_operations`. Every template's node test is
 measured against its schema's default template, so a template written before its anchor must be
 redone. Four dispatched now.
+
+## Schema anchor authored — `nonprofit` (OTHER-TEAM claim), stands but heavily narrowed
+
+- Memo **36,858B**, `kind: schema`, `fields: []`, 6 file_examples, all universal keys, stands.
+- **It conceded most of the family away rather than defending it.** Board minutes, budgets,
+  contracts, policies, procurement, audits, projects, IT assets, facilities and regulator returns
+  are "`business_operations` with a different tax status, and this schema does not hold any of them."
+- **The structural discriminator, which answers the existential charge:**
+  > Every relation `business_operations` owns is an **exchange** (value for value) or a **statutory**
+  > one (compliance for authority). This family's relations are **neither** — money or labour given
+  > without a commensurate return (a restricted grant, a gift, a subscription, unpaid volunteer
+  > hours), and service given to a named person who is not paying.
+  That is structure, not tax status, and it survives the never-alone rule because it is a relation
+  rather than an organisation name.
+- A schema that gives away nine-tenths of its plausible scope to keep a defensible tenth is the
+  outcome this pass was designed to produce.

@@ -1,0 +1,501 @@
+{
+  "id": "nonprofit",
+  "kind": "schema",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Nonprofit, civic and member organisations",
+  "one_line": "J-DEPTH placeholder schema for the NON-EXCHANGE side of a private association's records: money or labour given without a commensurate return (a funder's restricted grant, a donor's gift, a member's subscription, a volunteer's unpaid time) and service given to a named person who is not paying for it (a beneficiary, a service user, a safeguarded child, a congregant). It is NOT activated by charitable tax status, a charity or union or church name, mission vocabulary, or a nonprofit industry label - tax status is a field value, not a structure. It deliberately does NOT hold the association's self-running record: trustee minutes, budgets, contracts, policies, procurement, audits, projects, IT and statutory returns are business_operations with a different tax status, and are routed there by name. Its distinct default is a two-role NON-EXCHANGE relation carrying a purpose restriction, a register of persons, or a gift-and-tax declaration; and its privacy default is stricter than business_operations because the exposed party is a third party who is neither the user, an employee, nor a customer, and often disclosed under need or vulnerability. Declares no field rows and no folder dimensions under PR-6, so activation unlocks recognition, safety posture, universal facts, and child-template consideration only.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "gazetteer": "orgs",
+      "destination_eligible_if_adopted": true,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE, NOT A MINT. Thirteen rows already propose `organization` (business_operations and its siblings, construction_property, hr); this row adopts that proposal unchanged rather than minting a nonprofit variant such as `charity` or `association`. The role needed here is identical: the association whose own record this is, when a corpus genuinely holds more than one - a person who is a trustee of one charity, a member of a union and a volunteer for a third. Minting a synonym would be exactly the mint-a-variant failure the brief forbids, and would also encode tax status in a key name, which is the charge this schema had to answer.",
+      "preferred_resolution": "R1c adjudicates `organization` ONCE for the whole roster. If adopted it must carry business_operations' seeded-ineligible condition: in a single-association corpus it is a collector level and 00's own validator rejects it - “use an author or organization merely as a collector” and “create meaningless one-child levels”. This row asks for no separate key.",
+      "why": "Named so the schema can say which association a record belongs to when several are present, without smuggling a nonprofit-specific synonym into the namespace."
+    },
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "destination_eligible_if_adopted": true,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE. Nine rows already propose `fiscal_period`; this row adds a tenth use case rather than a tenth key. The nonprofit cycles - a grant period of performance, an appeal, a membership year, a restricted fund's carry-forward - are content periods, not capture dates, so `capture_year` is wrong by role and `tax_year` is finance's statutory year on the holder's own return. Note explicitly: a GRANT period frequently does not align with the association's financial year, which is one of the few places this family's period differs in kind from business_operations'.",
+      "preferred_resolution": "R1c adjudicates once for the roster. If `fiscal_period` is adopted, this row asks that its definition permit a named non-calendar award or appeal period, or that the misalignment be recorded so a later `grant_period` proposal is not mistaken for a synonym mint.",
+      "why": "The family's second-level dimension in prose, and the one most likely to be mis-minted by a template author."
+    },
+    {
+      "key": "sponsor",
+      "type": "string",
+      "gazetteer": "orgs",
+      "destination_eligible_if_adopted": true,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE OF AN EXISTING PROPOSAL, contested. `research.grants-funding` already proposes `sponsor` for the funding organisation and itself prefers that R1c instead declare the canonical `institution` on its schema. This row raises the same need from the grantee-charity side - a trust, foundation, lottery distributor, statutory commissioner or corporate funder - and takes no position that would fork the key. What it adds for R1c: whichever key wins must be role-split against `organization`, because a nonprofit grant document names the funder and the grantee and the file states no side; and a great many nonprofit funders are themselves nonprofits, so the same gazetteer string appears in both roles in one corpus. That is a stronger role-split case than research's, and it is offered as evidence for the adjudication, not as a second key.",
+      "preferred_resolution": "Adjudicate with `research.grants-funding`. Preference order: (a) declare canonical `institution` on both schemas; (b) adopt `sponsor` once, role-split against `organization`; (c) do not mint `funder` or `grantmaker`.",
+      "why": "Without a funder role the family's strongest node - restricted money with strings - has no key, and a template author will mint one."
+    },
+    {
+      "key": "subject_of_record",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE OF AN EXISTING PROPOSAL. `clinical_practice` already proposes `subject_of_record` for the person a record is ABOUT as distinct from the person who holds it. The nonprofit family needs precisely that role for a beneficiary, service user, safeguarded person, congregant or named member, and minting `beneficiary` would be a synonym mint. It is proposed here as EXPLICITLY NOT destination-eligible: a folder level named after a vulnerable third party writes their identity into the filesystem, which is the opposite of “The default posture must therefore be local-first and data-minimizing.”. The key is wanted for protection and grouping, not for a path.",
+      "preferred_resolution": "Adjudicate with `clinical_practice`. If adopted, this row asks that `destination_eligible` be FALSE for the nonprofit family regardless of what clinical_practice needs, and that the reason be recorded on the key rather than left to each template.",
+      "why": "It is the field-shaped hole under this family's whole privacy claim, and the one place where a key must exist in order to be forbidden as a dimension."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, and it is the whole schema. These are schema-activation signals, not licences to write nonprofit facts - the schema has no field rows. Every accepted signal must evidence a NON-EXCHANGE relation between two labelled parties: money or labour given without a commensurate return, or service given to a named person who is not paying for it. A charitable registration number, a 501(c)(3) or CIC or union or diocese designation, a mission statement, a logo, or a nonprofit-sounding name is NEVER sufficient on its own, and neither is a document-type word beside one. Tax status is a field value, not a structure.",
+      "A RESTRICTED-GRANT lifecycle structure on the GRANTEE side: one grant, award or reference identifier repeated across two or more of a funding call or application form, an offer or grant agreement carrying a labelled restricted PURPOSE clause and a payment or instalment schedule, a milestone or interim or final report written against agreed outputs or outcomes, and an expenditure statement reconciling spend to the agreed cost headings. The labelled parties are funder and grantee. A single application form with no award and no reporting is not the lifecycle and does not fire.",
+      "A RESTRICTED-FUND accounting structure: a statement or workbook whose COLUMN SET partitions the same rows by fund class - unrestricted, restricted, endowment or designated - or a fund-balance table with one row per NAMED fund carrying opening balance, income, expenditure and closing balance. This is a structure, not a topic: it is what makes the money nonprofit rather than the entity's tax status. Read through 00's spreadsheet path - “Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells”. A budget / forecast / variance period column set with no fund partition is business_operations.budget-forecast; an institution-and-account header is finance.",
+      "A DONATION or GIFT structure pairing a named or explicitly anonymised donor slot with a recipient association and a TAX or RELIEF declaration - a statement that no goods or services were provided in exchange, a gift-aid style taxpayer declaration, a deed of covenant, or a pledge schedule with instalments and a fulfilment status. The non-exchange assertion is the signal; a payment with a deliverable is a sale and belongs to business_operations or finance. A donor-side receipt held by the giver is finance and is excluded by role.",
+      "A MEMBERSHIP-REGISTER structure held on the ASSOCIATION's side: a roll or register with one row per named member carrying a membership number or class, a join or lapse date, and a subscription or dues status; or a members' meeting instrument carrying a notice period, a motion, a proxy or ballot form and a member-vote count. The single member's own dues notice is the member's record, not the association's - that is finance.hoa-residents-association's world and the seam is stated in both directions.",
+      "A BENEFICIARY or SERVICE-USER case structure: a referral or intake form with a labelled referrer and a labelled service-user slot, a case or client reference repeated across dated contact or session notes, an assessment of need, a support or care plan with reviews, and a case-closure record. The relation is provider-to-non-paying-recipient. Where the same structure carries a clinician, a diagnosis and a treatment record it is clinical_practice and the stricter side wins.",
+      "A SAFEGUARDING or INCIDENT structure: a concern, allegation or incident form naming a reporting person, a subject, a date and time, an action or referral to a statutory authority, and an outcome or review; or a background-check or barred-list record tied to a named person and a role. This is the family's most protected material and it must be detected in order to be protected, never in order to be moved.",
+      "A VOLUNTEER-PROGRAMME structure: a volunteer agreement whose own clauses state that it is NOT a contract of employment and creates no binding obligation, held together with a rota or shift roster of named volunteers, an induction or training record, and an out-of-pocket expense claim with no gross pay, no tax code and no deduction lines. The absent payroll structure is as load-bearing as the present rota structure; a gross-to-net line makes it hr.",
+      "A FAITH-INSTITUTION RITE register: a bound or tabular register with one row per rite carrying an entry number, a date, the names of the person and of officiant and witnesses, and a rite label - baptism, confirmation, marriage, funeral, burial plot. It is a register of named third parties accumulated across generations and it has no analogue anywhere in business_operations. An order of service or a sermon is not this register.",
+      "An ARCHIVE MANIFEST whose member paths repeatedly encode one grant reference, appeal, fund, case reference, membership year or rite register - inspected without unpacking, because “the normal scan should never extract archive contents to the filesystem”, using what 00 says an archive yields: “The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names”.",
+      "A LABELLED-SLOT reading of any of the above from 00's direct-fact path, “a labeled form field”: Grant Reference, Restricted Fund, Donor, Gift Aid, Membership No., Service User, Referral Date, Safeguarding Lead, Volunteer Role. Position is weighted for the reason 00 gives - “A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen” - and a table is read for the reason 00 gives: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their”.",
+      "An association-side email or calendar record whose structured sender, recipient, organizer, attendee, subject, attachment and reference slots tie it to an ALREADY EVIDENCED relation above. An association's email domain, a newsletter, or a donation-platform notification alone never fires."
+    ],
+    "needs_llm": [
+      "Deciding the SIDE, which in this family is the whole question and is frequently unrecoverable: funder or grantee, donor or recipient, member or association, volunteer or coordinator, service provider or service user. Interpretation may use only a bounded local dossier and must abstain when the side is unresolved.",
+      "Separating this schema from business_operations when the association's SELF-RUNNING record is in front of it. The default answer is business_operations. The model may only route here if it can name the non-exchange party; charitable branding on a budget, a policy or a set of minutes is not that party.",
+      "Recognising an unlabelled grant narrative report, impact or outcomes account, case note, safeguarding concern written in prose, or theory-of-change document whose function is expressed only in narrative and whose vocabulary overlaps a marketing deck.",
+      "Distinguishing operative association records from a downloaded exemplar - a model grant application, a published annual report of a different charity, a sample safeguarding policy, an NGO research paper. Topic will not separate them: “purpose answers what the file was for” is the only test that works.",
+      "Deciding whether a donor, member or beneficiary list is the association's own register or a purchased, scraped or shared mailing list, which changes both the routing and the protection owed.",
+      "Interpreting multilingual or denominational register and grant vocabulary whose labelled roles are not covered by deterministic structure rules.",
+      "Separating a nonprofit grant lifecycle from research.grants-funding's award lifecycle when a university's charitable arm holds both; and abstaining rather than guessing, because the two structures genuinely converge.",
+      "Abstaining whenever the evidence cannot cite a non-exchange party: “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "A charity, union, church, foundation, NGO, club, association or standards-body NAME alone. This is the schema's own existential risk and it is struck first, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - the reasoning there is about role ambiguity and applies identically here, and MORE strongly, because one association name can appear as employer, funder, grantee, member, donor, service provider, campaign target, cited authority, or merely the venue of a meeting.",
+      "A charitable-status token alone: a registered charity number, a 501(c)(3) or 509(a) reference, a CIC or CIO or e.V. or gGmbH suffix, a tax-exempt determination letter reference, a VAT-exemption note. This is the charge this schema was written to answer and the answer is conceded in full: tax status is a FIELD VALUE, not a structure. It says what an entity is; it says nothing about what the artefact records or which side holds it.",
+      "Mission, impact or sector vocabulary alone - beneficiaries, outcomes, theory of change, capacity building, community, stakeholders, safeguarding, sustainability. Every one of these words appears in corporate ESG reporting, public-sector strategy and consultancy decks.",
+      "A document-type word alone, and a document-type word beside an association name. This is the two-role escape route business_operations.organisational-records closed, and it is closed here for the same reason: a document-type word is not a labelled party - it names no entity and resolves nothing about the first entity's role.",
+      "A donation-platform, CRM or fundraising-tool brand alone - a payment processor, a donor database export header, a crowdfunding page save. The tool identifies who produced the bytes, not whose record it is nor which side.",
+      "A money amount plus a gratitude sentence. A thank-you letter with a figure is a receipt shape and belongs in Receipts and Confirmations absent the declaration or lifecycle structure.",
+      "A volunteer or trustee ROLE word alone. Trustee, volunteer, member, steward, elder, delegate: a role word without the register, rota, agreement or minute structure it should sit in names an ambiguous person, not a relation.",
+      "A person's name alone, in any of this family's roles. This is the strictest instance of the general rule: the whole privacy claim of the schema is that named third parties appear here, so a bare name is simultaneously the least discriminating evidence and the most dangerous."
+    ]
+  },
+  "proposed_context_terms": [
+    "restricted fund",
+    "unrestricted fund",
+    "designated fund",
+    "endowment",
+    "fund balance",
+    "grant reference",
+    "grant agreement",
+    "funding call",
+    "period of performance",
+    "milestone report",
+    "outputs",
+    "outcomes",
+    "monitoring and evaluation",
+    "eligible expenditure",
+    "match funding",
+    "donor",
+    "donation",
+    "gift",
+    "gift aid",
+    "no goods or services were provided",
+    "pledge",
+    "legacy",
+    "bequest",
+    "appeal",
+    "membership number",
+    "subscription",
+    "dues",
+    "annual general meeting",
+    "proxy",
+    "resolution of members",
+    "affiliation",
+    "beneficiary",
+    "service user",
+    "referral",
+    "intake",
+    "support plan",
+    "case closure",
+    "safeguarding",
+    "disclosure",
+    "background check",
+    "designated safeguarding lead",
+    "volunteer agreement",
+    "rota",
+    "induction",
+    "out-of-pocket expenses",
+    "this is not a contract of employment",
+    "baptism",
+    "marriage register",
+    "burial",
+    "officiant",
+    "congregation",
+    "parish",
+    "public benefit",
+    "charitable objects",
+    "trustees' report",
+    "collective bargaining",
+    "shop steward"
+  ],
+  "work_types": [
+    "grant application, offer, agreement, drawdown and monitoring report on the grantee side",
+    "restricted and designated fund statement, fund reconciliation, and grant expenditure return",
+    "donation record, gift declaration, pledge schedule, legacy file, and appeal performance record",
+    "donor or supporter register and its exports",
+    "membership register, subscription record, members' meeting instrument, proxy and ballot",
+    "beneficiary or service-user referral, assessment, case note, support plan and closure record",
+    "safeguarding concern, allegation, incident, referral to authority, and background-check record",
+    "volunteer agreement, rota, induction and training record, expense claim",
+    "faith-institution rite register and its certificates",
+    "campaign, advocacy and lobbying record where a registration or disclosure structure exists",
+    "public-benefit or impact account written for a funder, a regulator or the membership"
+  ],
+  "grouping_reasons": [
+    "one GRANT from call to closure: the application, the agreement, the drawdowns, the milestone reports and the final expenditure statement, joined by a repeated grant reference. Content-incoherent and purpose-coherent, which is 00's own licence for the group - “The documents are content-incoherent but purpose-coherent.”.",
+    "one RESTRICTED FUND across periods: the fund's own income, expenditure and carry-forward, which is the group business_operations.budget-forecast cannot form because it has no fund axis.",
+    "one APPEAL or campaign: the ask, the donations attributed to it, the thank-you letters and the result report.",
+    "one MEMBERSHIP YEAR: the register at its start, the subscription run, the meeting notice, the proxies and the outcome.",
+    "one BENEFICIARY CASE longitudinally: referral, assessment, dated notes, reviews, closure - accumulation about a single named subject, which is a genuine grouping axis and simultaneously the family's most protected one. The group may form; the folder level may not be the person's name.",
+    "one RITE REGISTER as a continuing series rather than as a set of dated files.",
+    "no group at all is a valid outcome, and in this family it is common - a single thank-you letter, a single downloaded funder guidance PDF. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply as written: two associations' registers do not merge, two grants' reports do not merge, and “The graph does not automatically copy those missing facts onto sparse files.” - a grant reference read from an agreement is not copied onto a bare receipt that happens to sit beside it."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract - a dimension may only branch on a field the same schema declares and this placeholder declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). The recommendation is held as PROSE, and this is the paragraph every template in this family must differ from, exactly as business_operations states its own: the ASSOCIATION only where the corpus genuinely spans more than one, then the NON-EXCHANGE COUNTERPARTY OR FUND - the grant, the restricted fund, the appeal, the membership class, the case, the register - then the PERIOD (grant period, appeal, membership year, financial year), then the DOCUMENT FUNCTION. Two rules bind harder here than in business_operations. First, the association level is seeded ineligible for the same reason: in a single-association corpus it is “use an author or organization merely as a collector” and it would “create meaningless one-child levels”. Second, and specific to this family: a named BENEFICIARY, DONOR, MEMBER or SAFEGUARDED PERSON may NEVER be a folder level, however strong the grouping axis is, because a path writes a vulnerable third party's identity into the filesystem where every later process reads it - against “The default posture must therefore be local-first and data-minimizing.”. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and this family's periods are content periods, never capture dates, so no template here may claim time_first. And whatever lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "calendar",
+      "ocr",
+      "image",
+      "archive",
+      "contacts",
+      "audio_video",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".vcf",
+      ".m4a"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Grant agreement - REF GT-2024-118 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a parties block naming a grant-making trust and a recipient organisation in labelled funder and grantee roles",
+        "a labelled Purpose clause restricting the money to one named activity",
+        "a payment schedule table with instalments conditional on reports",
+        "a reporting clause naming interim and final report dates and required outputs",
+        "a reference token repeated in the header of every page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any nonprofit fact - the schema declares none",
+        "a sponsor or organization value as a stored fact; both are proposed keys awaiting R1c",
+        "which side the filesystem belongs to, unless a signature block or a covering email resolves it - many corpora hold the funder's copy",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SOFA year ended 31 March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers partitioning the same rows into unrestricted, restricted, endowment and total",
+        "a second sheet with one row per named fund carrying opening balance, income, expenditure and closing balance",
+        "no institution name and no account number anywhere",
+        "a comparative prior-year column set"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a spreadsheet of money is finance - the absence of an institution and an account is the discriminating evidence, exactly as business_operations states it",
+        "that it is business_operations.budget-forecast - the fund partition, not the period series, is what fires here",
+        "a fiscal_period fact - the key does not exist yet",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Safeguarding concern form - 14 Feb 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for reporting person, subject, date and time, and location",
+        "a free-text account of a concern naming a child",
+        "an action box recording a referral to a statutory authority with a reference",
+        "an outcome and review section left blank"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any nonprofit fact, and specifically not the named subject as a stored value that could reach a prompt or a path",
+        "that detection licenses movement - this file is detected in order to be PROTECTED. “If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.”",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Thank you for your gift.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an association letterhead and a charity registration number in the footer",
+        "a named individual addressed in the salutation",
+        "an amount and a date",
+        "a sentence stating that no goods or services were provided in exchange",
+        "no reference number, no fund name, no register around it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which side holds it. This is the family's sharpest role fork and it is NOT resolved by the letterhead: the association keeps this as an issued acknowledgement, and the DONOR keeps the identical bytes as their own charitable-giving tax record, which is finance. The charity number is on the page in both cases",
+        "a donor fact, an organization fact, or a tax_year fact",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Trustee board minutes - 12 March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a cover naming a board of trustees and a meeting date",
+        "attendance, apologies and quorum",
+        "numbered papers and numbered resolutions",
+        "a registered-charity number in the footer",
+        "an embedded management-accounts appendix"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is a nonprofit record. IT IS NOT. This is the collision fixture and the schema concedes it: a trustee board running a governance cycle is structurally identical to a company board, and the row that owns it is business_operations.board-governance. The word trustee and the charity number are the never-alone tokens. Nothing here names a non-exchange party",
+        "that a charitable footer promotes a business_operations file into this schema",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Volunteer rota - summer 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one column per shift date and one row per named person",
+        "a role column with values such as steward, driver, kitchen",
+        "an adjacent sheet of expense claims with mileage and receipts, and no gross pay, tax code or deduction column",
+        "a note referring to signed volunteer agreements held elsewhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that it is an hr roster. The absent payroll structure is the discriminating evidence and it is an ABSENCE, which is weak; if a gross-to-net line appears anywhere the file is hr and hr's protection governs",
+        "the named people as stored facts or as folder levels",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations",
+      "signal": "THE EXISTENTIAL COLLISION, and this row concedes most of it. A charity, union, church or association runs itself with exactly the same artefacts as a company: board or trustee minutes, budgets and forecasts, policies, contracts, procurement, projects, risk registers, IT assets, facilities, audits, statutory returns and meeting records. Every one of those is business_operations and this schema does NOT hold them; the templates for them already exist and are landed at J-DEPTH. Charitable status changes the tax treatment and the regulator, not the structure, and neither is a structure. The discriminating evidence in one sentence: a file belongs here only if it evidences a NON-EXCHANGE party - a funder whose money carries a purpose restriction, a donor giving without return, a member of the association, a volunteer giving unpaid time, or a named beneficiary receiving service without paying. Every business_operations relation is an exchange (value for value) or a statutory one (compliance for authority); this family's relations are neither. In the reverse direction: a company that gives to charity, runs a foundation, or reports on community programmes does NOT thereby move into this schema - a corporate donation is a payment on the company's side and business_operations or finance holds it. Where the non-exchange party cannot be named, business_operations is the default and this schema abstains: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.” Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "Stated separately because it is the seam most likely to be mis-drawn in this schema's favour, and the answer is that it is NOT this schema's. A charity annual return, a Form 990, a union LM filing, a public-benefit statement submitted to a regulator: the relation is regulated-entity to regulator, which is the whole of that landed row's node. This schema takes none of it. The only residue worth an argument is the ACCOMPANYING material a filing may require and a company's filing never does - a restricted-fund note, a grant income analysis, a public-benefit account written about beneficiaries - and even that fires here on its own fund or beneficiary structure, not on the return that carries it. Recommendation to R1c, not an edit: corporate-regulatory-filings should name nonprofit regulator returns as its own and this row as also-holding on the fund note only. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "The ROSTER's own split line - the owner is a private association, not a public authority - and it holds in both directions. An authority-side record of administering a public grant programme, deciding an application, or regulating a charity is government: the deciding office's letterhead, case reference and statutory power are its evidence. The GRANTEE's copy of the same programme - the application it submitted, the offer it accepted, the reports it wrote, the money it must account for - is this schema, on the funder-and-grantee relation and the restricted purpose. Public money does not make a record governmental; the side does. In the other direction: a public authority that receives a grant from another authority is still authority-side, and a charity that is commissioned to DELIVER a public service under contract is in an exchange relation and is business_operations.contract-administration, not this schema. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "Two forks, both real. (1) THE DONOR SIDE. A donation acknowledgement, a gift declaration and a standing-order confirmation held by the GIVER are the giver's own money and tax record and belong to finance; the identical bytes held by the receiving association are this schema. The letterhead is on the page in both cases and discriminates neither, which is why the fixture above is named on both sides. (2) THE ACCOUNTING FORK, which is business_operations' NJ-J-IND-3 read for this family: an association's bank statements, ledgers and filed returns are custodial and statutory records and are finance's; a restricted-fund partition, a grant expenditure statement and a fund reconciliation are this schema's, on the fund axis. Restricted-fund accounting is still accounting, and this row does not claim the account - it claims the partition. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.hoa-residents-association",
+      "signal": "A clean reciprocal, and the closest landed analogue to a small association. That row is the MEMBER's continuing relationship with their association: an association named, a member or unit slot identifying the obligated side, assessment charges and balances. This schema is the ASSOCIATION's own side of the same world: the register of all members, the subscription run across the roll, the meeting instrument and its proxies and vote counts. One dues notice addressed to one member is that row; the roll that generated a thousand of them is this one. Where a corpus holds both - a treasurer who is also a member - both activate on disjoint evidence and finance's protective ordering runs first. AUTHORED ONE-WAY HERE; R1c owes the reciprocal, which that landed row cannot have anticipated. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "signal": "Volunteers and employees are the same shape at a distance: an agreement, a rota, an induction, a check, an expense claim. The discriminating evidence is payroll structure and it is largely an ABSENCE - no gross pay, no tax code, no deduction lines, and an agreement whose own clauses disclaim employment. An absence is weak evidence, so the rule is asymmetric: any gross-to-net structure anywhere makes the file hr, and hr's privacy posture governs. Trustee and officer records are hr's or business_operations' by the same logic; a trustee is not a beneficiary. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice",
+      "signal": "A beneficiary case record and a patient chart are both longitudinal accumulation about one named subject held by a service provider, and a charity that delivers care produces both. The discriminating evidence: a clinician role, a diagnosis, a treatment or medication record, or a clinical coding structure makes it clinical_practice, and where it does the stricter side wins outright. A referral, an assessment of need, a support plan and dated contact notes with no clinical structure are this schema. The overlap is real enough that a hospice or mental-health charity's corpus will co-activate on most files, and it should. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.grants-funding",
+      "signal": "The two grant lifecycles genuinely converge and this is the sharpest NEEDS-JOSEPH on the row. That landed row is the PI-and-lab side of RESEARCH money: award number, period of performance, budget justification, indirect cost and F&A, biosketches, a data-management plan, a sponsor's submission portal. This schema's grant is CHARITABLE PROGRAMME money: a restricted purpose clause, outputs and outcomes reported against agreed measures, beneficiaries reached, and an expenditure statement reconciled to cost headings. The discriminator is what the money buys - research output, or service to beneficiaries - and it is legible in the reporting structure, not in the word grant. Where a university's charitable arm or a research charity holds both, both activate. AUTHORED ONE-WAY HERE. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.scholarship-fellowship",
+      "signal": "Both worlds hold applications for money that is given rather than sold, which makes them look like the same node. The discriminating evidence is who the applicant is: an INDIVIDUAL applying for their own funding, with a personal statement, transcripts and references, is that row; an ORGANISATION applying for programme funding, with a case for support, an organisational budget and a governance annex, is this schema. A person who runs a small charity holds both and they must not merge. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "A grant agreement, a volunteer agreement, a deed of covenant, a constitution or a trust deed are instruments and operational records at once. The executed instrument, a dispute, or a privileged advice framing is legal and protects first; the drawdown, the reporting calendar and the fund reconciliation that RUN the grant after signature are this schema. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "business_operations",
+      "why": "The commonest co-activation in the family, and the reason this schema can be narrow without losing coverage. One archive of a charity's year holds trustee minutes and budgets (business_operations, on the governance and period structure) beside grant reports and a fund statement (this schema, on the restricted-purpose and fund structure) - disjoint evidence, one corpus. Neither promotes the other: a charity number in the footer of the minutes does not move them here, and a fund partition in the accounts does not move them there. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "why": "A grant drawdown reconciled against a bank statement in one workbook is both, on disjoint evidence - the institution-and-account header for finance, the fund partition for this schema. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "why": "A staff-and-volunteer combined rota, a safeguarding file naming both an employee and a child, a grant budget with named post-holders: one packet, two schemas. hr's privacy posture governs the members that identify people even where this schema activates on the programme. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice",
+      "why": "A care charity's case file is genuinely both, and the co-activation is the safe outcome rather than a failure to discriminate. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "why": "A publicly funded programme's grantee file carries the authority's own notices and decisions inside it. The authority-side structures activate government; the grantee-side lifecycle activates this schema. Disjoint evidence in one folder. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "why": "A constitution, trust deed or grant agreement is one file under two schemas - the instrument's execution structure for legal, the reporting and drawdown structure for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named FIRST, deliberately, and against the ordering business_operations uses - because this family's characteristic isolated file is a named third party's record, not a policy PDF. A stray case note, a safeguarding form, a background check, a donor list with addresses: where the schema does not confidently activate, the protective home is the correct one and the cautious error is the cheap one. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone association document with no accepted group - a constitution, a certificate of registration, a single grant offer with no lifecycle around it, a membership card. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for the family's defining failure - a real-looking association document whose SIDE is unresolved, which here is frequent because donor, funder, member and provider copies are byte-identical to their counterparts. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members of this world: a donation confirmation, a subscription payment, an event ticket for a fundraiser, a platform notification. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "This family's tempting false files are almost all reading material - other charities' annual reports, funder guidance, sector research, model policies, NGO papers. When nothing else fires this is where they belong. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected donor-database and case-management exports are ordinary in this world and are exactly the files that must not be forced open. “Unsupported or Encrypted may hold”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "sponsor",
+      "other_field": "organization",
+      "other_domain": "research.grants-funding",
+      "why": "The family's defining role pair, and the reason its key request is a role-split rather than a new name. A nonprofit grant document names a FUNDER and a GRANTEE and states no side; and because a great many funders are themselves charitable trusts and foundations, the same organisation string appears in both roles within one corpus - a stronger instance of 00's own warning that one organisation name carries many roles, “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”. The pair is offered to R1c alongside research.grants-funding's own `sponsor` proposal so that ONE key is adjudicated, not two. Provenance: inference; the underlying role-ambiguity reasoning is design.",
+      "provenance": "inference"
+    },
+    {
+      "field": "organization",
+      "other_field": "subject_of_record",
+      "other_domain": "clinical_practice",
+      "why": "The provider-and-subject pair, borrowed rather than minted. In this family the subject is a beneficiary, service user, member or congregant instead of a patient, and the split matters for a reason clinical_practice does not face as sharply: the holder here is very often a volunteer or trustee working on a personal machine, so the subject is a third party twice removed from the user, and the record's existence is itself disclosive. The pair is requested with `subject_of_record` marked NOT destination-eligible for this family. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available at this row, argued on three grounds, and it is the family's second node-test leg. First, 00's own corpus sentence names material this family holds directly - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” - and beneficiary files carry medical information and identity documents, safeguarding files carry legal records, and donor and payroll-adjacent volunteer files carry account statements. Second, and this is what distinguishes the posture from business_operations': the exposed party is a THIRD PARTY who is neither the user, an employee, nor a customer, and who frequently disclosed under need, harm or vulnerability - a safeguarded child, a service user, a person seeking help. They cannot consent to what the product does with their record and they have no relationship with the user's machine at all. Third, membership and donation are disclosive of protected characteristics in a way a customer record is not: a union roll, a congregation register, a political donation and a support-group membership each reveal belief, affiliation or need from the fact of the record's existence, before any content is read. This row does NOT carry `is_safety_domain` and should not - 00's four are named and closed: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” - which leaves a real gap, recorded as an open question: the material above deserves the safety-domain treatment and cannot have the flag, so the substitute mechanism that forces P7 ahead of any model path must be named somewhere. Until it is, the family's own rule stands: detection of safeguarding and beneficiary structure exists in order to PROTECT, never in order to move, and “If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.” The handling class is P7's and is not set here.",
+  "open_question": "Five. (1) NJ-NP-1, the family's existence question, answered here as a narrow YES and recorded so it can be reversed: this schema stands only on the NON-EXCHANGE relation, and it explicitly cedes governance, budgets, contracts, policies, procurement, audit, projects, IT, facilities and regulator returns to business_operations' landed rows. If R1c judges that the non-exchange relation is itself a field value rather than a structure, the correct outcome is refusal and the coverage routes to business_operations plus finance plus hr plus clinical_practice - and this row would rather be refused than kept to save an id. (2) NJ-NP-2, the grant fork with research.grants-funding: two grant lifecycles, one landed and deep, one proposed here, distinguished only by whether the money buys research output or service to beneficiaries. The alternatives are (a) two rows with the reporting-structure discriminator stated reciprocally, (b) one shared grant node on whichever schema, with the other also-holding. This row cannot settle it and did not touch the landed neighbour. (3) NJ-NP-3, the safety-domain gap in `sensitivity_why`: safeguarding and beneficiary material has no flag and needs the substitute mechanism named. This is business_operations' NJ-J-IND-4 raised at higher stakes, because the third party here is often a child. (4) NJ-NP-4, the ten templates: this pass believes the defensible ones are grant-funding-received, restricted-fund-accounting, donor-and-fundraising, membership-register, beneficiary-service-record, safeguarding-record and faith-rite-register - seven that each name a distinct structure. Volunteer-programme is WEAK because its discriminator is an absence of payroll structure; campaigning-advocacy is WEAK because a campaign plan is go-to-market with different nouns and a lobbying registration is a regulator filing; a charity-regulator-return row should NOT be built, because business_operations.corporate-regulatory-filings already owns that relation. If ten rows are required, the three weak ones should be refused rather than invented. (5) NJ-NP-5: `subject_of_record` must be adjudicated as destination-INELIGIBLE for this family even if clinical_practice needs it otherwise, and it is not clear whether the canonical-fields shape permits a per-schema eligibility difference. If it does not, the ban has to live in the template contract instead, and someone must write it there."
+}
