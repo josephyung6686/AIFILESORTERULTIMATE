@@ -343,8 +343,18 @@
       "provenance": "inference"
     },
     {
+      "domain": "construction_property.variation-claim",
+      "signal": "The same priced scope can be an offer for a new enquiry or a quotation for a change inside a live contract. The discriminating evidence: a validity or estimate qualifier, an acceptance mechanism and no existing job, contract or instruction reference supports this row; a numbered instruction or variation, an existing contract reference, and quantified cost or time consequence supports variation-claim. Shared fixture: Quotation for VO 17 - revised drainage.pdf. This row must reject it when VO 17 adjusts an agreed sum; variation-claim must reject the same price shape when no contract yet exists.",
+      "provenance": "inference"
+    },
+    {
       "domain": "finance.small-business-bookkeeping",
       "signal": "The quote's own invoice, and the merchant prices behind it, sit one step away in the ledger. The discriminating evidence: a demand for payment with an invoice number, tax treatment and terms supports bookkeeping; an offer with a validity period and no payment demand supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "A merchant quotation, purchase order and delivery note can repeat the same supplier, site, quantities and prices. The discriminating evidence: a price held open or qualified before commitment, with an acceptance mechanism and no arrival evidence, supports this row; a deliver-to/invoice-to slot pair, quantities dispatched or received, and a received-by signature or shortage annotation supports materials-delivery. Shared fixture: Travis Perkins quote Q-88214 - Oakfield blocks.pdf before ordering, contrasted with DN-448120 - Marsh Lane.pdf after dispatch. Neither a merchant name nor line-item prices decide the state.",
       "provenance": "inference"
     },
     {
@@ -404,5 +414,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "A quote file is two kinds of private at once. Outward, it names private individuals and their home addresses, because most trade quotes are addressed to a householder at the property being worked on. Inward, the build-up behind it discloses the firm's rates, margin and contingency, and the merchant and subcontractor prices it was assembled from are other businesses' confidential terms. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and private correspondence and home-address material of this kind fall inside it. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
-  "open_question": "Whether an accepted quote should stay in the quotes tree or move into the job it became. Both are defensible and neither is the product's to decide: the quote is the job's founding document and belongs with it, and it is also the last item in a sequence of revisions that only makes sense together. The row's position is that the file should be REACHABLE from both without being duplicated - which pushes the decision onto P9 grouping and P11 placement rather than resolving it here. A second question of scope: this row is written from the pricing party's side, because that is what the construction_property schema is for; the householder holding three builders' quotes is finance.household-property's, and the collision is authored in both directions, but whether one physical file can sit in two trees at once is 00's shared-material policy and is Joseph's."
+  "open_question": "Three decisions remain. (1) Whether an accepted quote stays in its revision family, moves into the job it founded, or is reachable from both without duplication. The last option preserves both histories but depends on P9 grouping and P11 placement. (2) Whether the receiving-side comparison of several builders' offers belongs only to finance.household-property, while this row remains the pricing party's pre-contract enquiry lifecycle, or whether custody may select different templates over the same bytes. (3) Whether an unaccepted supplier or subcontractor price gathered to build an outbound quote is a member of this enquiry group or belongs only to business_operations.procurement-sourcing / construction_property.materials-delivery until selected. The alternatives trade a coherent cost build-up against the risk of absorbing procurement and transactional artefacts merely because their construction subject is a value. Joseph must settle all three; this row does not copy facts or duplicate files to force an answer."
 }
