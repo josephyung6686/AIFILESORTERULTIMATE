@@ -80,6 +80,22 @@ def resolve(resolver: FactResolver, conn) -> ResolveResult:
     return resolver.resolve(conn, file_id=FILE_ID, content_hash=CONTENT_HASH)
 
 
+def a_barren_resolver() -> FactResolver:
+    """Every stage returns no fact and writes no row — the only shape that reaches
+    `_outcome_for`'s final branch."""
+    def nothing(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
+        return ()
+    return FactResolver(
+        stages={"direct": nothing, "rule": nothing, "llm": nothing},
+        pending_fields=lambda conn, file_id, content_hash: (),
+        budget_exhausted=lambda key: False,
+        model_route_permitted=lambda file_id: True,
+        record_pass=lambda conn, file_id, content_hash: None,
+        cache_key_for=lambda file_id, content_hash: CACHE_KEY,
+        screen_metadata=lambda conn, file_id, content_hash: (),
+    )
+
+
 # --- the three ceilings ------------------------------------------------------
 
 def test_p6_holds_exactly_three_ceilings_and_all_three_are_p1s():
@@ -583,3 +599,43 @@ def test_two_identical_passes_report_the_same_counts_and_the_same_payload(p6_con
 
     assert (canonical_json(fact_stage_output(result=first)["payload"])
             == canonical_json(fact_stage_output(result=second)["payload"]))
+
+
+def test_a_warm_re_resolve_reports_abstained_and_does_not_accuse_b7(p6_conn):
+    """Scoping the counts to one pass must not turn a warm re-resolve into a false
+    accusation.
+
+    `_outcome_for` raises "a result with no fact and no `unresolved` row is the missing
+    row B7 exists to forbid" — a statement about a producer that refused silently.
+    After the counts became pass-scoped, a second resolve that wrote nothing new hit
+    that raise with the row sitting on disk from the first pass. Two different
+    questions were being answered by one number: what THIS pass did, which must be
+    pass-scoped or the payload stops being byte-stable, and what the VERSION's state
+    is, which is what the outcome reports.
+    """
+    from facts.stage_output import fact_stage_output
+
+    write_unresolved(p6_conn, file_id=FILE_ID, content_hash=CONTENT_HASH,
+                     field_key="target_school", reason=NO_CANDIDATE_EVIDENCE,
+                     attempted_producers=("direct",), evidence_refs=(),
+                     cache_key=CACHE_KEY)
+    result = resolve(a_barren_resolver(), p6_conn)
+
+    assert result.reason_counts == {}          # this pass wrote nothing...
+    assert result.version_has_unresolved       # ...but the version carries a row
+    envelope = fact_stage_output(result=result)
+    assert envelope["outcome"] == "abstained"
+    # and the payload still reports the PASS, so replay sees no false divergence
+    assert '"unresolved_reasons":{}' in envelope["payload"]
+
+
+def test_a_pass_with_no_row_anywhere_still_accuses_b7(p6_conn):
+    """The guard must keep its teeth: a genuinely empty pass over a version with
+    nothing on disk is still the missing row B7 forbids."""
+    from facts.stage_output import fact_stage_output
+
+    result = resolve(a_barren_resolver(), p6_conn)
+    assert result.reason_counts == {}
+    assert not result.version_has_unresolved
+    with pytest.raises(ValueError, match="B7"):
+        fact_stage_output(result=result)

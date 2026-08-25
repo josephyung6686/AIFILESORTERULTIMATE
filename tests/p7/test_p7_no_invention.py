@@ -141,6 +141,27 @@ def module_numbers(module) -> dict:
             and isinstance(value, (int, float)) and not isinstance(value, bool)}
 
 
+def code_of(path: pathlib.Path, function: str) -> str:
+    """One function's source with its DOCSTRING REMOVED.
+
+    `source_of` returns the whole FunctionDef segment, prose included, so a guard
+    asserting a token appears in it can be satisfied by a docstring that merely
+    MENTIONS the token. `readers.ocr_vision._box`'s docstring contains the literal
+    `1.0 - (y + h)`, so the D10 guard below was green whether or not the top-left flip
+    existed in the code at all.
+    """
+    text = path.read_text()
+    tree = ast.parse(text, filename=str(path))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == function:
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)):
+                body = body[1:]
+            return "\n".join(ast.unparse(statement) for statement in body)
+    raise AssertionError(f"{function!r} is not defined in {path.name}")
+
+
 def source_of(path: pathlib.Path, function: str) -> str:
     """One function's source, by AST rather than by `inspect.getsource`.
 
@@ -472,9 +493,19 @@ def test_a_normalized_bounding_box_is_measured_from_the_top_left_d10():
     # `inspect.getsource` needs the import; the AST does not, so this guard runs on
     # every machine rather than only on one with pyobjc installed.
     adapter = SRC_ROOT / "readers" / "ocr_vision.py"
-    assert "1.0 - (" in source_of(adapter, "_box"), (
+    # `code_of`, not `source_of`: the docstring of `_box` contains the literal
+    # `1.0 - (y + h)`, so asserting over the whole segment was satisfied by PROSE and
+    # stayed green whether or not the flip existed. This reads the statements only.
+    flip = code_of(adapter, "_box")
+    assert "1.0 - (" in flip, (
         "the top-left flip lives in the Vision adapter; if it moved, P7's redaction "
         "is reading a convention nothing enforces")
+    # and the guard must FAIL on prose alone -- the docstring does contain the token,
+    # which is exactly why the previous version of this assertion could not fail.
+    docstring = ast.get_docstring(
+        next(node for node in ast.walk(ast.parse(adapter.read_text()))
+             if isinstance(node, ast.FunctionDef) and node.name == "_box"))
+    assert "1.0 - (" in docstring          # the prose that used to satisfy it
 
     for path in modules():
         tokens = code_tokens(path)

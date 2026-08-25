@@ -77,6 +77,13 @@ class ResolveResult:
     #: re-reading the version's whole history. `budgets.deferred_counts` charged four
     #: against two rows on disk before this existed.
     unresolved_ids: tuple[str, ...] = ()
+    #: Whether the file VERSION carries any `unresolved` row at all, this pass's or an
+    #: earlier one's. Two different questions were being answered by one number:
+    #: "what did THIS pass do", which must be pass-scoped or the §8.5 payload stops
+    #: being byte-stable across identical runs, and "what is the STATE of this
+    #: version", which is what §8.5's outcome reports. Scoping both to the pass made a
+    #: re-resolve that wrote nothing new accuse B7 of a missing row that was on disk.
+    version_has_unresolved: bool = False
     error: str | None = None
 
     def __post_init__(self) -> None:
@@ -201,7 +208,8 @@ class FactResolver:
 
         counts: dict[str, int] = {}
         written: list[str] = []
-        for row in unresolved_for_file(conn, file_id, content_hash):
+        rows = unresolved_for_file(conn, file_id, content_hash)
+        for row in rows:
             if row["unresolved_id"] in already:
                 continue
             written.append(row["unresolved_id"])
@@ -213,6 +221,7 @@ class FactResolver:
             stages_run=tuple(stages_run), stages_barred=barred,
             deferred_against=deferred_against,
             unresolved_ids=tuple(written),
+            version_has_unresolved=bool(rows),
         )
 
     def _write_bars(self, conn: sqlite3.Connection, *, file_id: str,

@@ -44,7 +44,8 @@ from privacy.authorship import (
     CLASSIFICATION_ASSIGNED, CLASSIFICATION_SUPERSEDED, event_defaults,
 )
 from privacy.classification import ClassificationRecord
-from privacy.classification_store import ClassificationStore, mirror
+from privacy.classification_store import (AmbiguousCurrentClassification,
+                                          ClassificationStore, mirror, strongest)
 from privacy.vocabulary import USER, USER_CONFIRMED, check_handling_class
 
 #: 10-i4-learning-ops.md's table: `privacy` | `(file_id, handling_class)` | P7.
@@ -120,6 +121,26 @@ def suppressed(conn: sqlite3.Connection, file_id: str, handling_class: str) -> b
     return False
 
 
+def _outranked_by(record: ClassificationRecord,
+                  prior: ClassificationRecord) -> bool:
+    """Does `prior` rank STRICTLY higher than `record` under §3.13's own order?
+
+    Asked through `strongest`, which is the one published ranking, rather than by
+    re-reading `RELIABILITY_ORDER` here -- a second copy of a ranking is the defect
+    family this codebase has paid for eleven times.
+
+    A TIE is NOT outranking, and that is the whole point of the distinction. Two
+    system assignments at one rank are the case that wedged the store, and the new row
+    must retire the old one. A prior at a HIGHER rank is the opposite case: a user's
+    own `user_confirmed` answer must not be retired by a detector re-running, which is
+    §3.13's ordering and the same rule P6 spells `PreferredNeverReverses`.
+    """
+    try:
+        return strongest([prior, record]) is prior
+    except AmbiguousCurrentClassification:
+        return False
+
+
 #: §8.2 retains "the old observation and the reason it was superseded". A system
 #: re-assignment has no user reason to carry, so it carries this one -- a named
 #: constant rather than a literal, because §3.1 forbids spelling a stored value twice.
@@ -153,9 +174,11 @@ def assign(conn: sqlite3.Connection, record: ClassificationRecord, *,
     check_handling_class(record.handling_class)
     if suppressed(conn, record.file_id, record.handling_class):
         return None
+    prior = store.current(record.file_id, record.content_hash)
     prior_fact_id = store.current_fact_id(record.file_id, record.content_hash)
     fact_id = store.write(record)
-    if prior_fact_id is not None:
+    if prior is not None and prior_fact_id is not None and not _outranked_by(
+            record, prior):
         store.supersede(prior_fact_id, fact_id, REASSIGNED_BY_SYSTEM)
     mirror(conn, record, component_version=component_version)
     append_event(conn, **event_defaults(

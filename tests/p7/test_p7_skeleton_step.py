@@ -310,8 +310,34 @@ def test_the_policy_parameter_is_p5s_safety_policy_and_not_p7s():
         "is_protected_container", "is_dataless"}
     assert "operation_mode" in {f.name for f in dataclasses.fields(Policy)}
     assert "operation_mode" not in {f.name for f in dataclasses.fields(SafetyPolicy)}
-    assert inspect.signature(run_wave2).parameters[
-        "policy"].annotation is not Policy
+    # NOT `signature(...).annotation is not Policy`, which was true in every possible
+    # world: `run_wave2`'s `policy` parameter carries no annotation at all, and
+    # `src/orchestrator.py` has `from __future__ import annotations`, so even an
+    # explicit `policy: Policy` would arrive as the STRING 'Policy' and never as the
+    # class. The guard could not have failed. Read the source instead.
+    import ast
+    import pathlib
+    orchestrator = pathlib.Path(inspect.getfile(run_wave2))
+    tree = ast.parse(orchestrator.read_text())
+
+    # 1. the orchestrator must not import P7's Policy at all
+    imported = {
+        f"{node.module}.{alias.name}"
+        for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module
+        for alias in node.names
+    }
+    assert "privacy.policy.Policy" not in imported, imported
+
+    # 2. and if `policy` ever gains an annotation, it must not name P7's Policy
+    function = next(node for node in ast.walk(tree)
+                    if isinstance(node, ast.FunctionDef) and node.name == "run_wave2")
+    annotations = {
+        argument.arg: (ast.unparse(argument.annotation)
+                       if argument.annotation is not None else None)
+        for argument in function.args.args + function.args.kwonlyargs
+    }
+    assert "policy" in annotations, annotations
+    assert annotations["policy"] in (None, "SafetyPolicy"), annotations["policy"]
 
 
 def test_the_deterministic_path_runs_end_to_end(skeleton_db, corpus):

@@ -174,15 +174,27 @@ def values_with_counts(conn: sqlite3.Connection, *,
     the value a later pass superseded (§8.2 keeps the old row readable, and a readable
     old row is not a folder the product still proposes).
 
+    ONLY PROPOSAL-ELIGIBLE FACTS COUNT. This read previews the folders a plan would
+    create, so it must count exactly the facts a proposal may rest on -- the same
+    `PROPOSAL_ELIGIBLE_STATES` this module publishes and `proposal_eligible` applies.
+    Counting every live fact previewed a branch for a `rejected` conclusion and for a
+    `possible` one: §3.6 says a `possible` fact "must not quietly become a folder
+    proposal", and §8.7 warns that resurfacing a rejected grouping is the failure the
+    learning store exists to stop. The preview promised folders no proposal could rest
+    on, and the two reads in this one module disagreed about the same file.
+
     Ordered by count descending then canonical value ascending, so the preview is stable
     across runs and does not depend on which database it was read from.
     """
     get_field(conn, field_key)
+    placeholders = ", ".join("?" * len(PROPOSAL_ELIGIBLE_STATES))
     counts: dict[str, int] = {
         row[0]: row[1]
         for row in conn.execute(
             "SELECT value_id, COUNT(DISTINCT file_id) FROM file_facts "
-            "WHERE active = 1 AND superseded_by IS NULL GROUP BY value_id")
+            "WHERE active = 1 AND superseded_by IS NULL "
+            f"AND reliability_state IN ({placeholders}) GROUP BY value_id",
+            PROPOSAL_ELIGIBLE_STATES)
     }
     branches = ((row["canonical_value"], counts.get(row["value_id"], 0))
                 for row in values_in_field(conn, field_key))

@@ -116,7 +116,11 @@ def _outcome_for(result: ResolveResult, *,
             "table would say 'abstained', the SPEC's unresolved rule 4 forbids it, "
             "and P2 refuses 'deferred' without a ceiling. NEEDS-JOSEPH."
         )
-    if unresolved_count:
+    # The VERSION's state, not this pass's tally. `unresolved_count` is pass-scoped
+    # because the payload must be byte-stable across two identical runs; the outcome
+    # is a statement about the file, and a warm re-resolve that writes nothing new is
+    # not the missing row B7 forbids -- the row is on disk.
+    if unresolved_count or result.version_has_unresolved:
         return "abstained", "within_ceiling"
     raise ValueError(
         "a result with no fact and no `unresolved` row is the missing row B7 exists "

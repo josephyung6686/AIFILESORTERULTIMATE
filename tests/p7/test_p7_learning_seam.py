@@ -28,6 +28,7 @@ from privacy.vocabulary import USER, USER_CONFIRMED
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 LATER = "2026-08-22T18:30:00+00:00"
 COMPONENT = "0.1.0"
+EVIDENCE_REFS = ("sha256:" + "a" * 64,)
 DETECTOR_KEYS = (
     "sha256:ba9777bcba0096decc525198035644949d2357bf7f9a9cb3492c948c86c0fcbd",
     "sha256:65534918f6abecf79fd8b5f58ab1e4721d1a8ea2b75b79d6a05cc47523260c42",
@@ -496,3 +497,55 @@ def test_the_supersede_reason_is_a_named_constant_not_a_literal(
         "SELECT supersede_reason FROM classifications WHERE fact_id = ?",
         (first_id,)).fetchone()
     assert row["supersede_reason"] == REASSIGNED_BY_SYSTEM
+
+
+def test_a_detector_never_retires_the_users_own_answer(
+        p7_conn, file_id, content_hash, store):
+    """§3.13's ordering is not reversible by a write, and the fix for the wedge broke
+    exactly that before this test existed.
+
+    Making `assign`'s supersede UNCONDITIONAL fixed two same-rank system assignments
+    and simultaneously let a detector re-run retire a `user_confirmed` classification
+    and replace it with its own `validated` row. That is the same rule P6 spells
+    `PreferredNeverReverses`: a weaker fact cannot take the pointer from a user's own
+    answer. A tie is not outranking — that case still supersedes, which is what keeps
+    the store unwedged.
+    """
+    reclassify(p7_conn, file_id, "personal_non_sensitive", "the user says otherwise",
+               store=store, content_hash=content_hash, protected=False,
+               evidence_refs=EVIDENCE_REFS, user_id="joseph",
+               component_version=COMPONENT, observed_at=LATER)
+    assert store.current(file_id, content_hash).basis == USER
+
+    assign(p7_conn, ClassificationRecord(
+        file_id=file_id, content_hash=content_hash,
+        handling_class="sensitive_personal", protected=True, basis="detector",
+        evidence_refs=EVIDENCE_REFS, reliability_state="validated",
+        observed_at=LATER), store=store, component_version=COMPONENT)
+
+    current = store.current(file_id, content_hash)
+    assert current.basis == USER
+    assert current.handling_class == "personal_non_sensitive"
+    assert current.reliability_state == USER_CONFIRMED
+
+
+def test_the_ranking_is_asked_of_strongest_and_not_re_implemented():
+    """A second copy of a ranking is the defect family this codebase has paid for
+    eleven times, so `_outranked_by` asks `strongest` rather than reading
+    `RELIABILITY_ORDER` itself."""
+    import ast
+    import inspect
+    from privacy import learning_seam
+
+    # The CODE, not the prose. Asserting over `inspect.getsource` would match this
+    # function's own docstring, which names `RELIABILITY_ORDER` in order to say it is
+    # NOT read — the same "guard satisfied by a docstring" defect found elsewhere in
+    # this review round.
+    tree = ast.parse(inspect.getsource(learning_seam._outranked_by).lstrip())
+    body = tree.body[0].body
+    if (isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant)):
+        body = body[1:]                                    # drop the docstring node
+    code = "\n".join(ast.unparse(node) for node in body)
+    assert "strongest(" in code
+    assert "RELIABILITY_ORDER" not in code
+    assert "_rank" not in code

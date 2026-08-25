@@ -607,3 +607,41 @@ def test_every_published_read_is_keyword_only_past_the_connection():
         positional = [p for p in inspect.signature(member).parameters.values()
                       if p.kind is p.POSITIONAL_OR_KEYWORD]
         assert [p.name for p in positional] == ["conn"], name
+
+
+def test_the_branch_preview_counts_only_proposal_eligible_facts(p6_conn, tmp_path):
+    """The two reads in this one module must not disagree about the same file.
+
+    `values_with_counts` counted every live fact, so a `rejected` conclusion and a
+    `possible` one each got their own branch while `proposal_eligible` returned
+    nothing for those files. §5.5's preview promised folders no proposal could rest
+    on — §3.6 says a `possible` fact "must not quietly become a folder proposal", and
+    §8.7 names resurfacing a rejected grouping as the failure the learning store
+    exists to stop.
+    """
+    kept, rejected, possible = None, None, None
+    for index, (name, subject, state) in enumerate((
+            ("keep.pdf", "BUSIB 4300", VALIDATED),
+            ("no.pdf", "ECON 2100", REJECTED),
+            ("weak.pdf", "HIST 3000", POSSIBLE))):
+        file_id, content_hash = _record(p6_conn, tmp_path, name=name,
+                                        body=f"{subject} number {index}".encode())
+        ref = _observe(p6_conn, run_id=f"pe-{index}", file_id=file_id,
+                       content_hash=content_hash, raw=subject, label="title")
+        _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+              field_key="subject", value=subject, ref=ref, state=state, origin=RULE)
+        if state is VALIDATED:
+            kept = (file_id, content_hash)
+        elif state is REJECTED:
+            rejected = (file_id, content_hash)
+        else:
+            possible = (file_id, content_hash)
+
+    assert values_with_counts(p6_conn, field_key="subject") == [("BUSIB 4300", 1)]
+
+    # and the preview agrees with the eligibility read, file by file
+    assert proposal_eligible(p6_conn, file_id=kept[0], content_hash=kept[1])
+    assert proposal_eligible(p6_conn, file_id=rejected[0],
+                             content_hash=rejected[1]) == []
+    assert proposal_eligible(p6_conn, file_id=possible[0],
+                             content_hash=possible[1]) == []
