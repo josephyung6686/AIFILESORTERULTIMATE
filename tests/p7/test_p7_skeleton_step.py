@@ -57,7 +57,10 @@ from database_agent.files_table import get_file
 from eval_harness.bundle import bundle_files
 from eval_harness.store import create_eval_schema
 
-from evidence_shape.store import RunWriter
+from evidence_shape.fixtures import FIXTURES as P4_FIXTURES
+from evidence_shape.store import (
+    RunWriter, record_observation, record_run, record_text_unit,
+)
 
 from extractors.archive import ArchiveManifest
 from extractors.dispatch import Readers
@@ -233,6 +236,28 @@ def install(conn, fixture: GateFixture, file_id: str):
     for a rule another module owns.
     """
     bound = bind(fixture, file_id)
+    # Fixture 10's request names P4 fixture 3's durable observation key. Consent now
+    # records the exact canonical locator from the live Location, so the walking
+    # skeleton must persist that referenced metadata just as the fixture replay does.
+    if fixture.p4_fixture is not None:
+        source = next(item for item in P4_FIXTURES
+                      if item.number == fixture.p4_fixture)
+        requested_keys = {
+            item.observation_key for item in bound.request.requested_items
+            if hasattr(item, "observation_key")
+        }
+        missing = requested_keys and not conn.execute(
+            "SELECT 1 FROM evidence WHERE observation_key IN ({}) LIMIT 1".format(
+                ",".join("?" for _ in requested_keys)), tuple(requested_keys),
+        ).fetchone()
+        if missing:
+            record_run(conn, dataclasses.replace(source.run, file_id=file_id))
+            for unit in source.text_units:
+                record_text_unit(conn, unit)
+            for observation in source.observations:
+                record_observation(
+                    conn, dataclasses.replace(observation, file_id=file_id),
+                )
     set_policy(conn, bound.policy, component_version=COMPONENT, user_id="joseph",
                reason="the published fixture's policy, under the walking skeleton")
     gate = Gate(conn, **gate_arguments(bound, store=ClassificationStore(conn)))
@@ -554,20 +579,19 @@ def test_the_protected_flag_and_not_the_class_opens_the_consent_branch(
     # is what decides.
     #
     # What the unprotected run does instead is itself the proof: it walks PAST the
-    # consent question into §3.5's materialiser and asks P4 for an excerpt this
-    # skeleton corpus never produced, so it raises `UnresolvableSpan`. Reaching
-    # `resolve` at all means the branch was not taken. An author who "simplified" the
-    # branch to read `handling_class` would get a `NeedsConsent` here and fail.
-    from privacy.resolve import UnresolvableSpan
+    # consent question and releases the fixture's now-persisted P4 reference. An
+    # author who "simplified" the branch to read `handling_class` would get a
+    # `NeedsConsent` here and fail.
     fixture = by_number(SKELETON_FIXTURE)
     walk(skeleton_db, corpus)
     file_id = only_file(skeleton_db)
     classify(skeleton_db, file_id,
              handling_class=fixture.classification.handling_class, protected=False)
     gate, request = install(skeleton_db, fixture, file_id)
-    with pytest.raises(UnresolvableSpan):
-        gate.release(request)
-    assert [r.outcome for r in audit_records_for(skeleton_db, file_id=file_id)] == []
+    assert isinstance(gate.release(request), Released)
+    assert [r.outcome for r in audit_records_for(
+        skeleton_db, file_id=file_id
+    )] == ["released"]
 
 
 def test_path_one_can_never_produce_this_branch(skeleton_db, corpus):

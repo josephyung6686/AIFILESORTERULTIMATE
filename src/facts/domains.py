@@ -53,9 +53,11 @@ SCHEMA_IDS: tuple[str, ...] = (
     "academic", "college_applications", "research", "career", "photos", "code",
     "finance", "identity", "medical", "legal")
 
-#: `FIELD_SCOPES[0]` is the universal scope. §3.11: the universal set "applies to
-#: every file", so it is in every allowlist and is never activated.
-UNIVERSAL_SCOPE: str = FIELD_SCOPES[0]
+#: Derive the one non-domain scope from P6's single vocabulary home without tying
+#: this consumer to a positional lookup. §3.11's universal set "applies to every
+#: file", so it is in every allowlist and is never activated.
+UNIVERSAL_SCOPE: str = next(scope for scope in FIELD_SCOPES
+                            if scope not in SCHEMA_IDS)
 
 #: Derived, not authored: the schemas the product recognises that carry no field rows.
 #: D1 (narrowed): "Do not author career fields ... Career is owed before P10." The

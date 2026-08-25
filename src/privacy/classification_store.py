@@ -120,6 +120,10 @@ class ClassificationStore:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
+    def bound_to(self, conn: sqlite3.Connection) -> bool:
+        """Whether this store writes through exactly the caller's P1 connection."""
+        return self._conn is conn
+
     def write(self, record: ClassificationRecord) -> str:
         """Insert one record and return its `fact_id`. Appends no event (C4)."""
         if record.handling_class == UNREADABLE_UNCLASSIFIED:

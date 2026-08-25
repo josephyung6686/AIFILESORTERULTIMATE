@@ -38,7 +38,7 @@ from privacy.authorship import COMPONENT_VERSION
 from privacy.binding import consume_release
 from privacy.classification import ClassificationRecord, UNREADABLE_UNCLASSIFIED
 from privacy.classification_store import ClassificationStore
-from privacy.consent import NeedsConsent
+from privacy.consent import NeedsConsent, pending_consent
 from privacy.defaults import MORE_REDACTING
 from privacy.denial import DECIDABLE_FROM_REQUEST, DENIAL_ORDER
 from privacy.gate import TEXT_BEARING, Gate
@@ -104,6 +104,31 @@ def _evidence(conn: sqlite3.Connection, file_id: str, content_hash: str) -> str:
     return observation_key(
         content_hash=digest, extractor_name="fixture.text",
         locator=serialize_locator(location), raw_value=TEXT[SPAN.start:SPAN.end])
+
+
+def _container_evidence(conn: sqlite3.Connection, file_id: str,
+                        content_hash: str) -> tuple[str, str]:
+    """One container-addressed cell and its canonical locator."""
+    digest = hashlib.sha256(content_hash.encode()).hexdigest()
+    run_id = new_id()
+    path = (Segment(kind="sheet", index=1), Segment(kind="row", index=4),
+            Segment(kind="cell", index=3))
+    location = Location(zone="table", container_path=path)
+    record_run(conn, ExtractionRun(
+        run_id=run_id, file_id=file_id, content_hash=digest,
+        extractor_name="fixture.table", extractor_version="1.0.0",
+        source_type="spreadsheet", analysis_tier="native", config={},
+        completeness="complete", started_at=OBSERVED_AT, observation_count=1))
+    raw_value = "sensitive cell"
+    record_observation(conn, Observation(
+        file_id=file_id, content_hash=digest, extractor_name="fixture.table",
+        extractor_version="1.0.0", source_type="spreadsheet", raw_value=raw_value,
+        location=location, occurrence_count=1, observed_at=OBSERVED_AT,
+        reliability="direct", run_id=run_id, context_before=None,
+        context_after=None, context_truncated=False))
+    key = observation_key(content_hash=digest, extractor_name="fixture.table",
+                          locator=serialize_locator(location), raw_value=raw_value)
+    return key, serialize_locator(location)
 
 
 def _policy(conn: sqlite3.Connection, mode: str, *, grants=()) -> Policy:
@@ -470,12 +495,93 @@ def test_a_protected_file_on_a_local_target_with_no_grant_needs_consent(gate_con
     _classify(gate_conn, file_id, "hash-passport",
               handling_class="sensitive_personal", protected=True)
     decision = _gate(gate_conn).release(_request(
-        items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
+        items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),
+               RedactedIdentifier(observation_key=key, span=SPAN,
+                                  identifier_class="fixture.identifier")),
         model_target=LOCAL, file_ids=(file_id,)))
     assert isinstance(decision, NeedsConsent)
     assert decision.consent_request_id
+    assert decision.requirement.items == (
+        (key, "body:page=1#16-24"),
+        (key, "body:page=1#16-24"),
+    )
+    assert pending_consent(
+        gate_conn, decision.consent_request_id
+    ).requirement.items == decision.requirement.items
     assert len(_events(gate_conn, "consent_requested")) == 1
     assert _events(gate_conn, "model_release") == []
+
+
+def test_a_container_address_round_trips_through_pending_consent(gate_conn):
+    file_id = _file(gate_conn, "records.xlsx", "hash-cell")
+    _policy(gate_conn, "local_model")
+    key, locator = _container_evidence(gate_conn, file_id, "hash-cell")
+    _classify(gate_conn, file_id, "hash-cell",
+              handling_class="sensitive_personal", protected=True, refs=(key,))
+    decision = _gate(gate_conn).release(_request(
+        items=(Excerpt(observation_key=key, span=None, reason="named cell"),),
+        model_target=LOCAL, file_ids=(file_id,)))
+    assert isinstance(decision, NeedsConsent)
+    assert decision.requirement.items == ((key, locator),)
+    assert pending_consent(
+        gate_conn, decision.consent_request_id
+    ).requirement.items == ((key, locator),)
+
+
+def test_consent_refuses_a_span_that_disagrees_with_the_live_location(gate_conn):
+    file_id = _file(gate_conn, "passport.pdf", "hash-mismatch")
+    _policy(gate_conn, "local_model")
+    key = _evidence(gate_conn, file_id, "hash-mismatch")
+    _classify(gate_conn, file_id, "hash-mismatch",
+              handling_class="sensitive_personal", protected=True, refs=(key,))
+    with pytest.raises(UnresolvableSpan, match="disagrees with the live location"):
+        _gate(gate_conn).release(_request(
+            items=(Excerpt(observation_key=key, span=TextSpan(0, 4),
+                           reason="wrong address"),),
+            model_target=LOCAL, file_ids=(file_id,)))
+
+
+def test_mixed_file_consent_lists_only_items_owned_by_unanswered_files(gate_conn):
+    protected_id = _file(gate_conn, "protected.pdf", "hash-protected-mixed")
+    public_id = _file(gate_conn, "public.pdf", "hash-public-mixed")
+    _policy(gate_conn, "local_model")
+    protected_key = _evidence(
+        gate_conn, protected_id, "hash-protected-mixed",
+    )
+    public_key = _evidence(gate_conn, public_id, "hash-public-mixed")
+    _classify(gate_conn, protected_id, "hash-protected-mixed",
+              handling_class="sensitive_personal", protected=True,
+              refs=(protected_key,))
+    _classify(gate_conn, public_id, "hash-public-mixed",
+              handling_class="public_low", protected=False, refs=(public_key,))
+
+    decision = _gate(gate_conn).release(_request(
+        items=(Excerpt(observation_key=protected_key, span=SPAN,
+                       reason="protected heading"),
+               Excerpt(observation_key=public_key, span=SPAN,
+                       reason="public heading")),
+        model_target=LOCAL, file_ids=(protected_id, public_id)))
+
+    assert isinstance(decision, NeedsConsent)
+    assert decision.requirement.file_ids == (protected_id,)
+    assert decision.requirement.items == (
+        (protected_key, "body:page=1#16-24"),
+    )
+
+
+def test_consent_refuses_an_observation_owned_by_a_non_target_file(gate_conn):
+    target_id = _file(gate_conn, "target.pdf", "hash-target-owner")
+    external_id = _file(gate_conn, "external.pdf", "hash-external-owner")
+    _policy(gate_conn, "local_model")
+    external_key = _evidence(gate_conn, external_id, "hash-external-owner")
+    _classify(gate_conn, target_id, "hash-target-owner",
+              handling_class="sensitive_personal", protected=True)
+
+    with pytest.raises(UnresolvableSpan, match="outside request.target.file_ids"):
+        _gate(gate_conn).release(_request(
+            items=(Excerpt(observation_key=external_key, span=SPAN,
+                           reason="external text"),),
+            model_target=LOCAL, file_ids=(target_id,)))
 
 
 def test_the_consent_branch_reads_the_protected_flag_and_not_a_class_list(gate_conn):

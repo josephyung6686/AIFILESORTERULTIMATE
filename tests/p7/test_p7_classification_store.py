@@ -114,6 +114,16 @@ def store(p7_conn) -> ClassificationStore:
     return ClassificationStore(p7_conn)
 
 
+def test_store_reports_only_its_exact_bound_connection(p7_conn):
+    store = ClassificationStore(p7_conn)
+    other = sqlite3.connect(":memory:")
+    try:
+        assert store.bound_to(p7_conn) is True
+        assert store.bound_to(other) is False
+    finally:
+        other.close()
+
+
 # --- the table P7 creates and owns ------------------------------------------
 
 def test_the_schema_is_idempotent(p7_conn):

@@ -667,6 +667,10 @@ def test_the_needs_consent_fixture_offers_all_four_options_in_the_specs_order():
     assert isinstance(fixture.decision, NeedsConsent)
     assert fixture.decision.options == CONSENT_OPTIONS
     assert len(CONSENT_OPTIONS) == 4
+    assert fixture.decision.requirement.items == (
+        (fixture.request.requested_items[0].observation_key,
+         p4(3).observations[0].locator),
+    )
 
 
 def test_the_consent_branch_needs_a_protected_file_and_an_ungranted_scope():

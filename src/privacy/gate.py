@@ -57,15 +57,15 @@ from privacy.denial import (
 )
 from privacy.items import (
     AlwaysLocalRequested, Excerpt, ProtectedItemRequested, RedactedIdentifier,
-    WholeDocumentRequested, check_item, kind_of, sensitive_observation_keys,
+    WholeDocumentRequested, check_item, sensitive_observation_keys,
 )
 from privacy.policy import current_policy
-from privacy.redaction import RedactionManifest, apply_redaction
+from privacy.redaction import RedactionManifest, apply_redaction, span_address
 from privacy.release import (
     DECISION_ORDER, Denied, ModelCallRequest, NeedsConsent, NoPolicyInForce,
     ReleaseDecision, Released,
 )
-from privacy.resolve import Materialised, materialise
+from privacy.resolve import Materialised, UnresolvableSpan, current_location, materialise
 # Imported as a MODULE, not by name: `Gate.revoke` and `Gate.delete_derived` are the
 # same two words as the functions they delegate to, and an aliased import would give
 # each of them a second spelling inside the one file that publishes both.
@@ -219,15 +219,26 @@ class Gate:
                            if isinstance(item, TEXT_BEARING))
         unanswered = tuple(file_id for file_id in protected_ids
                            if scopes[file_id] not in granted)
-        if text_items and unanswered:
+        located_refs = tuple(
+            self._consent_reference(item, file_ids) for item in text_items
+        )
+        required_file_ids = tuple(
+            file_id for file_id in unanswered
+            if any(owner == file_id for owner, _reference in located_refs)
+        )
+        required_items = tuple(
+            reference for owner, reference in located_refs
+            if owner in required_file_ids
+        )
+        if required_items:
             requirement = ConsentRequirement(
-                file_ids=unanswered,
-                handling_class=classes[unanswered[0]],
-                items=tuple(kind_of(item) for item in text_items),
+                file_ids=required_file_ids,
+                handling_class=classes[required_file_ids[0]],
+                items=required_items,
                 why=("§8.4: this call needs text from files entered into protected "
                      f"state, and policy {policy.policy_version} holds no consent "
                      f"grant authorizing a {locality} model for scope "
-                     f"{scopes[unanswered[0]]!r}"))
+                     f"{scopes[required_file_ids[0]]!r}"))
             return open_consent_request(
                 self._conn, requirement, request=request, policy=policy,
                 content_hashes=hashes, user_id=self._user_id,
@@ -432,6 +443,26 @@ class Gate:
             except WholeDocumentRequested as caught:
                 return caught
         return None
+
+    def _consent_reference(
+            self, item: object, target_file_ids: Sequence[str]
+            ) -> tuple[str, tuple[str, str]]:
+        """Return the live canonical reference without reading protected text."""
+        current = current_location(self._conn, item.observation_key)
+        if current.file_id not in target_file_ids:
+            raise UnresolvableSpan(
+                f"observation {item.observation_key!r} belongs to file "
+                f"{current.file_id!r}, outside request.target.file_ids "
+                f"{tuple(target_file_ids)!r}"
+            )
+        location = current.location
+        if item.span != location.text_span:
+            raise UnresolvableSpan(
+                f"requested span {item.span!r} disagrees with the live location's "
+                f"span {location.text_span!r} for {item.observation_key!r}; consent "
+                "records the exact requested reference and never repairs one"
+            )
+        return current.file_id, (item.observation_key, span_address(location))
 
     def _materialise(self, text_items: Sequence[object]
                      ) -> tuple[tuple[Materialised, ...], RedactionManifest]:

@@ -24,7 +24,7 @@ from facts.file_facts import FORBIDDEN_COLUMN_SUBSTRINGS, write_fact, RULE
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
 from facts.usable import (
     FACT_PASSES_TABLE, FactPassNotRun, create_fact_passes, no_usable_facts_for,
-    passes_for, record_pass,
+    passes_for, record_pass, targeted_ocr_needed_for,
 )
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -352,6 +352,38 @@ def test_a_pass_at_native_answers_and_a_pass_that_included_ocr_still_answers(
     assert NATIVE in covered and WITH_OCR in covered
 
 
+def test_targeted_ocr_is_needed_only_after_an_unusable_pass_without_ocr(
+        scanned, p6_conn):
+    file_id, content_hash = scanned
+    needed = targeted_ocr_needed_for(
+        p6_conn, usable_threshold=_never_usable)
+
+    with pytest.raises(FactPassNotRun):
+        needed(file_id, content_hash)
+
+    record_pass(p6_conn, file_id=file_id, content_hash=content_hash,
+                analysis_tiers=NATIVE)
+    assert needed(file_id, content_hash) is True
+
+    record_pass(p6_conn, file_id=file_id, content_hash=content_hash,
+                analysis_tiers=WITH_OCR)
+    assert needed(file_id, content_hash) is False
+
+
+def test_targeted_ocr_is_not_needed_when_native_facts_are_usable(
+        scanned, p6_conn):
+    file_id, content_hash = scanned
+    record_pass(p6_conn, file_id=file_id, content_hash=content_hash,
+                analysis_tiers=NATIVE)
+    needed = targeted_ocr_needed_for(p6_conn, usable_threshold=lambda facts, _: True)
+    assert needed(file_id, content_hash) is False
+
+
+def test_targeted_ocr_names_the_ocr_tier_without_positional_vocabulary_coupling():
+    source = inspect.getsource(usable)
+    assert "ANALYSIS_TIERS[2]" not in source
+
+
 def test_a_pass_recorded_twice_is_one_row(scanned, p6_conn):
     file_id, content_hash = scanned
     for _ in range(3):
@@ -380,8 +412,14 @@ def test_it_is_computed_from_the_fact_tables_and_no_text_quality_heuristic(p6_co
     # {"ocr_fallback": true, "triggered_by": "language_quality_heuristic"}.
     # §2.2 and §2.7 both forbid deciding this from text quality.
     mentioned = _identifiers(usable)
+    permitted_ocr_names = {
+        "ocr_tier", "targeted_ocr_needed_for", "targeted_ocr_needed",
+    }
     for banned in ("text", "unit", "language", "quality", "ratio", "char", "ocr_"):
-        assert not [name for name in mentioned if banned in name.lower()], banned
+        matches = [name for name in mentioned if banned in name.lower()]
+        if banned == "ocr_":
+            matches = [name for name in matches if name not in permitted_ocr_names]
+        assert not matches, banned
     assert "evidence_shape.store" not in mentioned
     assert "language_quality_heuristic" not in _code_strings(usable)
     # The two reads it IS built from.

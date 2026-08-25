@@ -1,0 +1,1 @@
+../../../docs/superpowers/plans/2026-08-25-p8-bounded-llm-harness-validator.md

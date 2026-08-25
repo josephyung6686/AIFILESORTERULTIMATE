@@ -18,7 +18,8 @@ from evidence_shape.authorship import UnauthoredEvent
 from evidence_shape.conformance import NonConforming
 from evidence_shape.runs import MalformedRun
 from evidence_shape.store import (
-    AmbiguousSupersession, RunWriter, get_run, observation_keys_for_run,
+    AmbiguousAuthoritativeRun, AmbiguousSupersession, RunWriter,
+    authoritative_result, get_run, observation_keys_for_run, result_for_run,
     observation_row, observations_for_run, supersede_chain, text_units_for_run,
 )
 
@@ -77,6 +78,71 @@ def only_observation_id(conn, run_id) -> str:
 def counts(conn):
     return {table: conn.execute(f"SELECT count(*) c FROM {table}").fetchone()["c"]
             for table in ("extraction_runs", "evidence", "text_units", "events")}
+
+
+def test_persisted_result_is_reconstructed_losslessly(p4_conn):
+    run_id = RunWriter(p4_conn, author="P5").write(a_result())
+
+    restored = result_for_run(p4_conn, run_id)
+
+    assert restored.run == get_run(p4_conn, run_id).to_mapping()
+    assert restored.observations == tuple(
+        row.to_mapping() for row in observations_for_run(p4_conn, run_id))
+    assert restored.text_units == tuple(
+        row.to_mapping() for row in text_units_for_run(p4_conn, run_id))
+
+
+def test_authoritative_result_accepts_current_text_run_with_zero_observations(p4_conn):
+    writer = RunWriter(p4_conn, author="P5")
+    run_id = writer.write(a_result(version="0.1.0", observations=()))
+
+    restored = authoritative_result(
+        p4_conn, file_id="f1", content_hash=CONTENT_HASH,
+        extractor_name="pdf.text", extractor_version="0.1.0",
+        analysis_tier="native")
+
+    assert restored is not None
+    assert restored.run["run_id"] == run_id
+    assert authoritative_result(
+        p4_conn, file_id="f1", content_hash=CONTENT_HASH,
+        extractor_name="pdf.text", extractor_version="stale",
+        analysis_tier="native") is None
+
+
+def test_observation_supersession_does_not_invent_run_level_authority(p4_conn):
+    writer = RunWriter(p4_conn, author="P5")
+    run_id = writer.write(a_result(version="0.1.0"))
+    writer.write(
+        a_result(version="stale"),
+        supersede_reason="a different extractor version reread the observation")
+
+    restored = authoritative_result(
+        p4_conn, file_id="f1", content_hash=CONTENT_HASH,
+        extractor_name="pdf.text", extractor_version="0.1.0",
+        analysis_tier="native")
+
+    assert restored is not None
+    assert restored.run["run_id"] == run_id
+    assert authoritative_result(
+        p4_conn, file_id="another-file", content_hash=CONTENT_HASH,
+        extractor_name="pdf.text", extractor_version="0.1.0",
+        analysis_tier="native") is None
+    assert authoritative_result(
+        p4_conn, file_id="f1", content_hash="08da1122759d0a1822140a5d9ac70b8daec5393fbaa23cafd3024817d0c59c3c",
+        extractor_name="pdf.text", extractor_version="0.1.0",
+        analysis_tier="native") is None
+
+
+def test_authoritative_result_refuses_ambiguous_current_runs(p4_conn):
+    writer = RunWriter(p4_conn, author="P5")
+    writer.write(a_result())
+    writer.write(a_result(observations=(an_observation(raw_value="Spring 2026", start=20),)))
+
+    with pytest.raises(AmbiguousAuthoritativeRun):
+        authoritative_result(
+            p4_conn, file_id="f1", content_hash=CONTENT_HASH,
+            extractor_name="pdf.text", extractor_version="0.1.0",
+            analysis_tier="native")
 
 
 # ── the Protocol P5 wrote, implemented ────────────────────────────────────────

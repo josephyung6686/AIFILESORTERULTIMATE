@@ -30,6 +30,7 @@ observation_key) -> Observation | None` -- and this module is the caller waiting
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -38,6 +39,8 @@ from types import MappingProxyType
 from evidence_shape.store import (
     get_observation, observations_by_key, unit_for_observation,
 )
+from evidence_shape.location import Location
+from evidence_shape.locator import location_from_mapping
 from evidence_shape.observation import Observation
 from evidence_shape.text_units import SpanAnchorError, check_span_anchor, raw_value_at
 
@@ -72,6 +75,44 @@ class AmbiguousObservationKey(Exception):
     single-valued again. When it does not, picking one would release the wrong text
     silently, so this raises instead.
     """
+
+
+@dataclass(frozen=True, slots=True)
+class CurrentLocation:
+    """The owning file and Location of one live observation, with no content."""
+
+    file_id: str
+    location: Location
+
+
+def current_location(conn: sqlite3.Connection,
+                     observation_key: str) -> CurrentLocation:
+    """Return the sole live location for a key without selecting content.
+
+    Consent needs a canonical address before it may read protected text. Keep this
+    query explicit: adding ``raw_value`` or context columns here would move content
+    access in front of the consent decision.
+    """
+    rows = conn.execute(
+        "SELECT observation_id, observation_key, file_id, location, superseded_by "
+        "FROM evidence WHERE observation_key = ? ORDER BY rowid",
+        (observation_key,),
+    ).fetchall()
+    if not rows:
+        raise UnresolvableSpan(
+            f"no observation carries key {observation_key!r}. P4's citation handle "
+            "is the content-addressed `observation_key`, not a per-row id"
+        )
+    live = [row for row in rows if row["superseded_by"] is None]
+    if len(live) != 1:
+        raise AmbiguousObservationKey(
+            f"key {observation_key!r} has {len(live)} live rows among {len(rows)} "
+            "candidates; no unique current location exists"
+        )
+    return CurrentLocation(
+        file_id=live[0]["file_id"],
+        location=location_from_mapping(json.loads(live[0]["location"])),
+    )
 
 
 @dataclass(frozen=True, slots=True)

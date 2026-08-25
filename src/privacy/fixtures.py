@@ -747,7 +747,7 @@ FIXTURES: tuple[GateFixture, ...] = (
             requirement=ConsentRequirement(
                 file_ids=(FIXTURE_FILE_ID,),
                 handling_class="sensitive_personal",
-                items=("excerpt",),
+                items=((_key(3), _locator(3)),),
                 why="§8.4: this call needs text from files entered into protected "
                     "state, and policy holds no consent grant authorizing a local "
                     f"model for scope {FIXTURE_AREA!r}"),

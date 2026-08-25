@@ -736,11 +736,13 @@ def test_the_repo_wide_set_of_materialiser_binders_is_the_named_three():
     for binder, reason in MATERIALISER_BINDERS.items():
         assert reason.strip(), binder
 
-    # The optional-extra modules are named, so one appearing or disappearing is a
-    # visible change rather than a silently shrinking guard.
-    assert sorted(unimportable) == [
+    # Optional reader extras vary by deployment.  The guard must scan their ASTs
+    # whether or not they import here, while an unexpected unimportable module must
+    # still fail visibly.
+    allowed_unimportable = {
         "readers.deployment", "readers.ocr_vision", "readers.pdf_pdfminer"
-    ], sorted(unimportable)
+    }
+    assert set(unimportable) <= allowed_unimportable, sorted(unimportable)
 
 
 # --- P7 invents nothing -----------------------------------------------------

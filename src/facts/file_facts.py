@@ -45,8 +45,14 @@ from evidence_shape.canonical import canonical_json, sha256_of
 from evidence_shape.vocabulary import check
 
 from facts.authorship import AUTHORED_EVENT_TYPES, event_defaults
+from facts.evidence import resolve_citation
 from facts.fields import get_field
 from facts.states import USER_CONFIRMED
+
+# Bind authored meanings by name once, as `facts.learning` does. Call sites must not
+# select an event by tuple position: a vocabulary reorder must not turn a creation
+# into a rejection.
+CREATION, _REJECTION = AUTHORED_EVENT_TYPES
 
 # Reached through the module, never bound to a module-level name here. Preamble rule 2
 # -- "P6 publishes no second copy and no alias table" -- is enforced by
@@ -131,6 +137,29 @@ def _checked_refs(refs, reliability_state: str) -> tuple[str, ...]:
     return ordered
 
 
+def _checked_quote_refs(conn: sqlite3.Connection, refs) -> tuple[str, ...]:
+    """Validate today's quote-citation handle without inventing its future span shape.
+
+    The current public API carries strings, so the enforceable part of §3.6 is that
+    every string is an M14 observation key and resolves through P6's citation read.
+    P8 still owns validation of the exact text span inside that observation.
+    """
+    ordered = tuple(sorted(set(refs)))
+    for ref in ordered:
+        if (not isinstance(ref, str) or not ref.startswith(_KEY_PREFIX)
+                or len(ref) != _KEY_LENGTH):
+            raise EvidenceRequired(
+                f"{ref!r} is not a P4 observation key; a cited quote names stored "
+                "evidence by its content-addressed key (M14)"
+            )
+        if not resolve_citation(conn, ref):
+            raise EvidenceRequired(
+                f"cited quote {ref!r} resolves to no stored observation; §3.6 "
+                "requires the cited quote to be present in the evidence"
+            )
+    return ordered
+
+
 def _fact_identity(*, file_id: str, content_hash: str, field_key: str, value_id: str,
                    reliability_state: str, origin: str, cache_key: str,
                    evidence_refs: tuple[str, ...]) -> str:
@@ -188,7 +217,7 @@ def write_fact(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
     if not cache_key:
         raise ValueError("a fact records the cache key it was computed under (§3.4)")
     refs = _checked_refs(evidence_refs, reliability_state)
-    quotes = tuple(sorted(set(cited_quote_refs)))
+    quotes = _checked_quote_refs(conn, cited_quote_refs)
     field_key = _checked_field_key(conn, field_key)
 
     value = conn.execute(
@@ -223,7 +252,7 @@ def write_fact(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
     # same instant from the same clock. `authorship` owns that clock; this module has
     # none of its own.
     event = event_defaults(
-        event_type=AUTHORED_EVENT_TYPES[0],
+        event_type=CREATION,
         file_id=file_id,
         content_hash=content_hash,
         explanation=canonical_json({
@@ -269,7 +298,7 @@ def facts_for_file(conn: sqlite3.Connection, file_id: str,
     the proposal-eligible read, which Task 24 owns.
     """
     return list(conn.execute(
-        'SELECT f.*, fl.field_key AS field_key, '
+        'SELECT f.*, '
         '       v.canonical_value AS canonical_value, '
         '       v.display_label AS display_label '
         'FROM file_facts AS f '

@@ -310,6 +310,37 @@ class _FailsOnTheMergePointer:
         return self._conn.execute(sql, *args)
 
 
+class _RequiresTransactionForMergeReads:
+    """Reject a merge authority read that occurs before SQLite owns the boundary."""
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def __getattr__(self, name: str):
+        return getattr(self._conn, name)
+
+    def execute(self, sql: str, *args):
+        if (sql.lstrip().startswith("SELECT") and '"values"' in sql
+                and not self._conn.in_transaction):
+            raise AssertionError("merge authority was read outside its transaction")
+        return self._conn.execute(sql, *args)
+
+
+def test_a_merge_reads_authority_and_checks_cycles_inside_its_write_transaction(
+        p6_conn):
+    """No other connection can change merge authority between its read and write."""
+    keep = ensure_value(p6_conn, field_key=FIELD, canonical_value=CANONICAL,
+                        first_evidence_ref=_key(RAW), origin=VALUE_ORIGINS[0])
+    merged = ensure_value(p6_conn, field_key=FIELD, canonical_value="U Chicago",
+                          first_evidence_ref=_key(RAW, locator="filename:name"),
+                          origin=VALUE_ORIGINS[0])
+
+    merge_values(_RequiresTransactionForMergeReads(p6_conn), keep=keep,
+                 merged=merged, reason="same university")
+
+    assert _row(p6_conn, merged)["merged_into"] == keep
+
+
 def test_a_merge_that_fails_halfway_absorbs_nothing(p6_conn):
     # §8.2's alias record is one fact in two rows: the survivor gains the alias and
     # the merged row names where it went. Written outside a transaction they commit

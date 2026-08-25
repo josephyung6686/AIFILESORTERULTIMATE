@@ -1,11 +1,15 @@
 # src/extractors/dispatch.py
-"""One entry point per file: `extract(file_row, decision, ...)`. SPEC Open question 2.
+"""P5 family dispatch through two ordered passes and one compatibility entry point.
 
-18-wave2-orchestrator.md closes OQ2 as "One P5 `extract(file_row, decision, …)` that
-may return two runs (E5+E6). Orchestrator does not dispatch by name." The orchestrator
+`extract_initial(...)` performs the family extraction and any P5-owned direct OCR.
+`extract_targeted_ocr(...)` is the separate PDF-only operation that may run after P6
+has evaluated the stored native evidence. The original `extract(...)` remains the
+backward-compatible composition of those operations.
+
+18-wave2-orchestrator.md closes OQ2 by keeping dispatch inside P5: the orchestrator
 owns ORDER; routing is §2.9's and lives in `router.py`. A caller that switched on
-`extractor_name` itself would be a second copy of the routing table living outside P5,
-which is how one concept ends up with two homes.
+`extractor_name` itself would be a second copy of the routing table living outside
+P5, which is how one concept ends up with two homes.
 
 **The half-picking this exists to do.** The router labels eight source types
 `text.structured`, and `structured_text.extract_structured_text` accepts two of them.
@@ -37,7 +41,9 @@ from extractors.filesystem import unrouted_result
 from extractors.image import extract_image
 from extractors.long_tail import LONG_TAIL_SOURCE_TYPES, extract_long_tail
 from extractors.ocr import extract_ocr
-from extractors.ocr_policy import document_ocr_decision, image_ocr_decision
+from extractors.ocr_policy import (
+    direct_document_ocr_needed, document_ocr_decision, image_ocr_decision,
+)
 from extractors.pdf import extract_pdf
 from extractors.safety import DatalessRefused, ProtectedContainerRefused
 from extractors.sink import ExtractionResult
@@ -144,11 +150,10 @@ def _ocr(*, file_row, path, policy, readers, now,
             analysis_tier=ocr.ANALYSIS_TIER)
 
 
-def extract(*, file_row: Mapping[str, Any], decision, path: Path, policy,
-            readers: Readers, now: str, context_window: int,
-            no_usable_facts: Callable[[str, str], bool],
-            transcription_authorized: Callable[[], bool]) -> Dispatched:
-    """Every run the router's decision calls for, in the order they were produced.
+def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy,
+                    readers: Readers, now: str, context_window: int,
+                    transcription_authorized: Callable[[], bool]) -> Dispatched:
+    """Run P5 extraction that is knowable before P6 evaluates stored evidence.
 
     A refusal from `admit()` -- `ProtectedContainerRefused` or `DatalessRefused` --
     propagates unchanged. The gate keeps one job (C4) and the catcher is the caller's:
@@ -167,12 +172,9 @@ def extract(*, file_row: Mapping[str, Any], decision, path: Path, policy,
         first = extract_pdf(read_pdf=readers.read_pdf,
                             find_structured_strings=readers.find_structured_strings,
                             **common)
-        # §2.2's three text-layer states, and B7: P5 wires the switch and never
-        # invents the threshold. `no_usable_facts` is P6's verdict, injected.
-        decision_ocr = document_ocr_decision(
-            result=first, file_id=file_row["file_id"],
-            content_hash=file_row["content_hash"], no_usable_facts=no_usable_facts)
-        if decision_ocr.run_ocr:
+        # Before P6, only an absent text layer authorizes OCR. A non-empty layer is
+        # persisted first so P6 can evaluate the evidence rather than a preview.
+        if direct_document_ocr_needed(result=first):
             second = _ocr(readers=readers, **common)
             if second is not None:
                 return Dispatched((first, second))
@@ -226,6 +228,69 @@ def extract(*, file_row: Mapping[str, Any], decision, path: Path, policy,
         f"the router named {decision.extractor_name!r} and no extractor answers to "
         "it. The two tables have drifted; §2.9's routing table is router.py's."
     )
+
+
+def extract_targeted_ocr(
+        *, file_row: Mapping[str, Any], decision, path: Path, policy,
+        readers: Readers, now: str, context_window: int,
+        native_result: ExtractionResult,
+        no_usable_facts: Callable[[str, str], bool]) -> Dispatched:
+    """Run at most one post-P6 OCR pass for a prior native PDF result.
+
+    Other routed families have no targeted-document route and are a no-op. For a
+    PDF, the supplied prior result is contract input: guessing when it belongs to a
+    different file, family, or analysis tier would let unrelated evidence authorize
+    OCR for this file version.
+    """
+    if decision.extractor_name != pdf.EXTRACTOR_NAME:
+        return Dispatched(())
+
+    run = native_result.run
+    expected = {
+        "file_id": file_row["file_id"],
+        "content_hash": file_row["content_hash"],
+        "extractor_name": pdf.EXTRACTOR_NAME,
+        "analysis_tier": pdf.ANALYSIS_TIER,
+    }
+    mismatches = {name: (run.get(name), value) for name, value in expected.items()
+                  if run.get(name) != value}
+    if mismatches:
+        raise ContractViolation(
+            "targeted PDF OCR requires this file version's native pdf.text result; "
+            f"mismatched fields: {mismatches}")
+
+    decision_ocr = document_ocr_decision(
+        result=native_result, file_id=file_row["file_id"],
+        content_hash=file_row["content_hash"],
+        no_usable_facts=no_usable_facts)
+    if not decision_ocr.targeted:
+        return Dispatched(())
+
+    produced = _ocr(
+        file_row=file_row, path=path, policy=policy, readers=readers, now=now,
+        context_window=context_window)
+    return Dispatched((produced,)) if produced is not None else Dispatched(())
+
+
+def extract(*, file_row: Mapping[str, Any], decision, path: Path, policy,
+            readers: Readers, now: str, context_window: int,
+            no_usable_facts: Callable[[str, str], bool],
+            transcription_authorized: Callable[[], bool]) -> Dispatched:
+    """Backward-compatible composition of initial and post-P6 P5 passes."""
+    initial = extract_initial(
+        file_row=file_row, decision=decision, path=path, policy=policy,
+        readers=readers, now=now, context_window=context_window,
+        transcription_authorized=transcription_authorized)
+    if (decision.extractor_name != pdf.EXTRACTOR_NAME
+            or any(result.run["analysis_tier"] == ocr.ANALYSIS_TIER
+                   for result in initial.results)):
+        return initial
+    targeted = extract_targeted_ocr(
+        file_row=file_row, decision=decision, path=path, policy=policy,
+        readers=readers, now=now, context_window=context_window,
+        native_result=initial.results[0], no_usable_facts=no_usable_facts)
+    return Dispatched(initial.results + targeted.results,
+                      initial.sensitivity + targeted.sensitivity)
 
 
 class UnknownFamily(ContractViolation):

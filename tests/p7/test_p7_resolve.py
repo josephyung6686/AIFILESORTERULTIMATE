@@ -26,7 +26,7 @@ import privacy
 from privacy.redaction import RegionOriginUnspecified, span_address
 from privacy.resolve import (
     MATERIALISERS, AmbiguousObservationKey, Materialised, UnresolvableSpan,
-    current_observation, materialise,
+    current_location, current_observation, materialise,
 )
 
 CONTENT_HASH = "a" * 64
@@ -384,6 +384,59 @@ def test_a_time_span_addressed_observation_is_refused(evidence):
     key = key_for(location, extractor_name="whisper_local", raw_value="spoken")
     with pytest.raises(RegionOriginUnspecified):
         materialise(evidence, Item(key, None))
+
+
+# --- metadata-only address resolution ---------------------------------------
+
+def test_current_location_returns_the_live_canonical_address_without_content(evidence):
+    a_run(evidence, "run-old", "1.0.0", FIXED_CLOCK)
+    a_run(evidence, "run-new", "2.0.0", LATER)
+    old_location = Location(zone="body", container_path=PAGE,
+                            text_span=TextSpan(0, 8))
+    new_location = Location(zone="body", container_path=PAGE,
+                            text_span=TextSpan(16, 27))
+    old_id = an_observation(evidence, run_id="run-old", version="1.0.0",
+                            location=old_location)
+    new_id = an_observation(evidence, run_id="run-new", version="2.0.0",
+                            location=new_location)
+    key = key_for(old_location)
+    evidence.execute(
+        "UPDATE evidence SET observation_key = ? WHERE observation_id IN (?, ?)",
+        (key, old_id, new_id),
+    )
+    supersede_observation(
+        evidence, old_observation_id=old_id, new_observation_id=new_id,
+        reason="new extractor",
+    )
+
+    statements = []
+    evidence.set_trace_callback(statements.append)
+    try:
+        current = current_location(evidence, key)
+        assert current.file_id == "file-1"
+        assert current.location == new_location
+    finally:
+        evidence.set_trace_callback(None)
+
+    selects = [statement.lower() for statement in statements
+               if statement.lstrip().lower().startswith("select")]
+    assert selects
+    for statement in selects:
+        assert "raw_value" not in statement
+        assert "normalized_value" not in statement
+        assert "context_before" not in statement
+        assert "context_after" not in statement
+        assert "text_units" not in statement
+
+
+def test_current_location_preserves_a_container_only_address(evidence):
+    a_run(evidence, "run-cell", "1.0.0", FIXED_CLOCK)
+    location = Location(zone="table", container_path=CELL)
+    an_observation(evidence, run_id="run-cell", version="1.0.0",
+                   location=location, raw_value="cell value")
+    current = current_location(evidence, key_for(location, raw_value="cell value"))
+    assert current.file_id == "file-1"
+    assert current.location == location
 
 
 # --- the single-locus guard ----------------------------------------------------

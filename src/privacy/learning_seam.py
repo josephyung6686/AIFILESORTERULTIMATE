@@ -35,6 +35,7 @@ import sqlite3
 from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 
+from database_agent.db import transaction
 from database_agent.events import CORRECTION_SCOPES, append_event
 from database_agent.learning import learning_records
 
@@ -161,7 +162,13 @@ def assign(conn: sqlite3.Connection, record: ClassificationRecord, *,
     never become the learning record that suppresses the next one -- P1's reader
     requires `user_id IS NOT NULL`.
 
-    A SECOND ASSIGNMENT SUPERSEDES THE FIRST, and this is not optional. Without it,
+    A STRICTLY WEAKER ASSIGNMENT IS A NO-OP. The current authoritative record is
+    returned without writing a classification, projection, or event: an audit event
+    saying the detector's class was assigned would be false, even if the projection
+    continued to show the stronger answer.
+
+    A SECOND ASSIGNMENT AT THE SAME OR A STRONGER RANK SUPERSEDES THE FIRST, and this
+    is not optional. Without it,
     two system assignments at one `(file_id, content_hash)` leave two unsuperseded
     live rows and PERMANENTLY WEDGE the store: `current`, `may_move_automatically`,
     `summarize_protected` and even the user's own `reclassify` all raise
@@ -172,30 +179,36 @@ def assign(conn: sqlite3.Connection, record: ClassificationRecord, *,
     supersede missing.
     """
     check_handling_class(record.handling_class)
-    if suppressed(conn, record.file_id, record.handling_class):
-        return None
-    prior = store.current(record.file_id, record.content_hash)
-    prior_fact_id = store.current_fact_id(record.file_id, record.content_hash)
-    fact_id = store.write(record)
-    if prior is not None and prior_fact_id is not None and not _outranked_by(
-            record, prior):
-        store.supersede(prior_fact_id, fact_id, REASSIGNED_BY_SYSTEM)
-    mirror(conn, record, component_version=component_version)
-    append_event(conn, **event_defaults(
-        event_type=CLASSIFICATION_ASSIGNED,
-        file_id=record.file_id,
-        content_hash=record.content_hash,
-        component_version=component_version,
-        observed_at=record.observed_at,
-        explanation=canonical_json({
-            "handling_class": record.handling_class,
-            "protected": record.protected,
-            "basis": record.basis,
-            "reliability_state": record.reliability_state,
-            "evidence_refs": list(record.evidence_refs),
-        }),
-    ))
-    return record
+    if not store.bound_to(conn):
+        raise ValueError("ClassificationStore must use the same SQLite connection")
+    with transaction(conn):
+        if suppressed(conn, record.file_id, record.handling_class):
+            return None
+        prior = store.current(record.file_id, record.content_hash)
+        if prior is not None and _outranked_by(record, prior):
+            return prior
+        prior_fact_id = store.current_fact_id(record.file_id, record.content_hash)
+        fact_id = store.write(record)
+        if prior is not None and prior_fact_id is not None:
+            store.supersede(prior_fact_id, fact_id, REASSIGNED_BY_SYSTEM)
+        authoritative = store.current(record.file_id, record.content_hash)
+        assert authoritative is not None
+        mirror(conn, authoritative, component_version=component_version)
+        append_event(conn, **event_defaults(
+            event_type=CLASSIFICATION_ASSIGNED,
+            file_id=record.file_id,
+            content_hash=record.content_hash,
+            component_version=component_version,
+            observed_at=record.observed_at,
+            explanation=canonical_json({
+                "handling_class": record.handling_class,
+                "protected": record.protected,
+                "basis": record.basis,
+                "reliability_state": record.reliability_state,
+                "evidence_refs": list(record.evidence_refs),
+            }),
+        ))
+        return record
 
 
 def reclassify(conn: sqlite3.Connection, file_id: str, handling_class: str,
@@ -230,41 +243,45 @@ def reclassify(conn: sqlite3.Connection, file_id: str, handling_class: str,
         raise ValueError(
             f"correction_scope {correction_scope!r} is not one of §8.7's six "
             f"{tuple(sorted(CORRECTION_SCOPES))}")
-    prior = store.current(file_id, content_hash)
-    prior_fact_id = store.current_fact_id(file_id, content_hash)
-    record = ClassificationRecord(
-        file_id=file_id, content_hash=content_hash, handling_class=handling_class,
-        protected=protected, basis=USER, evidence_refs=tuple(evidence_refs),
-        reliability_state=USER_CONFIRMED, observed_at=observed_at)
-    fact_id = store.write(record)
-    if prior is not None and prior_fact_id is not None:
-        store.supersede(prior_fact_id, fact_id, reason)
-    mirror(conn, record, component_version=component_version)
+    if not store.bound_to(conn):
+        raise ValueError("ClassificationStore must use the same SQLite connection")
+    with transaction(conn):
+        prior = store.current(file_id, content_hash)
+        prior_fact_id = store.current_fact_id(file_id, content_hash)
+        record = ClassificationRecord(
+            file_id=file_id, content_hash=content_hash, handling_class=handling_class,
+            protected=protected, basis=USER, evidence_refs=tuple(evidence_refs),
+            reliability_state=USER_CONFIRMED, observed_at=observed_at)
+        fact_id = store.write(record)
+        if prior is not None and prior_fact_id is not None:
+            store.supersede(prior_fact_id, fact_id, reason)
+        mirror(conn, record, component_version=component_version)
 
-    if prior is None:
-        event_type, polarity, subject = CLASSIFICATION_ASSIGNED, ACCEPT, handling_class
-    else:
-        event_type, polarity, subject = (
-            CLASSIFICATION_SUPERSEDED, REJECT, prior.handling_class)
-    append_event(conn, **event_defaults(
-        event_type=event_type,
-        file_id=file_id,
-        content_hash=content_hash,
-        user_id=user_id,
-        component_version=component_version,
-        observed_at=observed_at,
-        explanation=canonical_json({
-            "handling_class": handling_class,
-            "protected": protected,
-            "reason": reason,
-            "superseded_handling_class":
-                None if prior is None else prior.handling_class,
-            "rejected_evidence_refs": list(evidence_refs),
-        }),
-        correction_scope=correction_scope,
-        correction_subject=file_id,
-        polarity=polarity,
-        proposal_class=PROPOSAL_CLASS,
-        basis_key=basis_key_for(file_id, subject),
-    ))
-    return record
+        if prior is None:
+            event_type, polarity, subject = (
+                CLASSIFICATION_ASSIGNED, ACCEPT, handling_class)
+        else:
+            event_type, polarity, subject = (
+                CLASSIFICATION_SUPERSEDED, REJECT, prior.handling_class)
+        append_event(conn, **event_defaults(
+            event_type=event_type,
+            file_id=file_id,
+            content_hash=content_hash,
+            user_id=user_id,
+            component_version=component_version,
+            observed_at=observed_at,
+            explanation=canonical_json({
+                "handling_class": handling_class,
+                "protected": protected,
+                "reason": reason,
+                "superseded_handling_class":
+                    None if prior is None else prior.handling_class,
+                "rejected_evidence_refs": list(evidence_refs),
+            }),
+            correction_scope=correction_scope,
+            correction_subject=file_id,
+            polarity=polarity,
+            proposal_class=PROPOSAL_CLASS,
+            basis_key=basis_key_for(file_id, subject),
+        ))
+        return record

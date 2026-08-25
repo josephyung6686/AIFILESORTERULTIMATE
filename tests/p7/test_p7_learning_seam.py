@@ -9,6 +9,7 @@ import json
 
 import pytest
 
+from database_agent.db import transaction
 from database_agent.events import CORRECTION_FIELDS, CORRECTION_SCOPES, append_event
 from database_agent.files_table import get_file, record_file
 from database_agent.learning import SCOPES, learning_records, reset_preferences
@@ -17,7 +18,7 @@ from privacy.authorship import (
     CLASSIFICATION_ASSIGNED, CLASSIFICATION_SUPERSEDED, SUBSYSTEM,
 )
 from privacy.classification import ClassificationRecord
-from privacy.classification_store import ClassificationStore
+from privacy.classification_store import ClassificationStore, mirror_state
 from privacy.learning_seam import (REASSIGNED_BY_SYSTEM, 
     ACCEPT, FILE_SCOPE, PROPOSAL_CLASS, RECORDED_ACTIONS, RECORDED_ACTION_SOURCES,
     REJECT, UnknownRecordedAction, assign, basis_key_for, check_recorded_action,
@@ -159,16 +160,22 @@ def test_an_unreset_reject_produces_zero_re_emissions(
     assert after == before
 
 
-def test_a_different_basis_key_at_the_same_scope_still_emits(
+def test_a_different_basis_key_is_unsuppressed_but_still_obeys_authority(
         p7_conn, file_id, content_hash, store):
-    a_user_rejection(p7_conn, file_id, content_hash, store=store)
-    emitted = assign(
+    authoritative = a_user_rejection(p7_conn, file_id, content_hash, store=store)
+    proposed_class = "highly_sensitive_credential_bearing"
+    assert suppressed(p7_conn, file_id, proposed_class) is False
+    event_count = p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"]
+    result = assign(
         p7_conn,
         a_record(file_id, content_hash,
-                 handling_class="highly_sensitive_credential_bearing"),
+                 handling_class=proposed_class),
         store=store, component_version=COMPONENT)
-    assert emitted is not None
-    assert emitted.handling_class == "highly_sensitive_credential_bearing"
+    assert result == authoritative
+    assert store.history(file_id) == [authoritative]
+    assert p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"] == event_count
 
 
 def test_a_reset_restores_emission(p7_conn, file_id, content_hash, store):
@@ -417,6 +424,152 @@ def test_the_projection_onto_files_goes_through_p1s_setter(
     assert state["handling_class"] == "personal_non_sensitive"
 
 
+@pytest.mark.parametrize("failure_boundary", ("mirror", "event"))
+def test_assign_rolls_back_the_entire_mutation_when_a_boundary_fails(
+        p7_conn, file_id, content_hash, store, monkeypatch, failure_boundary):
+    """P1's transaction contract covers P7's fact, projection, and audit event.
+
+    The second equal-rank assignment is deliberate: it exercises both the new row
+    and superseding the old row. A failure after either boundary must restore the
+    exact authoritative state that existed before the attempted assignment.
+    """
+    import privacy.learning_seam as module
+
+    prior = a_record(file_id, content_hash)
+    assign(p7_conn, prior, store=store, component_version=COMPONENT)
+    prior_fact_id = store.current_fact_id(file_id, content_hash)
+    prior_projection = get_file(p7_conn, file_id)["sensitivity_state"]
+    prior_event_count = p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"]
+
+    def explode(*args, **kwargs):
+        raise RuntimeError(f"injected {failure_boundary} failure")
+
+    monkeypatch.setattr(module, failure_boundary == "mirror" and "mirror" or
+                        "append_event", explode)
+    replacement = a_record(
+        file_id, content_hash, handling_class="personal_non_sensitive",
+        protected=False, observed_at=LATER)
+
+    with pytest.raises(RuntimeError, match=f"injected {failure_boundary} failure"):
+        assign(p7_conn, replacement, store=store, component_version=COMPONENT)
+
+    assert store.history(file_id) == [prior]
+    assert store.current(file_id, content_hash) == prior
+    assert store.current_fact_id(file_id, content_hash) == prior_fact_id
+    assert store.chain_for(prior_fact_id)[-1]["superseded_by"] is None
+    assert get_file(p7_conn, file_id)["sensitivity_state"] == prior_projection
+    assert p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"] == prior_event_count
+
+
+def test_assign_failure_rolls_back_only_its_savepoint_inside_a_caller_transaction(
+        p7_conn, file_id, content_hash, store, monkeypatch):
+    """A caller's transaction survives while the failed P7 unit disappears."""
+    import privacy.learning_seam as module
+
+    def explode(*args, **kwargs):
+        raise RuntimeError("injected event failure")
+
+    with transaction(p7_conn):
+        p7_conn.execute("UPDATE files SET detected_format = ? WHERE file_id = ?",
+                        ("outer-before", file_id))
+        monkeypatch.setattr(module, "append_event", explode)
+        with pytest.raises(RuntimeError, match="injected event failure"):
+            assign(p7_conn, a_record(file_id, content_hash), store=store,
+                   component_version=COMPONENT)
+        p7_conn.execute("UPDATE files SET mime_type = ? WHERE file_id = ?",
+                        ("outer-after", file_id))
+
+    assert store.history(file_id) == []
+    row = get_file(p7_conn, file_id)
+    assert row["sensitivity_state"] is None
+    assert row["detected_format"] == "outer-before"
+    assert row["mime_type"] == "outer-after"
+    assert p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"] == 0
+
+
+@pytest.mark.parametrize("entrypoint", ("assign", "reclassify"))
+def test_a_store_bound_to_another_connection_is_refused_before_any_write(
+        p7_conn, file_id, content_hash, entrypoint):
+    other = __import__("sqlite3").connect(":memory:")
+    wrong_store = ClassificationStore(other)
+    try:
+        if entrypoint == "assign":
+            call = lambda: assign(
+                p7_conn, a_record(file_id, content_hash), store=wrong_store,
+                component_version=COMPONENT)
+        else:
+            call = lambda: reclassify(
+                p7_conn, file_id, "personal_non_sensitive", "user correction",
+                store=wrong_store, content_hash=content_hash, protected=False,
+                evidence_refs=DETECTOR_KEYS, user_id="joseph",
+                component_version=COMPONENT, observed_at=LATER)
+        with pytest.raises(ValueError, match="same SQLite connection"):
+            call()
+    finally:
+        other.close()
+    assert get_file(p7_conn, file_id)["sensitivity_state"] is None
+    assert p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"] == 0
+
+
+@pytest.mark.parametrize("failure_boundary", ("mirror", "event"))
+def test_reclassify_rolls_back_the_entire_mutation_when_a_boundary_fails(
+        p7_conn, file_id, content_hash, store, monkeypatch, failure_boundary):
+    import privacy.learning_seam as module
+
+    prior = a_record(file_id, content_hash)
+    assign(p7_conn, prior, store=store, component_version=COMPONENT)
+    prior_fact_id = store.current_fact_id(file_id, content_hash)
+    prior_projection = get_file(p7_conn, file_id)["sensitivity_state"]
+    prior_event_count = p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"]
+
+    def explode(*args, **kwargs):
+        raise RuntimeError(f"injected {failure_boundary} failure")
+
+    monkeypatch.setattr(module, failure_boundary == "mirror" and "mirror" or
+                        "append_event", explode)
+    with pytest.raises(RuntimeError, match=f"injected {failure_boundary} failure"):
+        a_user_rejection(p7_conn, file_id, content_hash, store=store)
+
+    assert store.history(file_id) == [prior]
+    assert store.current(file_id, content_hash) == prior
+    assert store.current_fact_id(file_id, content_hash) == prior_fact_id
+    assert store.chain_for(prior_fact_id)[-1]["superseded_by"] is None
+    assert get_file(p7_conn, file_id)["sensitivity_state"] == prior_projection
+    assert p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"] == prior_event_count
+
+
+def test_reclassify_failure_rolls_back_only_its_savepoint_in_caller_transaction(
+        p7_conn, file_id, content_hash, store, monkeypatch):
+    import privacy.learning_seam as module
+
+    def explode(*args, **kwargs):
+        raise RuntimeError("injected event failure")
+
+    with transaction(p7_conn):
+        p7_conn.execute("UPDATE files SET detected_format = ? WHERE file_id = ?",
+                        ("outer-before", file_id))
+        monkeypatch.setattr(module, "append_event", explode)
+        with pytest.raises(RuntimeError, match="injected event failure"):
+            reclassify(
+                p7_conn, file_id, "personal_non_sensitive", "user correction",
+                store=store, content_hash=content_hash, protected=False,
+                evidence_refs=DETECTOR_KEYS, user_id="joseph",
+                component_version=COMPONENT, observed_at=LATER)
+        p7_conn.execute("UPDATE files SET mime_type = ? WHERE file_id = ?",
+                        ("outer-after", file_id))
+
+    assert store.history(file_id) == []
+    row = get_file(p7_conn, file_id)
+    assert row["sensitivity_state"] is None
+    assert row["detected_format"] == "outer-before"
+    assert row["mime_type"] == "outer-after"
+    assert p7_conn.execute("SELECT count(*) c FROM events").fetchone()["c"] == 0
+
+
 def test_the_projection_is_the_store_s_own_helper_and_not_a_private_copy():
     # The preamble's §3.4 lesson, applied: "if another module already owns a helper,
     # IMPORT IT." `classification_store.mirror` is D2's write-through and this module
@@ -527,6 +680,77 @@ def test_a_detector_never_retires_the_users_own_answer(
     assert current.basis == USER
     assert current.handling_class == "personal_non_sensitive"
     assert current.reliability_state == USER_CONFIRMED
+
+
+def test_a_weaker_assignment_mirrors_the_authoritative_user_answer(
+        p7_conn, file_id, content_hash, store):
+    stronger = reclassify(
+        p7_conn, file_id, "personal_non_sensitive", "the user says otherwise",
+        store=store, content_hash=content_hash, protected=False,
+        evidence_refs=EVIDENCE_REFS, user_id="joseph",
+        component_version=COMPONENT, observed_at=FIXED_CLOCK)
+    weaker = a_record(file_id, content_hash, observed_at=LATER)
+
+    history_before = store.history(file_id)
+    events_before = list(p7_conn.execute(
+        "SELECT event_type, explanation FROM events ORDER BY rowid"))
+    projection_before = get_file(p7_conn, file_id)["sensitivity_state"]
+
+    assigned = assign(
+        p7_conn, weaker, store=store, component_version=COMPONENT)
+
+    assert assigned == stronger
+    assert store.current(file_id, content_hash) == stronger
+    assert store.history(file_id) == history_before == [stronger]
+    assert get_file(p7_conn, file_id)["sensitivity_state"] == projection_before
+    assert json.loads(projection_before) == mirror_state(stronger)
+    events_after = list(p7_conn.execute(
+        "SELECT event_type, explanation FROM events ORDER BY rowid"))
+    assert events_after == events_before
+    assert all(
+        json.loads(row["explanation"]).get("handling_class") != weaker.handling_class
+        for row in events_after
+    )
+
+
+def test_a_weaker_assignment_is_a_noop_inside_a_caller_transaction(
+        p7_conn, file_id, content_hash, store, monkeypatch):
+    """Authority rejection neither rolls back nor mutates the caller's unit."""
+    import privacy.learning_seam as module
+
+    stronger = reclassify(
+        p7_conn, file_id, "personal_non_sensitive", "the user says otherwise",
+        store=store, content_hash=content_hash, protected=False,
+        evidence_refs=EVIDENCE_REFS, user_id="joseph",
+        component_version=COMPONENT, observed_at=FIXED_CLOCK)
+    history_before = store.history(file_id)
+    event_count_before = p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"]
+    projection_before = get_file(p7_conn, file_id)["sensitivity_state"]
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("a weaker assignment must not cross a write boundary")
+
+    monkeypatch.setattr(module, "mirror", forbidden)
+    monkeypatch.setattr(module, "append_event", forbidden)
+    with transaction(p7_conn):
+        p7_conn.execute("UPDATE files SET detected_format = ? WHERE file_id = ?",
+                        ("outer-before", file_id))
+        result = assign(
+            p7_conn, a_record(file_id, content_hash, observed_at=LATER),
+            store=store, component_version=COMPONENT)
+        p7_conn.execute("UPDATE files SET mime_type = ? WHERE file_id = ?",
+                        ("outer-after", file_id))
+
+    assert result == stronger
+    assert store.history(file_id) == history_before
+    assert store.current(file_id, content_hash) == stronger
+    row = get_file(p7_conn, file_id)
+    assert row["sensitivity_state"] == projection_before
+    assert row["detected_format"] == "outer-before"
+    assert row["mime_type"] == "outer-after"
+    assert p7_conn.execute(
+        "SELECT count(*) c FROM events").fetchone()["c"] == event_count_before
 
 
 def test_the_ranking_is_asked_of_strongest_and_not_re_implemented():

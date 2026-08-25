@@ -13,16 +13,16 @@ its stored evidence yields no usable facts. This module is that verdict.
      its extracted evidence fails to produce usable facts, not because a broad quality
      heuristic says the text looks unusual."                              -- §2.7
 
-**DO NOT WIRE THIS INTO `run_wave2`.** `extractors.ocr_policy.text_layer_state`
+**DO NOT WIRE THIS INTO legacy `run_wave2`.** `extractors.ocr_policy.text_layer_state`
 consults `no_usable_facts` for every document whose run produced any non-empty text
 unit, inside the orchestrator's single extraction loop, before P4 has been handed the
 observations at all. P6 Task 26 -- the caller restructure -- is CUT (D5), so nothing
 reorders that. `FactPassNotRun` is a `ContractViolation` and the orchestrator re-raises
 those by name, so passing this verdict to `run_wave2` today would END THE SCAN on the
-first text-bearing PDF. The caller keeps `orchestrator.TARGETED_OCR_UNAVAILABLE`.
-Wiring the real verdict is the four-pass work and is owed together with the pass-3 and
-pass-4 ordering, not before it. A test asserts the orchestrator still imports nothing
-from `facts`.
+first text-bearing PDF. That caller keeps
+`orchestrator.TARGETED_OCR_UNAVAILABLE`. The production P1–P7 composition instead
+binds this persisted verdict after its first P6 pass; the threshold remains an
+explicit injected authority.
 
 **Computed from the fact tables and nothing else.** The negative is load-bearing and
 the design states it twice. A10 names the failure literally --
@@ -158,3 +158,29 @@ def no_usable_facts_for(
             unresolved_for_file(conn, file_id, content_hash))
 
     return no_usable_facts
+
+
+def targeted_ocr_needed_for(
+        conn: sqlite3.Connection, *,
+        usable_threshold: Callable[[Sequence[sqlite3.Row], Sequence[sqlite3.Row]],
+                                   bool]) -> Callable[[str, str], bool]:
+    """Return P6's completed-pass decision for one targeted OCR attempt.
+
+    The existing usability verdict owns whether the stored P6 result is usable and
+    raises when no pass completed. The pass record owns whether OCR evidence was
+    already included. Combining those two authorities makes retry termination a
+    property of persisted inputs rather than caller memory.
+    """
+    no_usable_facts = no_usable_facts_for(
+        conn, usable_threshold=usable_threshold)
+    _filesystem_tier, _native_tier, ocr_tier, _llm_tier = ANALYSIS_TIERS
+
+    def targeted_ocr_needed(file_id: str, content_hash: str) -> bool:
+        if not no_usable_facts(file_id, content_hash):
+            return False
+        return not any(
+            ocr_tier in tiers
+            for tiers in passes_for(
+                conn, file_id=file_id, content_hash=content_hash))
+
+    return targeted_ocr_needed

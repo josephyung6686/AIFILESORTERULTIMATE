@@ -53,6 +53,16 @@ def _has_text(result: ExtractionResult) -> bool:
     return any(unit["text"].strip() for unit in result.text_units)
 
 
+def direct_document_ocr_needed(*, result: ExtractionResult) -> bool:
+    """Whether a PDF must go directly to OCR before P6 can evaluate evidence.
+
+    A non-empty text layer is deliberately left alone.  Whether its stored evidence
+    yields usable facts is knowable only after P6 completes, through
+    :func:`document_ocr_decision`.
+    """
+    return not _has_text(result)
+
+
 #: §2.6's hierarchy, read at the level that decides. "Camera EXIF is strong photo
 #: evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact
 #: display resolutions, PNG format, and software metadata may support a screenshot

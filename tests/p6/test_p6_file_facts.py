@@ -14,9 +14,13 @@ import pytest
 
 from database_agent.supersede import SUPERSEDE_COLUMNS, mark_superseded
 
-from evidence_shape.observation import observation_key
+from evidence_shape.location import Location
+from evidence_shape.observation import Observation, observation_key
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.store import record_observation, record_run
 from evidence_shape.vocabulary import NotInVocabulary
 
+import facts.file_facts as file_facts_module
 from facts.fields import FieldNotInCatalogue
 from facts.file_facts import (
     DETERMINISTIC_EXTRACTOR,
@@ -40,6 +44,7 @@ CONTENT_HASH = "a" * 64
 OTHER_HASH = "b" * 64
 FILE_ID = "file-1"
 CACHE_KEY = "sha256:" + "c" * 64
+CLOCK = "2026-08-25T12:00:00+00:00"
 
 
 def _key(raw: str, *, locator: str = "heading:page=1/heading=2") -> str:
@@ -59,6 +64,24 @@ def _write(conn, **overrides) -> str:
                   cache_key=CACHE_KEY, active=True)
     kwargs.update(overrides)
     return write_fact(conn, **kwargs)
+
+
+def _stored_observation(conn, *, raw: str = "BUSIB 4300") -> Observation:
+    run_id = f"run-{raw}"
+    record_run(conn, ExtractionRun(
+        run_id=run_id, file_id=FILE_ID, content_hash=CONTENT_HASH,
+        extractor_name="pdf.text", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=CLOCK, finished_at=CLOCK,
+    ))
+    observation = Observation(
+        file_id=FILE_ID, content_hash=CONTENT_HASH, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=raw,
+        location=Location("heading", ()), occurrence_count=1, observed_at=CLOCK,
+        reliability="possible", run_id=run_id,
+    )
+    record_observation(conn, observation)
+    return observation
 
 
 def _live_columns(conn, table: str) -> tuple[str, ...]:
@@ -153,6 +176,12 @@ def test_a_fact_is_written_and_read_back_with_its_field_and_its_value(p6_conn):
     assert row["active"] == 1
 
 
+def test_the_read_projects_field_key_exactly_once(p6_conn):
+    _write(p6_conn)
+    row = facts_for_file(p6_conn, FILE_ID, CONTENT_HASH)[0]
+    assert row.keys().count("field_key") == 1
+
+
 def test_a_non_user_fact_with_no_evidence_is_refused(p6_conn):
     # §3.1: "Every fact preserves where it came from." A fact with nothing behind it
     # is the plausible guess this part exists to refuse.
@@ -168,6 +197,39 @@ def test_every_evidence_ref_must_be_a_p4_observation_key(p6_conn):
         with pytest.raises(EvidenceRequired):
             _write(p6_conn, evidence_refs=(bad,))
     assert facts_for_file(p6_conn, FILE_ID, CONTENT_HASH) == []
+
+
+def test_every_cited_quote_ref_must_be_a_p4_observation_key(p6_conn):
+    for bad in (None, "observation-17", "", "sha255:" + "0" * 64, "0" * 64):
+        with pytest.raises(EvidenceRequired):
+            _write(p6_conn, cited_quote_refs=(bad,))
+    assert facts_for_file(p6_conn, FILE_ID, CONTENT_HASH) == []
+
+
+def test_every_cited_quote_ref_must_resolve_to_stored_evidence(p6_conn):
+    absent = observation_key(
+        content_hash=CONTENT_HASH, extractor_name="pdf.text",
+        locator="heading:", raw_value="not stored",
+    )
+    with pytest.raises(EvidenceRequired, match="resolves to no stored observation"):
+        _write(p6_conn, cited_quote_refs=(absent,))
+    assert facts_for_file(p6_conn, FILE_ID, CONTENT_HASH) == []
+
+
+def test_cited_quote_refs_round_trip_as_sorted_observation_keys(p6_conn):
+    first = _stored_observation(p6_conn, raw="BUSIB 4300")
+    second = _stored_observation(p6_conn, raw="Spring 2026")
+    fact_id = _write(
+        p6_conn,
+        cited_quote_refs=(second.observation_key, first.observation_key,
+                          second.observation_key),
+    )
+    row = p6_conn.execute(
+        "SELECT cited_quote_refs FROM file_facts WHERE fact_id = ?", (fact_id,)
+    ).fetchone()
+    assert json.loads(row["cited_quote_refs"]) == sorted(
+        {first.observation_key, second.observation_key}
+    )
 
 
 def test_a_user_confirmed_fact_may_stand_without_an_observation(p6_conn):
@@ -220,6 +282,19 @@ def test_each_origin_has_a_named_constant_so_no_consumer_needs_an_index(p6_conn)
              USER_APPROVED_FOLDER)
     assert named == FACT_ORIGINS
     assert len(set(named)) == 5
+
+
+def test_fact_creation_event_does_not_follow_authored_tuple_reordering(
+        p6_conn, monkeypatch):
+    # Selecting AUTHORED_EVENT_TYPES[0] silently changes meaning when the owning
+    # vocabulary is reordered. The writer binds the semantic name instead.
+    monkeypatch.setattr(
+        file_facts_module, "AUTHORED_EVENT_TYPES",
+        tuple(reversed(file_facts_module.AUTHORED_EVENT_TYPES)),
+    )
+    _write(p6_conn)
+    event = p6_conn.execute("SELECT event_type FROM events").fetchone()
+    assert event["event_type"] == "fact creation"
 
 
 def test_a_fact_naming_a_field_outside_the_catalogue_is_refused(p6_conn):

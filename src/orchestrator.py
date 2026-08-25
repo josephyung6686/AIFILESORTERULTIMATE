@@ -41,12 +41,15 @@ from eval_harness.bundle import (
 )
 
 from evidence_shape.store import (
-    observation_keys_for_run, observations_for_run, runs_for_content, runs_for_file,
-    text_units_for_run,
+    AmbiguousAuthoritativeRun, authoritative_result, observation_keys_for_run,
+    observations_for_run, runs_for_content, runs_for_file, text_units_for_run,
 )
 
 from extractors.authorship import COMPONENT_VERSION, SUBSYSTEM
-from extractors.dispatch import current_versions, extract
+from extractors import ocr, pdf
+from extractors.dispatch import (
+    current_versions, extract, extract_initial, extract_targeted_ocr,
+)
 from extractors.failure import ContractViolation, failed_result
 from extractors.filesystem import dataless_result, extract_filesystem
 from extractors.long_tail import record_sensitivity_signals
@@ -58,14 +61,21 @@ from scan_agent.dataless import dataless_detections
 from scan_agent.scan import scan
 from scan_agent.stat_cache import VERDICT_RECOMPUTE, cache_verdicts
 
+from privacy.classification import ClassificationRecord, resolve_class
+from privacy.classification_store import ClassificationStore
+from privacy.learning_seam import assign
+
+_add_file_entry = add_file_entry
+
 
 def TARGETED_OCR_UNAVAILABLE(file_id: str, content_hash: str) -> bool:
-    """P6 has not run, so §2.2's `text_layer_broken` route cannot be evaluated.
+    """Legacy Wave 2 has not run P6, so its broken-text route is unavailable.
 
     §2.2 names three text-layer states and the broken one is reachable only from P6's
     `no_usable_facts` verdict — "targeted OCR on a PDF with a non-empty but broken
-    text layer only when its stored evidence yields no usable facts". P6 is unbuilt,
-    so there is no verdict to give.
+    text layer only when its stored evidence yields no usable facts". `run_wave2`
+    predates P6, so it has no verdict to give. `run_p1_p7` binds the real persisted
+    predicate after its first fact pass.
 
     **This says nothing about OCR being unavailable.** `src/readers/` wires Apple
     Vision, and §2.2's OTHER route — *"A file with no text should route directly to
@@ -76,10 +86,11 @@ def TARGETED_OCR_UNAVAILABLE(file_id: str, content_hash: str) -> bool:
 
     An earlier version of this docstring said *"no OCR engine is wired"*, which was
     true when round 5 argued D5 and stopped being true when the readers landed. The
-    D5 conclusion is unchanged — P6 Task 26 stays cut, because the blocker was always
-    P6 and is now ONLY P6 — but the second half of its argument has expired, and a
+    historical D5 conclusion kept this legacy path cut, but the production caller now
+    implements the required reordered passes. The second half of the old argument had
+    expired, and a
     stale reason left in place is how a decision gets re-litigated from a premise
-    nobody rechecked. **This function is kept, not deleted.**
+    nobody rechecked. **This function remains only for `run_wave2`.**
 
     Callers passed `lambda f, h: False` for this, and that is not the same statement.
     `False` from P6 means *"I examined this file's stored facts and the text layer is
@@ -105,6 +116,29 @@ class Wave2:
     scan_run_id: str
     bundle_id: str
     run_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class FileFactResults:
+    """P6 results attributed to the exact immutable file version they describe."""
+    file_id: str
+    content_hash: str
+    results: tuple[Any, ...]
+
+
+@dataclass(frozen=True)
+class P1P7Run:
+    """Handles returned by one live P1-through-P7 assembly."""
+    scan_run_id: str
+    bundle_id: str
+    run_ids: tuple[str, ...]
+    fact_results: tuple[tuple[Any, ...], ...]
+    fact_results_by_file: tuple[FileFactResults, ...] = ()
+
+
+FactPass = Callable[[sqlite3.Connection, str, str], Any]
+ClassificationProducer = Callable[
+    [sqlite3.Connection, str, str], ClassificationRecord | None]
 
 
 def get_file(conn: sqlite3.Connection, file_id: str) -> dict:
@@ -139,6 +173,22 @@ def _extraction_is_stale(conn: sqlite3.Connection, content_hash: str,
     return False
 
 
+def _has_successful_ocr_coverage(
+        conn: sqlite3.Connection, *, file_id: str, content_hash: str) -> bool:
+    """Whether this exact file version already has completed OCR evidence.
+
+    This is a coverage membership test, not an authoritative-result selector: no
+    run is chosen and chronology is irrelevant. Any exact-hash OCR run completed
+    without failure means P6's first pass must include OCR and OCR must not rerun.
+    """
+    return any(
+        run.content_hash == content_hash
+        and run.analysis_tier == ocr.ANALYSIS_TIER
+        and run.finished_at is not None
+        and run.failure_reason is None
+        for run in runs_for_file(conn, file_id))
+
+
 def _write(sink, result, written: list[str]) -> str:
     run_id = sink.write(result)
     written.append(run_id)
@@ -165,6 +215,58 @@ def _failed_version(decision, versions: Mapping[str, str]) -> str:
             "tables have drifted; §2.9's routing table is router.py's."
         )
     return version
+
+
+def _assemble_bundle(
+        conn: sqlite3.Connection, *, scan_run_id: str, roster: list[str],
+        corpus_form: str, policy_settings: Mapping[str, Any],
+        file_entry_body: Callable[[Mapping[str, Any]], Mapping[str, str]],
+        handling_class_for: Callable[[Mapping[str, Any]], str | None] | None) -> str:
+    """Build P2's immutable envelope from the current selected corpus."""
+    bundle_id = open_bundle(
+        conn, corpus_form=corpus_form, source_scan_ref=scan_run_id,
+        pinned_plan_id=None, pinned_plan_version=None,
+        policy_settings=dict(policy_settings))
+    seen: set[tuple[str, str, str]] = set()
+    for file_id in roster:
+        file_row = get_file(conn, file_id)
+        common = dict(
+            file_id=file_id, content_hash=file_row["content_hash"],
+            hash_algorithm=file_row["hash_algorithm"], **file_entry_body(file_row))
+        if handling_class_for is None:
+            # Keep the legacy caller's pre-P7 contract explicit and unchanged.
+            add_file_entry(conn, bundle_id, handling_class=None, **common)
+        else:
+            _add_file_entry(
+                conn, bundle_id, handling_class=handling_class_for(file_row),
+                **common)
+        for run in runs_for_file(conn, file_id):
+            # A file_id is a convenience handle on P4 rows; P2's immutable bundle
+            # entry is the exact (file_id, content_hash) version. Historical or
+            # malformed same-file rows must not leak across that join. Keep every
+            # extractor/version for the selected hash so cross-version diffs remain
+            # possible; filter on identity, never chronology.
+            if run.content_hash != file_row["content_hash"]:
+                continue
+            row = conn.execute(
+                "SELECT * FROM extraction_runs WHERE run_id = ?", (run.run_id,)
+            ).fetchone()
+            add_extraction_run(conn, bundle_id, row=dict(row))
+            for unit in text_units_for_run(conn, run.run_id):
+                add_text_unit(conn, bundle_id, row=unit.to_mapping())
+            for observation in observations_for_run(conn, run.run_id):
+                key = (run.content_hash, run.extractor_version,
+                       observation.observation_key)
+                if key in seen:
+                    continue
+                seen.add(key)
+                add_extraction_output(
+                    conn, bundle_id, content_hash=run.content_hash,
+                    extractor_version=run.extractor_version,
+                    observation_key=observation.observation_key,
+                    payload=canonical_json(observation.to_mapping()))
+    seal_bundle(conn, bundle_id)
+    return bundle_id
 
 
 def _extract_one(*, file_row, path, decision, policy, readers, now, context_window,
@@ -223,8 +325,9 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
     `{"payload_ref": ...}` for a snapshot bundle or `{"metadata_only": ...}` for a
     metadata-safe one. It is injected because WHERE a bundle keeps its payloads is
     the caller's, and because §8.4 requires the privacy gate to decide what a bundle
-    may carry before anything is written into one; P7 is unbuilt and this module is
-    not the place to guess. P2 enforces the exactly-one rule and the corpus_form
+    may carry before anything is written into one. This legacy path predates P7 and
+    therefore carries no class; `run_p1_p7` uses P7's authoritative current record.
+    P2 enforces the exactly-one rule and the corpus_form
     match, so an inconsistent caller is refused there rather than half-written here.
     """
     # 1 -- P3. Full Disk Access is checked INSIDE scan(), before the run row exists
@@ -373,63 +476,237 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
                 **extraction_status_by_tier([result.run])},
             author=SUBSYSTEM, component_version=COMPONENT_VERSION)
 
-    # 4 -- P2. The join P3 published, P1 adopted, and nothing made until now.
-    bundle_id = open_bundle(conn, corpus_form=corpus_form,
-                            source_scan_ref=scan_run_id,
-                            pinned_plan_id=None, pinned_plan_version=None,
-                            policy_settings=dict(policy_settings))
-    # The bundle is THIS SELECTION'S CORPUS AS IT STANDS, not this pass's writes.
-    #
-    # Membership was `SELECT * FROM files` -- every file in the database, so a second
-    # selection's bundle carried the first selection's files. Contents were the runs
-    # `written` this pass, so a rescan of an unchanged corpus (all REUSE, nothing
-    # re-extracted, which is correct) produced a bundle with zero extractions, and
-    # §8.5's eval envelope described a corpus extraction had never touched. The two
-    # errors are opposite and both make the bundle lie about the corpus: one too
-    # wide, one too narrow.
-    seen: set[tuple[str, str, str]] = set()
-    for file_id in roster:
-        file_row = get_file(conn, file_id)
-        add_file_entry(conn, bundle_id, file_id=file_id,
-                       content_hash=file_row["content_hash"],
-                       hash_algorithm=file_row["hash_algorithm"],
-                       # §8.4's, and P7 is unbuilt. This passed P1's
-                       # `sensitivity_state` -- a DIFFERENT field on a different
-                       # record. Both are NULL on a live scan, so nothing failed and
-                       # the name was still wrong: one concept wearing two names one
-                       # column apart. The honest value is None because the class is
-                       # unknown, not because another column happened to be empty.
-                       handling_class=None,
-                       **file_entry_body(file_row))
-        for run in runs_for_file(conn, file_id):
-            row = conn.execute("SELECT * FROM extraction_runs WHERE run_id = ?",
-                               (run.run_id,)).fetchone()
-            add_extraction_run(conn, bundle_id, row=dict(row))
-            for unit in text_units_for_run(conn, run.run_id):
-                add_text_unit(conn, bundle_id, row=unit.to_mapping())
-            # Conformance rule 8's replay key is exactly what this table holds, and
-            # P2 has implemented the writer since it shipped. Nothing called it, so
-            # every bundle carried zero observation payloads and could not replay.
-            #
-            # `seen` is P2's own key, not a guess: the table is UNIQUE on exactly
-            # this triple because it holds "both sides of a version-to-version diff".
-            # Two runs agreeing on all three are therefore the same payload, and
-            # writing it once is what the key means. Without this, one file extracted
-            # twice at one version over one content hash raises IntegrityError and
-            # takes down the whole scan at the bundle -- after every extraction has
-            # already succeeded.
-            for observation in observations_for_run(conn, run.run_id):
-                key = (run.content_hash, run.extractor_version,
-                       observation.observation_key)
-                if key in seen:
-                    continue
-                seen.add(key)
-                add_extraction_output(
-                    conn, bundle_id, content_hash=run.content_hash,
-                    extractor_version=run.extractor_version,
-                    observation_key=observation.observation_key,
-                    payload=canonical_json(observation.to_mapping()))
-    seal_bundle(conn, bundle_id)
+    # 4 -- P2. Legacy Wave 2 intentionally predates P7 and therefore carries NULL.
+    bundle_id = _assemble_bundle(
+        conn, scan_run_id=scan_run_id, roster=roster, corpus_form=corpus_form,
+        policy_settings=policy_settings, file_entry_body=file_entry_body,
+        handling_class_for=None)
 
     return Wave2(scan_run_id=scan_run_id, bundle_id=bundle_id,
                  run_ids=tuple(written))
+
+
+def run_p1_p7(
+        conn: sqlite3.Connection, selection_id: str, *,
+        source, mime_type_for: Callable[[Path], str | None], scan_state: str,
+        budget_exhausted: Callable[[], bool],
+        detect_format: Callable[[Path], str | None], policy, readers, sink,
+        now: Callable[[], str], context_window: int,
+        transcription_authorized: Callable[[], bool], corpus_form: str,
+        policy_settings: Mapping[str, Any],
+        file_entry_body: Callable[[Mapping[str, Any]], Mapping[str, str]],
+        resolve_native: FactPass,
+        targeted_ocr_needed: Callable[[str, str], bool],
+        resolve_with_ocr: FactPass,
+        classify: ClassificationProducer,
+        classification_store: ClassificationStore,
+        p7_component_version: str) -> P1P7Run:
+    """Run the live local pipeline without inventing any domain authority.
+
+    The caller supplies both fact passes, the persisted targeted-OCR predicate and
+    the P7 candidate producer. This function owns only their order. A REUSE file is
+    resolved and classified from stored evidence. Targeted OCR may use either this
+    invocation's native result or P4's sole exact current authoritative result;
+    historical ambiguity is refused rather than resolved by guessing "latest".
+    """
+    scan_run_id = scan(
+        conn, selection_id, source=source, mime_type_for=mime_type_for,
+        scan_state=scan_state, budget_exhausted=budget_exhausted)
+    versions = current_versions()
+    written: list[str] = []
+    roster: list[str] = []
+    # Fresh native results authorize directly; REUSE authority is resolved later by
+    # P4's exact selector rather than put into this invocation-owned map.
+    native_results: dict[str, tuple[Any, Any]] = {}
+    initial_ocr_completed: set[str] = set()
+    protected_refused: set[str] = set()
+    reused: set[str] = set()
+    evicted = {row["path"] for row in dataless_detections(conn, scan_run_id)}
+
+    for verdict in cache_verdicts(conn, scan_run_id):
+        file_id = verdict["file_id"]
+        if file_id is None:
+            continue
+        roster.append(file_id)
+        file_row = get_file(conn, file_id)
+        path = Path(file_row["current_path"])
+        if str(path) in evicted:
+            continue
+        if verdict["verdict"] != VERDICT_RECOMPUTE and not _extraction_is_stale(
+                conn, file_row["content_hash"], versions):
+            reused.add(file_id)
+            continue
+        decision = route(
+            file_id=file_id, content_hash=file_row["content_hash"], path=path,
+            extension=file_row["extension"], detect_format=detect_format)
+        stamp = now()
+        try:
+            results = [extract_filesystem(
+                file_row=file_row, path=path, policy=policy, now=stamp,
+                context_window=context_window)]
+            try:
+                dispatched = extract_initial(
+                    file_row=file_row, decision=decision, path=path, policy=policy,
+                    readers=readers, now=stamp, context_window=context_window,
+                    transcription_authorized=transcription_authorized)
+                routed = list(dispatched.results)
+                signals = dispatched.sensitivity
+            except (ProtectedContainerRefused, DatalessRefused, ContractViolation):
+                raise
+            except Exception as error:                 # noqa: BLE001
+                routed = [failed_result(
+                    file_row=file_row, error=error,
+                    extractor_name=decision.extractor_name,
+                    extractor_version=_failed_version(decision, versions),
+                    source_type=decision.source_type, now=stamp)]
+                signals = ()
+            signal_target = routed[0] if routed else None
+            results.extend(routed)
+            for result in routed:
+                tier = result.run["analysis_tier"]
+                if tier == pdf.ANALYSIS_TIER:
+                    native_results[file_id] = (decision, result)
+                elif (tier == ocr.ANALYSIS_TIER
+                      and result.run.get("finished_at") is not None
+                      and result.run.get("failure_reason") is None):
+                    initial_ocr_completed.add(file_id)
+        except ProtectedContainerRefused:
+            protected_refused.add(file_id)
+            continue
+        except DatalessRefused as refusal:
+            results = [dataless_result(
+                file_row=file_row, error=refusal,
+                source_type=decision.source_type, now=stamp)]
+            signals, signal_target = (), None
+        except ContractViolation:
+            raise
+
+        record_routing_decision(conn, decision)
+        for result in results:
+            run_id = _write(sink, result, written)
+            if signals and result is signal_target:
+                record_sensitivity_signals(
+                    conn, run_id=run_id, signals=signals,
+                    observation_keys=observation_keys_for_run(conn, run_id),
+                    now=stamp)
+                signals = ()
+        set_extraction_status(
+            conn, file_id,
+            status_by_tier=extraction_status_by_tier([r.run for r in results]),
+            author=SUBSYSTEM, component_version=COMPONENT_VERSION)
+
+    # Preserve the dataless state transition even when P3's stat cache says REUSE.
+    for detection in dataless_detections(conn, scan_run_id):
+        row = conn.execute(
+            "SELECT file_id FROM files WHERE current_path = ?", (detection["path"],)
+        ).fetchone()
+        if row is None:
+            continue
+        file_row = get_file(conn, row["file_id"])
+        decision = route(
+            file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+            path=Path(file_row["current_path"]), extension=file_row["extension"],
+            detect_format=detect_format)
+        result = dataless_result(
+            file_row=file_row,
+            error=DatalessRefused(f"{detection['path']} is a dataless item"),
+            source_type=decision.source_type, now=now())
+        _write(sink, result, written)
+        set_extraction_status(
+            conn, file_row["file_id"],
+            status_by_tier={**json.loads(
+                get_file(conn, file_row["file_id"])["extraction_status_by_tier"]
+                or "{}"), **extraction_status_by_tier([result.run])},
+            author=SUBSYSTEM, component_version=COMPONENT_VERSION)
+
+    fact_results: list[tuple[Any, ...]] = []
+    fact_results_by_file: list[FileFactResults] = []
+    for file_id in roster:
+        if file_id in protected_refused:
+            continue
+        file_row = get_file(conn, file_id)
+        content_hash = file_row["content_hash"]
+        if (file_id in reused and _has_successful_ocr_coverage(
+                conn, file_id=file_id, content_hash=content_hash)):
+            initial_ocr_completed.add(file_id)
+        if file_id in initial_ocr_completed:
+            per_file = [resolve_with_ocr(conn, file_id, content_hash)]
+        else:
+            per_file = [resolve_native(conn, file_id, content_hash)]
+
+        native = native_results.get(file_id)
+        if (native is None and file_id in reused
+                and file_id not in initial_ocr_completed):
+            decision = route(
+                file_id=file_id, content_hash=content_hash,
+                path=Path(file_row["current_path"]),
+                extension=file_row["extension"], detect_format=detect_format)
+            if decision.extractor_name == pdf.EXTRACTOR_NAME:
+                try:
+                    persisted = authoritative_result(
+                        conn, file_id=file_id, content_hash=content_hash,
+                        extractor_name=pdf.EXTRACTOR_NAME,
+                        extractor_version=versions[pdf.EXTRACTOR_NAME],
+                        analysis_tier=pdf.ANALYSIS_TIER)
+                except AmbiguousAuthoritativeRun as error:
+                    raise ContractViolation(
+                        "targeted OCR cannot choose an authoritative persisted "
+                        f"native run: {error}") from error
+                if persisted is not None:
+                    native = (decision, persisted)
+        targeted_completed = False
+        if native is not None and file_id not in initial_ocr_completed:
+            decision, native_result = native
+            targeted = extract_targeted_ocr(
+                file_row=file_row, decision=decision,
+                path=Path(file_row["current_path"]), policy=policy,
+                readers=readers, now=now(), context_window=context_window,
+                native_result=native_result,
+                no_usable_facts=targeted_ocr_needed)
+            for result in targeted.results:
+                _write(sink, result, written)
+                # A successful OCR run completes the second P6 pass even when its
+                # finder emits zero structured observations: the persisted OCR-tier
+                # pass is also the termination record. A failed OCR run is persisted
+                # but must not pretend that OCR evidence was successfully covered.
+                targeted_completed = (
+                    targeted_completed
+                    or (result.run.get("finished_at") is not None
+                        and result.run.get("failure_reason") is None))
+            if targeted.results:
+                prior = json.loads(
+                    get_file(conn, file_id)["extraction_status_by_tier"] or "{}")
+                set_extraction_status(
+                    conn, file_id,
+                    status_by_tier={**prior, **extraction_status_by_tier(
+                        [result.run for result in targeted.results])},
+                    author=SUBSYSTEM, component_version=COMPONENT_VERSION)
+        if targeted_completed:
+            per_file.append(resolve_with_ocr(conn, file_id, content_hash))
+        per_file_results = tuple(per_file)
+        fact_results.append(per_file_results)
+        fact_results_by_file.append(FileFactResults(
+            file_id=file_id, content_hash=content_hash,
+            results=per_file_results))
+
+        candidate = classify(conn, file_id, content_hash)
+        if candidate is not None:
+            if (candidate.file_id != file_id
+                    or candidate.content_hash != content_hash):
+                raise ContractViolation(
+                    "classifier candidate does not match the requested file version: "
+                    f"requested {(file_id, content_hash)!r}, got "
+                    f"{(candidate.file_id, candidate.content_hash)!r}")
+            assign(
+                conn, candidate, store=classification_store,
+                component_version=p7_component_version)
+
+    bundle_id = _assemble_bundle(
+        conn, scan_run_id=scan_run_id, roster=roster, corpus_form=corpus_form,
+        policy_settings=policy_settings, file_entry_body=file_entry_body,
+        handling_class_for=lambda row: resolve_class(classification_store.current(
+            row["file_id"], row["content_hash"])))
+    return P1P7Run(
+        scan_run_id=scan_run_id, bundle_id=bundle_id,
+        run_ids=tuple(written), fact_results=tuple(fact_results),
+        fact_results_by_file=tuple(fact_results_by_file))

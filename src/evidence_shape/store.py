@@ -24,6 +24,8 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 from database_agent.db import transaction
 from database_agent.events import append_event
@@ -235,6 +237,69 @@ def _text_unit_from_row(row: sqlite3.Row) -> TextUnit:
 def text_units_for_run(conn: sqlite3.Connection, run_id: str) -> list[TextUnit]:
     return [_text_unit_from_row(row) for row in conn.execute(
         "SELECT * FROM text_units WHERE run_id = ? ORDER BY unit_locator", (run_id,))]
+
+
+@dataclass(frozen=True)
+class PersistedExtractionResult:
+    """The exact three public P4 records belonging to one persisted run.
+
+    This deliberately matches P5's ``ExtractionResult`` structurally without making
+    P4 depend on P5.  Unlike a batch presented to :class:`RunWriter`, its mappings
+    retain the P4-assigned ``run_id`` because this is a read model, not a new write.
+    """
+
+    run: Mapping[str, object]
+    observations: tuple[Mapping[str, object], ...]
+    text_units: tuple[Mapping[str, object], ...]
+
+
+class AmbiguousAuthoritativeRun(Exception):
+    """More than one persisted run satisfies the caller's exact authority key."""
+
+
+def result_for_run(conn: sqlite3.Connection, run_id: str) -> PersistedExtractionResult:
+    """Losslessly reconstruct one persisted extraction batch by its P4 run id."""
+    return PersistedExtractionResult(
+        run=get_run(conn, run_id).to_mapping(),
+        observations=tuple(
+            observation.to_mapping()
+            for observation in observations_for_run(conn, run_id)),
+        text_units=tuple(
+            unit.to_mapping() for unit in text_units_for_run(conn, run_id)),
+    )
+
+
+def authoritative_result(
+        conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+        extractor_name: str, extractor_version: str,
+        analysis_tier: str) -> PersistedExtractionResult | None:
+    """Return the sole current, successful, evidence/text-bearing exact run.
+
+    P4 has no chronology-based authority rule for runs, so this never chooses the
+    newest row.  A candidate must match the complete caller-supplied identity, have
+    finished without failure and carry non-blank stored text. Observations do not
+    participate: a native PDF can preserve page text while finding zero structured
+    values, and observation supersession publishes no run-level authority rule.
+    Zero candidates is absence; multiple candidates is an explicit ambiguity.
+    """
+    candidates: list[str] = []
+    for run in runs_for_file(conn, file_id):
+        if (run.content_hash != content_hash
+                or run.extractor_name != extractor_name
+                or run.extractor_version != extractor_version
+                or run.analysis_tier != analysis_tier
+                or run.finished_at is None
+                or run.failure_reason is not None):
+            continue
+        if not any(unit.text.strip() for unit in text_units_for_run(conn, run.run_id)):
+            continue
+        candidates.append(run.run_id)
+    if len(candidates) > 1:
+        raise AmbiguousAuthoritativeRun(
+            f"{len(candidates)} persisted runs satisfy the exact authority key for "
+            f"{(file_id, content_hash, extractor_name, extractor_version, analysis_tier)!r}; "
+            "P4 publishes no rule for choosing one")
+    return None if not candidates else result_for_run(conn, candidates[0])
 
 
 def text_unit_at(conn: sqlite3.Connection, run_id: str,

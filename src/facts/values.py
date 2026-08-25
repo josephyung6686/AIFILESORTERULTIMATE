@@ -201,40 +201,39 @@ def merge_values(conn: sqlite3.Connection, *, keep: str, merged: str,
         raise ValueError("a merge records why (§8.2)")
     if keep == merged:
         raise ValueError("a value cannot be merged into itself")
-    keep_row, merged_row = _fetch(conn, keep), _fetch(conn, merged)
-    if keep_row["field_key"] != merged_row["field_key"]:
-        raise ValueError(
-            "a value belongs to exactly one field (§3.12); merging across two fields "
-            "would erase §3.8's role separation"
-        )
-    if merged_row["merged_into"] is not None:
-        raise ValueError(
-            f"{merged} is already merged into {merged_row['merged_into']}; "
-            "the first merge_reason is never overwritten (§8.2)"
-        )
-    seen, cursor = {merged}, keep
-    while cursor is not None:
-        if cursor in seen:
-            raise ValueError("merge chain would cycle")
-        seen.add(cursor)
-        row = conn.execute(
-            'SELECT merged_into FROM "values" WHERE value_id = ?', (cursor,)
-        ).fetchone()
-        cursor = None if row is None else row["merged_into"]
-
-    aliases = set(json.loads(keep_row["aliases"]))
-    aliases.add(merged_row["canonical_value"])
-    aliases.update(json.loads(merged_row["aliases"]))
-    if merged_row["display_label"]:
-        aliases.add(merged_row["display_label"])
-    variants = set(json.loads(keep_row["raw_variants"]))
-    variants.update(json.loads(merged_row["raw_variants"]))
-    # One alias record, two rows, one boundary. The handle is `isolation_level=None`,
-    # so unwrapped these two UPDATEs autocommit independently and a failure between
-    # them leaves `keep` holding an alias for a value whose `merged_into` is still
-    # NULL -- a state no invariant in this module rejects. P1's `transaction` is
+    # Authority reads, the cycle walk and both writes share one SQLite boundary. If
+    # the reads happened before BEGIN, another connection could change the merge
+    # chain before these writes and invalidate the decision. P1's transaction is
     # reentrant, so a caller who already holds a boundary gets a SAVEPOINT.
     with transaction(conn):
+        keep_row, merged_row = _fetch(conn, keep), _fetch(conn, merged)
+        if keep_row["field_key"] != merged_row["field_key"]:
+            raise ValueError(
+                "a value belongs to exactly one field (§3.12); merging across two "
+                "fields would erase §3.8's role separation"
+            )
+        if merged_row["merged_into"] is not None:
+            raise ValueError(
+                f"{merged} is already merged into {merged_row['merged_into']}; "
+                "the first merge_reason is never overwritten (§8.2)"
+            )
+        seen, cursor = {merged}, keep
+        while cursor is not None:
+            if cursor in seen:
+                raise ValueError("merge chain would cycle")
+            seen.add(cursor)
+            row = conn.execute(
+                'SELECT merged_into FROM "values" WHERE value_id = ?', (cursor,)
+            ).fetchone()
+            cursor = None if row is None else row["merged_into"]
+
+        aliases = set(json.loads(keep_row["aliases"]))
+        aliases.add(merged_row["canonical_value"])
+        aliases.update(json.loads(merged_row["aliases"]))
+        if merged_row["display_label"]:
+            aliases.add(merged_row["display_label"])
+        variants = set(json.loads(keep_row["raw_variants"]))
+        variants.update(json.loads(merged_row["raw_variants"]))
         conn.execute(
             'UPDATE "values" SET aliases = ?, raw_variants = ? WHERE value_id = ?',
             (_store_list(aliases), _store_list(variants), keep),

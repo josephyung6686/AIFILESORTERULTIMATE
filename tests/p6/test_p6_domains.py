@@ -1,6 +1,7 @@
 # tests/p6/test_p6_domains.py
 """§3.11 domain activation -- Done-means 14, and §3.11's own worked case."""
 import json
+import inspect
 from pathlib import Path
 
 import pytest
@@ -86,6 +87,11 @@ def test_the_field_bearing_schemas_are_exactly_the_non_universal_field_scopes():
     assert set(FIELD_SCOPES) - {UNIVERSAL_SCOPE} == set(SCHEMA_IDS) - set(
         FIELD_LESS_SCHEMA_IDS)
     assert UNIVERSAL_SCOPE not in SCHEMA_IDS
+
+
+def test_universal_scope_is_named_without_positional_vocabulary_coupling():
+    source = inspect.getsource(__import__("facts.domains", fromlist=["*"]))
+    assert "FIELD_SCOPES[0]" not in source
 
 
 def test_career_identity_medical_and_legal_carry_no_field_rows(p6_conn):
