@@ -1,0 +1,212 @@
+{
+  "id": "creative.interior-design",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Interior design and fit-out project",
+  "one_line": "A commissioned or self-directed physical-space project whose evidence runs from brief and measured survey through concept design, drawings, schedules and specifications, procurement, site installation, and handover; rooms, property, style, materials and trades are values or observations, not new fields.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "proposed_context_terms": [
+    "interior design",
+    "fit-out",
+    "space plan",
+    "room schedule",
+    "finishes schedule",
+    "fixture schedule",
+    "measured survey",
+    "joinery",
+    "specification",
+    "procurement",
+    "lead time",
+    "site instruction",
+    "snagging",
+    "as-built",
+    "handover",
+    "practical completion"
+  ],
+  "recognition": {
+    "deterministic": [
+      "a space-design document set containing a brief or room schedule, a measured survey, plans/elevations/sections or a model, and a materials/finishes or fixture schedule for the same named property or commission",
+      "a specification structure with room or location references, item descriptions, manufacturer/product references, finishes, quantities and installation notes; a product catalogue or moodboard alone is not this structure",
+      "a procurement structure linking specified items to quotations, purchase orders, lead times, substitutions, delivery status or supplier correspondence, with the design set or property/work reference present",
+      "an installation/handover structure containing site instructions, delivery records, installation photographs, snagging items, as-built information, care/maintenance manuals or a practical-completion/handover pack tied to the designed space",
+      "a CAD/BIM or presentation file whose sheets, rooms, dimensions, furniture/fixture tags and material references cohere with schedules or issue records; the extension alone never activates the template",
+      "a mixed archive whose manifest or labelled cover packet shows one physical-space commission across design, specification, procurement and installation members; archive membership does not copy facts to its members"
+    ],
+    "needs_llm": [
+      "whether a moodboard, sample board or supplier catalogue is an active design deliverable, a reference download, or a portfolio presentation",
+      "whether a contractor quotation and product invoice belong to the same interior project or are unrelated household purchases, property administration, or business procurement",
+      "whether a room photograph records site progress, a completed handover, a photoshoot, or an isolated image; visual appearance cannot supply project facts",
+      "whether the named organisation is the client, designer, contractor, supplier, property owner, or merely a brand shown in the scheme",
+      "whether an address identifies the designed property, a supplier/contractor address, a mailing address, or a photographed location",
+      "whether an incomplete specification or drawing set is still an interior project record when the installation phase is absent; design evidence can activate the template without inventing procurement or completion"
+    ],
+    "never_alone": [
+      "a room name, address, property name, style word, colour, material, furniture brand or product code alone",
+      "a CAD/BIM/design_creative source type or .dwg, .rvt, .skp, .3dm, .indd, .pdf, .jpg or .xlsx extension alone",
+      "a moodboard, rendered room image, sample photograph or furniture catalogue without a project/commission or space-design neighbourhood",
+      "a contractor, architect, designer, supplier, showroom or property-owner name without a role-bearing project context",
+      "a purchase order, receipt, invoice, delivery note or calendar appointment alone; these may be procurement or installation members only when the project relation is evidenced",
+      "a filename token such as FINAL, APPROVED, CONSTRUCTION, INSTALL or HANDOVER alone; these are possible stage observations, not validated facts",
+      "a site photograph or screenshot alone, and never the absence of EXIF as proof of a screenshot or installation record",
+      "a generic home-renovation article, plan template, product image or downloaded specification whose purpose is reading/reference rather than making the space"
+    ]
+  },
+  "work_types": [
+    "interior brief",
+    "measured survey",
+    "concept board or moodboard",
+    "space plan",
+    "floor plan, elevation or section",
+    "3D model or render",
+    "lighting, joinery or furniture drawing",
+    "room/finish/fixture schedule",
+    "technical specification",
+    "sample or finish board",
+    "quotation, purchase order or procurement log",
+    "site instruction or installation record",
+    "progress or completion photograph",
+    "snagging list",
+    "as-built drawing",
+    "care, maintenance or handover pack"
+  ],
+  "grouping_reasons": [
+    "one physical space or commission across concept, technical design, specification, purchasing and installation",
+    "one property or venue with multiple rooms whose room names and styles are values inside the same project, not separate schemas",
+    "one specified item across design tag, supplier quote, purchase order, delivery, installation and warranty evidence",
+    "one issue or revision of a drawing/schedule and the transmittal, review, approval or superseded version around it",
+    "one handover set whose drawings, schedules, photographs and manuals describe the installed result",
+    "one archive packet whose heterogeneous members are grouped by project purpose without copying a property, room or stage fact to sparse members"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The creative schema is a placeholder with no licensed field rows, so this template must recommend no folder dimensions. Interior design nevertheless differs from the creative default by its physical-space lifecycle: a room/property brief is translated into spatial drawings and schedules, then into procurement records and site installation/handover evidence. Space, room, style, material, property and stage remain runtime values or observations until R1c adjudicates shared canonical fields; they must not be smuggled into dimension_order. If fields are later adopted, a sensible order is project or commission, property/venue, stage, then room or artifact type, but that is a future proposal, not a legal current path. The user may reverse, flatten or omit any future order.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "image", "ocr", "email", "calendar", "design_creative", "archive", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".pptx", ".dwg", ".dxf", ".rvt", ".skp", ".3dm", ".ifc", ".jpg", ".png", ".eml", ".msg", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Riverside Apartment - Interior Brief.docx",
+      "source_type": "text_document",
+      "observations": ["labelled client/project heading", "room list, constraints, budget narrative and requested outcomes", "reference to an apartment rather than a generic design article"],
+      "facts_legal": ["file_type", "language", "creation_date", "version_family"],
+      "must_not_conclude": ["property as a canonical fact", "client role from an organisation name alone", "a folder path"],
+      "also_schema": "creative",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Riverside_Apt_measured-survey_existing.dwg",
+      "source_type": "design_creative",
+      "observations": ["CAD layers for walls, openings and dimensions", "room labels and survey date in title block", "same project stem as a PDF survey"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["that the designer authored the measured conditions", "that the property address is validated", "a folder path"],
+      "also_schema": "creative",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Riverside_Apt_Stage-4_Finishes-and-Fixtures.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["room/location column", "item, finish, manufacturer, product reference and quantity columns", "revision and status cells", "populated rows rather than a blank template"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["that listed products were purchased", "that a finish was installed", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Riverside_Apt_kitchen_joinery_approved.pdf",
+      "source_type": "text_document",
+      "observations": ["dimensioned elevations and sections", "joinery tags refer to a schedule", "approval/sign-off block and issue revision"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["that approval means installation", "that the kitchen is a property transaction record", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Riverside_Apt_supplier-quote_lighting.eml",
+      "source_type": "email",
+      "observations": ["supplier quotation attached", "item references correspond to a lighting schedule", "delivery/lead-time discussion and project reference in body"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["that the quote was accepted or paid", "that the supplier is the client", "a folder path"],
+      "also_schema": "creative",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Riverside_Apt_installation-week-03.jpg",
+      "source_type": "image",
+      "observations": ["site-progress photograph", "room/installation context in caption or adjacent report", "EXIF or capture date may be present"],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": ["that pictured work is complete", "the room or property from pixels alone", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Riverside_Apt_handover-pack.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists as-built drawings, room schedules, manuals, warranties and completion photographs", "archive title and cover note identify a handover purpose"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["member facts from names alone", "that every item was installed or accepted", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Interior Concepts - Oak House Portfolio.pdf",
+      "source_type": "presentation",
+      "observations": ["rendered room images and polished captions", "case-study language about completed work", "no editable design set, procurement trail or site issue context"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["that the file documents an active commission", "that depicted property belongs to the corpus owner", "a folder path"],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Oak House - renovation cost tracker.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["labour/material totals and payment status", "property address in a heading but no design set", "household improvement expenses"],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": ["that it is an interior design commission", "that costs equal a specification or installed result", "a folder path"],
+      "also_schema": "finance.household-property",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Showroom_furniture_catalogue_2026.pdf",
+      "source_type": "text_document",
+      "observations": ["product images, dimensions and prices", "supplier branding", "no project/room schedule or commission reference"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["that any product was selected or bought", "that the catalogue belongs to a project", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {"domain": "career.portfolio-work-samples", "signal": "The same render board or completed-room PDF may be a portfolio case study rather than an active design/procurement record; project issue, schedules, supplier trail or site/handover context distinguishes the active commission."},
+    {"domain": "code.software-project", "signal": "BIM/CAD files and model exports may sit inside a software repository; repository manifests, source tree and build structure beat room/style vocabulary, while a standalone issued drawing set remains creative."},
+    {"domain": "photos", "signal": "Site-progress and completed-room images carry capture facts, but EXIF/capture chronology identifies Photos; the interior template requires a design/installation relation and must not infer project or room facts from pixels."},
+    {"domain": "construction_property.construction-project", "signal": "The same specification, drawing, site instruction or handover pack may be part of a construction project; construction/property evidence owns build/contract/site administration, while this template activates on the interior-space design-to-installation brief and its finish/fixture decisions. A room fit-out can be both schemas when both purposes are evidenced."},
+    {"domain": "finance.household-property", "signal": "An improvement cost tracker or invoice can concern the same property; Finance owns household accounting/property administration, while this template requires design/specification/procurement/installation coherence and cannot infer a design project from spend alone."}
+  ],
+  "also_holds_with": [],
+  "falls_through_to": ["Independent Records", "Review Later", "One-Off Images", "Reference Clips", "Reading Inbox", "Unsupported or Encrypted"],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Client addresses, budgets, supplier pricing, access instructions, security-sensitive layouts, unpublished schemes, contractual terms and photographs of occupied homes or workplaces may be sensitive. This posture follows the creative project or property/contract context; no interior-specific handling class or exposure rule is invented.",
+  "open_question": "NEEDS-JOSEPH: Should a future shared canonical key be `property`, `venue`, or a broader `site` for physical-space projects across creative, construction_property, photos and finance? Option A: one shared property/site join (recommended for cross-domain retrieval, with role-bearing validation). Option B: keep the label as group-only and avoid a canonical destination dimension. Option C: split household property from commissioned venue, at the cost of duplicate vocabulary. Until decided, room, address and style remain observations/values and dimension_order stays empty. NEEDS-JOSEPH: Should a completed interior portfolio case study be allowed to also hold the active project, or should the career presentation remain a collision unless source/handover evidence is present?"
+}
