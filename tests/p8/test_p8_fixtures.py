@@ -55,13 +55,13 @@ def _imported_roots(path: Path) -> set[str]:
 
 def test_public_surface_is_unchanged():
     assert llm_harness.__all__ == [
+        "run_call",
         "Dossier",
         "P8Verdict",
         "Refusal",
         "ValidationUnavailable",
         "NeedsConsent",
     ]
-    assert not hasattr(llm_harness, "run_call")
 
 
 def test_fixtures_do_not_import_p9_p10_p11():

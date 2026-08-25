@@ -53,6 +53,7 @@ from llm_harness.vocabulary import (
     A_FACT,
     ABSTAIN,
     B_GROUP,
+    BUDGET_EXHAUSTED,
     C_PLACEMENT,
     D_RESIDUAL,
     DEFERRED,

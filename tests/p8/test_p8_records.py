@@ -136,6 +136,7 @@ def _field_names(cls: type) -> tuple[str, ...]:
 
 def test_public_surface_is_exactly_the_task_1_exports():
     assert llm_harness.__all__ == [
+        "run_call",
         "Dossier",
         "P8Verdict",
         "Refusal",
@@ -148,8 +149,6 @@ def test_public_surface_is_exactly_the_task_1_exports():
     assert llm_harness.ValidationUnavailable is ValidationUnavailable
     assert "Verdict" not in llm_harness.__all__
     assert not hasattr(llm_harness, "Verdict")
-    assert "run_call" not in llm_harness.__all__
-    assert not hasattr(llm_harness, "run_call")
 
 
 def test_needs_consent_is_p7s_exact_class():

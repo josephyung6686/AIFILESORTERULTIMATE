@@ -149,6 +149,7 @@ def _jsonable(value):
 
 def test_public_surface_is_unchanged_and_validation_is_not_exported():
     assert llm_harness.__all__ == [
+        "run_call",
         "Dossier",
         "P8Verdict",
         "Refusal",
@@ -156,7 +157,6 @@ def test_public_surface_is_unchanged_and_validation_is_not_exported():
         "NeedsConsent",
     ]
     assert not hasattr(llm_harness, "validate_response")
-    assert not hasattr(llm_harness, "run_call")
 
 
 def test_malformed_schema_rejects_with_schema_invalid():

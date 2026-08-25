@@ -214,6 +214,7 @@ def test_dependency_type_is_frozen_and_names_both_callbacks():
 
 def test_public_surface_is_unchanged_and_site_a_is_not_exported():
     assert llm_harness.__all__ == [
+        "run_call",
         "Dossier",
         "P8Verdict",
         "Refusal",
