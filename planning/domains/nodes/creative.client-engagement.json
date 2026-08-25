@@ -1,0 +1,373 @@
+{
+  "id": "creative.client-engagement",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Client creative engagement (commission to accepted delivery)",
+  "one_line": "Creative work made for an evidenced external or internal commissioning party, where a brief or scope opens a bounded job, review and approval connect revisions to that request, and a handoff or acceptance closes it. The same design files without a commissioner-maker relationship remain the creative default; the same relationship without a creative making record belongs to client/account, project-delivery, contract-administration, or consulting worlds. Placeholder J-IND row: it declares no fields and no serialized dimensions while the creative schema's project, stage, artifact_type, and client proposals await R1c.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are detection signals, not extraction licences. The creative schema declares no field rows, so this template writes no creative facts. Privacy policy is applied before any content reaches a model or connector.",
+      "a commissioned-BRIEF structure with explicit Client or Requester and Prepared by or Creative team roles, plus objective, audience, deliverables, schedule and approver blocks; the role pair and requested output together are stronger than either a creative brief shape or an organisation name",
+      "a signed PROPOSAL or statement of work that names the commissioning party and maker in distinct roles, describes creative deliverables, gives revision or approval mechanics, and is paired with at least one referenced working file, proof or delivery export",
+      "a REVIEW ROUND: same-project proofs or review links accompanied by comments from an identified client-side reviewer, followed by a revised same-stem asset; markup coordinates, time-coded comments or page annotations make the review relationship observable",
+      "a written APPROVAL or sign-off that identifies the exact proof, cut, layout or version accepted and crosses the commissioner-maker boundary; approval vocabulary without the identified artifact is insufficient",
+      "a DELIVERY MANIFEST or handoff note listing final creative assets, formats or variants and a recipient, paired with the named exported files; one export alone is not a delivery structure",
+      "an end-to-end packet or archive whose readable manifest contains a brief or scope, creative sources, review rounds, explicit approval, and final deliverables under one recurring job reference",
+      "a creative-request system export with labelled requester, creative owner, requested deliverables, workflow state and approval history, where the content shows a bounded request rather than a standing queue"
+    ],
+    "needs_llm": [
+      "deciding whether two organisation names describe commissioner and maker, the maker and a subcontractor, two brands depicted in the work, or merely sender and recipient; a model must cite the role-bearing text or return unknown",
+      "deciding whether an inbound commission enquiry became an accepted engagement; a request, budget suggestion or meeting invitation is not acceptance without a reply, scope, work product or other relationship evidence",
+      "distinguishing client feedback from internal art direction when an email says only 'please revise' and the sender role is not labelled",
+      "distinguishing a delivered client master from a portfolio copy, publication asset, DAM download or backup; the handoff context, not identical bytes, supplies the engagement evidence",
+      "deciding whether a purpose-coherent packet of brief, references, working sources, proofs, approval and exports is one commissioned job despite content and format diversity",
+      "separating an in-house creative request from a general internal project: an internal requester may be a client operationally, but the packet still needs a creative artifact moving through review to delivery",
+      "separating the creative work record from commercial and legal administration embedded in the same packet; one signed scope may be evidence for several schemas without transferring fees, obligations or legal effect into creative facts"
+    ],
+    "never_alone": [
+      "a client, brand, agency, studio or person name alone; the same entity may be commissioner, maker, employer, licensor, supplier, subject or cited competitor",
+      "the words client, commission, job, brief, scope, deliverable, feedback, approved or final alone; each also occurs in templates, internal work, legal instruments and generic project records",
+      "a creative source type or extension alone; file format routes extraction but does not establish a commissioner-maker relationship",
+      "a brief-shaped document alone: it may be blank, speculative, educational, downloaded, rejected or an enquiry that never became work",
+      "a contract or invoice alone: commercial administration does not prove a creative making record, and this row does not infer the service performed from an amount or parties block",
+      "a version token, FINAL suffix, Approved filename or signature image alone; approval needs the identified reviewer or sign-off context and the artifact it answers",
+      "an email thread, shared-drive folder, transfer link or bounded download session alone; transport and co-occurrence are not topic or engagement proof",
+      "a parent path named Clients, Jobs, Commissions or a brand name; existing vocabulary supports retrieval but cannot manufacture the role or relationship",
+      "an organisation gazetteer hit, author metadata, PDF company metadata or email signature alone",
+      "a bare date or four-digit number interpreted as deadline, job number, year or version",
+      "the absence of a fee, contract or external email as proof that work is self-initiated; in-house commissions and informal paid work may lack them"
+    ]
+  },
+  "proposed_context_terms": [
+    "creative brief",
+    "client",
+    "requester",
+    "prepared for",
+    "prepared by",
+    "commission",
+    "scope of work",
+    "deliverables",
+    "revision round",
+    "client feedback",
+    "proof",
+    "approval",
+    "sign-off",
+    "approved as presented",
+    "approved with changes",
+    "final artwork",
+    "handoff",
+    "delivery manifest",
+    "usage rights",
+    "change request",
+    "out of scope"
+  ],
+  "work_types": [
+    "commission enquiry or creative request",
+    "creative brief",
+    "proposal or statement of work",
+    "kickoff note",
+    "moodboard or concept presentation",
+    "working creative source",
+    "proof or review copy",
+    "client feedback or markup",
+    "revision response",
+    "approval or sign-off",
+    "change request",
+    "final deliverable",
+    "delivery manifest or handoff note",
+    "release, licence or supplied-material record",
+    "engagement closeout or archive manifest"
+  ],
+  "grouping_reasons": [
+    "one commissioned job from accepted brief or scope through working sources, review, approval and delivery",
+    "one client relationship across several separately named creative projects, only after each project's own membership is evidenced",
+    "one review round: exact proof, client comments and the revision that answers them",
+    "one delivery set: manifest or handoff message and the exact format or market variants it lists",
+    "one change to scope and the additional creative work explicitly authorized by it",
+    "one request-system export and the assets or messages joined by exact request or job references",
+    "no group is valid for an isolated enquiry, blank brief, contract, invoice, brand asset or final-looking export"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: the creative schema declares no field rows, so this template cannot serialize dimensions from its four pending proposals. Held as prose for R1c: when the schema proposals are adopted, client may come first only in a genuinely multi-client corpus, then project, then stage, then artifact_type; in a single-client or in-house corpus the client level must flatten because it would be a one-child collector. This row intentionally does not differ from the creative default in order. It survives the node test through narrower activation: a role-bearing brief, scope, review, approval or handoff connects a commissioner to the making record. Not time-first because dates of request, creation, review, approval and delivery are different clocks and a year-first tree would scatter one engagement.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "calendar",
+      "design_creative",
+      "image",
+      "ocr",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".psd",
+      ".ai",
+      ".indd",
+      ".fig",
+      ".prproj",
+      ".png",
+      ".jpg",
+      ".mp4",
+      ".mov",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Creative Brief - Northwind Rebrand - approved.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled Client and Prepared by slots name two organisations in distinct roles", "sections name objective, audience, deliverables, mandatories, schedule and approver", "dated approval block identifies the brief revision"],
+      "facts_legal": [],
+      "must_not_conclude": ["any creative fact because the schema declares none", "that approval of the brief approves later artwork", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Statement of Work - Northwind Rebrand - signed.pdf",
+      "source_type": "text_document",
+      "observations": ["prepared-for and prepared-by roles name client and studio", "schedule lists identity-system deliverables and review rounds", "fee, change and acceptance clauses accompany two signatures"],
+      "facts_legal": [],
+      "must_not_conclude": ["contract validity or enforceability", "a client or project fact", "that the commercial instrument alone proves creative work occurred", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Northwind_Identity_Concepts_R1.pdf",
+      "source_type": "presentation",
+      "observations": ["cover names the project and studio", "three concept routes each contain rationale and mockups", "last page requests selection by an identified client review date"],
+      "facts_legal": [],
+      "must_not_conclude": ["which concept was selected", "that R1 is a stage fact", "that a brand name is necessarily the client", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Northwind concepts round 1.eml",
+      "source_type": "email",
+      "observations": ["sender and recipient domains cross studio and client organisations", "body identifies Concept B and requests three specific changes", "attachment name exactly matches the round-one proof"],
+      "facts_legal": [],
+      "must_not_conclude": ["that thread membership alone groups every attachment", "that feedback is approval", "a client fact copied to the proof", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Northwind_logo_master_v7.ai",
+      "source_type": "design_creative",
+      "observations": ["multiple named artboards and linked font resources", "same stem appears in reviewed proofs and delivery manifest", "filename contains v7 but no role-bearing client text"],
+      "facts_legal": [],
+      "must_not_conclude": ["a client or stage from the filename", "that v7 was approved", "that a linked font belongs to the client", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Northwind R2 markup 2026-08-12.pdf",
+      "source_type": "ocr",
+      "observations": ["page images contain coordinate-linked annotations and reviewer initials", "OCR recovers requests tied to exact pages and options", "cover identifies the proof filename being reviewed"],
+      "facts_legal": [],
+      "must_not_conclude": ["that OCR text is authoritative where markup is illegible", "that reviewer initials identify an approver without role context", "that every requested change was implemented", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "APPROVED - Northwind identity master.eml",
+      "source_type": "email",
+      "observations": ["client-side sender addresses the studio recipient", "body names the exact R3 proof and states approval for final-artwork preparation", "thread contains earlier comments but no attachment"],
+      "facts_legal": [],
+      "must_not_conclude": ["legal acceptance or payment status", "approval of files not named in the message", "that APPROVED in the filename is sufficient", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northwind Final Artwork - delivery manifest.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows list exact filenames, formats, colour spaces and intended uses", "header identifies sender studio, recipient client contact and delivery date", "listed files exist beside the manifest with matching hashes or names"],
+      "facts_legal": [],
+      "must_not_conclude": ["that intended use grants usage rights", "that unlisted neighboring exports belong to the delivery", "a client or delivery-date fact", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northwind_Rebrand_Handoff.zip",
+      "source_type": "archive",
+      "observations": ["manifest inspected without extraction lists brief, source, proof, approval and final-deliverable families", "one job reference recurs across members", "archive includes an invoice and signed rights document as separate members"],
+      "facts_legal": [],
+      "must_not_conclude": ["member facts from paths", "that the invoice amount is a creative fact", "that the rights document is legally effective", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Commission request - portrait for anniversary.eml",
+      "source_type": "email",
+      "observations": ["unsolicited sender describes a desired portrait, budget range and date", "no response, accepted scope, work product or prior relationship exists", "sender signature contains a personal name and address"],
+      "facts_legal": [],
+      "must_not_conclude": ["that an enquiry is an engagement", "that the sender is a client", "that work was commissioned", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Creative Brief Template.docx",
+      "source_type": "text_document",
+      "observations": ["complete brief headings with empty values and placeholder instructions", "no commissioner, project, dates or requested deliverables", "template metadata identifies a reusable blank"],
+      "facts_legal": [],
+      "must_not_conclude": ["that brief structure proves a real engagement", "a client from example placeholder text", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Project Phoenix Weekly Status 2026-08-14.pptx",
+      "source_type": "presentation",
+      "observations": ["RAG status, milestone, dependency and risk slides", "internal sponsor and manager roles", "no creative source, artifact review, commissioner-maker role or delivery set"],
+      "facts_legal": [],
+      "must_not_conclude": ["that a project-shaped name makes it a creative engagement", "that deliverable means creative artifact", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Acme account quarterly review.pdf",
+      "source_type": "text_document",
+      "observations": ["account health, renewal outlook, open support items and stakeholder map", "customer and account-owner roles", "no bounded creative request, making record, proof or handoff"],
+      "facts_legal": [],
+      "must_not_conclude": ["that a named customer is a creative client", "that relationship management is a creative engagement", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Invoice 1048 - Northwind Rebrand.pdf",
+      "source_type": "text_document",
+      "observations": ["issuer, billed-to party, line items, amount and payment terms", "line item names a rebrand project", "no brief, review, approval or creative artifact is embedded"],
+      "facts_legal": [],
+      "must_not_conclude": ["that an invoice activates the creative engagement", "payment status", "a client or project fact copied onto other files", "a folder path"],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "The same client name, stakeholder emails, status deck and renewal conversation may appear in both. This row requires a bounded creative request plus a making artifact moving through review or delivery; customer-account-management owns standing relationship health, adoption, support and renewal evidence. Reciprocal fixture: Acme account quarterly review.pdf belongs there despite the word client; Northwind Final Artwork - delivery manifest.xlsx belongs here despite being sent to an account contact.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "A creative engagement is also delivered as a project and may have the same charter, schedule, risks, status and acceptance page. This row requires commissioner-maker roles and a creative artifact lineage; project-delivery owns governance of a bounded effort where sponsor, dependencies, health and benefits are the anchor. Reciprocal fixture: Project Phoenix Weekly Status 2026-08-14.pptx stays there without creative work; a concept proof with client comments stays here without a governance apparatus.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "A signed statement of work, change request and acceptance page are identical bytes on both sides. This row owns their membership in a creative making lifecycle; contract-administration owns the executed instrument, obligations, notices, renewal and commercial administration. Reciprocal fixture: Statement of Work - Northwind Rebrand - signed.pdf may carry both anchors, but an obligation register must not activate creative and a reviewed artwork must not activate contract administration.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "Prepared-for and prepared-by roles, a scope, milestones, fees, feedback and acceptance occur in both. A linked or layered creative source, proof-to-revision lineage, or media delivery set supports this row; analytical recommendations, advisory work products and implementation plans without a creative making record support consulting. The same multidisciplinary engagement may contain members of both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.self-initiated-work",
+      "signal": "The creative sources and revision habits may be byte-for-byte identical. An evidenced commissioner-maker relationship and client-side review or acceptance supports this row; a self-set brief, personal release decision and absence of any accepted counterparty supports self-initiated work. Absence alone never proves the latter.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "why": "A signed creative-services agreement or rights instrument may be both legal evidence and a member of the commissioned making record. Legal owns parties, instrument and legal-status observations; this template owns only the evidenced relationship of that member to the creative workflow.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "why": "An invoice or paid receipt may independently carry Finance facts while an exact job reference supports membership in the engagement. Membership does not copy client or project facts and does not make payment a creative fact.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "why": "A screenshot of client markup or photographed physical proof retains positive capture evidence while OCR and exact review references support engagement membership. Missing EXIF proves neither side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career",
+      "why": "A delivered client work may later be selected as the maker's portfolio sample. The commissioned production record and the authored career evidence coexist; portfolio selection is not inferred from delivery.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A durable standalone brief, approval, handoff note or readable agreement with no accepted engagement group remains an independent record rather than forcing a client branch.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An enquiry, unlabelled feedback email, final-looking export or mixed kickoff archive whose roles and relationship are unresolved needs review rather than invented engagement facts.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Blank creative brief templates, downloaded example scopes and inspirational client-work case studies are references when no live job evidence exists.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated invoice, transfer confirmation or service receipt retains its financial purpose when the creative engagement does not fire.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An unreadable transfer package or password-protected client archive is represented safely without manufacturing a relationship from its filename.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "A readable but isolated agreement, NDA, unreleased launch brief or contact-bearing approval may require local protection even when no engagement group is accepted.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "client",
+      "other_field": "our_firm",
+      "other_domain": "business_operations",
+      "why": "The proposed client key is the commissioning counterparty, never the maker's own studio or employer. A Prepared for / Prepared by pair is useful only if the two roles remain distinct; the creative schema's proposal records the canonical client/our_firm split, while this template adds no field rows.",
+      "provenance": "design"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Briefs and reviews often expose unreleased products, campaigns, prices, strategy, named contacts, personal likenesses, client-supplied assets, credentials or transfer links; contracts and invoices add commercial and personal data. Recognition should use local structure and minimal excerpts, suppress raw previews in broad summaries, and never infer that publication or delivery made the surrounding engagement public. This is a catalogue posture, not a handling class or legal conclusion.",
+  "open_question": "NEEDS-JOSEPH: (1) confirm that a distinct client-engagement template survives despite sharing the creative default's future dimension order; this row argues that role-bearing brief/review/approval/delivery activation is materially narrower. (2) Decide whether in-house requester work may use canonical client or needs a separate requester role; minting a synonym here would pre-empt R1c. (3) Decide whether client may be a visible first dimension at all, and require flattening for single-client and in-house corpora. (4) Set the reciprocal rule with customer-account-management: a bounded creative job may group by client after approval, while a standing account queue must not acquire that branch. (5) Specify how exact review, approval and delivery membership is recorded without copying client, project or stage facts onto sparse members."
+}
