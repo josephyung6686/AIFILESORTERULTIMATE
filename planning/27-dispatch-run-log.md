@@ -672,3 +672,32 @@ the row's two touched · commit by explicit file list.
   It also found and fixed a missing reciprocal edge to `case-conference`: "It did not; it does now."
 - `construction_property.site-health-safety`: **4,773B → 35,357B (7.4x)**, 12 file_examples, stands.
   Survived the document-type charge that refused `compliance-certificate` in its own family.
+
+## Debt clearing 35-37/64 — three rows, and the memo/JSON check catches a SECOND instance
+
+- `business_operations.corporate-regulatory-filings`: **4,951B → 29,780B (6.0x)**, 13 file_examples,
+  both files written, stands.
+- `business_operations.facilities-workplace`: **4,892B → 33,825B (6.9x)**, 10 file_examples, both
+  files written, stands. Beat the charge that it is `construction_property`'s material seen from
+  the tenant's side — a role, not a structure.
+- `construction_property.tenancy-management`: **5,010B → 35,052B (7.0x)**, 10 file_examples, both
+  files written, stands.
+
+## DEFECT CAUGHT AGAIN — `business_operations.organisational-records`
+
+Same signature as `risk-register`, same detection: only `.research.md` modified, `.json` untouched.
+The memo (50,583B, `refuse_node: true` correctly preserved) claims under **Added** that it wrote
+the two-role closure *"into the JSON as a `recognition.never_alone` entry and a new clause in
+`refuse_reason`."* Verified absent: `never_alone` has 5 entries, none mentioning two-role, and
+`refuse_reason` contains no such clause.
+
+**Not committed.** Held for reconciliation.
+
+**The check earns its place.** This is the second occurrence in ~14 rows, so the defect class is not
+a one-off — it is what a usage-limit kill looks like when it lands between the two writes, and the
+memo is always the file that survives. Every future row must be checked this way; a complete-looking
+memo is not evidence the row is complete.
+
+Note: the memo's substance is otherwise excellent — 33 references closing the two-role escape route
+with a stated pincer (two-role present, a sibling owns it; two-role absent, never-alone strikes it)
+and a deletion-test closure. Only the JSON write is missing.
