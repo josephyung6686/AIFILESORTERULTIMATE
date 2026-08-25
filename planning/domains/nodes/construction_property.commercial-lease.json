@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Commercial leases and occupier management",
-  "one_line": "The ESTATE-MANAGEMENT lifecycle of business premises after heads of terms are agreed: the schedule of condition recorded at the start, the rent-review and break machinery that runs mid-term, the licences to alter and to assign or sublet, the service-charge and insurance recharges, the rent-deposit and guarantee arrangements, and the dilapidations reckoning that settles what the premises must be handed back as. The anchor is ONE OCCUPIER'S TENANCY OF ONE PREMISES and the calendar of dates it created. Absorbs the legacy row prop.commercial-lease. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "one_line": "The ESTATE-MANAGEMENT lifecycle of business premises after heads of terms are agreed: the schedule of condition recorded at the start, the rent-review and break machinery that runs mid-term, the licences to alter and to assign or sublet, the service-charge and insurance recharges, the rent-deposit and guarantee arrangements, and the dilapidations reckoning that settles what the premises must be handed back as. The anchor is ONE OCCUPIER'S TENANCY OF ONE PREMISES and the calendar of dates it created. Absorbs the legacy row prop.commercial-lease. Placeholder row (J-IND, researched to J-DEPTH): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). What makes it a node is the ALIENATION, REVIEW AND BREAK machinery plus the lease-defined recharge proportion — the schedule of condition and the dilapidations schedule are shared with construction_property.survey-valuation and are not this row's exclusive fingerprint.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -16,8 +16,9 @@
     "deterministic": [
       "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
       "a SCHEDULE OF CONDITION structure: a dated photographic and written record of the state of specific premises at the start of a term, organised room by room or elevation by elevation, prepared expressly to limit a future liability. The photographs plus the room-by-room narrative plus the stated purpose are the signal.",
-      "a DILAPIDATIONS structure: a schedule of breaches with a covenant reference, a remedy and a costed sum per item, summing to a claim, usually with a scott-schedule-style response column. This structure exists nowhere else on the roster. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a DILAPIDATIONS structure: a schedule of breaches with a covenant reference, a remedy and a costed sum per item, summing to a claim, usually with a scott-schedule-style response column. It is SHARED with construction_property.survey-valuation, which names the same structure in its own recognition and owns it as a surveyor's product; this row detects it as a member of a tenancy, not as an opinion. Corrected in the deepening pass — the earlier claim that the structure exists nowhere else on the roster was wrong against that landed sibling. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
       "a RENT-REVIEW structure: a memorandum or notice recording a reviewed rent from a review date, with comparable evidence or an expert determination behind it, referenced to a lease and a premises.",
+      "an ALIENATION structure: a consent regime governing who may occupy — a licence to assign or sublet naming a proposed transferee, an authorised guarantee agreement by the outgoing tenant, a landlord's consent conditional on covenant strength. This regime has no counterpart in residential letting and no counterpart in an opinion document, and it is the signal this row stands on when the schedule of condition is conceded as shared.",
       "a LEASE-EVENT CALENDAR structure: a schedule of dates derived from an instrument — term commencement, review dates, break dates and their notice periods, expiry — held to be diarised rather than to be read.",
       "a LICENCE structure: a licence to alter, to assign or to sublet, referencing a headlease, describing works or a proposed transferee, and imposing reinstatement or covenant conditions.",
       "a RECHARGE structure: a service charge or insurance rent apportionment for one commercial unit against a landlord's expenditure schedule, with a lease-defined proportion.",
@@ -370,6 +371,29 @@
       "also_schema": "finance",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Schedule of condition - 14 Foundry Row - Fenwick Surveyors.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a room-by-room written record cross-referenced to numbered photographs — every observation this row's schedule-of-condition signal names",
+        "a labelled addressee block, a stated purpose and a limitation of liability, with a professional signature and a PI statement",
+        "no lease reference, no review or break date, no licence and no recharge proportion anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row fires. THE COLLISION FIXTURE, and it fails: the reliance structure is construction_property.survey-valuation's fingerprint and the tenancy machinery this row activates on is entirely absent. A premises address and a document-type word are both never-alone here.",
+        "that the absence of a lease reference proves no tenancy exists; it proves only that the corpus does not show one — “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
     }
   ],
   "collides_with": [
@@ -401,6 +425,21 @@
     {
       "domain": "finance.insurance-corporate",
       "signal": "The landed legal.leases-agreements row already states this pair from its side and the reasoning carries over unchanged: a lease's insurance-requirements clause and an insurance rent recharge report on insurance without being insurance. Labelled Named Insured, Policy Number, Policy Period and coverage tables support finance.insurance-corporate; a lease-defined recharge proportion supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.tenancy-management",
+      "signal": "RECIPROCATES the landed tenancy-management edge, which routes its commercial-lease collision fixture here, and adopts its discriminator unchanged rather than restating it differently: a deposit protection scheme, a right-to-rent check, prescribed information and a residential statutory notice support that row; a term of years, rent review provisions, alienation and dilapidations obligations support this one. Added in the deepening pass — the earlier draft deliberately withheld this edge while the sibling was unlanded. NOTE THE LINE THIS PAIR IS NOT DRAWN ON: that the tenant is a business is an organisation name, which is never-alone on this schema and cannot activate anything. The line is the COVENANT REGIME and the documents it produces — a contracting-out declaration, an upward-only review, an FRI repairing obligation, a licence to assign, an authorised guarantee agreement and a terminal dilapidations schedule have no residential counterpart, and deposit protection and safety certification have no commercial one. The privacy postures also differ and reinforce the split: that row's default residual is Protected Records because a named person lives there; this row's exposure is commercial confidence, with personal data entering mainly through individual guarantors. A mixed-portfolio landlord crosses the line constantly — NJ-CP-9.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.survey-valuation",
+      "signal": "RECIPROCATES the landed survey-valuation edge, and CONCEDES ground the earlier draft claimed. That row names the schedule of condition and the dilapidations schedule among its own deterministic signals, so those two structures are SHARED EVIDENCE and are not this row's exclusive fingerprint. The discriminator is that row's own: a labelled addressee, a stated purpose, a basis or standard, a limitation of liability and a professional indemnity statement make a RELIANCE document and support survey-valuation; a lease reference, a review or break date, an alienation consent and a lease-defined recharge proportion make TENANCY MACHINERY and support this row. Where a schedule of condition sits inside a tenancy file, both hold on disjoint evidence and neither is a file-level winner. Shared fixture, named on this side: Schedule of condition - 14 Foundry Row - Fenwick Surveyors.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "RECIPROCATES the landed construction-project edge and adopts its discriminator unchanged: a fit-out is works under a building contract AND a tenant's obligation under a lease. Which INSTRUMENT the document serves decides it — an interim valuation, a contract instruction and a variation serve the building contract and support construction-project; a licence to alter, its reinstatement condition, the schedule of condition it was granted against and the dilapidations line it later produces serve the lease and support this row. The same fit-out drawings are referenced by number from both sides and discriminate nothing.",
       "provenance": "inference"
     }
   ],
@@ -440,5 +479,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Predominantly commercial rather than personal, and recorded that way. The material states what a named business pays for its premises, what it owes, what security it gave and what liability it faces at expiry — commercially confidential to a counterparty who is usually not the user, and the sort of thing whose disclosure changes a negotiation. Personal data enters through named guarantors, who are frequently individuals giving personal guarantees, and through arrears correspondence. 00's corpus sentence covers the documents this situation accumulates — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. The cautious setting follows. The handling class is P7's and is not set here.",
-  "open_question": "Three. (1) NJ-CP-9, row-specific: this row is drawn on COMMERCIAL premises, but the estate-management apparatus it detects on — schedule of condition, licence to alter, dilapidations, lease-event diary — appears in residential letting too, where the landed finance.household-property and the roster's construction_property.tenancy-management rows are the homes. The commercial/residential line is drawn by this pass on the covenant regime, which is the best available evidence and which a small mixed-portfolio landlord's corpus will cross constantly. Reciprocal owed on tenancy-management, which is not mine. (2) Whether the lease-event diary is a filing situation at all or a P10/P11 concern: a schedule of dates held to be diarised is arguably a calendar rather than a record, and 00 is explicit that calendar is a SOURCE_TYPE and not a domain. This row keeps it as a work type and a detection structure and claims nothing about diarising. (3) Inherits NJ-CP-1."
+  "open_question": "Four. (1) NJ-CP-9, row-specific and now RECIPROCATED rather than owed: the commercial/residential line against construction_property.tenancy-management, which landed after the first pass and routes its commercial fixture here. Both rows draw the line on the covenant regime and its documents, not on the tenant's legal form — an organisation name is never-alone on this schema and could not activate a row on its own. What stays open is the mixed-portfolio landlord whose corpus crosses the line inside one folder, and whether a corpus that shows a commercial regime and a residential one at the same address should activate both or neither. (2) NEW, and the most consequential thing this pass found: construction_property.survey-valuation names the schedule of condition and the dilapidations schedule among its OWN deterministic signals. The first pass called them structures that exist nowhere else on the roster and rested the node test on them; that was wrong against a landed sibling and is corrected here. They are shared evidence, split on the reliance structure, and this row now rests on the alienation, review and break machinery plus the lease-defined recharge proportion instead. R1c should confirm the split rather than let two rows claim one fingerprint. (3) Whether the lease-event diary is a filing situation at all or a P10/P11 concern: a schedule of dates held to be diarised is arguably a calendar rather than a record, and 00 is explicit that calendar is a SOURCE_TYPE and not a domain. This row keeps it as a work type and a detection structure and claims nothing about diarising. (4) Inherits NJ-CP-1: without a property key this row's recommended tree cannot be expressed as dimensions at all."
 }

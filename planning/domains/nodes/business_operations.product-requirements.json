@@ -338,11 +338,6 @@
       "provenance": "inference"
     },
     {
-      "domain": "code.software-project",
-      "signal": "Decision records, specifications and design documents live inside repositories beside the code they govern, and the same markdown file is both. The discriminating evidence: residence in a repository with source and configuration, and an implementation-level audience, supports the code schema; a product-level statement of what and why for a stakeholder audience supports this row. Provenance: inference.",
-      "provenance": "inference"
-    },
-    {
       "domain": "business_operations.user-research",
       "signal": "Research findings are quoted directly into specifications, and a findings deck often ends with requirements. The discriminating evidence: sessions with participants, consent records and transcripts support user research; a scope boundary and acceptance criteria support this row. Provenance: inference.",
       "provenance": "inference"
@@ -361,9 +356,25 @@
       "domain": "business_operations.contract-administration",
       "signal": "A specification annexed to a customer contract becomes a contractual obligation, and the annex text is the specification verbatim. The discriminating evidence: two named parties, executed signature blocks and an obligations register support contract administration; an internal specification supports this row. Provenance: inference.",
       "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "signal": "A test protocol and an acceptance-criteria sheet are the same grid of scenarios with the same requirement identifiers down the left. The discriminating evidence: an execution record - results, an operator, a date and a sign-off against each case - supports the verification row, because it records what WAS proven; intended criteria written before the thing exists, with no result column, support this row. Executed results transfer the file. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "The same requirement-shaped numbered document exists on both sides of a purchase, and a statement of requirements inside an RFP reads exactly like a product specification. The discriminating evidence: an evaluation or bid-submission apparatus - award criteria, a submission deadline, a supplier response template - marks the buyer side and supports procurement; a specification of a product the user's own organisation builds, with acceptance criteria and no bidder, supports this row. See role_split. Provenance: inference.",
+      "provenance": "inference"
     }
   ],
-  "also_holds_with": [],
+  "also_holds_with": [
+    {
+      "domain": "code",
+      "signal": "Corrects the gist pass, which wrote this as collides_with code.software-project. That template row is refused (refuse_node: true), so a collision edge to it could never fire; and the relationship was never mutex in the first place. A decision record or a specification living inside a repository legally carries BOTH: the code schema activates on structural evidence about the file's location - a repository root, a package manifest - while this row activates on the document's decision-record or requirements structure, which is evidence about its purpose. Reciprocal boundary: the code schema owns the repository layout and this row must not propose re-filing anything inside a preserved root, since whether a root is atomic is code.json's own open question and therefore Joseph's. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
   "falls_through_to": [
     {
       "residual_template": "Independent Records",
@@ -391,7 +402,13 @@
       "provenance": "design"
     }
   ],
-  "role_split": [],
+  "role_split": [
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "Same entity type - a numbered statement of required behaviour - on opposite sides of a purchase. This row holds requirements for a product the organisation BUILDS, anchored on the feature being specified. Procurement holds requirements issued to suppliers for a product or service the organisation BUYS, anchored on the sourcing event. The roles are not recoverable from the requirement text itself, which is identical in both; they are recoverable only from the surrounding apparatus - award criteria and a submission deadline on the buyer side, acceptance criteria and a non-goals section on this one. Where neither is present, abstain rather than guess a side, per the family's rule that a document's side is evidence and is frequently unrecoverable. Written from this side only; the matching entry belongs on the procurement row (NJ-BO-13). Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Specifications are mostly internal descriptions of behaviour and are among the least personal material in this family, but two things in the pile are not: unreleased product plans are commercially confidential, and specifications routinely embed research quotes, real customer names, and screenshots taken from live systems that contain real user data. A mockup captured from production is the quiet case - it looks like a design file and carries somebody's account. 00's operative limits apply to whatever P7 classifies as protected: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”, and the enforcement point is 00's: “Privacy policy must be enforced before content reaches any model or external connector.”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
   "open_question": "Whether this row and business_operations.product-roadmap should be one row rather than two. The case for one: in a small team they are the same folder, the same authors and often the same document, and the node test's dimension leg cannot currently distinguish them because both dimension orders are empty under PR-6. The case for two, which this row takes: the detection signals genuinely differ - an out-of-scope section and acceptance criteria on one side, a horizon and sequenced themes on the other - the neighbour sets differ, and the recommended orders would differ in the sharpest possible way, since a specification is feature-first and durable while a roadmap is horizon-first and expires. If the fields pass never happens, the pair should be re-examined, because two rows whose only demonstrated difference is detection signals is a thinner justification than a merged row would need to overturn. It is Joseph's call and it is stated identically on the roadmap row."

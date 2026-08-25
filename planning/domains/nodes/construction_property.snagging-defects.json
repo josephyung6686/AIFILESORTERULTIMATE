@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Snagging, defects and handover lists",
-  "one_line": "The numbered list of things that are wrong, each pinned to a location and a responsible trade, tracked through re-inspections until it is closed — the pre-completion snagging list, the client's or buyer's own list, the handover and practical-completion schedule, and the defects raised during the liability period after the works are finished and everybody has left. Its defining property is that it is a TRACKER with a lifecycle: the same document is re-issued repeatedly with a status column changing, and it is the last live thing on a project everyone else considers closed. Absorbs the legacy row cons.snagging. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "one_line": "The numbered list of things that are wrong, each pinned to a location and a responsible trade, tracked through re-inspections until it is closed — the pre-completion snagging list, the client's or buyer's own list, the handover and practical-completion schedule, and the defects raised during the liability period after the works are finished and everybody has left. Its defining property is that it is a TRACKER with a lifecycle: the same document is re-issued repeatedly with a status column changing, and it is the last live thing on a project everyone else considers closed. The row stands on ONE leg of the node test — detection signals — and its dimensions and privacy posture are the schema's, which is recorded here rather than hidden. Absorbs the legacy row cons.snagging. Placeholder row (J-IND, written to J-DEPTH): it writes NO field rows, because the construction_property schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -43,7 +43,10 @@
       "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
       "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
       "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
-      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated."
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated.",
+      "a defect photograph's membership in a site walk. construction_property.progress-photos is recognised by capture metadata, rhythm and place, and this row is not — this row is recognised by the register's document structure. A photograph enters this row through an item number or through membership in an accepted register, NEVER through capture metadata, a GPS cluster or a work-hours rhythm. That sibling's line is adopted unchanged here: ‘a measure, a marker or a caption identifying a fault, or membership in an accepted defect list’ is what supports this row.",
+      "a location or room column alone. Room-by-room tables are also inventories, schedules of condition, asset registers, measured surveys, fire-door registers and room data sheets; the column pairs with a STATUS and a RESPONSIBLE TRADE or it is evidence of nothing here.",
+      "a defects-liability or rectification period stated in a document. It is a CONTRACT TERM and it is printed in the contract particulars, the subcontract order, the payment schedule and the collateral warranty long before any defect exists. Only a period that is RUNNING, evidenced by dated activity after a completion date, is this row's signal."
     ]
   },
   "proposed_context_terms": [
@@ -98,7 +101,8 @@
     "one defect: the notification, the photographs, the trade's response, the re-inspection and the sign-off — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
     "one handover event: the certificate, the outstanding-works schedule, the manuals and the warranties.",
     "no group at all is a valid outcome: a single annotated photograph with no register around it is an ordinary standalone image.",
-    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two plots' registers in one folder do not merge."
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two plots' registers in one folder do not merge.",
+    "and a distinction this row must keep, borrowed from the deepened project row: a defect item is a POSITION INSIDE A JOB in the browse sense, and being browsed under a job is not evidence about the file. Item 44 sits under the plot in the tree; what activates is the register."
   ],
   "template": {
     "dimension_order": [],
@@ -354,6 +358,96 @@
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Snagging schedule - Block C - rev 2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per fault with columns for apartment number, room, description, trade and status",
+        "a head-contract reference in the sheet header",
+        "a rev 2 in the filename and a rev 1 alongside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that the head-contract reference makes this the project row's evidence. This is the SHARED FIXTURE the deepened construction_property.construction-project row names on its own side, and that row has conceded it: the register is this row's activation and the contract reference is context the project row reads. Being a position inside a job is not evidence about the job",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Snag list - our new house.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a homeowner's own room-by-room list of faults in a newly bought house",
+        "a status column the owner keeps themselves",
+        "no job reference, no trade column, no developer letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row on these facts alone: the outbound collision fixture, and the file that must NOT be lost to this row. With no instruction around it — no job or contract reference, no responsible-trade column, no defects period running — it is a householder's own record of their own home, which the landed finance.household-property row claims. Where the developer's own register is sent to the same owner and carries a trade column and a contract reference, both readings hold",
+        "that the register STRUCTURE alone settles it — the structure is this row's signal and the instruction is the seam, and the schema anchor's rule stands: an address selects neither side",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Reactive repairs log - Marsh Court - 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "flat number, reported fault, contractor, date reported, date attended, status",
+        "no completion date and no end date anywhere in the sheet",
+        "the same sheet rolled forward from the previous year"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the third collision fixture. Every structural signal this row has is satisfied — location column, status column, responsible party, one row per fault — and it is still not this situation, because nothing here CLOSES. A perpetual upkeep log under a standing management appointment is construction_property.block-management's, and the discriminator is the expiring obligation, not the table",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_2231.HEIC",
+      "source_type": "image",
+      "observations": [
+        "a site capture in a GPS cluster with several dozen frames from the same morning",
+        "camera EXIF with capture time and coordinates",
+        "no item number, no annotation, no register in the folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row. The fourth collision fixture, and the one that keeps this row inside its own detection method: capture metadata, a GPS cluster and a work-hours rhythm are construction_property.progress-photos' evidence and not this row's, and this row makes no capture-based claim at all. Without an item number or membership in an accepted register, a photograph of a building is not a defect record",
+        "a defect fact from subject matter — a photograph of a crack taken on a site walk is a record of the state of the works until something identifies it as a fault",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
     }
   ],
   "collides_with": [
@@ -364,7 +458,7 @@
     },
     {
       "domain": "construction_property.construction-project",
-      "signal": "Recorded deliberately, because the node test asked whether this row is only a work_type of the project. The discriminating evidence: a defects-liability period, a re-issue sequence with a status column, and activity AFTER practical completion support this row; anything inside the construction period supports the project row. The registers of a project that has closed are the clearest case that this is a separate situation. Provenance: inference.",
+      "signal": "Recorded deliberately, because the node test asked whether this row is only a work_type of the project. The discriminating evidence: a defects-liability period, a re-issue sequence with a status column, and activity AFTER practical completion support this row; anything inside the construction period supports the project row. The registers of a project that has closed are the clearest case that this is a separate situation. SETTLED, and not by this row alone: the project row has since been deepened, has DEMOTED the defects half of its completion triple out of its own activation evidence, and states the concession in its own words — ‘the sibling recorded this collision deliberately because its own node test asked whether it is merely a work_type of this row; it is not, and this row concedes the point.’ The practical-completion certificate itself stays with the project row as the boundary event; this row claims the outstanding-works schedule appended to it, and the shared fixture is named on both sides. Provenance: inference.",
       "provenance": "inference"
     },
     {
@@ -396,9 +490,45 @@
       "domain": "construction_property.final-account",
       "signal": "Retention is released against defects being closed, so the register and the account cite each other. The discriminating evidence: a valuation number, a retention percentage and a certified sum support the final-account row; an item list with statuses supports this row. Provenance: inference.",
       "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.progress-photos",
+      "signal": "RECIPROCAL, and the sibling stated its side first; its wording is adopted rather than re-authored. ‘A defect close-up and a progress frame are adjacent captures from one walk. The discriminating evidence: a measure, a marker or a caption identifying a fault, or membership in an accepted defect list, supports the snagging row; a record of the state of the works supports this row.’ The deeper point, which this row must not blur: that sibling earned its node on a DIFFERENT DETECTION METHOD — capture metadata, rhythm and place — and this row makes no such claim. This row is recognised by document structure like every other row on the schema; its photographs are grouped MEMBERS of a register, never its activation evidence. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "ADDED THIS PASS, reversing the gist pass's judgement that no edge was owed. The gist memo said the two rows share no evidence item; that was wrong. A buyer's own snagging list of the new house they have just bought, and the builder's list of the same house, are frequently THE SAME BYTES — the buyer is sent the register. The landed row claims a householder's own record of their own home and lists inspection, warranty and completion certificates among its own work_types. The discriminating evidence is the schema anchor's seam and this row does not re-draw it: an INSTRUCTION — a job or contract reference, a responsible-trade column, a defects period running under a contract, a re-inspection history — supports this row; an owner's own file about their own home with no instruction around it supports the landed row. An address selects neither. Shared fixture: 'Snag list - our new house.xlsx'. R1c owes the reciprocal; the landed row does not name construction_property. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.block-management",
+      "signal": "ADDED THIS PASS. A block manager's repairs and works log is a located, statused, trade-assigned fault list on a building, and it never ends. The discriminating evidence: a CLOSING obligation — a completion date, a defects period with an end, a retention release, a making-good certificate — supports this row; a standing management appointment, leaseholder reporting, apportionment and a service-charge year support the block row. A perpetual log is not a defects register with the word 'perpetual' in front of it; it is a different situation. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "ADDED THIS PASS, because the row's own needs_llm names the defects-versus-maintenance separation and the gist pass left it without an edge. A maintenance work order and a defect item both name a fault, a location, an assignee and a closure. The discriminating evidence: an asset or equipment identifier, a planned-maintenance schedule, a meter reading and a fault CODE support the maintenance row; a plot or room, a responsible TRADE, and a contractual defects period with an end date support this row. The deciding question is whether the work is done under a warranty of workmanship that expires, or under an upkeep regime that does not. Provenance: inference.",
+      "provenance": "inference"
     }
   ],
-  "also_holds_with": [],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "why": "A defect notification served under a contract, a latent-defect claim and a pre-action letter about defective work are legal records as well as this situation's, and legal is a safety domain: “Finance, identity, medical, and legal material should be implemented first as safety domains”. Co-activation is correct and protective ordering applies — the legal reading protects first and this row's reading is additive. “One file may hold facts from more than one domain without losing information.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "why": "An annotated defect photograph carries the photos schema's capture facts as well as being a register member. The sibling construction_property.progress-photos already states the capture side and this row does not reopen it; what is recorded here is only that both readings hold of the same bytes. “One file may hold facts from more than one domain without losing information.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "why": "Retention is released against defects being closed, so a close-out confirmation is simultaneously a finance record for whoever's books the release lands in and this situation's evidence that the list is finished. Neither reading displaces the other; the collision with construction_property.final-account is a separate and narrower matter and is recorded there.",
+      "provenance": "inference"
+    }
+  ],
   "falls_through_to": [
     {
       "residual_template": "Review Later",
@@ -434,5 +564,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Two reasons, both about people rather than about buildings. A residential defect file names an occupant and catalogues everything wrong with the home they live in, which is information about a private individual's living conditions; and a defect register names individual tradespeople as responsible for failures, which is material that can affect their work. 00's corpus sentence covers the category the moment either appears: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Most of this row is dull item lists and the value is set for the members that are not. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
-  "open_question": "One. Whether the DEFECT/VARIATION boundary is decidable by the product at all. The honest answer recorded here is that it often is not, because the two sides disagree on purpose and both readings are written down in good faith — so the correct behaviour is to recognise both and abstain rather than to pick, which is 00's own instruction for conflicting signals: “conflicting signals should lead to abstention rather than an invented classification”. What is Joseph's, and is not resolved here, is whether a file that is genuinely both should be offered in two places or held in one."
+  "open_question": "Two, and the first is new to this pass. (1) The row stands on ONE leg of CONNECTION.md §2's test. Its detection signals differ from the schema's default — the defect register is a fifth structure alongside the family's title block, measured-works table, previously-certified valuation arithmetic and apportionment schedule — and that is sufficient, since any one leg suffices. But its recommended dimensions are the family default with a plot sub-level added, and its privacy posture is the schema's own; NEITHER distinguishes it, and both are recorded here as failing rather than claimed. Whether one leg is enough for a row this narrow is R1c's, and it is the same question the deepened project row asks about itself. (2) Whether the DEFECT/VARIATION boundary is decidable by the product at all. The honest answer recorded here is that it often is not, because the two sides disagree on purpose and both readings are written down in good faith — so the correct behaviour is to recognise both and abstain rather than to pick, which is 00's own instruction for conflicting signals: “conflicting signals should lead to abstention rather than an invented classification”. What is Joseph's, and is not resolved here, is whether a file that is genuinely both should be offered in two places or held in one."
 }

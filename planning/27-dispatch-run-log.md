@@ -296,3 +296,424 @@ Rule: append one line per completed unit of work the moment it is verified. Neve
   find one decision to make, not two competing ones — which is exactly what was asked for.
 - All three schema anchors are now at J-DEPTH. Their 61 templates can go out shallowest-first,
   each measured against a default template that now actually exists.
+
+## Debt clearing 4/64 — `business_operations.market-research` deepened, and survives
+
+- **3,755B → 29,398B (7.8x)**, 9 file_examples, `Depth: J-DEPTH` header replacing the retired
+  `Depth: GIST`. **Not refused** — but the gist verdict was genuinely retested, not rubber-stamped.
+- It read the family's refusal FIRST, explicitly "on the assumption that this row was heading the
+  same way", applied the schema anchor's generalised never-alone principle to itself, and then
+  argued its way out. That is the debt-clearing pass working as intended: a thin "stands" verdict
+  re-examined against a real test.
+- Engaged the `research.*` collision 31 times, and **followed its sibling `user-research`'s
+  reasoning rather than re-deriving it** — including `research.project-workspace`, a landed
+  refusal it calls "the sharpest precedent for what a default-template row looks like when it is
+  caught". Cross-family consistency, which the gist pass could not produce.
+
+## Note: the debt was mis-measured, corrected
+
+The gist rows' **JSON payloads were already substantial** (~25KB, ~10 file_examples). Only the
+`.research.md` memos were shallow. Earlier log entries quoted memo bytes as if they were whole-row
+sizes. Deepening is therefore cheaper per row than the 3-4x projection: agents verify-and-extend
+the JSON and rewrite the memo. Corrected in the retry prompts.
+
+## Debt clearing 5/64 — `construction_property.agency-listing` deepened
+
+- **3,466B → 36,028B (10.4x)**, the largest expansion so far. 10 file_examples, all universal keys,
+  no proposed fields, stands.
+- The dispatch challenge — a listing is public-facing marketing material, so is it *less* sensitive
+  than the schema default? — was engaged head-on and answered **against** the intuition, with the
+  agent noting the intuition is reasonable before dismantling it. Privacy reasoning appears 13
+  times; leg 3 is the leg this row turns on.
+- This is the argument the gist row did not contain at all, and it is the kind that matters:
+  getting a privacy posture wrong in the permissive direction is the expensive error.
+
+## Debt clearing 6-7/64 — both salvaged from a limit-kill, both complete
+
+- The usage limit killed both agents, but **the write-as-you-go instruction paid off**: both had
+  written complete files before dying. Verified rather than assumed — JSON parses, all universal
+  keys present, memos end on finished sentences, no truncation.
+- `business_operations.budget-forecast`: **3,777B → 43,409B (11.5x)**, 10 file_examples, stands.
+  Notes that "nine of the ten boundaries in this memo are one-way" — a reciprocity observation R1c
+  will want, since one-way boundaries are exactly what the merge gate checks.
+- `construction_property.construction-project`: **3,261B → 38,433B (11.8x)**, 15 file_examples,
+  stands. Now a spine heavy enough to carry the siblings that define themselves against it.
+- Both expansions are the largest yet (11.5x, 11.8x), continuing the trend: richer anchors and
+  neighbours give each new row more to genuinely argue with.
+
+## Debt clearing 8/64 — `business_operations.it-asset-inventory` deepened, stands
+
+- **3,912B → 35,723B (9.1x)**, 10 file_examples, all universal keys, `Depth: J-DEPTH` header.
+- Structure worth copying: it opens the node test with **"The hostile reading, stated first"** —
+  granting the dispatch's charge (an asset inventory is plausibly a spreadsheet shape, and its
+  obvious signals are never-alone) before defending. It also states outright that two legs pass on
+  real evidence and one "cannot pass at all", noting that saying which is which "is the point of
+  running the test rather than announcing a verdict".
+- Closes with an explicit attestation that nothing in it is padding — the right instinct now that
+  memo size is a visible metric. Size must not become the target; the argument is the target.
+
+## Debt clearing 9/64 — `business_operations.policy-handbook` deepened, stands
+
+- **4,091B → 33,624B (8.2x)**, 11 file_examples, all universal keys, `Depth: J-DEPTH`.
+- Survived the sharpest challenge set so far — it is the nearest sibling to the row this family
+  already refused, on the same document-type charge — and closed the trap deliberately: it cites
+  00's universal-facts sentence (file type, creation date, language, duplicate family, version
+  family, sensitivity status) to establish that **annual reissue is not an argument for this row**,
+  because version family is already a universal fact rather than a domain concern. Backed from the
+  other end by the content-hash-vs-filename collision sentence.
+- **Wrote the `hr` boundary 18 times for an author who does not exist yet.** `hr` is an unwritten
+  schema, and a staff handbook is its most obvious material; the seam is now specified in advance
+  rather than left to be negotiated when that family is written. Cheapest possible time to fix it.
+
+## Debt clearing 10/64 — `clinical_practice.case-conference` deepened, stands
+
+- **3,869B → 36,887B (9.5x)**, 11 file_examples, all universal keys, `Depth: J-DEPTH`, complete.
+- Engaged `business_operations.meeting-record` 6 times — the cross-family collision that mattered
+  here, since a clinical case conference and a corporate meeting record must not both claim the
+  same evidence. Third-party aggregation reasoned about explicitly for the privacy leg.
+- Ends with a stated list of exactly which files it modified — the auditability habit now showing
+  up unprompted across deepened rows.
+
+## Wave summary — 4 dispatched, 4 landed, 0 killed
+
+**Correction:** this heading was written when only THREE had landed; `subcontract` was still
+running and was reported as complete prematurely. It landed shortly after (11.0x, stands) and the
+summary below now reflects all four. Do not report a wave complete until every row is verified.
+
+First wave since the limits reset with no agent losses. Expansions 9.1x / 8.2x / 9.5x / 11.0x, all
+stands, no refusals this wave despite three of four being flagged as likely failures. That is a
+reasonable outcome, not a rubber stamp: each granted the hostile reading first and answered it on
+cited evidence (spreadsheet-shape, document-type, and work_type-of-patient-chart charges
+respectively). The two flagged-likely-refusal rows that DID fail earlier — organisational-records,
+compliance-certificate — show the flagging discriminates rather than always producing "stands".
+
+## Debt clearing 11/64 — `construction_property.subcontract` deepened, stands
+
+- **3,882B → 42,561B (11.0x)**, 10 file_examples, all universal keys, `Depth: J-DEPTH`.
+- Survived a two-sided charge: that it is a document type inside `construction-project`'s
+  lifecycle, or that it is `legal`'s material wearing a construction label. Engaged the `legal.*`
+  launch rows 11 times to settle the contract seam reciprocally rather than assuming it.
+
+## Debt clearing 12/64 — `construction_property.commercial-lease` deepened, stands
+
+- **4,251B → 38,129B (9.0x)**, 11 file_examples, all universal keys, `Depth: J-DEPTH`.
+- The charge was the strongest available: `legal.leases-agreements` is a landed launch row that
+  owns leases by name, and "the tenant is a business" is an organisation name — never-alone
+  evidence that cannot activate a row. Engaged that row 14 times.
+- **It found a structural discriminator instead**, on dimensions rather than subject matter: the
+  family's `instruction` level assumes a commissioned job with a start and an end, but a tenancy is
+  a *relationship with a term* — one shop let in 2014, surrendered 2019, re-let 2021 is three
+  tenancies on one premises whose papers "are meaningless in the others' company".
+- It also argued a **negative** difference — no period level, where its two folder-sharing siblings
+  (`service-charge`, `block-management`) both correctly want a year level — and noted that a
+  negative difference is "the rarer and more useful kind". Worth propagating: rows have been
+  arguing only from what they have, not from what they conspicuously lack.
+
+## Debt clearing 13-14/64 — `product-requirements` and `building-control`, both stand
+
+- `business_operations.product-requirements`: **4,296B → 41,012B (9.5x)**, 9 file_examples.
+  **It settled the pair question the gist pass left hanging.** Verdict: PRD and roadmap are TWO
+  worlds, discriminated by structural axis — the roadmap's is time (swimlanes, horizons, now/next/
+  later, no acceptance criteria anywhere), this row's is a specification of intended behaviour with
+  acceptance criteria. The roadmap's own bytes (`H1 roadmap.pptx`) are named as the collision
+  fixture by both rows. Principle worth keeping: *"a question stated identically on two rows is a
+  well-documented deferral, not an answer."*
+  It also **corrected an edge in its own JSON** after reading the `code.*` refusals, and adopted
+  `user-research`'s boundary wording unchanged rather than restating it — reciprocity by reuse.
+  Note: it names a row `engineering.requirements-specification` in an unwritten schema; that row
+  must exist or the reference dangles. **R1c to check.**
+- `construction_property.building-control`: **4,288B → 37,764B (8.8x)**, 11 file_examples.
+  Survived the charge that refused its own family's `compliance-certificate`, and wrote the
+  `government` seam 33 times for a schema nobody has written yet — the second row to specify a
+  boundary in advance of its neighbour existing.
+
+## Debt clearing 15/64 — `construction_property.development-appraisal`, and the wave closes
+
+- **4,165B → 46,497B (11.2x)**, the largest memo yet. 12 file_examples, all universal keys, stands.
+- Survived the spreadsheet-shape charge and settled the `finance` seam (engaged 13 times), staying
+  consistent with the earlier `site-survey` vs `survey-valuation` split (engaged 6 times) — pricing
+  a scheme before it is built vs pricing an asset that exists.
+- **Qualified the gist draft's leg-2 claim** rather than preserving it, and stated explicitly that
+  nothing else was reversed. That is the deepening pass doing its actual job: not just expanding a
+  thin row, but correcting what the thin row got wrong, and saying so audibly.
+- Nice detail: it invokes the sparse-file rule because half this row's real files are an untitled
+  `Cashflow.xlsx` in a folder named after a site — reasoning about the unhelpful real-world file,
+  not the tidy imagined one.
+
+## Wave complete — 4 dispatched, 4 landed, 0 killed (verified this time before reporting)
+
+Expansions 9.0x / 9.5x / 8.8x / 11.2x. All four stand. Techniques worth propagating from this wave:
+arguing from a **conspicuous absence** (commercial-lease's missing period level), settling a
+deferred pair question outright (product-requirements), specifying a seam with an **unwritten**
+schema (building-control -> government), and **qualifying a predecessor's claim** with an explicit
+statement of what else was left alone (development-appraisal).
+
+## Debt clearing 16/64 — `business_operations.meeting-record` deepened, stands
+
+- **4,446B → 40,526B (9.1x)**, 11 file_examples, all universal keys, `Depth: J-DEPTH`.
+- Answered its real charge rather than the easy one: it names the values-are-not-nodes rule, then
+  says the harsher objection is that **a meeting may be a *format*** — the SOURCE_TYPE boundary
+  that got 18 legacy ids dropped in triage — and calls that "this row's actual risk", answered
+  head-on.
+- **Cross-agent reciprocity worked under parallel edit.** `board-governance` was being deepened at
+  the same time; this row read that row's `collides_with` entry naming it and reciprocated **in
+  that row's own words**, without editing it. It also adopted `clinical_practice.case-conference`'s
+  wording (7 references) rather than competing with it. The no-double-edit rule held.
+
+## Debt clearing 17-19/64 — and the dispatcher gets corrected
+
+- `business_operations.board-governance`: **4,373B → 49,734B (11.4x)**, largest memo to date,
+  11 file_examples, stands, no proposed fields.
+- `construction_property.block-management`: **4,298B → 43,055B (10.0x)**, 11 file_examples, stands.
+  Had to beat `finance.hoa-residents-association` on something other than "a company does the
+  work", and did.
+- `construction_property.drawings-revisions`: **4,373B → 30,062B (6.9x)** — the SMALLEST expansion
+  of the wave, and the most valuable row in it.
+  - **Verdict: KEPT, but on one leg instead of three, on a different structure than the gist named,
+    and with the gist's `revision` field proposal WITHDRAWN.** `proposed_fields` is now empty.
+  - "Three of its four claims are reversed below and each reversal is stated as a reversal."
+  - **It corrected the dispatch itself:** the warning "was correct about the *danger* and wrong
+    about *where* the danger was. The trap this row nearly fell into was not the version family —
+    the gist had already seen and refused that. It was standing on a signal that belongs to its own
+    schema." The agent found a failure mode the dispatcher had not identified.
+- Lesson recorded: **expansion ratio is not a quality signal.** The smallest growth in this wave
+  produced the most correction. Judge rows on reversals, withdrawals and arguments, never on bytes.
+
+## Debt clearing 20/64 — `business_operations.partnerships-bd`, and a second pair question settled
+
+- **4,486B → 35,864B (8.0x)**, 13 file_examples, all universal keys, stands.
+- **Settled the three-row counterparty question** (partnerships vs `customer-account-management` vs
+  `vendor-management`, engaged 14 times) rather than restating it — explicitly citing the principle
+  established by `product-requirements` that a question stated identically on several rows is a
+  deferral, not an answer.
+- The discriminator is **relationship state, not counterparty role**: this row holds a commercial
+  relationship *that does not exist yet* — prospects, pitches, proposals, NDAs, letters of intent —
+  where its two siblings hold relationships that already do. Role would have been a field value;
+  state is structural. This is the same class of move as `commercial-lease`'s tenancy-vs-job
+  argument.
+- Found and fixed a cross-family error: a fundraising term sheet was "one of this row's named
+  instruments pointed at the wrong counterparty", producing a new reciprocal edge to
+  `finance.cap-table-equity`.
+
+## Debt clearing 21/64 — `business_operations.contract-administration`, stands
+
+- **4,323B → 39,418B (9.1x)**, 12 file_examples, all universal keys, stands.
+- Engaged `legal.*` 16 times and followed `construction_property.subcontract`'s settlement of the
+  same contract-vs-`legal` charge 11 times, rather than re-deriving it.
+- **Best practice worth propagating: it encoded the trap into the data, not just the prose.** The
+  dispatch's charge — that if the only discriminator were a company rather than a person holding
+  the contract, the row would fail — is accepted outright AND written into the JSON as
+  `recognition.never_alone[2]`, "so that no downstream reader can mistake it for support."
+  A rejected signal recorded as machine-readable never-alone evidence survives; a rejected signal
+  argued only in a memo can be silently re-adopted later.
+
+## Debt clearing 22/64 — `business_operations.go-to-market`, stands
+
+- **4,406B → 46,901B (10.6x)**, 10 file_examples, all universal keys, stands.
+- Quoted the dispatch's charge verbatim into the memo and answered it as "an answer rather than a
+  defence" — the phase-not-a-world objection engaged directly.
+
+## Wave of 8 — outcome, and an honest read on the flagging
+
+7 landed so far, all stand; 1 (`snagging-defects`) still running. **No refusals in this wave**
+despite 5 of 8 being flagged as likely failures. That could look like rubber-stamping, so the
+honest accounting:
+
+- The flagging is still producing corrections, just short of refusal. `drawings-revisions` reversed
+  three of four claims, withdrew a field proposal, and corrected the dispatcher's own diagnosis.
+  `partnerships-bd` settled a three-row merge question and fixed a mis-pointed instrument.
+  `contract-administration` wrote its disqualifying signal into the JSON as never-alone evidence.
+- Earlier waves DID refuse under the same flagging (organisational-records, compliance-certificate,
+  timesheet, creative-brief, self-initiated-work), so the mechanism discriminates.
+- **But the ratio is worth watching.** If flagged rows stop failing entirely across the next two
+  waves, the flagging has become theatre and the challenge needs re-designing, not repeating.
+  Recorded here so a future session checks it rather than assuming.
+
+## Debt clearing 23/64 — `construction_property.snagging-defects`, and the wave of 8 closes
+
+- **4,308B → 52,309B (12.1x)**, largest memo of the run, 14 file_examples, stands.
+- Re-tested properly against the deepened spine after surviving the same `work_type` charge on thin
+  reasoning at gist depth. Engaged `progress-photos` 14 times — the photographic-evidence
+  collision, since a snag list is often annotated photographs and that row earned its place on
+  detection *method*. Consistent with it rather than competing.
+
+## WAVE OF 8 — COMPLETE. 8 dispatched, 8 landed, 0 killed, 0 double-edits.
+
+Doubling the wave size cost nothing. The two overlapping pairs deepening simultaneously
+(`board-governance`/`meeting-record`, `contract-administration`/`partnerships-bd`) each stated
+their boundary reciprocally without editing the other — the no-double-edit rule held under
+parallel load, and `meeting-record` even reciprocated `board-governance` **in that row's own
+words** while it was still being written.
+
+Debt: 64 -> 41 remaining. Total landed 173/358.
+
+**Wave size 8 is validated.** Nothing in this wave argues for going back to 4.
+
+## Debt clearing 24-26/64 — three rows, all salvaged intact from a limit-kill
+
+The usage limit killed all four agents, but three had written both files completely. Verified:
+JSON parses, all universal keys, memos end on finished sentences, `Depth: J-DEPTH`.
+
+- `construction_property.trade-job`: **4,512B → 50,740B**, stands. Beat the charge that it is
+  `construction-project` at smaller scale (scale is not a structural difference); fixture bytes
+  named on its side of the seam.
+- `business_operations.procurement-sourcing`: **4,534B → 37,717B**, stands. Placed itself relative
+  to the counterparty settlement `partnerships-bd` made, rather than reopening it.
+- `business_operations.compliance-audit`: **28,176B**, stands. Survived the same document-type
+  charge that refused `construction_property.compliance-certificate`, and routed its overflow into
+  reciprocal edges (including one to `hr.training-records`) "instead of being written into other
+  rows" — the no-double-edit rule applied by the agent itself.
+
+## DEFECT CAUGHT — `business_operations.risk-register` memo and JSON disagree
+
+Its memo is complete (45,609B, J-DEPTH, ends cleanly) and its **"What changed" section claims the
+`needs_llm` and `never_alone` lists were "extended, not rewritten"** — but `risk-register.json` is
+**unmodified** in the working tree. The agent was killed between writing the memo and writing the
+JSON, so the memo documents changes the data does not contain.
+
+**Not committed.** A memo that describes edits its JSON lacks is worse than a shallow row: it reads
+as done and audits as done. Held back for a reconciliation pass that either applies the extensions
+or corrects the memo's claim.
+
+**Rule for the autopilot:** a complete-looking memo is not proof the row is complete. Cross-check
+the memo's own "what changed" claims against the JSON before committing.
+
+## DEFECT RESOLVED — `business_operations.risk-register` reconciled, and committed
+
+The reconciliation pass closed the memo/JSON gap **in both directions**, which is the honest
+outcome rather than the convenient one:
+
+- **Applied** every JSON change the memo's arguments genuinely required: five new `collides_with`
+  edges, a `board-governance` `also_holds_with`, two seconded `proposed_fields`, two new
+  `never_alone` entries (7 → 9), and an FMEA file example.
+- **Corrected three memo claims to match reality** instead of inventing data to justify them —
+  including the `needs_llm` extension, which the memo had announced but its arguments never asked
+  for. Walking back an overstated claim is as valid a fix as applying it.
+- The memo now carries a standing note explaining the interruption and the repair, so the anomaly
+  is legible to R1c rather than invisible.
+
+**Net effect of catching this:** one row's recognition data is now provably consistent with its own
+reasoning, and the autopilot has a new pre-commit check that applies to every remaining row.
+
+## Debt clearing 28/64 — `business_operations.strategy-plan`, stands
+
+- **4,736B → 29,888B (6.3x)**, 10 file_examples, all universal keys, both files written, stands.
+- **Declined the easy discriminator.** "A roadmap is product-level, a strategy is company-level"
+  is refused outright as "exactly the move the schema anchor forbids" — *"Differing in business
+  function is not automatically a difference"* — because a function or a unit is a **value of a
+  dimension, not a structure**. It states plainly that a company-wide roadmap is still a roadmap
+  and this row does not claim it.
+- **The refusal is encoded in the data, twice**: a never-alone entry disclaiming horizon and period
+  axes, and a deterministic signal stating the discriminator as **decision axis vs period axis**.
+- Best detail: the discriminator is **falsifiable** — "testable by deleting the dates". A
+  discriminator you can run an experiment against is worth more than one you can only agree with.
+- Stays consistent with the requirements-vs-roadmap settlement rather than reopening it; its four
+  wanted changes are recommendations to R1c under NJ-BO-SP-3, not edits to neighbours.
+
+## Debt clearing 29-30/64 — the wave closes, 4 dispatched 4 landed 0 killed
+
+- `construction_property.survey-valuation`: **4,558B → 35,675B (7.8x)**, 11 file_examples, stands.
+  Confirmed the `site-survey` split from its own side, where it had only ever been argued from the
+  other row's side.
+- `business_operations.customer-account-management`: **4,556B → 34,647B (7.6x)**, 11 file_examples,
+  stands. Barred from reusing `partnerships-bd`'s relationship-state discriminator (it sits on the
+  "already exists" side with `vendor-management`), it accepted and reciprocated that settlement
+  "not reopened" and found its own ground, reaching for `00`'s `our_firm`/`client` role split.
+- **The line worth keeping:** of the legacy id it absorbed, it says that inheritance "is **not** a
+  reason to keep the row." That is the 574's original failure — inventing or retaining a node to
+  save an id — named and refused by a row that had every incentive to lean on it.
+
+## Autopilot status
+
+Cron 7c720ee2 firing every 2h at :13. Wave size 4. Debt 64 -> 34. Total landed 180/358.
+Pre-commit checks now in force: JSON parses · all universal keys · `Depth: J-DEPTH` header · memo
+ends unbroken · both files modified · memo's "what changed" claims match the JSON · no file outside
+the row's two touched · commit by explicit file list.
+
+## Debt clearing 31/64 — `business_operations.project-delivery`, narrowed not refused
+
+- **4,793B → 35,090B (7.3x)**, 13 file_examples, both files written, all universal keys, stands.
+- **A third outcome, and a healthy one: "The row is narrowed, not refused."** It clears leg 2
+  outright, leg 3 "by a genuine downward difference", and **leg 1 narrowly — reported as "a narrow
+  win, argued and flagged rather than claimed."** Grading its own margin honestly instead of
+  presenting a marginal pass as a clean one is exactly what R1c needs to prioritise its review.
+- Stated the cross-schema boundary against `construction_property.construction-project` (5 refs) —
+  the charge that two "project" rows on two schemas differ only by industry, and industry is a
+  value not a structure.
+- Note for the tripwire: outcomes are now spread across refuse / narrow / stand rather than
+  clustering on "stands", which is evidence the charges still bite.
+
+## Debt clearing 32/64 — `business_operations.support-operations`, stands at the format boundary
+
+- **4,857B → 32,336B (6.7x)**, 10 file_examples, both files written, all universal keys, stands.
+- Conceded the dispatch's premise while holding the verdict: it "sits closer to the format boundary
+  than any other survivor in this family", and answers that charge **"with bytes rather than with
+  confidence"** — the right instinct for a row whose material is ticket exports, chat logs and mail
+  threads, the class 18 legacy ids were dropped for.
+- **Two verification habits now appearing unprompted and worth keeping:**
+  - every quotation machine-checked verbatim with `grep -F` *before* being written into either file;
+  - the memo's own claims "re-read against the written JSON **after** writing, not before" — the
+    new cross-check rule, followed and reported rather than assumed.
+
+## Debt clearing 33-34/64 — the wave closes, 4 dispatched 4 landed 0 killed
+
+- `clinical_practice.patient-chart`: **4,886B → 37,837B (7.7x)**, 11 file_examples, stands.
+  **The best single argument of the run so far.** Charged with naming what it does NOT hold — since
+  a chart that absorbs everything becomes a residual in disguise — it answers: *"everything about a
+  patient is Protected Records with a nicer label"*, and then draws a distinction the catalogue did
+  not previously have:
+  > a row supported by a **relation between two labelled roles** is not a row supported by
+  > never-alone tokens, even though each of its tokens is never-alone on its own
+  The never-alone failure `00` describes is **role ambiguity** (one token, many possible roles);
+  this row's activation requires two person-shaped blocks with roles separately labelled and filled
+  by different people, which resolves exactly that ambiguity. The JSON records it token by token.
+  **This generalises** — every row whose evidence is a two-role structure can now be argued this way
+  instead of dying on never-alone. R1c should consider promoting it to a contract-level rule.
+  It also found and fixed a missing reciprocal edge to `case-conference`: "It did not; it does now."
+- `construction_property.site-health-safety`: **4,773B → 35,357B (7.4x)**, 12 file_examples, stands.
+  Survived the document-type charge that refused `compliance-certificate` in its own family.
+
+## Debt clearing 35-37/64 — three rows, and the memo/JSON check catches a SECOND instance
+
+- `business_operations.corporate-regulatory-filings`: **4,951B → 29,780B (6.0x)**, 13 file_examples,
+  both files written, stands.
+- `business_operations.facilities-workplace`: **4,892B → 33,825B (6.9x)**, 10 file_examples, both
+  files written, stands. Beat the charge that it is `construction_property`'s material seen from
+  the tenant's side — a role, not a structure.
+- `construction_property.tenancy-management`: **5,010B → 35,052B (7.0x)**, 10 file_examples, both
+  files written, stands.
+
+## DEFECT CAUGHT AGAIN — `business_operations.organisational-records`
+
+Same signature as `risk-register`, same detection: only `.research.md` modified, `.json` untouched.
+The memo (50,583B, `refuse_node: true` correctly preserved) claims under **Added** that it wrote
+the two-role closure *"into the JSON as a `recognition.never_alone` entry and a new clause in
+`refuse_reason`."* Verified absent: `never_alone` has 5 entries, none mentioning two-role, and
+`refuse_reason` contains no such clause.
+
+**Not committed.** Held for reconciliation.
+
+**The check earns its place.** This is the second occurrence in ~14 rows, so the defect class is not
+a one-off — it is what a usage-limit kill looks like when it lands between the two writes, and the
+memo is always the file that survives. Every future row must be checked this way; a complete-looking
+memo is not evidence the row is complete.
+
+Note: the memo's substance is otherwise excellent — 33 references closing the two-role escape route
+with a stated pincer (two-role present, a sibling owns it; two-role absent, never-alone strikes it)
+and a deletion-test closure. Only the JSON write is missing.
+
+## DEFECT RESOLVED — `organisational-records` reconciled, and the escape route is now in the data
+
+- `refuse_node` still **true**. `never_alone` **5 → 6**, the new entry carrying the two-role closure;
+  a matching clause added to `refuse_reason`. Both verified present programmatically.
+- **All four load-bearing sentences preserved verbatim** — *constitutionally never-alone* · *a row
+  that never fires* · *a residual wearing a domain's clothes* · *inventing a node to save an id* —
+  which matters because a dozen neighbour files quote them as text.
+- **Why this repair mattered more than the last one:** the closure now lives in the JSON, so a
+  future reader holding only the data cannot use `patient-chart`'s two-role argument to resurrect
+  this row. Left in prose, the strongest argument in the catalogue would have been defeatable by
+  the second-strongest simply because nobody read 50KB.
+- Repair-order rule adopted: on a reconciliation, **write the JSON first** — it is the file a
+  limit-kill loses, and the memo is the file that survives.
+
+## Debt clearing 38/64 complete. Standing: 188/358 landed, 26 debt rows left.

@@ -4,7 +4,7 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Customer success and account management",
-  "one_line": "Managing an EXISTING named customer relationship after the sale: account plans, business reviews, onboarding and adoption tracking, health and usage records, escalation summaries, and renewal or expansion preparation. The anchor is one CUSTOMER as an ongoing relationship — a named third party whose own material accumulates on the holder's machine — which is what separates it from winning the deal, from running the contract, and from answering a support ticket. Absorbs the legacy row ops.customer-success. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "Managing an EXISTING named customer relationship after the sale: account plans, business reviews, onboarding and adoption tracking, health and usage records, escalation summaries, and renewal or expansion preparation. The anchor is one CUSTOMER as an ongoing relationship — a named third party whose own material accumulates on the holder's machine — which is what separates it from winning the deal, from running the contract, and from answering a support ticket. Absorbs the legacy row ops.customer-success. Placeholder row (J-IND, deepened to J-DEPTH): it recognises the situation and writes NO field rows, because the business_operations schema declares none. The row is kept on STRUCTURE and on PRIVACY POSTURE, never on the counterparty's role — role is a field value, as `partnerships-bd` settled for all three counterparty rows.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -22,7 +22,9 @@
       "an escalation structure: a chronological account of an issue with a named customer, an impact statement, a remediation commitment and an executive sponsor — distinct from a support ticket by being narrative and relationship-level.",
       "a renewal-preparation structure: a per-customer sheet combining a contract end date, a current value, a proposed value, a risk assessment and an internal recommendation. This is the structure that overlaps the contract register and it is discriminated by the presence of internal commentary and a proposal.",
       "an email or calendar item whose labelled slots name one customer organisation and a recurring review cadence, with attendee slots resolving to two different organisations' domains. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” The CONTENT is what fires; source_type contributes only as a file-kind signal.",
-      "parent-folder context naming a customer organisation, treated as a clue once one of the structures above is present. Folder context never fires alone."
+      "parent-folder context naming a customer organisation, treated as a clue once one of the structures above is present. Folder context never fires alone.",
+      "an INBOUND third-party structure: a document whose letterhead, template furniture and subject matter are all the counterparty's own affairs — their strategy pack, their org chart, their internal policy — held next to one of the structures above. This is the row's most characteristic and least obvious member, and it is exactly the material the holder cannot consent on behalf of. It is never-alone by construction: the counterparty's letterhead is an organisation name, so it fires only in the presence of an account, review, adoption or renewal structure.",
+      "a reference or advocacy structure: a named customer's case-study draft, logo-use or quotation approval, or a signed reference consent, carrying an approver on the CUSTOMER's side. The approval slot is what separates it from marketing collateral, which is `go-to-market`'s."
     ],
     "needs_llm": [
       "PRECONDITION: this world is commercially confidential and often confidential to a THIRD party, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
@@ -35,6 +37,7 @@
     ],
     "never_alone": [
       "a customer or company name alone — the sharpest instance of 00's own warning in this family, because in this row the same name is on the holder's employer's letterhead, on the customer's shared material, on a competitor mention and on a cited reference in one folder.",
+      "a ROLE WORD alone — customer, client, account, supplier, partner, prospect. This is stated here because `business_operations.partnerships-bd` settled the three-row counterparty question for this row too, and its settlement is accepted verbatim in substance: role is answered with a FIELD, not a branch. “The system must separate roles that happen to contain the same entity type.” This row therefore rests on structure and on privacy posture, never on the fact that the money flows inward.",
       "account vocabulary alone — account, renewal, adoption, health, stakeholder, QBR, success. Sales training material, saved vendor thought-leadership PDFs and job descriptions are dense in it, and that is the tempting false file for this row.",
       "a periodic deck shape alone. A quarterly deck is the shape of a board pack, a project status report, an internal review and a customer review equally.",
       "a contacts export or a list of names alone. 00 is explicit that such data “should normally be privacy-protected rather than used to create folder proposals” — a contact list is not an account record and must not become a folder.",
@@ -42,7 +45,8 @@
       "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
       "membership in a download session that emptied a document-management system or a mail thread's attachments at once. “A session should never be treated as proof of topic”",
       "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — a corporate template stamps the same entity on every blank form it ever generated.",
-      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version."
+      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version.",
+      "the DIRECTION of an addressee alone — that a document is addressed outward to another organisation. A vendor scorecard, a customer review deck, a partner plan and a regulator submission are all addressed outward, and three of them are other rows'."
     ]
   },
   "proposed_context_terms": [
@@ -376,9 +380,39 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Meridian - supplier scorecard 2026 H1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one counterparty named in the header",
+        "SLA and KPI columns with a period and a rating",
+        "a relationship-owner column",
+        "a remediation-actions column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of THIS row — the collision fixture in the must-not-be-lost direction: the ratings are OF the counterparty, which makes it `business_operations.vendor-management`'s. This row's near-identical artifact is a review deck in which the holder is the party being rated.",
+        "the direction of assurance from the counterparty name, the period, or the word `scorecard` alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
     }
   ],
   "collides_with": [
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "The mirror row, and the one this row is most often accused of duplicating. Reciprocated in that row's own terms — it keeps a supplier “set up, safe to deal with, and honest”. The discriminating evidence is the DIRECTION OF ASSURANCE, not the direction of money: an onboarding form with a remittance block, a diligence questionnaire, an insurance certificate and a scorecard are evidence the counterparty owes the holder, and they judge the counterparty; an account plan, an adoption record, a business review and a renewal recommendation are evidence the HOLDER produces about its OWN performance, to be judged by the counterparty. The privacy hazards differ with them: a bank-change instruction is a fraud vector (that row's NJ-BO-VM-4), a stakeholder map with sentiment markers is unconsented commentary on named third parties (this row's). Same bytes both rows must name: a scorecard-shaped spreadsheet naming one counterparty, SLA columns and a rating — that row's, unless the ratings are of the holder. Provenance: inference.",
+      "provenance": "inference"
+    },
     {
       "domain": "business_operations.support-operations",
       "signal": "An escalation summary and a major-incident record are the same event written twice. The discriminating evidence: a ticket identifier, a queue, a priority and a resolution code support support-operations; a relationship narrative with an executive sponsor, an account owner and a commercial consequence supports this row. Provenance: inference.",
@@ -446,5 +480,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "This row is the clearest case in the family where the exposed party is NOT the user. Its characteristic artifacts — a stakeholder map, a contacts export, a usage record with named end users, a customer's own confidential strategy document — are third parties' personal data and third parties' commercial secrets held on the holder's machine, and none of those parties can consent to what the product does with them. 00 names several of the categories in its corpus sentence — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” — and states the contacts rule outright: such data “should normally be privacy-protected rather than used to create folder proposals”. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
-  "open_question": "Two. (1) The CUSTOMER role has no canonical key, and this row is where the gap shows. 00's role_split pair is `our_firm` / `client`, which is the professional-services reading; a subscription customer is a related but distinct role, and a supplier is a third. This row deliberately mints nothing — whether `client` should simply widen to cover it, or whether a role_split sibling is needed, is R1c's call and it interacts with the same hole on business_operations.contract-administration. (2) Whether a CUSTOMER-named folder is acceptable in v1. It is how people in this role really file, and it discloses the relationship, the commercial state and by aggregation the holder's whole book. The provisional posture here is a user-approved customer level with no automatic depth, and it is Joseph's call."
+  "open_question": "Two. (1) The CUSTOMER role has no canonical key, and this row is where the gap shows. 00's role_split pair is `our_firm` / `client`, which is the professional-services reading; a subscription customer is a related but distinct role, and a supplier is a third. This row deliberately mints nothing — whether `client` should simply widen to cover it, or whether a role_split sibling is needed, is R1c's call and it interacts with the same hole on business_operations.contract-administration. (2) Whether a CUSTOMER-named folder is acceptable in v1. It is how people in this role really file, and it discloses the relationship, the commercial state and by aggregation the holder's whole book. The provisional posture here is a user-approved customer level with no automatic depth, and it is Joseph's call. (3) Reciprocal tension with `business_operations.support-operations`, surfaced rather than smoothed: that row's `template.why` REFUSES a per-customer dimension outright, on 00's collector prohibition, for a continuous queue of third-party interactions. This row's prose recommendation keeps a user-approved customer level for a bounded relationship file. Both cannot be defaults of one family without a stated rule. This row does not overrule that row; the proposed distinction — a queue export may never acquire a per-counterparty branch, a bounded relationship file may, once the user approves it — is offered to R1c, not asserted."
 }

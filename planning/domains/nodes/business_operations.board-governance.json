@@ -376,6 +376,31 @@
       "also_schema": null,
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Unanimous Board Consent - Equity Grants and FMV Approval.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a heading identifying the board of a named company and a unanimous written consent",
+        "resolutions approving a common-stock fair market value and individual option grants",
+        "completed director signature blocks",
+        "an attached schedule listing grantees, grant types, quantities and plan references"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: these are the same bytes the landed finance.cap-table-equity row names as its own fixture, and the equity-grant and FMV resolutions are the specific evidence while the board heading and signatures are the generic evidence. This is the row's second collision fixture and it runs in the opposite direction to the template fixture - a real file that must not be LOST to this row",
+        "that the absence of an agenda or attendance makes it non-equity material; a written resolution has neither by construction",
+        "any business_operations fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
     }
   ],
   "collides_with": [
@@ -397,6 +422,11 @@
     {
       "domain": "government.public-authority-record",
       "signal": "Council, agency and school-board meetings publish notices, agendas and minutes in the same shape, and often publicly. The discriminating evidence is which side the holder is on: a statutory power, a public-notice obligation, or a published-agenda framing supports the authority row; a private body's own confidential pack supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "Board consent to a share issuance, an option grant or a fair market value sits exactly on this seam, and the SAME BYTES are already a fixture on the landed cap-table launch row: \"Unanimous Board Consent - Equity Grants and FMV Approval.pdf\". Every structural signal this row owns fires on it - a named body, a written resolution passed without a meeting, completed director signature blocks - and this row still must not take it. The discriminating evidence, in this direction: equity content is the specific evidence and governance shape is the generic evidence, so where a capitalization ledger, a share or grant structure, an issuance resolution, or a valuation structure is present, the finance safety schema wins; that row's own rule already forbids “Finance activation from the board heading, signatures, or company name alone”. In the other direction: a written resolution of the same body that appoints a director, adopts terms of reference, approves a policy or notes a management account has no equity content at all, and cap-table-equity must not take it on a board heading and director signatures, which its own never_alone entry already refuses - “a signature block, board heading, governing-law clause, or e-signature envelope alone. These are generic legal-document structures”. The board heading is never-alone on BOTH sides, and that agreement is what makes the seam safe. The edge is currently ONE-WAY: the landed row does not name this row, which is an instance of the schema row's NJ-BO-4 and is recorded rather than fixed, because this row may not edit a landed launch row. Provenance: inference.",
       "provenance": "inference"
     },
     {
@@ -441,5 +471,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Board and committee material concentrates, in one document, several categories 00 names in its corpus sentence — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” — because a routine pack carries a remuneration appendix (employment materials), a finance appendix (account statements), and a legal memo (legal records) behind one cover page. Second, and as inference rather than a design claim: much of it is confidential to people who are not the user — named directors, named employees, a counterparty in a transaction that has not been announced — so the exposed party cannot consent to what the product does. That argues for the cautious setting. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank or infer a P7 handling class.",
-  "open_question": "Whether a constituted BODY is an acceptable branch anchor in v1. It is the level a company secretary actually files by, and unlike an entity name it is not a vanity collector — but a folder named for a remuneration or audit committee discloses, in the filesystem namespace, that the material exists and what it concerns. This row's provisional posture is a shallow, user-approved body level with no automatic internal depth. It is Joseph's call and it does not depend on whether business_operations ever gets field rows. Carries the schema row's open questions by inheritance, in particular the `fiscal_period` proposal, which this row's annual cycle wants."
+  "open_question": "NJ-BO-GOV-1 (renumbered this pass from NJ-BO-4, which the deepened schema row now uses for the missing reciprocal edges): whether a constituted BODY is an acceptable branch anchor in v1. It is the level a company secretary actually files by, and unlike a bare entity name it is not the vanity collector 00's template validator rejects - but a folder named for a remuneration or audit committee discloses, in the filesystem namespace, that the material exists and what it concerns, which no field-level privacy rule can undo. Alternatives: a shallow user-approved body level with no automatic internal depth (this row's provisional posture, cheap and reversible, still discloses); no body level with function first (safe, but scatters one committee's year across four function folders); or a body level under a user-chosen neutral label (preserves the shape, removes the disclosure, but nothing in the catalogue owns the mapping). It is Joseph's call and it does not depend on whether business_operations ever gets field rows. NJ-BO-GOV-2 (new this pass): the constituted-but-non-resolving body - an executive committee with terms of reference that passes no resolutions - sits exactly on the business_operations.meeting-record seam, constitution present and standing absent. This row's provisional answer is abstain to Review Later; it cannot be settled unilaterally because that sibling is being deepened in parallel and this row may not edit it. R1c must land one answer on both rows at once. This row also carries the schema row's open questions by inheritance, in particular the fiscal_period proposal, which this row's annual governance cycle wants and which it SECONDS rather than minting a variant of."
 }

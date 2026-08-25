@@ -4,14 +4,33 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Customer support and service desk operations",
-  "one_line": "The organizational situation of RUNNING SUPPORT for the people who use a product or service: the case and ticket record itself, the queue and service-level reporting built from it, the knowledge-base and macro content that answers repeat questions, and the escalation, on-call and runbook procedures that route the hard ones. The organizing anchor is the SUPPORT FUNCTION AS A CONTINUOUS QUEUE - a stream of individually small third-party interactions - which is what separates it from managing one named customer relationship and from the bounded efforts the rest of this family holds. Absorbs the legacy rows ops.support-operations (ROW) and soft.helpdesk-ticket (FOLD) - an internal IT service desk and an external customer support desk are one situation with two audiences. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "The organizational situation of RUNNING SUPPORT for the people who use a product or service: the case and ticket record itself, the queue and service-level reporting built from it, the knowledge-base and macro content that answers repeat questions, and the escalation, on-call and runbook procedures that route the hard ones. The organizing anchor is the SUPPORT FUNCTION AS A CONTINUOUS QUEUE - a stream of individually small third-party interactions - which is what separates it from managing one named customer relationship and from the bounded efforts the rest of this family holds. Absorbs the legacy rows ops.support-operations (ROW) and soft.helpdesk-ticket (FOLD) - an internal IT service desk and an external customer support desk are one situation with two audiences. Placeholder launch: it recognizes the situation and writes NO field rows, because the business_operations schema declares none (PR-6; D1's deferral stands). Researched to J-DEPTH: the node test is argued leg by leg against the family's stated default template, and the FORMAT charge - that a ticket, a chat log and a mail thread are containers rather than a situation - is answered head-on rather than assumed away.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
   "refuse_node": false,
   "refuse_reason": null,
   "fields": [],
-  "proposed_fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the entity whose desk this is - one company among the two a person keeps books for, or the internal IT function inside it",
+      "why_no_existing_key": "SECONDED, NOT MINTED. This row proposes no key of its own and adopts the one already proposed by the landed business_operations schema row, to be adjudicated once, there. The row-specific argument for it: this template folds an INTERNAL service desk (soft.helpdesk-ticket) and an EXTERNAL customer desk (ops.support-operations) into one situation, and `organization` is the only proposed key that can carry which desk a file came from without naming a requester. The row-specific argument AGAINST it, stated because it is real: in a single-entity corpus the value is constant and the level is one of 00's two validator failures outright, so this row seconds the key on the schema row's own condition that it stay a template-time check rather than an automatic level. Provenance: proposal, seconding an existing proposal.",
+      "destination_eligible": false,
+      "reliability_ceiling": "possible",
+      "provenance": "proposal"
+    },
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "example": "Q2 FY26 on an SLA report; but far more often 2026-05, a calendar month",
+      "why_no_existing_key": "SECONDED WITH A STATED RESERVATION. The schema row's argument holds - no canonical key carries a management calendar, and `tax_year` would quietly assert a statutory meaning this material does not have. The reservation is this row's alone and R1c should weigh it: a support desk reports on an OPERATIONAL period - a week, a month, a rolling thirty days - far more often than on a fiscal one, and the recurring artifact here is `tickets_export_2026-05.csv`, not an FY-labelled deck. If `fiscal_period` lands as a strictly fiscal key, this row will need a period concept it does not have; it does NOT mint one here, because a monthly-operational variant would be exactly the synonym the contract forbids. Provenance: proposal, seconding an existing proposal with a scope doubt attached.",
+      "destination_eligible": true,
+      "reliability_ceiling": "possible",
+      "provenance": "proposal"
+    }
+  ],
   "recognition": {
     "deterministic": [
       "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands), and this row's exports are dense in third-party personal data, so the precondition is load-bearing here. “Privacy policy must be enforced before content reaches any model or external connector.”",
@@ -39,7 +58,9 @@
       "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
       "a bare 4-digit number read as a year, a ticket number, or a priority.",
       "a screenshot alone, and the absence of camera EXIF is not proof that an image is a screenshot - support corpora are full of customer-supplied screenshots, and neither their presence nor their metadata establishes this domain.",
-      "membership in a download session that dropped a support export at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+      "membership in a download session that dropped a support export at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "a chat transcript, a call recording, a saved mail thread or a screen-share file taken as evidence OF THIS ROW because a support desk produced it. Each of those is a container and a SOURCE_TYPE, and the roster triage already dropped eighteen legacy ids that were nothing but such containers. This row activates on the QUEUE STRUCTURE and on the four authored structures below it - the service-level report, the knowledge article, the escalation matrix, the satisfaction export - never on the transport a message arrived in. 00 is explicit that the container is a routing decision, not a meaning: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a recurring name - one agent, one queue owner, one company - appearing across many files, taken as the thing that binds them. A support corpus is the worst case in this family for exactly this, because two or three agent names sign thousands of records. 00 names it as a stop rule: the system “should not form a supported group when there is no valid anchor, when the graph is connected only by embeddings, when one high-frequency entity acts as the only bridge”."
     ]
   },
   "proposed_context_terms": [
@@ -271,6 +292,30 @@
       "falls_through_if_inactive": "Protected Records"
     },
     {
+      "filename": "chat_transcript_2026-05-14_1409.txt",
+      "source_type": "text_document",
+      "observations": [
+        "a plain-text sequence of alternating speaker turns with clock times and first names only",
+        "no case identifier, no status, no priority, no queue and no agent field",
+        "a machine-generated filename carrying a date and a time and nothing else",
+        "opens mid-conversation and ends without a resolution note"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row. THIS IS THE FORMAT FIXTURE, and it points the opposite way to matters_open_2026.xlsx: that file has this row's structure and belongs to a neighbour, while this file was genuinely produced by a support desk and still must not fire the row, because everything it carries is a CONTAINER - a transcript - and containers are SOURCE_TYPES rather than domains",
+        "that a support desk having produced a file makes the file this row's evidence",
+        "a case fact from a neighbouring thread that happens to share the date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
       "filename": "On-call rota and escalation matrix.docx",
       "source_type": "text_document",
       "observations": [
@@ -346,7 +391,7 @@
   "collides_with": [
     {
       "domain": "business_operations.customer-account-management",
-      "signal": "Both rows hold material about the same named customers and often the same export tooling. The discriminating evidence: a stream of individually small cases with agents, priorities and resolution times supports this row; an account plan, a business review deck, an adoption summary and a renewal preparation anchored on ONE named account supports account management. Provenance: inference.",
+      "signal": "Both rows hold material about the same named customers and often the same export tooling. The discriminating evidence: a stream of individually small cases with agents, priorities and resolution times supports this row; an account plan, a business review deck, an adoption summary and a renewal preparation anchored on ONE named account supports account management. Provenance: inference. RECIPROCATED, and confirmed from the other side: that row's deepened file rejects a support ticket export from its own examples and says why - it holds it \"as a `collides_with` against `support-operations` instead\" because \"That row's own file refuses a per-customer dimension for exactly this material\". The contested bytes both rows now name are the SAME: an outage record, which is a major-incident ticket here and an escalation summary there. The one open disagreement is stated on both sides rather than smoothed: this row forbids a per-counterparty level outright for bulk queue exports, that row wants one user-approved for a bounded relationship file, and it has recorded the clash as NJ-BO-CAM-4. This row does not overrule it and accepts that formulation of the difference.",
       "provenance": "inference"
     },
     {

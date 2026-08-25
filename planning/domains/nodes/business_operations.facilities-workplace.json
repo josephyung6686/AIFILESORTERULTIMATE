@@ -4,14 +4,35 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Facilities and workplace management",
-  "one_line": "The physical workplace as an administered thing: premises and space records, floor plans and desk allocation, planned and reactive maintenance, access control and keys, workplace services and their suppliers, moves and fit-outs, and the statutory site checks that keep a place lawfully occupiable. The anchor is a SITE and its running record — the occupier's operational view of a building — which is what separates it from owning, letting, or constructing that building. Absorbs the legacy row ops.facilities-workplace. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "The physical workplace as an administered thing: premises and space records, floor plans and desk allocation, planned and reactive maintenance, access control and keys, workplace services and their suppliers, moves and fit-outs, and the statutory site checks that keep a place lawfully occupiable. The anchor is a SITE and its running record — the occupier's operational view of a building — which is what separates it from owning, letting, or constructing that building. Absorbs the legacy row ops.facilities-workplace. The discriminator against that family is the one its own landed anchor states: this row is OCCUPATION of the holder's own premises with no instruction around it, where construction_property is INSTRUCTED work about a property that is not necessarily the instructed party's. Placeholder row: it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
   "refuse_node": false,
   "refuse_reason": null,
   "fields": [],
-  "proposed_fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the entity or internal unit whose premises this site record concerns",
+      "why_no_existing_key": "SECONDING, NOT MINTING. This row proposes no key of its own. It seconds the `organization` proposal already carried by the landed `business_operations` schema row — the same key `construction_property` seconds with the instruction that it “should be adjudicated once, there, for both”, and that `business_operations.it-asset-inventory` seconds a third time. R1c must count this as a fourth signature on ONE decision, never as a competing proposal. The fact this row would need is CUSTODY of the occupation — whose workplace this is — and `our_firm` (authorship), `client` (counterparty), `institution` (the finance-side holder), `school`, `lab` and `venue` all name other roles.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Seconded as FALSE, and this row has a site-specific reason of its own that the schema could not state: the level a facilities corpus actually wants above everything is the SITE, not the entity. A multi-site single-entity corpus gets one meaningless child from `organization` and loses nothing — both of 00's validator failures at once, “create meaningless one-child levels” and “use an author or organization merely as a collector”, plus “A folder should not become a collection point for everything produced by the same person or organization.” The user may still add it: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Seconded unchanged at `possible`, with one facilities-specific reason it cannot be raised: the entity name most reliably present on this row's files is the CONTRACTOR's or the certifying body's — the maintenance firm on a PPM export header, the assessor's practice on a fire risk assessment, the alarm company on a keyholder sheet — not the occupier's. A rule reading the strongest entity token would systematically name the supplier as the holder. Landlord letterheads on recharge paperwork make it worse, because that name is the neighbour family's party."
+    },
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "example": "the management period a maintenance programme, inspection cycle or occupancy review belongs to",
+      "why_no_existing_key": "SECONDING, NOT MINTING. Same key, same single adjudication as above; the schema row's argument — that an entity's management calendar is not a jurisdiction's `tax_year`, and that reusing `tax_year` would quietly assert it is — is adopted in substance. This row's own reason: a PPM programme year and an inspection cycle are periods of a maintenance calendar, and their boundaries are set by service intervals and certificate validity, which no statutory year governs. A five-yearly electrical condition report and an annual gas check share a site and share no period.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Seconded as TRUE and explicitly NOT FIRST. The reason is sharper here than on the schema: this row's natural top level is a site and its second is an asset, and a certificate is unintelligible above the asset it certifies — exactly 00's reason for putting a course above a homework number. Putting a year first would scatter one lift's examination history across calendar folders: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Seconded, but this row asks R1c for `possible` rather than the `validated` its siblings seconded, and says why rather than smoothing it: the date token most characteristic of this row's files is a NEXT-DUE date — a forward-looking obligation, not a period the document belongs to. A rule family that read a next-due date as a fiscal period would file a February 2026 certificate under 2027. Until that separation is demonstrated, this row cannot support the higher ceiling, and it records the divergence from its siblings deliberately."
+    }
+  ],
   "recognition": {
     "deterministic": [
       "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
@@ -81,11 +102,14 @@
     "RAMS",
     "contractor",
     "cleaning specification",
-    "service charge",
-    "dilapidations",
     "fit-out",
     "churn move",
-    "cutover"
+    "cutover",
+    "keyholder",
+    "door schedule",
+    "desk booking",
+    "next service due",
+    "condition report"
   ],
   "work_types": [
     "floor plan or space allocation schedule",
@@ -389,12 +413,12 @@
   "collides_with": [
     {
       "domain": "construction_property.tenancy-management",
-      "signal": "The load-bearing collision on this row. Occupier and landlord records name one address and share inspections, works and service records. The discriminating evidence is TENURE: a lease, a rent demand, a service-charge apportionment, a dilapidations schedule, or a tenant-management framing supports the property row; the occupier's own space plan, asset register, maintenance schedule and access records support this row. Provenance: inference.",
+      "signal": "The load-bearing collision on this row. Occupier and landlord records name one address and share inspections, works and service records. The discriminator is the one the neighbour family's own landed anchor states, and this row adopts it rather than the tenure handle drawn at gist depth: that family is INSTRUCTED work about a property, this row is OCCUPATION of the holder's own premises with no instruction around it. Tenure evidence — a lease, a rent demand, a service-charge apportionment, a dilapidations schedule, a tenant-management framing — remains the practical handle and supports the property row; the occupier's own space plan, asset register, maintenance schedule and access records support this row. The address discriminates nothing and is never-alone on both sides. Provenance: inference, reciprocated by construction_property.research.md.",
       "provenance": "inference"
     },
     {
       "domain": "construction_property.commercial-lease",
-      "signal": "The instrument version of the same confusion. A lease is the property family's; the occupier's obligations extracted FROM it into a maintenance and inspection calendar are this row's. Provenance: inference.",
+      "signal": "The instrument version of the same confusion, and the neighbour names it as the collision most likely to fire on a real corpus because most holders of these files are the tenant. Reciprocated in the neighbour's own words: the question is whether a document MANAGES THE LEASE (review, break, licence, dilapidations, recharge — that row) or MANAGES THE WORKPLACE (desk allocation, access passes, cleaning rotas, moves, the maintenance calendar — this row). Settled between the two rows: an occupier's maintenance and inspection calendar built OUT OF a lease is this row's, because derivation is not ownership. Provenance: inference.",
       "provenance": "inference"
     },
     {
@@ -430,6 +454,16 @@
     {
       "domain": "finance.household-property",
       "signal": "For a home-based holder the same boiler certificate, alarm record and floor plan are household material. The discriminating evidence is whether the record concerns a workplace occupied by an organisation or a dwelling occupied by a household, and for a home office it is genuinely undecidable — abstention is the correct outcome: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.” Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "The landed legal row holds the executed instrument itself — party recitals, covenants, consideration, execution block — and legal is a safety domain that protects first, which is why this row's own lease fixture carries also_schema “legal” and a Protected Records fall-through. This row must never take an instrument because it names the premises it manages; that row must never take a PPM schedule or an access register because a lease obliges the occupier to keep them. Shared fixture: `Commercial lease - Fleet House - executed.pdf`, which is legal's and construction_property's and is listed here only as the file that must NOT fire this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-health-safety",
+      "signal": "Both worlds hold method statements, permits to work and contractor risk assessments, and a contractor attending an office produces byte-identical paperwork to one attending a site. The discriminator is instruction again: that row is the safety record OF A JOB under a principal contractor or designer, with CDM apparatus — construction phase plan, F10, principal-designer appointment — around it; this row is the occupier's standing regime for premises it runs, with no project around it. The gist pass deliberately left this unedged on the grounds that hr.workplace-health-safety already carried a who-is-at-risk discriminator; that was a different discriminator answering a different question, and the edge is added here. Provenance: inference.",
       "provenance": "inference"
     }
   ],
@@ -474,5 +508,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Most of this row is dull and a small, identifiable part of it is not. Access card registers, keyholder lists and alarm codes are authentication material — 00 requires exactly that class to be protected at once: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” — and its corpus sentence names both credentials and GPS metadata among what the corpus holds: “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”, which reaches this row through site photographs. Site incident and access records also name individuals, including contractors and visitors who are not the user. Because the sensitive members are indistinguishable from the dull ones by filename, the cautious setting is the honest one for the row as a whole. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
-  "open_question": "Two. (1) The occupier-versus-owner boundary with the construction_property family is drawn here on TENURE, and it is defensible but was drawn by this pass: an owner-occupier holds both sets of records for one address and the split then produces two rows for one folder. R1c should confirm the tenure discriminator or replace it. (2) The workplace-versus-household boundary is genuinely undecidable for a home-based holder, and it is not an edge case in a personal-file product — it may be the majority case. This row's provisional posture is abstention rather than a guess from the address, and whether that is acceptable, or whether a home-office situation deserves its own recognition, is Joseph's call."
+  "open_question": "Two, and the first is now much narrower than the gist pass left it. (1) The occupier-versus-owner boundary with the construction_property family was drawn at gist depth on TENURE, by this row alone. That family has since landed at full depth and states the seam itself as INSTRUCTION, ceding “an organisation's occupation of its own premises as part of running itself” to this row explicitly; this pass adopts the neighbour's discriminator and demotes tenure to the practical handle, so the boundary is now reciprocal rather than unilateral. What remains open is the residue the instruction test does not reach: an OWNER-OCCUPIER, who is uninstructed on both sides and holds both sets of records for one address, and for whom the split still produces two rows for one folder. R1c should say whether that case abstains or co-activates. (2) The workplace-versus-household boundary is genuinely undecidable for a home-based holder, and it is not an edge case in a personal-file product — it may be the majority case. This row's provisional posture is abstention rather than a guess from the address, and whether that is acceptable, or whether a home-office situation deserves its own recognition, is Joseph's call."
 }

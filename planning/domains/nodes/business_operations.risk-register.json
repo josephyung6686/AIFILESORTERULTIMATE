@@ -11,7 +11,28 @@
   "refuse_node": false,
   "refuse_reason": null,
   "fields": [],
-  "proposed_fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the entity or internal unit whose standing register and continuity plans these are",
+      "why_no_existing_key": "SECONDING, NOT MINTING. This row proposes no key of its own. It seconds the `organization` proposal already carried by the landed `business_operations` schema row - the key `construction_property` seconds and `business_operations.it-asset-inventory` seconds a third time. R1c should read this as ONE decision across several rows and must not count this as a fourth competing proposal. The fact a register needs is CUSTODY - whose register this is - and `our_firm` (authorship), `client` (counterparty), `institution`, `school`, `lab` and `venue` all name other roles.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Seconded as FALSE, with a reason specific to this row: a risk corpus is almost always single-entity, so an `organization` level here creates exactly the branch 00 forbids - “A folder should not become a collection point for everything produced by the same person or organization.” The user may still add it - “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Seconded unchanged at `possible`, with a register-specific reason it cannot rise: the entity names most reliably present on this row's files are the SUBJECTS of the risks - a named supplier, a named regulator, a named competitor, listed in the description column - not the owning entity. A rule that read the strongest entity token would systematically read a threat as the owner."
+    },
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "example": "the management period a register review, a business impact analysis or a continuity test belongs to",
+      "why_no_existing_key": "SECONDING, NOT MINTING. Same key, same single adjudication as above; the schema row's argument - an entity's management calendar is not a jurisdiction's `tax_year`, and reusing `tax_year` would quietly assert that it does - is adopted in substance. This row's own reason for wanting it: the review cadence (quarterly register review, annual continuity test) is a real period fact of a management calendar that no statutory year governs.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Seconded as TRUE and explicitly NOT FIRST, for the reason given in the memo's leg 2: the register is one artefact re-saved, so a period level above it scatters a single version family. 00: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Seconded at `possible`, with one caution for R1c that mirrors the one `it-asset-inventory` filed: the most common date token on this row's files is a NEXT-REVIEW date, which is prospective - it names a period the file is not from. A rule family that cannot separate a review-due date from a period-of-record belongs at `possible`, not `validated`."
+    }
+  ],
   "recognition": {
     "deterministic": [
       "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
@@ -37,7 +58,9 @@
       "an extension or a source_type alone. 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
       "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
       "a bare 4-digit number read as a year, a risk number, or a score.",
-      "membership in a download session that dropped a governance pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+      "membership in a download session that dropped a governance pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "a version token alone - v3, FINAL, Q2, a reissue date. Reissue is a UNIVERSAL property, not this row's: 00 lists “file type, creation date, language, duplicate family, version family, and sensitivity status” as the shared set every file may carry, so a row argued from revision behaviour is argued from something every file already has. This row's living-register property is used ONLY as a dimension-order argument, never as an activation signal.",
+      "a single scoring column alone, and never a score read as a threshold. A likelihood, an impact or a derived rating is a cell in SOMEONE ELSE'S scale; no number in this catalogue is a threshold, and two organisations' scales are not comparable. Activation rests on the PAIR - two graded columns beside a treatment and an owner - not on any one column: “A model that cannot cite sufficient evidence must return unknown.”"
     ]
   },
   "proposed_context_terms": [
@@ -326,6 +349,30 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "FMEA - pump assembly rev C.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns read failure mode, effect, severity, occurrence, detection, risk priority number, recommended action, owner",
+        "the risk priority number is a three-factor product rather than a likelihood-and-impact pair",
+        "the object scored in each row is a part or a process step",
+        "a design revision anchor - rev C - and a part number in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: every numeric risk signal fires and the scored object is a PART, not an organisational exposure - it belongs to engineering.risk-analysis-fmea",
+        "a risk priority number as a fact of the product's own, or a comparison of it against any other document's scale",
+        "an organisational risk fact from an engineering failure mode",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
     }
   ],
   "collides_with": [
@@ -363,9 +410,40 @@
       "domain": "finance.insurance-corporate",
       "signal": "An insurance renewal submission restates the organisation's risk profile and its continuity arrangements, in the insurer's vocabulary. The discriminating evidence: a policy number, a premium, a schedule of cover and an underwriter counterparty supports the insurance row; an internally owned register with treatments and review dates supports this row. Provenance: inference.",
       "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.support-operations",
+      "signal": "An on-call rota and an escalation matrix are genuinely filed by both service management and continuity, often as one document. The discriminating evidence: severity-to-response commitments for ROUTINE service, ticket and case anchors, and a rota run for service levels supports support operations; a recovery time objective, a critical-activity analysis and a continuity invocation or test supports this row. EDGE ADDED IN THIS PASS: that row already names this one and this row did not name it back, so the catalogue was asymmetric. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "A risk management policy or framework is the governing document ABOUT how risks are managed, not the register itself. The discriminating evidence: a controlled-document header - reference, version, approver, review owner - supports the handbook; a document whose working content is a register, however policy-shaped its cover page, supports this row. A framework is about how risks are managed; a register is the management itself. EDGE ADDED IN THIS PASS, adopting that row's own wording; it already names this one. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.strategy-plan",
+      "signal": "A board strategy pack carries a top-risks slide, and the same deck is genuinely contested. The discriminating evidence: the strategy narrative, objectives and options analysis supports the strategy row; a standing register with its own scope, appetite and review cadence supports this row - a risk appendix inside a strategy pack is a SNAPSHOT quoted into another artefact and has no standing scope of its own. Authored ONE-WAY here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.risk-analysis-fmea",
+      "signal": "An FMEA worksheet is more numerically risk-shaped than a corporate register and is not this row. The discriminating evidence: a PART or process step scored on severity × occurrence × detection into a risk priority number, against a design or process revision anchor, supports the engineering row; an ORGANISATIONAL exposure scored on likelihood × impact with a treatment and an internal owner supports this row. Authored ONE-WAY here for that row's author to write against; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.emergency-management",
+      "signal": "A public authority's flood or major-incident plan is structurally identical to a corporate continuity plan. The discriminating evidence: a statutory emergency duty, a public-body issuing authority and a plan addressed to the public supports the government row; a private organisation's continuity plan for its own operations supports this row. Note this is a different neighbour from `government.public-authority-record`, which was considered and deliberately left unedged because there the confusion is about the OWNER TYPE rather than about the document. Authored ONE-WAY here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
     }
   ],
-  "also_holds_with": [],
+  "also_holds_with": [
+    {
+      "domain": "business_operations.board-governance",
+      "why": "A committee risk paper carrying BOTH a committee footer and a register table holds two independent structures in one file, on genuinely disjoint evidence - neither is being mistaken for the other, which is 00's co-activation case rather than a collision. The `collides_with` entry is KEPT, because the narrative risk paper with no register table in it really is contested; this entry covers the disjoint case only. EDGE TYPE REVERSED IN THIS PASS from a pure collision. Authored ONE-WAY here; that row does not name this one and R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
   "falls_through_to": [
     {
       "residual_template": "Independent Records",

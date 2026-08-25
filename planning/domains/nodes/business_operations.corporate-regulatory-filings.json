@@ -4,14 +4,35 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Regulatory filings and returns",
-  "one_line": "Documents an entity (or a person acting for one) is REQUIRED to submit to an authority or registry, and the authority's responses: annual confirmations and returns, registry forms and change notifications, sector returns, beneficial-ownership and officer filings, submission receipts, acknowledgements, certificates, and penalty or reminder notices. The anchor is an OBLIGATION TO AN AUTHORITY with a deadline and a filing reference — a document whose existence is compelled from outside. Absorbs the legacy row corp.regulatory-filings. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "Documents an entity (or a person acting for one) is REQUIRED to submit to an authority or registry, and the authority's responses: annual confirmations and returns, registry forms and change notifications, sector returns, beneficial-ownership and officer filings, submission receipts, acknowledgements, certificates, and penalty or reminder notices. The anchor is an OBLIGATION TO AN AUTHORITY with a deadline and a filing reference — a document whose existence is compelled from outside. Absorbs the legacy row corp.regulatory-filings. Placeholder row researched to J-DEPTH: it recognises the situation and writes NO field rows, because the business_operations schema declares none (D1 as narrowed, PR-6).",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
   "refuse_node": false,
   "refuse_reason": null,
   "fields": [],
-  "proposed_fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the legal entity whose obligation the filing is - one of the two companies a person is a director of, whose confirmation statements sit in the same Downloads folder",
+      "why_no_existing_key": "SECONDING, NOT MINTING. `organization` is proposed by the landed business_operations SCHEMA row (and, by its own statement, jointly for construction_property, to be adjudicated once). This entry mints no variant and does not restate the schema row's argument. What it adds is that THIS row is the family's strongest case for the key, and the schema row's own conditional wording concedes it: the schema seeds `organization` ineligible because in a single-entity corpus it is a collector level naming the user's own employer. This row is the situation where that condition is routinely NOT met. A filing has an obligated entity by definition - the labelled entity-identifier slot is the row's primary detection structure - and one person filing for two entities is not an edge case here but the ordinary shape of the situation. R1c should weigh this row's vote ABOVE the family's average when deciding the key, and should note that if the key is refused, this row loses the only fact that separates two entities' returns from each other.",
+      "destination_eligible": false,
+      "destination_eligible_why": "As proposed on the schema row: seeded FALSE so the catalogue never proposes a vanity level, because “A folder should not become a collection point for everything produced by the same person or organization.” and the template validator prohibits templates that “use an author or organization merely as a collector”. This row records the dissent honestly rather than overriding it: where the corpus genuinely spans two obligated entities, this is the one situation in the family where the level is not a collector but the top separator, and the user may add it themselves - “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.” Widening the seed is a canonical-list decision for R1c, not this row's.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Unchanged from the schema row: an entity name is the multi-role token, and a `direct` reading needs a gazetteer-plus-context rule family that R4 owns and that does not exist yet. This row adds one narrowing that may matter to R1c: on THIS row the entity often appears in a LABELLED slot on a statutory form beside a registered number, which is a stronger reading than a name in prose. Whether a labelled registry-form slot licenses `direct` is a question for the extractor pass, not a claim made here; this row writes no regex."
+    },
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "example": "the period a return answers for - the 12 months a set of statutory accounts covers, or the quarter a sector return reports",
+      "why_no_existing_key": "SECONDING, WITH A WARNING. `fiscal_period` is proposed by the landed business_operations SCHEMA row, which names this row as one of four siblings that want it and none of which may have it; `compliance-audit` has already seconded it with an honest weakening. This row seconds it and adds a DIFFERENT warning, which R1c should not read as agreement with the other three. The periods on this row are not one thing. A statutory accounts period, a VAT quarter, a confirmation-statement AS-AT DATE and a registry event date are four different temporal objects, and only the first two are fiscal periods at all - a confirmation statement has no period, it has an instant. If `fiscal_period` lands as a single key, this row will be the one that most often has to abstain from writing it while still holding a date-shaped token, and that is the correct outcome rather than a gap. What this row will NOT do under any circumstance is write `tax_year`, which is already refused in its `must_not_conclude` on the confirmation-statement example.",
+      "destination_eligible": true,
+      "destination_eligible_why": "As proposed on the schema row, and explicitly NOT first here either, despite this being the most period-dense row in the family. “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A single filing occurrence - the prepared return, the receipt, the acknowledgement - is scattered by a year-first tree even though every member carries the same year. The schema anchor's rule that no sibling in this family may claim `time_first: true` is accepted here without exception; `template.time_first` is false.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Unchanged from the schema row's proposal: a fiscal-period token pattern co-occurring with a period-context term in the same labelled block, the pattern-plus-context rule SHAPE 00 uses for the academic course code. This row writes no regex and no term list; R2/R6 own those. Without that rule family the honest ceiling drops to `possible`, and on this row it drops further than on the others, because a bare 4-digit run here is equally a filing year, a company number fragment, a form version and a penalty case number."
+    }
+  ],
   "recognition": {
     "deterministic": [
       "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
@@ -366,6 +387,78 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Annual accounts YE 31-12-2025 - filed copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a signed balance sheet, profit-and-loss and notes",
+        "a directors' approval and signature block",
+        "a registry filing stamp and a submission reference on the cover page",
+        "an entity registered number in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row wins over finance: the accounts are the bookkeeping row's OUTPUT and this row's ATTACHMENT, and both anchors are genuinely present on the same bytes - the filing wrapper here, the trial balance behind it",
+        "any business_operations fact - the schema declares no field rows",
+        "a tax_year fact from the accounting period; an accounting reference date and a tax year are different objects",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Articles of association - adopted 2019.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered clauses, an adoption resolution reference and an execution block",
+        "the entity name and registered number on the cover",
+        "no submission reference, no deadline, no authority letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row on the constitution alone: an executed instrument with no submission apparatus is legal's material, and legal is a SAFETY schema whose ordering runs first",
+        "that a registry-stamped copy of the SAME document is the same case - the stamp and the change-of-articles form are what would bring it here",
+        "any business_operations fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "AA01 blank.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered statutory form with every value slot empty",
+        "an entity name typed into the header by a template, and a form number in the footer",
+        "no period, no signature, no submission reference, no acknowledgement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: an entity name plus a form number is the NEVER-ALONE pair the schema anchor generalises for all 24 siblings, and this file is that pair with nothing else. It is the row's own worst case and it must not fire",
+        "that a form number is a document-function fact; it is a value of a function dimension, not evidence of a filing",
+        "any business_operations fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
     }
   ],
   "collides_with": [
@@ -413,6 +506,26 @@
       "domain": "resource_operations.utility-metering-billing",
       "signal": "Sector regulated returns — generation, abstraction, emissions, metering — carry a period, an authority and a submission reference exactly as here. The discriminating evidence is a site, an asset, or a metered-quantity anchor, which supports the sector row. Provenance: inference.",
       "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "RECIPROCATING an edge that row already authored toward this one. A resolution is routinely the SOURCE document for a registry filing - appoint a director, minute it, file the form, keep the receipt - so the same names and dates exist in both situations. The discriminating evidence, stated the same way in both directions: a body's own signed resolution with a circulation block and no submission apparatus supports board-governance; a registry form, a submission reference, a statutory deadline, or an authority's acknowledgement supports this row. That row states the discriminator more sharply than this one had, and it is adopted verbatim in substance: the resolution's existence is compelled from INSIDE, by the body's own constitution, while this row's anchor is compelled from OUTSIDE. Both often sit in one folder and 00 settles that case rather than either row having to - “A file may validly belong to more than one accepted group”. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "Statutory accounts are the seam's hardest bytes: the same figures exist as the operation's working books (that row: journals, ledgers, reconciliations, financial statements) and as a filed return with a submission receipt (this row). The discriminating evidence: a filing wrapper - a registry or revenue letterhead, a submission reference, a statutory deadline, an authority's acknowledgement - supports this row; the underlying trial balance, ledger export, reconciliation, or accountant's working file supports the bookkeeping row, which is a SAFETY-schema row, so where they co-activate the protective ordering runs first and this row must not pull the material out from under it. Note the asymmetry both authors should hold: the accounts are bookkeeping's OUTPUT and this row's ATTACHMENT. Authored one-way from this side; that landed row does not name business_operations. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.building-control",
+      "signal": "Authored so the two families do not diverge on the same discriminator. That row's `Planning application` material and this row's `Planning application - 26-00412-FUL.pdf` fixture are THE SAME BYTES, and both rows reject them for the same reason: an application seeks a permission and is not a compelled periodic return. The discriminating evidence: an application reference with a proposal description, a site address and a validation date supports the building-control row (as the applicant's half) or `government` (as the authority's half); a periodic compelled return with no permission sought supports this row. This row does not extend that row's custody-and-role seam and does not contradict it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "An entity's CONSTITUTIONAL documents - articles of association, a memorandum, a partnership or shareholders' agreement - are executed instruments, which is that landed safety row's own subject, AND they are the documents a registry holds and re-issues on filing. The discriminating evidence: an execution block, signatures of the parties, and clause structure with no submission apparatus supports the legal row; the same constitution accompanied by a registry stamp, a submission reference, or a change-of-articles form supports this row. Because `legal` is a safety schema, where both fire the protective ordering runs first. Stated here because the landed `legal` rows are person-side and practice-side and NONE of them names a corporate constitution explicitly - this seam is asserted from one side into a gap, not against a written claim. Provenance: inference.",
+      "provenance": "inference"
     }
   ],
   "also_holds_with": [],
@@ -451,5 +564,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Two grounds. First, this row's forms routinely carry an identifiable individual's date of birth, residential or service address and personal tax reference — officer appointments and beneficial-ownership statements exist to record exactly that — and 00 names the class in its corpus sentence: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”, and requires the immediate transition for such material: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” Second, as inference: the fact that a registry PUBLISHES some of this does not make the holder's own copy safe to expose, because the copy sits beside drafts, workings and correspondence that were never published. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
-  "open_question": "Two. (1) NJ-J-IND-3 in its most literal form: a corporate tax return is simultaneously this row's compelled filing and the finance safety schema's custodial record, and the roster's split sends corp.regulatory-filings here while sending corporate accounting to finance. That boundary was drawn by the roster pass, not by 00, and this row cannot settle it. (2) This is the most jurisdiction-shaped row in the family. D4 is ratified — jurisdiction is a VALUE, never a field name and never a destination dimension — so the correct consequence is that R4's gazetteers and R5's one jurisdiction's values carry every authority and return name, and that this row deliberately names none. Whether the v1 gazetteer covers enough authorities for this row to fire at all is a P10 planning question, not this row's."
+  "open_question": "Four. (1) NJ-J-IND-3 in its most literal form: a corporate tax return, and equally a set of statutory accounts, is simultaneously this row's compelled filing and the finance safety schema's custodial record, and the roster's split sends corp.regulatory-filings here while sending corporate accounting to finance. That boundary was drawn by the roster pass, not by 00, and this row cannot settle it; the `Annual accounts YE 31-12-2025 - filed copy.pdf` example names the contested bytes. (2) This is the most jurisdiction-shaped row in the family. D4 is ratified - jurisdiction is a VALUE, never a field name and never a destination dimension - so the correct consequence is that R4's gazetteers and R5's one jurisdiction's values carry every authority and return name, and that this row deliberately names none. Whether the v1 gazetteer covers enough authorities for this row to fire at all is a P10 planning question, not this row's. (3) NJ-BO-4, answered from this side rather than left open. The refused branch root asks whether a home was meant for the corporate identity documents of an entity a person owns or administers. This row takes the FILED and the REGISTRY-ISSUED half of that pile - the incorporation certificate, the change-of-name certificate, the registry-stamped constitution - and explicitly declines the unfiled half: an adopted constitution with no submission apparatus reads as `legal`'s executed instrument, and a share register reads as `finance.cap-table-equity`'s. The pile is therefore genuinely split three ways by evidence rather than by accident, and this row's position is that the split is correct and no fourth row is needed. R1c may disagree; if it mints the narrow row, this row yields the registry-issued certificates to it and keeps only the returns and receipts. (4) The `government` schema is unwritten and this row's two edges into it are authored one-way. Where business_operations stops and government begins on this row is the same custody-and-role seam construction_property.building-control already wrote for its own material, and this row adopts it without extending it: the SUBMITTED return, the acknowledgement RECEIVED, and the notice ADDRESSED to the holder are this row's; the authority's own case file, its statutory powers, its register entry and its decision-making record are government's. The filing reference is on both copies and discriminates nothing. R1c owes the government reciprocals."
 }

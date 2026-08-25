@@ -4,7 +4,7 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Strategy, planning and investment cases",
-  "one_line": "The organizational situation of deciding and stating WHERE AN ORGANISATION OR UNIT IS GOING over a named horizon: the strategy paper and the analysis behind it, the annual or three-year plan that operationalises it, the objectives-and-key-results or goal set that makes it measurable, and the business case that argues one option should be funded rather than another. The organizing anchor is a PLANNING HORIZON plus the unit it belongs to, and the material is argumentative and forward-looking - it recommends, it does not schedule and it does not account. Absorbs the legacy rows ops.strategy-plan (ROW), ops.okr-goals (FOLD) and ops.business-case (FOLD) - goals and investment cases are how a strategy is stated and funded. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "The organizational situation of deciding and stating WHERE AN ORGANISATION OR UNIT IS GOING over a named horizon: the strategy paper and the analysis behind it, the annual or three-year plan that operationalises it, the objectives-and-key-results or goal set that makes it measurable, and the business case that argues one option should be funded rather than another. The organizing anchor is a DECIDED OPTION under an approval, held over a named horizon: the document's structural axis is the ARGUMENT - a baseline set beside alternatives, compared, resolved into one recommendation, and signed off - not the calendar. That is what separates it from business_operations.product-roadmap, whose axis is time itself (items placed in period cells, superseded each quarter), and from business_operations.product-requirements, whose axis is intended behaviour with acceptance criteria. Delete the dates from a strategy paper and the argument still reads; delete the periods from a roadmap and nothing is left. The material recommends - it does not schedule and it does not account. Absorbs the legacy rows ops.strategy-plan (ROW), ops.okr-goals (FOLD) and ops.business-case (FOLD) - goals and investment cases are how a strategy is stated and funded. Placeholder row (J-IND, deepened to J-DEPTH): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -20,7 +20,8 @@
       "an options-appraisal structure, which is the business case in its recognisable form: a do-nothing or baseline option set out beside two or more alternatives, each with costs, benefits and risks, followed by a single recommendation and an approval or decision slot.",
       "a strategic-analysis structure: a labelled four-quadrant grid (strengths, weaknesses, opportunities, threats), a five-forces or PESTLE heading set, or a scenario-planning layout naming two or more named futures.",
       "a benefits structure pairing quantified and non-quantified benefits with a realisation period and a benefit owner, distinct from a project's deliverable list because it names OUTCOMES rather than outputs.",
-      "an initiative or roadmap structure whose rows are themes and whose columns are horizons or years rather than weeks, with no task dependencies - the discriminator against a project schedule."
+      "an initiative or roadmap structure whose rows are themes and whose columns are horizons or years rather than weeks, with no task dependencies - the discriminator against a project schedule.",
+      "a DECISION axis rather than a period axis, which is this row's primary structural discriminator and is visible in the layout before any text is read: the document is organised BY OPTION or BY OBJECTIVE and resolves into a single recommendation with an approval or decision slot, whereas the roadmap sibling is organised BY PERIOD with items placed in period cells. The operational test: remove every date and the strategy argument survives intact; remove every period from a roadmap and the document is destroyed. A stated horizon on a strategy paper is a DATE ON the document, not the structure OF it."
     ],
     "needs_llm": [
       "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
@@ -38,7 +39,8 @@
       "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
       "a bare 4-digit number read as a plan year, a version, or a target.",
       "a financial model or a table of projected figures alone - that shape belongs at least as much to budgeting, and reading it as strategy would swallow the budget row whole.",
-      "membership in a download session that dropped a planning pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+      "membership in a download session that dropped a planning pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "a stated planning horizon alone, or a period axis alone. A horizon is the evidence business_operations.product-roadmap rests on, and altitude - company-wide rather than product-level - is a value of the unit, not a structural difference. Without an option comparison, an objectives-with-measures-and-owners set, or an approval slot, a horizon-bearing document is the roadmap's or nobody's."
     ]
   },
   "proposed_context_terms": [
@@ -271,7 +273,8 @@
         "a recommendation slide, an options slide and a risks slide",
         "a committee name, a paper number and a date in the footer",
         "a confidential marking on every slide",
-        "a corporate slide master"
+        "a corporate slide master",
+        "a top-risks slide listing five risks with owners but no likelihood or impact scoring and no review dates"
       ],
       "facts_legal": [
         "file_type",
@@ -282,7 +285,8 @@
       "must_not_conclude": [
         "which of this row and business_operations.board-governance owns it - a paper number and a committee footer are governance anchors and the content is a strategy argument",
         "a confidentiality marking as a P7 handling class; the marking is an observation, and the class is P7's to assign",
-        "a folder path"
+        "a folder path",
+        "activation of business_operations.risk-register from the top-risks slide - it is a snapshot quoted into an argument and has no standing scope of its own; that row names these same bytes and states the same discriminator"
       ],
       "also_schema": null,
       "group_without_copying_facts": true,
@@ -335,6 +339,30 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Corporate strategy 2030 - Rival plc.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a published strategy document carrying another organisation's name, branding and investor-relations footer",
+        "a vision statement, five strategic pillars and a set of medium-term targets",
+        "a forward-looking-statements disclaimer",
+        "downloaded in a session alongside two other companies' annual reports"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: every structural signal it names is present, and the document is somebody else's plan. This is the second direction of the collision - a file that must NOT be lost to this row - and the discriminator is CUSTODY, not shape: no approval route the holder is part of, no internal owner column, an external publication apparatus instead",
+        "an organisation fact used as a folder proposal, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+        "a topic association from the download session - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
     }
   ],
   "collides_with": [
@@ -377,6 +405,21 @@
       "domain": "research.grants-funding",
       "signal": "A case for support in a grant application is an options-and-benefits argument over a funding horizon, and reads as a business case with academic vocabulary. The discriminating evidence: a funder, a call reference, a protocol or a research question supports the grants row; an internal approval route and an operational benefits frame supports this row. Provenance: inference.",
       "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "A strategy pack carries a top-risks slide or a risk appendix, and the same slide is a snapshot quoted OUT of a standing register. Reciprocates that row's one-way edge, which names a board strategy deck with a top-risks slide as the contested bytes and states the discriminator as the absence of a standing scope. The discriminating evidence, stated in matching terms: a scored register with likelihood, impact, owner, mitigation and review-date columns maintained as a document in its own right supports the risk row; the same risks appearing as one summary slide inside an options-and-recommendation argument stay with this row, and the register they were quoted from is a separate file. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.product-requirements",
+      "signal": "A business case and a product requirements document both argue for building something and both open with a rationale. That row settled its own pair question on structural axis and named this row among the roadmap's neighbours rather than its own; this edge does not contradict it. The discriminating evidence: an out-of-scope section and acceptance criteria in given-when-then form - obligations about behaviour that can be PASSED - supports the requirements row; a baseline option, costed alternatives, a single recommendation and an approval slot - a choice that can be APPROVED - supports this row. Nothing in a strategy paper can be tested, and nothing in a specification can be approved-or-rejected as an option. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.go-to-market",
+      "signal": "A launch business case and a strategy document overlap at the investment decision, and the same pack often holds both. Reciprocates that row's existing edge and aligns with its wording: it takes one offering and one launch date; this row takes goals, horizons, an initiative portfolio and the funding argument. The discriminating evidence: a single named offering with a launch date, channel plan and readiness gate supports the go-to-market row; a baseline-and-alternatives comparison resolving into an approval, spanning the unit's activities rather than one offering, supports this row. Provenance: inference.",
+      "provenance": "inference"
     }
   ],
   "also_holds_with": [],
@@ -410,5 +453,5 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "Strategy material is the most commonly restricted class of ordinary business document: an unapproved plan states intentions - a closure, a disposal, a redundancy programme, an acquisition - before the people affected have been told, and a business case carries unannounced investment figures. That is not personal data in 00's enumerated sense, which is precisely why the marking must be justified rather than assumed: the reason it earns the value is that these files routinely carry a restriction marking and a restricted circulation list, and a strategy pack frequently contains members - a headcount appendix, a named-individual reorganisation chart - that ARE employment material within the corpus 00 describes, which “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”, and a branch named after an unannounced initiative is itself a disclosure - “Protected branches should have configurable redaction in the canvas and review screens”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class, and it treats a confidentiality marking on a page as an observation rather than as a class.",
-  "open_question": "Whether the OKR and goals material should have stayed folded into this row. The fold is right where objectives belong to the entity or a team, and wrong at the individual level, where the identical spreadsheet becomes a performance record governed by hr.performance-cycle - and the cascade means the same workbook often holds both, tab by tab. This pass kept the fold and stated the boundary reciprocally against hr.performance-cycle rather than resolving it, because the resolution decides whether someone's personal objectives can be filed under a corporate planning branch. A second question, raised and not settled: whether a strategy or annual report collected from ANOTHER organisation should activate this row at all. This pass says no and routes it to the Reading Inbox, on the ground that the row's anchor is custody of one's own plan, but the same file is genuinely competitor reference material for a market-research reading."
+  "open_question": "Whether the OKR and goals material should have stayed folded into this row. The fold is right where objectives belong to the entity or a team, and wrong at the individual level, where the identical spreadsheet becomes a performance record governed by hr.performance-cycle - and the cascade means the same workbook often holds both, tab by tab. This pass kept the fold and stated the boundary reciprocally against hr.performance-cycle rather than resolving it, because the resolution decides whether someone's personal objectives can be filed under a corporate planning branch. A second question, raised and not settled: whether a strategy or annual report collected from ANOTHER organisation should activate this row at all. This pass says no and routes it to the Reading Inbox, on the ground that the row's anchor is custody of one's own plan, but the same file is genuinely competitor reference material for a market-research reading. A third question was raised by the deepening pass and is SETTLED here rather than deferred: whether this row is merely business_operations.product-roadmap at a higher altitude. It is not - the two differ on structural axis (argument versus period), on expiry (an approved business case remains the permanent record of why money was committed; a roadmap is superseded quarterly) and on what their atoms are (choices under an approval versus positions in an order). Altitude is not a structural difference and is not relied on. This is consistent with, and does not contradict, the settlement reached on the requirements-versus-roadmap pair by business_operations.product-requirements, which used the same axis-and-expiry reasoning and listed this row among the roadmap's neighbours, not among its duplicates."
 }

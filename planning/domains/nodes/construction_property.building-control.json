@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Building control, planning and statutory inspection",
-  "one_line": "The public-authority side of building, held from the APPLICANT's side: the planning and building-regulations applications and the drawings and statements submitted with them, the acknowledgements and reference numbers, the decision notice and its numbered conditions, the discharge of those conditions, the inspection visits and their records, and the completion or final certificate that closes the file. The anchor is an APPLICATION REFERENCE issued by a named authority about a named site. Absorbs the legacy row cons.building-control. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "one_line": "The public-authority side of building, held from the APPLICANT's side: the planning and building-regulations applications and the drawings and statements submitted with them, the acknowledgements and reference numbers, the decision notice and its numbered conditions, the discharge of those conditions, the inspection visits and their records, and the completion or final certificate that closes the file. The anchor is a CASE, not a document: an APPLICATION REFERENCE issued by a named authority about a named site, running a lifecycle from validation through decision and condition-discharge to completion. A single authority document with no case sequence around it is NOT this row - it is the householder's own record or Independent Records. Absorbs the legacy row cons.building-control. Placeholder row: it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -30,7 +30,8 @@
       "an unlabelled letter from a council that could be a planning decision, a council-tax matter, an enforcement notice or a highways issue — all arrive on the same letterhead about the same address.",
       "a design and access, heritage or flood-risk statement, which reads as an essay and whose only application evidence may be a single reference line.",
       "distinguishing an ENFORCEMENT communication from an ordinary decision, which changes the sensitivity posture and may make the protected legal side co-activate.",
-      "deciding whether the holder is the applicant, the agent, the objecting neighbour or the authority — the same letter reaches all four."
+      "deciding whether the holder is the applicant, the agent, the objecting neighbour or the authority — the same letter reaches all four.",
+      "deciding whether an authority document sits inside a live CASE or stands alone. This is the narrowing this row accepted on deepening: a decision notice with an acknowledgement, a condition-discharge exchange and an inspection sequence around it is this row; the same notice alone in a householder's folder is not, and “The graph does not automatically copy those missing facts onto sparse files”."
     ],
     "never_alone": [
       "an authority or council name alone. It is 00's multi-role token read across to a public body: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” A council appears as a planning authority, a landlord, a client, a tax collector, an employer and a service provider, frequently to the same person.",
@@ -39,7 +40,9 @@
       "a document-type word alone (certificate, drawing, schedule, survey, valuation, report, plan, lease). Each is a work_type VALUE that appears in several worlds; the landed finance.household-property row carries title, inspection, warranty and completion certificate as its own work types. 'Certificate', 'notice', 'approval' and 'inspection' are the four most overloaded words in this family and all four appear on the refused compliance-certificate coverage as well.",
       "a bare 4-digit number alone — 00 warns that file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. Here they are also plot, drawing, valuation and unit numbers.",
       "a source_type or extension alone. 00 requires that the engine “treat the file extension as a routing signal rather than an assumption about meaning”, and “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”",
-      "a download session alone. “A session should never be treated as proof of topic”"
+      "a download session alone. “A session should never be treated as proof of topic”",
+      "an authority EMAIL DOMAIN alone, and this is the never-alone the portal era makes most tempting. 00 requires the opposite: rules should “suppress generic hubs such as a personal email address or broad university domain”. A council or approved-inspector domain is exactly such a hub - it carries tax, refuse, housing, highways, licensing and employment mail to the same person from the same sender.",
+      "a stage word alone (excavation, foundation, damp proof course, drainage, completion). Each names a stage of works that a contractor's own quality record, a site diary entry and a progress photograph set all use. What is this row's is the stage word inside an AUTHORITY-issued visit record against an application reference; the word by itself belongs to whichever sibling holds the site record."
     ]
   },
   "proposed_context_terms": [
@@ -99,7 +102,8 @@
     "one inspection sequence across the stages of one build.",
     "one repeatedly re-downloaded portal document, joined by duplicate_family alone. Authority portals hand out the same PDF on every visit, and “A content-hash match supports deduplication review; a filename match alone does not.”",
     "no group at all is valid: a single decision notice with nothing around it is exactly what the residual library is for. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
-    "and the stop rules apply: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two applications' papers do not merge because they concern neighbouring plots."
+    "and the stop rules apply: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two applications' papers do not merge because they concern neighbouring plots.",
+    "and a group is never a licence to enrich its members: a bare inspection slip or an untitled drawing joined to an application group must not acquire the application from its neighbours - “The graph does not automatically copy those missing facts onto sparse files”."
   ],
   "template": {
     "dimension_order": [],
@@ -223,12 +227,13 @@
       "falls_through_if_inactive": "Independent Records"
     },
     {
-      "filename": "Completion certificate.pdf",
+      "filename": "Building Regulations Completion Certificate - 18 River Court.pdf",
       "source_type": "text_document",
       "observations": [
-        "a statement that works under a named application reference comply",
-        "an authority signature block and issue date",
-        "a site address"
+        "an authority letterhead and a completion declaration",
+        "a property address in a labelled slot",
+        "a document-type word from this family's own work_types list",
+        "NO acknowledgement, NO condition-discharge exchange, NO inspection sequence around it"
       ],
       "facts_legal": [
         "file_type",
@@ -237,10 +242,33 @@
         "sensitivity_status"
       ],
       "must_not_conclude": [
-        "that the word certificate identifies the world; it is a work_type value shared with an installer's declaration, with the landed finance.household-property row's work types, and with the coverage this family refused a separate row for",
+        "that this row fires. It does not, and this is the family's SHARED COLLISION FIXTURE, named identically by the construction_property schema row, by construction_property.construction-project and by the landed finance.household-property row",
+        "that the word certificate identifies the world; it is a work_type VALUE, and this file stripped of its neighbourhood is a document-type word plus an address - exactly the reduction on which construction_property.compliance-certificate was REFUSED. This row must not accept through a fixture what the family refused as a row",
         "a folder path"
       ],
       "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Final certificate - 24-01187-FUL - 18 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a statement that the works described under a named application reference comply",
+        "an authority signature block and issue date",
+        "the same application reference that appears on the acknowledgement, the decision notice and the inspection records held beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the certificate is the evidence. The CASE is: the reference recurring across an acknowledgement, a decision, a discharge and an inspection sequence is what fires this row, and the certificate is merely its closing member",
+        "a folder path"
+      ],
+      "also_schema": "government",
       "group_without_copying_facts": false,
       "falls_through_if_inactive": "Independent Records"
     },
@@ -358,6 +386,11 @@
       "provenance": "inference"
     },
     {
+      "domain": "construction_property.construction-project",
+      "signal": "ADDED ON DEEPENING, and it is the edge this row most owed: the branch-root sibling already defers to this row in prose - it lists government.planning-application among the neighbours it did NOT give an edge to, on the ground that the authority-decision structure belongs here - but no edge ran the other way. It does now. The discriminating evidence is WHICH COUNTERPARTY the document is addressed to: a contract sum, a programme, an interim valuation, an instruction, a practical-completion certificate and a final account are bilateral commerce with a party who can be negotiated with, and support the job row; an application reference, a decision word, a numbered conditions schedule, a condition-discharge exchange and a statutory inspection visit are a STATUTORY relationship with a body that is not a party to the contract at all, and support this row. Neither is a stage of the other: a planning permission routinely exists years before any contractor and often produces no job at all (a refusal, a lapsed consent, a lawful-development certificate obtained only to sell), while a job routinely runs under a consent obtained by somebody else. Shared fixture: 'Condition 4 discharge - drainage details.pdf', which the job file holds as correspondence and this row holds as the condition sequence - both readings hold and neither excludes the other.",
+      "provenance": "inference"
+    },
+    {
       "domain": "government.permit-licensing",
       "signal": "Same shape, different permit family: a street works permit, a scaffold licence, a skip permit and a hoarding licence are issued by the same bodies about the same sites. The discriminating evidence is whether the instrument approves BUILDING WORKS under a planning or building-regulations regime (this row) or licenses an activity or occupation of the public realm (permit-licensing). An authority name and a site address count for neither.",
       "provenance": "inference"
@@ -370,6 +403,11 @@
     {
       "domain": "construction_property.drawings-revisions",
       "signal": "A submitted drawing is both a controlled sheet and an application document. The discriminating evidence for THIS row is the application reference and the form's drawing schedule; for the drawings row it is the title block. Where both are present the file is genuinely both and neither excludes the other — the collision exists to stop a bare title block activating this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.block-management",
+      "signal": "ADDED ON DEEPENING. A managed block generates recurring statutory evidence - fire-door inspection schedules, a building-safety case, licensing correspondence - and generates applications of its own for roof and window works. The discriminating evidence is whether the document belongs to an APPLICATION CASE with a reference, a decision and conditions (this row) or to the RECURRING management cycle of one building with leaseholders in it (the sibling). A site address, an authority name and the word inspection count for neither. The same roof renewal produces both sets, so this is a per-evidence-item mutex and not a claim about the works - stated in the sibling's own terms so the two do not diverge.",
       "provenance": "inference"
     }
   ],
@@ -408,6 +446,6 @@
   ],
   "role_split": [],
   "sensitivity": "potentially_sensitive",
-  "sensitivity_why": "Genuinely mixed, and set cautiously rather than accurately. Much of this material is public record by design — a decision notice is published — which argues for the lower setting. Against that: the file routinely contains named private individuals' objections with their home addresses, an applicant's personal details and declaration, enforcement correspondence that is an allegation against the holder, and a complete internal layout of a real dwelling. 00's own corpus sentence names material of this kind — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Where a row is mixed, the stricter setting is the honest one. The handling class is P7's and is not set here.",
-  "open_question": "Three. (1) Row-specific and real: this row is defined by the holder's SIDE, and side is the least reliably extractable thing in the family — a decision notice looks identical in the authority's file and the applicant's. If side cannot be established, the honest outcome is abstention on both sides rather than a default to either, and that should be stated where the government rows are written too; it is authored one-way here. (2) The jurisdiction question in its sharpest form: every term in proposed_context_terms is a regime's vocabulary, and D4 already settles that jurisdiction is a VALUE and never a field or a dimension — so this row is correct as written, but it is also the row where a single-jurisdiction gazetteer will most visibly under-serve everyone else. R4 owns the gazetteer; this is recorded as a scoping fact, not a request. (3) Inherits NJ-CP-1."
+  "sensitivity_why": "Genuinely mixed, set cautiously, and - on deepening - distinct from the schema's default rather than merely equal to it, which matters because this is one of the two legs the row's node test now rests on. Much of this material is public record by design; a decision notice is published. Against that, three grounds that are NOT the schema's generic posture: (1) THE EXPOSED THIRD PARTY IS A STRANGER. On every other row on this schema the exposed party is a client, a tenant or an occupier - someone in a relationship with the holder. Here the file routinely contains a named neighbour's objection carrying their own home address, and that person is not a party to anything and never consented. (2) ENFORCEMENT CORRESPONDENCE IS AN ALLEGATION AGAINST THE HOLDER, which no other row on this schema carries; it changes the posture of the whole file and may co-activate the protected legal side. (3) THE FILE CONTAINS A COMPLETE INTERNAL LAYOUT OF A REAL, ADDRESSED DWELLING, published alongside its address - an address here is not merely identifying, it is locating. 00's own corpus sentence names material of this kind - the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Where a row is mixed, the stricter setting is the honest one. The handling class is P7's and is not set here.",
+  "open_question": "Four, one of them new this pass. (1) NJ-CP-6, row-specific and load-bearing: this row is defined by the holder's SIDE, and side is the least reliably extractable thing in the family - a decision notice is byte-comparable in the authority's file and the applicant's. If side cannot be established the honest outcome is abstention on BOTH sides rather than a default to either. Authored one-way here; every government.* row owes the reciprocal, and R1c should collect it. (2) NEW - NJ-CP-7, the CASE threshold. This pass narrowed the row from 'authority documents about building' to 'an application case', because the wider reading is the refused compliance-certificate row wearing a reference number. But 'a case' is a neighbourhood judgement, and _CONTRACT rule 3 forbids inventing a count of members. Alternatives: (a) require the application reference to recur across at least two distinct members - checkable, but a threshold this pass may not author; (b) require one non-decision member (an acknowledgement, a discharge, an inspection) alongside the decision - no number, weaker; (c) leave it to activation confidence. This memo takes (b) as the stated posture and flags (a) for R1c. (3) Jurisdiction, recorded not asked: every term in proposed_context_terms is one regime's vocabulary, and D4 already settles that jurisdiction is a VALUE and never a field or a dimension - so the row is correct as written, but it is the row where a single-jurisdiction gazetteer will most visibly under-serve everyone else. R4 owns the gazetteer. (4) Inherits NJ-CP-1."
 }

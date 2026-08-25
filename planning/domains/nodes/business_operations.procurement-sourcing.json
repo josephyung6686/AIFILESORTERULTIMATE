@@ -4,7 +4,7 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Sourcing events, tenders, bid evaluation and purchase orders",
-  "one_line": "The organizational situation of BUYING something through a bounded, evidenced process: a requirement is specified and issued, suppliers respond by a deadline, the responses are compared against stated criteria, one is awarded, and a purchase order commits the money. The organizing anchor is the SOURCING EVENT - one requirement, one competition, one award - which is why it is a different situation from the ongoing supplier relationship that follows it and from the contract that records the deal. Absorbs the legacy rows ops.sourcing-rfp and biz.procurement-po (both ROW) - the solicitation and the order it produces are two ends of one event, and an organisation files them together. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "The organizational situation of BUYING something through a bounded, evidenced process: a requirement is specified and issued, several suppliers respond by a deadline, the responses are compared against stated criteria, one is awarded, and a purchase order commits the money. The organizing anchor is the SOURCING EVENT - one requirement, one competition, one award - and NOT a counterparty: at issue there is no supplier yet, and at evaluation there are several at once, none of whom may ever become one. That is why this row sits outside the settled three-row counterparty boundary rather than inside it: business_operations.partnerships-bd holds relationships that do not exist yet, and business_operations.customer-account-management and business_operations.vendor-management hold ones that do, while this row holds the bounded EVENT that decides which of several candidate relationships will come into existence. Absorbs the legacy rows ops.sourcing-rfp and biz.procurement-po (both ROW) - the solicitation and the order it produces are two ends of one event, and an organisation files them together. Placeholder row (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -29,7 +29,8 @@
       "separating a competitive sourcing event from an ordinary quote request, a single-source purchase, or a supplier's unsolicited proposal.",
       "recognising a supplier's draft response as belonging to the same event as the issued documents rather than as a separate document.",
       "an unlabeled pricing spreadsheet with no reference token - common, and indistinguishable from a budget or a costing model without context.",
-      "a purpose-coherent tender pack whose members are individually unremarkable - a specification, three annexes, a pricing sheet, a blank form of tender and a certificate. “The documents are content-incoherent but purpose-coherent.”"
+      "a purpose-coherent tender pack whose members are individually unremarkable - a specification, three annexes, a pricing sheet, a blank form of tender and a certificate. “The documents are content-incoherent but purpose-coherent.”",
+      "distinguishing a competition from a call-off against an already-executed framework. Both produce an order with a reference; only one had a competition behind it, and the reference on a call-off points backwards to an instrument rather than forwards to an award."
     ],
     "never_alone": [
       "a supplier's or a vendor's name alone. Every invoice, marketing PDF, support email and delivery note carries one - this is the tempting false file for this row, because a folder of supplier-named PDFs looks exactly like a sourcing file and is usually just accounts payable.",
@@ -38,7 +39,8 @@
       "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
       "an extension or a source_type alone - 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
       "a bare 4-digit number read as a year, a PO number, a lot number or a reference.",
-      "membership in a download session that dropped a whole tender pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+      "membership in a download session that dropped a whole tender pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "a counterparty name shared with several files, read as the thing that holds a candidate group together - 00's own stop rule strikes it: “It should not form a supported group when there is no valid anchor, when the graph is connected only by embeddings, when one high-frequency entity acts as the only bridge”. In this row the anchor must be the EVENT reference, never the supplier, because a real sourcing file holds several suppliers at once and the winner is not knowable from any one member."
     ]
   },
   "proposed_context_terms": [
@@ -307,6 +309,77 @@
       "falls_through_if_inactive": "Independent Records"
     },
     {
+      "filename": "PQQ response - ITT-2026-014.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the buyer's numbered pre-qualification questionnaire with every box filled in",
+        "a responding organisation's name and registration number in a cover block",
+        "the solicitation reference in the footer of every page",
+        "appended insurance certificates and two named referees"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which row owns it - this is the SAME BYTES named on both sides with business_operations.partnerships-bd, and the file itself is silent about which side of the table its holder is on",
+        "that the responding organisation is the holder's supplier: it is a candidate, and most candidates never become one",
+        "a vendor-management onboarding fact from the insurance certificates it appends - a certificate collected during a competition is not a relationship record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Call-off order - Framework FA-2024-03 - Lot 2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an order placed against a framework reference and a lot number rather than against a competition",
+        "rates stated as already agreed elsewhere",
+        "a call-off number, a start date and a duration",
+        "no evaluation, no deadline, no competing responses"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a sourcing event: the competition happened once, when the framework was let, and this order is a consequence of an executed agreement rather than of a competition - it points BACKWARDS to an instrument, which is business_operations.contract-administration's stated discriminator",
+        "that the framework award document, if it is in the corpus, belongs with this file rather than with the event that produced it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Pricing model v4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rate columns, quantity columns and a total, with a scenario tab",
+        "no reference token, no supplier, no deadline anywhere in the workbook",
+        "a version-suffixed filename in a family with v1 to v3",
+        "cell formulas rather than typed values"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row - this is the WRONGLY-FIRES fixture in its quietest form: a costing workbook is the single most common file in the family and it is evidence of nothing until something labels it. business_operations.budget-forecast is at least as likely a home, and so is a supplier's own internal cost model",
+        "a sourcing reference inherited from a sibling file in the same folder - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
       "filename": "Scan_20260212_quote.jpg",
       "source_type": "ocr",
       "observations": [
@@ -333,17 +406,17 @@
   "collides_with": [
     {
       "domain": "business_operations.partnerships-bd",
-      "signal": "The mirror-image problem, and the sharpest collision in this family: every document in a sourcing event exists in identical form on the selling side, where issuing an RFP response IS business development. The discriminating evidence: possession of the evaluation apparatus - scoring matrices, moderation notes, several suppliers' responses side by side, an award or regret letter to send - supports this row; a single organisation's own outbound proposal, win themes, pipeline position and pricing approvals supports the bidding row. A pricing schedule alone discriminates neither. Provenance: inference.",
+      "signal": "The mirror-image problem, and the sharpest collision in this family: every document in a sourcing event exists in identical form on the selling side, where responding to an RFP IS business development. The discriminating evidence: possession of the EVALUATION APPARATUS - scoring matrices, moderation notes, several suppliers' responses side by side, an award or regret letter to send - supports this row; a single organisation's own outbound proposal, win themes, pipeline position and pricing approvals supports the bidding row. A pricing schedule alone discriminates neither. Same bytes named on both sides: PQQ response - ITT-2026-014.docx, which that row's deepened file already names in these terms. Reciprocally: this row is not a counterparty row at all, so it does not compete with that row's settlement of the pursuit / account / vendor question - it holds the event that ends the pursuit. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.vendor-management",
-      "signal": "The event that selects a supplier and the relationship that follows it name the same supplier and share diligence questionnaires and certificates. The discriminating evidence: a solicitation reference, a deadline, competing responses or an award supports this row; onboarding records, periodic reviews, performance scorecards and renewal diligence support vendor management. Provenance: inference.",
+      "signal": "The event that selects a supplier and the relationship that follows it name the same supplier and share diligence questionnaires and certificates. The discriminating evidence: a solicitation reference, a bid deadline, competing responses or an award supports this row; onboarding records with a remittance block, a supplier register with a relationship owner, periodic reviews, performance scorecards and renewal diligence support vendor management. The deeper discriminator is CARDINALITY and EXISTENCE: a vendor-management document measures one relationship that already exists, and a sourcing file holds several candidate relationships at once, most of which will never exist. That row's own file states the same boundary from its side and expressly declines to merge with this one - 'because a sourcing event genuinely ends, and a relationship and its contract genuinely do not.' Not contradicted here; endorsed. Same bytes named on both sides: a supplier diligence questionnaire. Provenance: inference.",
       "provenance": "inference"
     },
     {
       "domain": "business_operations.contract-administration",
-      "signal": "The award produces the contract, and the tender specification is usually annexed to it, so the same specification text appears in both files. The discriminating evidence: executed signature blocks, an obligations register, notice periods and renewal dates support contract administration; the competition that preceded signature supports this row. Provenance: inference.",
+      "signal": "The award produces the contract, and the tender specification is usually annexed to it, so the same specification text appears in both files. The discriminating evidence: executed signature blocks, an obligations register, notice periods and renewal dates support contract administration; the competition that preceded signature supports this row. The boundary is THE SIGNATURE, and that row's deepened file states it identically and adds the narrowing this row accepts: anything whose reference points BACKWARDS to an executed agreement is that row's. Same bytes named on both sides: a purchase order - that row carries PO-2026-0331.pdf as 'procurement's output, this row's call-off evidence, and an accounting document at once', which is the same three-way statement this row's open_question makes. Provenance: inference.",
       "provenance": "inference"
     },
     {
@@ -370,9 +443,29 @@
       "domain": "retail_hospitality.supplier-order",
       "signal": "Trading orders to regular suppliers use the same purchase-order shape at high volume. The discriminating evidence: a repeating stock replenishment against a catalogue supports the retail row; an order arising from a bounded competitive event supports this row. Provenance: inference.",
       "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "An unlabeled pricing or cost workbook is structurally identical to a budget model: rate columns, quantity columns, scenario tabs and a total. The discriminating evidence: a solicitation reference, a validity period, a supplier's letterhead or the buyer's own numbered schedule structure supports this row; a fiscal period, a cost-centre or department breakdown, a variance column against a prior plan, or an approval routing supports budgeting. Neither is decidable from the numbers. Same bytes named on both sides: Pricing model v4.xlsx, carried as this row's wrongly-fires fixture. Provenance: inference."
     }
   ],
-  "also_holds_with": [],
+  "also_holds_with": [
+    {
+      "domain": "legal.leases-agreements",
+      "why": "A letter of acceptance is the award document of the event AND, in many jurisdictions and drafting conventions, the instrument that forms the contract by itself. It is not a collision: the same file legitimately carries both readings, and 00 says so - “One file may hold facts from more than one domain without losing information.” The event reading keeps it with the competition it concluded; the instrument reading keeps it with what is now in force. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "why": "A purchase order for laptops, licences or servers is simultaneously the acquisition record of an asset - serials, quantities, warranty start and cost basis all originate on it - and the last act of the sourcing event. That row already carries procurement-facing signals from its side. Both readings are true of the same bytes, so this is also_holds_with rather than collides_with; only the dimension the user later chooses decides where the file is shelved. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "why": "In a regulated, grant-funded or audited organisation the sourcing file IS the audit evidence: the specification, the scores and the award letter are produced to demonstrate that the purchase was made fairly. The file has not changed; a second purpose has attached to it. “A file may validly belong to more than one accepted group”. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
   "falls_through_to": [
     {
       "residual_template": "Independent Records",

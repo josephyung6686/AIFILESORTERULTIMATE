@@ -4,7 +4,7 @@
   "schema_id": "business_operations",
   "parent_id": null,
   "name": "Market, competitive and pricing analysis",
-  "one_line": "The organizational situation of investigating a MARKET - its size, its segments, its competitors and what it will pay - in order to make a commercial decision. The organizing anchor is the QUESTION being answered for a decision, not a body of knowledge: the work has a commissioner, a deadline and a recommendation, and it stops when the decision is made. That is what separates it from research proper, which is anchored on a project and a publication, and from user research, which is anchored on evidence gathered from named participants. Absorbs the legacy rows ops.market-competitive-research (ROW) and ops.pricing (FOLD) - pricing work is built on the same competitor and willingness-to-pay analysis and is filed with it. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "one_line": "The organizational situation of investigating a MARKET - its size, its segments, its competitors and what it will pay - in order to make a commercial decision. The organizing anchor is the QUESTION being answered for a decision, not a body of knowledge: the work has a commissioner, a deadline and a recommendation, and it stops when the decision is made. That is what separates it from research proper, which is anchored on a project and a publication, and from user research, which is anchored on evidence gathered from named participants. Absorbs the legacy rows ops.market-competitive-research (ROW) and ops.pricing (FOLD) - pricing work is built on the same competitor and willingness-to-pay analysis and is filed with it. Placeholder row (J-IND/J-DEPTH): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -358,6 +358,11 @@
     {
       "domain": "creative.content-marketing",
       "signal": "Marketing teams publish market analyses as content, and the published version is indistinguishable in content from the internal one. The discriminating evidence: an editorial calendar, a channel, a designed layout and an external audience supports the creative row; an internal decision audience supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "A purchased analyst report and a saved trade article are third-party publications with no project identifier on them, which is exactly the situation research.reading-library was written to carry - and they arrive in this row's folder as source material. The discriminating evidence: an accepted study group around the file, whose model, sources and findings deck the report was pulled to support, keeps it here as source material; a third-party publication structure with no such group around it is reading material and both rows agree it routes to the Reading Inbox residual rather than being claimed. Reciprocally, this row must not claim a report merely because the report names a market. Provenance: inference.",
       "provenance": "inference"
     }
   ],

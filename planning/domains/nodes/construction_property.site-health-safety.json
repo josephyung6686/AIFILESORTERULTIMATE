@@ -4,7 +4,7 @@
   "schema_id": "construction_property",
   "parent_id": null,
   "name": "Site health and safety documentation",
-  "one_line": "The documents that say how dangerous work will be done safely, prove that the people doing it were told, and record what happened when it went wrong: method statements and risk assessments (kept as one RAMS pack), COSHH assessments, permits to work, induction and toolbox-talk registers, plant and access-equipment inspection records, competence and training cards, and the incident and near-miss reports. Its defining property is that it is written FOR AN INSPECTOR — a regulator, a client's auditor, an insurer or a coroner — which is why it is signed, dated, version-controlled and kept long after the works finish. The anchor is A HAZARD AND ITS CONTROLS, not a document kind and not a project phase. Absorbs the legacy row cons.method-statement-ra. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "one_line": "The documents that say how dangerous work will be done safely, prove that the people doing it were told, and record what happened when it went wrong: method statements and risk assessments (kept as one RAMS pack), COSHH assessments, permits to work, induction and toolbox-talk registers, plant and access-equipment inspection records, competence and training cards, and the incident and near-miss reports. Its defining property is that it is written FOR AN INSPECTOR — a regulator, a client's auditor, an insurer or a coroner — which is why it is signed, dated, version-controlled and kept long after the works finish. The anchor is A HAZARD AND ITS CONTROLS, not a document kind and not a project phase. Absorbs the legacy row cons.method-statement-ra. Placeholder row (J-IND, researched to J-DEPTH): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
   "launch": "placeholder",
   "provenance": "proposal",
   "design_cite": null,
@@ -383,6 +383,43 @@
       "also_schema": null,
       "group_without_copying_facts": true,
       "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Improvement notice - 18 River Court - received.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority letterhead with a notice reference and a named inspector",
+        "addressed to the holder's company as the person on whom the notice is served",
+        "states a contravention, the matters giving rise to it, and a date by which it must be remedied",
+        "site address matches the holder's live works package"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the reference number decides which side holds it — it is identical on the regulator's copy",
+        "that a regulator's letterhead makes the file government's; custody and role decide",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Health surveillance report - noise - K Adeyemi.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "occupational health provider letterhead",
+        "a named employee, an audiometry result and a fitness-for-work opinion",
+        "no site, no works package, no hazard-and-control table"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row holds it — it is an individual's health record with an employment anchor, and hr.workplace-health-safety plus the medical posture are stricter and win",
+        "that the word 'noise' plus a construction employer is a site anchor",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
     }
   ],
   "collides_with": [
@@ -424,6 +461,11 @@
     {
       "domain": "government.permit-licensing",
       "signal": "A permit to work and a public-authority permit share the word and the numbered-authorisation shape. The discriminating evidence: an issuing authority, a statutory instrument and an applicant support the government row; an internal issuer and acceptor and a same-day hand-back support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.public-authority-record",
+      "signal": "The CUSTODY seam, added this pass and drawn to match construction_property.building-control's, which already authored this family's government boundary. A safety regulator's improvement notice, prohibition notice, inspection letter or accident-notification acknowledgement exists in two custodies with the SAME reference number on both copies, so the reference discriminates nothing. The discriminating evidence: a notice ADDRESSED to the holder, stating a contravention the holder must remedy by a date, filed beside the RAMS it contradicts, supports this row; an ISSUING letterhead the holder controls, an inspector's own visit report or case file, a register entry or an enforcement decision written to justify a statutory power supports the government row. Where the role does not settle, neither activates. Authored one-way here — the government schema is unwritten and owes the reciprocal (NJ-CP-HS-3). Provenance: inference.",
       "provenance": "inference"
     }
   ],
