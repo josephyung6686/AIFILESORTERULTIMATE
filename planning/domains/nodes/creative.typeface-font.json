@@ -1,0 +1,222 @@
+{
+  "id": "creative.typeface-font",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Typefaces, fonts and type licences",
+  "one_line": "A proposed typeface-production and font-distribution situation; refused because the current creative schema has no fields and the evidence is already an asset value, a file format, or a licensing-rights record.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "The row does not survive the template node test. A font family/style is a value read from a font's metadata; .otf/.ttf/.woff are file formats; and an EULA, purchase receipt, or rights schedule is licensing-rights evidence. The only potentially distinct situation would be a typeface-production/version/distribution graph containing source glyphs, build configuration, generated binaries, specimen output, and a licence or release record. That graph is not represented by any field in the placeholder creative schema (fields: []), so this row cannot recommend a legal dimension order or write a creative fact. Route governed reusable font packages to creative.stock-asset-library, rights instruments to creative.licensing-rights, handoff-embedded fonts to creative.deliverable-handoff, and otherwise to residuals.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a font binary whose internal name table exposes family/style/vendor metadata; this proves a font file, not a typeface-production project or licence",
+      "a source/build graph in which glyph sources, feature files, a build configuration, generated binaries, and specimen output are all linked by the same family/version identity; this is a possible production signal but cannot activate a creative fact while the schema declares no fields",
+      "a licence or purchase record naming the family beside the governed font members; this is rights/asset evidence, not a distinct creative template"
+    ],
+    "needs_llm": [
+      "deciding whether a family directory is a type designer's source project, a purchased reusable library, an installed-font backup, or a client handoff",
+      "matching a specimen PDF and build output to the same family/version when filenames differ",
+      "separating a bespoke typeface commissioned for a brand identity from a third-party font merely used in that identity"
+    ],
+    "never_alone": [
+      "a .otf, .ttf, .woff, .woff2, .ufo, .glyphs, .designspace, .fea or .zip extension",
+      "a family or foundry name in a filename, PDF, email, or prose; common names and vendor names occur in unrelated design and legal material",
+      "a font file by itself: presence does not distinguish designed source, licensed asset, embedded handoff member, application installation, or backup",
+      "a version token such as v2, R3, beta, release, or final without a linked source/build/output chain"
+    ]
+  },
+  "work_types": [
+    "glyph source",
+    "feature file",
+    "build configuration",
+    "font binary",
+    "webfont package",
+    "specimen",
+    "font EULA or licence",
+    "installation or handoff set"
+  ],
+  "grouping_reasons": [
+    "one type family across source, build outputs, styles, specimens, and release versions",
+    "one governed asset package with its acquisition and rights records",
+    "one delivery package containing fonts embedded with the creative handoff",
+    "one brand identity project and its bespoke typeface when the same evidence supports both groups"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract and by refusal. The creative schema declares no fields, so typeface, style, foundry, licence class, and source format cannot become dimensions here. A family/style order would be a private schema; a provider/licence order belongs to the stock-asset or licensing-rights situation; a project-first order belongs to the consuming creative project or handoff. The user may later adopt an existing canonical field set, but this row cannot decide that.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "design_creative",
+      "opaque_binary",
+      "archive",
+      "text_document",
+      "spreadsheet",
+      "email",
+      "code_structured",
+      "image",
+      "ocr"
+    ],
+    "extensions": [
+      ".otf",
+      ".ttf",
+      ".woff",
+      ".woff2",
+      ".ufo",
+      ".glyphs",
+      ".designspace",
+      ".fea",
+      ".zip",
+      ".pdf",
+      ".txt",
+      ".md",
+      ".eml",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "AcmeSans.glyphs",
+      "source_type": "design_creative",
+      "observations": ["font-editor source contains glyph outlines, named masters, and family metadata", "a matching build configuration and generated binaries are present"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "a licence grant", "that the source is a client commission", "a creative field while creative declares none"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "AcmeSans.designspace",
+      "source_type": "design_creative",
+      "observations": ["variable-font design-space file names axes and masters", "same family stem occurs in source and build members"],
+      "facts_legal": [],
+      "must_not_conclude": ["a typeface name as a destination fact", "release status", "licence class"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "AcmeSans-Bold.otf",
+      "source_type": "opaque_binary",
+      "observations": ["OpenType signature is readable", "name table exposes family and style strings", "same family has regular and italic members"],
+      "facts_legal": [],
+      "must_not_conclude": ["designed-by ownership", "purchase or licence", "that it is not embedded in a handoff"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "AcmeSans-webfont.woff2",
+      "source_type": "opaque_binary",
+      "observations": ["webfont binary has a family name and web-oriented format", "CSS and a site package reference the same member"],
+      "facts_legal": [],
+      "must_not_conclude": ["web distribution rights", "client ownership", "a typeface project from format alone"],
+      "also_schema": "code",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AcmeSans-Specimen.pdf",
+      "source_type": "text_document",
+      "observations": ["specimen pages display family, weights, and glyph samples", "no labelled purchase or grant terms are present"],
+      "facts_legal": [],
+      "must_not_conclude": ["licence coverage", "release version", "that the displayed font is owned by the file holder"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "AcmeSans-EULA.pdf",
+      "source_type": "text_document",
+      "observations": ["licence text names a family, permitted uses, and restrictions", "font binaries are stored beside the document"],
+      "facts_legal": [],
+      "must_not_conclude": ["that the EULA is a creative-project fact", "that all nearby fonts are covered", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Order-4821-AcmeSans.eml",
+      "source_type": "email",
+      "observations": ["vendor confirmation names an order and family", "message links or attaches a licence document"],
+      "facts_legal": [],
+      "must_not_conclude": ["a typeface-production stage", "licence scope beyond the attached terms", "a creative destination"],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Brand_Rebrand_Fonts_Handoff.zip",
+      "source_type": "archive",
+      "observations": ["archive contains OTF/WOFF members, a readme, and brand deliverables", "font files are listed as package members rather than source files"],
+      "facts_legal": [],
+      "must_not_conclude": ["that the package is a type designer's source project", "licence transfer", "a project fact copied from the archive name"],
+      "also_schema": "creative",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Installed-Fonts-Screenshot.png",
+      "source_type": "image",
+      "observations": ["screenshot OCR shows family names in an operating-system font list", "no source, build, vendor, or licence evidence is visible"],
+      "facts_legal": [],
+      "must_not_conclude": ["that the fonts are owned or licensed", "a family fact from OCR alone", "a typeface project"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "build-fonts.py",
+      "source_type": "code_structured",
+      "observations": ["script invokes a font build tool and writes output binaries", "repository manifest identifies the package"],
+      "facts_legal": [],
+      "must_not_conclude": ["that the repository is a typeface domain rather than code", "licence status", "a family name from a variable"],
+      "also_schema": "code",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.stock-asset-library",
+      "signal": "AcmeSans-Bold.otf plus AcmeSans-EULA.pdf can be either a governed reusable font asset or a typeface-production set; the distinction is a catalogue/acquisition/rights pairing versus source glyphs and a reproducible build graph. The binary alone is mutex evidence.",
+      "design_cite": null
+    },
+    {
+      "domain": "creative.licensing-rights",
+      "signal": "AcmeSans-EULA.pdf and Order-4821-AcmeSans.eml are rights instruments and acquisition evidence, not type design; this proposed row must not absorb them merely because they name a family.",
+      "design_cite": null
+    },
+    {
+      "domain": "creative.deliverable-handoff",
+      "signal": "Brand_Rebrand_Fonts_Handoff.zip contains font members as part of a recipient package; package manifest/receipt/custody evidence makes handoff primary, not font production.",
+      "design_cite": null
+    },
+    {
+      "domain": "code",
+      "signal": "build-fonts.py and a repository manifest are code-project evidence; a build script is not a typeface node unless the linked source/output graph is itself the organizing situation.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Review Later",
+    "Independent Records",
+    "Reference Clips",
+    "Receipts and Confirmations",
+    "Protected Records",
+    "Unsupported or Encrypted",
+    "Temporary Screenshots"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Font packages and build files can expose unreleased type designs, client identities, vendor orders, source paths, and licence restrictions. This is a privacy posture only; it is not a handling class and does not create a field or destination.",
+  "open_question": "NEEDS-JOSEPH: decide whether typeface production should become a future creative template only after the creative schema adopts existing canonical project/stage/artifact fields, or whether it remains a value/work type under creative. Separately decide whether font licence scope belongs exclusively to creative.licensing-rights or may be searchable metadata on stock assets. Until that decision, no typeface, style, foundry, source_format, or licence_class field is proposed."
+}

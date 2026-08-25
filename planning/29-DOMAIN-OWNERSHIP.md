@@ -31,10 +31,18 @@ creative.deliverable-handoff | CODEX | complete
 creative.licensing-rights | CODEX | complete
 creative.stock-asset-library | CODEX | complete
 creative.graphic-design-project | CODEX | complete
-creative.brand-identity | CODEX | active
-creative.uiux-product-design | CODEX | active
-creative.illustration | CODEX | active
-creative.typeface-font | CODEX | active
+creative.brand-identity | CODEX | complete
+creative.uiux-product-design | CODEX | complete
+creative.illustration | CODEX | complete
+creative.typeface-font | CODEX | complete
+creative.print-production | CODEX | active
+creative.interior-design | CODEX | active
+creative.architectural-visualisation | CODEX | active
+creative.fashion-collection | CODEX | active
+creative.commissioned-shoot | CODEX | active
+creative.film-production | CODEX | active
+creative.shoot-day-media | CODEX | active
+creative.post-production | CODEX | active
 
 ## Split history — the claim inverted once, read this before assuming
 
