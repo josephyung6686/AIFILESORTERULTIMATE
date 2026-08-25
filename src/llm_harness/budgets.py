@@ -11,6 +11,7 @@ from __future__ import annotations
 import math
 import sqlite3
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -70,6 +71,33 @@ class BudgetTransactionOpen(Exception):
     """Reservation helpers refuse to join an already-open transaction."""
 
 
+def _require_finite_non_negative_decimal(value: object, *, name: str) -> Decimal:
+    if not isinstance(value, Decimal):
+        raise ValueError(f"{name} is an injected Decimal; there is no default")
+    if not value.is_finite() or value < 0:
+        raise ValueError(f"{name} must be a finite non-negative Decimal")
+    return value
+
+
+def _require_bool(value: object, *, name: str) -> bool:
+    if value is not True and value is not False:
+        raise ValueError(f"{name} must be a bool")
+    return value
+
+
+def _freeze_bool_sequence(value: object, *, name: str) -> tuple[bool, ...]:
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        length = len(value) if isinstance(value, (str, bytes)) else 0
+        raise ValueError(
+            f"{name} is a sequence; a bare string would become {length} "
+            "one-character references"
+        )
+    frozen = tuple(value)
+    if not all(item is True or item is False for item in frozen):
+        raise ValueError(f"{name} must be a sequence of bool")
+    return frozen
+
+
 @dataclass(frozen=True, slots=True)
 class ScanBudget:
     scan_id: str
@@ -86,14 +114,9 @@ class ScanBudget:
             raise ValueError(
                 f"{MAX_CALLS_PER_1000_FILES} is injected; a negative ceiling is not an echo"
             )
-        if not isinstance(self.max_estimated_cost, Decimal):
-            raise ValueError(
-                f"{MAX_ESTIMATED_COST_PER_SCAN} is an injected Decimal; there is no default"
-            )
-        if self.max_estimated_cost < 0:
-            raise ValueError(
-                f"{MAX_ESTIMATED_COST_PER_SCAN} is injected; a negative ceiling is not an echo"
-            )
+        _require_finite_non_negative_decimal(
+            self.max_estimated_cost, name=MAX_ESTIMATED_COST_PER_SCAN,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,10 +168,7 @@ def reserve_call(
     budget: ScanBudget, *,
     estimated_cost: Decimal,
 ) -> BudgetReservation:
-    if not isinstance(estimated_cost, Decimal):
-        raise ValueError("estimated_cost is an injected Decimal; there is no default")
-    if estimated_cost < 0:
-        raise ValueError("estimated_cost cannot be negative")
+    _require_finite_non_negative_decimal(estimated_cost, name="estimated_cost")
     _reject_open_transaction(conn)
     allowed = allowed_calls(budget)
     cost_text = format(estimated_cost, "f")
@@ -204,8 +224,7 @@ def settle_call(
     reservation: BudgetReservation, *,
     actual_cost: Decimal,
 ) -> BudgetReservation:
-    if not isinstance(actual_cost, Decimal):
-        raise ValueError("actual_cost is an injected Decimal; there is no default")
+    _require_finite_non_negative_decimal(actual_cost, name="actual_cost")
     _reject_open_transaction(conn)
     begun = False
     try:
@@ -285,8 +304,14 @@ def plan_reduction(
     subject_ref: str,
 ) -> ReductionDecision:
     """Pure size transitions. Fit flags are injected; this module does not measure."""
+    unreduced_fits = _require_bool(unreduced_fits, name="unreduced_fits")
+    summarized_fits = _require_bool(summarized_fits, name="summarized_fits")
+    anchors_fit = _require_bool(anchors_fit, name="anchors_fit")
+    split_shard_fits = _freeze_bool_sequence(
+        split_shard_fits, name="split_shard_fits",
+    )
     idle = dict(gate_releases=0, reservations=0, invocations=0)
-    if unreduced_fits:
+    if unreduced_fits is True:
         return ReductionDecision(
             rung=REDUCTION_NONE,
             fitting_shard_count=1,
@@ -294,7 +319,7 @@ def plan_reduction(
             abstention=None,
             **idle,
         )
-    if summarized_fits:
+    if summarized_fits is True:
         return ReductionDecision(
             rung=SUMMARIZED_FACTS,
             fitting_shard_count=1,
@@ -302,7 +327,7 @@ def plan_reduction(
             abstention=None,
             **idle,
         )
-    if anchors_fit:
+    if anchors_fit is True:
         return ReductionDecision(
             rung=PRESERVED_ANCHORS,
             fitting_shard_count=1,
@@ -310,7 +335,7 @@ def plan_reduction(
             abstention=None,
             **idle,
         )
-    fitting = sum(1 for fits in split_shard_fits if fits)
+    fitting = sum(1 for fits in split_shard_fits if fits is True)
     if fitting:
         return ReductionDecision(
             rung=SPLIT,

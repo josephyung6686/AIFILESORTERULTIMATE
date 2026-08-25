@@ -415,6 +415,49 @@ def test_preserved_anchors_that_fit_skip_split():
     assert decision.attempted_transformations == (SUMMARIZED_FACTS,)
 
 
+@pytest.mark.parametrize("cost", (
+    Decimal("Infinity"),
+    Decimal("-Infinity"),
+    Decimal("NaN"),
+))
+def test_reserve_call_rejects_non_finite_estimated_cost(budget_conn, cost):
+    budget = _budget(files=1000, rate=1, cost="10")
+    with pytest.raises(ValueError):
+        reserve_call(budget_conn, budget, estimated_cost=cost)
+    row = budget_conn.execute(
+        "SELECT count(*) AS c FROM llm_scan_budget",
+    ).fetchone()
+    assert row["c"] == 0
+    details = budget_conn.execute(
+        "SELECT count(*) AS c FROM llm_budget_reservation",
+    ).fetchone()
+    assert details["c"] == 0
+
+
+def test_plan_reduction_rejects_a_bare_string_as_split_shard_fits():
+    with pytest.raises(ValueError):
+        plan_reduction(
+            unreduced_fits=False,
+            summarized_fits=False,
+            anchors_fit=False,
+            split_shard_fits="yes",
+            call_site=A_FACT,
+            subject_ref="file-1",
+        )
+
+
+def test_plan_reduction_rejects_a_truthy_string_as_unreduced_fits():
+    with pytest.raises(ValueError):
+        plan_reduction(
+            unreduced_fits="no",
+            summarized_fits=False,
+            anchors_fit=False,
+            split_shard_fits=(),
+            call_site=A_FACT,
+            subject_ref="file-1",
+        )
+
+
 def test_budgets_contain_no_client_prompt_or_default_ceiling():
     tree = ast.parse(SRC_BUDGETS.read_text())
     imported: set[str] = set()
