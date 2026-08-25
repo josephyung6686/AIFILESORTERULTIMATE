@@ -1,0 +1,399 @@
+{
+  "id": "creative.licensing-rights",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Licensing, usage rights and releases",
+  "one_line": "Refused as a creative template: executed grants and releases are legal instruments, royalty records are finance records, and the creative work is their subject rather than a distinct filing schema.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "This label joins three different record functions without a creative-specific field set: an executed licence, assignment, model release, property release or location release is an instrument that activates the legal safety schema from party recitals, operative grant/consent language and execution evidence; a royalty statement, usage report or payment advice activates finance from issuer, period and transaction structure; and the licensed photograph, track, illustration, font or footage remains creative work. Rights scope, territory, term, exclusivity, media and licensor/licensee roles would be useful facts, but the creative schema declares no fields and this placeholder may not mint them. More importantly, those facts describe the legal grant, not the creative work as such. A distinct creative template would therefore duplicate legal/finance detection and organize by proposed fields unavailable to its schema. Coverage routes by active schema to legal or finance, with standalone unactivated files falling through to Protected Records, Independent Records, Receipts and Confirmations, Review Later, Reference Clips, or Unsupported or Encrypted.",
+  "fields": [],
+  "proposed_fields": [],
+  "proposed_context_terms": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "the word licence, license, rights, release, royalty, usage or consent alone; each occurs in legal instruments, finance reports, software notices, stock-asset receipts and ordinary prose",
+      "a creative-work title, asset identifier, thumbnail, filename or embedded preview; it identifies subject matter but does not prove that rights were granted",
+      "a person or organization name read as licensor, licensee, releasor, photographer, agency or client without a labelled party role or operative clause",
+      "a signature image, signed suffix or e-signature platform filename without the instrument's party and grant structure",
+      "a money amount without a labelled royalty, usage, sales, withholding or payment-period structure",
+      "a territory name or date range without a labelled grant context; either may describe production, publication, travel or accounting",
+      "an extension or SOURCE_TYPE alone, including PDF, DOCX, image, spreadsheet, email and archive",
+      "membership in a creative project folder or delivery archive; neighbourhood may support reviewable grouping but may not copy a rights fact onto the file"
+    ]
+  },
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the node is refused. The apparent order — creative work or agreement, then grant type, territory, term and exploitation medium — depends entirely on rights fields that the creative schema does not declare. Using project, client, work title, licensor or licensee instead would turn subject names and party roles into an unlicensed creative schema. The legal or finance schema should supply any eventual dimensions after its own field decision; residual placement remains available when neither activates.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".txt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Campaign-photography-usage-licence-executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading identifies a photography usage licence",
+        "party recital labels a photographer and a brand",
+        "operative clauses label permitted media, territory and term",
+        "late-body signature block contains names and execution dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "rights scope, territory, term, exclusivity, licensor or licensee as creative-schema facts",
+        "that the photographer name is a destination dimension",
+        "that the attached or named photograph is itself licensed without matching the asset identifier"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Model Release - Jordan Lee - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading says model release",
+        "body contains consent and likeness-use language",
+        "labelled releasor and producer lines are present",
+        "signature and execution-date blocks are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the named person is the creator or owner of the work",
+        "that a headshot embedded in the form belongs in a photo event",
+        "any new rights or party-role field under creative"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Location Release - Harbor Warehouse.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading identifies a location release",
+        "property and production are named in labelled slots",
+        "body grants entry, recording and exploitation permission",
+        "signature block is blank"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that permission was executed merely because the form is complete elsewhere",
+        "that the property name is a creative project",
+        "that an unsigned precedent is the holder's operative legal record"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Q2 2026 Sound Recording Royalty Statement.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook heading names a royalty statement and reporting period",
+        "rows carry track identifiers, usage quantities, territory codes and amounts",
+        "summary cells label gross royalty, withholding and net payable",
+        "issuer appears in a labelled header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that every listed track belongs to one creative project",
+        "that territory and period are rights-grant facts rather than reporting dimensions",
+        "rights ownership from payment alone"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Getty Images licence receipt 8842103.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer heading names a stock-asset provider",
+        "document labels order number, purchase date, asset identifier and amount",
+        "short licence summary appears below transaction lines",
+        "no negotiated party recital or signature block appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the purchaser owns copyright",
+        "a negotiated legal matter from boilerplate licence wording",
+        "a creative work title from the provider's marketing description"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Rights granted for Summer Campaign.eml",
+      "source_type": "email",
+      "observations": [
+        "subject says rights granted for a named campaign",
+        "sender and recipient are available in labelled email slots",
+        "body informally approves social use for three months",
+        "no attached executed agreement is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the sender had authority to grant rights",
+        "that informal prose is equivalent to an executed licence without legal interpretation",
+        "that campaign membership writes rights facts onto neighbouring assets"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Talent-and-location-release-packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists model releases, a location release and identification scans",
+        "some member names carry signed suffixes and some carry blank suffixes",
+        "archive is inspected without extraction to disk",
+        "outer filename does not identify which forms are operative"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that all members were executed",
+        "that identity scans are ordinary creative paperwork rather than protected records",
+        "one rights grant covering every named person and location"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Artwork usage rights matrix v7.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slides list artworks against markets, channels and campaign dates",
+        "status cells use cleared, pending and expired labels",
+        "speaker notes cite several agreements but contain no execution blocks",
+        "version suffix is present in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a matrix row itself grants rights",
+        "that pending or expired is a legal conclusion without the cited instrument",
+        "that version seven is the accepted version merely because it has the largest suffix"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "final_campaign_master_v12.psd",
+      "source_type": "design_creative",
+      "observations": [
+        "native layered artwork contains linked image assets",
+        "document metadata names an editing application and creator string",
+        "filename carries final and version-shaped tokens",
+        "no licence, release, receipt or rights manifest is embedded"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that every linked asset is cleared",
+        "that final means delivered, approved or licensed",
+        "a licensor or licensee from creator metadata"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "LICENSE.txt",
+      "source_type": "text_document",
+      "observations": [
+        "file is located beside package.json and a src directory",
+        "text contains copyright, permission, warranty and redistribution clauses",
+        "no negotiated party pair or execution block exists",
+        "repository structure is stronger evidence than instrument vocabulary"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a creative licence engagement",
+        "that the repository holder negotiated or executed the licence",
+        "a legal matter from boilerplate vocabulary alone"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "passport-scan-for-model-release.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "OCR region carries travel-document labels and a machine-readable band",
+        "camera EXIF and capture time are present",
+        "filename mentions a model release but the image contains no release form",
+        "a full name and document number are visible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "consent or a rights grant from the filename",
+        "photo-event placement from capture metadata",
+        "that identity evidence may be exposed in a creative-project summary"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "deliverables_manifest.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns list filenames, checksums, formats and delivery status",
+        "one free-text notes column says rights docs supplied separately",
+        "no grant terms, parties, payment structure or execution evidence appears",
+        "rows correspond to exported creative assets"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that delivery transfers ownership or grants use",
+        "that the referenced rights documents exist in the scanned corpus",
+        "rights status from a delivery-status column"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal",
+      "signal": "Same bytes: Campaign-photography-usage-licence-executed.pdf and Model Release - Jordan Lee - signed.pdf. Party recitals, operative grant or consent clauses and execution blocks support legal; a work title, thumbnail, campaign name or creative-project neighbourhood supports only the subject relationship and cannot activate a separate creative rights template. On the reverse boundary, a creative brief or asset master naming usage goals but containing no operative grant remains creative and does not activate legal."
+    },
+    {
+      "domain": "finance",
+      "signal": "Same bytes: Q2 2026 Sound Recording Royalty Statement.xlsx and Getty Images licence receipt 8842103.pdf. Issuer, reporting period, line items, amounts, withholding and payment totals support finance; grant scope and executed party obligations support legal. The word royalty or licence appears on both and discriminates neither. On the reverse boundary, a finance payment record cannot establish copyright ownership or the full scope of permitted exploitation."
+    },
+    {
+      "domain": "creative.client-engagement",
+      "signal": "A client statement of work may contain deliverables, fees and a rights clause, while an executed usage licence may name the same client and campaign. Engagement scope, review rounds and delivery obligations support client-engagement; an operative grant specifying permitted use supports legal. A client name and project title support neither side alone, and the rights clause remains legal evidence rather than a new creative dimension."
+    },
+    {
+      "domain": "creative.deliverable-handoff",
+      "signal": "A handoff packet may include masters, checksums, delivery manifests and a copy of the licence. Asset inventory, formats, transfer confirmation and checksum structure support deliverable-handoff; party recitals, grant language and execution support legal. Delivery of bytes does not itself transfer copyright or establish permission to exploit them, while a licence does not prove that deliverables were actually handed off."
+    },
+    {
+      "domain": "identity",
+      "signal": "Same bytes: a passport scan included beside model releases. A filename or folder saying model release does not turn the scan into rights evidence. Travel-document labels, bearer fields and machine-readable structure support identity and immediate protection; consent and execution blocks support legal. On the reverse boundary, a signed model release names a person but does not thereby become an identity document."
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Protected Records",
+    "Independent Records",
+    "Receipts and Confirmations",
+    "Review Later",
+    "Reference Clips",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Executed licences and releases expose names, signatures, contact details, negotiated commercial terms, likeness consents and sometimes identity attachments. Royalty statements expose income, tax withholding and account information. Protection must precede any model path or placement proposal. This sensitivity reinforces legal/finance routing but is not enough to create a creative template.",
+  "open_question": "NEEDS-JOSEPH NJ-CLR-1: Should a later legal-schema decision add rights-grant fields such as grant scope, exploitation medium, territory, term, exclusivity and party roles, or should those remain searchable extracted clauses only? NJ-CLR-2: Should royalty statements with work-level exploitation rows activate only finance, or co-activate a future rights catalogue once legal has fields? NJ-CLR-3: Should an informal, unexecuted email grant surface as possible legal material under local review, or remain Review Later until an instrument or explicit user confirmation exists? None of these questions rescues this creative node today: the creative schema declares no fields, and work titles plus licensor/licensee roles are values or relationships rather than a creative-specific template."
+}

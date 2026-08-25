@@ -1,0 +1,178 @@
+{
+  "id": "creative.graphic-design-project",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Graphic design project",
+  "one_line": "REFUSED. Graphic design names a medium and family of artifact types inside the creative schema default, not a distinct organizational situation. Posters, editorial layouts, packaging, social graphics and collateral exhibit the same named-work, working-file, revision-family and export-set structures as the broader creative making record. Their extensions and deliverable forms are routing evidence and values, not a separate activation rule; the fieldless placeholder schema licenses no distinct dimensions; and confidentiality belongs to the containing self-initiated work or client engagement. Coverage remains with the active creative default, client-engagement or deliverable-handoff workflow, plus residual routing when creative evidence is absent.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three node-test legs. Detection: an AI, PSD or INDD file with layers, artboards and linked assets is evidence for the creative schema's default making record, while a poster-shaped PDF or PNG can equally be a downloaded reference, portfolio sample or isolated image. Words such as poster, brochure, layout and packaging, plus dimensions, bleed or colour-profile observations, describe work or artifact types; they do not establish a distinct situation. Dimensions: the creative placeholder declares no fields, so this template may recommend none. If project, stage, artifact_type and client are later adopted, graphic design remains a work_type or artifact_type value under the same project-first structure, not a new ordering. Privacy: unreleased artwork, client strategy, licensed assets and personal contact details can be sensitive, but the rule follows the containing engagement or project and does not differ merely because the work is two-dimensional design. Client engagement can differ structurally by its counterparty and deliverable handoff by its package-and-recipient workflow; graphic design itself cannot.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None authored for this template's activation. Named layers, artboards, linked assets, placed-image references and working-file/export pairs are strong evidence for the creative schema default, but do not distinguish graphic design from illustration, identity, publishing or other creative work.",
+      "A press-ready PDF with trim, bleed, output intent and embedded-font metadata can establish production characteristics of an artifact. Those characteristics do not establish a separate organizational situation and may occur in editorial, illustration, identity and print-production workflows."
+    ],
+    "needs_llm": [
+      "deciding whether a flat poster image is authored work, an exported deliverable, a portfolio sample or downloaded visual reference",
+      "deciding whether several differently sized exports are one campaign's variants or unrelated graphics that merely reuse a brand",
+      "matching an untitled working file to a named brief when only layer names, placed-asset names and preview text overlap",
+      "distinguishing a client's brand shown in artwork from the commissioning client role",
+      "deciding whether a packaged file set is a handoff, an internal proof set or a backup"
+    ],
+    "never_alone": [
+      "a design_creative source type or .ai, .psd, .indd, .afdesign, .svg, .eps, .pdf or .png extension; extension is a routing signal rather than meaning",
+      "the words poster, logo, brochure, flyer, layout, packaging, artwork or design in a filename; they describe possible work or artifact types across many situations",
+      "CMYK, spot-colour, bleed, trim, crop-mark or embedded-font observations; production readiness does not identify the containing project or workflow",
+      "a client, brand, agency or organisation name without a labelled role; the name may identify the commissioner, maker, subject, licensor or asset owner",
+      "a version token such as v2, R3, FINAL or approved; it supports universal version-family review and may be misleading",
+      "pixel or page dimensions, colour profile, orientation or artboard count; these are artifact properties, not organizational facts",
+      "a folder named Design, Graphics, Artwork, Posters or Clients; curated vocabulary aids retrieval but does not itself activate this row",
+      "visual similarity or a shared logo across files; a brand system can appear in many unrelated works",
+      "a bounded export or download session; temporal proximity does not prove one project",
+      "a maker's author metadata; creator identity is supporting information and does not distinguish this template"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "No template grouping authored. The creative schema default may group one named work across its source files, linked assets, proofs and exports.",
+    "A client engagement may group multiple graphic-design works by a genuine counterparty relationship; deliverable handoff may group exported variants and the accompanying manifest. Neither makes graphic design a node.",
+    "A version family may overlap a project group without copying project, client or approval facts between sparse members."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused and the creative placeholder schema declares no fields. A folder level for medium or format would scatter one named work across Posters, PDFs, PNGs and Source Files. If the schema later adopts project, stage, artifact_type and client, those same fields serve graphic-design work without a special order. Not time-first: design projects are anchored by the named work and workflow, not capture chronology.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Harbour_Festival_Poster_v07.ai",
+      "source_type": "design_creative",
+      "observations": ["filename has a named-work-shaped stem and version token", "document exposes three artboards, named layers and linked image files", "one artboard is labelled A2 CMYK"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["a graphic-design-project template", "that Harbour Festival is a client rather than the event depicted", "project, stage or artifact_type because the creative schema declares no fields", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Harbour_Festival_Poster_A2_PRINT.pdf",
+      "source_type": "text_document",
+      "observations": ["single-page PDF shares the working-file stem", "page boxes expose trim and bleed", "output intent is CMYK and fonts are embedded"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["that this export was approved or delivered", "that PRINT is a licensed stage fact", "a distinct template from production metadata", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Harbour_Festival_Social_1080x1350.png",
+      "source_type": "image",
+      "observations": ["filename shares the work stem and states pixel dimensions", "flat image contains festival title and the same illustrated motif", "no layers, recipient or approval record are present"],
+      "facts_legal": ["file_type", "creation_date", "media_type"],
+      "must_not_conclude": ["that shared appearance proves membership in the same project", "that the image is a delivered asset", "a project fact copied from neighbouring files", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Harbour Festival creative brief.docx",
+      "source_type": "text_document",
+      "observations": ["heading names Harbour Festival", "labelled sections state audience, required outputs and deadline", "footer names an agency and festival organisation"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["which organisation is the client without role-bearing text", "that every listed output exists", "that a brief activates graphic design rather than the creative default or client engagement", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Harbour_Poster_feedback_round2.eml",
+      "source_type": "email",
+      "observations": ["subject names a poster and round 2", "body requests a date change and quotes an attachment filename", "sender and recipient slots cross organisation domains"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["a client fact from an email domain alone", "that requested changes were implemented", "that round 2 is a template or folder dimension", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour_Festival_FINAL_ARTWORK.zip",
+      "source_type": "archive",
+      "observations": ["archive manifest lists AI, press PDF, web PNG and README members", "README names colour spaces, sizes and intended uses", "archive name contains FINAL but no transmission record"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["delivery or approval from packaging and filename alone", "member facts from archive paths", "that file formats justify a graphic-design template", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Swiss Poster Collection 1950-1970.pdf",
+      "source_type": "text_document",
+      "observations": ["book-length PDF contains reproduced historical posters and catalogue essays", "download metadata identifies an online archive", "no authored working files or project neighbourhood exist"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["creative activation from poster content", "that depicted designers are file authors", "a graphic-design project", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Portfolio_Harbour_Poster_Case_Study.pdf",
+      "source_type": "text_document",
+      "observations": ["multi-page presentation describes the brief, process and outcome", "pages show polished mockups rather than editable sources", "title and footer identify the maker"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["that the case study is the making record", "that every pictured artifact exists as a local file", "creative activation when the file's purpose is a work sample", "a folder path"],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain_id": "career",
+      "why": "A polished case-study PDF or portfolio board can depict the same graphic-design work. If the file's purpose is presenting the maker's capabilities, career owns that file; editable sources, revision families and production exports remain creative making records.",
+      "provenance": "inference"
+    },
+    {
+      "domain_id": "photos",
+      "why": "A flat image can be an authored graphic export, a photographed poster, a screenshot, or a reference download. Creative requires making-record evidence such as working-file structure, linked assets or a project neighbourhood; capture metadata and event chronology belong to photos.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A durable standalone brief, proof, source or export whose creative project cannot be established remains an independent record rather than activating a medium label.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A flat isolated graphic with no making-record or project evidence is an isolated image, not a graphic-design situation.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Downloaded design books, catalogues and reference PDFs are reading material when their purpose is consumption rather than making the work.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Ambiguous feedback, approvals and exports whose project or target cannot yet be resolved require a later decision.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded so refusal does not drop protection. Unreleased campaigns, client strategy, licensed images and fonts, contact details, candid feedback and embargoed launch information may require local handling. This posture attaches to the containing creative project or client engagement and does not distinguish graphic design as a template.",
+  "open_question": "NEEDS-JOSEPH: whether product-facing vocabulary should offer `graphic design` as a suggested work_type/style filter after the creative schema adopts fields. Option (a), recommended: keep it as a non-activating value or search label under the creative default. Option (b): expose it only as user vocabulary inferred from curated folders. Option (c): omit the label and rely on artifact_type plus retrieval. None warrants a roster node."
+}

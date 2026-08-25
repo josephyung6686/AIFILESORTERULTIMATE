@@ -1,0 +1,314 @@
+{
+  "id": "creative.deliverable-handoff",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Deliverable handoff packages",
+  "one_line": "A terminal creative-work package whose exact exported members are enumerated for a recipient and connected to evidence of receipt or acceptance and to the rights, restrictions, or custody conditions under which those same bytes pass. The node is the package-to-acceptance-to-rights/custody lifecycle, not a FINAL suffix, an export format, a transfer link, or project completion by itself. J-IND placeholder researched to full J-DEPTH; it declares fields: [] because the creative schema declares none.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are detection signals, not extraction licences. The creative schema declares no field rows, so this row writes no creative facts; it recognises a handoff situation and preserves the evidence chain.",
+      "an enumerated DELIVERY MANIFEST whose rows name exact exported files and their format, variant, intended use, and optionally checksum or byte size, paired with matching members in the same archive or neighbourhood",
+      "a package index plus a receiver-side RECEIPT or ACKNOWLEDGEMENT that cites the package name, transfer identifier, manifest revision, or member filenames; sender and recipient roles must be observable rather than guessed from organisation names",
+      "an ACCEPTANCE record that identifies the exact proof, master, cut, artwork package, or manifest revision accepted, followed by the corresponding final exports; approval of a brief, concept, or milestone does not satisfy this signal",
+      "a RIGHTS-AND-USE schedule attached to the delivery that maps named assets or deliverables to permitted media, territory, term, attribution, embargo, source-file inclusion, or third-party restrictions",
+      "a CUSTODY transfer record for editable sources, physical masters, drives, negatives, credentials, or archive copies, identifying what changed hands, to whom, when, and whether return, deletion, retention, or escrow is required",
+      "an end-to-end handoff archive containing a readable manifest, the named deliverables, a transmittal or receipt, exact-version acceptance, and a licence, release schedule, readme, or custody note under one recurring delivery reference",
+      "a delivery-platform export whose structured fields preserve sender, recipient, package or transfer identifier, member list, timestamps, download or receipt event, and expiry or retention state; the link alone never qualifies"
+    ],
+    "needs_llm": [
+      "deciding whether a same-stem export set was assembled for external handoff, internal review, publication upload, portfolio use, or backup; the model must cite a recipient-facing manifest, transmittal, acceptance, rights, or custody statement",
+      "matching an unstructured email acknowledgement to one exact package when the message says only 'received' or 'looks good'; adjacency and thread membership support a hypothesis but do not identify the accepted bytes",
+      "distinguishing acceptance of creative quality from operational receipt, legal acceptance, payment approval, or permission to publish; each event may coexist but none substitutes silently for another",
+      "reading a free-text readme that mixes technical opening instructions, asset provenance, font or stock restrictions, and delivery notes, while keeping unsupported legal conclusions unknown",
+      "deciding whether editable source files were transferred as deliverables, lent temporarily, placed in escrow, or merely retained by the maker; custody verbs and return or deletion obligations are decisive",
+      "separating rights granted by the maker from third-party restrictions merely disclosed by the maker; a stock licence, font EULA, model release, and client usage licence have different parties and effects",
+      "deciding whether a package belongs to a larger client engagement without copying a client, project, stage, or rights fact onto sparse binary members; group membership is permitted without fact propagation"
+    ],
+    "never_alone": [
+      "a filename containing final, master, delivery, handoff, approved, signed-off, press-ready, source, packaged, or archive; these are freely typed stage or artifact words and may be false",
+      "an exported extension, colour profile, resolution, codec, container, archive format, or design_creative source_type; format routes extraction and never establishes a recipient or transfer event",
+      "a ZIP, transfer link, shared-drive folder, USB image, email attachment, download event, or bounded copy session; transport proves movement, not purpose, completeness, acceptance, rights, or custody",
+      "a client, brand, studio, publisher, recipient, or contact name without a labelled role; the same organisation may be commissioner, maker, licensor, depicted brand, printer, platform, or supplier",
+      "a manifest-like list without matching members, or matching files without a recipient-facing manifest; an inventory can be an internal export checklist",
+      "a checksum alone; it proves byte identity when two records already claim the same object but says nothing about why the object moved",
+      "the word approved or a signature image without an identified artifact and version; a brief approval, purchase approval, legal signature, and final-art acceptance are different events",
+      "a delivery or completion date without a labelled event; creation, upload, receipt, acceptance, publication, invoice, and rights-effective dates are different clocks",
+      "a licence, release, or EULA alone; creative.licensing-rights owns rights instruments independently, and a stock licence does not prove that the licensed asset was handed off",
+      "a courier receipt or proof-of-delivery alone; logistics owns custody and movement of goods unless the record identifies a creative master or handoff package and joins the creative lifecycle",
+      "absence of working files as proof the set is final; missing sources may mean an incomplete copy, deleted data, or a publication-only download"
+    ]
+  },
+  "proposed_context_terms": [
+    "delivery manifest",
+    "handoff",
+    "transmittal",
+    "package contents",
+    "files enclosed",
+    "receipt acknowledged",
+    "accepted as delivered",
+    "source files",
+    "usage schedule",
+    "third-party assets",
+    "return or delete",
+    "retention period",
+    "transfer expiry"
+  ],
+  "work_types": [
+    "delivery manifest",
+    "final export set",
+    "transmittal note",
+    "receipt acknowledgement",
+    "acceptance or sign-off record",
+    "handoff readme",
+    "rights and restrictions schedule",
+    "source-file custody record",
+    "delivery-platform export",
+    "handoff archive"
+  ],
+  "grouping_reasons": [
+    "one enumerated package and the exact members it names",
+    "one package revision across transmittal, receipt, acceptance, and rights or custody evidence",
+    "one transfer identifier or manifest reference across sender-side and receiver-side records",
+    "one accepted artifact version and its format, size, language, market, or channel variants",
+    "one custody event for editable sources, physical masters, or archive media"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding placeholder contract because the creative schema declares no field rows. If the schema's pending canonical proposals are later adopted, this situation would normally remain under project, then the delivered stage, then artifact_type; client is useful only for a genuinely multi-client corpus. The row survives the node test through activation rather than dimensions: unlike the creative default, it requires an enumerated package connected to recipient-side receipt or acceptance and to rights or custody evidence. It is not time-first because upload, receipt, acceptance, rights-effective, expiry, and return dates are distinct clocks.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".txt",
+      ".md",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".tif",
+      ".svg",
+      ".ai",
+      ".psd",
+      ".indd",
+      ".wav",
+      ".mov",
+      ".mp4",
+      ".zip",
+      ".7z"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Northwind_Final_Artwork_Delivery_Manifest_v2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows name exact files, formats, colour spaces, intended channels and checksums", "header names sender, recipient, package revision and transmittal date", "matching files exist beside the manifest"],
+      "facts_legal": [],
+      "must_not_conclude": ["a client, project, stage, rights grant or delivery date fact because the schema declares none", "that intended use is legal permission", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Northwind final artwork received.eml",
+      "source_type": "email",
+      "observations": ["receiver-side sender says the named manifest revision and listed files were downloaded", "message quotes the transfer identifier", "no quality acceptance language appears"],
+      "facts_legal": [],
+      "must_not_conclude": ["that receipt equals creative or legal acceptance", "that payment is due", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Northwind_Identity_Master_R3_acceptance-signed.pdf",
+      "source_type": "text_document",
+      "observations": ["acceptance block identifies the exact R3 proof and manifest v2", "client-side approver and studio representative occupy labelled roles", "exceptions section is blank rather than inferred absent"],
+      "facts_legal": [],
+      "must_not_conclude": ["contract validity", "acceptance of unlisted source files", "transfer of copyright", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Northwind_Usage_and_Third-Party_Assets_Schedule.pdf",
+      "source_type": "text_document",
+      "observations": ["table maps named delivered assets to media, territory, term and attribution", "font and stock-image rows identify separate licensors", "document cites the delivery manifest revision"],
+      "facts_legal": [],
+      "must_not_conclude": ["copyright ownership", "that every restriction is enforceable", "that this rights document alone proves delivery", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Source_Files_Custody_Receipt_Studio-to-Northwind.pdf",
+      "source_type": "ocr",
+      "observations": ["scanned form lists an SSD serial, editable source filenames and font package", "labelled received-by signature and timestamp appear", "return, retention and deletion boxes are visible but OCR is uncertain"],
+      "facts_legal": [],
+      "must_not_conclude": ["the selected custody condition where OCR is ambiguous", "ownership transfer", "that a signature image identifies an authorised approver", "a folder path"],
+      "also_schema": "logistics",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Northwind_Rebrand_Handoff_v2.zip",
+      "source_type": "archive",
+      "observations": ["readable archive manifest lists deliverables, readme, acceptance and rights schedule", "member hashes match the external manifest", "one unlisted invoice is present as a separate member"],
+      "facts_legal": [],
+      "must_not_conclude": ["member facts from archive paths", "that the invoice amount is a creative fact", "that archive completeness proves acceptance", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "HANDOFF_README_Northwind_v2.md",
+      "source_type": "text_document",
+      "observations": ["sections identify package revision, opening instructions and required linked fonts", "a table distinguishes included sources from flattened exports", "third-party restrictions point to the named rights schedule"],
+      "facts_legal": [],
+      "must_not_conclude": ["that technical inclusion transfers ownership", "that all links remain available", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northwind_logo_master_FINAL.ai",
+      "source_type": "design_creative",
+      "observations": ["filename contains master and FINAL", "artboards and linked fonts are readable", "no manifest, recipient, receipt, acceptance, rights or custody reference appears inside"],
+      "facts_legal": [],
+      "must_not_conclude": ["activation of this row from an export or stage word", "that the file was delivered or accepted", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Project Phoenix Closure and Benefits Review.pdf",
+      "source_type": "text_document",
+      "observations": ["milestone completion, risk closure, lessons learned and benefits-owner sections", "sponsor signs project closure", "no creative member list, creative acceptance target, rights schedule or custody record appears"],
+      "facts_legal": [],
+      "must_not_conclude": ["that terminal project state is a creative handoff", "that the word deliverables denotes exported media", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Courier POD - SSD SN-A1B2C3.pdf",
+      "source_type": "text_document",
+      "observations": ["carrier tracking number, delivery address, timestamp and signature image", "parcel description says SSD only", "no creative package, member manifest or custody conditions are identified"],
+      "facts_legal": [],
+      "must_not_conclude": ["that physical delivery proves creative handoff or acceptance", "the contents of the SSD", "that a signatory is a creative approver", "a folder path"],
+      "also_schema": "logistics",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "StockPhoto_84721_License.pdf",
+      "source_type": "text_document",
+      "observations": ["licensor, licensee, asset identifier and permitted-use terms", "no delivery manifest or client recipient is named", "the licensed image is not present nearby"],
+      "facts_legal": [],
+      "must_not_conclude": ["activation of this handoff row", "that the asset was used or transferred", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.client-engagement",
+      "signal": "The same manifest, acceptance email and final archive may sit in both. client-engagement owns the commissioner-maker relationship across brief, making, review and delivery; this row owns the terminal package chain only when exact members connect to receipt or acceptance and rights or custody. Reciprocal fixture: Northwind_Final_Artwork_Delivery_Manifest_v2.xlsx supports handoff; RE Northwind concepts round 1.eml supports engagement review but not handoff.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "Both may contain deliverable registers, acceptance pages and closure reports. Project-delivery owns governance of a bounded effort—status, dependencies, risks, milestones, closure and benefits; this row requires exported creative members plus a recipient-facing transfer and rights or custody chain. Reciprocal fixture: Project Phoenix Closure and Benefits Review.pdf stays project-delivery; Northwind_Rebrand_Handoff_v2.zip stays here despite being terminal project evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "An acceptance certificate, licence schedule and source-return obligation may be identical bytes on both sides. Contract-administration owns the running instrument, clause-referenced obligations, notices, renewal and remedies; this row owns the document's relation to exact creative package members. Reciprocal fixture: Northwind_Identity_Master_R3_acceptance-signed.pdf can support both, while a contract obligation register without package members supports only contract administration.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.licensing-rights",
+      "signal": "The same usage schedule or release may be present in both. licensing-rights owns grants, restrictions, releases, clearances and expiry independently of any transfer; this row requires that the instrument map to named delivered members inside a handoff chain. Reciprocal fixture: StockPhoto_84721_License.pdf belongs there alone; Northwind_Usage_and_Third-Party_Assets_Schedule.pdf joins this row only because it cites manifest v2.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.shipment",
+      "signal": "A courier POD and media custody receipt both evidence movement. Logistics owns carrier custody, route, delivery point and proof that goods arrived; this row owns the semantic package only when the moved medium is tied to enumerated creative members and acceptance or custody conditions. Reciprocal fixture: Courier POD - SSD SN-A1B2C3.pdf stays logistics; Source_Files_Custody_Receipt_Studio-to-Northwind.pdf may support both because it lists the creative members and return conditions.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "why": "A signed acceptance, rights schedule, licence, release, escrow instruction, or custody undertaking may remain legal evidence while also documenting the handoff lifecycle. Legal effect is never inferred by this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "why": "A final invoice or payment confirmation may be enclosed in the same package and independently carry finance facts, but payment neither proves nor substitutes for receipt, acceptance, rights, or custody.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone manifest, readme, acceptance note, or durable transmittal with no reliable package neighbourhood remains a useful independent record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated transfer receipt, download confirmation, courier POD, or acknowledgement belongs here when it proves only a transaction and not the creative lifecycle.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when the package or acceptance relationship is partly understood but the exact members, recipient role, or rights and custody link cannot be established.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Use for isolated signed acceptance, licences, releases, credentials, private transfer addresses, or custody forms that require protective handling.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An encrypted handoff archive or expired opaque transfer package must be represented without pretending its members or lifecycle were inspected.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "client",
+      "other_field": "recipient (no canonical field proposed)",
+      "other_domain": "creative.deliverable-handoff",
+      "why": "The commissioning client and the delivery recipient are often the same organisation but not the same role: a client contact may approve while a printer, publisher, broadcaster, developer, archive, or downstream agency receives custody. This row mints no recipient key; the distinction is recognition-only until R1c decides whether it is globally useful.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Handoff packages can contain unpublished masters, editable sources, embedded fonts, stock assets, signatures, personal contact details, private transfer addresses, expiring links, passwords or access instructions, model and property releases, and commercially sensitive rights terms. The heightened posture belongs to the package and its transfer apparatus; it does not author a handling class or infer that every final export is sensitive.",
+  "open_question": "NEEDS-JOSEPH NJ-CDH-1: must all three links—enumerated package, receipt or acceptance, and rights or custody—be present for activation, as this row argues, or may package plus acceptance suffice while rights/custody remains optional? The strict option preserves distinctness from creative.client-engagement and business_operations.project-delivery; the relaxed option improves recall but risks reducing the row to a terminal stage already represented by the creative default. NJ-CDH-2: should a recipient role become a canonical non-destination fact? Client cannot safely stand in for printer, publisher, broadcaster, developer, archive, escrow holder, or downstream agency; this placeholder proposes no field. NJ-CDH-3: when only physical media moves, should the handoff group also hold logistics.shipment, or should the courier record remain logistics-only with a cross-group reference? The proposed seam is semantic manifest versus carrier custody, but identical custody receipts expose a reciprocal boundary R1c must ratify."
+}
