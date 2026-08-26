@@ -88,7 +88,10 @@ Per accepted group:
 
 **`group_category` is the domain** (resolution M12). P9's `group_category` draws on the §3.11 /
 §3.15 domain vocabulary, so domain and category are one field, not two; P10 does not request a
-separate `domain`. Templates key off it (§5.3, §5.4).
+separate `domain`. Template *applicability* reads it (§5.3, §5.4), but it is not a one-template
+ownership key: one template may be valid in several domains, one domain may offer several templates,
+and a purpose-coherent branch may compose compatible fragments across domains. The many-to-many
+routing contract is `docs/superpowers/specs/2026-08-26-composable-template-scaffolding-design.md`.
 
 **Three membership kinds** (M12). The third, `user-attached`, is §4.9's manual attachment — the
 route by which a file whose contents could not be read still joins a group. It is a legal
@@ -214,8 +217,9 @@ relevant, and an explanation of the facts or accepted groups that caused it to a
 | `root_anchor` | which §1.1 candidate root this subtree hangs beneath | §1.1, §5.2 ("move it under an existing root such as Documents") |
 | `ordinal` | sibling order as the user arranged it | §5 ("reorder") |
 | `associated_group_ids[]` | accepted groups that live beneath this node | §5.1, §5.12 |
-| `template_context` | `{template_id, template_version, dimension_index}` where relevant | §5.12, §8.8 |
-| `dimension` | the template dimension this level realises, if any | §5.4, §5.5 |
+| `template_context` | `{binding_id, template_id, template_version, fragment_id?, fragment_version?, dimension_index}` where relevant; exact versions identify the branch-local composition and the source of this level | §5.12, §8.8 |
+| `dimension_role` | the organization-layer semantic role this level realises, if any; never a fact key | §5.4, §5.5 |
+| `dimension` | the live P6 field to which `dimension_role` resolved for this branch, if any | §3.12, §5.4, §5.5 |
 | `expected_values[]` | `field = value` this level asserts, e.g. `course = PHYS1401` | §6.1 ("expected field values") |
 | `explanation` | the facts or accepted groups that caused it to appear — prose, not a score | §5.12, §5.2 |
 | `existing_path` | present only when `node_type = existing` | §5.10 |
@@ -223,6 +227,8 @@ relevant, and an explanation of the facts or accepted groups that caused it to a
 | `node_role` | `ordinary` \| `scoped-general` \| `residual` \| `shared-material` | §5.9, §7.4, §6.9 |
 | `disposition` | required on `residual` nodes: `physical-destination` \| `review-only` \| `leave-in-place` | §7.4 |
 | `accepts_placement` | derived; see rule below | §5.12, §5.10, §8.4 |
+| `refinement_disposition` | `refined` \| `shallow-by-choice` \| `refine-later`; required on an approved branch | §5.3, §5.8, §8.8 |
+| `refinement_reason` | user/evidence-backed explanation distinguishing intentional shallowness from unfinished work | §5.2, §5.8, §8.8 |
 
 **`accepts_placement` derivation** — P11 needs one flag, not a case analysis:
 
@@ -275,12 +281,22 @@ Example node:
   "root_anchor": "root_documents",
   "ordinal": 2,
   "associated_group_ids": ["g_phys1401_course"],
-  "template_context": {"template_id": "academic", "template_version": 1, "dimension_index": 3},
+  "template_context": {
+    "binding_id": "btb_academic_columbia_v1",
+    "template_id": "academic-coursework",
+    "template_version": 1,
+    "fragment_id": "artifact-kind",
+    "fragment_version": 1,
+    "dimension_index": 3
+  },
+  "dimension_role": "artifact_kind",
   "dimension": "work_type",
   "expected_values": [{"field": "work_type", "value": "Homework"}],
   "explanation": "Six files in the accepted PHYS1401 course group carry work type = Homework, validated from filename and document structure.",
   "handling_class": "personal_non_sensitive",
   "node_role": "ordinary",
+  "refinement_disposition": "refined",
+  "refinement_reason": "The course has enough populated work types for this level to improve retrieval.",
   "accepts_placement": true
 }
 ```
@@ -306,7 +322,7 @@ Contract-in from P10, does not build one, and does not carry profiles in its pla
 | Profile field | Source | § |
 |---|---|---|
 | `node_id`, `display_label` | node record | §6.1 ("user-selected label") |
-| `domain`, `template`, `template_fields[]` | template context | §6.1, §6.2 |
+| `domains[]`, `template_binding`, `template_fields[]` | branch-local template context; a single-domain branch has one domain, while a purpose branch may preserve several one-schema applicability bindings | §3.11, §5.6, §6.1, §6.2 |
 | `expected_values[]` | node record | §6.1 |
 | `parent_context[]`, `child_context[]` | ancestor + child labels, dimensions and expected values | §6.1 ("parent and child meanings"), §6.2 |
 | `accepted_group_ids[]`, `group_labels[]` | P9 via node | §6.1, §6.2 |
@@ -323,7 +339,7 @@ is sensitive must not carry raw filenames or content into anything bound for a c
 
 ### 3. The template schema (§5.4, §5.7)
 
-One schema governs built-in templates, LLM-generated custom templates, and saved personal templates
+One closed record family governs built-in templates, LLM-generated custom templates, and saved personal templates
 (§5.7: the user "either accepts it as a one-off structure or saves it as a reusable personal
 template"). §5.7 fixes the library-template fields — "the domain's allowed fact fields, detection
 signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy
@@ -331,46 +347,127 @@ rules, and validation constraints" — and the generated-template fields — "a 
 fields, recommended folder dimensions, field order, optional versus required levels, metadata-only
 fields, sensitivity policy, and example paths."
 
+The schema is composable, not domain-owned. Four records stay distinct:
+
+1. `TemplateFragment` is a versioned reusable sequence of semantic dimension roles and constraints.
+2. `TemplateDefinition` composes exact fragment versions plus any template-local roles and
+   constraints. P10 publishes no ambiguous generic `Template` record alongside it.
+3. `TemplateApplicability` maps those roles to live P6 fields for exactly one `uses_schema` domain.
+   Several records may reference one template, and several records may share a purpose context; the
+   rows together form the many-to-many domain/template seam without weakening P6's allow-list.
+4. `BranchTemplateBinding` records the resolved, edited, branch-local choice in one plan version.
+
+Neither a fragment nor a valid template creates nodes. Only a branch-local binding that passes the
+composition checks, materialises successfully against the branch's actual evidence, passes V1–V6,
+and receives explicit user approval may contribute nodes to a draft tree. Exact versions are pinned;
+a newer library version never migrates an approved branch automatically.
+
+The four records have four schemas; applicability is never nested inside a definition:
+
 ```json
 {
-  "template_id": "string",
+  "fragment_id": "artifact-kind",
+  "fragment_version": 1,
+  "roles": ["artifact_kind"],
+  "relative_order": [],
+  "privacy_floor": "policy_ref",
+  "provenance": {"source_refs": ["source_ref"]}
+}
+```
+
+```json
+{
+  "template_id": "academic-coursework",
   "template_version": 1,
-  "provenance": "built-in | llm-generated | user-saved",
-  "domain_name": "string",
-  "allowed_fields": ["field_ref"],
-  "detection_signals": [ ... ],
+  "origin_kind": "built-in | llm-generated | user-authored",
+  "scope_kind": "domain-focused | cross-domain | purpose-focused | personal",
+  "publication_state": "draft | published | retired",
+  "fragment_refs": [{"fragment_id": "artifact-kind", "fragment_version": 1}],
   "dimensions": [
     {
-      "field_ref": "field_ref",
+      "role_ref": "subject",
       "order_index": 0,
       "requirement": "required | optional",
       "metadata_only": false,
-      "justification_fact_refs": ["fact_id"],
       "retrieval_rationale": "why this level improves retrieval"
     }
   ],
-  "optional_branch_patterns": [ ... ],
-  "sensitivity_policy": { ... },
-  "validation_constraints": [ ... ],
-  "example_paths": ["Academics/Columbia/2026-Spring/PHYS1401/Homework"]
+  "optional_branch_patterns": [],
+  "sensitivity_policy": {"policy_ref": "policy_ref"},
+  "validation_constraints": [],
+  "example_label_chains": [["Academics", "Columbia", "2026-Spring", "PHYS1401", "Homework"]]
+}
+```
+
+```json
+{
+  "applicability_id": "academic-coursework--academic",
+  "applicability_version": 1,
+  "template_id": "academic-coursework",
+  "template_version": 1,
+  "uses_schema": "academic",
+  "purpose_profile_ref": null,
+  "allowed_fields": ["subject", "work_type"],
+  "detection_signal_refs": ["signal_ref"],
+  "role_bindings": [
+    {"role_ref": "subject", "field_ref": "subject"},
+    {"role_ref": "artifact_kind", "field_ref": "work_type"}
+  ],
+  "exclusions": []
+}
+```
+
+```json
+{
+  "binding_id": "btb_academic_columbia_v1",
+  "plan_version_id": "plan_3",
+  "branch_node_id": "n_academics",
+  "applicability_refs": [
+    {"applicability_id": "academic-coursework--academic", "applicability_version": 1}
+  ],
+  "resolved_dimensions": [
+    {"role_ref": "subject", "field_ref": "subject", "action": "selected"}
+  ],
+  "accepted_group_ids": ["g_phys1401_course"],
+  "state": "approved",
+  "depth_disposition": "refined",
+  "refinement_reason": "The accepted course groups justify the selected split.",
+  "validation_report_ref": "validation_report_id",
+  "approval_action_ref": "review_action_id"
 }
 ```
 
 Rules the schema carries:
 
-- `allowed_fields` and every `field_ref` must resolve to a P6 field (§3.12, §5.7: "use existing field
-  types wherever possible"). A template may not mint a field.
-- `metadata_only: true` means the field belongs to the domain's schema but may never become a folder
-  level (§5.4: "which ones are metadata only").
+- Every applicability `allowed_fields` entry and role-binding `field_ref` must resolve to a P6 field
+  (§3.12, §5.7: "use existing field types wherever possible"). Semantic roles are organization-layer
+  slots, not new facts; a template may not mint a field.
+- Applicability is many-to-many through join rows. Each row names exactly one `uses_schema`, preserving
+  the domain catalogue's current contract; the same template/fragment identity may have rows for
+  several domains, and one domain may expose several templates. Reuse is by stable ID/version, never
+  copied JSON.
+- `purpose_profile_ref`, when present, is an authored `{purpose_profile_id,
+  purpose_profile_version}` in the applicability registry. It is not a P6 field/value and not a P9
+  runtime `group_id`. `BranchTemplateBinding.accepted_group_ids[]` names the actual accepted groups;
+  C3 proves from their evidence that the authored purpose profile applies. P10 invents no universal
+  purpose taxonomy and never unions the rows' schema allow-lists.
+- Fragment imports form an acyclic graph and pin exact versions. Semantic constraints combine by
+  intersection; an empty allowed set, incompatible value type, impossible cardinality, ambiguous
+  role binding, or cyclic order is a reported conflict rather than last-writer-wins.
+- `metadata_only: true` means the role's resolved field belongs to every selected applicability
+  context but may never become a folder level (§5.4: "which ones are metadata only").
 - `dimensions` are ordered by `order_index`; the order is a **recommendation** — "the user can
   reverse, remove, add, or flatten dimensions" (§5.5).
 - **Values are never invented.** §5.4: "The system does not invent `PHYS1401`, `UChicago`,
   `Spring 2026`, or `PVA/RDP`; those names emerge from validated facts, user-confirmed groups, and
   accepted labels. The template simply determines how those real values could be arranged as
   branches."
-- `justification_fact_refs` and `retrieval_rationale` are **required on every dimension** of an
-  `llm-generated` template (§5.7: must "cite the file facts that justify each proposed dimension, and
-  explain why each level improves retrieval").
+- `retrieval_rationale` belongs to the reusable definition. The branch/dossier-specific
+  `justification_fact_refs` §5.7 requires of an LLM proposal belong in its validation report and the
+  resulting `BranchTemplateBinding`, never in the immutable reusable definition.
+- `example_label_chains` are nested display labels used only to review a recipe. They are not path
+  strings, do not contain separators, and cannot be resolved or emitted as destinations; P12 alone
+  composes filesystem paths.
 
 **Ordering doctrine** (§5.5), applied when a template's recommended order is computed or reviewed:
 
@@ -398,6 +495,14 @@ returns its verdict; it runs none of the six. A candidate template is rejected i
 
 These six labels are P10's template checks and have no relation to P1's separately numbered V1–V4,
 which are §8.2's checksum verification points.
+
+**Composition gates precede V1–V6.** C1 resolves every exact template, fragment, applicability, and
+version identity. C2 resolves every selected role to a live P6 field. C3 verifies applicability from
+the branch's accepted groups and facts rather than domain label alone. C4 rejects ambiguous role
+bindings. C5 rejects cyclic or incoherent combined ordering. C6 proves that the preview silently
+drops no group or file. C7 preserves the strongest included privacy restriction. C8 keeps every valid
+result inert until branch-specific user approval. A failure returns a deterministic report naming the
+conflicting inputs and creates no nodes.
 
 Plus the gates that precede them: strict JSON-schema conformance (P8's), every cited fact actually
 present in the evidence database (§3.6, §4.8), and — decisively — **validity is not activation**. §5.7: a
@@ -452,6 +557,12 @@ destination is an ID membership test (§6.10: the validator "confirms that the s
 the frozen tree"). A destination that is not in the set has no legal expression — P11 abstains
 (§6.10: "Correct abstention is a successful outcome").
 
+**A useful shallow scaffold is freezeable.** “Complete” means that every included node is legal,
+explainable, validated, and approved, and every unresolved branch is explicitly marked for later
+refinement or shallow by choice. It does not require every branch to realise every template dimension.
+Refining an explicitly deferred or shallow branch after freeze follows the ordinary new-draft and
+new-version path below.
+
 **Editing after freeze** (§8.8): a frozen version is immutable. An edit opens a **draft** version and
 must show a diff. P10 emits the node-level diff — nodes added, removed, renamed, re-parented,
 re-templated, re-ordered, type-changed. §8.8's file-level consequence ("twenty-three files now require
@@ -504,7 +615,11 @@ canvas must make existing structure and proposed structure visually distinct (§
 
 **Vertical pass** (§5.3) — one branch at a time, never the whole corpus at once. Opening an accepted
 branch proposes one or more domain templates "based on the groups and facts that already belong inside
-it."
+it." The user retains a compact top-level context, current path, sibling branches, and refinement
+state while working inside the branch. Candidates may be a complete reusable template, a compatible
+composition of reusable fragments, or no split. Each candidate states its source/version,
+applicability evidence, assumptions, and conflicts. The user may apply only part of it and may keep
+the branch shallow without making the plan invalid.
 
 **Live structural feedback** (§5.5, §5.9) — before a split is committed: resulting number of child
 branches, number of files under each child, example members, unresolved files, evidence gaps. §5.5
@@ -635,8 +750,10 @@ enable has **no node**, so no model can name it. That is the whole enforcement m
 
 ## Done means
 
-1. **The six artefacts serialise and round-trip**: node record, destination profile, template,
-   freeze record, node-level diff, residual template library.
+1. **Every P10 record serialises and round-trips**: node record, destination profile,
+   `TemplateFragment`, `TemplateDefinition`, `TemplateApplicability`, `BranchTemplateBinding`, freeze
+   record, node-level diff, and residual template library. Shared library records are release/version
+   keyed; only bindings and tree state are plan-version keyed.
 2. **Fixtures exist that P11 can build against before P10 has any implementation**:
    - (a) the walking-skeleton tree — **two** hand-authored frozen nodes, no template, no groups
      (segmentation map, walking skeleton step P10). Two, not one: resolution B8(b) requires the
@@ -645,8 +762,9 @@ enable has **no node**, so no model can name it. That is the whole enforcement m
    - (b) a realistic tree exercising uneven depth (§5.8), all five node types (§5.12), a
      `scoped-general` node (§5.9), an enabled residual node with each of the three dispositions
      (§7.4), a shared-material policy (§6.9), and a protected branch (§5.2, §8.4);
-   - (c) three templates — one built-in, one llm-generated with a clean verdict, one rejected — plus
-     **one failing fixture per check V1–V6** (§5.7);
+   - (c) one reusable fragment, one built-in definition, one llm-generated definition with a clean
+     verdict, one rejected definition, standalone applicability rows, branch bindings, and **one
+     failing fixture per check V1–V6** (§5.7);
    - (d) a two-version pair with its node-level diff (§8.8);
    - (e) a residual-library fixture: all nine §7.3 names present as definitions, a subset enabled,
      one renamed, one relocated off its default parent, one replaced by an existing `To Sort`
@@ -675,6 +793,21 @@ enable has **no node**, so no model can name it. That is the whole enforcement m
     not enabled, no node exists for it, so no placement decision can name it and no model can
     return it (§7.4). Conversely, an enabled residual node satisfies `accepts_placement = true`
     through the ordinary derivation — P11 needs no residual-specific legality path.
+13. **C1–C8 are independently falsifiable.** One failing fixture per composition gate creates an
+    explained validation report and no nodes; C2/C5 do not replace any V1–V6 check.
+14. **Many-to-many reuse is real and schema-safe.** One definition serves two domains through two
+    exact one-schema applicability rows; one domain offers two definitions; neither case duplicates a
+    definition or widens a P6 allow-list.
+15. **Purpose composition preserves heterogeneity.** A mixed-domain purpose packet composes exact
+    applicability/fragment versions, preserves every member, and binds an authored/versioned purpose
+    profile to actual accepted P9 group IDs through C3. It neither invents a purpose taxonomy nor
+    unions schema allow-lists.
+16. **Branch choices are isolated and immutable.** Applying/editing a shared recipe in one branch
+    changes no sibling. New template, fragment, or applicability versions never migrate an approved
+    binding; adoption requires a new draft and explicit approval.
+17. **A partial-depth design can be complete.** The user can freeze a legal top-level scaffold with
+    one `refined`, one `shallow-by-choice`, and one `refine-later` branch, each with a reason. Later
+    refinement creates a new plan version, while facts, groups, and the earlier freeze remain intact.
 
 ## Cross-cutting answers
 
@@ -768,8 +901,9 @@ versions, but the destination tree and user policy define which projections are 
 **Behaviour**: a frozen version is immutable; an edit opens a draft; the draft is comparable to its
 predecessor by the node-level diff (§8.8); the user may restore an earlier draft or explicitly adopt
 the new plan; adoption never silently reclassifies or moves old files — it produces new placement
-recommendations subject to review (§8.8). Templates are referenced by `{template_id,
-template_version}` so a library update cannot retroactively alter a frozen tree (§8.8: "Template
+recommendations subject to review (§8.8). Branch bindings pin exact `{template_id,
+template_version}`, every `{fragment_id, fragment_version}`, and every `{applicability_id,
+applicability_version}` so no library update can retroactively alter a frozen tree (§8.8: "Template
 versions and ordering choices").
 
 ## Open questions
@@ -823,6 +957,8 @@ template-validation checks (P8's former Q9 → **P10**, stated under
 10. **Default redaction settings for protected branches.** §5.2 fixes the filename default (do not show,
     do not send to cloud). §8.4 makes names, previews, thumbnails, OCR text and location data
     configurable but sets no defaults for the other four.
-11. **Are personal saved templates (§5.7) plan-versioned or library-scoped?** §8.8 versions "template
-    versions and ordering choices"; whether a user-saved template lives in the shared library across
-    plans, or is captured inside the plan version, is unstated.
+11. ~~**Are personal saved templates (§5.7) plan-versioned or library-scoped?**~~ **Settled by the
+    2026-08-26 composable-template clarification:** a published personal `TemplateDefinition`, its
+    fragments, and applicability rows are immutable library-release records shared across plans; the
+    exact branch binding and ordering choices are plan-versioned. Saving a draft definition does not
+    activate it, and publishing a newer record does not migrate a prior binding.

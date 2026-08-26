@@ -11,6 +11,9 @@ Alignment: [`prompts/ALIGNMENT.md`](../prompts/ALIGNMENT.md). On conflict: `00` 
 ALIGNMENT, then this document, then any dispatch prompt.
 Fixtures: [`CONNECTION-EXAMPLES.md`](CONNECTION-EXAMPLES.md) — the eight worked joins, binding on
 R1.
+P10 composition handoff: [`TEMPLATE-BUILDING-HANDOFF.md`](TEMPLATE-BUILDING-HANDOFF.md). It preserves
+this catalogue's one-`uses_schema`-per-row rule while allowing several applicability rows to reuse one
+P10 template definition or fragment.
 
 Why this exists: Joseph asked for 500+ domains and subdomains connected to each other. The
 overnight pass produced 574 flat schemas joined only by `collides_with` — neither what was asked
@@ -77,7 +80,7 @@ anything else. The other three objects are **not roster nodes**.
 | Object | Roster node? | What it is | Owner |
 |---|---|---|---|
 | **Schema** | yes, `kind: schema` | a small fact schema: the fields legal when the domain is plausible. `00`: "Each domain activates only a small set of relevant fields, usually three to six that may help build a future folder proposal and several additional fields used only for search, privacy protection, explanation, or later review" | P6 (fact half of §3.15's pair) |
-| **Template** | yes, `kind: template` | an organizational situation: detection signals, recommended `dimension_order`, optional branch patterns, privacy rules, validation constraints. Points at exactly one schema via `uses_schema`. `00` sizes this library: "roughly 200–300 domain-specific templates" | P10 (folder half of §3.15's pair) |
+| **Template applicability source** | yes, `kind: template` | an organizational situation in one schema context: detection signals, recommended `dimension_order`, optional branch patterns, privacy rules, validation constraints. Points at exactly one schema via `uses_schema`. The later P10 compiler may link several such rows to one shared reusable definition/fragment; that does not change this row's fact boundary. `00` sizes the resulting library: "roughly 200–300 domain-specific templates" | P10 (folder half of §3.15's pair) |
 | **Value** | **no** | `syllabus`, `BUSIB 4300`, `Spring 2026`, `UChicago`. Values auto-create at runtime (`00`: "The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically") — a runtime-created thing cannot be a hand-authored roster row | P6 `values` table |
 | **Group** | **no** | files that belong together — one course-term, one application packet. Overlap allowed: "A file may validly belong to more than one accepted group, such as a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet" | P9 |
 | **Residual** | **no** (a separate nine-name library) | broad destination when there is no reliable deeper association: "Residual templates provide safe, intentionally broad destinations for files that have no reliable deeper association." The nine `00` names: Temporary Screenshots, One-Off Images, Reference Clips, Independent Records, Receipts and Confirmations, Reading Inbox, Review Later, Unsupported or Encrypted, Protected Records | P10 definitions (M10), P11 workflow, R3 slot values |
@@ -105,10 +108,11 @@ type, never a schema per file format.
 `00` defines no schema inheritance, so none exists. Binding rules (provisional only in the sense
 that Joseph could overrule; R1 builds on them as stated):
 
-1. **Templates reference a schema; they never copy its fields.** `uses_schema` is a pointer. A
-   template's `dimension_order` may only name fields its schema declares (already enforced by the
+1. **Catalogue template rows reference one schema; they never copy its fields.** `uses_schema` is a pointer. A
+   row's `dimension_order` may only name fields its schema declares (already enforced by the
    gate for the same reason: a dimension on an undeclared field opens a tree level no fact can
-   fill).
+   fill). P10 reuse occurs above this join: several one-schema applicability records may reference
+   one shared definition, but resolving any one binding still consults only its named schema.
 2. **The folder "parent" is a dimension, not a schema id.** `00`: "A work type such as Homework 3
    is meaningful only after the course is known, and a course code may require the school or term
    to disambiguate it." That sentence is about template order. It licenses no `parent_id`

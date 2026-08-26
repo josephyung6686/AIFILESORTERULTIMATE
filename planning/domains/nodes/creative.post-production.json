@@ -1,0 +1,177 @@
+{
+  "id": "creative.post-production",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Editing and post-production",
+  "one_line": "A bounded moving-image or audio production being assembled from referenced media through ingest, edit, review, grade or mix, master/export and approval; project files may reference media they do not contain. PLACEHOLDER J-IND row: the creative schema declares no field rows, so project, stage, artifact_type and work_type remain values or pending schema decisions.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "A readable edit-project manifest or project file whose bins/timelines/sequences reference source media, proxies, renders or audio assets, with a recurring production name or job identifier in the project metadata or labelled document text.",
+      "An end-to-end packet that independently shows ingest or media manifest, an editable timeline/session, review notes or time-coded feedback, and a named master/export or approval record under one production reference.",
+      "A delivery or approval record that identifies an exact cut, master, mix or export and is paired with the named media asset; APPROVED or FINAL without an identified artifact is insufficient.",
+      "A post-production review document with timecodes, shot/scene references or audio timestamps that names the cut/session being reviewed and a later responding render or session.",
+      "A project archive whose manifest contains editable production files plus linked-media, proxy, cache, grade, mix or export families; archive paths alone never supply project facts."
+    ],
+    "needs_llm": [
+      "deciding whether a timeline/session is a film, commercial, social edit, podcast, music track, lecture, personal video or software-generated render when the surrounding purpose is not labelled",
+      "distinguishing camera originals or still photographs from editorial source media when the same files are also plausible members of photos or shoot-day media",
+      "matching a review note to the exact cut or export when filenames, timecodes, attachment names and embedded thumbnails disagree",
+      "deciding whether a master is approved for release, approved only for internal review, or merely named FINAL in a filename",
+      "deciding whether a project archive is complete when linked media, fonts, LUTs, plugins or external audio are absent"
+    ],
+    "never_alone": [
+      "a .prproj, .fcpxml, .drp, .aep, .aup, .sesx, .wav, .mov or .mp4 extension; extensions route extraction and do not establish a production",
+      "the words edit, cut, master, mix, grade, render, export, proxy, dailies, final or approved alone",
+      "a production, client, director, editor, artist or studio name alone",
+      "a FINAL, v2, R3 or approved filename suffix; version_family is universal metadata and approval requires artifact-bearing evidence",
+      "a folder named Edit, Post, Masters, Exports, Footage or Audio, or membership in one download/export session",
+      "camera EXIF, a video duration, waveform, codec or still image alone",
+      "a screenshot of an NLE timeline without recoverable production context",
+      "a bare date or four-digit number interpreted as shoot date, release year, version or job number"
+    ]
+  },
+  "proposed_context_terms": [
+    "ingest", "media manifest", "offline edit", "online", "timeline", "sequence", "rough cut", "fine cut", "picture lock", "timecode", "proxy", "dailies", "colour grade", "sound mix", "stem", "master", "QC", "delivery export", "approved for release"
+  ],
+  "work_types": [
+    "media ingest or manifest", "edit project", "bin or timeline", "proxy or transcode", "rough cut", "fine cut", "review copy", "feedback or timecoded notes", "colour grade", "sound edit or mix", "picture lock", "master", "delivery export", "approval or QC record"
+  ],
+  "grouping_reasons": [
+    "one production from referenced source media and ingest manifest through editable sessions, review copies, grade or mix, master and approved exports",
+    "one cut-review cycle where the note names the exact version and the responding render or session is recoverable",
+    "one delivery set whose manifest names exact masters, codecs, channels, captions or platform variants",
+    "overlapping membership of a production group and a universal version_family is expected; grouping must not copy project or stage facts onto sparse members"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: creative declares no fields, so this placeholder cannot serialize project, stage, artifact_type or work_type dimensions. If those proposals are later ratified, the lifecycle is terminal under project and stage/work_type rather than a post-production-first collector. Not time-first: ingest, edit, review, grade, mix, export and approval each have different clocks, and filesystem time is not workflow time.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["audio_video", "design_creative", "text_document", "spreadsheet", "presentation", "email", "image", "ocr", "archive", "opaque_binary"],
+    "extensions": [".prproj", ".fcpxml", ".drp", ".aep", ".aup", ".sesx", ".wav", ".aaf", ".omf", ".mov", ".mp4", ".mxf", ".xml", ".edl", ".pdf", ".xlsx", ".eml", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Harbour Film_Edit_v12.prproj",
+      "source_type": "design_creative",
+      "observations": ["project metadata names sequences, bins and linked media paths", "timeline contains a v12 sequence and proxy references", "source media are not embedded"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["project, stage or work_type facts because creative has no fields", "that linked paths are present on this machine", "approval from v12"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Harbour_Film_Source_Media_Manifest.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows list camera card names, proxy names, audio rolls and checksum/status columns", "header names a production and ingest date", "some rows are marked offline"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["that every listed media file exists", "a project or stage fact from the spreadsheet title alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Film_Rough Cut 03.mov",
+      "source_type": "audio_video",
+      "observations": ["video contains a visible timecode burn-in and slate naming the production", "end card says ROUGH CUT", "audio and picture are a single review export"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["approval, picture lock or release readiness", "that the file is the master because it is a video", "a project fact copied from a nearby file"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Film_Rough Cut 03_notes.eml",
+      "source_type": "email",
+      "observations": ["body names the attached cut and gives time-coded requests", "sender and recipient roles cross a production team boundary", "thread quotes an earlier review export"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["that the sender is the client or approver without a labelled role", "that every attachment in the thread belongs to the cut", "that requests were implemented"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Film_Grade_Review.pdf",
+      "source_type": "text_document",
+      "observations": ["pages show frame grabs with shot/timecode annotations", "review header identifies a grade session and a named cut", "comments include colour and exposure changes"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that all notes are approved changes", "that reviewer initials establish identity or authority", "a project or stage field"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Film_Final_Master_ProRes.mov",
+      "source_type": "audio_video",
+      "observations": ["container metadata identifies ProRes video and discrete audio channels", "slate names the production and master duration", "filename says Final Master"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["release approval from the filename", "that this is the approved master without a linked sign-off", "a delivery recipient or rights grant"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Harbour Film_Delivery_QC.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows list exact export filenames, codec, frame rate, audio layout, captions and pass/fail checks", "header identifies delivery destination", "one variant is marked failed"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["that a pass is client approval", "that unlisted exports belong to the delivery", "usage rights from a destination label"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Harbour_Film_Post_Archive.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists project file, bins, proxies, grade notes, mix stems, masters and QC sheet", "some linked source media are absent and an invoice is a separate member", "one production reference recurs across filenames"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["facts from archive folder names", "that absent media were delivered", "that the invoice is a creative artifact"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_8841.MOV",
+      "source_type": "audio_video",
+      "observations": ["phone video has camera metadata and a short duration", "no production name, slate, timeline reference or review context", "content is a single unedited street recording"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["post-production activity from the video extension", "a project or work_type fact", "that it is a production source rather than a personal recording"],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "build-release-notes.md",
+      "source_type": "code_structured",
+      "observations": ["document is inside a repository with package manifest", "notes describe software build artifacts and deployment checks", "words render and release refer to binaries"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": ["post-production from render/release vocabulary", "a creative project or master", "that a video export exists"],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A standalone master, project file or QC record with durable purpose but no recoverable production association belongs in the broad residual rather than a synthetic project collector.", "provenance": "design"},
+    {"residual_template": "Review Later", "why": "Unattached review notes, incomplete manifests and ambiguous approval records need a future decision when the production cannot be recovered.", "provenance": "design"},
+    {"residual_template": "One-Off Images", "why": "A lone phone recording or still without production evidence is not post-production merely because it could later become source media.", "provenance": "design"},
+    {"residual_template": "Protected Records", "why": "Unreleased cuts, named counterparties and candid review may remain sensitive even when no production association can be resolved.", "provenance": "design"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Unreleased cuts, raw media, location sound, client or performer names, review comments and delivery masters can expose confidential production material. This is the same engagement/project posture, not a new handling class; universal sensitivity_status remains legal.",
+  "open_question": "NEEDS-JOSEPH: whether post-production should remain a lifecycle template under a future creative project schema, or whether a universal graph view should expose ingest → edit → review → grade/mix → master/export → approval as typed edges and stage/work_type values. Recommended: retain this placeholder template, add no fields, and let P9/P10 assemble the lifecycle from evidence and user-confirmed groups. Claims in this row are activation observations, not causal workflow facts."
+}

@@ -1,0 +1,204 @@
+{
+  "id": "creative.shoot-day-media",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Shoot-day camera and sound media",
+  "one_line": "Production-day camera originals, sound rolls, metadata, selects and handoff records kept together by the day they were captured.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a call sheet, shooting schedule or slate log containing a shoot date and production or project identifier, alongside camera, sound or unit language",
+      "a camera-card, media-card or sound-roll manifest whose rows contain reel, card, clip or roll identifiers and whose surrounding files include a call sheet or production report",
+      "a handoff or checksum manifest explicitly naming camera originals, rushes, dailies, sound rolls or selects and linking them to a shoot date"
+    ],
+    "needs_llm": [
+      "a production-day folder whose only explicit signal is prose in a production report or email, with no standard call-sheet heading",
+      "deciding whether a set photograph documents a production day or is an ordinary personal/event capture when the image has no slate, crew, production or project context",
+      "mapping informal clip, reel and card naming conventions to one shoot day when the date is present only in neighboring documents"
+    ],
+    "never_alone": [
+      "a camera timestamp, EXIF record or video creation time alone; those establish capture evidence, not a production-day template",
+      "a folder named 'Day 1', 'rushes' or 'dailies' alone; these labels occur in personal recordings, exports and temporary working folders",
+      "a video or image extension alone; SOURCE_TYPES and extensions route extraction but do not establish a shoot or production context",
+      "a call sheet or calendar entry alone; it may describe a planned day for which no media exists and must not make unrelated files shoot-day media"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "call sheet",
+    "camera original",
+    "sound roll",
+    "production report",
+    "rushes",
+    "dailies",
+    "metadata sidecar",
+    "selects",
+    "handoff manifest"
+  ],
+  "grouping_reasons": [
+    "one capture day linking its call sheet, camera cards, sound rolls, production report and rushes",
+    "one media handoff linking original media, checksums, metadata and selected exports",
+    "one production's repeated shoot days when a shared project identifier is directly established, while retaining each day's capture context"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The creative schema is a placeholder with no inherited field rows, so this template recommends no destination dimensions yet. Its organizational distinction is procedural: call sheet → captured media → metadata and selection → handoff. A later schema pass may decide whether project, stage, artifact_type, event, capture_year or media_type are legal destination fields; this node must not mint them.",
+    "time_first": true
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "calendar",
+      "email",
+      "image",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".ics",
+      ".eml",
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".arw",
+      ".cr3",
+      ".mov",
+      ".mp4",
+      ".wav",
+      ".bwf",
+      ".mxf",
+      ".xml",
+      ".json",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "2026-08-12_CALL_SHEET_NIGHT_UNIT.pdf",
+      "source_type": "text_document",
+      "observations": ["filename contains CALL_SHEET and a date", "document contains scene, crew-call and location sections"],
+      "facts_legal": [],
+      "must_not_conclude": ["a creative project fact while the creative schema has no declared fields", "that every file captured on the listed date belongs to this shoot"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CamA_CARD_07_manifest.csv",
+      "source_type": "spreadsheet",
+      "observations": ["sheet has clip names, card identifier, start time and checksum columns", "nearby path or attachment names a production day"],
+      "facts_legal": [],
+      "must_not_conclude": ["capture event or project without a corroborating production record", "that checksum rows are themselves playable media"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "A001C003_260812_R3.mov",
+      "source_type": "audio_video",
+      "observations": ["video container metadata has a camera/reel/clip-shaped name", "creation metadata is consistent with the date in a neighboring call sheet"],
+      "facts_legal": [],
+      "must_not_conclude": ["production membership from filename syntax alone", "that the file is a final deliverable rather than camera original or rush"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Sound_Roll_03_BWF.wav",
+      "source_type": "audio_video",
+      "observations": ["audio metadata identifies a broadcast-wave recording", "roll number appears in a production sound report"],
+      "facts_legal": [],
+      "must_not_conclude": ["the corresponding scene or project without a sound report or slate link", "that a voice memo is a production sound roll"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "2026-08-12_production_report.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["labeled columns include date, scenes, camera cards, sound rolls and notes", "rows cross-reference clip and roll identifiers"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that every listed clip was successfully recorded"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Dailies_2026-08-12.zip",
+      "source_type": "archive",
+      "observations": ["archive manifest contains proxy video, still thumbnails and a notes file", "member names reference a shoot date and camera reels"],
+      "facts_legal": [],
+      "must_not_conclude": ["that archive members are camera originals", "that an archive is safe to extract or move without its manifest and fixity checks"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "A001C003_metadata.xml",
+      "source_type": "opaque_binary",
+      "observations": ["sidecar contains camera or editorial metadata fields", "basename shares a clip stem with a media file"],
+      "facts_legal": [],
+      "must_not_conclude": ["that the sidecar is independently meaningful without its media stem", "a project or event from metadata keys alone"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Selects_client-review_v2.mp4",
+      "source_type": "audio_video",
+      "observations": ["filename says Selects and client review", "video is a short assembled subset rather than a camera-card naming family", "a handoff note links it to the shoot-day media"],
+      "facts_legal": [],
+      "must_not_conclude": ["that it is a final deliverable or licensed master", "that 'client' proves a career or commercial relationship without its agreement evidence"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "2026-08-12_media_handoff_manifest.pdf",
+      "source_type": "text_document",
+      "observations": ["document lists delivered media, checksum values, storage location and recipient", "it references camera and sound roll identifiers"],
+      "facts_legal": [],
+      "must_not_conclude": ["that listed media still exists at the stated destination", "rights or licence facts; those belong to a later rights or career/legal treatment"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_4821.JPG",
+      "source_type": "image",
+      "observations": ["image has camera EXIF and a capture timestamp", "frame shows a set or event but has no slate, call-sheet or production linkage"],
+      "facts_legal": [],
+      "must_not_conclude": ["shoot-day media from EXIF or a set-like image alone", "a production project or crew role"],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Independent Records",
+    "One-Off Images",
+    "Reference Clips",
+    "Review Later",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Production media can contain identifiable people, private locations, unreleased work and contact or delivery details. This is only the catalogue's potentially_sensitive flag; handling and protected-record policy belong to P7.",
+  "open_question": "Should a production-day call sheet and its media be treated as one creative template when the work is personal or documentary, or should this template require an explicit project/production anchor and leave ordinary event captures to Photos? The current node requires the anchor and keeps the creative schema placeholder; Joseph must decide which future creative fields, if any, may become destination dimensions."
+}

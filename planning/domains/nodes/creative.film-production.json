@@ -1,0 +1,182 @@
+{
+  "id": "creative.film-production",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Film and video production",
+  "one_line": "A production as an organising whole — its script, preproduction paperwork, shoot media, edit projects, cuts, delivery masters and release-rights records — from development through publication.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "A screenplay structure with scene headings such as INT./EXT., character cues above dialogue and explicit transitions, especially when paired with a named production or a production-paperwork neighbour.",
+      "A preproduction packet containing a labelled call sheet or shooting schedule with a shoot date, call time, location, scene or shot references, and cast/crew roles; a budget or stripboard may support the same production group.",
+      "A production-media neighbourhood containing camera-original or take-numbered video/audio files plus a slate, shot list, or camera report that names the production or shoot day.",
+      "A non-linear editing or compositing project whose timeline/bins reference a recoverable set of production media, alongside exports or cuts sharing a production stem.",
+      "A release package containing a delivery master or named cut plus caption/subtitle, poster/trailer, delivery specification, or handoff manifest; a signed model, property, music, or location release can provide the rights-to-release stage.",
+      "The complete lifecycle is a graph/grouping pattern, not a licence to copy a production fact onto every member: script → preproduction → shoot → edit → release/rights is supported only when the individual links are explicit or reviewable."
+    ],
+    "needs_llm": [
+      "Deciding whether a script, schedule, media card dump, edit project and delivery export are one production when titles differ or the production name is abbreviated.",
+      "Distinguishing a documentary, commercial, music video, short film, social cut or event recording from a generic video file when the work type is expressed only in prose or a sparse project neighbourhood.",
+      "Resolving whether a release document authorises filming, a particular use, a territory, a term, or final publication; a signature alone does not establish the scope of rights.",
+      "Separating an independent trailer, portfolio reel, stock clip, lecture recording or phone video from a production's own edit when no script, schedule, project file, or rights record anchors it.",
+      "Judging whether an archive is a complete handoff, an in-progress backup, or a camera-card copy when its manifest is mixed or partly unreadable."
+    ],
+    "never_alone": [
+      "An .mp4, .mov, .mxf, .wav, .aaf, .fcpxml, .prproj, .drp, .srt or .zip extension by itself; extensions route extraction and do not establish a production.",
+      "A filename token such as FILM, MOVIE, CUT, MASTER, FINAL, PICTURE_LOCK, ROLL_03, TAKE_07 or DELIVERY without a production-specific neighbourhood.",
+      "A camera-original file, duration, codec, resolution, timecode, slate number, or high-bitrate media file alone; the same observations occur in personal videos, lectures, surveillance, stock footage and phone captures.",
+      "A script-like document with no production identity; screenplay structure can be a writing sample, classroom exercise, theatre script, or an unrelated draft.",
+      "A client, studio, broadcaster, label or festival name alone; organisations may be commissioner, rights holder, venue, subject, sender, employer or merely mentioned.",
+      "A calendar event, contact card, email thread, download session, or folder named Production/Film/Video by itself; these are context or retrieval clues, not activation proof.",
+      "FINAL, APPROVED, RELEASED or PICTURE LOCK in a filename as proof of approval, delivery or publication; those claims require labelled content or an explicit rights/handoff record.",
+      "The absence of a release form, script, metadata, or EXIF as proof that a video is unreleased, personal, or screen-originated."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "screenplay",
+    "treatment or pitch",
+    "schedule, call sheet or shot list",
+    "budget or production report",
+    "camera original, take or sync audio",
+    "edit project or timeline",
+    "rough cut, picture lock or review cut",
+    "delivery master, trailer or social cut",
+    "caption, subtitle or transcript",
+    "model, property, music or location release"
+  ],
+  "grouping_reasons": [
+    "one named production across its screenplay, treatment and development material",
+    "one production's preproduction packet across schedule, call sheet, budget, shot list and crew paperwork",
+    "one shoot day or camera-media batch linked by slate, scene, take, timecode, location or production name",
+    "one edit project and the media, proxies, captions, audio stems and exports it references",
+    "one review or delivery cycle across cut, notes, responding cut, master and handoff manifest",
+    "one release-rights packet whose releases, licences and permissions govern the production or its intended publication",
+    "the lifecycle is intentionally cross-format and cross-stage; membership must be evidenced per file rather than propagated from a single script or folder"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: the creative schema declares no field rows, so this placeholder may recommend recognition and grouping but may not branch on project, stage, artifact_type or a film-specific synonym. The lifecycle belongs in accepted groups and work-type values: script → preproduction → shoot → edit → release/rights. If creative fields are ratified later, the natural recommendation would be project → stage → artifact_type, with film stages and media forms as values; a production-stage-first tree would scatter the same work across script, shoot and edit. Time is not first: shoot dates and release dates are distinct observations, and capture-first organization belongs to the photos/capture situation.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "email", "calendar", "contacts", "audio_video", "archive", "design_creative", "image"],
+    "extensions": [".fdx", ".fountain", ".pdf", ".docx", ".xlsx", ".pptx", ".ics", ".vcf", ".eml", ".mov", ".mp4", ".mxf", ".wav", ".aaf", ".prproj", ".fcpxml", ".drp", ".srt", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Harbour Lights - screenplay v5.fdx",
+      "source_type": "text_document",
+      "observations": ["screenplay grammar includes scene headings, character cues and dialogue", "title page names Harbour Lights and draft v5", "revision date appears on the title page"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "language", "sensitivity_status"],
+      "must_not_conclude": ["that a shoot occurred", "that the script is approved or financed", "a project or stage fact because creative declares no fields", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Harbour Lights - call sheet 2026-09-14.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["labelled call time, unit, location, scenes, cast and crew columns", "date and production title appear in header", "sheet includes emergency contact and parking notes"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["that every listed person attended", "that the date is the only production date", "a client or rights holder from a contact name", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Lights - shoot schedule.ics",
+      "source_type": "calendar",
+      "observations": ["calendar events contain call times, locations and scene labels", "organizer and attendees are present", "recurrence is absent and event titles share the production stem"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["that an event happened merely because it is scheduled", "that attendees are cast or crew without role evidence", "a completed shoot or release", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "A003_CamA_014.MXF",
+      "source_type": "audio_video",
+      "observations": ["video metadata exposes duration, codec, timecode and camera identifier", "embedded slate frame reads Harbour Lights / scene 12 / take 4", "file sits beside same-day camera reports and audio takes"],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": ["that the take is good or selected", "that the camera date is the shoot date without corroboration", "a production from the container alone", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Harbour Lights_Edit_v12.prproj",
+      "source_type": "design_creative",
+      "observations": ["editing project contains sequences named Rough Cut, Picture Lock and Trailer", "bins reference A003 camera media, production audio and graphics", "project metadata names the production"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that Picture Lock is approved merely from a sequence name", "that missing media is deleted", "a project or stage fact because creative declares no fields", "a folder path"],
+      "also_schema": "code",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Harbour Lights_PictureLock_2026-10-03.mov",
+      "source_type": "audio_video",
+      "observations": ["export has end credits and a slate reading Picture Lock", "sidecar SRT and review notes share the same stem", "email nearby identifies a review delivery but not final publication"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "language", "sensitivity_status"],
+      "must_not_conclude": ["public release or broadcaster acceptance", "that the cut is the final master from the filename", "a production without linked anchors", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Lights - delivery manifest and masters.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists ProRes master, web MP4, captions, poster and checksum file", "archive paths share a production stem", "README names delivery recipient and requested formats"],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": ["that the recipient accepted delivery", "that every archive member is approved for every territory", "facts from archive filenames alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Model release - Mara Chen - Harbour Lights.pdf",
+      "source_type": "text_document",
+      "observations": ["signed form names a person, production, permitted media and a usage territory", "term and signature dates are labelled", "form contains contact details"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["that all footage featuring the person is cleared", "that the license covers an unlisted sequel, territory or medium", "a production solely from the title", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Selected Works 2025 - director reel.mp4",
+      "source_type": "audio_video",
+      "observations": ["curated reel combines excerpts from several unrelated works", "opening slate names a director and portfolio URL", "no script, schedule, edit project or production rights packet is present"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["one film-production group", "that the director owns rights to every excerpt", "a production stage or project", "a folder path"],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {"domain": "career", "signal": "A curated director reel or selected-works export can look like a production delivery, but portfolio framing and multiple unrelated works indicate career material rather than one production."},
+    {"domain": "code", "signal": "An editing project or media archive can contain structured project files and manifests, but a production timeline and referenced media are not a software repository; repository markers and source files support code instead."},
+    {"domain": "photos", "signal": "Camera-origin video and stills can share capture metadata and shoot-day context; a film production requires screenplay, production paperwork, timeline or rights evidence, while a photo event can activate from capture/event evidence."}
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A standalone script, cut, release, or media file with durable purpose but no recoverable production group should remain independent rather than receive a synthetic film branch.", "provenance": "inference"},
+    {"residual_template": "Review Later", "why": "An ambiguous cut, schedule, rights email, or mixed archive whose production membership or release status cannot be resolved needs review.", "provenance": "design"},
+    {"residual_template": "Reference Clips", "why": "Downloaded trailers, stock footage and visual references with no current production anchor are retrieval material, not production members.", "provenance": "inference"},
+    {"residual_template": "Protected Records", "why": "Signed releases and contact-bearing rights records may need protected local handling even when production association is unresolved.", "provenance": "design"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Unreleased scripts, cast and crew contact details, location information, rough cuts, client instructions, music permissions and model/property releases can expose people, production security, contractual terms or embargoed work. The posture follows the production group; this row does not assign a P7 handling class.",
+  "open_question": "NEEDS-JOSEPH: whether the product should expose script, preproduction, shoot, edit and release/rights as a typed lifecycle view in the graph. Recommended: keep them as work_type/stage values and explicit file edges under the creative schema, with no film-specific fields or child nodes. A later field-ratification decision could adopt project → stage → artifact_type, but this placeholder must not decide that schema change."
+}

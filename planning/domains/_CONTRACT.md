@@ -4,6 +4,12 @@ Date: 2026-08-21
 Status: **shape contract.** Every catalogue file conforms to this or it is not merged.
 Source of truth: [`00-database-agent-product-design.md`](../00-database-agent-product-design.md)
 
+P10 reuse clarification (2026-08-26): this catalogue's `kind: template` row remains bound to exactly
+one `uses_schema`. It is an authored applicability source, not proof that its organization recipe is
+owned by that schema. The later template-building pass may link several one-schema applicability
+records to one shared P10 template definition or fragment. Current agents must not add keys to the
+closed JSON shape. See [`TEMPLATE-BUILDING-HANDOFF.md`](TEMPLATE-BUILDING-HANDOFF.md).
+
 ## What a "domain" is, in this product
 
 Not an industry label. The design makes it a load-bearing mechanism in three places:
@@ -149,10 +155,13 @@ and are superseded by R1's roster, not migrated in place.
     kind-scoped checks below only to entries that carry `kind`, so the legacy 574 gain no new
     findings before R1 replaces them.
 
-12. **Every `kind: template` entry carries `uses_schema: "<schema id>"` — exactly one.** A
-    template references its schema's fields; it never copies the field list, and its
+12. **Every `kind: template` entry carries `uses_schema: "<schema id>"` — exactly one.** At this
+    catalogue layer the row is one applicability source. A row references its schema's fields; it never copies the field list, and its
     `template.dimension_order` may only branch on fields that schema declares (rule 8's second
-    half, now checked across the `uses_schema` join for templates).
+    half, now checked across the `uses_schema` join for templates). This one-schema safety rule does
+    not impose one-domain ownership on P10's later reusable definition: several independently valid
+    catalogue rows may compile to applicability records referencing the same definition/fragment, as
+    specified by `TEMPLATE-BUILDING-HANDOFF.md`.
 
 13. **`parent_id` is optional and browse-only, on `kind: template` entries only.** It shelves the
     library for humans. It is never schema inheritance, never an activation input, never a folder
