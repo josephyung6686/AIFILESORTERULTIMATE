@@ -7,13 +7,22 @@ Internal modules import `P8Verdict` explicitly; this package exports no bare `Ve
 from privacy.release import NeedsConsent
 
 from llm_harness.harness import run_call
-from llm_harness.records import Dossier, P8Verdict, Refusal, ValidationUnavailable
+from llm_harness.records import (
+    CallFailed,
+    Dossier,
+    DossierRequest,
+    P8Verdict,
+    Refusal,
+    ValidationUnavailable,
+)
 
 __all__ = [
     "run_call",
+    "DossierRequest",
     "Dossier",
     "P8Verdict",
     "Refusal",
+    "CallFailed",
     "ValidationUnavailable",
     "NeedsConsent",
 ]

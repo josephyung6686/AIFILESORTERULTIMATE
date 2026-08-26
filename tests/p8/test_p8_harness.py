@@ -270,13 +270,17 @@ def _run(conn, request, *, gate, model_client, prompt, deps):
 def test_public_surface_now_includes_run_call():
     assert llm_harness.__all__ == [
         "run_call",
+        "DossierRequest",
         "Dossier",
         "P8Verdict",
         "Refusal",
+        "CallFailed",
         "ValidationUnavailable",
         "NeedsConsent",
     ]
     assert llm_harness.run_call is run_call
+    assert llm_harness.DossierRequest is DossierRequest
+    assert llm_harness.CallFailed is CallFailed
     assert llm_harness.NeedsConsent is NeedsConsent
     assert "Verdict" not in llm_harness.__all__
     assert not hasattr(llm_harness, "Verdict")

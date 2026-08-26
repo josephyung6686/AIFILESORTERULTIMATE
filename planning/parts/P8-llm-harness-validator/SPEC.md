@@ -451,8 +451,10 @@ re-calling a model, which is what makes shadow mode (§8.5) affordable.
 **P2's envelope (B7).** P8 emits P2 `stage_output` with `stage_id = llm_interpretation` — stage 5 of
 §8.5's closed ten, and the only stage P8 owns. `P8` is **not** a member of that enumeration and must
 never appear in the field. Each output carries `inputs[]`, an explicit abstention value, a distinct
-budget-deferral value, and the version tuple `(model_id, prompt_fingerprint, validator_version,
-policy_version)`, already recorded per verdict.
+budget-deferral value, and P2's live seven-field version tuple `(extractor_versions,
+graph_algorithm_version, prompt_fingerprint, model_identifier, template_library_version,
+placement_scorer_version, analysis_tiers_enabled)`. `validator_version` and `policy_version` remain
+inside P8's opaque payload and verdict/report records; they are not P2 version-tuple axes.
 
 **P8's result → the envelope's vocabulary.** `stage_output.outcome` is P2's five-value enumeration,
 **not** P8's five-value `Verdict.outcome`. They are different vocabularies and this table is the only

@@ -431,9 +431,11 @@ def test_p8_public_surface_still_exports_no_transport_or_client():
     assert llm_harness.run_call is run_call
     assert llm_harness.__all__ == [
         "run_call",
+        "DossierRequest",
         "Dossier",
         "P8Verdict",
         "Refusal",
+        "CallFailed",
         "ValidationUnavailable",
         "NeedsConsent",
     ]

@@ -256,6 +256,39 @@ def test_missing_run_manifest_is_refused(stage_conn):
     assert stage_conn.execute("SELECT count(*) AS c FROM stage_output").fetchone()["c"] == 0
 
 
+def test_version_tuple_must_match_the_run_manifest(stage_conn):
+    run_id, manifest_ref, _ = _open_run(stage_conn)
+    other_ref = record_p8_version_tuple(
+        stage_conn, **_axes(prompt_fingerprint="fp-from-another-run"),
+    )
+    assert other_ref != manifest_ref
+
+    with pytest.raises(ValueError, match="run_manifest"):
+        emit_stage_output(
+            stage_conn, run_id=run_id, subject_ref="file-1",
+            result=make_verdict(), inputs=("obs-key-1",),
+            version_tuple_ref=other_ref,
+        )
+
+    assert stage_outputs(stage_conn, run_id) == []
+
+
+def test_run_manifest_version_tuple_must_still_exist(stage_conn):
+    run_id, ref, _ = _open_run(stage_conn)
+    stage_conn.execute("PRAGMA foreign_keys = OFF")
+    stage_conn.execute(
+        "DELETE FROM version_tuple WHERE version_tuple_ref = ?", (ref,),
+    )
+
+    with pytest.raises(KeyError, match="version_tuple"):
+        emit_stage_output(
+            stage_conn, run_id=run_id, subject_ref="file-1",
+            result=make_verdict(), inputs=("obs-key-1",), version_tuple_ref=ref,
+        )
+
+    assert stage_outputs(stage_conn, run_id) == []
+
+
 def test_emit_calls_live_record_stage_output_without_produced_at():
     tree = ast.parse(SRC.read_text(encoding="utf-8"))
     calls = [

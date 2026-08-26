@@ -99,10 +99,26 @@ def emit_stage_output(
     """Write one `llm_interpretation` envelope. `produced_at` is stamped by P2."""
     outcome, budget_state = _envelope(result)
     manifest = conn.execute(
-        "SELECT run_id FROM run_manifest WHERE run_id = ?", (run_id,),
+        "SELECT rm.version_tuple_ref AS manifest_version_tuple_ref, "
+        "vt.version_tuple_ref AS existing_version_tuple_ref "
+        "FROM run_manifest AS rm "
+        "LEFT JOIN version_tuple AS vt "
+        "ON vt.version_tuple_ref = rm.version_tuple_ref "
+        "WHERE rm.run_id = ?",
+        (run_id,),
     ).fetchone()
     if manifest is None:
         raise KeyError(f"run_id {run_id!r} does not identify an existing run_manifest")
+    manifest_ref = manifest["manifest_version_tuple_ref"]
+    if manifest["existing_version_tuple_ref"] is None:
+        raise KeyError(
+            f"run_manifest {run_id!r} references missing version_tuple {manifest_ref!r}"
+        )
+    if version_tuple_ref != manifest_ref:
+        raise ValueError(
+            f"version_tuple_ref {version_tuple_ref!r} does not match run_manifest "
+            f"{run_id!r} version_tuple_ref {manifest_ref!r}"
+        )
     return record_stage_output(
         conn,
         run_id=run_id,
