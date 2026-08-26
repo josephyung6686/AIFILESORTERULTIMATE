@@ -189,7 +189,7 @@ def assemble_group_dossier(
     withheld: list[str] = []
     classes: set[str] = set()
 
-    for file_id in graph.nodes:
+    for file_id in graph.file_ids:
         row = _file_row(conn, file_id)
         content_hash = row["content_hash"] if row is not None else ""
         handling_class = resolve_class(classification_store(file_id, content_hash))

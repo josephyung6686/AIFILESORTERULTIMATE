@@ -64,9 +64,16 @@ DuplicateOrVersion = Callable[[str, str], str]
 
 @dataclass(frozen=True)
 class LocalEvidenceGraph:
+    """The bounded neighbourhood as a graph.
+
+    `file_ids` and not `nodes`: a graph node here is a file version, and a P10
+    node is a destination in the tree. One word for two concepts, and P9 must
+    never name the second -- so it does not name it at all.
+    """
+
     group_id: str
     seed_file_id: str
-    nodes: tuple[str, ...]
+    file_ids: tuple[str, ...]
     edges: tuple[TypedEdge, ...]
     capped: bool
     omissions: tuple[str, ...]
@@ -183,21 +190,21 @@ def build_graph(
 
     ordered = sorted(suppressed, key=lambda edge: _rank(edge, frozenset(anchoring)))
     kept: list[TypedEdge] = []
-    nodes: list[str] = [seed_file_id]
+    reached: list[str] = [seed_file_id]
     dropped: list[str] = []
     for edge in ordered:
-        if edge.to_file_id in nodes:
+        if edge.to_file_id in reached:
             kept.append(edge)
             continue
-        if len(nodes) >= limits.max_graph_nodes:
+        if len(reached) >= limits.max_graph_nodes:
             dropped.append(edge.to_file_id)
             continue
-        nodes.append(edge.to_file_id)
+        reached.append(edge.to_file_id)
         kept.append(edge)
     return LocalEvidenceGraph(
         group_id=group_id,
         seed_file_id=seed_file_id,
-        nodes=tuple(nodes),
+        file_ids=tuple(reached),
         edges=tuple(sorted(kept, key=lambda edge: edge.edge_id)),
         capped=bool(dropped),
         omissions=tuple(
@@ -233,6 +240,40 @@ def _standing_reject(
     return False
 
 
+def anchoring_files(
+    graph: LocalEvidenceGraph, *, seed_anchors: bool,
+) -> frozenset[str]:
+    """Every file that states the group's basis DIRECTLY.
+
+    The seed is one of them when its own fact is validated: a group of one, seeded
+    by a direct fact, has an anchor even though no edge points at it. Counting only
+    edge endpoints would say a file cannot anchor itself, which is the opposite of
+    what a strongly-identified seed is.
+    """
+    reached = {
+        edge.to_file_id for edge in graph.edges
+        if edge.edge_type == SHARED_VALIDATED_FACT and not edge.hub_suppressed
+    }
+    if seed_anchors:
+        reached.add(graph.seed_file_id)
+    return frozenset(reached)
+
+
+def meets_support_bar(
+    graph: LocalEvidenceGraph, *, limits: GroupingLimits, seed_anchors: bool,
+) -> bool:
+    """Whether the group has enough INDEPENDENT anchors to be `supported`.
+
+    Not a stop rule, and deliberately separate from SR1. SR1 is "no valid anchor"
+    -- zero of them -- and it stops the group forming at all. This is §4.9's
+    minimum independent anchor count, which decides whether a formed group may
+    become `supported` rather than staying a candidate. Conflating the two made a
+    one-anchor group vanish instead of waiting for confirmation.
+    """
+    return len(anchoring_files(graph, seed_anchors=seed_anchors)) >= (
+        limits.minimum_independent_anchors)
+
+
 def evaluate_stop_rules(
     conn: sqlite3.Connection,
     graph: LocalEvidenceGraph,
@@ -240,6 +281,7 @@ def evaluate_stop_rules(
     limits: GroupingLimits,
     conflicts_for: ConflictsFor,
     basis_key: str,
+    seed_anchors: bool,
 ) -> StopRuleOutcome | None:
     """The five stop rules decidable before a dossier and before a model call.
 
@@ -251,10 +293,9 @@ def evaluate_stop_rules(
     fired: list[str] = []
     evidence: list[str] = []
 
-    anchors = [
-        edge for edge in live if edge.edge_type == SHARED_VALIDATED_FACT
-    ]
-    if len({edge.to_file_id for edge in anchors}) < limits.minimum_independent_anchors:
+    if not anchoring_files(graph, seed_anchors=seed_anchors):
+        # SR1 is zero anchors, not "fewer than the support bar". The bar is
+        # `meets_support_bar`, and it decides `supported` rather than existence.
         fired.append(SR1)
         evidence.extend(edge.evidence_ref for edge in live)
 
@@ -268,7 +309,7 @@ def evaluate_stop_rules(
         fired.append(SR3)
         evidence.extend(edge.evidence_ref for edge in bridging)
 
-    found = conflicts_for(graph.nodes)
+    found = conflicts_for(graph.file_ids)
     if found:
         fired.append(SR4)
         evidence.extend(

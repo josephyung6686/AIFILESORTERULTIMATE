@@ -290,3 +290,24 @@ def test_the_store_names_no_destination_concept():
                 if word in node.value.lower():
                     offenders.append(f"{node.lineno}:{word}")
     assert offenders == [], offenders
+
+
+def test_a_group_id_carrying_different_content_is_refused(store_conn):
+    """A group id derived from its seed is an address, so a rerun over unchanged
+    evidence is the same group. Two different groups under one id is a builder
+    bug, and a revision supersedes rather than replaces."""
+    from grouping.records import MalformedGroupRecord
+
+    record_group(store_conn, _group())
+    with pytest.raises(MalformedGroupRecord):
+        record_group(store_conn, _group(proposed_basis="subject=ECON1105"))
+    assert current_group(store_conn, GROUP).proposed_basis == "subject=PHYS1401"
+
+
+def test_a_membership_id_carrying_different_content_is_refused(store_conn):
+    from grouping.records import MalformedGroupRecord
+
+    record_membership(store_conn, _membership())
+    with pytest.raises(MalformedGroupRecord):
+        record_membership(store_conn, _membership(file_id="a-different-file"))
+    assert current_membership(store_conn, "membership-1").file_id == "file-2"

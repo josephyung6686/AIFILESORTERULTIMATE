@@ -266,7 +266,7 @@ def test_the_cap_retains_direct_anchors_before_any_other_edge():
     )
     kept = {e.to_file_id for e in graph.edges}
     assert {"anchor-1", "anchor-2"} <= kept
-    assert len(graph.nodes) == 3
+    assert len(graph.file_ids) == 3
     assert graph.capped is True
     assert graph.omissions
 

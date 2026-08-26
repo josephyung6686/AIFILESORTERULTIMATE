@@ -219,7 +219,8 @@ def test_the_basis_key_sr6_matches_is_the_one_this_module_publishes(review_conn)
         limits=_limits(), duplicate_or_version=None, created_at=T0)
     outcome = evaluate_stop_rules(
         review_conn, graph, limits=_limits(),
-        conflicts_for=lambda files: (), basis_key=group_basis_key(group))
+        conflicts_for=lambda files: (), basis_key=group_basis_key(group),
+        seed_anchors=True)
     assert outcome is not None
     assert SR6 in outcome.rules_fired
 

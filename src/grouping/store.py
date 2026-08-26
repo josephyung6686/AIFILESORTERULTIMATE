@@ -28,6 +28,7 @@ from evidence_shape.canonical import canonical_json
 
 from grouping.records import (
     AnchorFact,
+    MalformedGroupRecord,
     CandidateGroupDossier,
     Conflict,
     FailurePoint,
@@ -122,7 +123,23 @@ def _link(conn: sqlite3.Connection, table: str, key: str, record) -> None:
 
 
 def record_group(conn: sqlite3.Connection, group: Group) -> str:
+    """Insert one group, or return the id when the same one is already recorded.
+
+    A group id derived from its seed is an address, so a rerun over unchanged
+    evidence is the same group and not a conflict. A row under that id with
+    DIFFERENT content is a different failure and is refused rather than
+    overwritten -- the trigger would refuse it anyway, and later.
+    """
     _check_supersession(conn, "groups", "group_id", group)
+    existing = conn.execute(
+        "SELECT * FROM groups WHERE group_id = ?", (group.group_id,)).fetchone()
+    if existing is not None:
+        if current_group(conn, group.group_id) != group:
+            raise MalformedGroupRecord(
+                f"group {group.group_id} is already recorded with different "
+                "content; a revision supersedes rather than replaces"
+            )
+        return group.group_id
     with transaction(conn):
         conn.execute(
             "INSERT INTO groups ("
@@ -177,7 +194,18 @@ def current_group(conn: sqlite3.Connection, group_id: str) -> Group:
 
 
 def record_membership(conn: sqlite3.Connection, membership: Membership) -> str:
+    """Insert one membership, or return the id when the same one is recorded."""
     _check_supersession(conn, "memberships", "membership_id", membership)
+    existing = conn.execute(
+        "SELECT * FROM memberships WHERE membership_id = ?",
+        (membership.membership_id,)).fetchone()
+    if existing is not None:
+        if _membership_from(existing) != membership:
+            raise MalformedGroupRecord(
+                f"membership {membership.membership_id} is already recorded with "
+                "different content; a revision supersedes rather than replaces"
+            )
+        return membership.membership_id
     with transaction(conn):
         conn.execute(
             "INSERT INTO memberships ("

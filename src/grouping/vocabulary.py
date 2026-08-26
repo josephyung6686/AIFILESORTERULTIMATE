@@ -198,6 +198,18 @@ REVIEW_STATES: tuple[str, ...] = (
 DECIDED_BY: tuple[str, ...] = (USER, RULES, VALIDATOR)
 
 
+# --- sensitivity ------------------------------------------------------------------
+#
+# What P9 records about a group's sensitivity BEFORE P7 has decided anything. P7
+# owns handling classes; this says only whether P9 saw a reason to treat the group
+# as sensitive, and `none` is the answer when it did not.
+
+NO_SENSITIVITY: str = "none"
+SENSITIVE_PRESENT: str = "sensitive-present"
+
+SENSITIVITY_STATES: tuple[str, ...] = (NO_SENSITIVITY, SENSITIVE_PRESENT)
+
+
 # --- P2's vocabulary, carried verbatim -------------------------------------------
 #
 # P2 publishes `STAGE_IDS`, `OUTCOMES`, `BUDGET_STATES` and `DIMENSIONS` as tuples

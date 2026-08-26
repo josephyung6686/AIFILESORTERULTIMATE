@@ -84,12 +84,14 @@ def _graph(*neighbors, limits=None):
     )
 
 
-def _evaluate(conn, graph, *, limits=None, conflicts=None, basis_key=BASIS):
+def _evaluate(conn, graph, *, limits=None, conflicts=None, basis_key=BASIS,
+              seed_anchors=False):
     return evaluate_stop_rules(
         conn, graph,
         limits=limits or _limits(),
         conflicts_for=conflicts if conflicts is not None else (lambda files: ()),
         basis_key=basis_key,
+        seed_anchors=seed_anchors,
     )
 
 
@@ -133,14 +135,28 @@ def test_sr1_fires_when_no_edge_anchors(learning_conn):
     assert outcome.group_id == GROUP
 
 
-def test_sr1_counts_independent_anchors_against_the_injected_minimum(learning_conn):
-    """`minimum_independent_anchors` is an open question with no ratified value, so
-    it arrives injected. One anchor passing a bar of two is not a supported group."""
+def test_a_seed_with_its_own_direct_fact_anchors_itself(learning_conn):
+    """A group of one, seeded by a validated fact, has an anchor even though no
+    edge points at it. Counting only edge endpoints would say a file cannot
+    anchor itself, which is the opposite of what a strongly-identified seed is."""
+    graph = _graph(_neighbor("file-a", COMPATIBLE_DOCUMENT_TYPE, detail="pdf~pdf"))
+    assert _evaluate(learning_conn, graph, seed_anchors=False).rules_fired == (SR1,)
+    assert _evaluate(learning_conn, graph, seed_anchors=True) is None
+
+
+def test_sr1_is_zero_anchors_and_not_the_support_bar(learning_conn):
+    """SR1 stops the group forming at all. `minimum_independent_anchors` decides
+    whether a formed group may become `supported`. Conflating them made a
+    one-anchor group vanish instead of waiting for confirmation."""
+    from grouping.graph import meets_support_bar
+
     graph = _graph(_neighbor("file-a", SHARED_VALIDATED_FACT, anchors=True))
-    assert _evaluate(learning_conn, graph, limits=_limits(
-        minimum_independent_anchors=1)) is None
-    assert _evaluate(learning_conn, graph, limits=_limits(
-        minimum_independent_anchors=2)).rules_fired == (SR1,)
+    strict = _limits(minimum_independent_anchors=2)
+    assert _evaluate(learning_conn, graph, limits=strict) is None
+    assert meets_support_bar(graph, limits=strict, seed_anchors=False) is False
+    assert meets_support_bar(graph, limits=_limits(minimum_independent_anchors=1),
+                             seed_anchors=False) is True
+    assert meets_support_bar(graph, limits=strict, seed_anchors=True) is True
 
 
 def test_a_sparse_anchorless_group_is_tentative_discovery_not_no_group(learning_conn):
