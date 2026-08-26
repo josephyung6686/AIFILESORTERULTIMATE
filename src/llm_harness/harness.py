@@ -258,6 +258,7 @@ def _issue_and_validate(
         model_target=released.model_target,
         policy_version=released.policy_version,
         release_id=released.release_id,
+        dossier_id=dossier.dossier_id,
     )
     record_dossier(conn, dossier, observed_at=observed_at)
     result = issue(conn, released, payload, model_client=model_client)

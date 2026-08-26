@@ -15,6 +15,7 @@ confirms the key still resolves.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
@@ -229,3 +230,42 @@ def test_any_non_none_resolution_means_the_key_still_exists(resolved):
     """The store answers presence. Its shape is not a second span source."""
     verdict = _one(_validate(_dossier(), _bytes(), resolver=lambda key: resolved))
     assert verdict.outcome == ACCEPT_DIRECT
+
+
+# --- R5: the response row joins to its dossier ----------------------------------
+
+
+def test_a_stored_response_is_keyed_by_the_dossier_not_the_release():
+    """`transport.issue` wrote `dossier_id=payload.release_id`.
+
+    Once `dossier_id` became a content address (R2) that stopped joining to
+    anything: every stored response was orphaned from the dossier it answers, and
+    `replay_recorded_response`, which looks up by `dossier.dossier_id`, could
+    never find one. A capability is not an identity.
+    """
+    import inspect
+
+    from llm_harness.records import CallPayload, build_call_payload
+
+    assert "dossier_id" in {f.name for f in dataclasses.fields(CallPayload)}
+    parameters = inspect.signature(build_call_payload).parameters
+    assert parameters["dossier_id"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert parameters["dossier_id"].default is inspect.Parameter.empty
+
+
+def test_transport_never_uses_a_release_id_as_a_dossier_id():
+    import ast
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[2] / "src" / "llm_harness" / "transport.py"
+    ).read_text()
+    offenders = [
+        node.value.lineno
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.keyword)
+        and node.arg == "dossier_id"
+        and isinstance(node.value, ast.Attribute)
+        and node.value.attr == "release_id"
+    ]
+    assert offenders == [], offenders

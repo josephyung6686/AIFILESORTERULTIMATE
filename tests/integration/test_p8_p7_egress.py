@@ -20,7 +20,7 @@ from evidence_shape.schema import create_evidence_schema
 from evidence_shape.store import (
     TextUnit, new_id, record_observation, record_run, record_text_unit,
 )
-from llm_harness.fingerprint import prompt_fingerprint
+from llm_harness.fingerprint import dossier_content_address, prompt_fingerprint
 from llm_harness.records import PromptDefinition, build_call_payload
 from llm_harness.schema import create_llm_schema
 from llm_harness.transport import ModelClient, ModelResponse, issue
@@ -176,6 +176,9 @@ def _payload_from(released: Released, prompt: PromptDefinition):
         model_target=released.model_target,
         policy_version=released.policy_version,
         release_id=released.release_id,
+        dossier_id=dossier_content_address(
+            dossier, allowed_vocabulary=(), allowed_schema_bytes=b"{}",
+        ),
     )
 
 

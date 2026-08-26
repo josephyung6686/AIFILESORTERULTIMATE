@@ -242,6 +242,7 @@ def test_build_call_payload_assembles_model_visible_bytes_from_sources():
         prompt_fingerprint="fp-injected",
         policy_version="policy-1",
         release_id="rel-1",
+        dossier_id="dossier-address-1",
     )
     assert isinstance(payload, CallPayload)
     assert payload.__dataclass_params__.frozen
@@ -254,7 +255,9 @@ def test_build_call_payload_assembles_model_visible_bytes_from_sources():
         "prompt_fingerprint",
         "policy_version",
         "release_id",
+        "dossier_id",
     )
+    assert payload.dossier_id != payload.release_id
     assert payload.prompt_definition is prompt
     assert payload.canonical_dossier_bytes == dossier_bytes
     assert payload.model_visible_bytes == assemble(prompt, dossier_bytes)
@@ -276,6 +279,7 @@ def test_call_payload_rejects_mismatched_preassembled_bytes():
             prompt_fingerprint="fp",
             policy_version="policy-1",
             release_id="rel-1",
+            dossier_id="dossier-address-1",
         )
 
 

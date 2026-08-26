@@ -167,7 +167,7 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
     except Exception as exc:
         explanation = _client_exception_explanation(exc)
         record_call_failure(
-            conn, dossier_id=payload.release_id, failure_class="client_raised",
+            conn, dossier_id=payload.dossier_id, failure_class="client_raised",
             explanation=explanation, observed_at=_now(),
         )
         return _failed(released, payload, explanation=explanation)
@@ -176,14 +176,14 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
             f"client returned {type(raw).__name__}; transport bytes must be bytes"
         )
         record_call_failure(
-            conn, dossier_id=payload.release_id, failure_class="malformed_bytes",
+            conn, dossier_id=payload.dossier_id, failure_class="malformed_bytes",
             explanation=explanation, observed_at=_now(),
         )
         return _failed(released, payload, explanation=explanation)
     response_bytes = bytes(raw)
     response_id = record_response(
         conn,
-        dossier_id=payload.release_id,
+        dossier_id=payload.dossier_id,
         response_bytes=response_bytes,
         model_id=payload.model_target.model_id,
         prompt_fingerprint=fingerprint,

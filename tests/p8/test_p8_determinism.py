@@ -41,3 +41,31 @@ def test_probe_dossier_address_ignores_release_ids_and_changes_with_visible_byte
     assert canonical_dossier_bytes(changed, prompt) != canonical_dossier_bytes(
         dossier, prompt
     )
+
+
+def test_the_probe_walks_replay_the_dispatcher_and_a_real_p2_row():
+    """R5: the probe must exercise the path the product takes, not a shortcut."""
+    import ast
+    from pathlib import Path
+
+    payload = run_probe()
+    assert payload["p2_stage_outcome"] == "produced"
+    assert payload["p2_budget_state"] == "within_ceiling"
+    # The P2 payload is read back from the row, so it carries P8's opaque fields.
+    assert "validator_version" in payload["p2_payload"]
+    assert payload["grounding_report"]["citations_span_matched"] == 1
+
+    source = Path(__file__).resolve().parent / "determinism_probe.py"
+    tree = ast.parse(source.read_text())
+    called = {
+        node.func.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    assert "validate_response" not in called, "the probe must go through replay"
+    assert "replay_recorded_response" in called
+    assert "emit_stage_output" in called
+    assert not [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.keyword) and node.arg == "site_validator"
+    ]

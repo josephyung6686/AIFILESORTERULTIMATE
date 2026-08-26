@@ -107,6 +107,7 @@ class CallPayload:
     prompt_fingerprint: str
     policy_version: str
     release_id: str
+    dossier_id: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.prompt_definition, PromptDefinition):
@@ -125,6 +126,18 @@ class CallPayload:
                 "prompt_fingerprint, policy_version, and release_id are required "
                 "provenance fields and are not part of the model-visible bytes"
             )
+        if not self.dossier_id:
+            raise MalformedRecord(
+                "dossier_id is the content address of the dossier these bytes carry. "
+                "It is what the stored response and any call failure are keyed by; "
+                "release_id is a single-use capability and cannot serve as an identity"
+            )
+        if self.dossier_id == self.release_id:
+            raise MalformedRecord(
+                "dossier_id must not be the release_id: two calls over identical "
+                "content would then have two identities and neither could be "
+                "recognised as the other's replay"
+            )
 
 
 def build_call_payload(
@@ -134,6 +147,7 @@ def build_call_payload(
     model_target: ModelTarget,
     policy_version: str,
     release_id: str,
+    dossier_id: str,
     prompt_fingerprint: str | None = None,
 ) -> CallPayload:
     """Sole public factory. Always assembles model-visible bytes from the two sources.
@@ -153,6 +167,7 @@ def build_call_payload(
         prompt_fingerprint=fingerprint_of(prompt_definition),
         policy_version=policy_version,
         release_id=release_id,
+        dossier_id=dossier_id,
     )
 
 

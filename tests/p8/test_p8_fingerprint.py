@@ -126,6 +126,7 @@ def test_build_call_payload_retains_sources_and_assembles_model_visible_bytes():
         model_target=target,
         policy_version="policy-1",
         release_id="rel-1",
+        dossier_id="dossier-address-1",
     )
     assert payload.prompt_definition is definition
     assert payload.canonical_dossier_bytes == dossier_bytes
@@ -153,6 +154,7 @@ def test_build_call_payload_binds_released_model_target_and_policy_version():
         model_target=target,
         policy_version=policy_version,
         release_id="rel-1",
+        dossier_id="dossier-address-1",
     )
     assert payload.model_target == target
     assert payload.policy_version == policy_version
@@ -169,6 +171,7 @@ def test_mutating_either_source_changes_the_recomputed_payload():
         model_target=_model_target(),
         policy_version="policy-1",
         release_id="rel-1",
+        dossier_id="dossier-address-1",
     )
     mutated_definition = dataclasses.replace(
         definition, template_bytes=definition.template_bytes + b"X",
@@ -179,6 +182,7 @@ def test_mutating_either_source_changes_the_recomputed_payload():
         model_target=_model_target(),
         policy_version="policy-1",
         release_id="rel-1",
+        dossier_id="dossier-address-1",
     )
     after_dossier = build_call_payload(
         definition,
@@ -186,6 +190,7 @@ def test_mutating_either_source_changes_the_recomputed_payload():
         model_target=_model_target(),
         policy_version="policy-1",
         release_id="rel-1",
+        dossier_id="dossier-address-1",
     )
     assert after_template.model_visible_bytes != baseline.model_visible_bytes
     assert after_template.prompt_fingerprint != baseline.prompt_fingerprint
@@ -206,6 +211,7 @@ def test_factory_cannot_accept_inconsistent_preassembled_bytes():
             prompt_fingerprint=prompt_fingerprint(definition),
             policy_version="policy-1",
             release_id="rel-1",
+            dossier_id="dossier-address-1",
         )
 
 
@@ -217,6 +223,7 @@ def test_factory_cannot_bind_a_fingerprint_that_does_not_match_the_definition():
         model_target=_model_target(),
         policy_version="policy-1",
         release_id="rel-1",
+        dossier_id="dossier-address-1",
         prompt_fingerprint="not-the-digest",
     )
     assert payload.prompt_fingerprint == prompt_fingerprint(definition)

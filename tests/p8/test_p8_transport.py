@@ -126,6 +126,7 @@ def _payload(released: Released, *, dossier: bytes = b"DOSSIER",
         model_target=model_target or released.model_target,
         policy_version=released.policy_version,
         release_id=released.release_id,
+        dossier_id="dossier-address-1",
     )
 
 
@@ -325,6 +326,7 @@ def test_lying_payload_fingerprint_is_refused_before_spend_or_invoke(transport_c
         prompt_fingerprint="0" * 64,
         policy_version=honest.policy_version,
         release_id=honest.release_id,
+        dossier_id="dossier-address-1",
     )
     with pytest.raises(MalformedRecord):
         issue(transport_conn, released, lying, model_client=_client(CLOUD, recorder))

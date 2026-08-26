@@ -428,6 +428,7 @@ def test_released_issues_once_validates_and_persists(harness_conn, subject):
             model_target=CLOUD,
             policy_version=POLICY_VERSION,
             release_id=granted.release_id,
+            dossier_id="dossier-address-1",
         ).model_visible_bytes,
     ]
     # The model saw what P7 released — addressed and in context, not a joined blob.
