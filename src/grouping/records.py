@@ -37,7 +37,6 @@ from grouping.vocabulary import (
     LABEL_SOURCES,
     MEMBERSHIP_BASES,
     MEMBERSHIP_DECISIONS,
-    NON_ANCHORING_SUPPORT,
     OUTLIER_FLAGS,
     REVIEW_STATES,
     SEED_KINDS,
@@ -252,16 +251,19 @@ class Membership:
             raise MalformedGroupRecord("support entries must be Support records")
 
         if self.basis == DIRECT_ANCHOR:
-            kinds = {item.support_kind for item in support}
-            if SHARED_VALIDATED_FACT not in kinds:
+            # One check, not two. Requiring a `shared-validated-fact` support
+            # already excludes every set that is only non-anchoring channels,
+            # because that kind is not one of them -- a second test for
+            # a second test against the non-anchoring channels could never fire,
+            # and a guard with no reachable cause is a claim about behaviour
+            # that is not there.
+            # Semantic retrieval and a bounded session propose a neighbour; they
+            # never anchor one, and this is where that is enforced.
+            if SHARED_VALIDATED_FACT not in {item.support_kind for item in support}:
                 raise MalformedGroupRecord(
                     "direct-anchor requires a shared-validated-fact support "
-                    "resolving to a Direct or Validated fact on this file"
-                )
-            if kinds <= set(NON_ANCHORING_SUPPORT):
-                raise MalformedGroupRecord(
-                    "semantic retrieval and bounded session can propose a "
-                    "neighbour; they never anchor one"
+                    "resolving to a Direct or Validated fact on this file; "
+                    "semantic retrieval and bounded session never anchor"
                 )
         if not isinstance(self.insufficient_evidence, bool):
             raise MalformedGroupRecord("insufficient_evidence is a boolean")
