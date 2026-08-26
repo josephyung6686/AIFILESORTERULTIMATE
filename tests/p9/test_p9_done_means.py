@@ -34,6 +34,7 @@ from grouping.vocabulary import (
     SHARED_VALIDATED_FACT,
     STRONGLY_IDENTIFIED_FILE,
     UNCERTAIN,
+    USER_CREATED_STARTING_POINT,
 )
 
 T0 = "2026-08-27T00:00:00Z"
@@ -219,3 +220,141 @@ def _limits():
         max_retrieved_neighbors=50, max_graph_nodes=10, max_candidate_members=10,
         max_dossier_tokens=4000, generic_hub_frequency=9,
         minimum_independent_anchors=1, max_excerpt_characters=240)
+
+
+# --- Done-means 5: embeddings never establish a group ----------------------------
+
+
+def test_every_group_reachable_with_embeddings_on_is_reachable_with_them_off(
+    p9_conn,
+):
+    """§4.2: embeddings never establish a group. So a group that forms with them
+    enabled and does NOT form with them disabled is a defect by definition, and
+    the replay harness runs both to find one.
+
+    Proved here at the rule rather than the run: a neighbourhood whose only
+    surviving edges are semantic fires SR2, whatever the model would have said.
+    """
+    from grouping.graph import evaluate_stop_rules
+    from grouping.vocabulary import SR2
+
+    semantic_only = build_graph(
+        group_id="group-1",
+        neighborhood=Neighborhood(
+            seed=Seed(
+                seed_kind=USER_CREATED_STARTING_POINT, file_id="file-seed",
+                content_hash="h-seed", field_key=None, value=None,
+                reliability_state=None, observation_key=None,
+                basis="the user started a group here"),
+            neighbors=tuple(
+                Neighbor(
+                    file_id=f"file-{n}", content_hash=f"h-{n}",
+                    channel=MUTUAL_SEMANTIC_RETRIEVAL, anchors=False,
+                    evidence_ref=None, detail=f"sem-{n}")
+                for n in range(3))),
+        limits=_limits(), duplicate_or_version=None, created_at=T0)
+
+    outcome = evaluate_stop_rules(
+        p9_conn, semantic_only, limits=_limits(),
+        conflicts_for=lambda files: (), basis_key="b", seed_anchors=False)
+    assert outcome is not None
+    assert SR2 in outcome.rules_fired
+
+
+def test_a_semantic_neighbour_can_never_be_the_only_support_of_an_anchor():
+    """The same rule at the record. A `direct-anchor` membership requires a
+    `shared-validated-fact` support, so no amount of semantic proximity produces
+    one."""
+    from grouping.records import MalformedGroupRecord, Membership, Support
+    from grouping.vocabulary import BOUNDED_SESSION, NOT_FLAGGED, RULES
+
+    for kind in (MUTUAL_SEMANTIC_RETRIEVAL, BOUNDED_SESSION):
+        with pytest.raises(MalformedGroupRecord):
+            Membership(
+                membership_id="m-1", group_id="g-1", file_id="f-1",
+                content_hash="h-1", basis=DIRECT_ANCHOR,
+                support=(Support(
+                    support_kind=kind, observation_key=None, quote_or_field=None,
+                    location=None, edge_ref="edge-1"),),
+                decision=INCLUDED, decision_source=RULES,
+                insufficient_evidence=False, insufficiency_statement=None,
+                conflicts=(), outlier_flag=NOT_FLAGGED,
+                validation_verdict_ref=None, created_at=T0)
+
+
+# --- Done-means 7: one file, two groups ------------------------------------------
+
+
+def test_one_file_holds_accepted_memberships_in_two_groups_at_once(p9_conn):
+    """§4.9: an abstract belongs to a Research group and an application packet at
+    the same time, and P11 reads both. A membership is per (group, file), so the
+    two do not compete -- and a store that keyed on the file alone would have made
+    the second overwrite the first."""
+    from grouping.acceptance import group_state_as_of, record_acceptance
+    from grouping.records import (
+        AnchorFact,
+        Group,
+        GroupAcceptance,
+        Membership,
+        Support,
+    )
+    from grouping.store import (
+        memberships_for_group,
+        record_group,
+        record_membership,
+    )
+    from grouping.vocabulary import (
+        ACCEPTED,
+        CANDIDATE,
+        NOT_FLAGGED,
+        NOT_REQUIRED,
+        RULES,
+        USER,
+    )
+
+    abstract = ("file-abstract", "h-abstract")
+    for group_id, field, value in (
+        ("group-research", "project", "photonics"),
+        ("group-application", "target_school", "Columbia"),
+    ):
+        record_group(p9_conn, Group(
+            group_id=group_id, seed_ref=abstract[0],
+            seed_kind=STRONGLY_IDENTIFIED_FILE,
+            proposed_basis=f"{field}={value}",
+            anchor_facts=(AnchorFact(
+                field=field, value=value, file_ids=(abstract[0],),
+                reliability_state="validated",
+                observation_key="sha256:" + "c" * 64),),
+            pre_model_signals={}, anchor_count=1, coherence_verdict=None,
+            coherence_citations=(), group_category=None, display_label=None,
+            label_source=None, conflicts=(), stop_rule_hits=(), state=CANDIDATE,
+            sensitivity_state="none", dossier_id=None, llm_response_ref=None,
+            validation_verdict_ref=None, created_by=RULES, created_at=T0))
+        record_membership(p9_conn, Membership(
+            membership_id=f"{group_id}:{abstract[0]}", group_id=group_id,
+            file_id=abstract[0], content_hash=abstract[1], basis=DIRECT_ANCHOR,
+            support=(Support(
+                support_kind=SHARED_VALIDATED_FACT,
+                observation_key="sha256:" + "c" * 64, quote_or_field=field,
+                location=None, edge_ref=None),),
+            decision=INCLUDED, decision_source=RULES, insufficient_evidence=False,
+            insufficiency_statement=None, conflicts=(), outlier_flag=NOT_FLAGGED,
+            validation_verdict_ref=None, created_at=T0))
+        record_acceptance(p9_conn, GroupAcceptance(
+            acceptance_id=f"{PLAN}:{group_id}", plan_version_id=PLAN,
+            group_id=group_id, membership_id=None, acceptance=ACCEPTED,
+            review_state=NOT_REQUIRED, user_edited_label=None, aliases=(),
+            review_decision_ref=None, decided_by=USER, created_at=T0))
+
+    for group_id in ("group-research", "group-application"):
+        members = memberships_for_group(p9_conn, group_id)
+        assert [item.file_id for item in members] == [abstract[0]]
+        assert members[0].decision == INCLUDED
+        assert group_state_as_of(
+            p9_conn, group_id=group_id, plan_version_id=PLAN) == ACCEPTED
+
+    both = p9_conn.execute(
+        "SELECT group_id FROM memberships WHERE file_id = ? ORDER BY group_id",
+        (abstract[0],)).fetchall()
+    assert [row["group_id"] for row in both] == [
+        "group-application", "group-research"]
