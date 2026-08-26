@@ -151,3 +151,49 @@ def test_every_closed_value_is_a_named_constant_in_this_module():
             if isinstance(node, ast.Constant) and node.value in closed:
                 inline.append(f"{path.name}:{node.lineno}:{node.value!r}")
     assert inline == [], inline
+
+
+def test_every_borrowed_p2_value_is_still_a_member_of_p2s_own_tuple():
+    """P2 publishes its vocabularies as tuples of literals with no named constant
+    per member, so a consumer either spells them or indexes them. P9 names each
+    one it uses -- and this is what makes a P2 rename a failure here rather than a
+    drift that shows up as a stage nobody records."""
+    from eval_harness.vocabulary import (
+        BUDGET_STATES,
+        DIMENSIONS,
+        OUTCOMES,
+        STAGE_IDS,
+    )
+
+    from grouping import vocabulary as p9
+
+    for name, owner in (
+        ("P2_RETRIEVAL_STAGE", STAGE_IDS),
+        ("P2_GRAPH_STAGE", STAGE_IDS),
+        ("P2_GROUPING_STAGE", STAGE_IDS),
+        ("P2_MODEL_CALL_STAGE", STAGE_IDS),
+        ("P2_RETRIEVAL_DIMENSION", DIMENSIONS),
+        ("P2_GRAPH_DIMENSION", DIMENSIONS),
+        ("P2_GROUPING_DIMENSION", DIMENSIONS),
+        ("P2_PRODUCED", OUTCOMES),
+        ("P2_ABSTAINED", OUTCOMES),
+        ("P2_DEFERRED", OUTCOMES),
+        ("P2_WITHIN_CEILING", BUDGET_STATES),
+        ("P2_CEILING_REACHED", BUDGET_STATES),
+    ):
+        assert getattr(p9, name) in owner, name
+
+
+def test_the_two_colliding_words_are_named_apart():
+    """P2's `retrieval` dimension and P9's `RETRIEVAL` failure stage are the same
+    spelling for different concepts, and so are `graph` and `GRAPH`. Named apart,
+    the way the borrowed P1 scan state is."""
+    from grouping import vocabulary as p9
+
+    assert p9.P2_RETRIEVAL_DIMENSION == p9.RETRIEVAL
+    assert p9.P2_GRAPH_DIMENSION == p9.GRAPH
+    assert p9.RETRIEVAL in p9.FAILURE_STAGES
+    assert p9.GRAPH in p9.FAILURE_STAGES
+    # And the collision is real, which is why they needed naming apart: a reader
+    # seeing the bare string cannot tell which of the two it is.
+    assert p9.P2_GRAPH_STAGE != p9.P2_GRAPH_DIMENSION

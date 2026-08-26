@@ -181,6 +181,30 @@ CREATE TRIGGER IF NOT EXISTS group_edges_no_delete
 BEFORE DELETE ON group_edges
 BEGIN SELECT RAISE(ABORT, 'an edge is superseded, never removed'); END;
 
+-- The failure log is append-only. A row corrected in place would erase which of
+-- the three stages actually failed, which is the whole reason they are kept
+-- apart.
+CREATE TRIGGER IF NOT EXISTS group_failure_points_no_delete
+BEFORE DELETE ON group_failure_points
+BEGIN SELECT RAISE(ABORT, 'a failure point is append-only, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS group_failure_points_never_overwritten
+BEFORE UPDATE ON group_failure_points
+BEGIN SELECT RAISE(ABORT, 'a failure point is append-only, never overwritten'); END;
+
+CREATE TRIGGER IF NOT EXISTS stop_rule_outcomes_no_delete
+BEFORE DELETE ON stop_rule_outcomes
+BEGIN SELECT RAISE(ABORT, 'a stop-rule outcome is append-only, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS stop_rule_outcomes_never_overwritten
+BEFORE UPDATE ON stop_rule_outcomes
+BEGIN SELECT RAISE(ABORT, 'a stop-rule outcome is append-only, never overwritten'); END;
+
+CREATE TRIGGER IF NOT EXISTS group_dossiers_no_delete
+BEFORE DELETE ON group_dossiers
+BEGIN SELECT RAISE(ABORT, 'a dossier is append-only, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS group_dossiers_never_overwritten
+BEFORE UPDATE ON group_dossiers
+BEGIN SELECT RAISE(ABORT, 'a dossier is append-only, never overwritten'); END;
+
 CREATE TRIGGER IF NOT EXISTS group_acceptance_no_delete
 BEFORE DELETE ON group_acceptance
 BEGIN SELECT RAISE(ABORT, 'an acceptance is superseded, never removed'); END;

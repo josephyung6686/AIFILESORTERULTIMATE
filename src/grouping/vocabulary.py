@@ -198,6 +198,35 @@ REVIEW_STATES: tuple[str, ...] = (
 DECIDED_BY: tuple[str, ...] = (USER, RULES, VALIDATOR)
 
 
+# --- P2's vocabulary, carried verbatim -------------------------------------------
+#
+# P2 publishes `STAGE_IDS`, `OUTCOMES`, `BUDGET_STATES` and `DIMENSIONS` as tuples
+# of literals with no named constant per member, so a consumer either spells them
+# or indexes them. P9 gives each one it uses a name here, once, the way it named
+# P1's borrowed scan state -- and a test asserts every one is still a member of
+# P2's own tuple, so a P2 rename is a failure rather than a drift.
+#
+# Two of them collide with P9's own words. P2's `retrieval` DIMENSION and P9's
+# `RETRIEVAL` failure stage are different concepts, and so are P2's `graph`
+# dimension and P9's `GRAPH` stage.
+
+P2_RETRIEVAL_STAGE: str = "retrieval"
+P2_GRAPH_STAGE: str = "graph_construction"
+P2_GROUPING_STAGE: str = "grouping"
+P2_MODEL_CALL_STAGE: str = "llm_interpretation"
+
+P2_RETRIEVAL_DIMENSION: str = "retrieval"
+P2_GRAPH_DIMENSION: str = "graph"
+P2_GROUPING_DIMENSION: str = "grouping"
+
+P2_PRODUCED: str = "produced"
+P2_ABSTAINED: str = "abstained"
+P2_DEFERRED: str = "deferred"
+
+P2_WITHIN_CEILING: str = "within_ceiling"
+P2_CEILING_REACHED: str = "ceiling_reached"
+
+
 # --- SR6's equivalence classes ---------------------------------------------------
 #
 # What "the same proposal" means, for the two things a user can reject. Spelled
